@@ -1,0 +1,56 @@
+{
+    "name": "@wcms/commerce",
+    "version": "2.0.0",
+    "files": [
+        "lib",
+        "src",
+        "README.md"
+    ],
+    "main": "src/index.js",
+    "type": "module",
+    "types": "src/index.d.ts",
+    "sideEffects": false,
+    "scripts": {
+        "build": "npm run build:bundle && npm run build:types",
+        "build:bundle": "node ./build.mjs",
+        "build:types": "cp ./src/index.d.ts ./lib/commerce.d.ts",
+        "build:watch": "npm run build:bundle --watch",
+        "test": "wtr --config ./web-test-runner.config.mjs --coverage --watch",
+        "test:ci": "wtr --config ./web-test-runner.config.mjs --debug",
+        "test:file": "wtr --config ./web-test-runner.config.mjs --coverage --watch"
+    },
+    "dependencies": {
+        "@dexter/tacocat-consonant-templates": "^1.0.0",
+        "@dexter/tacocat-core": "^1.0.0",
+        "@dexter/tacocat-wcs-client": "^1.0.0",
+        "@pandora/commerce-checkout-url-builder": "^1.5.2",
+        "@pandora/data-models-odm": "0.5.4",
+        "@pandora/data-source-wcs": "0.2.8",
+        "@pandora/data-source-utils": "0.3.1",
+        "@pandora/fetch": "1.2.4"
+    },
+    "devDependencies": {
+        "@dexter/eslint-config-tacocat": "^1.0.0",
+        "@esm-bundle/chai": "4.3.4-fix.0",
+        "@esm-bundle/chai-as-promised": "7.1.1",
+        "@types/chai-as-promised": "7.1.5",
+        "@types/sinon": "10.0.15",
+        "@web/dev-server-import-maps": "^0.1.1",
+        "@web/test-runner": "0.13.27",
+        "@web/test-runner-commands": "0.6.1",
+        "@web/test-runner-playwright": "0.10.1",
+        "esbuild": "0.18.11",
+        "eslint": "8.20.0",
+        "eslint-config-airbnb-base": "15.0.0",
+        "eslint-plugin-chai-friendly": "0.7.2",
+        "eslint-plugin-compat": "4.0.2",
+        "eslint-plugin-ecmalist": "1.0.8",
+        "eslint-plugin-import": "2.26.0",
+        "sinon": "13.0.1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git@git.corp.adobe.com:wcms/tacocat.js.git",
+        "directory": "packages/commerce"
+    }
+}

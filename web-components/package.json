@@ -1,0 +1,72 @@
+{
+    "name": "@wcms/commerce-web-components",
+    "version": "0.0.1",
+    "files": [
+        "lib",
+        "src",
+        "README.md"
+    ],
+    "main": "src/index.js",
+    "type": "module",
+    "sideEffects": [
+        "src/**/*"
+    ],
+    "scripts": {
+        "build": "node scripts/build.mjs",
+        "copy": "cp ./lib/*.js ~/milo/libs/deps && cp ./lib/*.js.map ~/milo/libs/deps",
+        "consume": "npm run build && npm run copy",
+        "test": "wtr --config ./web-test-runner.config.mjs --coverage --watch --debug",
+        "test:ci": "wtr --config ./web-test-runner.config.mjs  --debug"
+    },
+    "dependencies": {
+        "lit": "^2.8.0",
+        "@spectrum-web-components/action-menu": "^0.42.1",
+        "@spectrum-web-components/button": "^0.42.1",
+        "@spectrum-web-components/checkbox": "^0.42.1",
+        "@spectrum-web-components/dialog": "^0.42.1",
+        "@spectrum-web-components/icon": "^0.42.1",
+        "@spectrum-web-components/icons": "^0.42.1",
+        "@spectrum-web-components/icons-workflow": "^0.42.1",
+        "@spectrum-web-components/link": "^0.42.1",
+        "@spectrum-web-components/menu": "^0.42.1",
+        "@spectrum-web-components/overlay": "^0.42.1",
+        "@spectrum-web-components/popover": "^0.42.1",
+        "@spectrum-web-components/progress-circle": "^0.42.1",
+        "@spectrum-web-components/radio": "^0.42.1",
+        "@spectrum-web-components/theme": "^0.42.1",
+        "@spectrum-web-components/tooltip": "^0.42.1",
+        "@spectrum-web-components/search": "^0.42.1",
+        "@spectrum-web-components/sidenav": "0.42.1",
+        "@spectrum-web-components/tray": "^0.42.1",
+        "@spectrum-web-components/tabs": "^0.42.1",
+        "@spectrum-web-components/reactive-controllers": "^0.42.1",
+        "@spectrum-web-components/split-button": "^0.42.1"
+    },
+    "devDependencies": {
+        "@dexter/eslint-config-tacocat": "^1.0.0",
+        "@esm-bundle/chai": "4.3.4-fix.0",
+        "@esm-bundle/chai-as-promised": "7.1.1",
+        "@types/chai-as-promised": "7.1.5",
+        "@types/sinon": "10.0.15",
+        "@wcms/commerce": "^1.0.0",
+        "@web/dev-server": "^0.3.1",
+        "@web/dev-server-esbuild": "^0.4.1",
+        "@web/dev-server-import-maps": "^0.1.1",
+        "@web/test-runner": "0.13.27",
+        "@web/test-runner-commands": "0.6.1",
+        "@web/test-runner-visual-regression": "0.9.0",
+        "esbuild": "0.18.11",
+        "eslint": "8.20.0",
+        "eslint-config-airbnb-base": "15.0.0",
+        "eslint-plugin-chai-friendly": "0.7.2",
+        "eslint-plugin-compat": "4.0.2",
+        "eslint-plugin-ecmalist": "1.0.8",
+        "eslint-plugin-import": "2.26.0",
+        "sinon": "13.0.1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git@git.corp.adobe.com:wcms/tacocat.js.git",
+        "directory": "packages/web-components"
+    }
+}

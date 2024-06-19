@@ -43,12 +43,11 @@
         "@spectrum-web-components/split-button": "^0.42.1"
     },
     "devDependencies": {
-        "@dexter/eslint-config-tacocat": "^1.0.0",
+        "@dexter/eslint-config-tacocat": "file:../deps/eslint-config-tacocat-1.1.2.tgz",
         "@esm-bundle/chai": "4.3.4-fix.0",
         "@esm-bundle/chai-as-promised": "7.1.1",
         "@types/chai-as-promised": "7.1.5",
         "@types/sinon": "10.0.15",
-        "@wcms/commerce": "^1.0.0",
         "@web/dev-server": "^0.3.1",
         "@web/dev-server-esbuild": "^0.4.1",
         "@web/dev-server-import-maps": "^0.1.1",
@@ -66,7 +65,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "git@git.corp.adobe.com:wcms/tacocat.js.git",
+        "url": "git@github.com:adobecom/mas.git",
         "directory": "packages/web-components"
     }
 }

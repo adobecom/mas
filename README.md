@@ -1,5 +1,5 @@
-# Your Project's Title...
-Your project's description...
+# Merch At Scale
+This project is a library of web components providing merchandising content to various surfaces.
 
 ## Environments
 - Preview: https://main--mas--adobecom.hlx.page/
@@ -19,8 +19,9 @@ npm run lint
 
 ## Local development
 
-1. Create a new repository based on the `aem-boilerplate` template and add a mountpoint in the `fstab.yaml`
-1. Add the [AEM Code Sync GitHub App](https://github.com/apps/aem-code-sync) to the repository
-1. Install the [AEM CLI](https://github.com/adobe/helix-cli): `npm install -g @adobe/aem-cli`
-1. Start AEM Proxy: `aem up` (opens your browser at `http://localhost:3000`)
-1. Open the `mas` directory in your favorite IDE and start coding :)
+Refer to the corresponding README.md under any of the packages:
+* commerce - constain generic commerce-related logic, 'price' and 'checkout-link' web components
+* web-components - merch-card, merch-offer-selector and other web components
+
+#### Troubleshooting
+Please reach out to us in `#tacocat-friends` for any questions.

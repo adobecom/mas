@@ -53,7 +53,7 @@ Provides the following Consonant merch card implementations
 ```
 # at the project root run the following commands:
 
-npm run bootstrap
+npm install
 
 cd packages/web-components
 

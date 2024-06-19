@@ -2,7 +2,6 @@
 
 This package provides commerce capabilities to non Dexter consumers such as Milo.
 
-## Operations
 
 ### Building
 

@@ -20,17 +20,17 @@
         "test:file": "wtr --config ./web-test-runner.config.mjs --coverage --watch"
     },
     "dependencies": {
-        "@dexter/tacocat-consonant-templates": "^1.0.0",
-        "@dexter/tacocat-core": "^1.0.0",
-        "@dexter/tacocat-wcs-client": "^1.0.0",
-        "@pandora/commerce-checkout-url-builder": "^1.5.2",
-        "@pandora/data-models-odm": "0.5.4",
-        "@pandora/data-source-wcs": "0.2.8",
-        "@pandora/data-source-utils": "0.3.1",
-        "@pandora/fetch": "1.2.4"
+        "@dexter/tacocat-consonant-templates": "file:../deps/tacocat-consonant-templates-1.13.0.tgz",
+        "@dexter/tacocat-core": "file:../deps/tacocat-core-1.12.2.tgz",
+        "@dexter/tacocat-wcs-client": "file:../deps/tacocat-wcs-client-1.17.0.tgz",
+        "@pandora/commerce-checkout-url-builder": "file:../deps/commerce-checkout-url-builder-1.6.0.tgz",
+        "@pandora/data-models-odm": "file:../deps/data-models-odm-0.5.4.tgz",
+        "@pandora/data-source-wcs": "file:../deps/data-source-wcs-0.2.8.tgz",
+        "@pandora/data-source-utils": "file:../deps/data-source-utils-0.3.1.tgz",
+        "@pandora/fetch": "file:../deps/fetch-1.3.4.tgz"
     },
     "devDependencies": {
-        "@dexter/eslint-config-tacocat": "^1.0.0",
+        "@dexter/eslint-config-tacocat": "file:../deps/eslint-config-tacocat-1.1.2.tgz",
         "@esm-bundle/chai": "4.3.4-fix.0",
         "@esm-bundle/chai-as-promised": "7.1.1",
         "@types/chai-as-promised": "7.1.5",
@@ -50,7 +50,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "git@git.corp.adobe.com:wcms/tacocat.js.git",
+        "url": "git@github.com:adobecom/mas.git",
         "directory": "packages/commerce"
     }
 }

@@ -4,10 +4,9 @@
     "private": true,
     "workspaces": ["web-components", "commerce"],
     "scripts": {
-        "lint:js": "eslint .",
-        "lint:css": "stylelint blocks/**/*.css styles/*.css",
-        "lint": "npm run lint:js && npm run lint:css",
-        "test": "npm run test"
+        "validate:ci": "npm run validate:commerce && npm run validate:web-components",
+        "validate:commerce": "cd commerce && npm run test:ci && npm run build",
+        "validate:web-components": "cd web-components && npm run test:ci && npm run build"
     },
     "repository": {
         "type": "git",

@@ -5,6 +5,7 @@ import '../merch-search.js';
 import './merch-sidenav-list.js';
 import './merch-sidenav-checkbox-group.js';
 import { SPECTRUM_MOBILE_LANDSCAPE, TABLET_DOWN } from '../media.js';
+import { disableBodyScroll, enableBodyScroll } from '../bodyScrollLock.js';
 
 document.addEventListener('sp-opened', () => {
     document.body.classList.add('merch-modal');
@@ -140,6 +141,7 @@ export class MerchSideNav extends LitElement {
 
     openModal() {
         this.updateComplete.then(async () => {
+            disableBodyScroll(this.dialog);
             const options = {
                 trigger: this.#target,
                 notImmediatelyClosable: true,
@@ -151,6 +153,7 @@ export class MerchSideNav extends LitElement {
             );
             overlay.addEventListener('close', () => {
                 this.modal = false;
+                enableBodyScroll(this.dialog);
             });
             this.shadowRoot.querySelector('sp-theme').append(overlay);
         });

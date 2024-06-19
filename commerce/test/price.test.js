@@ -286,6 +286,390 @@ describe('class "InlinePrice"', () => {
             ]);
         });
     });
+
+    describe('default display tax', () => {
+        const SEGMENTS = ['individual', 'business', 'student', 'university'];
+        const TESTS = [
+            {
+                locale: 'AE_ar',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'AE_en',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'ZA_en',
+                expected: [true, true, false, false]
+            },
+            {
+                locale: 'AT_de',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'BE_en',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'BE_fr',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'BE_nl',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'BG_bg',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'CH_de',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'CH_fr',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'CH_it',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'AZ_en',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'AZ_ru',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'CZ_cs',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'DE_de',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'DK_da',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'EE_et',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'EG_ar',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'EG_en',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'ES_es',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'FI_fi',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'FR_fr',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'GR_el',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'GR_en',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'HU_hu',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'IE_en',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'IL_en',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'IL_iw',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'IT_it',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'KW_ar',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'KW_en',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'LT_lt',
+                expected: [true, true, true, false]
+            },
+            {
+                locale: 'LU_de',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'LU_en',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'LU_fr',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'LV_lv',
+                expected: [true, true, true, false]
+            },
+            {
+                locale: 'DZ_ar',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'DZ_en',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'NG_en',
+                expected: [true, true, false, false]
+            },
+            {
+                locale: 'NL_nl',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'NO_nb',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'PL_pl',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'PT_pt',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'QA_ar',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'QA_en',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'RO_ro',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'RU_ru',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'SA_ar',
+                expected: [true, false, false, false]
+            },
+            {
+                locale: 'SA_en',
+                expected: [true, false, true, false]
+            },
+            {
+                locale: 'SE_sv',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'SI_sl',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'SK_sk',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'TR_tr',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'UA_uk',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'ZA_en',
+                expected: [true, true, false, false]
+            },
+            {
+                locale: 'AU_en',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'HK_en',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'ID_en',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'ID_in',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'IN_en',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'IN_hi',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'JP_ja',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'KR_ko',
+                expected: [true, true, false, true]
+            },
+            {
+                locale: 'MY_en',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'MY_ms',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'NZ_en',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'PH_en',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'PH_fil',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'SG_en',
+                expected: [true, false, true, true]
+            },
+            {
+                locale: 'TH_en',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'TH_th',
+                expected: [true, true, true, true]
+            },
+            {
+                locale: 'VN_en',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'VN_vi',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'AR_es',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'BR_pt',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'CA_en',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'CA_fr',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'CL_es',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'CO_es',
+                expected: [false, true, false, false]
+            },
+            {
+                locale: 'CR_es',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'EC_es',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'GT_es',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'LA_es',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'MX_es',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'PE_es',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'PR_es',
+                expected: [false, false, false, false]
+            },
+            {
+                locale: 'US_en',
+                expected: [false, false, false, false]
+            },
+        ];
+
+        TESTS.forEach((test) => {
+            SEGMENTS.forEach((segment, index) => {
+                it(`renders price with tax info for "${test.locale}" and "${segment}"`, async () => {
+                    const config = mockConfig({}, { prefix: test.locale});
+                    const service = await initService(config, true);
+                    const inlinePrice = mockInlinePrice(segment);
+                    inlinePrice.removeAttribute('data-display-tax');
+                    await inlinePrice.onceSettled();
+                    const priceTaxElement = inlinePrice.querySelector('.price-tax-inclusivity');
+                    if (test.expected[index]) {
+                        const taxExclusiveLabel = service.literals.price.taxExclusiveLabel;
+                        const taxLabel = taxExclusiveLabel.match(/TAX \{(.*?)\}/)[1]
+                        expect(priceTaxElement.textContent).to.equal(taxLabel);
+                    } else {
+                        expect(priceTaxElement.classList.contains('disabled')).to.be.true;
+                    }
+                });
+            });
+        });
+
+        it('renders price with tax info for AE, default tax value', async () => {
+            await initService(mockConfig(), true);
+            const inlinePrice = mockInlinePrice('abm-team-gov');
+            inlinePrice.removeAttribute('data-display-tax');
+            inlinePrice.dataset.country = 'AE';
+            inlinePrice.dataset.language = 'en';
+            await inlinePrice.onceSettled();
+            expect(inlinePrice.textContent).equal('US$89.99/mo');
+        });
+    });
 });
 
 describe('commerce service', () => {

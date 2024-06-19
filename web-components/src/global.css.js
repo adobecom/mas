@@ -150,15 +150,7 @@ merch-card-collection > div[slot] p {
     justify-content: center;
     justify-items: stretch;
     gap: var(--consonant-merch-spacing-m);
-}
-
-@media screen and ${DESKTOP_UP} {
-    .one-merch-card,
-    .two-merch-cards,
-    .three-merch-cards,
-    .four-merch-cards {
-        padding: var(--spacing-m);
-    }
+    padding: var(--spacing-m);
 }
 
 merch-card.background-opacity-70 {
@@ -564,6 +556,7 @@ div[slot='bg-image'] img {
 @media screen and ${MOBILE_LANDSCAPE} {
     :root {
         --consonant-merch-card-mini-compare-chart-width: 142px;
+        --consonant-merch-card-segment-width: 276px;
         --consonant-merch-card-mini-compare-chart-wide-width: 302px;
         --consonant-merch-card-special-offers-width: 302px;
         --consonant-merch-card-twp-width: 300px;
@@ -576,6 +569,7 @@ div[slot='bg-image'] img {
     :root {
         --consonant-merch-card-catalog-width: 302px;
         --consonant-merch-card-plans-width: 302px;
+        --consonant-merch-card-segment-width: 276px;
         --consonant-merch-card-mini-compare-chart-width: 178px;
         --consonant-merch-card-mini-compare-chart-wide-width: 302px;
         --consonant-merch-card-special-offers-width: 302px;
@@ -588,6 +582,7 @@ div[slot='bg-image'] img {
     :root {
         --consonant-merch-card-catalog-width: 276px;
         --consonant-merch-card-plans-width: 276px;
+        --consonant-merch-card-segment-width: 302px;
         --consonant-merch-card-inline-heading-width: 378px;
         --consonant-merch-card-product-width: 378px;
         --consonant-merch-card-image-width: 378px;

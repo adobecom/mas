@@ -881,5 +881,155 @@
                 "language": "MULT",
                 "merchant": "ADOBE"
             }
-        ]
+        ],
+    "abm-team-gov-mult": [
+        {
+            "offerId": "DAC628518DDD843D4D19A8BF7D8FF1FE",
+            "priceDetails": {
+                "price": 89.99,
+                "priceWithoutTax": 0.0,
+                "priceWithoutDiscountAndTax": 89.99,
+                "usePrecision": true,
+                "formatString": "'US$'#,##0.00",
+                "taxDisplay": "TAX_EXCLUSIVE",
+                "taxTerm": "TAX"
+            },
+            "productArrangementCode": "ccle_direct_indirect_team",
+            "productArrangement": {
+                "productFamily": "CC_ALL_APPS"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "TEAM",
+            "marketSegments": [
+                "GOV"
+            ],
+            "salesChannel": "DIRECT",
+            "offerType": "TRIAL",
+            "pricePoint": "TRIAL_14_DAY_TWP_TEAM_DIRECT_CCT_ALL_APPS_COM",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+    "individual-mult": [
+        {
+            "offerId": "DAC628518DDD843D4D19A8BF7D8FF1FA",
+            "priceDetails": {
+                "price": 1.99,
+                "priceWithoutTax": 0.0,
+                "priceWithoutDiscountAndTax": 1.99,
+                "usePrecision": true,
+                "formatString": "'US$'#,##0.00",
+                "taxDisplay": "TAX_EXCLUSIVE",
+                "taxTerm": "TAX"
+            },
+            "productArrangementCode": "ccle_direct_indirect_team",
+            "productArrangement": {
+                "productFamily": "CC_ALL_APPS"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "INDIVIDUAL",
+            "marketSegments": [
+                "COM"
+            ],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+    "business-mult": [
+        {
+            "offerId": "DAC628518DDD843D4D19A8BF7D8FF1FB",
+            "priceDetails": {
+                "price": 1.99,
+                "priceWithoutTax": 0.0,
+                "priceWithoutDiscountAndTax": 1.99,
+                "usePrecision": true,
+                "formatString": "'US$'#,##0.00",
+                "taxDisplay": "TAX_EXCLUSIVE",
+                "taxTerm": "TAX"
+            },
+            "productArrangementCode": "ccle_direct_indirect_team",
+            "productArrangement": {
+                "productFamily": "CC_ALL_APPS"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "TEAM",
+            "marketSegments": [
+                "COM"
+            ],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+    "student-mult": [
+        {
+            "offerId": "DAC628518DDD843D4D19A8BF7D8FF1FC",
+            "priceDetails": {
+                "price": 1.99,
+                "priceWithoutTax": 0.0,
+                "priceWithoutDiscountAndTax": 1.99,
+                "usePrecision": true,
+                "formatString": "'US$'#,##0.00",
+                "taxDisplay": "TAX_EXCLUSIVE",
+                "taxTerm": "TAX"
+            },
+            "productArrangementCode": "ccle_direct_indirect_team",
+            "productArrangement": {
+                "productFamily": "CC_ALL_APPS"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "INDIVIDUAL",
+            "marketSegments": [
+                "EDU"
+            ],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+    "university-mult": [
+        {
+            "offerId": "DAC628518DDD843D4D19A8BF7D8FF1FD",
+            "priceDetails": {
+                "price": 1.99,
+                "priceWithoutTax": 0.0,
+                "priceWithoutDiscountAndTax": 1.99,
+                "usePrecision": true,
+                "formatString": "'US$'#,##0.00",
+                "taxDisplay": "TAX_EXCLUSIVE",
+                "taxTerm": "TAX"
+            },
+            "productArrangementCode": "ccle_direct_indirect_team",
+            "productArrangement": {
+                "productFamily": "CC_ALL_APPS"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "TEAM",
+            "marketSegments": [
+                "EDU"
+            ],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ]
 }

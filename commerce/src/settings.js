@@ -17,8 +17,14 @@ const DEFAULT_LOCALE = 'en_US';
 
 const GeoMap = {
     ar: 'AR_es',
+    be_en: 'BE_en',
+    be_fr: 'BE_fr',
+    be_nl: 'BE_nl',
     br: 'BR_pt',
     ca: 'CA_en',
+    ch_de: 'CH_de',
+    ch_fr: 'CH_fr',
+    ch_it: 'CH_it',
     cl: 'CL_es',
     co: 'CO_es',
     la: 'DO_es',
@@ -28,13 +34,22 @@ const GeoMap = {
     dk: 'DK_da',
     de: 'DE_de',
     ee: 'EE_et',
+    eg_ar: 'EG_ar',
+    eg_en: 'EG_en',
     es: 'ES_es',
     fr: 'FR_fr',
+    gr_el: 'GR_el',
+    gr_en: 'GR_en',
     ie: 'IE_en',
     il_he: 'IL_iw',
     it: 'IT_it',
     lv: 'LV_lv',
     lt: 'LT_lt',
+    lu_de: 'LU_de',
+    lu_en: 'LU_en',
+    lu_fr: 'LU_fr',
+    my_en: 'MY_en',
+    my_ms: 'MY_ms',
     hu: 'HU_hu',
     mt: 'MT_en',
     mena_en: 'DZ_en',
@@ -56,9 +71,13 @@ const GeoMap = {
     ru: 'RU_ru',
     ua: 'UA_uk',
     au: 'AU_en',
-    in: 'IN_en',
+    in_en: 'IN_en',
+    in_hi: 'IN_hi',
+    id_en: 'ID_en',
     id_id: 'ID_in',
     nz: 'NZ_en',
+    sa_ar: 'SA_ar',
+    sa_en: 'SA_en',
     sg: 'SG_en',
     cn: 'CN_zh-Hans',
     tw: 'TW_zh-Hant',
@@ -74,7 +93,8 @@ const GeoMap = {
     cis_en: 'AZ_en',
     cis_ru: 'AZ_ru',
     sea: 'SG_en',
-    th: 'TH_en',
+    th_en: 'TH_en',
+    th_th: 'TH_th',
 };
 
 const HostEnv = Object.freeze({
@@ -211,4 +231,4 @@ function getSettings(config = {}) {
     };
 }
 
-export { HostEnv as MiloEnv, getLocaleSettings, getSettings };
+export { HostEnv as MiloEnv, getLocaleSettings, getSettings, GeoMap };

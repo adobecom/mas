@@ -47,12 +47,12 @@ export const styles = css`
         border-right: none;
         padding-inline-start: 12px;
         box-sizing: border-box;
+        -moz-appearance: textfield;
     }
 
     .text-field-input::-webkit-inner-spin-button,
     .text-field-input::-webkit-outer-spin-button {
         margin: 0;
-        -moz-appearance: textfield;
         -webkit-appearance: none;
     }
 

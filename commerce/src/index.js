@@ -11,7 +11,7 @@ import {
     WcsPlanType,
     applyPlanType,
 } from './external.js';
-import { InlinePrice } from './inline-price.js';
+import { InlinePrice, resolvePriceTaxFlags } from './inline-price.js';
 import { Log } from './log.js';
 import { initService, resetService } from './service.js';
 import { getLocaleSettings, getSettings } from './settings.js';
@@ -34,4 +34,5 @@ export {
     getSettings,
     initService as init,
     resetService as reset,
+    resolvePriceTaxFlags,
 };

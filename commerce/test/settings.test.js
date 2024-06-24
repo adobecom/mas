@@ -20,7 +20,6 @@ describe('getSettings', () => {
 
     it('returns default settings, if called without arguments', () => {
         expect(getSettings()).to.deep.equal({
-            ...Defaults,
             locale: `${Defaults.language}_${Defaults.country}`,
             priceLiteralsURL: undefined,
             priceLiteralsPromise: undefined,

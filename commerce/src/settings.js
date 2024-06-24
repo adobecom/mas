@@ -30,7 +30,7 @@ const GeoMap = {
     la: 'DO_es',
     mx: 'MX_es',
     pe: 'PE_es',
-    africa: 'ZA_en',
+    africa: 'MU_en',
     dk: 'DK_da',
     de: 'DE_de',
     ee: 'EE_et',

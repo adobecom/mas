@@ -16,6 +16,7 @@ export const Defaults = Object.freeze({
     displayPerUnit: false,
     displayRecurrence: true,
     displayTax: false,
+    domainSwitch: false,
     env: Env.PRODUCTION,
     forceTaxExclusive: false,
     language: 'en',

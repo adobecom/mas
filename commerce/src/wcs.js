@@ -20,10 +20,12 @@ import { Log } from './log.js';
  *  reject: (reason: Error) => void
  * }>} WcsPromises
  */
-
+const ACOM = '_acom';
 const WcsBaseUrl = {
     [Env.PRODUCTION]: 'https://wcs.adobe.com',
     [Env.STAGE]: 'https://wcs.stage.adobe.com',
+    [Env.PRODUCTION + ACOM]: 'https://www.adobe.com',
+    [Env.STAGE + ACOM]: 'https://www.stage.adobe.com',
 };
 
 /**
@@ -32,12 +34,12 @@ const WcsBaseUrl = {
  */
 export function Wcs({ settings }) {
     const log = Log.module('wcs');
-    const { env, wcsApiKey: apiKey } = settings;
-
+    const { env, domainSwitch, wcsApiKey: apiKey } = settings;
+    const baseUrl = domainSwitch ? WcsBaseUrl[env + ACOM] : WcsBaseUrl[env];
     // Create @pandora Wcs client.
     const fetchOptions = {
         apiKey,
-        baseUrl: WcsBaseUrl[env],
+        baseUrl,
         fetch: window.fetch.bind(window),
     };
     const getWcsOffers = webCommerceArtifact(fetchOptions);

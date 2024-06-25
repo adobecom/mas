@@ -4,6 +4,9 @@
     "private": true,
     "workspaces": ["web-components", "commerce"],
     "scripts": {
+        "test": "npm run test:commerce && npm run test:web-components",
+        "test:commerce": "cd commerce && npm run test:ci",
+        "test:web-components": "cd web-components && npm run test:ci",
         "validate:ci": "npm run validate:commerce && npm run validate:web-components",
         "validate:commerce": "cd commerce && npm run test:ci && npm run build",
         "validate:web-components": "cd web-components && npm run test:ci && npm run build"

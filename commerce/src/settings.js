@@ -204,6 +204,7 @@ function getSettings(config = {}) {
         getParameter('wcsBufferLimit', commerce),
         Defaults.wcsBufferLimit
     );
+    const domainSwitch = toBoolean(getParameter('domain.switch', commerce), false);
 
     return {
         ...getLocaleSettings({ locale }),
@@ -228,6 +229,7 @@ function getSettings(config = {}) {
         wcsBufferLimit,
         wcsEnv: env === Env.STAGE ? WcsEnv.STAGE : WcsEnv.PRODUCTION,
         landscape,
+        domainSwitch,
     };
 }
 

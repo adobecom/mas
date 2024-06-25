@@ -576,6 +576,7 @@ declare global {
                 wcsBufferDelay: number;
                 wcsBufferLimit: number;
                 wcsEnv: Environment;
+                domainSwitch: boolean;
             }
         }
     }

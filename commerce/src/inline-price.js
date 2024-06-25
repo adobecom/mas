@@ -6,6 +6,7 @@ import {
 } from './placeholder.js';
 import { selectOffers, useService } from './utilities.js';
 import { GeoMap } from './settings';
+import { Defaults } from './defaults';
 
 const INDIVIDUAL = 'INDIVIDUAL_COM';
 const BUSINESS = 'TEAM_COM';
@@ -28,10 +29,9 @@ const DISPLAY_TAX_MAP = {
 // For most countries where tax label is displayed the tax is included for Individuals and Students
 // and excluded for Business and Universities. This is the map of TaxExclusive values for other countries
 const TAX_EXCLUDED_MAP = {
-    [GeoMap.za]: [false, false],
+    [GeoMap.za]: [false, false, Defaults.forceTaxExclusive, Defaults.forceTaxExclusive],
     [GeoMap.at]: [false, false, false, true],
-    [GeoMap.ng]: [false, false],
-    [GeoMap.za]: [false, false],
+    [GeoMap.ng]: [false, false, Defaults.forceTaxExclusive, Defaults.forceTaxExclusive],
     [GeoMap.au]: [false, false, false, false],
     [GeoMap.jp]: [false, false, false, false],
     [GeoMap.nz]: [false, false, false, false],
@@ -71,14 +71,14 @@ const resolveDisplayTaxForGeoAndSegment = (country, language, customerSegment, m
 
     const segmentConfig = DISPLAY_TAX_MAP[`${customerSegment}_${marketSegment}`];
     if (!segmentConfig) {
-        return false;
+        return Defaults.displayTax;
     }
 
     if (segmentConfig.includes(country) || segmentConfig.includes(locale)) {
         return true;
     }
 
-    return false;
+    return Defaults.displayTax;
 }
 
 /**
@@ -89,7 +89,7 @@ export const resolvePriceTaxFlags = async (country, language, customerSegment, m
     const displayTax = resolveDisplayTaxForGeoAndSegment(country, language, customerSegment, marketSegment);
     return {
         displayTax,
-        forceTaxExclusive: displayTax ? resolveTaxExclusive(country, language, customerSegment, marketSegment) : false
+        forceTaxExclusive: displayTax ? resolveTaxExclusive(country, language, customerSegment, marketSegment) : Defaults.forceTaxExclusive
     };
 }
 

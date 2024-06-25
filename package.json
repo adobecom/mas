@@ -7,9 +7,9 @@
         "test": "npm run test:commerce && npm run test:web-components",
         "test:commerce": "cd commerce && npm run test:ci",
         "test:web-components": "cd web-components && npm run test:ci",
-        "validate:ci": "npm run validate:commerce && npm run validate:web-components",
-        "validate:commerce": "cd commerce && npm run test:ci && npm run build",
-        "validate:web-components": "cd web-components && npm run test:ci && npm run build"
+        "build": "npm run build:commerce && npm run build:web-components",
+        "build:commerce": "cd commerce && npm run build",
+        "build:web-components": "cd web-components && npm run build"
     },
     "repository": {
         "type": "git",

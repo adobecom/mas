@@ -161,7 +161,7 @@ runTests(async () => {
         });
 
         it('preselects the card from hash', async () => {
-            document.location.search = 'select-cards=photoshop&creat&creati';
+            document.location.hash = 'select-cards=photoshop&creat&creati';
             await applyTemplate('cci-footer,preselect-card', false);
             const merchCard = document.querySelector(
                 'merch-card[aria-selected]'

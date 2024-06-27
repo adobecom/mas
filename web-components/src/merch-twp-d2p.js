@@ -370,9 +370,7 @@ export class MerchTwpD2P extends LitElement {
     }
 
     get preselectedCardId() {
-        const params = new URLSearchParams(window.location.search);
-        const selectCards = params.get('select-cards');
-        const preselectedCardIds = selectCards?.split(',').reduce((res, item) => {
+        const preselectedCardIds = parseState()['select-cards']?.split(',').reduce((res, item) => {
             const formattedItem = decodeURIComponent(item.trim().toLowerCase());
             formattedItem && res.push(formattedItem);
             return res;

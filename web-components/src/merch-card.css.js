@@ -382,8 +382,10 @@ export const sizeStyles = () => {
         @media screen and ${unsafeCSS(TABLET_UP)} {
             :host([size='wide']),
             :host([size='super-wide']) {
-                grid-column: span 2;
+                grid-column: span 3;
                 width: 100%;
+                max-width: var(--consonant-merch-card-tablet-wide-width);
+                margin: 0 auto;
             }
         }
 

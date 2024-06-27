@@ -10,7 +10,6 @@ const styles = document.createElement('style');
 
 styles.innerHTML = `
 :root {
-
     --consonant-merch-card-detail-font-size: 12px;
     --consonant-merch-card-detail-font-weight: 500;
     --consonant-merch-card-detail-letter-spacing: 0.8px;
@@ -21,10 +20,11 @@ styles.innerHTML = `
     --consonant-merch-card-heading-secondary-font-size: 14px;
     --consonant-merch-card-body-font-size: 14px;
     --consonant-merch-card-body-line-height: 21px;
-    --consonant-merch-card-promo-text-height: 17px;
+    --consonant-merch-card-promo-text-height: var(--consonant-merch-card-body-font-size);
 
     /* responsive width */
     --consonant-merch-card-mobile-width: 300px;
+    --consonant-merch-card-tablet-wide-width: 700px;
 
     /* spacing */
     --consonant-merch-spacing-xxxs: 4px;
@@ -424,7 +424,14 @@ merch-card [slot="promo-text"] {
     padding: 0;
 }
 
+
+merch-card[variant="mini-compare-chart"] [slot="body-xxs"] {
+    font-size: var(--consonant-merch-card-body-xs-font-size);
+    padding: var(--consonant-merch-spacing-xs) var(--consonant-merch-spacing-s) 0;    
+}
+
 merch-card[variant="mini-compare-chart"] [slot="promo-text"] {
+    font-size: var(--consonant-merch-card-body-m-font-size);
     padding: var(--consonant-merch-spacing-xs) var(--consonant-merch-spacing-s) 0;
 }
 
@@ -502,13 +509,22 @@ merch-card[variant="mini-compare-chart"] .footer-row-cell-description a {
         font-size: var(--consonant-merch-card-body-xs-font-size);
     }
 
+    html[lang="he"] merch-card[variant="mini-compare-chart"] [is="inline-price"] .price-recurrence::before {
+        content: "\\200B";
+    }
+
     merch-card[variant="mini-compare-chart"] [slot="price-commitment"] {
+        padding: 0 var(--consonant-merch-spacing-xs);
+    }
+
+    merch-card[variant="mini-compare-chart"] [slot="body-xxs"] {
+        font-size: var(--consonant-merch-card-body-xs-font-size);
         padding: 0 var(--consonant-merch-spacing-xs);
     }
 
     merch-card[variant="mini-compare-chart"] [slot="promo-text"] {
         font-size: var(--consonant-merch-card-body-xs-font-size);
-        padding: var(--consonant-merch-spacing-xs);
+        padding: 0 var(--consonant-merch-spacing-xs);
     }
 
     merch-card[variant="mini-compare-chart"] .footer-row-cell {

@@ -49,6 +49,7 @@ export class MerchTwpD2P extends LitElement {
         super();
         this.step = 1;
         this.#handleOfferSelected = this.handleOfferSelected.bind(this);
+        this.handleWhatsIncludedClick = this.handleWhatsIncludedClick.bind(this);
     }
 
     /** @type {Commerce.Log.Instance} */
@@ -311,6 +312,7 @@ export class MerchTwpD2P extends LitElement {
                         ? this.mobileLayout
                         : this.desktopLayout
                 }
+                <slot name="merch-whats-included"></slot>
             </div>
         `;
     }
@@ -327,6 +329,10 @@ export class MerchTwpD2P extends LitElement {
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.handleQuantityChange
         );
+        this.whatsIncludedLink?.addEventListener(
+            'click',
+            this.handleWhatsIncludedClick
+        );
         this.addEventListener(
             EVENT_MERCH_STORAGE_CHANGE,
             this.handleStorageChange
@@ -340,6 +346,7 @@ export class MerchTwpD2P extends LitElement {
             EVENT_OFFER_SELECTED,
             this.#handleOfferSelected
         );
+        this.whatsIncludedLink?.removeEventListener('click', this.handleWhatsIncludedClick);
         this.removeEventListener(
             EVENT_MERCH_STORAGE_CHANGE,
             this.handleStorageChange
@@ -355,6 +362,14 @@ export class MerchTwpD2P extends LitElement {
         if (!this.selectedTabPanel) return;
         this.selectedCard.quantitySelect.defaultValue = event.detail.option;
         this.requestUpdate();
+    }
+
+    get whatsIncludedLink() {
+        return this.querySelector('merch-card .merch-whats-included');
+    }
+
+    get whatsIncluded() {
+        return this.querySelector('[slot="merch-whats-included"]');
     }
 
     setOfferSelectOnPanel(offerSelect) {
@@ -422,6 +437,11 @@ export class MerchTwpD2P extends LitElement {
         }
         const offerSelect = selectedCard.offerSelect.cloneNode(true);
         this.setOfferSelectOnPanel(offerSelect);
+    }
+
+    handleWhatsIncludedClick(event) {
+        event.preventDefault();
+        this.whatsIncluded?.classList.toggle('hidden');
     }
 
     async processCards() {

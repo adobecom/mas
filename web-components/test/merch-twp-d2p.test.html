@@ -91,6 +91,96 @@
                 <sp-icon-close-circle size="l"></sp-icon-close-circle>
                 <merch-twp-d2p>
                     <h4 slot="detail-xl">Try the full version of Adobe apps with a 7-day free trial.</h4>
+                    <a slot="cci-footer" href="#cci" tabindex="0">See all plans and pricing</a>
+                    <a slot="cct-footer" href="#cct" tabindex="0">See all plans and pricing</a>
+                    <a slot="cce-footer" href="#cce" tabindex="0">See all plans and pricing</a>
+                    <div id="merch-whats-included" slot="merch-whats-included" class="merch-whats-included hidden">
+                        <sp-icon-close-circle name="close-whats-included"size="l"></sp-icon-close-circle>
+                        <h3>What’s included with Creative Cloud All Apps</h3>
+                        <p>Get the apps and services you need for all kinds of creative work, from photography and graphic design to video, UI/UX, and social media.</p>
+                        <merch-whats-included>
+                            <h3 slot="heading">Apps</h3>
+                            <div slot="content">
+                                    <merch-mnemonic-list>
+                                        <div slot="icon">
+                                            <merch-icon size="s" src="https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg" alt="Photoshop"></merch-icon>
+                                        </div>
+                                        <p slot="description"><strong>Photoshop</strong></p>
+                                    </merch-mnemonic-list>
+                                    <merch-mnemonic-list>
+                                        <div slot="icon">
+                                            <merch-icon size="s" src="https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg" alt="Illustrator"></merch-icon>
+                                        </div>
+                                        <p slot="description"><strong>Illustrator</strong></p>
+                                    </merch-mnemonic-list>
+                                    <merch-mnemonic-list>
+                                        <div slot="icon">
+                                            <merch-icon size="s" src="https://www.adobe.com/content/dam/shared/images/product-icons/svg/premiere.svg" alt="Premiere Pro"></merch-icon>
+                                        </div>
+                                        <p slot="description"><strong>Premiere Pro</strong></p>
+                                    </merch-mnemonic-list>
+                                    <merch-mnemonic-list>
+                                        <div slot="icon">
+                                            <merch-icon size="s" src="https://www.adobe.com/content/dam/shared/images/product-icons/svg/acrobat.svg" alt="Acrobat Pro"></merch-icon>
+                                        </div>
+                                        <p slot="description"><strong>Acrobat Pro</strong></p>
+                                    </merch-mnemonic-list>
+                                    <merch-mnemonic-list>
+                                        <div slot="icon">
+                                            <merch-icon size="s" src="https://www.adobe.com/content/dam/shared/images/product-icons/svg/cc-express.svg" alt="Adobe Express"></merch-icon>
+                                        </div>
+                                        <p slot="description"><strong>Adobe Express</strong></p>
+                                    </merch-mnemonic-list>
+                                    <merch-mnemonic-list>
+                                        <div slot="icon">
+                                            <merch-icon size="s" src="https://www.adobe.com/content/dam/shared/images/product-icons/svg/firefly.svg" alt="Adobe Firefly"></merch-icon>
+                                        </div>
+                                        <p slot="description"><strong>Firefly</strong></p>
+                                    </merch-mnemonic-list>
+                                </div>
+                        </merch-whats-included>
+                        <merch-whats-included>
+                            <h3 slot="heading">Membership perks</h3>
+                            <div slot="content">
+                                    <merch-mnemonic-list>
+                                        <div slot="icon">
+                                            <merch-icon size="s" src="https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg" alt="Photoshop"></merch-icon>
+                                        </div>
+                                        <p slot="description"><strong>Adobe Fonts</strong></p>
+                                    </merch-mnemonic-list>
+                                    <merch-mnemonic-list>
+                                        <div slot="icon">
+                                            <merch-icon size="s" src="https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg" alt="Illustrator"></merch-icon>
+                                        </div>
+                                        <p slot="description"><strong>Adobe Color</strong></p>
+                                    </merch-mnemonic-list>
+                                    <merch-mnemonic-list>
+                                        <div slot="icon">
+                                            <merch-icon size="s" src="https://www.adobe.com/content/dam/shared/images/product-icons/svg/premiere.svg" alt="Premiere Pro"></merch-icon>
+                                        </div>
+                                        <p slot="description"><strong>Adobe Portfolio</strong></p>
+                                    </merch-mnemonic-list>
+                                    <merch-mnemonic-list>
+                                        <div slot="icon">
+                                            <merch-icon size="s" src="https://www.adobe.com/content/dam/shared/images/product-icons/svg/acrobat.svg" alt="Acrobat Pro"></merch-icon>
+                                        </div>
+                                        <p slot="description"><strong>Behance</strong></p>
+                                    </merch-mnemonic-list>
+                                    <merch-mnemonic-list>
+                                        <div slot="icon">
+                                            <merch-icon size="s" src="https://www.adobe.com/content/dam/shared/images/product-icons/svg/firefly.svg" alt="Adobe Firefly"></merch-icon>
+                                        </div>
+                                        <p slot="description"><strong>Creative Cloud libraries</strong></p>
+                                    </merch-mnemonic-list>
+                                    <merch-mnemonic-list>
+                                        <div slot="icon">
+                                            <merch-icon size="s" src="https://www.adobe.com/content/dam/shared/images/product-icons/svg/cc-express.svg" alt="Adobe Express"></merch-icon>
+                                        </div>
+                                        <p slot="description">x,xxx monthly <u><a href="https://adobe.com">generative credits</a></u></p>
+                                    </merch-mnemonic-list>
+                                </div>
+                        </merch-whats-included>
+                    </div>
                 </merch-twp-d2p>
             </sp-dialog-base>
         </sp-theme>
@@ -165,7 +255,7 @@
                             credits</a></li>
                 </ul>
                 <p>
-                    <a href="https://adobe.com/">See all included apps.</a>
+                    <a class="whats-included-link" href="#merch-whats-included">See all included apps.</a>
                 </p>
             </div>
             <div slot="footer">
@@ -242,7 +332,7 @@
                             credits</a></li>
                 </ul>
                 <p>
-                    <a href="https://adobe.com/">See all included apps.</a>
+                    <a href="#merch-whats-included">See all included apps.</a>
                 </p>
             </div>
             <div slot="footer">

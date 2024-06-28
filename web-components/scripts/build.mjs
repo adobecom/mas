@@ -6,10 +6,12 @@ import { execSync } from 'node:child_process';
 const commitHash = execSync('git rev-parse HEAD').toString().trim();
 const branch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
 
-console.log(`you're building from branch ${branch} with commit ${commitHash}`);
+console.log(
+    `Building from tacocat repository is DEPRECATED, please switch to the new 'mas' repository.`
+);
 
 const banner = {
-    js: `// branch: ${branch} commit: ${commitHash} ${new Date().toUTCString()}`,
+    js: `Building from tacocat repository is DEPRECATED, please switch to the new 'mas' repository.`,
 };
 
 async function buildLitComponent(name) {
@@ -78,11 +80,32 @@ Promise.all([
         plugins: [rewriteImports()],
         external: ['lit'],
     }),
+    build({
+        entryPoints: ['./src/merch-whats-included.js'],
+        bundle: true,
+        banner,
+        outfile: './lib/merch-whats-included.js',
+        format: 'esm',
+        plugins: [rewriteImports()],
+        external: ['lit'],
+    }),
+    build({
+        entryPoints: ['./src/merch-mnemonic-list.js'],
+        bundle: true,
+        banner,
+        outfile: './lib/merch-mnemonic-list.js',
+        format: 'esm',
+        plugins: [rewriteImports()],
+        external: ['lit'],
+    }),
+    buildLitComponent('merch-icon'),
     buildLitComponent('merch-quantity-select'),
     buildLitComponent('merch-secure-transaction'),
     buildLitComponent('merch-stock'),
     buildLitComponent('merch-subscription-panel'),
     buildLitComponent('merch-twp-d2p'),
+    buildLitComponent('merch-whats-included'),
+    buildLitComponent('merch-mnemonic-list'),
 ]).catch(() => process.exit(1));
 
 function rewriteImports() {

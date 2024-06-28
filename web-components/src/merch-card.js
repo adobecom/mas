@@ -357,6 +357,7 @@ export class MerchCard extends LitElement {
                 <slot name="body-xxs"></slot>
                 <slot name="promo-text"></slot>
                 <slot name="body-xs"></slot>
+                <slot name="callout-text"></slot>
             </div>
             <hr />
             ${this.secureLabelFooter}`;
@@ -370,7 +371,8 @@ export class MerchCard extends LitElement {
                 <slot name="heading-m"></slot>
                 <slot name="body-xxs"></slot>
                 <slot name="promo-text"></slot>
-                <slot name="body-xs"></slot>                
+                <slot name="body-xs"></slot>    
+                <slot name="callout-text"></slot>            
                 ${this.stockCheckbox}
             </div>
             <slot name="quantity-select"></slot>
@@ -406,6 +408,7 @@ export class MerchCard extends LitElement {
                 <slot name="body-xxs"></slot>
                 ${!this.promoBottom ? html`<slot name="promo-text"></slot>`: ''}
                 <slot name="body-xs"></slot>
+                <slot name="callout-text"></slot>
                 ${this.promoBottom ? html`<slot name="promo-text"></slot>`: ''}
             </div>
             ${this.secureLabelFooter}`;
@@ -455,6 +458,7 @@ export class MerchCard extends LitElement {
                 <slot name="body-xxs"></slot>
                 <slot name="promo-text"></slot>
                 <slot name="body-xs"></slot>
+                <slot name="callout-text"></slot>
             </div>
             ${this.secureLabelFooter}`;
     }
@@ -470,6 +474,7 @@ export class MerchCard extends LitElement {
             <slot name="heading-m-price"></slot>
             <slot name="body-xxs"></slot>
             <slot name="price-commitment"></slot>
+            <slot name="callout-text"></slot>
             <slot name="offers"></slot>
             <slot name="promo-text"></slot>
             ${this.miniCompareFooter}

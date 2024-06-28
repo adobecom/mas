@@ -3,13 +3,7 @@ Enables body scroll locking (for iOS Mobile and Tablet, Android, desktop Safari/
 Usage example: when opening a modal, disable body scroll by calling enableBodyScroll, and enable it back when closing the modal by calling disableBodyScroll.
 */
 
-const isIosDevice =
-    typeof window !== 'undefined' &&
-    window.navigator &&
-    window.navigator.platform &&
-    (/iP(ad|hone|od)/.test(window.navigator.platform) ||
-        (window.navigator.platform === 'MacIntel' &&
-            window.navigator.maxTouchPoints > 1));
+const isIosDevice = /iP(ad|hone|od)/.test(window?.navigator?.platform) || (window?.navigator?.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
 let documentListenerAdded = false;
 let previousBodyOverflowSetting;
 

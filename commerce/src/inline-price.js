@@ -6,6 +6,12 @@ import {
 } from './placeholder.js';
 import { selectOffers, useService } from './utilities.js';
 import { GeoMap } from './settings';
+import { Defaults } from './defaults';
+
+const INDIVIDUAL = 'INDIVIDUAL_COM';
+const BUSINESS = 'TEAM_COM';
+const STUDENT = 'INDIVIDUAL_EDU';
+const UNIVERSITY = 'TEAM_EDU';
 
 // countries where tax is displayed for all segments by default
 const DISPLAY_ALL_TAX_COUNTRIES = [GeoMap.uk, GeoMap.au, GeoMap.fr, GeoMap.at, GeoMap.be_en, GeoMap.be_fr, GeoMap.be_nl, GeoMap.bg, GeoMap.ch_de, GeoMap.ch_fr, GeoMap.ch_it,
@@ -14,11 +20,96 @@ const DISPLAY_ALL_TAX_COUNTRIES = [GeoMap.uk, GeoMap.au, GeoMap.fr, GeoMap.at, G
     GeoMap.in_en, GeoMap.in_hi, GeoMap.jp, GeoMap.my_en, GeoMap.my_ms, GeoMap.nz, GeoMap.th_en, GeoMap.th_th];
 // countries where tax is displayed for some segments only by default
 const DISPLAY_TAX_MAP = {
-    'INDIVIDUAL_COM': [GeoMap.za, GeoMap.lt, GeoMap.lv, GeoMap.ng, GeoMap.sa_ar, GeoMap.sa_en, GeoMap.za, GeoMap.sg, GeoMap.kr], // individual
-    'TEAM_COM': [GeoMap.za, GeoMap.lt, GeoMap.lv, GeoMap.ng, GeoMap.za, GeoMap.co, GeoMap.kr], // business
-    'INDIVIDUAL_EDU': [GeoMap.lt, GeoMap.lv, GeoMap.sa_en, GeoMap.sea], // student
-    'TEAM_EDU': [GeoMap.sea, GeoMap.kr], // school and uni
+    [INDIVIDUAL]: [GeoMap.za, GeoMap.lt, GeoMap.lv, GeoMap.ng, GeoMap.sa_ar, GeoMap.sa_en, GeoMap.za, GeoMap.sg, GeoMap.kr],
+    [BUSINESS]: [GeoMap.za, GeoMap.lt, GeoMap.lv, GeoMap.ng, GeoMap.za, GeoMap.co, GeoMap.kr],
+    [STUDENT]: [GeoMap.lt, GeoMap.lv, GeoMap.sa_en, GeoMap.sea],
+    [UNIVERSITY]: [GeoMap.sea, GeoMap.kr],
 };
+
+// For most countries where tax label is displayed the tax is included for Individuals and Students
+// and excluded for Business and Universities. This is the map of TaxExclusive values for other countries
+const TAX_EXCLUDED_MAP = {
+    [GeoMap.za]: [false, false, Defaults.forceTaxExclusive, Defaults.forceTaxExclusive],
+    [GeoMap.at]: [false, false, false, true],
+    [GeoMap.ng]: [false, false, Defaults.forceTaxExclusive, Defaults.forceTaxExclusive],
+    [GeoMap.au]: [false, false, false, false],
+    [GeoMap.jp]: [false, false, false, false],
+    [GeoMap.nz]: [false, false, false, false],
+    [GeoMap.th_en]: [false, false, false, false],
+    [GeoMap.th_th]: [false, false, false, false],
+};
+const TAX_EXCLUDED_MAP_INDEX = [INDIVIDUAL, BUSINESS, STUDENT, UNIVERSITY];
+const TAX_EXCLUDED_MAP_OTHER = {
+    [INDIVIDUAL]: false,
+    [BUSINESS]: true,
+    [STUDENT]: false,
+    [UNIVERSITY]: true,
+};
+
+/**
+ * Resolves the default value for forceTaxExclusive for the provided geo info and segments.
+ * @param {string} country - uppercase country code e.g. US, AT, MX
+ * @param {string} language - lowercase language code e.g. en, de, es
+ * @param {string} customerSegment - customer segment: INDIVIDUAL or TEAM
+ * @param {string} marketSegment - market segment: COM or EDU
+ * @returns {boolean} true if price will be displayed without tax, otherwise false (default)
+ */
+const resolveTaxExclusive = (country, language, customerSegment, marketSegment) => {
+    const locale = `${country}_${language}`;
+    const segment = `${customerSegment}_${marketSegment}`;
+    const val = TAX_EXCLUDED_MAP[locale];
+    if (val) {
+        const index = TAX_EXCLUDED_MAP_INDEX.indexOf(segment);
+        return val[index];
+    }
+
+    return TAX_EXCLUDED_MAP_OTHER[segment];
+}
+
+/**
+ * Resolves the default value of displayTax property, for the provided geo info and segments.
+ * @param {string} country - uppercase country code e.g. US, AT, MX
+ * @param {string} language - lowercase language code e.g. en, de, es
+ * @param {string} customerSegment - customer segment: INDIVIDUAL or TEAM
+ * @param {string} marketSegment - market segment: COM or EDU
+ * @returns {boolean} true if tax label will be displayed, otherwise false (default)
+ */
+const resolveDisplayTaxForGeoAndSegment = (country, language, customerSegment, marketSegment) => {
+    const locale = `${country}_${language}`;
+    if (DISPLAY_ALL_TAX_COUNTRIES.includes(country)
+        || DISPLAY_ALL_TAX_COUNTRIES.includes(locale)) {
+        return true;
+    }
+
+    const segmentConfig = DISPLAY_TAX_MAP[`${customerSegment}_${marketSegment}`];
+    if (!segmentConfig) {
+        return Defaults.displayTax;
+    }
+
+    if (segmentConfig.includes(country) || segmentConfig.includes(locale)) {
+        return true;
+    }
+
+    return Defaults.displayTax;
+}
+
+/**
+ * Resolves default values of displayTax and forceTaxExclusive, based on provided geo info and segments extracted from offers object.
+ * These values will be used when the query parameters "tax" and "exclusive" are not set in the merch link, and in OST for initial
+ * values for checkboxes "Tax label" and "Include tax".
+ * @param {string} country - uppercase country code e.g. US, AT, MX
+ * @param {string} language - lowercase language code e.g. en, de, es
+ * @param {string} customerSegment - customer segment: INDIVIDUAL or TEAM
+ * @param {string} marketSegment - market segment: COM or EDU
+ * @returns {Promise<{displayTax: boolean, forceTaxExclusive: boolean}>} A promise with boolean properties displayTax and forceTaxExclusive
+ */
+export const resolvePriceTaxFlags = async (country, language, customerSegment, marketSegment) => {
+    const displayTax = resolveDisplayTaxForGeoAndSegment(country, language, customerSegment, marketSegment);
+    return {
+        displayTax,
+        forceTaxExclusive: displayTax ? resolveTaxExclusive(country, language, customerSegment, marketSegment) : Defaults.forceTaxExclusive
+    };
+}
 
 /** @type {Commerce.Price.PlaceholderConstructor} */
 export class HTMLPriceSpanElement extends HTMLSpanElement {
@@ -32,7 +123,7 @@ export class HTMLPriceSpanElement extends HTMLSpanElement {
             'data-display-tax',
             'data-perpetual',
             'data-promotion-code',
-            'data-tax-exclusive',
+            'data-force-tax-exclusive',
             'data-template',
             'data-wcs-osi',
         ];
@@ -94,44 +185,6 @@ export class HTMLPriceSpanElement extends HTMLSpanElement {
     }
 
     /**
-     * Resolves default value of displayTax property, based on provided geo info and segments.
-     * @returns {boolean}
-     */
-    resolveDisplayTaxForGeoAndSegment(country, language, customerSegment, marketSegment) {
-        const locale = `${country}_${language}`;
-        if (DISPLAY_ALL_TAX_COUNTRIES.includes(country)
-            || DISPLAY_ALL_TAX_COUNTRIES.includes(locale)) {
-            return true;
-        }
-
-        const segmentConfig = DISPLAY_TAX_MAP[`${customerSegment}_${marketSegment}`];
-        if (!segmentConfig) {
-            return false;
-        }
-
-        if (segmentConfig.includes(country) || segmentConfig.includes(locale)) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Resolves default value of displayTax property, based on provided geo info and segments extracted from offers object.
-     * @returns {boolean}
-     */
-    async resolveDisplayTax(service, options) {
-        const [offerSelectors] = await service.resolveOfferSelectors(options);
-        const offers = selectOffers(await offerSelectors, options);
-        if (offers?.length) {
-            const { country, language } = options;
-            const offer = offers[0];
-            const [marketSegment = ''] = offer.marketSegments;
-            return this.resolveDisplayTaxForGeoAndSegment(country, language, offer.customerSegment, marketSegment);
-        }
-    }
-
-    /**
      * Resolves associated osi via Wcs and renders price offer.
      * @param {Record<string, any>} overrides
      */
@@ -145,9 +198,23 @@ export class HTMLPriceSpanElement extends HTMLSpanElement {
         );
         if (!options.wcsOsi.length) return false;
 
-        if (!this.placeholder.dataset.displayTax) {
-            // set default value for displayTax if not set neither in OST nor in price URL
-            options.displayTax = await this.resolveDisplayTax(service, options) || false;
+        if (!this.placeholder.dataset.displayTax || !this.placeholder.dataset.forceTaxExclusive) {
+            const [offerSelectors] = await service.resolveOfferSelectors(options);
+            const offers = selectOffers(await offerSelectors, options);
+            if (offers?.length) {
+                const { country, language } = options;
+                const offer = offers[0];
+                const [marketSegment = ''] = offer.marketSegments;
+
+                // set default value for displayTax and forceTaxExclusive if not set neither in OST nor in merch link
+                const flags = await resolvePriceTaxFlags(country, language, offer.customerSegment, marketSegment);
+                if (!this.placeholder.dataset.displayTax) {
+                    options.displayTax = flags?.displayTax || options.displayTax;
+                }
+                if (!this.placeholder.dataset.forceTaxExclusive) {
+                    options.forceTaxExclusive = flags?.forceTaxExclusive || options.forceTaxExclusive;
+                }
+            }
         }
 
         const version = this.placeholder.togglePending(options);

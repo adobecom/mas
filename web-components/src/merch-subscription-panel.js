@@ -7,7 +7,7 @@ import {
     EVENT_MERCH_STOCK_CHANGE,
     EVENT_OFFER_SELECTED,
 } from './constants.js';
-import { TABLET_DOWN } from './media.js';
+import { TABLET_DOWN, MOBILE_LANDSCAPE } from './media.js';
 
 class MerchSubscriptionPanel extends LitElement {
     static styles = [styles];
@@ -21,6 +21,7 @@ class MerchSubscriptionPanel extends LitElement {
     continueText = 'Continue';
 
     #mobileAndTablet = new MatchMediaController(this, TABLET_DOWN);
+    #mobile = new MatchMediaController(this, MOBILE_LANDSCAPE);
 
     constructor() {
         super();
@@ -125,7 +126,7 @@ class MerchSubscriptionPanel extends LitElement {
     }
 
     handleOfferSelect(event) {
-        if (this.offerSelect?.stock) {
+        if (this.stock && this.offerSelect?.stock) {
             this.stock.planType = event.detail.planType;
         }
         this.requestUpdate();
@@ -181,6 +182,7 @@ class MerchSubscriptionPanel extends LitElement {
     }
 
     get stock() {
+        if (this.#mobile.matches) return null;
         return this.querySelector('merch-stock');
     }
 

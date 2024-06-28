@@ -216,7 +216,7 @@ export class MerchTwpD2P extends LitElement {
         this.singleCard = card;
     }
 
-    unSelectSingleCard() {
+    async unSelectSingleCard() {
         if (!this.singleCard) return;
         this.singleCard.setAttribute(
             'slot',
@@ -224,7 +224,11 @@ export class MerchTwpD2P extends LitElement {
         );
         this.singleCard.removeAttribute('data-slot');
         this.step = 1;
+        const cardToBeSelected = this.singleCard;
         this.singleCard = undefined;
+        await this.tabElement?.updateComplete;
+        this.selectedTabPanel.card = cardToBeSelected;
+        this.selectCard(cardToBeSelected, true);
     }
 
     handleContinue() {
@@ -370,7 +374,9 @@ export class MerchTwpD2P extends LitElement {
     }
 
     get preselectedCardId() {
-        const preselectedCardIds = parseState()['select-cards']?.split(',').reduce((res, item) => {
+        const params = new URLSearchParams(window.location.search);
+        const selectCards = params.get('select-cards');
+        const preselectedCardIds = selectCards?.split(',').reduce((res, item) => {
             const formattedItem = decodeURIComponent(item.trim().toLowerCase());
             formattedItem && res.push(formattedItem);
             return res;
@@ -405,7 +411,7 @@ export class MerchTwpD2P extends LitElement {
             if (selectedCard) {
                 selectedCard.selected = undefined;
             }
-            selectedCard = this.cardToBePreselected || card;
+            selectedCard = !selectedCard && this.cardToBePreselected ? this.cardToBePreselected : card;
             selectedCard.selected = true;
             if (tabPanel) {
                 tabPanel.card = selectedCard;

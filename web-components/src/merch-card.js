@@ -33,6 +33,7 @@ export class MerchCard extends LitElement {
         variant: { type: String, reflect: true },
         size: { type: String, attribute: 'size', reflect: true },
         badgeColor: { type: String, attribute: 'badge-color' },
+        borderColor: { type: String, attribute: 'border-color' },
         badgeBackgroundColor: {
             type: String,
             attribute: 'badge-background-color',
@@ -110,10 +111,12 @@ export class MerchCard extends LitElement {
 
     updated(changedProperties) {
         if (
-            changedProperties.has('badgeBackgroundColor') &&
+            (changedProperties.has('badgeBackgroundColor') || changedProperties.has('borderColor')) &&
             this.variant !== 'twp'
         ) {
-            this.style.border = `1px solid ${this.badgeBackgroundColor}`;
+            this.style.border = `1px solid ${
+                this.borderColor ? this.borderColor : this.badgeBackgroundColor
+            }`;
         }
         this.updateComplete.then(async () => {
             const prices = Array.from(

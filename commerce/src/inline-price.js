@@ -46,6 +46,14 @@ const TAX_EXCLUDED_MAP_OTHER = {
     [UNIVERSITY]: true,
 };
 
+/**
+ * Resolves the default value for forceTaxExclusive for the provided geo info and segments.
+ * @param {string} country - uppercase country code e.g. US, AT, MX
+ * @param {string} language - lowercase language code e.g. en, de, es
+ * @param {string} customerSegment - customer segment: INDIVIDUAL or TEAM
+ * @param {string} marketSegment - market segment: COM or EDU
+ * @returns {boolean} true if price will be displayed without tax, otherwise false (default)
+ */
 const resolveTaxExclusive = (country, language, customerSegment, marketSegment) => {
     const locale = `${country}_${language}`;
     const segment = `${customerSegment}_${marketSegment}`;
@@ -59,8 +67,12 @@ const resolveTaxExclusive = (country, language, customerSegment, marketSegment) 
 }
 
 /**
- * Resolves default value of displayTax property, based on provided geo info and segments.
- * @returns {boolean}
+ * Resolves the default value of displayTax property, for the provided geo info and segments.
+ * @param {string} country - uppercase country code e.g. US, AT, MX
+ * @param {string} language - lowercase language code e.g. en, de, es
+ * @param {string} customerSegment - customer segment: INDIVIDUAL or TEAM
+ * @param {string} marketSegment - market segment: COM or EDU
+ * @returns {boolean} true if tax label will be displayed, otherwise false (default)
  */
 const resolveDisplayTaxForGeoAndSegment = (country, language, customerSegment, marketSegment) => {
     const locale = `${country}_${language}`;
@@ -82,8 +94,14 @@ const resolveDisplayTaxForGeoAndSegment = (country, language, customerSegment, m
 }
 
 /**
- * Resolves default value of displayTax property, based on provided geo info and segments extracted from offers object.
- * @returns {boolean}
+ * Resolves default values of displayTax and forceTaxExclusive, based on provided geo info and segments extracted from offers object.
+ * These values will be used when the query parameters "tax" and "exclusive" are not set in the merch link, and in OST for initial
+ * values for checkboxes "Tax label" and "Include tax".
+ * @param {string} country - uppercase country code e.g. US, AT, MX
+ * @param {string} language - lowercase language code e.g. en, de, es
+ * @param {string} customerSegment - customer segment: INDIVIDUAL or TEAM
+ * @param {string} marketSegment - market segment: COM or EDU
+ * @returns {Promise<{displayTax: boolean, forceTaxExclusive: boolean}>} A promise with boolean properties displayTax and forceTaxExclusive
  */
 export const resolvePriceTaxFlags = async (country, language, customerSegment, marketSegment) => {
     const displayTax = resolveDisplayTaxForGeoAndSegment(country, language, customerSegment, marketSegment);
@@ -188,7 +206,7 @@ export class HTMLPriceSpanElement extends HTMLSpanElement {
                 const offer = offers[0];
                 const [marketSegment = ''] = offer.marketSegments;
 
-                // set default value for displayTax if not set neither in OST nor in price URL
+                // set default value for displayTax and forceTaxExclusive if not set neither in OST nor in merch link
                 const flags = await resolvePriceTaxFlags(country, language, offer.customerSegment, marketSegment);
                 if (!this.placeholder.dataset.displayTax) {
                     options.displayTax = flags?.displayTax || options.displayTax;

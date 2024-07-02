@@ -356,8 +356,8 @@ export class MerchCard extends LitElement {
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
                 <slot name="promo-text"></slot>
-                <slot name="body-xs"></slot>
                 <slot name="callout-text"></slot>
+                <slot name="body-xs"></slot>
             </div>
             <hr />
             ${this.secureLabelFooter}`;
@@ -371,8 +371,8 @@ export class MerchCard extends LitElement {
                 <slot name="heading-m"></slot>
                 <slot name="body-xxs"></slot>
                 <slot name="promo-text"></slot>
-                <slot name="body-xs"></slot>    
                 <slot name="callout-text"></slot>            
+                <slot name="body-xs"></slot>    
                 ${this.stockCheckbox}
             </div>
             <slot name="quantity-select"></slot>
@@ -456,8 +456,8 @@ export class MerchCard extends LitElement {
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
                 <slot name="promo-text"></slot>
-                <slot name="body-xs"></slot>
                 <slot name="callout-text"></slot>
+                <slot name="body-xs"></slot>
             </div>
             ${this.secureLabelFooter}`;
     }

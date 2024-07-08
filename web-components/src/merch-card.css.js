@@ -301,13 +301,14 @@ export const styles = css`
     }
 
     :host([variant='mini-compare-chart']) footer {
-        min-height: var(--consonant-merch-card-mini-compare-footer-height);
         padding: var(--consonant-merch-spacing-xs);
+        flex-grow: 1;
     }
 
     /* mini-compare card  */
     :host([variant='mini-compare-chart']) .top-section {
         padding-top: var(--consonant-merch-spacing-s);
+        padding-bottom: var(--consonant-merch-spacing-xxs);
         padding-inline-start: var(--consonant-merch-spacing-s);
         height: var(--consonant-merch-card-mini-compare-top-section-height);
     }
@@ -328,6 +329,10 @@ export const styles = css`
             font-size: var(--consonant-merch-card-detail-font-size);
             padding: 6px 8px;
             top: 10px;
+            max-width: 65px;
+        }
+        :host([variant='mini-compare-chart']) .top-section.badge {
+            padding-inline-start: var(--consonant-merch-spacing-xs);
         }
     }
     @media screen and ${unsafeCSS(DESKTOP_UP)} {

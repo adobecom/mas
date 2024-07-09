@@ -1,5 +1,5 @@
 import { html, LitElement, css } from 'lit';
-import { parseState, pushStateFromComponent } from '../deeplink';
+import { parseState, pushStateFromComponent } from '@adobe/mas-commons';
 import { headingStyles } from './merch-sidenav-heading.css.js';
 import { debounce } from '../utils';
 
@@ -76,7 +76,7 @@ export class MerchSidenavList extends LitElement {
         const value = state[this.deeplink] ?? 'all';
         if (value) {
             const element = this.querySelector(
-                `sp-sidenav-item[value="${value}"]`
+                `sp-sidenav-item[value="${value}"]`,
             );
             if (!element) return;
             this.updateComplete.then(() => {
@@ -101,7 +101,7 @@ export class MerchSidenavList extends LitElement {
             item.selected = true;
             parentNode
                 .querySelectorAll(
-                    'sp-sidenav-item[expanded],sp-sidenav-item[selected]'
+                    'sp-sidenav-item[expanded],sp-sidenav-item[selected]',
                 )
                 .forEach((item) => {
                     if (item.value !== value) {
@@ -118,7 +118,7 @@ export class MerchSidenavList extends LitElement {
      */
     selectionChanged({ target: { value, parentNode } }) {
         this.selectElement(
-            this.querySelector(`sp-sidenav-item[value="${value}"]`)
+            this.querySelector(`sp-sidenav-item[value="${value}"]`),
         );
         pushStateFromComponent(this, value);
     }

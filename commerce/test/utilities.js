@@ -20,7 +20,6 @@ use((chai) => {
     }
 
     chai.Assertion.addMethod('html', function assertHtml(snapshot) {
-        // eslint-disable-next-line no-underscore-dangle
         const normAct = normalise(this._obj);
         const normExp = normalise(snapshot);
         this.assert(
@@ -28,7 +27,7 @@ use((chai) => {
             'expected to match html snapshot',
             'expected not to match html snapshot',
             normAct,
-            normExp
+            normExp,
         );
     });
 });

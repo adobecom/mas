@@ -15,7 +15,7 @@ export async function getService() {
                 if (service) resolve(service);
                 else reject(new Error('Commerce service not found'));
             },
-            { once: true }
+            { once: true },
         );
     });
 }

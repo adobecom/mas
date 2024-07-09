@@ -73,7 +73,7 @@ class MerchOffer extends LitElement {
 
     get price() {
         return this.querySelector(
-            'span[is="inline-price"]:not([data-template="strikethrough"])'
+            'span[is="inline-price"]:not([data-template="strikethrough"])',
         );
     }
 
@@ -104,7 +104,7 @@ class MerchOffer extends LitElement {
         this.planType = offer.planType;
         await this.updateComplete;
         this.dispatchEvent(
-            new CustomEvent(EVENT_MERCH_OFFER_READY, { bubbles: true })
+            new CustomEvent(EVENT_MERCH_OFFER_READY, { bubbles: true }),
         );
     }
 }

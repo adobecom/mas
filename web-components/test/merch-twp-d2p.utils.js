@@ -1,6 +1,7 @@
 import { sendMouse } from '@web/test-runner-commands';
-import { delay, getTemplateContent } from './utils.js';
+import { delay } from './utils.js';
 import { expect } from '@esm-bundle/chai';
+import { getTemplateContent } from '@adobe/mas-commons/test/utils.js';
 
 const content = document.getElementById('content');
 const sidenav = document.getElementById('sidenav');
@@ -74,10 +75,10 @@ async function addStock() {
 
 async function selectPlanType(
     planType,
-    root = document.querySelector('merch-subscription-panel')
+    root = document.querySelector('merch-subscription-panel'),
 ) {
     const merchOffer = root.querySelector(
-        `merch-offer[plan-type="${planType}"]`
+        `merch-offer[plan-type="${planType}"]`,
     );
     const { x, y } = getMiddleOfElement(merchOffer);
     await sendMouse({
@@ -107,10 +108,10 @@ async function clickElement(element) {
 
 function verifyCheckoutUrl(expectedUrl) {
     const subscriptionPanel = document.querySelector(
-        'merch-subscription-panel'
+        'merch-subscription-panel',
     );
     const checkoutLink = subscriptionPanel.shadowRoot.querySelector(
-        'a[is="checkout-link"]'
+        'a[is="checkout-link"]',
     );
     expect(checkoutLink.href).to.equal(expectedUrl);
 }
@@ -119,7 +120,7 @@ async function gotoStep1() {
     await clickElement(
         document
             .querySelector('merch-twp-d2p')
-            .shadowRoot.getElementById('backButton')
+            .shadowRoot.getElementById('backButton'),
     );
 }
 
@@ -127,7 +128,7 @@ async function gotoStep2() {
     await clickElement(
         document
             .querySelector('merch-twp-d2p')
-            .shadowRoot.getElementById('continueButton')
+            .shadowRoot.getElementById('continueButton'),
     );
 }
 

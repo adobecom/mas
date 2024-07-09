@@ -55,14 +55,14 @@ export function Checkout({ providers, settings }, dataProviders) {
         const workflow = toEnumeration(
             checkoutWorkflow,
             CheckoutWorkflow,
-            Defaults.checkoutWorkflow
+            Defaults.checkoutWorkflow,
         );
         let workflowStep = CheckoutWorkflowStep.CHECKOUT;
         if (workflow === CheckoutWorkflow.V3) {
             workflowStep = toEnumeration(
                 checkoutWorkflowStep,
                 CheckoutWorkflowStep,
-                Defaults.checkoutWorkflowStep
+                Defaults.checkoutWorkflowStep,
             );
         }
         const options = omitProperties({
@@ -96,7 +96,7 @@ export function Checkout({ providers, settings }, dataProviders) {
         const checkoutAction = await dataProviders.getCheckoutAction?.(
             offers,
             options,
-            instance.imsSignedInPromise
+            instance.imsSignedInPromise,
         );
         if (checkoutAction) {
             return checkoutAction;
@@ -148,14 +148,14 @@ export function Checkout({ providers, settings }, dataProviders) {
             data.items.push(
                 quantity[0] === 1
                     ? { id: offerId }
-                    : { id: offerId, quantity: quantity[0] }
+                    : { id: offerId, quantity: quantity[0] },
             );
         } else {
             data.items.push(
                 ...offers.map(({ offerId }, index) => ({
                     id: offerId,
                     quantity: quantity[index] ?? Defaults.quantity,
-                }))
+                })),
             );
         }
         return buildCheckoutUrl(workflow, data);

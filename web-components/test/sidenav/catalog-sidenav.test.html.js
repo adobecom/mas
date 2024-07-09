@@ -7,11 +7,11 @@ import {
     resetState,
     toggleLargeDesktop,
 } from '../utils.js';
-import { pushState, parseState } from '../../src/deeplink.js';
 import '../../src/sidenav/merch-sidenav.js';
 import '../../src/sidenav/merch-sidenav-list.js';
 import '../../src/sidenav/merch-sidenav-checkbox-group.js';
 import '../../src/merch-search.js';
+import { pushState, parseState } from '@adobe/mas-commons';
 
 const resetChecks = async () => {
     document.querySelectorAll('sp-checkbox').forEach((cb) => {
@@ -24,24 +24,24 @@ const getCategories = () => document.querySelector('merch-sidenav-list');
 const getItems = () => getCategories().querySelectorAll('sp-sidenav-item');
 const click = async (value) => {
     const node = getCategories().querySelector(
-        `sp-sidenav-item[value=${value}]`
+        `sp-sidenav-item[value=${value}]`,
     );
     await elementClick(node);
 };
 const expectedSelection = (expectedValue, expectedExpand = false) => {
     const item = getCategories().querySelector(
-        `sp-sidenav-item[value=${expectedValue}]`
+        `sp-sidenav-item[value=${expectedValue}]`,
     );
     expect(item).not.to.be.null;
     if (expectedExpand) {
         expect(item.getAttribute('expanded')).to.equal(
             '',
-            `${expectedValue} should be expanded`
+            `${expectedValue} should be expanded`,
         );
     }
     expect(item.getAttribute('selected')).to.equal(
         '',
-        `${expectedValue} should be selected`
+        `${expectedValue} should be selected`,
     );
     expect(item.value).to.equal(expectedValue);
 };
@@ -64,7 +64,7 @@ runTests(async () => {
         container.append(
             document
                 .getElementById('merch-sidenav-template')
-                .content.cloneNode(true)
+                .content.cloneNode(true),
         );
         await delay(10);
     };
@@ -110,7 +110,7 @@ runTests(async () => {
         });
         it('renders three items', async () => {
             const comps = document.querySelectorAll(
-                'merch-sidenav-checkbox-group'
+                'merch-sidenav-checkbox-group',
             );
             expect(comps.length).to.equal(1);
             const checkboxes = comps[0].querySelectorAll('sp-checkbox');
@@ -151,7 +151,7 @@ runTests(async () => {
             pushState({ types: 'web,mobile' });
             await refreshElement(
                 document.querySelector('merch-sidenav-checkbox-group')
-                    .parentElement
+                    .parentElement,
             );
             const web = document.querySelector('sp-checkbox[name=web]');
             expect(web.checked).to.be.true;
@@ -170,7 +170,7 @@ runTests(async () => {
             expect(
                 document
                     .querySelectorAll('merch-sidenav-list')[1]
-                    .querySelectorAll('sp-sidenav-item').length
+                    .querySelectorAll('sp-sidenav-item').length,
             ).to.equal(1);
         });
     });
@@ -183,7 +183,7 @@ runTests(async () => {
         });
         it('renders 1 search element', async () => {
             expect(document.querySelectorAll('merch-search').length).to.equal(
-                1
+                1,
             );
         });
 
@@ -199,7 +199,7 @@ runTests(async () => {
             search.value = '';
             pushState({ search: 'photoshop' });
             await refreshElement(
-                document.querySelector('merch-search').parentElement
+                document.querySelector('merch-search').parentElement,
             );
             expect(search.value).to.equal('photoshop');
         });

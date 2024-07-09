@@ -10,7 +10,6 @@ export function imsReady({ interval = 200, maxAttempts = 25 } = {}) {
         function poll() {
             if (window.adobeIMS?.initialized) {
                 resolve();
-                // eslint-disable-next-line no-plusplus
             } else if (++count > maxAttempts) {
                 log.debug('Timeout');
                 resolve();
@@ -24,7 +23,9 @@ export function imsReady({ interval = 200, maxAttempts = 25 } = {}) {
 
 /** @type {Commerce.Ims.imsSignedIn} */
 export function imsSignedIn(imsReadyPromise) {
-    return imsReadyPromise.then(() => window.adobeIMS.isSignedInUser());
+    return imsReadyPromise.then(
+        () => window.adobeIMS?.isSignedInUser() ?? false,
+    );
 }
 
 /** @type {Commerce.Ims.imsCountry} */
@@ -40,7 +41,7 @@ export function imsCountry(imsSignedInPromise) {
             (error) => {
                 log.error('Unable to get user country:', error);
                 return undefined;
-            }
+            },
         );
     });
 }

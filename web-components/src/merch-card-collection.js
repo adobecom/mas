@@ -1,7 +1,7 @@
 import { html, LitElement } from 'lit';
 import { MatchMediaController } from '@spectrum-web-components/reactive-controllers/src/MatchMedia.js';
 
-import { deeplink, pushState } from './deeplink.js';
+import { deeplink, pushState } from '@adobe/mas-commons';
 
 import { updateLiterals } from './literals.js';
 import { TABLET_DOWN } from './media.js';
@@ -35,7 +35,7 @@ const typeFilter = (elements, { types }) => {
     if (!types) return elements;
     types = types.split(',');
     return elements.filter((element) =>
-        types.some((type) => element.types.includes(type))
+        types.some((type) => element.types.includes(type)),
     );
 };
 
@@ -43,7 +43,7 @@ const alphabeticalSorter = (elements) =>
     elements.sort((a, b) =>
         (a.title ?? '').localeCompare(b.title ?? '', 'en', {
             sensitivity: 'base',
-        })
+        }),
     );
 
 const authoredSorter = (elements, { filter }) =>
@@ -119,7 +119,7 @@ export class MerchCardCollection extends LitElement {
             window.scrollY || document.documentElement.scrollTop;
 
         const children = [...this.children].filter(
-            (child) => child.tagName === 'MERCH-CARD'
+            (child) => child.tagName === 'MERCH-CARD',
         );
 
         if (children.length === 0) return;
@@ -333,7 +333,7 @@ export class MerchCardCollection extends LitElement {
                 this.singleApp = single_app;
                 this.sort = sort;
                 this.page = Number(page) || 1;
-            }
+            },
         );
     }
 

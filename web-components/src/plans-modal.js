@@ -106,7 +106,7 @@ export default class PlansModal extends LitElement {
         if (changedProperties.has('includesLimit')) {
             this.style.setProperty(
                 '--consonant-plan-modal-includes-limit',
-                this.includesLimit
+                this.includesLimit,
             );
         }
     }
@@ -163,7 +163,7 @@ export default class PlansModal extends LitElement {
         };
         const overlay = await Overlay.open(
             this.shadowRoot.querySelector('sp-dialog-wrapper'),
-            options
+            options,
         );
         this.shadowRoot.querySelector('sp-theme').append(overlay);
     }

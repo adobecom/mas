@@ -7,7 +7,7 @@ describe('function "selectWcsOffers"', () => {
         const offers = selectOffers(
             // @ts-ignore
             [{ language: 'MULT' }, { language: 'DE' }],
-            { perpetual: true }
+            { perpetual: true },
         );
         expect(offers[0].language).to.equal('DE');
     });
@@ -26,7 +26,7 @@ describe('function "selectWcsOffers"', () => {
                     },
                 },
             ],
-            { forceTaxExclusive: true }
+            { forceTaxExclusive: true },
         );
         expect(offers[0].priceDetails.price).to.equal(1);
         expect(offers[0].priceDetails.priceWithoutDiscount).to.equal(4);

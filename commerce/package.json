@@ -1,5 +1,5 @@
 {
-    "name": "@wcms/commerce",
+    "name": "@adobe/mas-commerce",
     "version": "2.0.0",
     "files": [
         "lib",
@@ -13,48 +13,35 @@
     "scripts": {
         "build": "npm run build:bundle && npm run build:types",
         "build:bundle": "node ./build.mjs",
-        "build:types": "cp ./src/index.d.ts ./lib/commerce.d.ts",
+        "build:types": "cp ./src/index.d.ts ../lib/commerce.d.ts",
         "build:watch": "npm run build:bundle --watch",
         "test": "wtr --config ./web-test-runner.config.mjs --coverage --watch",
-        "test:ci": "wtr --config ./web-test-runner.config.mjs --debug",
-        "test:file": "wtr --config ./web-test-runner.config.mjs --coverage --watch"
+        "test:ci": "wtr --config ./web-test-runner.config.mjs"
     },
     "dependencies": {
-        "@dexter/tacocat-consonant-templates": "file:../deps/tacocat-consonant-templates-1.13.0.tgz",
-        "@dexter/tacocat-core": "file:../deps/tacocat-core-1.12.2.tgz",
-        "@dexter/tacocat-wcs-client": "file:../deps/tacocat-wcs-client-1.17.0.tgz",
-        "@pandora/commerce-checkout-url-builder": "file:../deps/commerce-checkout-url-builder-1.6.0.tgz",
-        "@pandora/data-models-odm": "file:../deps/data-models-odm-0.5.4.tgz",
-        "@pandora/data-source-wcs": "file:../deps/data-source-wcs-0.2.8.tgz",
-        "@pandora/data-source-utils": "file:../deps/data-source-utils-0.3.1.tgz",
-        "@pandora/fetch": "file:../deps/fetch-1.3.4.tgz",
-        "@pandora/react-auth-provider": "file:../deps/react-auth-provider-1.2.1.tgz",
-        "@pandora/react-env-provider": "file:../deps/react-env-provider-1.2.2.tgz",
-        "@pandora/react-fetch-provider": "file:../deps/react-fetch-provider-1.2.2.tgz",
-        "@pandora/logger": "file:../deps/logger-1.3.0.tgz"
+        "@dexter/tacocat-consonant-templates": "file:./internal/tacocat-consonant-templates-1.13.0.tgz",
+        "@dexter/tacocat-core": "file:./internal/tacocat-core-1.12.2.tgz",
+        "@dexter/tacocat-wcs-client": "file:./internal/tacocat-wcs-client-1.17.0.tgz",
+        "@pandora/commerce-checkout-url-builder": "file:./internal/commerce-checkout-url-builder-1.6.0.tgz",
+        "@pandora/data-models-odm": "file:./internal/data-models-odm-0.5.4.tgz",
+        "@pandora/data-source-wcs": "file:./internal/data-source-wcs-0.2.8.tgz",
+        "@pandora/data-source-utils": "file:./internal/data-source-utils-0.3.1.tgz",
+        "@pandora/fetch": "file:./internal/fetch-1.3.4.tgz",
+        "@pandora/react-auth-provider": "file:./internal/react-auth-provider-1.2.1.tgz",
+        "@pandora/react-env-provider": "file:./internal/react-env-provider-1.2.2.tgz",
+        "@pandora/react-fetch-provider": "file:./internal/react-fetch-provider-1.2.2.tgz",
+        "@pandora/logger": "file:./internal/logger-1.3.0.tgz"
     },
     "devDependencies": {
-        "@dexter/eslint-config-tacocat": "file:../deps/eslint-config-tacocat-1.1.2.tgz",
-        "@esm-bundle/chai": "4.3.4-fix.0",
-        "@esm-bundle/chai-as-promised": "7.1.1",
-        "@types/chai-as-promised": "7.1.5",
-        "@types/sinon": "10.0.15",
         "@web/dev-server-import-maps": "^0.1.1",
-        "@web/test-runner": "0.13.27",
-        "@web/test-runner-commands": "0.6.1",
-        "@web/test-runner-playwright": "0.10.1",
-        "esbuild": "0.18.11",
-        "eslint": "8.20.0",
-        "eslint-config-airbnb-base": "15.0.0",
-        "eslint-plugin-chai-friendly": "0.7.2",
-        "eslint-plugin-compat": "4.0.2",
-        "eslint-plugin-ecmalist": "1.0.8",
-        "eslint-plugin-import": "2.26.0",
-        "sinon": "13.0.1"
+        "@web/test-runner": "^0.13.27",
+        "@web/test-runner-commands": "^0.6.1",
+        "@web/test-runner-visual-regression": "^0.9.0",
+        "esbuild": "0.18.11"
     },
     "repository": {
         "type": "git",
         "url": "git@github.com:adobecom/mas.git",
-        "directory": "packages/commerce"
+        "directory": "commerce"
     }
 }

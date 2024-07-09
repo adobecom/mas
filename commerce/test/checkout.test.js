@@ -16,10 +16,12 @@ import {
 import { initService, resetService } from '../src/service.js';
 
 import { mockConfig } from './mocks/config.js';
-import { mockFetch, unmockFetch } from './mocks/fetch.js';
+import { mockFetch } from './mocks/fetch.js';
 import { mockIms, unmockIms } from './mocks/ims.js';
 import { mockLana, unmockLana } from './mocks/lana.js';
+import { withLiterals } from './mocks/literals.js';
 import { mockProviders } from './mocks/providers.js';
+import { withWcs } from './mocks/wcs.js';
 import { expect, sinon } from './utilities.js';
 
 const HREF = 'https://test.org/';
@@ -32,7 +34,7 @@ const HREF = 'https://test.org/';
 function mockCheckoutLink(wcsOsi, options = {}, append = true) {
     const element = CheckoutLink.createCheckoutLink(
         { wcsOsi, ...options },
-        `Buy now: ${wcsOsi}`
+        `Buy now: ${wcsOsi}`,
     );
     if (append) document.body.append(element, document.createElement('br'));
     return element;
@@ -44,13 +46,12 @@ let fetch;
 afterEach(() => {
     document.body.innerHTML = '';
     resetService();
-    unmockFetch();
     unmockIms();
     unmockLana();
 });
 
 beforeEach(async () => {
-    fetch = await mockFetch();
+    fetch = await mockFetch(withWcs, withLiterals);
     mockLana();
 });
 
@@ -60,7 +61,7 @@ describe('class "CheckoutLink"', () => {
         const checkoutLink = mockCheckoutLink('abm');
         await checkoutLink.onceSettled();
         expect(checkoutLink.href).to.equal(
-            'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&cli=adobe_com&ctx=fp&co=US&lang=en'
+            'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&cli=adobe_com&ctx=fp&co=US&lang=en',
         );
     });
 
@@ -69,12 +70,12 @@ describe('class "CheckoutLink"', () => {
             mockConfig({
                 checkoutWorkflowStep: CheckoutWorkflowStep.SEGMENTATION,
             }),
-            mockProviders()
+            mockProviders(),
         );
         const checkoutLink = mockCheckoutLink('abm');
         await checkoutLink.onceSettled();
         expect(checkoutLink.href).to.equal(
-            'https://commerce.adobe.com/store/segmentation?ms=COM&ot=BASE&pa=ccsn_direct_individual&cli=adobe_com&ctx=fp&co=US&lang=en'
+            'https://commerce.adobe.com/store/segmentation?ms=COM&ot=BASE&pa=ccsn_direct_individual&cli=adobe_com&ctx=fp&co=US&lang=en',
         );
     });
 
@@ -85,7 +86,7 @@ describe('class "CheckoutLink"', () => {
         });
         await checkoutLink.onceSettled();
         expect(checkoutLink.href).to.equal(
-            'https://commerce.adobe.com/store/segmentation?ms=COM&ot=BASE&pa=ccsn_direct_individual&cli=adobe_com&ctx=fp&co=US&lang=en'
+            'https://commerce.adobe.com/store/segmentation?ms=COM&ot=BASE&pa=ccsn_direct_individual&cli=adobe_com&ctx=fp&co=US&lang=en',
         );
     });
 
@@ -97,7 +98,7 @@ describe('class "CheckoutLink"', () => {
         await delay(1);
         await checkoutLink.onceSettled();
         expect(checkoutLink.href).to.equal(
-            'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&cli=adobe_com&ctx=fp&co=CH&lang=en'
+            'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&cli=adobe_com&ctx=fp&co=CH&lang=en',
         );
     });
 
@@ -108,12 +109,12 @@ describe('class "CheckoutLink"', () => {
         });
         await checkoutLink.onceSettled();
         expect(checkoutLink.href).to.equal(
-            'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&apc=nicopromo&cli=adobe_com&ctx=fp&co=US&lang=en'
+            'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&apc=nicopromo&cli=adobe_com&ctx=fp&co=US&lang=en',
         );
         checkoutLink.dataset.promotionCode = 'testpromo';
         await checkoutLink.onceSettled();
         expect(checkoutLink.href).to.equal(
-            'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&apc=testpromo&cli=adobe_com&ctx=fp&co=US&lang=en'
+            'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&apc=testpromo&cli=adobe_com&ctx=fp&co=US&lang=en',
         );
     });
 
@@ -141,7 +142,7 @@ describe('class "CheckoutLink"', () => {
         });
         await checkoutLink.onceSettled();
         expect(checkoutLink.href).to.equal(
-            'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&items%5B0%5D%5Bq%5D=2&items%5B1%5D%5Bid%5D=7164A328080BC96CC60FEBF33F64342D&items%5B1%5D%5Bq%5D=2&cli=adobe_com&ctx=fp&co=US&lang=en'
+            'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&items%5B0%5D%5Bq%5D=2&items%5B1%5D%5Bid%5D=7164A328080BC96CC60FEBF33F64342D&items%5B1%5D%5Bq%5D=2&cli=adobe_com&ctx=fp&co=US&lang=en',
         );
     });
 
@@ -149,7 +150,7 @@ describe('class "CheckoutLink"', () => {
         await initService(mockConfig(), mockProviders());
         const checkoutLink = mockCheckoutLink('no-offer');
         await expect(checkoutLink.onceSettled()).eventually.be.rejectedWith(
-            ERROR_MESSAGE_OFFER_NOT_FOUND
+            ERROR_MESSAGE_OFFER_NOT_FOUND,
         );
     });
 
@@ -157,7 +158,7 @@ describe('class "CheckoutLink"', () => {
         await initService(mockConfig(), mockProviders());
         const checkoutLink = mockCheckoutLink('xyz');
         await expect(checkoutLink.onceSettled()).eventually.be.rejectedWith(
-            ERROR_MESSAGE_BAD_REQUEST
+            ERROR_MESSAGE_BAD_REQUEST,
         );
     });
 
@@ -168,7 +169,7 @@ describe('class "CheckoutLink"', () => {
         });
         await checkoutLink.onceSettled();
         expect(checkoutLink.href).to.equal(
-            'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=C5AC20C8AAF4892B67DE2E89B26D8ACA&cli=adobe_com&ctx=fp&co=US&lang=en'
+            'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=C5AC20C8AAF4892B67DE2E89B26D8ACA&cli=adobe_com&ctx=fp&co=US&lang=en',
         );
         expect(fetch.lastCall.args[0]).to.contain('language=EN');
 
@@ -176,7 +177,7 @@ describe('class "CheckoutLink"', () => {
         checkoutLink.dataset.perpetual = 'false';
         const promise = checkoutLink.onceSettled();
         await expect(promise).eventually.be.rejectedWith(
-            ERROR_MESSAGE_OFFER_NOT_FOUND
+            ERROR_MESSAGE_OFFER_NOT_FOUND,
         );
         expect(fetch.lastCall.args[0]).to.contain('language=MULT');
     });
@@ -188,12 +189,12 @@ describe('class "CheckoutLink"', () => {
         });
         await checkoutLink.onceSettled();
         expect(checkoutLink.href).to.equal(
-            'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&cli=adobe_com&ctx=fp&co=US&mv=1&mv2=2&promoid=abc&lang=en'
+            'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&cli=adobe_com&ctx=fp&co=US&mv=1&mv2=2&promoid=abc&lang=en',
         );
         delete checkoutLink.dataset.extraOptions;
         await checkoutLink.onceSettled();
         expect(checkoutLink.href).to.equal(
-            'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&cli=adobe_com&ctx=fp&co=US&lang=en'
+            'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&cli=adobe_com&ctx=fp&co=US&lang=en',
         );
     });
 
@@ -266,15 +267,15 @@ describe('class "CheckoutLink"', () => {
             link.updateOptions(options);
             const { dataset } = link;
             expect(dataset.checkoutMarketSegment).to.equal(
-                options.checkoutMarketSegment
+                options.checkoutMarketSegment,
             );
             expect(dataset.checkoutWorkflow).to.equal(options.checkoutWorkflow);
             expect(dataset.checkoutWorkflowStep).to.equal(
-                options.checkoutWorkflowStep
+                options.checkoutWorkflowStep,
             );
             expect(dataset.perpetual).to.equal(String(options.perpetual));
             expect(dataset.promotionCode).to.equal(
-                String(options.promotionCode)
+                String(options.promotionCode),
             );
             expect(dataset.quantity).to.equal(String(options.quantity));
             expect(dataset.wcsOsi).to.equal(String(options.wcsOsi));
@@ -305,14 +306,14 @@ describe('class "CheckoutLink"', () => {
                         className: CLASS_NAME_DOWNLOAD,
                         url: 'https://helpx.adobe.com/download-install.html',
                     },
-                })
+                }),
             );
             const checkoutLink = mockCheckoutLink('abm');
             await checkoutLink.onceSettled();
             expect(checkoutLink.textContent.trim()).to.equal('Download');
             expect(checkoutLink.classList.contains('download')).to.be.true;
             expect(checkoutLink.getAttribute('href')).to.equal(
-                'https://helpx.adobe.com/download-install.html'
+                'https://helpx.adobe.com/download-install.html',
             );
         });
 
@@ -327,7 +328,7 @@ describe('class "CheckoutLink"', () => {
                         className: CLASS_NAME_UPGRADE,
                         handler,
                     },
-                })
+                }),
             );
             const checkoutLink = mockCheckoutLink('abm');
             await checkoutLink.onceSettled();
@@ -345,7 +346,7 @@ describe('class "CheckoutLink"', () => {
             await checkoutLink.onceSettled();
             expect(checkoutLink.textContent.trim()).to.equal('Buy now: abm');
             expect(checkoutLink.getAttribute('href')).to.equal(
-                'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&cli=adobe_com&ctx=fp&co=US&lang=en'
+                'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&cli=adobe_com&ctx=fp&co=US&lang=en',
             );
         });
     });
@@ -356,7 +357,7 @@ describe('commerce service', () => {
         it('returns empty string if no offers provided', async () => {
             const { buildCheckoutURL } = await initService(
                 mockConfig(),
-                mockProviders()
+                mockProviders(),
             );
             expect(buildCheckoutURL([])).to.be.empty;
         });

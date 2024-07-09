@@ -27,11 +27,11 @@ const Level = Object.freeze({
 const consoleAppender = {
     append({ level, message, params, timestamp, source }) {
         /* c8 ignore start */
-        // eslint-disable-next-line no-console
+
         console[level](
             `${timestamp}ms [${source}] %c${message}`,
             'font-weight: bold;',
-            ...params
+            ...params,
         );
         /* c8 ignore stop */
     },
@@ -116,7 +116,7 @@ function init(env = {}) {
     const { name } = env;
     const debug = toBoolean(
         getParameter('commerce.debug', { search: true, storage: true }),
-        name === MiloEnv.LOCAL
+        name === MiloEnv.LOCAL,
     );
     if (debug) use(consoleAppender);
     else use(debugFilter);

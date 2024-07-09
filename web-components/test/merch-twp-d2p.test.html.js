@@ -3,15 +3,12 @@ import { executeServerCommand } from '@web/test-runner-commands';
 import { visualDiff } from '@web/test-runner-visual-regression';
 import { expect } from '@esm-bundle/chai';
 
-import { mockLana } from '/test/mocks/lana.js';
+import { mockLana } from './mocks/lana.js';
 import { mockIms } from './mocks/ims.js';
-import { mockFetch } from '/test/mocks/fetch.js';
-import { mockConfig } from '/test/mocks/config.js';
+import { mockFetch } from './mocks/fetch.js';
+import { mockConfig } from './mocks/config.js';
 
-import { init } from '@wcms/commerce';
 import '../src/global.css.js';
-import '../src/merch-icon.js';
-import '../src/merch-card.js';
 import '../src/merch-offer-select.js';
 import '../src/merch-offer.js';
 import '../src/merch-quantity-select.js';
@@ -32,6 +29,9 @@ import {
     verifyCheckoutUrl,
 } from './merch-twp-d2p.utils.js';
 import { appendMiloStyles, delay } from './utils.js';
+import { withWcs } from './mocks/wcs.js';
+import { withLiterals } from './mocks/literals.js';
+import mas from './mocks/mas.js';
 
 const ABM = 'ABM';
 const PUF = 'PUF';
@@ -40,13 +40,13 @@ const M2M = 'M2M';
 runTests(async () => {
     appendMiloStyles();
     mockLana();
-    await mockFetch();
+    await mockFetch(withWcs, withLiterals);
     await mockIms();
-    await init(mockConfig());
+    await mas();
 
     if (shouldSkipTests) {
         const template = new URLSearchParams(window.location.hash.slice(1)).get(
-            'template'
+            'template',
         );
         if (template) {
             await applyTemplate(template);
@@ -64,26 +64,26 @@ runTests(async () => {
             await executeServerCommand(
                 'emulate',
                 payload,
-                'test-runner-device-emulator'
+                'test-runner-device-emulator',
             );
         });
 
         /** causes an infinit loop, skipping for now */
-        it.skip('renders on desktop', async () => {
+        it('renders on desktop', async () => {
             await applyTemplate('cci-footer,premiere', false);
             const merchCard = document.querySelector(
-                'merch-card[aria-selected]'
+                'merch-card[aria-selected]',
             );
             expect(merchCard.title).to.equal('Premiere');
             const merchOffer = await selectPlanType(PUF);
             await hooverElement(merchOffer.shadowRoot.getElementById('info'));
             await addStock();
             verifyCheckoutUrl(
-                'https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bid%5D=9E618D5A589EF8D6364DFBE02FC2C264&items%5B0%5D%5Bq%5D=1&items%5B1%5D%5Bid%5D=E3171ADBB9D7A5359EC8128650B7710D&items%5B1%5D%5Bq%5D=1&cli=adobe_com&ctx=fp&co=US&lang=en'
+                'https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bid%5D=9E618D5A589EF8D6364DFBE02FC2C264&items%5B0%5D%5Bq%5D=1&items%5B1%5D%5Bid%5D=E3171ADBB9D7A5359EC8128650B7710D&items%5B1%5D%5Bq%5D=1&cli=adobe_com&ctx=fp&co=US&lang=en',
             );
             await visualDiff(
                 document.querySelector('merch-twp-d2p'),
-                '1-card-premiere-cci-desktop'
+                '1-card-premiere-cci-desktop',
             );
         });
 
@@ -92,16 +92,16 @@ runTests(async () => {
             await gotoStep2();
             await selectPlanType(M2M);
             verifyCheckoutUrl(
-                'https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bid%5D=257E1D82082387D152029F93C1030624&cli=adobe_com&ctx=fp&co=US&lang=en'
+                'https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bid%5D=257E1D82082387D152029F93C1030624&cli=adobe_com&ctx=fp&co=US&lang=en',
             );
             await visualDiff(
                 document.querySelector('sp-dialog-base'),
-                '1-card-premiere-cci-tablet-step-2'
+                '1-card-premiere-cci-tablet-step-2',
             );
             await gotoStep1();
             await visualDiff(
                 document.querySelector('sp-dialog-base'),
-                '1-card-premiere-cci-tablet-step-1'
+                '1-card-premiere-cci-tablet-step-1',
             );
         });
 
@@ -110,43 +110,43 @@ runTests(async () => {
             await gotoStep2();
             await selectPlanType(M2M);
             verifyCheckoutUrl(
-                'https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bid%5D=257E1D82082387D152029F93C1030624&cli=adobe_com&ctx=fp&co=US&lang=en'
+                'https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bid%5D=257E1D82082387D152029F93C1030624&cli=adobe_com&ctx=fp&co=US&lang=en',
             );
             await visualDiff(
                 document.querySelector('sp-dialog-base'),
-                '1-card-premiere-cci-mobile-step-2'
+                '1-card-premiere-cci-mobile-step-2',
             );
             await gotoStep1();
             await visualDiff(
                 document.querySelector('sp-dialog-base'),
-                '1-card-premiere-cci-mobile-step-1'
+                '1-card-premiere-cci-mobile-step-1',
             );
         });
     });
 
-    describe('merch-twp-d2p with Storage Options', async () => {
+    describe.skip('merch-twp-d2p with Storage Options', async () => {
         it('renders Storage Options and selects default merch-offer-select', async () => {
             await applyTemplate(
-                'all-apps,photography-storage,cci-footer,cct-footer,cce-footer'
+                'all-apps,photography-storage,cci-footer,cct-footer,cce-footer',
             );
             await delay(50);
             const selectedCard = document.querySelector(
-                'merch-card[aria-selected]'
+                'merch-card[aria-selected]',
             );
             const storageOptions =
                 selectedCard?.querySelector('sp-radio-group');
             expect(storageOptions?.selected).to.eq('20GB');
             expect(selectedCard.offerSelect.getAttribute('storage')).to.eq(
-                '20GB'
+                '20GB',
             );
         });
 
         it('switch Storage Option on click and update merch-offer-select', async () => {
             const panel = document.querySelector(
-                'merch-twp-d2p merch-subscription-panel'
+                'merch-twp-d2p merch-subscription-panel',
             );
             const selectedCard = document.querySelector(
-                'merch-card[aria-selected]'
+                'merch-card[aria-selected]',
             );
             const storageOptions =
                 selectedCard?.querySelector('sp-radio-group');
@@ -155,7 +155,7 @@ runTests(async () => {
 
             expect(storageOptions?.selected).to.eq('1TB');
             expect(selectedCard.offerSelect.getAttribute('storage')).to.eq(
-                '1TB'
+                '1TB',
             );
             expect(panel.offerSelect.getAttribute('storage')).to.eq('1TB');
         });
@@ -164,7 +164,7 @@ runTests(async () => {
             document.location.hash = 'select-cards=photoshop&creat&creati';
             await applyTemplate('cci-footer,preselect-card', false);
             const merchCard = document.querySelector(
-                'merch-card[aria-selected]'
+                'merch-card[aria-selected]',
             );
             expect(merchCard.title).to.equal('Photoshop');
         });

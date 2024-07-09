@@ -1,16 +1,13 @@
 import { Defaults } from '../src/index.js';
 import { fetchPriceLiterals } from '../src/literals.js';
 
-import { mockFetch, priceLiteralsURL, unmockFetch } from './mocks/fetch.js';
+import { mockFetch } from './mocks/fetch.js';
+import { priceLiteralsURL, withLiterals } from './mocks/literals.js';
 import { expect } from './utilities.js';
 
 describe('function "fetchPriceLiterals"', () => {
-    afterEach(() => {
-        unmockFetch();
-    });
-
     beforeEach(async () => {
-        await mockFetch();
+        await mockFetch(withLiterals);
     });
 
     it('throws if settings argument does not have `priceLiteralsURL` nor `priceLiteralsPromise` property', async () => {
@@ -26,7 +23,7 @@ describe('function "fetchPriceLiterals"', () => {
                     recurrenceLabel:
                         '{recurrenceTerm, select, MONTH {/mo} YEAR {/yr} other {}}',
                 },
-            ])
+            ]),
         );
         // @ts-ignore
         const literals = await fetchPriceLiterals({

@@ -112,6 +112,11 @@ styles.innerHTML = `
     --consonant-merch-card-twp-mobile-width: 300px;
     --consonant-merch-card-twp-mobile-height: 358px;
 
+    /* ccd-action */
+    --consonant-merch-card-ccd-action-width: 276px;
+    --consonant-merch-card-ccd-action-min-height: 320px;
+
+
     /*mini compare chart */
     --consonant-merch-card-mini-compare-chart-icon-size: 32px;
     --consonant-merch-card-mini-compare-mobile-cta-font-size: 15px;
@@ -363,6 +368,10 @@ merch-card[variant="catalog"] [slot="action-menu-content"] p {
 merch-card[variant="catalog"] [slot="action-menu-content"] a {
     color: var(--consonant-merch-card-background-color);
     text-decoration: underline;
+}
+
+merch-card[variant="ccd-action"] .price-strikethrough {
+    font-size: 18px;
 }
 
 merch-card[variant="plans"] [slot="quantity-select"] {
@@ -912,6 +921,38 @@ div[slot='bg-image'] img {
     @media screen and ${LARGE_DESKTOP} {
     .four-merch-cards.inline-heading {
         grid-template-columns: repeat(4, var(--consonant-merch-card-inline-heading-width));
+    }
+}
+
+/* grid style for ccd-action */
+.one-merch-card.ccd-action,
+.two-merch-cards.ccd-action,
+.three-merch-cards.ccd-action,
+.four-merch-cards.ccd-action {
+    grid-template-columns: var(--consonant-merch-card-ccd-action-width);
+}
+
+/* Tablet */
+@media screen and ${TABLET_UP} {
+    .two-merch-cards.ccd-action,
+    .three-merch-cards.ccd-action,
+    .four-merch-cards.ccd-action {
+        grid-template-columns: repeat(2, var(--consonant-merch-card-ccd-action-width));
+    }
+}
+
+/* desktop */
+@media screen and ${DESKTOP_UP} {
+    .three-merch-cards.ccd-action,
+    .four-merch-cards.ccd-action {
+        grid-template-columns: repeat(3, var(--consonant-merch-card-ccd-action-width));
+    }
+}
+
+/* Large desktop */
+    @media screen and ${LARGE_DESKTOP} {
+    .four-merch-cards.ccd-action {
+        grid-template-columns: repeat(4, var(--consonant-merch-card-ccd-action-width));
     }
 }
 

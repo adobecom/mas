@@ -2,16 +2,10 @@ import { runTests } from '@web/test-runner-mocha';
 import { expect } from '@esm-bundle/chai';
 
 // Import mocks
-import { mockConfig } from './mocks/config.js';
 import { mockFetch } from './mocks/fetch.js';
 import { mockLana } from './mocks/lana.js';
 
-// Import test targets
-import { init } from '@wcms/commerce';
-
 import './spectrum.js';
-import '../src/merch-icon.js';
-import '../src/merch-card.js';
 import '../src/merch-quantity-select.js';
 import '../src/merch-stock.js';
 import '../src/merch-secure-transaction.js';
@@ -19,9 +13,13 @@ import '../src/merch-offer.js';
 import '../src/merch-offer-select.js';
 import '../src/merch-subscription-panel.js';
 
-import { delay, getTemplateContent } from './utils.js';
+import { delay } from './utils.js';
 import { mockIms } from './mocks/ims.js';
 import { _$LE } from 'lit';
+import { withWcs } from './mocks/wcs.js';
+import { withLiterals } from './mocks/literals.js';
+import mas from './mocks/mas.js';
+import { getTemplateContent } from '@adobe/mas-commons/test/utils.js';
 
 const shouldSkipTests = sessionStorage.getItem('skipTests') === 'true';
 
@@ -40,8 +38,8 @@ runTests(async () => {
         // Activate mocks
         mockLana();
         await mockIms();
-        await mockFetch();
-        await init(mockConfig());
+        await mockFetch(withWcs, withLiterals);
+        await mas();
     });
 
     if (shouldSkipTests) {
@@ -50,10 +48,10 @@ runTests(async () => {
 
     async function buildPanel(templates) {
         const [merchSubscriptionPanel] = getTemplateContent(
-            'merch-subscription-panel'
+            'merch-subscription-panel',
         );
         const [merchSecureTransaction] = getTemplateContent(
-            'merch-secure-transaction'
+            'merch-secure-transaction',
         );
         merchSubscriptionPanel.append(merchSecureTransaction);
         const promises = templates.map((template) => {
@@ -80,7 +78,7 @@ runTests(async () => {
             await delay(100);
             const merchOfferSelect = panel.querySelector('merch-offer-select');
             expect(
-                merchOfferSelect.querySelector('merch-offer').planType
+                merchOfferSelect.querySelector('merch-offer').planType,
             ).to.eq('ABM');
         });
 
@@ -91,7 +89,7 @@ runTests(async () => {
             const merchOfferSelect = panel.querySelector('merch-offer-select');
 
             expect(
-                merchOfferSelect.querySelector('merch-offer').planType
+                merchOfferSelect.querySelector('merch-offer').planType,
             ).to.eq('M2M');
             const [m2m, abm, puf] =
                 merchOfferSelect.querySelectorAll('merch-offer');
@@ -111,7 +109,7 @@ runTests(async () => {
                 merchOfferSelect
                     .querySelector('merch-offer[plan-type="PUF"]')
                     .shadowRoot.querySelector('slot[name="teaser"]')
-                    .assignedElements()[0].innerText
+                    .assignedElements()[0].innerText,
             ).to.eq('Save with the annual prepaid plan.');
         });
 
@@ -123,24 +121,24 @@ runTests(async () => {
 
         it('renders with quantity selector', async () => {
             const [merchSubscriptionPanel] = getTemplateContent(
-                'merch-subscription-panel'
+                'merch-subscription-panel',
             );
             const [merchOfferSelect] = getTemplateContent(
-                'merch-offer-select-cct'
+                'merch-offer-select-cct',
             );
 
             const [merchSecureTransaction] = getTemplateContent(
-                'merch-secure-transaction'
+                'merch-secure-transaction',
             );
 
             const [merchQuantitySelect] = getTemplateContent(
-                'merch-quantity-select'
+                'merch-quantity-select',
             );
 
             merchSubscriptionPanel.append(
                 merchOfferSelect,
                 merchQuantitySelect,
-                merchSecureTransaction
+                merchSecureTransaction,
             );
 
             content.appendChild(merchSubscriptionPanel);
@@ -157,16 +155,16 @@ runTests(async () => {
             expect(
                 merchSubscriptionPanel.shadowRoot
                     .querySelector('slot[name="footer"]')
-                    .assignedElements()[0]
+                    .assignedElements()[0],
             ).to.eq(merchQuantitySelect);
             merchQuantitySelect.defaultValue = 5;
             await delay(50);
             expect(
                 decodeURI(
                     merchSubscriptionPanel.shadowRoot.querySelector(
-                        '[is="checkout-link"]'
-                    ).href
-                )
+                        '[is="checkout-link"]',
+                    ).href,
+                ),
             ).to.match(/items\[0\]\[q\]=5/);
         });
 

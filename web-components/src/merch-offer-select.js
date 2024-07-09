@@ -66,7 +66,7 @@ class MerchOfferSelect extends LitElement {
         const containerEl =
             container || this.closest(this.getAttribute('container'));
         return containerEl.querySelector(
-            `[slot="${slotName}"]:not(merch-offer > *)`
+            `[slot="${slotName}"]:not(merch-offer > *)`,
         );
     }
 
@@ -112,7 +112,7 @@ class MerchOfferSelect extends LitElement {
                 new CustomEvent(EVENT_OFFER_SELECTED, {
                     detail: this,
                     bubbles: true,
-                })
+                }),
             );
         });
     }
@@ -171,7 +171,7 @@ class MerchOfferSelect extends LitElement {
 
         this.addEventListener(
             EVENT_MERCH_OFFER_READY,
-            this.handleOfferSelectReady
+            this.handleOfferSelectReady,
         );
 
         const quantitySelect = this.closest('merch-quantity-select');
@@ -183,7 +183,7 @@ class MerchOfferSelect extends LitElement {
         if (this.manageableMode) {
             quantitySelect.addEventListener(
                 EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-                this.#handleOfferSelectionByQuantityFn
+                this.#handleOfferSelectionByQuantityFn,
             );
         } else {
             this.defaults = this.saveContainerDefaultValues();
@@ -212,11 +212,11 @@ class MerchOfferSelect extends LitElement {
     disconnectedCallback() {
         this.removeEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-            this.#handleOfferSelectionByQuantityFn
+            this.#handleOfferSelectionByQuantityFn,
         );
         this.removeEventListener(
             EVENT_MERCH_OFFER_READY,
-            this.handleOfferSelectReady
+            this.handleOfferSelectReady,
         );
         this.removeEventListener('focusin', this.handleFocusin);
         this.removeEventListener('click', this.handleFocusin);
@@ -224,7 +224,7 @@ class MerchOfferSelect extends LitElement {
 
     get price() {
         return this.querySelector(
-            'merch-offer[aria-selected] [is="inline-price"]'
+            'merch-offer[aria-selected] [is="inline-price"]',
         );
     }
 
@@ -253,11 +253,11 @@ class MerchOfferSelect extends LitElement {
         this.selectOffer(
             this.selectedOffer ??
                 this.querySelector('merch-offer[aria-selected]') ??
-                this.querySelector('merch-offer')
+                this.querySelector('merch-offer'),
         );
 
         this.dispatchEvent(
-            new CustomEvent(EVENT_MERCH_OFFER_SELECT_READY, { bubbles: true })
+            new CustomEvent(EVENT_MERCH_OFFER_SELECT_READY, { bubbles: true }),
         );
     }
 }

@@ -8,16 +8,80 @@ import { selectOffers, useService } from './utilities.js';
 import { GeoMap } from './settings';
 
 // countries where tax is displayed for all segments by default
-const DISPLAY_ALL_TAX_COUNTRIES = [GeoMap.uk, GeoMap.au, GeoMap.fr, GeoMap.at, GeoMap.be_en, GeoMap.be_fr, GeoMap.be_nl, GeoMap.bg, GeoMap.ch_de, GeoMap.ch_fr, GeoMap.ch_it,
-    GeoMap.cz, GeoMap.de, GeoMap.dk, GeoMap.ee, GeoMap.eg_ar, GeoMap.eg_en, GeoMap.es, GeoMap.fi, GeoMap.fr, GeoMap.gr_el, GeoMap.gr_en, GeoMap.hu, GeoMap.ie, GeoMap.it, GeoMap.lu_de,
-    GeoMap.lu_en, GeoMap.lu_fr, GeoMap.nl, GeoMap.no, GeoMap.pl, GeoMap.pt, GeoMap.ro, GeoMap.se, GeoMap.si, GeoMap.sk, GeoMap.tr, GeoMap.ua, GeoMap.id_en, GeoMap.id_id,
-    GeoMap.in_en, GeoMap.in_hi, GeoMap.jp, GeoMap.my_en, GeoMap.my_ms, GeoMap.nz, GeoMap.th_en, GeoMap.th_th];
+const DISPLAY_ALL_TAX_COUNTRIES = [
+    GeoMap.uk,
+    GeoMap.au,
+    GeoMap.fr,
+    GeoMap.at,
+    GeoMap.be_en,
+    GeoMap.be_fr,
+    GeoMap.be_nl,
+    GeoMap.bg,
+    GeoMap.ch_de,
+    GeoMap.ch_fr,
+    GeoMap.ch_it,
+    GeoMap.cz,
+    GeoMap.de,
+    GeoMap.dk,
+    GeoMap.ee,
+    GeoMap.eg_ar,
+    GeoMap.eg_en,
+    GeoMap.es,
+    GeoMap.fi,
+    GeoMap.fr,
+    GeoMap.gr_el,
+    GeoMap.gr_en,
+    GeoMap.hu,
+    GeoMap.ie,
+    GeoMap.it,
+    GeoMap.lu_de,
+    GeoMap.lu_en,
+    GeoMap.lu_fr,
+    GeoMap.nl,
+    GeoMap.no,
+    GeoMap.pl,
+    GeoMap.pt,
+    GeoMap.ro,
+    GeoMap.se,
+    GeoMap.si,
+    GeoMap.sk,
+    GeoMap.tr,
+    GeoMap.ua,
+    GeoMap.id_en,
+    GeoMap.id_id,
+    GeoMap.in_en,
+    GeoMap.in_hi,
+    GeoMap.jp,
+    GeoMap.my_en,
+    GeoMap.my_ms,
+    GeoMap.nz,
+    GeoMap.th_en,
+    GeoMap.th_th,
+];
 // countries where tax is displayed for some segments only by default
 const DISPLAY_TAX_MAP = {
-    'INDIVIDUAL_COM': [GeoMap.za, GeoMap.lt, GeoMap.lv, GeoMap.ng, GeoMap.sa_ar, GeoMap.sa_en, GeoMap.za, GeoMap.sg, GeoMap.kr], // individual
-    'TEAM_COM': [GeoMap.za, GeoMap.lt, GeoMap.lv, GeoMap.ng, GeoMap.za, GeoMap.co, GeoMap.kr], // business
-    'INDIVIDUAL_EDU': [GeoMap.lt, GeoMap.lv, GeoMap.sa_en, GeoMap.sea], // student
-    'TEAM_EDU': [GeoMap.sea, GeoMap.kr], // school and uni
+    INDIVIDUAL_COM: [
+        GeoMap.za,
+        GeoMap.lt,
+        GeoMap.lv,
+        GeoMap.ng,
+        GeoMap.sa_ar,
+        GeoMap.sa_en,
+        GeoMap.za,
+        GeoMap.sg,
+        GeoMap.kr,
+    ], // individual
+    TEAM_COM: [
+        GeoMap.za,
+        GeoMap.lt,
+        GeoMap.lv,
+        GeoMap.ng,
+        GeoMap.za,
+        GeoMap.co,
+        GeoMap.kr,
+    ], // business
+    INDIVIDUAL_EDU: [GeoMap.lt, GeoMap.lv, GeoMap.sa_en, GeoMap.sea], // student
+    TEAM_EDU: [GeoMap.sea, GeoMap.kr], // school and uni
 };
 
 /** @type {Commerce.Price.PlaceholderConstructor} */
@@ -97,14 +161,22 @@ export class HTMLPriceSpanElement extends HTMLSpanElement {
      * Resolves default value of displayTax property, based on provided geo info and segments.
      * @returns {boolean}
      */
-    resolveDisplayTaxForGeoAndSegment(country, language, customerSegment, marketSegment) {
+    resolveDisplayTaxForGeoAndSegment(
+        country,
+        language,
+        customerSegment,
+        marketSegment,
+    ) {
         const locale = `${country}_${language}`;
-        if (DISPLAY_ALL_TAX_COUNTRIES.includes(country)
-            || DISPLAY_ALL_TAX_COUNTRIES.includes(locale)) {
+        if (
+            DISPLAY_ALL_TAX_COUNTRIES.includes(country) ||
+            DISPLAY_ALL_TAX_COUNTRIES.includes(locale)
+        ) {
             return true;
         }
 
-        const segmentConfig = DISPLAY_TAX_MAP[`${customerSegment}_${marketSegment}`];
+        const segmentConfig =
+            DISPLAY_TAX_MAP[`${customerSegment}_${marketSegment}`];
         if (!segmentConfig) {
             return false;
         }
@@ -127,7 +199,12 @@ export class HTMLPriceSpanElement extends HTMLSpanElement {
             const { country, language } = options;
             const offer = offers[0];
             const [marketSegment = ''] = offer.marketSegments;
-            return this.resolveDisplayTaxForGeoAndSegment(country, language, offer.customerSegment, marketSegment);
+            return this.resolveDisplayTaxForGeoAndSegment(
+                country,
+                language,
+                offer.customerSegment,
+                marketSegment,
+            );
         }
     }
 
@@ -141,13 +218,14 @@ export class HTMLPriceSpanElement extends HTMLSpanElement {
         if (!service) return false;
         const options = service.collectPriceOptions(
             overrides,
-            this.placeholder
+            this.placeholder,
         );
         if (!options.wcsOsi.length) return false;
 
         if (!this.placeholder.dataset.displayTax) {
             // set default value for displayTax if not set neither in OST nor in price URL
-            options.displayTax = await this.resolveDisplayTax(service, options) || false;
+            options.displayTax =
+                (await this.resolveDisplayTax(service, options)) || false;
         }
 
         const version = this.placeholder.togglePending(options);
@@ -156,7 +234,7 @@ export class HTMLPriceSpanElement extends HTMLSpanElement {
         return this.renderOffers(
             selectOffers(await promise, options),
             options,
-            version
+            version,
         );
     }
 

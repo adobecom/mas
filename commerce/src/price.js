@@ -102,7 +102,7 @@ export function Price({ literals, providers, settings }) {
         context.literals = Object.assign(
             {},
             literals.price,
-            omitProperties(options.literals ?? {})
+            omitProperties(options.literals ?? {}),
         );
         let [offer] = offers;
         offer = { ...offer, ...offer.priceDetails };

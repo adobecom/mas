@@ -74,14 +74,14 @@ class MerchSubscriptionPanel extends LitElement {
         }
         this.addEventListener(
             EVENT_MERCH_OFFER_SELECT_READY,
-            this.handleOfferSelectReady
+            this.handleOfferSelectReady,
         );
         this.checkOfferSelectReady();
         this.addEventListener(EVENT_OFFER_SELECTED, this.handleOfferSelect);
         this.addEventListener(EVENT_MERCH_STOCK_CHANGE, this.handleStockChange);
         this.addEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-            this.handleQuantitySelectChange
+            this.handleQuantitySelectChange,
         );
     }
 
@@ -89,16 +89,16 @@ class MerchSubscriptionPanel extends LitElement {
         super.disconnectedCallback();
         this.removeEventListener(
             EVENT_MERCH_OFFER_SELECT_READY,
-            this.handleOfferSelectReady
+            this.handleOfferSelectReady,
         );
         this.removeEventListener(EVENT_OFFER_SELECTED, this.handleOfferSelect);
         this.removeEventListener(
             EVENT_MERCH_STOCK_CHANGE,
-            this.handleStockChange
+            this.handleStockChange,
         );
         this.removeEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-            this.handleQuantitySelectChange
+            this.handleQuantitySelectChange,
         );
     }
 
@@ -151,7 +151,7 @@ class MerchSubscriptionPanel extends LitElement {
         this.ready = !!this.offerSelect.planType;
         this.offerSelect.setAttribute('slot', 'offers');
         await this.offerSelect.selectOffer(
-            this.offerSelect.querySelector('merch-offer[aria-selected]')
+            this.offerSelect.querySelector('merch-offer[aria-selected]'),
         );
         await this.offerSelect.selectedOffer.price.onceSettled();
         this.requestUpdate();
@@ -224,5 +224,5 @@ class MerchSubscriptionPanel extends LitElement {
 
 window.customElements.define(
     'merch-subscription-panel',
-    MerchSubscriptionPanel
+    MerchSubscriptionPanel,
 );

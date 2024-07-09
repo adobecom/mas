@@ -133,7 +133,7 @@ describe('class "InlinePrice"', () => {
         document.body.appendChild(inlineOffer);
         await inlineOffer.onceSettled();
         expect(inlineOffer.textContent).equal(
-            'US$54.99/mo - ccsn_direct_individual - YEAR - MONTHLY - INDIVIDUAL - BASE - REGULAR',
+            'US$54.99/moper license - ccsn_direct_individual - YEAR - MONTHLY - INDIVIDUAL - BASE - REGULAR',
         );
     });
 
@@ -673,7 +673,7 @@ describe('class "InlinePrice"', () => {
             inlinePrice.dataset.country = 'AE';
             inlinePrice.dataset.language = 'en';
             await inlinePrice.onceSettled();
-            expect(inlinePrice.textContent).equal('US$89.99/mo');
+            expect(inlinePrice.textContent).equal('US$89.99/moper license');
         });
     });
 });

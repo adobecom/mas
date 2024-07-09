@@ -9,7 +9,7 @@ import { mockFetch } from './mocks/fetch.js';
 import { withAem } from './mocks/aem.js';
 import { withWcs } from './mocks/wcs.js';
 
-import mas from './mocks/mas.js';
+import mas from './mocks/mas.js?features=merch-card';
 import { getTemplateContent } from '@adobe/mas-commons/test/utils.js';
 
 runTests(async () => {

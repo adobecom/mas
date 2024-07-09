@@ -20,7 +20,7 @@ const { metafile } = await build({
     format: 'esm',
     metafile: true,
     minify: true,
-    outfile: '../lib/commerce.js',
+    outfile: '../libs/commerce.js',
     platform: 'browser',
     sourcemap: true,
     target: ['es2020'],

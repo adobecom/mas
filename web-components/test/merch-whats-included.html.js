@@ -7,7 +7,6 @@ import { mockFetch } from '/test/mocks/fetch.js';
 import { mockConfig } from '/test/mocks/config.js';
 import mas from './mocks/mas.js';
 
-import '../src/merch-icon.js';
 import '../src/merch-mnemonic-list.js';
 import '../src/merch-whats-included.js';
 

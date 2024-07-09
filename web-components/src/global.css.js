@@ -256,7 +256,7 @@ merch-card [slot='callout-text'] {
     margin: var(--consonant-merch-spacing-xxxs) 0px;
 }
 
-.callout-content > div {
+merch-card [slot='callout-text'] > div {
     position: relative;
     display: inline-grid;
     background: rgba(203 203 203 / 50%);
@@ -264,11 +264,11 @@ merch-card [slot='callout-text'] {
     padding: var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xxs);
 }
 
-.callout-content-wrapper-with-icon {
+merch-card [slot='callout-text'] > div.callout-content-wrapper-with-icon {
     padding-right: var(--consonant-merch-card-callout-icon-padding);
 }
 
-.callout-content {
+merch-card [slot='callout-text'] > div > div {
     display: inline-block;
     text-align: left;
     font: normal normal normal var(--consonant-merch-card-callout-font-size)/var(--consonant-merch-card-callout-line-height) Adobe Clean;

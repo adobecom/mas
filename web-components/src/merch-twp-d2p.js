@@ -10,7 +10,7 @@ import {
     EVENT_OFFER_SELECTED,
     EVENT_MERCH_STORAGE_CHANGE,
 } from './constants.js';
-import { parseState } from './deeplink';
+import { parseState } from '@adobe/mas-commons';
 
 const TAG_NAME = 'merch-twp-d2p';
 const TAB_INDIVIDUALS = 'individuals';
@@ -108,7 +108,11 @@ export class MerchTwpD2P extends LitElement {
     preselectedTab() {
         const params = new URLSearchParams(window.location.search);
         const plan = params.get('plan');
-        if (plan === TAB_INDIVIDUALS || plan === TAB_BUSINESS || plan === TAB_EDUCATION) {
+        if (
+            plan === TAB_INDIVIDUALS ||
+            plan === TAB_BUSINESS ||
+            plan === TAB_EDUCATION
+        ) {
             return plan;
         } else {
             return TAB_INDIVIDUALS;
@@ -220,7 +224,7 @@ export class MerchTwpD2P extends LitElement {
         if (!this.singleCard) return;
         this.singleCard.setAttribute(
             'slot',
-            this.singleCard.getAttribute('data-slot')
+            this.singleCard.getAttribute('data-slot'),
         );
         this.singleCard.removeAttribute('data-slot');
         this.step = 1;
@@ -321,15 +325,15 @@ export class MerchTwpD2P extends LitElement {
         this.addEventListener(EVENT_MERCH_CARD_READY, this.merchTwpReady);
         this.subscriptionPanel.addEventListener(
             EVENT_OFFER_SELECTED,
-            this.#handleOfferSelected
+            this.#handleOfferSelected,
         );
         this.addEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-            this.handleQuantityChange
+            this.handleQuantityChange,
         );
         this.addEventListener(
             EVENT_MERCH_STORAGE_CHANGE,
-            this.handleStorageChange
+            this.handleStorageChange,
         );
     }
 
@@ -338,11 +342,11 @@ export class MerchTwpD2P extends LitElement {
         this.removeEventListener(EVENT_MERCH_CARD_READY, this.merchTwpReady);
         this.subscriptionPanel.removeEventListener(
             EVENT_OFFER_SELECTED,
-            this.#handleOfferSelected
+            this.#handleOfferSelected,
         );
         this.removeEventListener(
             EVENT_MERCH_STORAGE_CHANGE,
-            this.handleStorageChange
+            this.handleStorageChange,
         );
     }
 
@@ -370,17 +374,28 @@ export class MerchTwpD2P extends LitElement {
     }
 
     get preselectedCardId() {
-        const preselectedCardIds = parseState()['select-cards']?.split(',').reduce((res, item) => {
-            const formattedItem = decodeURIComponent(item.trim().toLowerCase());
-            formattedItem && res.push(formattedItem);
-            return res;
-        }, []) || [];
+        const preselectedCardIds =
+            parseState()
+                ['select-cards']?.split(',')
+                .reduce((res, item) => {
+                    const formattedItem = decodeURIComponent(
+                        item.trim().toLowerCase(),
+                    );
+                    formattedItem && res.push(formattedItem);
+                    return res;
+                }, []) || [];
 
         if (preselectedCardIds.length && this.selectedTab === TAB_INDIVIDUALS) {
             return preselectedCardIds[0];
-        } else if (preselectedCardIds.length > 1 && this.selectedTab === TAB_BUSINESS) {
+        } else if (
+            preselectedCardIds.length > 1 &&
+            this.selectedTab === TAB_BUSINESS
+        ) {
             return preselectedCardIds[1];
-        } else if (preselectedCardIds.length > 2 && this.selectedTab === TAB_EDUCATION) {
+        } else if (
+            preselectedCardIds.length > 2 &&
+            this.selectedTab === TAB_EDUCATION
+        ) {
             return preselectedCardIds[2];
         }
     }
@@ -390,8 +405,15 @@ export class MerchTwpD2P extends LitElement {
             ?.querySelector('slot')
             .assignedElements()
             .find((cardEl) => {
-                const cardTitle = cardEl.querySelector('.heading-xs')?.textContent.trim().toLowerCase() || '';
-                return this.preselectedCardId && cardTitle.includes(this.preselectedCardId)
+                const cardTitle =
+                    cardEl
+                        .querySelector('.heading-xs')
+                        ?.textContent.trim()
+                        .toLowerCase() || '';
+                return (
+                    this.preselectedCardId &&
+                    cardTitle.includes(this.preselectedCardId)
+                );
             });
     }
 
@@ -445,7 +467,7 @@ export class MerchTwpD2P extends LitElement {
         await this.tabElement?.updateComplete;
         this.selectCard(
             allCards.length === 1 ? allCards[0] : this.firstCardInSelectedTab,
-            true
+            true,
         );
     }
 

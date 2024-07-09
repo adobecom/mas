@@ -1,16 +1,13 @@
 import { ERROR_MESSAGE_OFFER_NOT_FOUND } from '../src/constants.js';
 import { Wcs } from '../src/wcs.js';
 
-import { mockFetch, unmockFetch } from './mocks/fetch.js';
+import { mockFetch } from './mocks/fetch.js';
+import { withWcs } from './mocks/wcs.js';
 import { expect } from './utilities.js';
 
 describe('resolveOfferSelectors', () => {
-    afterEach(() => {
-        unmockFetch();
-    });
-
     it('falls into fetch-by-one strategy if Wcs responds with 404 to a multi-osi request', async () => {
-        await mockFetch();
+        await mockFetch(withWcs);
         // @ts-ignore
         const client = Wcs({
             // @ts-ignore
@@ -23,24 +20,24 @@ describe('resolveOfferSelectors', () => {
         const results = await Promise.allSettled(
             client.resolveOfferSelectors({
                 wcsOsi: ['abm', 'no-offer', 'stock-abm', 'void'],
-            })
+            }),
         );
         expect(results[0].status).to.equal('fulfilled');
         expect(results[1].status).to.equal('rejected');
         // @ts-ignore
         expect(results[1].reason.message).to.equal(
-            ERROR_MESSAGE_OFFER_NOT_FOUND
+            ERROR_MESSAGE_OFFER_NOT_FOUND,
         );
         expect(results[2].status).to.equal('fulfilled');
         expect(results[3].status).to.equal('rejected');
         // @ts-ignore
         expect(results[3].reason.message).to.equal(
-            ERROR_MESSAGE_OFFER_NOT_FOUND
+            ERROR_MESSAGE_OFFER_NOT_FOUND,
         );
     });
 
     it('groups WCS requests by promotion code', async () => {
-        let fetch = await mockFetch();
+        let fetch = await mockFetch(withWcs);
         const client = Wcs({
             // @ts-ignore
             settings: {

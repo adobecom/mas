@@ -1,5 +1,5 @@
 import { html, LitElement, css } from 'lit';
-import { parseState, pushStateFromComponent } from '../deeplink.js';
+import { parseState, pushStateFromComponent } from '@adobe/mas-commons';
 
 export class MerchSidenavCheckboxGroup extends LitElement {
     static properties = {
@@ -91,5 +91,5 @@ export class MerchSidenavCheckboxGroup extends LitElement {
 
 customElements.define(
     'merch-sidenav-checkbox-group',
-    MerchSidenavCheckboxGroup
+    MerchSidenavCheckboxGroup,
 );

@@ -1,0 +1,4 @@
+span.placeholder-resolved[data-template="strikethrough"],
+span.price.price-strikethrough {
+    text-decoration: line-through;
+}

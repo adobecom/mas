@@ -30,7 +30,7 @@ describe('IMS module', () => {
 
         const clock = sinon.useFakeTimers();
         let attempt = -1;
-        // eslint-disable-next-line no-plusplus
+
         while (++attempt < maxAttempts) {
             clock.tick(interval);
             clock.runAll();

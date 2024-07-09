@@ -1,11 +1,11 @@
 import { runTests } from '@web/test-runner-mocha';
 import { expect } from '@esm-bundle/chai';
 
-import { mockLana } from '/test/mocks/lana.js';
-import { mockFetch } from '/test/mocks/fetch.js';
-import { mockConfig } from '/test/mocks/config.js';
+import { mockLana } from './mocks/lana.js';
+import { mockFetch } from './mocks/fetch.js';
+import { mockConfig } from './mocks/config.js';
 
-import { init } from '@wcms/commerce';
+import { pushState } from '@adobe/mas-commons';
 
 import {
     appendMiloStyles,
@@ -13,21 +13,21 @@ import {
     keyDown,
     toggleLargeDesktop,
 } from './utils.js';
-import { pushState } from '../src/deeplink.js';
 
-import '../src/merch-card.js';
 import '../src/sidenav/merch-sidenav.js';
 import '../src/merch-card-collection.js';
-import '../src/merch-icon.js';
 
 import { ARROW_DOWN, ARROW_LEFT, ARROW_RIGHT, ARROW_UP } from '../src/focus.js';
+import { withWcs } from './mocks/wcs.js';
+import { withLiterals } from './mocks/literals.js';
+import mas from './mocks/mas.js';
 
 const searchParams = new URLSearchParams(document.location.search);
 
 const prepareTemplate = (
     id,
     updateSearch = true,
-    content = document.getElementById('content')
+    content = document.getElementById('content'),
 ) => {
     content.innerHTML = '';
     const template = document.getElementById(id);
@@ -50,10 +50,10 @@ const sidenav = document.getElementById('sidenav');
 if (sidenav) {
     const templates = [...document.getElementsByTagName('template')].map(
         ({ id, title }) =>
-            `<button onclick="(prepareTemplate('${id}')[1])()">${title}</button>`
+            `<button onclick="(prepareTemplate('${id}')[1])()">${title}</button>`,
     );
     sidenav.appendChild(
-        document.createRange().createContextualFragment(templates.join('\n'))
+        document.createRange().createContextualFragment(templates.join('\n')),
     );
     const currentTemplate = searchParams.get('template');
     if (currentTemplate) {
@@ -81,8 +81,8 @@ const shouldSkipTests =
 runTests(async () => {
     await toggleLargeDesktop();
     mockLana();
-    await mockFetch();
-    await init(mockConfig());
+    await mockFetch(withWcs, withLiterals);
+    await mas();
     if (shouldSkipTests !== 'true') {
         describe('merch-card-collection web component', () => {
             let render;
@@ -146,7 +146,7 @@ runTests(async () => {
                 await delay(100);
                 expect(visibleCards().length).to.equal(1);
                 expect(merchCards.resultTextSlotName).to.equal(
-                    'searchResultText'
+                    'searchResultText',
                 );
             });
 
@@ -158,19 +158,19 @@ runTests(async () => {
                 await delay(100);
                 expect(visibleCards().length).to.equal(10);
                 expect(merchCards.resultTextSlotName).to.equal(
-                    'searchResultsText'
+                    'searchResultsText',
                 );
                 pushState({ search: 'stager' });
                 await delay(100);
                 expect(visibleCards().length).to.equal(1);
                 expect(merchCards.resultTextSlotName).to.equal(
-                    'searchResultText'
+                    'searchResultText',
                 );
                 pushState({ search: 'cafebabe' });
                 await delay(100);
                 expect(visibleCards().length).to.equal(0);
                 expect(merchCards.resultTextSlotName).to.equal(
-                    'noSearchResultsText'
+                    'noSearchResultsText',
                 );
             });
 
@@ -192,7 +192,7 @@ runTests(async () => {
                 await keyDown(ARROW_DOWN);
                 await keyDown(ARROW_DOWN);
                 expect(document.activeElement.title).to.equal(
-                    'Lightroom (1TB)'
+                    'Lightroom (1TB)',
                 );
                 await keyDown(ARROW_LEFT);
                 expect(document.activeElement.title).to.equal('After Effects');
@@ -216,16 +216,16 @@ runTests(async () => {
                 expect(document.activeElement.title).to.equal('Acrobat Reader');
                 await keyDown(ARROW_UP);
                 expect(document.activeElement.title).to.equal(
-                    'Acrobat PDF Pack'
+                    'Acrobat PDF Pack',
                 );
                 await keyDown(ARROW_DOWN);
                 await keyDown(ARROW_DOWN);
                 expect(document.activeElement.title).to.equal(
-                    'Acrobat Standard'
+                    'Acrobat Standard',
                 );
                 await keyDown(ARROW_DOWN);
                 expect(document.activeElement.title).to.equal(
-                    'Adobe Embedded Print Engine'
+                    'Adobe Embedded Print Engine',
                 );
                 await keyDown(ARROW_RIGHT);
                 expect(document.activeElement.title).to.equal('Adobe Express');

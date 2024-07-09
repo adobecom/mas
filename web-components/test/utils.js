@@ -10,7 +10,7 @@ export const keyDown = async (key) => {
             code: key,
             bubbles: true,
             cancelable: true,
-        })
+        }),
     );
     return new Promise((resolve) => {
         setTimeout(resolve, 100);
@@ -42,7 +42,7 @@ window.toggleRTL = () => {
     const html = document.querySelector('html');
     html.setAttribute(
         'dir',
-        html.getAttribute('dir') === 'rtl' ? 'ltr' : 'rtl'
+        html.getAttribute('dir') === 'rtl' ? 'ltr' : 'rtl',
     );
 };
 
@@ -94,11 +94,4 @@ export const refreshElement = async (comp) => {
 export const resetState = async () => {
     window.location.hash = '';
     await delay(1);
-};
-
-export const getTemplateContent = (template) => {
-    const templateEl = document.getElementById(template);
-    // @ts-ignore
-    const templateContent = templateEl.content.cloneNode(true);
-    return [...templateContent.children];
 };

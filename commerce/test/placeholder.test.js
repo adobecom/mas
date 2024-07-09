@@ -13,7 +13,8 @@ import { mockConfig } from './mocks/config.js';
 import { mockLana, unmockLana } from './mocks/lana.js';
 import { expect } from './utilities.js';
 import { initService } from '../src/service.js';
-import { mockFetch, unmockFetch } from './mocks/fetch.js';
+import { mockFetch } from './mocks/fetch.js';
+import { withLiterals } from './mocks/literals.js';
 
 let id = 1;
 /**
@@ -26,7 +27,7 @@ async function mockPlaceholder(
         test1: undefined,
         test2: undefined,
         test3: undefined,
-    }
+    },
 ) {
     class HTMLTestElement extends HTMLSpanElement {
         static is = `test-element${id++}`;
@@ -41,7 +42,7 @@ async function mockPlaceholder(
     }
     Object.defineProperties(
         HTMLTestElement.prototype,
-        Object.getOwnPropertyDescriptors(props)
+        Object.getOwnPropertyDescriptors(props),
     );
 
     definePlaceholder(HTMLTestElement);
@@ -54,7 +55,6 @@ async function mockPlaceholder(
 
 describe('custom span-based placeholder', () => {
     after(() => {
-        unmockFetch();
         unmockLana();
     });
 
@@ -63,7 +63,7 @@ describe('custom span-based placeholder', () => {
     });
 
     before(async () => {
-        await mockFetch();
+        await mockFetch(withLiterals);
         mockLana();
     });
 
@@ -75,7 +75,7 @@ describe('custom span-based placeholder', () => {
                     test1: null,
                     test2: '',
                     test3: [],
-                }
+                },
             );
             expect(element.hasAttribute('data-test1')).to.be.false;
             expect(element.hasAttribute('data-test2')).to.be.false;

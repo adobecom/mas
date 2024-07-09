@@ -1,18 +1,18 @@
 import { runTests } from '@web/test-runner-mocha';
 import { expect } from '@esm-bundle/chai';
 
-import { mockLana } from '/test/mocks/lana.js';
-import { mockFetch } from '/test/mocks/fetch.js';
-import { mockConfig } from '/test/mocks/config.js';
+import { mockLana } from './mocks/lana.js';
+import { mockFetch } from './mocks/fetch.js';
+import { mockConfig } from './mocks/config.js';
 
-import { init } from '@wcms/commerce';
-
-import '../src/merch-card.js';
 import '../src/merch-offer.js';
 import '../src/merch-offer-select.js';
 import '../src/merch-quantity-select.js';
 
 import { delay } from './utils.js';
+import { withWcs } from './mocks/wcs.js';
+import { withLiterals } from './mocks/literals.js';
+import mas from './mocks/mas.js';
 
 function getDynamicElements(merchCard, merchOfferSelect) {
     const price = merchOfferSelect.price;
@@ -31,7 +31,7 @@ const renderCard = async (id) => {
     main.append(merchCard);
     const merchOfferSelect = merchCard.querySelector('merch-offer-select');
     const merchQuantitySelect = merchCard.querySelector(
-        'merch-quantity-select'
+        'merch-quantity-select',
     );
     await merchCard.updateComplete;
     await merchOfferSelect?.updateComplete;
@@ -51,8 +51,8 @@ const renderCard = async (id) => {
 
 runTests(async () => {
     mockLana();
-    await mockFetch();
-    await init(mockConfig());
+    await mockFetch(withWcs, withLiterals);
+    await mas();
 
     describe('merch-offer-select web component', async () => {
         beforeEach(() => {
@@ -63,7 +63,7 @@ runTests(async () => {
             await delay(100);
             const { price, cta, description, badge } = getDynamicElements(
                 merchCard,
-                merchOfferSelect
+                merchOfferSelect,
             );
             expect(merchOfferSelect).to.exist;
             expect(price.innerText).to.equal('US$54.99/mo');
@@ -82,12 +82,12 @@ runTests(async () => {
             await delay(200);
             const { price, cta, description, badge } = getDynamicElements(
                 merchCard,
-                merchOfferSelect
+                merchOfferSelect,
             );
             expect(price.innerText).to.equal('US$599.88/yr');
             expect(cta.dataset['wcsOsi']).to.equal('puf');
             expect(cta.dataset['checkoutWorkflowStep']).to.equal(
-                'segmentation'
+                'segmentation',
             );
             expect(description.innerText).to.equal('New Description text.');
             expect(badge.innerText).to.equal('Only today!');
@@ -102,7 +102,7 @@ runTests(async () => {
             await delay();
             const { price, cta, description, badge } = getDynamicElements(
                 merchCard,
-                merchOfferSelect
+                merchOfferSelect,
             );
             expect(price.innerText).to.equal('US$82.49/mo');
             expect(cta.dataset['wcsOsi']).to.equal('m2m');
@@ -116,7 +116,7 @@ runTests(async () => {
             await delay();
             const { price, cta, description, badge } = getDynamicElements(
                 merchCard,
-                merchOfferSelect
+                merchOfferSelect,
             );
             expect(price.innerText).to.equal('US$54.99/mo');
             expect(cta.dataset['wcsOsi']).to.equal('abm');
@@ -139,13 +139,13 @@ runTests(async () => {
                 merchOfferSelect.querySelectorAll('merch-offer');
             expect(
                 firstInput.getBoundingClientRect().y,
-                'we are expecting horizontal options'
+                'we are expecting horizontal options',
             ).to.equal(secondInput.getBoundingClientRect().y);
             firstInput.click();
             const footer = merchCard.querySelector('div[slot="footer"]');
             const cta = footer.querySelector('a[slot="cta"]');
             const secondaryCta = footer.querySelector(
-                'a[slot="secondary-cta"]'
+                'a[slot="secondary-cta"]',
             );
             expect(cta.dataset['wcsOsi']).to.equal('20gb');
             expect(secondaryCta.dataset['wcsOsi']).to.equal('20gbtrial');
@@ -162,7 +162,7 @@ runTests(async () => {
             await delay(100);
             const { price, cta } = getDynamicElements(
                 merchCard,
-                merchOfferSelect
+                merchOfferSelect,
             );
             expect(merchOfferSelect).to.exist;
             expect(price.innerText).to.equal('US$54.99/mo');
@@ -178,12 +178,12 @@ runTests(async () => {
             await delay(100);
             const { price, cta } = getDynamicElements(
                 merchCard,
-                merchOfferSelect
+                merchOfferSelect,
             );
             expect(price.innerText).to.equal('US$82.49/mo');
             expect(cta.dataset['wcsOsi']).to.equal('puf');
             expect(cta.dataset['checkoutWorkflowStep']).to.equal(
-                'segmentation'
+                'segmentation',
             );
             expect(cta.getAttribute('data-quantity')).to.equal('3');
         });
@@ -196,7 +196,7 @@ runTests(async () => {
             await delay(100);
             const { price, cta } = getDynamicElements(
                 merchCard,
-                merchOfferSelect
+                merchOfferSelect,
             );
             expect(merchOfferSelect).to.exist;
             expect(price.innerText).to.equal('US$54.99/mo');

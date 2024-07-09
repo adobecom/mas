@@ -42,6 +42,10 @@ export const styles = css`
         min-height: 214px;
     }
 
+    :host([variant='ccd-action']:not([size])) {
+        width: var(--consonant-merch-card-ccd-action-width);
+    }
+
     :host([aria-selected]) {
         outline: none;
         box-sizing: border-box;
@@ -382,8 +386,10 @@ export const sizeStyles = () => {
         @media screen and ${unsafeCSS(TABLET_UP)} {
             :host([size='wide']),
             :host([size='super-wide']) {
-                grid-column: span 2;
+                grid-column: span 3;
                 width: 100%;
+                max-width: var(--consonant-merch-card-tablet-wide-width);
+                margin: 0 auto;
             }
         }
 

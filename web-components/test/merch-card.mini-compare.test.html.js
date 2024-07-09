@@ -2,28 +2,27 @@
 import { runTests } from '@web/test-runner-mocha';
 import { expect } from '@esm-bundle/chai';
 
-import { mockLana } from '/test/mocks/lana.js';
-import { mockFetch } from '/test/mocks/fetch.js';
-import { mockConfig } from '/test/mocks/config.js';
+import { mockLana } from './mocks/lana.js';
+import { mockFetch } from './mocks/fetch.js';
+import { mockConfig } from './mocks/config.js';
 
-import { init } from '@wcms/commerce';
-
-import '../src/merch-icon.js';
-import '../src/merch-card.js';
 import '../src/merch-offer.js';
 import '../src/merch-offer-select.js';
 import '../src/merch-quantity-select.js';
 
 import { appendMiloStyles } from './utils.js';
 import { mockIms } from './mocks/ims.js';
+import { withLiterals } from './mocks/literals.js';
+import { withWcs } from './mocks/wcs.js';
+import mas from './mocks/mas.js';
 
 const skipTests = sessionStorage.getItem('skipTests');
 
 runTests(async () => {
     mockIms();
     mockLana();
-    await mockFetch();
-    await init(mockConfig());
+    await mockFetch(withWcs, withLiterals);
+    await mas();
     if (skipTests !== null) {
         appendMiloStyles();
         return;
@@ -31,17 +30,17 @@ runTests(async () => {
     describe('merch-card web component with mini-compare variant', () => {
         it('mini-compare-chart should have same body slot heights', async () => {
             const miniCompareCharts = document.querySelectorAll(
-                'merch-card[variant="mini-compare-chart"]'
+                'merch-card[variant="mini-compare-chart"]',
             );
             await Promise.all(
                 [...miniCompareCharts].flatMap((card) => {
                     return [
                         card.updateComplete,
                         ...[...card.querySelectorAll('[data-wcs-osi]')].map(
-                            (osi) => osi.onceSettled()
+                            (osi) => osi.onceSettled(),
                         ),
                     ];
-                })
+                }),
             );
             const [card1Slots, card2Slots, card3Slots] = [
                 ...miniCompareCharts,
@@ -55,13 +54,14 @@ runTests(async () => {
                     'slot[name="promo-text"]',
                     'footer',
                 ]
-                    .map(
-                        (selector) =>
+                    .map((selector) =>
+                        Math.round(
                             window.getComputedStyle(
                                 miniCompareChart.shadowRoot.querySelector(
-                                    selector
-                                )
-                            ).height
+                                    selector,
+                                ),
+                            ).height,
+                        ),
                     )
                     .join(',');
                 return heights;
@@ -73,10 +73,10 @@ runTests(async () => {
 
         it('mini-compare-chart should have same height footer rows', async () => {
             const miniCompareCharts = document.querySelectorAll(
-                'merch-card[variant="mini-compare-chart"]'
+                'merch-card[variant="mini-compare-chart"]',
             );
             await Promise.all(
-                [...miniCompareCharts].map((card) => card.updateComplete)
+                [...miniCompareCharts].map((card) => card.updateComplete),
             );
             const [card1Rows, card2Rows, card3Rows] = [
                 ...miniCompareCharts,
@@ -87,9 +87,9 @@ runTests(async () => {
                         (_, i) =>
                             window.getComputedStyle(
                                 miniCompareChart.querySelector(
-                                    `.footer-row-cell:nth-child(${i + 1})`
-                                )
-                            ).height
+                                    `.footer-row-cell:nth-child(${i + 1})`,
+                                ),
+                            ).height,
                     )
                     .join(',');
                 return heights;

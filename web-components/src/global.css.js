@@ -256,7 +256,7 @@ merch-card [slot='callout-text'] {
     margin: var(--consonant-merch-spacing-xxxs) 0px;
 }
 
-.callout-content-wrapper {
+.callout-content > div {
     position: relative;
     display: inline-grid;
     background: rgba(203 203 203 / 50%);

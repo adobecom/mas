@@ -1,4 +1,4 @@
-// branch: MWPW-153962-3 commit: 73e67d72ac678797fbcc49debf86f24586e6db1a Tue, 09 Jul 2024 13:22:44 GMT
+// branch: MWPW-151429 commit: 22de4e503d1ed338df5c2ddc5ed4b7b140587ae9 Tue, 09 Jul 2024 14:07:22 GMT
 import{html as o,LitElement as te,nothing as re}from"/libs/deps/lit-all.min.js";import{LitElement as Y,html as M,css as Q}from"/libs/deps/lit-all.min.js";var h=class extends Y{static properties={size:{type:String,attribute:!0},src:{type:String,attribute:!0},alt:{type:String,attribute:!0},href:{type:String,attribute:!0}};constructor(){super(),this.size="m",this.alt=""}render(){let{href:e}=this;return e?M`<a href="${e}">
                   <img src="${this.src}" alt="${this.alt}" loading="lazy" />
               </a>`:M` <img src="${this.src}" alt="${this.alt}" loading="lazy" />`}static styles=Q`
@@ -917,6 +917,10 @@ merch-card[variant="mini-compare-chart"] .footer-row-cell-description a {
 
     merch-card[variant="mini-compare-chart"] [slot="heading-m-price"]:has(+ [slot="footer"]) {
         padding-bottom: 0;
+    }
+
+    html[lang="he"] merch-card[variant="mini-compare-chart"] [is="inline-price"] .price-recurrence::before {
+        content: "\\200B";
     }
 
     html[lang="he"] merch-card[variant="mini-compare-chart"] [is="inline-price"] .price-recurrence::before {

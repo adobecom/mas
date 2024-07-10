@@ -4,7 +4,8 @@
   "description": "Merch at Scale Enablement",
   "scripts": {
     "test:ci": "echo",
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "build:precommit": "node build.mjs skipBanner"
   },
   "type": "module",
   "main": "src/mas.js",

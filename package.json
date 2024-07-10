@@ -14,7 +14,8 @@
     "scripts": {
         "lint": "eslint --fix",
         "test": "npm run test:ci --workspaces",
-        "build": "npm run build --workspaces"
+        "build": "npm run build --workspaces",
+        "build:precommit": "npm run build:precommit --workspaces"
     },
     "repository": {
         "type": "git",

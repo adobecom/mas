@@ -8,9 +8,11 @@ const commitHash = execSync('git rev-parse HEAD').toString().trim();
 const branch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
 console.log(`you're building from branch ${branch} with commit ${commitHash}`);
 const params = process.argv.slice(2);
-const banner = params.includes('skipBanner') ? {} : {
-    js: `// branch: ${branch} commit: ${commitHash} ${new Date().toUTCString()}`,
-};
+const banner = params.includes('skipBanner')
+    ? {}
+    : {
+          js: `// branch: ${branch} commit: ${commitHash} ${new Date().toUTCString()}`,
+      };
 
 const { metafile } = await build({
     alias: {

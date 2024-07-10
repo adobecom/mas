@@ -5132,6 +5132,15 @@ styles.innerHTML = `
 
     --ellipsis-icon: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><circle cx="2" cy="2" r="2" fill="%232c2c2c" transform="translate(6 6)"/><circle cx="2" cy="2" r="2" fill="%232c2c2c" data-name="Ellipse 71" transform="translate(12 6)"/><circle cx="2" cy="2" r="2" fill="%232c2c2c" transform="translate(0 6)"/></svg>');
 
+    /* callout */
+    --consonant-merch-card-callout-line-height: 21px;
+    --consonant-merch-card-callout-font-size: 14px;
+    --consonant-merch-card-callout-font-color: #2C2C2C;
+    --consonant-merch-card-callout-icon-size: 16px;
+    --consonant-merch-card-callout-icon-top: 6px;
+    --consonant-merch-card-callout-icon-right: 8px;
+    --consonant-merch-card-callout-letter-spacing: 0px;
+    --consonant-merch-card-callout-icon-padding: 34px;
 }
 
 merch-card-collection {
@@ -5240,6 +5249,43 @@ merch-card [slot='heading-xl'] {
     line-height: var(--consonant-merch-card-heading-xl-line-height);
     margin: 0;
     color: var(--merch-color-grey-80);
+}
+
+merch-card [slot='callout-text'] {
+    display: inline-block;
+    margin: var(--consonant-merch-spacing-xxxs) 0px;
+}
+
+merch-card [slot='callout-text'] > div {
+    position: relative;
+    display: inline-grid;
+    background: rgba(203 203 203 / 50%);
+    border-radius: var(--consonant-merch-spacing-xxxs);
+    padding: var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xxs);
+}
+
+merch-card [slot='callout-text'] > div.callout-content-wrapper-with-icon {
+    padding-right: var(--consonant-merch-card-callout-icon-padding);
+}
+
+merch-card [slot='callout-text'] > div > div {
+    display: inline-block;
+    text-align: left;
+    font: normal normal normal var(--consonant-merch-card-callout-font-size)/var(--consonant-merch-card-callout-line-height) Adobe Clean;
+    letter-spacing: var(--consonant-merch-card-callout-letter-spacing);
+    color: var(--consonant-merch-card-callout-font-color);
+}
+
+merch-card [slot='callout-text'] img {
+    position: absolute;
+    top: var(--consonant-merch-card-callout-icon-top);
+    right: var(--consonant-merch-card-callout-icon-right);
+    width: var(--consonant-merch-card-callout-icon-size);
+    height: var(--consonant-merch-card-callout-icon-size);
+}
+
+merch-card[variant="mini-compare-chart"] [slot="callout-text"] {
+    padding: 0px var(--consonant-merch-spacing-s);
 }
 
 merch-card [slot='detail-m'] {

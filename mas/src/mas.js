@@ -1,29 +1,23 @@
 import { init } from '@adobe/mas-commerce';
 
-const locale =
-    document
-        .querySelector('meta[name="mas-locale"]')
-        ?.getAttribute('content') ?? 'US_en';
+const { origin, searchParams } = new URL(import.meta.url);
 
-const lang = document
-    .querySelector('meta[name="mas-lang"]')
-    ?.getAttribute('content');
+const locale = searchParams.get('locale') ?? 'US_en';
+const lang = searchParams.get('lang') ?? 'en';
+const isStage = searchParams.get('env') === 'stage';
+const features = searchParams.get('features');
+
+const envName = isStage ? 'stage' : 'prod';
+const commerceEnv = isStage ? 'STAGE' : 'PROD';
 
 const config = () => ({
-    env: { name: 'stage' },
-    commerce: { 'commerce.env': 'STAGE' },
+    env: { name: envName },
+    commerce: { 'commerce.env': commerceEnv },
     locale: { prefix: locale },
 });
-
-const features =
-    document
-        .querySelector('meta[name="mas-features"]')
-        ?.getAttribute('content')
-        ?.split(',') ?? [];
 
 init(config);
 
 if (features.includes('merch-card')) {
-    const { origin } = new URL(import.meta.url);
-    import(`${origin}/lib/merch-card-all.js`);
+    import(`${origin}/libs/merch-card-all.js`);
 }

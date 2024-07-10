@@ -15,6 +15,8 @@ import '../src/merch-quantity-select.js';
 import '../src/merch-stock.js';
 import '../src/merch-secure-transaction.js';
 import '../src/merch-subscription-panel.js';
+import '../src/merch-whats-included.js';
+import '../src/merch-mnemonic-list.js';
 import '../src/merch-twp-d2p.js';
 import './spectrum.js';
 

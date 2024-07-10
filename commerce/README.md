@@ -18,7 +18,7 @@ Build process produces `lib` folder containing 3 files:
 - `commerce.js.map` - source map, needed for debugging of build code in browser,
 - `commerce.d.ts` - type definitions, enables intelligent suggestions in an IDE.
 
-During deployment, file `lib/commerce.js` should be copied to Milo's [deps](https://github.com/adobecom/milo/tree/main/libs/deps).
+During deployment, file `libs/commerce.js` should be copied to Milo's [deps](https://github.com/adobecom/milo/tree/main/libs/deps).
 
 To explore bundle contents, upload `stats.json` file to [esbuild analyzer](https://esbuild.github.io/analyze/).
 

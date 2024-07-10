@@ -284,7 +284,7 @@ merch-card [slot='callout-text'] img {
     height: var(--consonant-merch-card-callout-icon-size);
 }
 
-merch-card[variant="mini-compare-chart"] [slot='callout-text'] {
+merch-card[variant="mini-compare-chart"] [slot="callout-text"] {
     padding: 0px var(--consonant-merch-spacing-s);
 }
 

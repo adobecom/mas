@@ -1,4 +1,3 @@
-// branch: MWPW-153962-3 commit: 73e67d72ac678797fbcc49debf86f24586e6db1a Tue, 09 Jul 2024 13:22:44 GMT
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;

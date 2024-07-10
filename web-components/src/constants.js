@@ -34,7 +34,6 @@ export const EVENT_OFFER_SELECTED = 'merch-offer:selected';
 export const EVENT_MERCH_STOCK_CHANGE = 'merch-stock:change';
 
 export const EVENT_MERCH_STORAGE_CHANGE = 'merch-storage:change';
-export const EVENT_MERCH_STORAGE_CHANG1E = 'merch-storage:change';
 
 export const EVENT_MERCH_QUANTITY_SELECTOR_CHANGE =
     'merch-quantity-selector:change';

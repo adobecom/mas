@@ -8,6 +8,7 @@ export const ERROR_MESSAGE_MISSING_LITERALS_URL = 'Literals URL not provided';
 
 export const EVENT_TYPE_ERROR = 'wcms:commerce:error';
 export const EVENT_TYPE_FAILED = 'wcms:placeholder:failed';
+export const EVENT_TYPE_FAILED2 = 'wcms:placeholder:failed';
 export const EVENT_TYPE_PENDING = 'wcms:placeholder:pending';
 export const EVENT_TYPE_READY = 'wcms:commerce:ready';
 export const EVENT_TYPE_RESOLVED = 'wcms:placeholder:resolved';

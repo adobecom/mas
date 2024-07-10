@@ -4,8 +4,8 @@ helix-importer-ui
 .DS_Store
 *.bak
 *.map
-lib/*.json
-lib/*.d.ts
+libs/*.json
+libs/*.d.ts
 .idea
 coverage
 node_modules

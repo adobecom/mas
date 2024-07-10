@@ -34,8 +34,23 @@ export const styles = css`
         margin: 0;
     }
 
+    ::slotted([slot='merch-whats-included']) {
+        align-self: auto;
+        width: 100%;
+        position: absolute;
+        background: #fff;
+        height: 100%;
+        padding: 30px;
+        border-radius: 10px;
+        box-sizing: border-box;
+    }
+
     ::slotted([slot$='-footer']) {
         flex-basis: 100%;
+    }
+
+    ::slotted([slot='merch-whats-included'].hidden) {
+        display: none;
     }
 
     /* Mobile */

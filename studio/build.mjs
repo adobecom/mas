@@ -4,7 +4,7 @@ build({
     entryPoints: ['src/swc.js'],
     format: 'esm',
     bundle: true,
-    outfile: 'lib/swc.js',
+    outfile: 'libs/swc.js',
     sourcemap: true,
     define: {
         'process.env.NODE_ENV': '"production"',
@@ -15,7 +15,7 @@ build({
     entryPoints: ['src/studio.js'],
     format: 'esm',
     bundle: true,
-    outfile: 'lib/studio.js',
+    outfile: 'libs/studio.js',
     sourcemap: true,
     define: {
         'process.env.NODE_ENV': '"production"',

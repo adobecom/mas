@@ -19,5 +19,5 @@ const config = () => ({
 init(config);
 
 if (features.includes('merch-card')) {
-    import(`${origin}/lib/merch-card-all.js`);
+    import(`${origin}/libs/merch-card-all.js`);
 }

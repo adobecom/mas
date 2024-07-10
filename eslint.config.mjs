@@ -11,8 +11,8 @@ const config = {
     ignores: [
         '/node_modules/',
         '**/node_modules/**',
-        '/lib/',
-        '**/lib/**',
+        '/libs/',
+        '**/libs/**',
         '**/dist/**',
         'mas.js',
     ],

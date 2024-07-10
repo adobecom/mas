@@ -2,7 +2,7 @@
   "name": "@adobe/mas-platform",
   "version": "0.0.1",
   "type": "module",
-  "main": "mas.js",
+  "main": "libs/mas.js",
   "private": true,
   "workspaces": [
     "commerce",

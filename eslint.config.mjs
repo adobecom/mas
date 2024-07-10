@@ -14,7 +14,6 @@ const config = {
         '/libs/',
         '**/libs/**',
         '**/dist/**',
-        'mas.js',
     ],
     ...eslintPluginPrettierRecommended,
 };

@@ -1,12 +1,12 @@
 # Check for unstaged changes
 if ! git diff-index --quiet HEAD --; then
-  echo "uou have unstaged or uncommitted files. commit, stash or discard your changes before pushing."
+  echo "You have unstaged or uncommitted files. Commit, stash or discard your changes before pushing."
   exit 1
 fi
 
 # Check for uncommitted changes
 if ! git diff --cached --quiet; then
-  echo "you have unstaged or uncommitted files. commit, stash or discard your changes before pushing."
+  echo "You have unstaged or uncommitted files. Commit, stash or discard your changes before pushing."
   exit 1
 fi
 

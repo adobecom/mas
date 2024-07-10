@@ -16,7 +16,8 @@
     "test": "npm run test:ci --workspaces",
     "build": "npm run build --workspaces",
     "build:precommit": "npm run build:precommit --workspaces",
-    "prepare": "husky"
+    "prepare": "husky",
+    "prepush": "git diff-index --quiet HEAD --"
   },
   "repository": {
     "type": "git",

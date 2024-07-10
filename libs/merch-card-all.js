@@ -1477,7 +1477,7 @@ body.merch-modal {
                 <slot name="heading-m"></slot>
                 <slot name="body-xxs"></slot>
                 <slot name="promo-text"></slot>
-                <slot name="body-xs"></slot>
+                <slot name="body-xs"></slot>                
                 ${this.stockCheckbox}
             </div>
             <slot name="quantity-select"></slot>

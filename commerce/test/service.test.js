@@ -3,27 +3,31 @@ import { TAG_NAME_SERVICE, Defaults, init, reset } from '../src/index.js';
 import { HTMLWcmsCommerceElement } from '../src//service.js';
 
 import { mockConfig } from './mocks/config.js';
-import { mockFetch, unmockFetch } from './mocks/fetch.js';
+import { mockFetch } from './mocks/fetch.js';
 import { mockIms, unmockIms } from './mocks/ims.js';
 import { expect } from './utilities.js';
 import { mockProviders } from './mocks/providers.js';
+import { withWcs } from './mocks/wcs.js';
+import { withLiterals } from './mocks/literals.js';
 
 describe('commerce service', () => {
+    before(async () => {
+        await mockFetch(withWcs, withLiterals);
+    });
+
     afterEach(() => {
         reset();
-        unmockFetch();
         unmockIms();
     });
 
     beforeEach(async () => {
-        await mockFetch();
         await mockIms();
     });
 
     describe('function "init"', () => {
         it('initialises service with configured locale', async () => {
             const { settings } = await init(
-                mockConfig({}, { prefix: 'mena_en' })
+                mockConfig({}, { prefix: 'mena_en' }),
             );
             expect(settings).to.deep.contain({
                 country: 'DZ',
@@ -52,7 +56,7 @@ describe('commerce service', () => {
         it('ignores active instance and constructs new one if argument `force` is true', async () => {
             const instance = await init(mockConfig());
             expect(await init(mockConfig(), mockProviders())).not.to.be.equal(
-                instance
+                instance,
             );
         });
     });

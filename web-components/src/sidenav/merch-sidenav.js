@@ -149,7 +149,7 @@ export class MerchSideNav extends LitElement {
             };
             const overlay = await window.__merch__spectrum_Overlay.open(
                 this.dialog,
-                options
+                options,
             );
             overlay.addEventListener('close', () => {
                 this.modal = false;

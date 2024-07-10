@@ -141,7 +141,7 @@ function getSettings(config = {}) {
             : toEnumeration(
                   getParameter(PARAM_ENV, commerce, { metadata: false }),
                   HostEnv,
-                  HostEnv.PROD
+                  HostEnv.PROD,
               );
     const env = hostEnv === HostEnv.STAGE ? Env.STAGE : Env.PRODUCTION;
     const checkoutClientId =
@@ -149,40 +149,40 @@ function getSettings(config = {}) {
     const checkoutWorkflow = toEnumeration(
         getParameter('checkoutWorkflow', commerce),
         CheckoutWorkflow,
-        Defaults.checkoutWorkflow
+        Defaults.checkoutWorkflow,
     );
     let checkoutWorkflowStep = CheckoutWorkflowStep.CHECKOUT;
     if (checkoutWorkflow === CheckoutWorkflow.V3) {
         checkoutWorkflowStep = toEnumeration(
             getParameter('checkoutWorkflowStep', commerce),
             CheckoutWorkflowStep,
-            Defaults.checkoutWorkflowStep
+            Defaults.checkoutWorkflowStep,
         );
     }
     const displayOldPrice = toBoolean(
         getParameter('displayOldPrice', commerce),
-        Defaults.displayOldPrice
+        Defaults.displayOldPrice,
     );
     const displayPerUnit = toBoolean(
         getParameter('displayPerUnit', commerce),
-        Defaults.displayPerUnit
+        Defaults.displayPerUnit,
     );
     const displayRecurrence = toBoolean(
         getParameter('displayRecurrence', commerce),
-        Defaults.displayRecurrence
+        Defaults.displayRecurrence,
     );
     const displayTax = toBoolean(
         getParameter('displayTax', commerce),
-        Defaults.displayTax
+        Defaults.displayTax,
     );
     const entitlement = toBoolean(
         getParameter('entitlement', commerce),
-        Defaults.entitlement
+        Defaults.entitlement,
     );
     const modal = toBoolean(getParameter('modal', commerce), Defaults.modal);
     const forceTaxExclusive = toBoolean(
         getParameter('forceTaxExclusive', commerce),
-        Defaults.forceTaxExclusive
+        Defaults.forceTaxExclusive,
     );
     const promotionCode =
         getParameter('promotionCode', commerce) ?? Defaults.promotionCode;
@@ -194,15 +194,15 @@ function getSettings(config = {}) {
             : toEnumeration(
                   getParameter(PARAM_LANDSCAPE, commerce),
                   Landscape,
-                  Defaults.landscape
+                  Defaults.landscape,
               );
     let wcsBufferDelay = toPositiveFiniteInteger(
         getParameter('wcsBufferDelay', commerce),
-        Defaults.wcsBufferDelay
+        Defaults.wcsBufferDelay,
     );
     let wcsBufferLimit = toPositiveFiniteInteger(
         getParameter('wcsBufferLimit', commerce),
-        Defaults.wcsBufferLimit
+        Defaults.wcsBufferLimit,
     );
     const domainSwitch = toBoolean(getParameter('domain.switch', commerce), false);
 

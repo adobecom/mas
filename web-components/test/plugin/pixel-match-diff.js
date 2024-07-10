@@ -50,11 +50,11 @@ export function pixelMatchDiff({ name, baselineImage, image, options }) {
         diff.data,
         width,
         height,
-        options
+        options,
     );
     const diffPercentage =
         Math.floor(
-            ((numDiffPixels / (width * height)) * 100 + Number.EPSILON) * 1000
+            ((numDiffPixels / (width * height)) * 100 + Number.EPSILON) * 1000,
         ) / 1000;
 
     return {

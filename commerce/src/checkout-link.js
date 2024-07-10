@@ -81,7 +81,7 @@ export class HTMLCheckoutAnchorElement extends HTMLAnchorElement {
         // @ts-ignore
         const elements = selectPlaceholders(
             HTMLCheckoutAnchorElement,
-            container
+            container,
         );
         return elements;
     }
@@ -119,7 +119,7 @@ export class HTMLCheckoutAnchorElement extends HTMLAnchorElement {
         }
         const options = service.collectCheckoutOptions(
             overrides,
-            this.placeholder
+            this.placeholder,
         );
         if (!options.wcsOsi.length) return false;
         let extraOptions;
@@ -137,14 +137,14 @@ export class HTMLCheckoutAnchorElement extends HTMLAnchorElement {
         offers = offers.map((offer) => selectOffers(offer, options));
         const checkoutAction = await service.buildCheckoutAction(
             offers.flat(),
-            { ...extraOptions, ...options }
+            { ...extraOptions, ...options },
         );
         return this.renderOffers(
             offers.flat(),
             options,
             {},
             checkoutAction,
-            version
+            version,
         );
     }
 
@@ -161,13 +161,13 @@ export class HTMLCheckoutAnchorElement extends HTMLAnchorElement {
         options,
         overrides = {},
         checkoutAction = undefined,
-        version = undefined
+        version = undefined,
     ) {
         if (!this.isConnected) return false;
         const service = useService();
         if (!service) return false;
         const extraOptions = JSON.parse(
-            this.placeholder.dataset.extraOptions ?? 'null'
+            this.placeholder.dataset.extraOptions ?? 'null',
         );
         options = { ...extraOptions, ...options, ...overrides };
         version ??= this.placeholder.togglePending(options);

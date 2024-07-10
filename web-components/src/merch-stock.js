@@ -51,7 +51,7 @@ export class MerchStock extends LitElement {
                     planType: this.planType,
                 },
                 bubbles: true,
-            })
+            }),
         );
     }
 
@@ -63,7 +63,7 @@ export class MerchStock extends LitElement {
                 await el.onceSettled();
                 el.parentElement.setAttribute(
                     'data-plan-type',
-                    el.value[0].planType
+                    el.value[0].planType,
                 );
             });
         });
@@ -86,7 +86,7 @@ export class MerchStock extends LitElement {
     get osi() {
         if (!this.checked) return;
         return this.querySelector(
-            `div[data-plan-type="${this.planType}"] [is="inline-price"]`
+            `div[data-plan-type="${this.planType}"] [is="inline-price"]`,
         )?.value?.[0].offerSelectorIds[0];
     }
 }

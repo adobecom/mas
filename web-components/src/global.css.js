@@ -112,6 +112,11 @@ styles.innerHTML = `
     --consonant-merch-card-twp-mobile-width: 300px;
     --consonant-merch-card-twp-mobile-height: 358px;
 
+    /* ccd-action */
+    --consonant-merch-card-ccd-action-width: 276px;
+    --consonant-merch-card-ccd-action-min-height: 320px;
+
+
     /*mini compare chart */
     --consonant-merch-card-mini-compare-chart-icon-size: 32px;
     --consonant-merch-card-mini-compare-mobile-cta-font-size: 15px;
@@ -127,6 +132,15 @@ styles.innerHTML = `
 
     --ellipsis-icon: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><circle cx="2" cy="2" r="2" fill="%232c2c2c" transform="translate(6 6)"/><circle cx="2" cy="2" r="2" fill="%232c2c2c" data-name="Ellipse 71" transform="translate(12 6)"/><circle cx="2" cy="2" r="2" fill="%232c2c2c" transform="translate(0 6)"/></svg>');
 
+    /* callout */
+    --consonant-merch-card-callout-line-height: 21px;
+    --consonant-merch-card-callout-font-size: 14px;
+    --consonant-merch-card-callout-font-color: #2C2C2C;
+    --consonant-merch-card-callout-icon-size: 16px;
+    --consonant-merch-card-callout-icon-top: 6px;
+    --consonant-merch-card-callout-icon-right: 8px;
+    --consonant-merch-card-callout-letter-spacing: 0px;
+    --consonant-merch-card-callout-icon-padding: 34px;
 }
 
 merch-card-collection {
@@ -237,6 +251,43 @@ merch-card [slot='heading-xl'] {
     color: var(--merch-color-grey-80);
 }
 
+merch-card [slot='callout-text'] {
+    display: inline-block;
+    margin: var(--consonant-merch-spacing-xxxs) 0px;
+}
+
+merch-card [slot='callout-text'] > div {
+    position: relative;
+    display: inline-grid;
+    background: rgba(203 203 203 / 50%);
+    border-radius: var(--consonant-merch-spacing-xxxs);
+    padding: var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xxs);
+}
+
+merch-card [slot='callout-text'] > div.callout-content-wrapper-with-icon {
+    padding-right: var(--consonant-merch-card-callout-icon-padding);
+}
+
+merch-card [slot='callout-text'] > div > div {
+    display: inline-block;
+    text-align: left;
+    font: normal normal normal var(--consonant-merch-card-callout-font-size)/var(--consonant-merch-card-callout-line-height) Adobe Clean;
+    letter-spacing: var(--consonant-merch-card-callout-letter-spacing);
+    color: var(--consonant-merch-card-callout-font-color);
+}
+
+merch-card [slot='callout-text'] img {
+    position: absolute;
+    top: var(--consonant-merch-card-callout-icon-top);
+    right: var(--consonant-merch-card-callout-icon-right);
+    width: var(--consonant-merch-card-callout-icon-size);
+    height: var(--consonant-merch-card-callout-icon-size);
+}
+
+merch-card[variant="mini-compare-chart"] [slot="callout-text"] {
+    padding: 0px var(--consonant-merch-spacing-s);
+}
+
 merch-card [slot='detail-m'] {
     font-size: var(--consonant-merch-card-detail-m-font-size);
     letter-spacing: var(--consonant-merch-card-detail-m-letter-spacing);
@@ -321,6 +372,10 @@ merch-card[variant="catalog"] [slot="action-menu-content"] p {
 merch-card[variant="catalog"] [slot="action-menu-content"] a {
     color: var(--consonant-merch-card-background-color);
     text-decoration: underline;
+}
+
+merch-card[variant="ccd-action"] .price-strikethrough {
+    font-size: 18px;
 }
 
 merch-card[variant="plans"] [slot="quantity-select"] {
@@ -870,6 +925,38 @@ div[slot='bg-image'] img {
     @media screen and ${LARGE_DESKTOP} {
     .four-merch-cards.inline-heading {
         grid-template-columns: repeat(4, var(--consonant-merch-card-inline-heading-width));
+    }
+}
+
+/* grid style for ccd-action */
+.one-merch-card.ccd-action,
+.two-merch-cards.ccd-action,
+.three-merch-cards.ccd-action,
+.four-merch-cards.ccd-action {
+    grid-template-columns: var(--consonant-merch-card-ccd-action-width);
+}
+
+/* Tablet */
+@media screen and ${TABLET_UP} {
+    .two-merch-cards.ccd-action,
+    .three-merch-cards.ccd-action,
+    .four-merch-cards.ccd-action {
+        grid-template-columns: repeat(2, var(--consonant-merch-card-ccd-action-width));
+    }
+}
+
+/* desktop */
+@media screen and ${DESKTOP_UP} {
+    .three-merch-cards.ccd-action,
+    .four-merch-cards.ccd-action {
+        grid-template-columns: repeat(3, var(--consonant-merch-card-ccd-action-width));
+    }
+}
+
+/* Large desktop */
+    @media screen and ${LARGE_DESKTOP} {
+    .four-merch-cards.ccd-action {
+        grid-template-columns: repeat(4, var(--consonant-merch-card-ccd-action-width));
     }
 }
 

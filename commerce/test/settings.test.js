@@ -49,7 +49,7 @@ describe('getSettings', () => {
                 commerce,
                 env: { name: 'stage' },
                 locale: { prefix: '/no' },
-            })
+            }),
         ).to.deep.equal({
             ...Defaults,
             forceTaxExclusive: true,

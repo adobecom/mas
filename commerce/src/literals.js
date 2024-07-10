@@ -27,7 +27,7 @@ export async function fetchPriceLiterals(settings) {
     if (Array.isArray(data)) {
         const find = (language) =>
             data.find((candidate) =>
-                equalsCaseInsensitive(candidate.lang, language)
+                equalsCaseInsensitive(candidate.lang, language),
             );
         const literals = find(settings.language) ?? find(Defaults.language);
         if (literals) return Object.freeze(literals);

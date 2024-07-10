@@ -56,7 +56,9 @@ export const styles = css`
         display: block;
         height: 14px;
         position: absolute;
-        transition: border 0.13s ease-in-out, box-shadow 0.13s ease-in-out;
+        transition:
+            border 0.13s ease-in-out,
+            box-shadow 0.13s ease-in-out;
         width: 14px;
         z-index: 0;
     }
@@ -69,7 +71,9 @@ export const styles = css`
         position: absolute;
         top: 50%;
         transform: translateX(-50%) translateY(-50%);
-        transition: opacity 0.13s ease-out, margin 0.13s ease-out;
+        transition:
+            opacity 0.13s ease-out,
+            margin 0.13s ease-out;
     }
 
     :host(:active) .merch-Radio-button:before {

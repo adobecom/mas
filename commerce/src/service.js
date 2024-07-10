@@ -94,7 +94,7 @@ async function activateService(config, dataProviders) {
             get settings() {
                 return settings;
             },
-        })
+        }),
     );
     log.debug('Activated:', { literals, settings, element });
     // Append web component and dispatch "ready" event
@@ -126,7 +126,7 @@ export function initService(getConfig, getProviders) {
         if (dataProviders.force) resetService();
         return (HTMLWcmsCommerceElement.promise ??= activateService(
             getConfig(),
-            dataProviders
+            dataProviders,
         ));
     }
     // Return existing promise

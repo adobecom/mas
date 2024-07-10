@@ -131,7 +131,7 @@ export class MerchQuantitySelect extends LitElement {
                 ? this.options.indexOf(this.defaultValue)
                 : 0;
             this.handleMenuOption(
-                this.defaultValue ? this.defaultValue : this.options[0]
+                this.defaultValue ? this.defaultValue : this.options[0],
             );
             this.requestUpdate();
         }
@@ -167,7 +167,7 @@ export class MerchQuantitySelect extends LitElement {
             {
                 detail: { option: this.selectedValue },
                 bubbles: true,
-            }
+            },
         );
         this.dispatchEvent(customEvent);
     }
@@ -195,7 +195,7 @@ export class MerchQuantitySelect extends LitElement {
                     >
                         ${option === this.max ? `${option}+` : option}
                     </div>
-                `
+                `,
             )}
         </div>`;
     }

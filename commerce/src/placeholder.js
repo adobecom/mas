@@ -98,7 +98,7 @@ function notify(element) {
         }
     }
     element.dispatchEvent(
-        new CustomEvent(StateEventType[state], { bubbles: true })
+        new CustomEvent(StateEventType[state], { bubbles: true }),
     );
 }
 
@@ -327,11 +327,11 @@ export function definePlaceholder(Class) {
         // Extend placeholder prototype with mixin members
         Object.defineProperties(
             prototype,
-            Object.getOwnPropertyDescriptors(HTMLPlaceholderMixin)
+            Object.getOwnPropertyDescriptors(HTMLPlaceholderMixin),
         );
         PlaceholderClass = Object.defineProperties(
             Class,
-            Object.getOwnPropertyDescriptors(PlaceholderConstants)
+            Object.getOwnPropertyDescriptors(PlaceholderConstants),
         );
         // Define custom DOM element
         window.customElements.define(is, PlaceholderClass, { extends: tag });
@@ -348,7 +348,7 @@ export function definePlaceholder(Class) {
  */
 export function selectPlaceholders(Class, container = document.body) {
     return Array.from(
-        container?.querySelectorAll(`${Class.tag}[is="${Class.is}"]`) ?? []
+        container?.querySelectorAll(`${Class.tag}[is="${Class.is}"]`) ?? [],
     );
 }
 

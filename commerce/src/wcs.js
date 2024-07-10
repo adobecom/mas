@@ -82,7 +82,7 @@ export function Wcs({ settings }) {
                 },
                 ({ resolvedOffers }) => ({
                     offers: resolvedOffers.map(applyPlanType),
-                })
+                }),
             );
             log.debug('Fetched:', options, data);
             const { offers } = data ?? {};
@@ -91,7 +91,7 @@ export function Wcs({ settings }) {
                 // select offers with current OSI
                 const resolved = offers
                     .filter(({ offerSelectorIds }) =>
-                        offerSelectorIds.includes(offerSelectorId)
+                        offerSelectorIds.includes(offerSelectorId),
                     )
                     .flat();
                 // resolve current promise if at least 1 offer is present
@@ -110,9 +110,9 @@ export function Wcs({ settings }) {
                         resolveWcsOffers(
                             { ...options, offerSelectorIds: [offerSelectorId] },
                             promises,
-                            false // do not reject promises for missing offers, this will be done below
-                        )
-                    )
+                            false, // do not reject promises for missing offers, this will be done below
+                        ),
+                    ),
                 );
             } else {
                 log.error('Failed:', options, error);
@@ -137,7 +137,7 @@ export function Wcs({ settings }) {
         const pending = [...queue.values()];
         queue.clear();
         pending.forEach(({ options, promises }) =>
-            resolveWcsOffers(options, promises)
+            resolveWcsOffers(options, promises),
         );
     }
 
@@ -189,7 +189,7 @@ export function Wcs({ settings }) {
                         if (!timer) {
                             timer = setTimeout(
                                 flushQueue,
-                                settings.wcsBufferDelay
+                                settings.wcsBufferDelay,
                             );
                         }
                     }

@@ -77,7 +77,7 @@ const lanaAppender = {
 
         if (!seenPayloads.has(payload)) {
             seenPayloads.add(payload);
-            window.lana.log(payload, { sampleRate, tags, clientId });
+            window.lana?.log(payload, { sampleRate, tags, clientId });
         }
     },
 };

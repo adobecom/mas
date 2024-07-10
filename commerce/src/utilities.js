@@ -35,7 +35,7 @@ export function discoverService(getConfig, { once = false } = {}) {
  */
 export function selectOffers(
     offers,
-    { country, forceTaxExclusive, perpetual }
+    { country, forceTaxExclusive, perpetual },
 ) {
     let selected;
     if (offers.length < 2) selected = offers;

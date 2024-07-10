@@ -17,7 +17,7 @@
     "build": "npm run build --workspaces",
     "build:precommit": "npm run build:precommit --workspaces",
     "prepare": "husky",
-    "prepush": "git diff-index --quiet HEAD --"
+    "prepush": "git diff-index --quiet HEAD -- || (echo 'Push failed: unstaged or uncommitted files found. Commit, stash or discard your changes before push.'; exit 1)"
   },
   "repository": {
     "type": "git",

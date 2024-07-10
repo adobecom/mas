@@ -22,12 +22,12 @@ async function buildLitComponent(name) {
         metafile: true,
         minify: true,
         platform: 'browser',
-        outfile: `../lib/${name}.js`,
+        outfile: `../libs/${name}.js`,
         plugins: [rewriteImports()],
         sourcemap: true,
     });
 
-    writeFileSync(`../lib/${name}.json`, JSON.stringify(metafile));
+    writeFileSync(`../libs/${name}.json`, JSON.stringify(metafile));
 }
 
 Promise.all([
@@ -37,7 +37,7 @@ Promise.all([
         format: 'esm',
         entryPoints: ['./src/merch-card-all.js'],
         minify: true,
-        outfile: '../lib/merch-card-all.js',
+        outfile: '../libs/merch-card-all.js',
         sourcemap: true,
     }),
     build({
@@ -51,7 +51,7 @@ Promise.all([
         ],
         format: 'esm',
         minify: true,
-        outfile: '../lib/merch-card.js',
+        outfile: '../libs/merch-card.js',
         sourcemap: true,
         plugins: [rewriteImports()],
     }),
@@ -62,7 +62,7 @@ Promise.all([
         inject: ['./src/merch-offer.js', './src/merch-offer-select.js'],
         format: 'esm',
         minify: true,
-        outfile: '../lib/merch-offer-select.js',
+        outfile: '../libs/merch-offer-select.js',
         sourcemap: true,
         plugins: [rewriteImports()],
     }),
@@ -73,7 +73,7 @@ Promise.all([
         format: 'esm',
         minify: true,
         plugins: [rewriteImports()],
-        outfile: '../lib/merch-card-collection.js',
+        outfile: '../libs/merch-card-collection.js',
     }),
     build({
         banner,
@@ -81,22 +81,25 @@ Promise.all([
         entryPoints: ['./src/plans-modal.js'],
         format: 'esm',
         plugins: [rewriteImports()],
-        outfile: '../lib/plans-modal.js',
+        outfile: '../libs/plans-modal.js',
     }),
     build({
         entryPoints: ['./src/sidenav/merch-sidenav.js'],
         bundle: true,
         banner,
-        outfile: '../lib/merch-sidenav.js',
+        outfile: '../libs/merch-sidenav.js',
         format: 'esm',
         plugins: [rewriteImports()],
         external: ['lit'],
     }),
+    buildLitComponent('merch-icon'),
     buildLitComponent('merch-quantity-select'),
     buildLitComponent('merch-secure-transaction'),
     buildLitComponent('merch-stock'),
     buildLitComponent('merch-subscription-panel'),
     buildLitComponent('merch-twp-d2p'),
+    buildLitComponent('merch-whats-included'),
+    buildLitComponent('merch-mnemonic-list'),
 ]).catch(() => process.exit(1));
 
 function rewriteImports(rew) {

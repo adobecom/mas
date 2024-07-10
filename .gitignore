@@ -3,8 +3,10 @@ logs/*
 helix-importer-ui
 .DS_Store
 *.bak
+*.map
+libs/*.json
+libs/*.d.ts
 .idea
-lib
 coverage
 node_modules
 dist

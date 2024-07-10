@@ -21,6 +21,7 @@ const { metafile } = await build({
     format: 'esm',
     metafile: true,
     minify: true,
+    sourcemap: true,
     outfile: '../mas.js',
     platform: 'browser',
     target: ['es2020'],

@@ -17,7 +17,7 @@
     "build": "npm run build --workspaces",
     "build:precommit": "npm run build:precommit --workspaces",
     "prepare": "husky",
-    "prepush": "git status --short"
+    "prepush": "git diff-index --quiet HEAD --"
   },
   "repository": {
     "type": "git",

@@ -15,5 +15,5 @@ npm run build:precommit
 echo "successfully built /libs and mas.js"
 git add libs
 git add mas.js
-git commit -m 'Commit artifacts.'
+git commit -m '[pre-push hook] commit artifacts'
 echo "committed /libs and mas.js"

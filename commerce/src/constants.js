@@ -11,6 +11,7 @@ export const EVENT_TYPE_FAILED = 'wcms:placeholder:failed';
 export const EVENT_TYPE_PENDING = 'wcms:placeholder:pending';
 export const EVENT_TYPE_READY = 'wcms:commerce:ready';
 export const EVENT_TYPE_RESOLVED = 'wcms:placeholder:resolved';
+export const EVENT_TYPE_RESOLVED2 = 'wcms:placeholder:resolved';
 
 export const LOG_NAMESPACE = 'wcms/commerce';
 

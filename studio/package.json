@@ -4,7 +4,7 @@
   "description": "Merch at Scale Studio",
   "scripts": {
     "build": "node build.mjs",
-    "build:precommit": "echo",
+    "build:milo": "echo",
     "test": "wtr --config ./web-test-runner.config.mjs --coverage --watch --debug",
     "test:ci": "wtr --config ./web-test-runner.config.mjs"
   },

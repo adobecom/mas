@@ -7,11 +7,12 @@ const commitHash = execSync('git rev-parse HEAD').toString().trim();
 const branch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
 console.log(`you're building from branch ${branch} with commit ${commitHash}`);
 const params = process.argv.slice(2);
-const banner = params.includes('skipBanner')
-    ? {}
-    : {
+const banner = params.includes('milo')
+    ? {
           js: `// branch: ${branch} commit: ${commitHash} ${new Date().toUTCString()}`,
-      };
+      }
+    : {};
+const outfolder = params.includes('milo') ? '../milo_artifacts' : '../libs';
 
 const { metafile } = await build({
     alias: {
@@ -23,7 +24,7 @@ const { metafile } = await build({
     format: 'esm',
     metafile: true,
     minify: true,
-    outfile: '../libs/commerce.js',
+    outfile: `${outfolder}/commerce.js`,
     platform: 'browser',
     sourcemap: true,
     target: ['es2020'],

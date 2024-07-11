@@ -11,7 +11,7 @@ if ! git diff --cached --quiet; then
 fi
 
 #build artifacts
-npm run build:precommit
+npm run build
 echo "successfully built /libs"
 # if any file changed after build - commit
 if ! git diff-index --quiet HEAD --; then

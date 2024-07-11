@@ -13,17 +13,18 @@ $ npm run build
 
 Build system is based on [esbuild](https://esbuild.github.io/), it bundles and optimises package code for evergreen web browsers.
 
-Build process produces `lib` folder containing 3 files:
+Build process will copy the files below to `libs` folder:
 - `commerce.js` - bundle ESM file for browser,
 - `commerce.js.map` - source map, needed for debugging of build code in browser,
 - `commerce.d.ts` - type definitions, enables intelligent suggestions in an IDE.
-
-During deployment, file `libs/commerce.js` should be copied to Milo's [deps](https://github.com/adobecom/milo/tree/main/libs/deps).
-
 To explore bundle contents, upload `stats.json` file to [esbuild analyzer](https://esbuild.github.io/analyze/).
 
-### Testing
 
+### Milo Consumption
+To consume in milo, use another command - `npm run build:milo`, that will generate files in `milo-libs folder` 
+File `milo-libs/commerce.js` should be copied to Milo's [deps](https://github.com/adobecom/milo/tree/main/libs/deps).
+
+### Testing
 This package uses same unit testing toolset as Milo:
 - [Web Test Runner](https://modern-web.dev/docs/test-runner/overview/)
 - [ChaiJS](https://www.chaijs.com/api/bdd/)

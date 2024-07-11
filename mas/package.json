@@ -5,7 +5,7 @@
   "scripts": {
     "test:ci": "echo",
     "build": "node build.mjs",
-    "build:precommit": "node build.mjs skipBanner"
+    "build:milo": "echo"
   },
   "type": "module",
   "main": "src/mas.js",

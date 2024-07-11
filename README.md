@@ -29,13 +29,19 @@ Refer to the corresponding README.md under any of the packages:
 * studio - M@S Studio for creating, updating and publishing merch fragments
 
 # Pre push hook
-Before each push 'npm run build:precommit' is triggered.
-1. It will build the artifacts in /libs folder
+Before each push 'npm run build' is triggered.
+1. It will build the artifacts in the /libs folder
 2. If any of the artifacts have an update the hook will stage the changes and commit
-3. If there are unstaged/uncommitted changed the hook will prevent the push
+3. If there are unstaged/uncommitted changes the hook will prevent the push
 
-There is no need to run 'npm run build:precommit' manually, but before commits are pushed no unstaged changes should exist in the mas folder.
-For milo consumption please continue as before, with 'npm run build' command & manual copy of files to milo repository.
+There is no need to run 'npm run build' manually, but if you run it and commit - no issue (then hook won't do an additional commit).
+
+# Consumption of artifacts in Milo
+Please run 'npm run build:milo'
+```
+npm run build:milo
+```
+Copy required artifacts from 'milo_artifacts' folder to milo/libs/deps.
 
 #### Troubleshooting
 Please reach out to us in `#tacocat-friends` for any questions.

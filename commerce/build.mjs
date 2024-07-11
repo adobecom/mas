@@ -12,7 +12,7 @@ const banner = params.includes('milo')
           js: `// branch: ${branch} commit: ${commitHash} ${new Date().toUTCString()}`,
       }
     : {};
-const outfolder = params.includes('milo') ? '../milo_artifacts' : '../libs';
+const outfolder = params.includes('milo') ? '../milo-libs' : '../libs';
 
 const { metafile } = await build({
     alias: {

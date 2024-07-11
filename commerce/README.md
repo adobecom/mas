@@ -21,8 +21,8 @@ To explore bundle contents, upload `stats.json` file to [esbuild analyzer](https
 
 
 ### Milo Consumption
-To consume in milo, use another command - `npm run build:milo`, that will generate files in `milo_artifacts folder` 
-File `milo_artifacts/commerce.js` should be copied to Milo's [deps](https://github.com/adobecom/milo/tree/main/libs/deps).
+To consume in milo, use another command - `npm run build:milo`, that will generate files in `milo-libs folder` 
+File `milo-libs/commerce.js` should be copied to Milo's [deps](https://github.com/adobecom/milo/tree/main/libs/deps).
 
 ### Testing
 This package uses same unit testing toolset as Milo:

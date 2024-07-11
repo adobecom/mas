@@ -41,7 +41,7 @@ Please run 'npm run build:milo'
 ```
 npm run build:milo
 ```
-Copy required artifacts from 'milo_artifacts' folder to milo/libs/deps.
+Copy required artifacts from 'milo-libs' folder to milo/libs/deps.
 
 #### Troubleshooting
 Please reach out to us in `#tacocat-friends` for any questions.

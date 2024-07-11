@@ -88,7 +88,7 @@ npm run build:milo
 ```
 copy the build artifacts to Milo's deps folder:
 ```
-cp milo_artifacts/*  ~/git/milo/libs/deps
+cp milo-libs/*  ~/git/milo/libs/deps
 ```
 
 #### Troubleshooting

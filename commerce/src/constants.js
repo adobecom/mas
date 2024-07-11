@@ -13,6 +13,7 @@ export const EVENT_TYPE_READY = 'wcms:commerce:ready';
 export const EVENT_TYPE_RESOLVED = 'wcms:placeholder:resolved';
 
 export const LOG_NAMESPACE = 'wcms/commerce';
+export const LOG_NAMESPACE2 = 'wcms/commerce';
 
 export const PARAM_ENV = 'commerce.env';
 export const PARAM_LANDSCAPE = 'commerce.landscape';

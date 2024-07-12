@@ -7,6 +7,7 @@ import { updateLiterals } from './literals.js';
 import { TABLET_DOWN } from './media.js';
 import { styles } from './merch-card-collection.css.js';
 import { getSlotText } from './utils.js';
+import { EVENT_MERCH_CHANGE } from './constants';
 
 const MERCH_CARD_COLLECTION = 'merch-card-collection';
 
@@ -307,10 +308,13 @@ export class MerchCardCollection extends LitElement {
         }
 
         this.dispatchEvent(
-            new CustomEvent('sort-changed', {
+            new CustomEvent(EVENT_MERCH_CHANGE, {
                 bubbles: true,
                 composed: true,
-                detail: { value: event.target.value },
+                detail: {
+                    type: 'sort',
+                    value: event.target.value
+                },
             })
         );
     }
@@ -319,6 +323,15 @@ export class MerchCardCollection extends LitElement {
         const page = this.page + 1;
         pushState({ page });
         this.page = page;
+        this.dispatchEvent(
+            new CustomEvent(EVENT_MERCH_CHANGE, {
+                bubbles: true,
+                composed: true,
+                detail: {
+                    type: 'show-more',
+                },
+            })
+        );
         await this.updateComplete;
     }
 

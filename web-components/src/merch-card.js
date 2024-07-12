@@ -14,6 +14,7 @@ import {
     EVENT_MERCH_OFFER_SELECT_READY,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     EVENT_MERCH_STORAGE_CHANGE,
+    EVENT_MERCH_CHANGE,
 } from './constants.js';
 import { getTextNodes } from './utils.js';
 
@@ -250,6 +251,17 @@ export class MerchCard extends LitElement {
             'slot[name="action-menu-content"]',
         );
         if (!actionMenuContentSlot) return;
+        if (!retract) {
+            this.dispatchEvent(
+                new CustomEvent(EVENT_MERCH_CHANGE, {
+                    bubbles: true,
+                    composed: true,
+                    detail: {
+                        type: 'action-menu'
+                    },
+                })
+            );
+        }
         actionMenuContentSlot.classList.toggle('hidden', retract);
     }
 

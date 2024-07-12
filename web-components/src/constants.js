@@ -37,3 +37,6 @@ export const EVENT_MERCH_STORAGE_CHANGE = 'merch-storage:change';
 
 export const EVENT_MERCH_QUANTITY_SELECTOR_CHANGE =
     'merch-quantity-selector:change';
+
+/** Event to dispatch when any action is done that requires analytics report from the parent */
+export const EVENT_MERCH_CHANGE = 'merch-change';

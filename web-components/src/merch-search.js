@@ -1,5 +1,6 @@
 import { html, LitElement, css } from 'lit';
 import { debounce } from './utils';
+import { EVENT_MERCH_CHANGE } from './constants';
 import {
     deeplink,
     pushStateFromComponent,
@@ -25,10 +26,13 @@ export class MerchSearch extends LitElement {
             pushStateFromComponent(this, this.search.value);
             if (this.search.value) {
                 this.dispatchEvent(
-                    new CustomEvent('search-changed', {
+                    new CustomEvent(EVENT_MERCH_CHANGE, {
                         bubbles: true,
                         composed: true,
-                        detail: { value: this.search.value },
+                        detail: {
+                            type: 'search',
+                            value: this.search.value
+                        },
                     })
                 );
             }
@@ -52,7 +56,7 @@ export class MerchSearch extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         this.search.removeEventListener('input', this.handleInputDebounced);
-        this.search.removeEventListener('change', this.handleInputDebounced);
+        this.search.removeEventListener('change', this.handleChangeDebounced);
         this.search.removeEventListener('submit', this.handleInputSubmit);
         this.stopDeeplink?.();
     }

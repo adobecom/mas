@@ -17,16 +17,31 @@ export class MerchSearch extends LitElement {
 
     constructor() {
         super();
-        this.handleInput = () =>
+
+        this.handleInput = () => {
             pushStateFromComponent(this, this.search.value);
+        };
+        this.handleInputAndAnalytics = () => {
+            pushStateFromComponent(this, this.search.value);
+            if (this.search.value) {
+                this.dispatchEvent(
+                    new CustomEvent('search-changed', {
+                        bubbles: true,
+                        composed: true,
+                        detail: { value: this.search.value },
+                    })
+                );
+            }
+        };
         this.handleInputDebounced = debounce(this.handleInput.bind(this));
+        this.handleChangeDebounced = debounce(this.handleInputAndAnalytics.bind(this));
     }
 
     connectedCallback() {
         super.connectedCallback();
         if (!this.search) return;
         this.search.addEventListener('input', this.handleInputDebounced);
-        this.search.addEventListener('change', this.handleInputDebounced);
+        this.search.addEventListener('change', this.handleChangeDebounced);
         this.search.addEventListener('submit', this.handleInputSubmit);
         this.updateComplete.then(() => {
             this.setStateFromURL();

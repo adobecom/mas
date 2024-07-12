@@ -305,6 +305,14 @@ export class MerchCardCollection extends LitElement {
         } else {
             pushState({ sort: event.target.value });
         }
+
+        this.dispatchEvent(
+            new CustomEvent('sort-changed', {
+                bubbles: true,
+                composed: true,
+                detail: { value: event.target.value },
+            })
+        );
     }
 
     async showMore() {

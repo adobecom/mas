@@ -7573,7 +7573,7 @@ init_src();
 init_directives();
 init_decorators2();
 
-// ../node_modules/@spectrum-web-components/textfield/node_modules/@spectrum-web-components/help-text/src/HelpTextManager.js
+// ../node_modules/@spectrum-web-components/help-text/src/HelpTextManager.js
 init_src();
 init_directives();
 init_condition_attribute_with_id();
@@ -7620,7 +7620,7 @@ var HelpTextManager = class {
   }
 };
 
-// ../node_modules/@spectrum-web-components/textfield/node_modules/@spectrum-web-components/help-text/src/manage-help-text.js
+// ../node_modules/@spectrum-web-components/help-text/src/manage-help-text.js
 function ManageHelpText(e22, { mode: t16 } = { mode: "internal" }) {
   class n18 extends e22 {
     constructor() {

@@ -1,5 +1,4 @@
 // @ts-nocheck
-import '../../../../libs/commerce.js';
 import '../../../../libs/merch-card-all.js';
 import '../../../../libs/merch-offer-select.js';
 import '../../../../libs/merch-quantity-select.js';
@@ -27,16 +26,19 @@ export const appendMiloStyles = () => {
     style.href = `https://${milolibs}.hlx.page/libs/styles/styles.css`;
     document.head.insertBefore(style, customStyles);
 
-    style = document.createElement('link');
-    style.rel = 'stylesheet';
-    style.href = `${milolibs}/libs/blocks/merch/merch.css`;
+    const loadAsyncCSS = (href) => {
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'style';
+        link.href = href;
+        link.onload = () => (link.rel = 'stylesheet');
+        document.head.appendChild(link);
+    };
 
-    style = document.createElement('link');
-    style.rel = 'stylesheet';
-    style.href = `https://${milolibs}.hlx.page/libs/blocks/merch-card/merch-card.css`;
-    document.head.insertBefore(style, customStyles);
+    loadAsyncCSS(`https://${milolibs}.hlx.page/libs/styles/merch.css`);
+    loadAsyncCSS(`https://${milolibs}.hlx.page/libs/styles/merch-card.css`);
 };
 
 (async () => {
-    appendMiloStyles();
+    await appendMiloStyles();
 })();

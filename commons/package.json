@@ -4,6 +4,7 @@
   "description": "Merch at Scale Studio commons",
   "scripts": {
     "build": "echo",
+    "build:milo": "echo",
     "test": "wtr --config ./web-test-runner.config.mjs --coverage --watch --debug",
     "test:ci": "wtr --config ./web-test-runner.config.mjs"
   },

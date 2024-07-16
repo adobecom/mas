@@ -5,12 +5,14 @@ import { execSync } from 'node:child_process';
 // Get the current commit hash
 const commitHash = execSync('git rev-parse HEAD').toString().trim();
 const branch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
-
 console.log(`you're building from branch ${branch} with commit ${commitHash}`);
-
-const banner = {
-    js: `// branch: ${branch} commit: ${commitHash} ${new Date().toUTCString()}`,
-};
+const params = process.argv.slice(2);
+const banner = params.includes('milo')
+    ? {
+          js: `// branch: ${branch} commit: ${commitHash} ${new Date().toUTCString()}`,
+      }
+    : {};
+const outfolder = params.includes('milo') ? '../milo-libs' : '../libs';
 
 async function buildLitComponent(name) {
     const { metafile } = await build({
@@ -22,7 +24,7 @@ async function buildLitComponent(name) {
         metafile: true,
         minify: true,
         platform: 'browser',
-        outfile: `../libs/${name}.js`,
+        outfile: `${outfolder}/${name}.js`,
         plugins: [rewriteImports()],
         sourcemap: true,
     });
@@ -37,7 +39,7 @@ Promise.all([
         format: 'esm',
         entryPoints: ['./src/merch-card-all.js'],
         minify: true,
-        outfile: '../libs/merch-card-all.js',
+        outfile: `${outfolder}/merch-card-all.js`,
         sourcemap: true,
     }),
     build({
@@ -51,7 +53,7 @@ Promise.all([
         ],
         format: 'esm',
         minify: true,
-        outfile: '../libs/merch-card.js',
+        outfile: `${outfolder}/merch-card.js`,
         sourcemap: true,
         plugins: [rewriteImports()],
     }),
@@ -62,7 +64,7 @@ Promise.all([
         inject: ['./src/merch-offer.js', './src/merch-offer-select.js'],
         format: 'esm',
         minify: true,
-        outfile: '../libs/merch-offer-select.js',
+        outfile: `${outfolder}/merch-offer-select.js`,
         sourcemap: true,
         plugins: [rewriteImports()],
     }),
@@ -73,7 +75,7 @@ Promise.all([
         format: 'esm',
         minify: true,
         plugins: [rewriteImports()],
-        outfile: '../libs/merch-card-collection.js',
+        outfile: `${outfolder}/merch-card-collection.js`,
     }),
     build({
         banner,
@@ -81,13 +83,13 @@ Promise.all([
         entryPoints: ['./src/plans-modal.js'],
         format: 'esm',
         plugins: [rewriteImports()],
-        outfile: '../libs/plans-modal.js',
+        outfile: `${outfolder}/plans-modal.js`,
     }),
     build({
         entryPoints: ['./src/sidenav/merch-sidenav.js'],
         bundle: true,
         banner,
-        outfile: '../libs/merch-sidenav.js',
+        outfile: `${outfolder}/merch-sidenav.js`,
         format: 'esm',
         plugins: [rewriteImports()],
         external: ['lit'],

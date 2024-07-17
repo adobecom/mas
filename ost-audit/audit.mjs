@@ -17,11 +17,20 @@ const HREF_REGEXPS = {
     'ost': 'https://milo.adobe.com/tools/ost?(?<parameters>.+)',
 }
 const LOCALES = ['au', 'cn', 'hk_en', 'hk_zh', 'id_en', 'id_id', 'in', 'in_hi', 'kr', 'my_en', 'my_ms', 'nz', 'ph_en', 'ph_fil', 'sg', 'th_en', 'th_th', 'tw', 'vn_en', 'vn_vi',
-    'ae_en', 'ae_ar', 'africa', 'at', 'be_en', 'be_fr', 'be_nl', 'bg', 'ch_de', 'ch_fr', 'ch_it', 'cis_en', 'cis_ru', 'cz', 'de', 'dk', 'ee', 'eg_ar', 'eg_en', 'es', 'fi', 'fr', 'gr_el', 'gr_en', 'hu', 'ie', 'il_en', 'il_he', 'iq', 'is', 'it', 'kw_ar', 'kw_en', 'lt', 'lu_de', 'lu_en', 'lu_fr', 'lv', 'mena_ar', 'mena_en', 'ng', 'nl', 'no', 'pl', 'pt', 'qa_ar', 'qa_en', 'ro', 'ru', 'sa_en', 'sa_ar', 'se', 'si', 'sk', 'tr', 'ua', 'uk', 'za',
+    'ae_en', 'ae_ar', 'africa', 'at', 'be_en', 'be_fr', 'be_nl', 'bg', 'ch_de', 'ch_fr', 'ch_it', 'cis_en', 'cis_ru', 'cz', 'de', 'dk', 'ee', 'eg_ar', 'eg_en', 'es', 'fi', 'fr', 
+    'gr_el', 'gr_en', 'hu', 'ie', 'il_en', 'il_he', 'iq', 'is', 'it', 'kw_ar', 'kw_en', 'lt', 'lu_de', 'lu_en', 'lu_fr', 'lv', 'mena_ar', 'mena_en', 'ng', 'nl', 'no', 'pl', 'pt', 
+    'qa_ar', 'qa_en', 'ro', 'ru', 'sa_en', 'sa_ar', 'se', 'si', 'sk', 'tr', 'ua', 'uk', 'za',
     'ar', 'br', 'ca', 'ca_fr', 'cl', 'co', 'cr', 'ec', 'gt', 'la', 'mx', 'pe', 'pr', 'jp'];
-const wcsUrl = (osi) => `https://wcs.adobe.com/web_commerce_artifact?offer_selector_ids=${osi}&country=US&language=MULT&locale=en_US&api_key=wcms-commerce-ims-ro-user-milo&landscape=PUBLISHED`;
+const GeoMap = { ar: 'AR_es', be_en: 'BE_en', be_fr: 'BE_fr', be_nl: 'BE_nl', br: 'BR_pt', ca: 'CA_en', ch_de: 'CH_de', ch_fr: 'CH_fr', ch_it: 'CH_it', cl: 'CL_es', co: 'CO_es', 
+    la: 'DO_es', mx: 'MX_es', pe: 'PE_es', africa: 'ZA_en', dk: 'DK_da', de: 'DE_de', ee: 'EE_et', eg_ar: 'EG_ar', eg_en: 'EG_en', es: 'ES_es', fr: 'FR_fr', gr_el: 'GR_el', 
+    gr_en: 'GR_en', ie: 'IE_en', il_he: 'IL_iw', it: 'IT_it', lv: 'LV_lv', lt: 'LT_lt', lu_de: 'LU_de', lu_en: 'LU_en', lu_fr: 'LU_fr', my_en: 'MY_en', my_ms: 'MY_ms', hu: 'HU_hu', 
+    mt: 'MT_en', mena_en: 'DZ_en', mena_ar: 'DZ_ar', nl: 'NL_nl', no: 'NO_nb', pl: 'PL_pl', pt: 'PT_pt', ro: 'RO_ro', si: 'SI_sl', sk: 'SK_sk', fi: 'FI_fi', se: 'SE_sv', tr: 'TR_tr', 
+    uk: 'GB_en', at: 'AT_de', cz: 'CZ_cs', bg: 'BG_bg', ru: 'RU_ru', ua: 'UA_uk', au: 'AU_en', in_en: 'IN_en', in_hi: 'IN_hi', id_en: 'ID_en', id_id: 'ID_in', nz: 'NZ_en', sa_ar: 'SA_ar', 
+    sa_en: 'SA_en', sg: 'SG_en', cn: 'CN_zh-Hans', tw: 'TW_zh-Hant', hk_zh: 'HK_zh-hant', jp: 'JP_ja', kr: 'KR_ko', za: 'ZA_en', ng: 'NG_en', cr: 'CR_es', ec: 'EC_es', pr: 'US_es', 
+};
+const wcsUrl = (osi, locale) => `https://wcs.adobe.com/web_commerce_artifact?offer_selector_ids=${osi}&country=${locale.country}&language=${locale.country === 'GB' ? 'EN' : 'MULT'}&locale=${locale.locale}&api_key=wcms-commerce-ims-ro-user-milo&landscape=PUBLISHED`;
 const mapWcs = {};
-const WCS_KEYS = [ 'offerId' , 'productArrangementCode' , 'commitment' , 'term' , 'customerSegment' , 'marketSegments' , 'offerType' , 'pricePoint' ];
+const WCS_KEYS = [ 'offerId' , 'productArrangementCode' , 'commitment' , 'term' , 'customerSegment' , 'marketSegments' , 'offerType' , 'pricePoint', 'priceDetails.price', 'priceDetails.priceWithoutTax', 'priceDetails.priceWithoutDiscount', 'priceDetails.priceWithoutDiscountAndTax' ];
 const retries = new Set();
 const fetched = new Set();
 const isRelative = (url) => (url[0] == '/');
@@ -102,17 +111,50 @@ const extractLinks = (pageContent) => {
 
 const prefixWcsKey = (key) => ('wcs ' + key);
 
-async function getCommerceData(osi) {
-    const response = await fetch(wcsUrl(osi));
+function getLocaleSettings(locale) {
+    if (!locale) {
+        return {
+            country: 'US',
+            language: 'en',
+            locale: 'en_US',
+        };
+    }
+    let [country = 'US', language = 'en'] = (GeoMap[locale] ?? locale).split('_', 2);
+
+    country = country.toUpperCase();
+    language = language.toLowerCase();
+
+    return {
+        country,
+        language,
+        locale: `${language}_${country}`,
+    };
+}
+
+async function setCommerceData(osi, locale) {
+    const localeSettings = getLocaleSettings(locale);
+    const response = await fetch(wcsUrl(osi, localeSettings));
     const data = {};
     if (response.ok) {
         const json = await response.json();
         const offer = json.resolvedOffers[0];
         if (offer) {
-            WCS_KEYS.forEach( (key) => data[prefixWcsKey(key)] = offer[key]);
+            WCS_KEYS.forEach( (key) => {
+                let subkeys = key.split('.');               
+                let object = offer;
+                while (subkeys?.length > 0) {
+                    const subkey = subkeys[0];
+                    subkeys = subkeys.slice(1);
+                    object = object[subkey];
+                }
+                data[prefixWcsKey(key)] = object;
+            });
         }
     }
-    return data;
+    if (Object.keys(data).length == 0) {
+        console.log(`no data for osi ${osi}`);
+    }
+    mapWcs[osi] = data;
 }
 
 async function extractOstUsage(ctx, parameterString, postExcerpt, collection) {
@@ -126,6 +168,9 @@ async function extractOstUsage(ctx, parameterString, postExcerpt, collection) {
     }
     if (entry.osi) {
         mapWcs[entry.osi] = {};
+        if (ctx.localeRewrite) {
+            mapWcs[entry.osi].locale = ctx.localeRewrite;
+        }
     }
     collection.push(entry);
 }
@@ -162,16 +207,16 @@ async function auditPage( ctx, url ) {
             //already fetched & parsed
             return;
         }
-        const response = await fetchDocument(url);
         fetched.add(url);
+        const response = await fetchDocument(url);        
         if (!response.ok) {
-            console.log(`Error: response status for ${response.url} is ${response.status}`);
+            console.log(`Error (${ctx.origin}): response status for ${response.url} is ${response.status}`);
             return;
         }
         if (url === ctx.origin) {
             const { uri } = getUrlParts(url);
             const firstToken = uri.substring(1).split('/')[0];
-            ctx.localeRewrite = LOCALES.indexOf(firstToken) >= 0 ? firstToken : null;
+            ctx.localeRewrite = LOCALES.indexOf(firstToken) >= 0 ? firstToken : null;        
         } else {
             ctx.fragment = url;
         }
@@ -256,7 +301,13 @@ async function main() {
     }
     console.log(`collected ${ostUsages.length} entries`);
     //collecting related OSI commerce data
-    await Promise.allSettled(Object.keys(mapWcs).map(async (osi) => mapWcs[osi] = await getCommerceData(osi)));
+    let osisToFetch = Object.keys(mapWcs);
+    while (osisToFetch.length > 0) {
+        console.log(`${osisToFetch.length} osis remaining...`);
+        const buffer = osisToFetch.slice(0, defaultBufferSize);
+        osisToFetch = (osisToFetch.length >= defaultBufferSize) ? osisToFetch.slice(defaultBufferSize) : [];
+        await Promise.allSettled(buffer.map((osi) => setCommerceData(osi, mapWcs[osi].locale)));
+    }    
 
     //rendering of collected ostUsages objects together with all collected keys as a CSV
     let headers = Array.from(keys);
@@ -266,8 +317,10 @@ async function main() {
     headers = headers.concat(WCS_KEYS.map(prefixWcsKey));
     fs.writeFileSync(file,
         `${headers.join(',')}\n${ostUsages.map((o) => {
-            o = {...o, ...mapWcs[o.osi] }
-            return headers.map(k => o[k]).join(',');
+            if (mapWcs[o.osi]) {
+                o = {...o, ...mapWcs[o.osi] };
+            }        
+            return headers.map(k => o?.[k]||'').join(',');
         }).join('\n')}`
     );
     console.log(`finished in ${(Date.now() - startTime)/1000}s`);

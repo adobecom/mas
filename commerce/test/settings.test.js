@@ -114,7 +114,7 @@ describe('getSettings', () => {
 
     [
         { prefix: '/ar', expectedLocale: 'es_AR' },
-        { prefix: '/africa', expectedLocale: 'en_ZA' },
+        { prefix: '/africa', expectedLocale: 'en_MU' },
         { prefix: '', expectedLocale: 'en_US' },
         { prefix: '/ae_ar', expectedLocale: 'ar_AE' },
     ].forEach(({ prefix, expectedLocale }) => {

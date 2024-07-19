@@ -1,4 +1,4 @@
-import { Fragment } from '../../studio/src/store/Fragment';
+import { Fragment } from '../../studio/src/store/Fragment.js';
 
 const accessToken = localStorage.getItem('masAccessToken');
 

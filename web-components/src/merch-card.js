@@ -119,9 +119,9 @@ export class MerchCard extends LitElement {
             const allPrices = Array.from(
                 this.querySelectorAll('span[is="inline-price"][data-wcs-osi]'),
             );
-            // Filter out prices within the callout-text slot
+            // Filter out prices within the callout-content slot
             const prices = allPrices.filter(price => 
-                !price.closest('[slot="callout-text"]')
+                !price.closest('[slot="callout-content"]')
             );
             await Promise.all(prices.map((price) => price.onceSettled()));
             this.adjustTitleWidth();
@@ -362,7 +362,7 @@ export class MerchCard extends LitElement {
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
                 <slot name="promo-text"></slot>
-                <slot name="callout-text"></slot>
+                <slot name="callout-content"></slot>
                 <slot name="body-xs"></slot>
             </div>
             <hr />
@@ -377,7 +377,7 @@ export class MerchCard extends LitElement {
                 <slot name="heading-m"></slot>
                 <slot name="body-xxs"></slot>
                 <slot name="promo-text"></slot>
-                <slot name="callout-text"></slot>            
+                <slot name="callout-content"></slot>            
                 <slot name="body-xs"></slot>    
                 ${this.stockCheckbox}
             </div>
@@ -412,9 +412,9 @@ export class MerchCard extends LitElement {
                 <slot name="heading-xs"></slot>
                 <slot name="heading-m"></slot>
                 <slot name="body-xxs"></slot>
-                ${!this.promoBottom ? html`<slot name="promo-text"></slot><slot name="callout-text"></slot>`: ''}
+                ${!this.promoBottom ? html`<slot name="promo-text"></slot><slot name="callout-content"></slot>`: ''}
                 <slot name="body-xs"></slot>
-                ${this.promoBottom ? html`<slot name="promo-text"></slot><slot name="callout-text"></slot>`: ''}
+                ${this.promoBottom ? html`<slot name="promo-text"></slot><slot name="callout-content"></slot>`: ''}
             </div>
             ${this.secureLabelFooter}`;
     }
@@ -462,7 +462,7 @@ export class MerchCard extends LitElement {
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
                 <slot name="promo-text"></slot>
-                <slot name="callout-text"></slot>
+                <slot name="callout-content"></slot>
                 <slot name="body-xs"></slot>
             </div>
             ${this.secureLabelFooter}`;
@@ -481,7 +481,7 @@ export class MerchCard extends LitElement {
             <slot name="price-commitment"></slot>
             <slot name="offers"></slot>
             <slot name="promo-text"></slot>
-            <slot name="callout-text"></slot>
+            <slot name="callout-content"></slot>
             ${this.miniCompareFooter}
             <slot name="footer-rows"><slot name="body-s"></slot></slot>`;
     }
@@ -686,7 +686,7 @@ export class MerchCard extends LitElement {
             'price-commitment',
             'offers',
             'promo-text',
-            'callout-text',
+            'callout-content',
             'secure-transaction-label',
         ];
 

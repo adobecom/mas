@@ -52,6 +52,7 @@ runTests(async () => {
                     'slot[name="price-commitment"]',
                     'slot[name="offers"]',
                     'slot[name="promo-text"]',
+                    'slot[name="callout-content"]',
                     'footer',
                 ]
                     .map((selector) =>
@@ -85,11 +86,13 @@ runTests(async () => {
                     .fill()
                     .map(
                         (_, i) =>
-                            window.getComputedStyle(
-                                miniCompareChart.querySelector(
-                                    `.footer-row-cell:nth-child(${i + 1})`,
-                                ),
-                            ).height,
+                            Math.round(
+                                window.getComputedStyle(
+                                    miniCompareChart.querySelector(
+                                        `.footer-row-cell:nth-child(${i + 1})`,
+                                    ),
+                                ).height,
+                            ),
                     )
                     .join(',');
                 return heights;

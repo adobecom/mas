@@ -169,7 +169,7 @@ customElements.define("merch-search", MerchSearch);
 import { html as html2, LitElement as LitElement2, css as css3 } from "/libs/deps/lit-all.min.js";
 var MerchSidenavList = class extends LitElement2 {
   static properties = {
-    title: { type: String },
+    sidenavListTitle: { type: String },
     label: { type: String },
     deeplink: { type: String, attribute: "deeplink" },
     selectedText: {
@@ -291,7 +291,7 @@ var MerchSidenavList = class extends LitElement2 {
             aria-label="${this.label}"
             @change="${(e) => this.selectionChanged(e)}"
         >
-            ${this.title ? html2`<h2>${this.title}</h2>` : ""}
+            ${this.sidenavListTitle ? html2`<h2>${this.sidenavListTitle}</h2>` : ""}
             <slot></slot>
         </div>`;
   }
@@ -302,7 +302,7 @@ customElements.define("merch-sidenav-list", MerchSidenavList);
 import { html as html3, LitElement as LitElement3, css as css4 } from "/libs/deps/lit-all.min.js";
 var MerchSidenavCheckboxGroup = class extends LitElement3 {
   static properties = {
-    title: { type: String },
+    sidenavCheckboxTitle: { type: String },
     label: { type: String },
     deeplink: { type: String },
     selectedValues: { type: Array, reflect: true },
@@ -372,7 +372,7 @@ var MerchSidenavCheckboxGroup = class extends LitElement3 {
   }
   render() {
     return html3`<div aria-label="${this.label}">
-            <h3>${this.title}</h3>
+            <h3>${this.sidenavCheckboxTitle}</h3>
             <div
                 @change="${(e) => this.selectionChanged(e)}"
                 class="checkbox-group"
@@ -440,7 +440,7 @@ document.addEventListener("sp-closed", () => {
 });
 var MerchSideNav = class extends LitElement4 {
   static properties = {
-    title: { type: String },
+    sidenavTitle: { type: String },
     closeText: { type: String, attribute: "close-text" },
     modal: { type: Boolean, attribute: "modal", reflect: true }
   };
@@ -527,7 +527,7 @@ var MerchSideNav = class extends LitElement4 {
                     <div id="content">
                         <div id="sidenav">
                             <div>
-                                <h2>${this.title}</h2>
+                                <h2>${this.sidenavTitle}</h2>
                                 <slot></slot>
                             </div>
                             <sp-link href="#" @click="${this.closeModal}"
@@ -541,7 +541,7 @@ var MerchSideNav = class extends LitElement4 {
   }
   get asAside() {
     return html4`<sp-theme theme="spectrum" color="light" scale="medium"
-            ><h2>${this.title}</h2>
+            ><h2>${this.sidenavTitle}</h2>
             <slot></slot
         ></sp-theme>`;
   }

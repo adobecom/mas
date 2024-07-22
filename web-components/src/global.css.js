@@ -270,15 +270,10 @@ merch-card [slot='callout-text'] > div {
 }
 
 merch-card [slot='callout-text'] > div > div {
-    position: relative;
-    display: inline-flex;
+    display: flex;
     background: rgba(203 203 203 / 50%);
     border-radius: var(--consonant-merch-spacing-xxxs);
     padding: var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xxs);
-}
-
-merch-card [slot='callout-text'] > div > div.callout-content-wrapper-with-icon {
-    padding-right: var(--consonant-merch-card-callout-icon-padding);
 }
 
 merch-card [slot='callout-text'] > div > div >div {
@@ -290,15 +285,17 @@ merch-card [slot='callout-text'] > div > div >div {
 }
 
 merch-card [slot='callout-text'] img {
-    position: absolute;
-    top: var(--consonant-merch-card-callout-icon-top);
-    right: var(--consonant-merch-card-callout-icon-right);
     width: var(--consonant-merch-card-callout-icon-size);
     height: var(--consonant-merch-card-callout-icon-size);
+    margin: 2.5px 0px 0px 9px;
 }
 
 merch-card[variant="mini-compare-chart"] [slot="callout-text"] {
     padding: 0px var(--consonant-merch-spacing-s);
+}
+
+merch-card[variant="mini-compare-chart"] [slot='callout-text'] [is="inline-price"] {
+    min-height: unset;
 }
 
 merch-card [slot='detail-m'] {

@@ -252,14 +252,14 @@ merch-card [slot='heading-xl'] {
     color: var(--merch-color-grey-80);
 }
 
-merch-card [slot='callout-text'] {
+merch-card [slot='callout-content'] {
     display: flex;
     flex-direction: column;
     margin: var(--consonant-merch-spacing-xxxs) 0px;
     gap: var(--consonant-merch-card-callout-spacing-xxs);
 }
 
-merch-card [slot='callout-text'] > div {
+merch-card [slot='callout-content'] > div {
     display: flex;
     flex-direction: column;
     margin: var(--consonant-merch-spacing-xxxs) 0px;
@@ -267,14 +267,14 @@ merch-card [slot='callout-text'] > div {
     align-items: flex-start;
 }
 
-merch-card [slot='callout-text'] > div > div {
+merch-card [slot='callout-content'] > div > div {
     display: flex;
     background: rgba(203 203 203 / 50%);
     border-radius: var(--consonant-merch-spacing-xxxs);
     padding: var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xxs);
 }
 
-merch-card [slot='callout-text'] > div > div >div {
+merch-card [slot='callout-content'] > div > div > div {
     display: inline-block;
     text-align: left;
     font: normal normal normal var(--consonant-merch-card-callout-font-size)/var(--consonant-merch-card-callout-line-height) Adobe Clean;
@@ -282,17 +282,17 @@ merch-card [slot='callout-text'] > div > div >div {
     color: var(--consonant-merch-card-callout-font-color);
 }
 
-merch-card [slot='callout-text'] img {
+merch-card [slot='callout-content'] img {
     width: var(--consonant-merch-card-callout-icon-size);
     height: var(--consonant-merch-card-callout-icon-size);
     margin: 2.5px 0px 0px 9px;
 }
 
-merch-card[variant="mini-compare-chart"] [slot="callout-text"] {
+merch-card[variant="mini-compare-chart"] [slot='callout-content'] {
     padding: 0px var(--consonant-merch-spacing-s);
 }
 
-merch-card[variant="mini-compare-chart"] [slot='callout-text'] [is="inline-price"] {
+merch-card[variant="mini-compare-chart"] [slot='callout-content'] [is="inline-price"] {
     min-height: unset;
 }
 

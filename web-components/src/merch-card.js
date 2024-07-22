@@ -116,8 +116,12 @@ export class MerchCard extends LitElement {
             this.style.border = `1px solid ${this.badgeBackgroundColor}`;
         }
         this.updateComplete.then(async () => {
-            const prices = Array.from(
+            const allPrices = Array.from(
                 this.querySelectorAll('span[is="inline-price"][data-wcs-osi]'),
+            );
+            // Filter out prices within the callout-text slot
+            const prices = allPrices.filter(price => 
+                !price.closest('[slot="callout-text"]')
             );
             await Promise.all(prices.map((price) => price.onceSettled()));
             this.adjustTitleWidth();
@@ -682,6 +686,7 @@ export class MerchCard extends LitElement {
             'price-commitment',
             'offers',
             'promo-text',
+            'callout-text',
             'secure-transaction-label',
         ];
 

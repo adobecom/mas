@@ -372,6 +372,9 @@ export const styles = css`
     :host([variant='mini-compare-chart']) slot[name='promo-text'] {
         min-height: var(--consonant-merch-card-mini-compare-promo-text-height);
     }
+    :host([variant='mini-compare-chart']) slot[name='callout-text'] {
+        min-height: var(--consonant-merch-card-mini-compare-callout-text-height);
+    }
 
     :host([variant='plans']) ::slotted([slot='heading-xs']),
     :host([variant='segment']) ::slotted([slot='heading-xs']) {

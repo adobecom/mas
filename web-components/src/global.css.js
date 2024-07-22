@@ -141,6 +141,8 @@ styles.innerHTML = `
     --consonant-merch-card-callout-icon-right: 8px;
     --consonant-merch-card-callout-letter-spacing: 0px;
     --consonant-merch-card-callout-icon-padding: 34px;
+    --consonant-merch-card-callout-spacing-xxs: 8px;
+    --consonant-merch-card-mini-compare-callout-text-height: 32px;  <!-- change this -->
 }
 
 merch-card-collection {
@@ -252,23 +254,34 @@ merch-card [slot='heading-xl'] {
 }
 
 merch-card [slot='callout-text'] {
-    display: inline-block;
+    display: flex;
+    flex-direction: column;
     margin: var(--consonant-merch-spacing-xxxs) 0px;
+    gap: var(--consonant-merch-card-callout-spacing-xxs);
+    min-height: var(--consonant-merch-card-mini-compare-callout-text-height);
 }
 
 merch-card [slot='callout-text'] > div {
+    display: flex;
+    flex-direction: column;
+    margin: var(--consonant-merch-spacing-xxxs) 0px;
+    gap: var(--consonant-merch-card-callout-spacing-xxs);
+    align-items: flex-start;
+}
+
+merch-card [slot='callout-text'] > div > div {
     position: relative;
-    display: inline-grid;
+    display: inline-flex;
     background: rgba(203 203 203 / 50%);
     border-radius: var(--consonant-merch-spacing-xxxs);
     padding: var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xxs);
 }
 
-merch-card [slot='callout-text'] > div.callout-content-wrapper-with-icon {
+merch-card [slot='callout-text'] > div > div.callout-content-wrapper-with-icon {
     padding-right: var(--consonant-merch-card-callout-icon-padding);
 }
 
-merch-card [slot='callout-text'] > div > div {
+merch-card [slot='callout-text'] > div > div >div {
     display: inline-block;
     text-align: left;
     font: normal normal normal var(--consonant-merch-card-callout-font-size)/var(--consonant-merch-card-callout-line-height) Adobe Clean;

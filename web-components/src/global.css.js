@@ -142,7 +142,6 @@ styles.innerHTML = `
     --consonant-merch-card-callout-letter-spacing: 0px;
     --consonant-merch-card-callout-icon-padding: 34px;
     --consonant-merch-card-callout-spacing-xxs: 8px;
-    --consonant-merch-card-mini-compare-callout-text-height: 32px;  <!-- change this -->
 }
 
 merch-card-collection {
@@ -258,7 +257,6 @@ merch-card [slot='callout-text'] {
     flex-direction: column;
     margin: var(--consonant-merch-spacing-xxxs) 0px;
     gap: var(--consonant-merch-card-callout-spacing-xxs);
-    min-height: var(--consonant-merch-card-mini-compare-callout-text-height);
 }
 
 merch-card [slot='callout-text'] > div {

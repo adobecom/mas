@@ -84,15 +84,14 @@ runTests(async () => {
             ].map((miniCompareChart) => {
                 const heights = new Array(5)
                     .fill()
-                    .map(
-                        (_, i) =>
-                            Math.round(
-                                window.getComputedStyle(
-                                    miniCompareChart.querySelector(
-                                        `.footer-row-cell:nth-child(${i + 1})`,
-                                    ),
-                                ).height,
-                            ),
+                    .map((_, i) =>
+                        Math.round(
+                            window.getComputedStyle(
+                                miniCompareChart.querySelector(
+                                    `.footer-row-cell:nth-child(${i + 1})`,
+                                ),
+                            ).height,
+                        ),
                     )
                     .join(',');
                 return heights;

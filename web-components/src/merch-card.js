@@ -120,8 +120,8 @@ export class MerchCard extends LitElement {
                 this.querySelectorAll('span[is="inline-price"][data-wcs-osi]'),
             );
             // Filter out prices within the callout-content slot
-            const prices = allPrices.filter(price => 
-                !price.closest('[slot="callout-content"]')
+            const prices = allPrices.filter(
+                (price) => !price.closest('[slot="callout-content"]'),
             );
             await Promise.all(prices.map((price) => price.onceSettled()));
             this.adjustTitleWidth();
@@ -377,14 +377,13 @@ export class MerchCard extends LitElement {
                 <slot name="heading-m"></slot>
                 <slot name="body-xxs"></slot>
                 <slot name="promo-text"></slot>
-                <slot name="callout-content"></slot>            
-                <slot name="body-xs"></slot>    
+                <slot name="callout-content"></slot>
+                <slot name="body-xs"></slot>
                 ${this.stockCheckbox}
             </div>
             <slot name="quantity-select"></slot>
             ${this.secureLabelFooter}`;
     }
-
 
     get promoBottom() {
         return this.classList.contains('promo-bottom');
@@ -412,9 +411,15 @@ export class MerchCard extends LitElement {
                 <slot name="heading-xs"></slot>
                 <slot name="heading-m"></slot>
                 <slot name="body-xxs"></slot>
-                ${!this.promoBottom ? html`<slot name="promo-text"></slot><slot name="callout-content"></slot>`: ''}
+                ${!this.promoBottom
+                    ? html`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>`
+                    : ''}
                 <slot name="body-xs"></slot>
-                ${this.promoBottom ? html`<slot name="promo-text"></slot><slot name="callout-content"></slot>`: ''}
+                ${this.promoBottom
+                    ? html`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>`
+                    : ''}
             </div>
             ${this.secureLabelFooter}`;
     }

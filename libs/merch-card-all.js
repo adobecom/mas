@@ -366,7 +366,9 @@ var j=window,q=j.ShadowRoot&&(j.ShadyCSS===void 0||j.ShadyCSS.nativeShadow)&&"ad
         min-height: var(--consonant-merch-card-mini-compare-promo-text-height);
     }
     :host([variant='mini-compare-chart']) slot[name='callout-content'] {
-        min-height: var(--consonant-merch-card-mini-compare-callout-content-height);
+        min-height: var(
+            --consonant-merch-card-mini-compare-callout-content-height
+        );
     }
 
     :host([variant='plans']) ::slotted([slot='heading-xs']),
@@ -1535,8 +1537,8 @@ body.merch-modal {
                 <slot name="heading-m"></slot>
                 <slot name="body-xxs"></slot>
                 <slot name="promo-text"></slot>
-                <slot name="callout-content"></slot>            
-                <slot name="body-xs"></slot>    
+                <slot name="callout-content"></slot>
+                <slot name="body-xs"></slot>
                 ${this.stockCheckbox}
             </div>
             <slot name="quantity-select"></slot>
@@ -1559,9 +1561,11 @@ body.merch-modal {
                 <slot name="heading-xs"></slot>
                 <slot name="heading-m"></slot>
                 <slot name="body-xxs"></slot>
-                ${this.promoBottom?"":l`<slot name="promo-text"></slot><slot name="callout-content"></slot>`}
+                ${this.promoBottom?"":l`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>`}
                 <slot name="body-xs"></slot>
-                ${this.promoBottom?l`<slot name="promo-text"></slot><slot name="callout-content"></slot>`:""}
+                ${this.promoBottom?l`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>`:""}
             </div>
             ${this.secureLabelFooter}`}renderImage(){return l`${this.cardImage}
             <div class="body">

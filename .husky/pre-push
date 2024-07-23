@@ -11,11 +11,12 @@ if ! git diff --cached --quiet; then
 fi
 
 #build artifacts
-npm run build:precommit
+npm run build
 echo "successfully built /libs"
-if git diff-index --quiet HEAD --; then
-  echo "changes detected, will commit"
-  git add libs
+git add libs
+# if any file changed after build - commit
+if ! git diff --cached --quiet; then
+  echo "staged libs changes detected, will commit"
   git commit -m '[pre-push hook] commit artifacts'
   echo "committed /libs"
 fi

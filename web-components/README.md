@@ -81,23 +81,15 @@ This section still requires discussions.<br />
 Main idea is to once the development is done, and ideally PR is already merged, the developer builds the artifacts and ships it to Milo as follows.<br />
 For non Milo consumers, we will support official releases to artifactory.
 
-# generate the build artifacts
-
-npm run build
-
-# copy the build artifacts to Milo's deps folder
-
+# Consumption in Milo
+run special build
 ```
-cp libs/*  ~/git/milo/libs/deps
+npm run build:milo
 ```
-
-# use copy / consume goals
-for now in web_components package only, you can use
+copy the build artifacts to Milo's deps folder:
 ```
-npm run copy
+cp milo-libs/*  ~/git/milo/libs/deps
 ```
-that will copy built artifact under `~/milo/libs/deps`. As you can notice it assumes you created under your home folder a "milo" [symbolic link](https://en.wikipedia.org/wiki/Symbolic_link)
-
 
 #### Troubleshooting
 Please reach out to us in `#tacocat-friends` for any questions.

@@ -612,8 +612,9 @@ export class MerchCard extends LitElement {
                 !e.shiftKey &&
                 document.activeElement === lastFocusableElement
             ) {
-                const isLastMerchCard = this === document.querySelectorAll(MERCH_CARD_NODE_NAME).item(document.querySelectorAll(MERCH_CARD_NODE_NAME).length - 1);
-                if (isLastMerchCard) return;
+                const merchCards = document.querySelectorAll(MERCH_CARD_NODE_NAME);
+                const lastMerchCard = merchCards[merchCards.length - 1];
+                if (this === lastMerchCard) return;
                 e.preventDefault();
                 e.stopImmediatePropagation();
             } else if (

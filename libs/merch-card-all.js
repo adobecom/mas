@@ -201,7 +201,6 @@ var j=window,q=j.ShadowRoot&&(j.ShadyCSS===void 0||j.ShadyCSS.nativeShadow)&&"ad
         gap: var(--consonant-merch-spacing-xxs);
         align-items: center;
         flex: 1;
-        height: 100%;
         line-height: normal;
     }
 

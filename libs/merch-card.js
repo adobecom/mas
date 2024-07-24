@@ -224,7 +224,6 @@ import{html as o,LitElement as te,nothing as re}from"/libs/deps/lit-all.min.js";
         gap: var(--consonant-merch-spacing-xxs);
         align-items: center;
         flex: 1;
-        height: 100%;
         line-height: normal;
     }
 

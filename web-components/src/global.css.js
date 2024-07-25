@@ -288,6 +288,30 @@ merch-card [slot='callout-content'] img {
     margin: 2.5px 0px 0px 9px;
 }
 
+merch-card [slot='callout-content'] .callout-icon {
+  position: relative;
+  display: inline-block;
+  border-bottom: 1px dotted black;
+}
+
+merch-card [slot='callout-content'] .callout-icon .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+
+  /* Position the tooltip */
+  position: absolute;
+  z-index: 1;
+}
+
+merch-card [slot='callout-content'] .callout-icon:hover .tooltiptext {
+  visibility: visible;
+}
+
 merch-card[variant="mini-compare-chart"] [slot='callout-content'] {
     padding: 0px var(--consonant-merch-spacing-s);
 }

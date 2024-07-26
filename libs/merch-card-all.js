@@ -680,7 +680,7 @@ merch-card [slot='callout-content'] img {
 }
 
 merch-card[variant="mini-compare-chart"] [slot='callout-content'] {
-    padding: 0px var(--consonant-merch-spacing-s);
+    padding: var(--consonant-merch-spacing-xs) var(--consonant-merch-spacing-s) 0px;
 }
 
 merch-card[variant="mini-compare-chart"] [slot='callout-content'] [is="inline-price"] {

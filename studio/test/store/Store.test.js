@@ -1,5 +1,5 @@
 import { expect } from '@esm-bundle/chai';
-import '@adobe/mas-web-components/src/merch-datasource.js';
+import '../../../libs/merch-card-all.js';
 import { Store } from '../../src/store/Store.js';
 import { withAem } from '../mocks/aem.js';
 import { mockFetch } from '../mocks/fetch.js';

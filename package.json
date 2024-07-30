@@ -5,11 +5,9 @@
   "main": "libs/mas.js",
   "private": true,
   "workspaces": [
-    "commerce",
     "commons",
     "mas",
-    "studio",
-    "web-components"
+    "studio"
   ],
   "scripts": {
     "lint": "eslint --fix",

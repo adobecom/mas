@@ -17,7 +17,6 @@
     "@adobe/lit-mobx": "^2.2.2",
     "@adobe/mas": "^0.0.1",
     "@adobe/mas-commons": "^0.0.1",
-    "@adobe/mas-web-components": "^0.0.1",
     "mobx": "^6.12.4"
   },
   "devDependencies": {

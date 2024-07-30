@@ -1,4 +1,4 @@
-import { init } from '@adobe/mas-commerce';
+import { init } from '../../libs/commerce.js';
 
 const { origin, searchParams } = new URL(import.meta.url);
 

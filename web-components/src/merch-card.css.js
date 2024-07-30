@@ -208,7 +208,6 @@ export const styles = css`
         gap: var(--consonant-merch-spacing-xxs);
         align-items: center;
         flex: 1;
-        height: 100%;
         line-height: normal;
     }
 
@@ -371,6 +370,11 @@ export const styles = css`
     }
     :host([variant='mini-compare-chart']) slot[name='promo-text'] {
         min-height: var(--consonant-merch-card-mini-compare-promo-text-height);
+    }
+    :host([variant='mini-compare-chart']) slot[name='callout-content'] {
+        min-height: var(
+            --consonant-merch-card-mini-compare-callout-content-height
+        );
     }
 
     :host([variant='plans']) ::slotted([slot='heading-xs']),

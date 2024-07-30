@@ -14,6 +14,7 @@ import {
     EVENT_MERCH_OFFER_SELECT_READY,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     EVENT_MERCH_STORAGE_CHANGE,
+    EVENT_MERCH_CARD_ACTION_MENU_TOGGLE,
 } from './constants.js';
 import { getTextNodes } from './utils.js';
 
@@ -33,6 +34,7 @@ export class MerchCard extends LitElement {
         variant: { type: String, reflect: true },
         size: { type: String, attribute: 'size', reflect: true },
         badgeColor: { type: String, attribute: 'badge-color' },
+        borderColor: { type: String, attribute: 'border-color' },
         badgeBackgroundColor: {
             type: String,
             attribute: 'badge-background-color',
@@ -110,20 +112,33 @@ export class MerchCard extends LitElement {
 
     updated(changedProperties) {
         if (
-            changedProperties.has('badgeBackgroundColor') &&
-            this.variant !== 'twp'
+            changedProperties.has('badgeBackgroundColor') ||
+            changedProperties.has('borderColor')
         ) {
-            this.style.border = `1px solid ${this.badgeBackgroundColor}`;
+            this.style.border = this.computedBorderStyle;
         }
         this.updateComplete.then(async () => {
-            const prices = Array.from(
+            const allPrices = Array.from(
                 this.querySelectorAll('span[is="inline-price"][data-wcs-osi]'),
+            );
+            // Filter out prices within the callout-content slot
+            const prices = allPrices.filter(
+                (price) => !price.closest('[slot="callout-content"]'),
             );
             await Promise.all(prices.map((price) => price.onceSettled()));
             this.adjustTitleWidth();
             this.adjustMiniCompareBodySlots();
             this.adjustMiniCompareFooterRows();
         });
+    }
+
+    get computedBorderStyle() {
+        if (this.variant !== 'twp') {
+            return `1px solid ${
+                this.borderColor ? this.borderColor : this.badgeBackgroundColor
+            }`;
+        }
+        return '';
     }
 
     get evergreen() {
@@ -250,6 +265,18 @@ export class MerchCard extends LitElement {
             'slot[name="action-menu-content"]',
         );
         if (!actionMenuContentSlot) return;
+        if (!retract) {
+            this.dispatchEvent(
+                new CustomEvent(EVENT_MERCH_CARD_ACTION_MENU_TOGGLE, {
+                    bubbles: true,
+                    composed: true,
+                    detail: {
+                        card: this.name,
+                        type: 'action-menu',
+                    },
+                }),
+            );
+        }
         actionMenuContentSlot.classList.toggle('hidden', retract);
     }
 
@@ -358,7 +385,7 @@ export class MerchCard extends LitElement {
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
                 <slot name="promo-text"></slot>
-                <slot name="callout-text"></slot>
+                <slot name="callout-content"></slot>
                 <slot name="body-xs"></slot>
             </div>
             <hr />
@@ -373,14 +400,13 @@ export class MerchCard extends LitElement {
                 <slot name="heading-m"></slot>
                 <slot name="body-xxs"></slot>
                 <slot name="promo-text"></slot>
-                <slot name="callout-text"></slot>            
-                <slot name="body-xs"></slot>    
+                <slot name="callout-content"></slot>
+                <slot name="body-xs"></slot>
                 ${this.stockCheckbox}
             </div>
             <slot name="quantity-select"></slot>
             ${this.secureLabelFooter}`;
     }
-
 
     get promoBottom() {
         return this.classList.contains('promo-bottom');
@@ -408,9 +434,15 @@ export class MerchCard extends LitElement {
                 <slot name="heading-xs"></slot>
                 <slot name="heading-m"></slot>
                 <slot name="body-xxs"></slot>
-                ${!this.promoBottom ? html`<slot name="promo-text"></slot><slot name="callout-text"></slot>`: ''}
+                ${!this.promoBottom
+                    ? html`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>`
+                    : ''}
                 <slot name="body-xs"></slot>
-                ${this.promoBottom ? html`<slot name="promo-text"></slot><slot name="callout-text"></slot>`: ''}
+                ${this.promoBottom
+                    ? html`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>`
+                    : ''}
             </div>
             ${this.secureLabelFooter}`;
     }
@@ -458,7 +490,7 @@ export class MerchCard extends LitElement {
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
                 <slot name="promo-text"></slot>
-                <slot name="callout-text"></slot>
+                <slot name="callout-content"></slot>
                 <slot name="body-xs"></slot>
             </div>
             ${this.secureLabelFooter}`;
@@ -477,7 +509,7 @@ export class MerchCard extends LitElement {
             <slot name="price-commitment"></slot>
             <slot name="offers"></slot>
             <slot name="promo-text"></slot>
-            <slot name="callout-text"></slot>
+            <slot name="callout-content"></slot>
             ${this.miniCompareFooter}
             <slot name="footer-rows"><slot name="body-s"></slot></slot>`;
     }
@@ -682,6 +714,7 @@ export class MerchCard extends LitElement {
             'price-commitment',
             'offers',
             'promo-text',
+            'callout-content',
             'secure-transaction-label',
         ];
 

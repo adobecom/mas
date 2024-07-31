@@ -11,7 +11,7 @@ import { withWcs } from './mocks/wcs.js';
 
 import mas from './mocks/mas.js?features=merch-card';
 import { getTemplateContent } from '@adobe/mas-commons/test/utils.js';
-import { delay } from '@adobe/mas-web-components/test/utils.js';
+import { delay } from './utils.js';
 
 import '@tinymce/tinymce-webcomponent';
 

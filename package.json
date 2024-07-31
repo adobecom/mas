@@ -13,8 +13,7 @@
     "lint": "eslint --fix",
     "test": "npm run test:ci --workspaces",
     "build": "npm run build --workspaces",
-    "build:milo": "npm run build:milo --workspaces",
-    "prepare": "husky"
+    "build:milo": "npm run build:milo --workspaces"
   },
   "repository": {
     "type": "git",
@@ -54,7 +53,6 @@
     "eslint": "^9.5.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.3",
-    "husky": "^9.0.11",
     "prettier": "^3.3.2",
     "sinon": "13.0.1"
   }

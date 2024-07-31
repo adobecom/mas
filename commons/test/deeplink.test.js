@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import { deeplink, pushState } from '../src/deeplink.js';
-import { delay } from '../../web-components/test/utils.js';
+import { delay } from '../../archive/web-components/test/utils.js';
 
 describe('Deep linking', () => {
     it('processes initial URL hash', async () => {

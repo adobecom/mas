@@ -1,5 +1,5 @@
 import { expect } from '@esm-bundle/chai';
-import '../../../libs/merch-card-all.js';
+import 'https://main--milo--adobecom.hlx.page/libs/deps/mas/merch-card-all.js';
 import { Store } from '../../src/store/Store.js';
 import { withAem } from '../mocks/aem.js';
 import { mockFetch } from '../mocks/fetch.js';

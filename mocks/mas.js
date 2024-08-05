@@ -1,5 +1,5 @@
-import { init } from '../libs/commerce.js';
-import '../libs/merch-card-all.js';
+import { init } from 'https://main--milo--adobecom.hlx.page/libs/deps/mas/commerce.js';
+import 'https://main--milo--adobecom.hlx.page/libs/deps/mas/merch-card-all.js';
 
 const locale =
     document

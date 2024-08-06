@@ -1,26 +1,66 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-
-<head>
-  <title>Merch at Scale Studio</title>
-  <meta property="og:title" content="Merch at Scale Studio">
-  <meta name="robots" content="noindex, nofollow">
-  <meta name="nofollow-links" content="on">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/5.10.2/tinymce.min.js"></script>
-  <script src="libs/mas.js?features=merch-card" type="module"></script>
-  <script src="studio/libs/swc.js" type="module"></script>
-  <script src="studio/libs/studio.js" type="module"></script>
-  <link rel="stylesheet" href="./studio/libs/ost.css" />
-  <link rel="stylesheet" href="./studio/style.css" />
-  <link rel="icon" href="data:," size="any"><!-- ADD ICON -->
-<body>
-  <main>
-    <sp-theme color="light" scale="medium">
-      <mas-studio aem-bucket="author-p22655-e59341"></mas-studio>
-    </sp-theme>
-  </main>
-  <div id="ost"></div>
-</body>
-
+    <head>
+        <title>Merch at Scale Studio</title>
+        <meta property="og:title" content="Merch at Scale Studio" />
+        <meta name="robots" content="noindex, nofollow" />
+        <meta name="nofollow-links" content="on" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/5.10.2/tinymce.min.js"></script>
+        <script src="libs/mas.js?features=merch-card" type="module"></script>
+        <script src="studio/libs/swc.js" type="module"></script>
+        <script src="studio/libs/studio.js" type="module"></script>
+        <link rel="stylesheet" href="./studio/libs/ost.css" />
+        <link rel="stylesheet" href="./studio/style.css" />
+        <link rel="icon" href="data:," size="any" />
+        <!-- ADD ICON -->
+    </head>
+    <body>
+        <script>
+            window.adobeid = {
+                api_parameters: {
+                    profile_filter:
+                        "isOwnedByOrg('3B962FB55F5F922E0A495C88@AdobeOrg')",
+                },
+                client_id: 'mas-studio',
+                environment: 'prod',
+                locale: 'en_US',
+                redirect_uri: location.href.substring(
+                    0,
+                    location.href.length - location.hash.length,
+                ),
+                response_type: 'id_token',
+                scope: 'additional_info,additional_info.projectedProductContext,additional_info.roles,AdobeID,openid,read_organizations,read_pc,read_pc.acp,read_pc.dma_aem_ams,read_pc.dma_aem_cloud,read_pc.dma_tartan',
+                useLocalStorage: true,
+                onAccessToken(result) {
+                    if (!localStorage.getItem('masAccessToken')) {
+                        console.info(
+                            '[Mas Studio] Stored IMS access token: ',
+                            result,
+                        );
+                        localStorage.setItem('masAccessToken', result.token);
+                    }
+                },
+                onError(error) {
+                    console.error('IMS error: ', error);
+                },
+                onReady() {
+                    if (adobeIMS.isSignedInUser()) {
+                        console.info('[Mas Studio] IMS is ready, signed in');
+                    } else {
+                        sessionStorage.setItem('skipSignIn', true);
+                        console.info('[Mas Studio] IMS is ready, signing in');
+                        adobeIMS.signIn();
+                    }
+                },
+            };
+        </script>
+        <script src="https://auth.services.adobe.com/imslib/imslib.min.js"></script>
+        <main>
+            <sp-theme color="light" scale="medium">
+                <mas-studio aem-bucket="author-p22655-e59341"></mas-studio>
+            </sp-theme>
+        </main>
+        <div id="ost"></div>
+    </body>
 </html>

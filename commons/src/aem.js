@@ -1,6 +1,6 @@
 import { Fragment } from '../../studio/src/store/Fragment.js';
 
-const accessToken = localStorage.getItem('masAccessToken');
+const accessToken = adobeIMS.getAccessToken().token;
 
 const headers = {
     Authorization: `Bearer ${accessToken}`,

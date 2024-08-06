@@ -33,23 +33,19 @@
                 scope: 'additional_info,additional_info.projectedProductContext,additional_info.roles,AdobeID,openid,read_organizations,read_pc,read_pc.acp,read_pc.dma_aem_ams,read_pc.dma_aem_cloud,read_pc.dma_tartan',
                 useLocalStorage: true,
                 onAccessToken(result) {
-                    if (!localStorage.getItem('masAccessToken')) {
-                        console.info(
-                            '[Mas Studio] Stored IMS access token: ',
-                            result,
-                        );
-                        localStorage.setItem('masAccessToken', result.token);
-                    }
+                    console.info(
+                        '[M@S Studio] Stored IMS access token: ',
+                        result,
+                    );
                 },
                 onError(error) {
-                    console.error('IMS error: ', error);
+                    console.error('[M@S Studio] IMS error: ', error);
                 },
                 onReady() {
                     if (adobeIMS.isSignedInUser()) {
-                        console.info('[Mas Studio] IMS is ready, signed in');
+                        console.info('[M@S Studio] IMS is ready, signed in');
                     } else {
-                        sessionStorage.setItem('skipSignIn', true);
-                        console.info('[Mas Studio] IMS is ready, signing in');
+                        console.info('[M@S Studio] IMS is ready, signing in');
                         adobeIMS.signIn();
                     }
                 },

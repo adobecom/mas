@@ -6,6 +6,7 @@ import '../src/swc.js';
 import '../src/studio.js';
 
 import { mockFetch } from './mocks/fetch.js';
+import { mockIms } from './mocks/ims.js';
 import { withAem } from './mocks/aem.js';
 import { withWcs } from './mocks/wcs.js';
 
@@ -17,6 +18,7 @@ import '@tinymce/tinymce-webcomponent';
 
 runTests(async () => {
     await mockFetch(withAem, withWcs);
+    await mockIms();
     await mas();
 
     describe('M@S Studio', () => {

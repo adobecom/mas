@@ -1,6 +1,6 @@
 import { makeAutoObservable, observable } from 'mobx';
 
-export class OstStore {
+export class Store {
 
     offers = observable.array();
     selectedOffer = observable.object();
@@ -11,7 +11,6 @@ export class OstStore {
     customerSegment = observable.String();
 
     constructor(networkService) {
-        // use makeAutoObservable(this) instead of makeObservable();
         makeAutoObservable(this);
         this.defaults = {};
         this.networkService = networkService;

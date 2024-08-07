@@ -1,5 +1,5 @@
 import NetworkService from './service/NetworkService.js';
-import OstStore from './store/OstStore.js';
+import Store from './store/Store.js';
 
 export class Ost {
 
@@ -8,7 +8,7 @@ export class Ost {
 
     constructor(userContext, appContext, analyticsInfo) {
         this.networkService = new NetworkService(userContext.accessToken, userContext.apiKey);
-        this.store = new OstStore(this.networkService);
+        this.store = new Store(this.networkService);
         this.userContext = userContext;
         this.appContext = appContext;
         this.analyticsInfo = analyticsInfo;

@@ -347,7 +347,7 @@ class MasStudio extends MobxReactionUpdateCustom(LitElement, Reaction) {
 
     editorActionClickHandler(e) {
         const ostRoot = document.getElementById('ost');
-        const accessToken = adobeIMS.getAccessToken().token;
+        const accessToken = window.adobeid.authorize();
         const closeDialog = openAsDialog(ostRoot, console.log, {
             zIndex: 20,
             accessToken,

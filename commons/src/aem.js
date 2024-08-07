@@ -1,6 +1,6 @@
 import { Fragment } from '../../studio/src/store/Fragment.js';
 
-const accessToken = adobeIMS.getAccessToken().token;
+const accessToken = window.adobeid.authorize();
 
 const headers = {
     Authorization: `Bearer ${accessToken}`,

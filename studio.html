@@ -33,9 +33,10 @@
                 scope: 'additional_info,additional_info.projectedProductContext,additional_info.roles,AdobeID,openid,read_organizations,read_pc,read_pc.acp,read_pc.dma_aem_ams,read_pc.dma_aem_cloud,read_pc.dma_tartan',
                 useLocalStorage: true,
                 authorize() {
-                    const token = window.adobeIMS?.getAccessToken?.()?.token;
-                    const expire = token.expire?.valueOf() ?? 0;
-                    if (token && expire > Date.now()) return token;
+                    const { expire, token } =
+                        window.adobeIMS?.getAccessToken() ?? {};
+                    if (token && (expire?.valueOf() ?? 0) > Date.now())
+                        return token;
                     adobeIMS.signIn();
                 },
                 onError(error) {

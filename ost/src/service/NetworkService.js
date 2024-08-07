@@ -66,7 +66,7 @@ export class NetworkService {
         }
     }
     
-    async paginatedOffers(allProducts, landscape, locale, page = 0) {
+    async fetchPaginatedOffers(allProducts, landscape, locale, page = 0) {
         const KEY = {
             PA: 'product_arrangement_code',
         };

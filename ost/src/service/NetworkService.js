@@ -100,7 +100,7 @@ export class NetworkService {
                             );
                         }
                     }
-                    return await this.paginatedOffers(allProducts, landscape, locale, ++page);
+                    return await this.fetchPaginatedOffers(allProducts, landscape, locale, ++page);
                 } else {
                     console.log(
                         `collected ${

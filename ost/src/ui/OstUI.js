@@ -2,8 +2,8 @@ import { html, LitElement, nothing } from 'lit';
 import { Reaction } from 'mobx';
 import { MobxReactionUpdateCustom } from '@adobe/lit-mobx/lib/mixin-custom.js';
 
-class OST-UI extends MobxReactionUpdateCustom(LitElement, Reaction) {
-    TAG_NAME = 'ost-component';
+class OstUI extends MobxReactionUpdateCustom(LitElement, Reaction) {
+    TAG_NAME = 'ost-ui';
 
     static properties = {
         prodCode: { type: Number},

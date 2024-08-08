@@ -74,42 +74,55 @@ export class NetworkService {
         };
         const [, country] = locale.split('_');
         const OFFERS_ENDPOINT = `https://aos.adobe.io/offers?country=${country}&merchant=ADOBE&service_providers=MERCHANDISING&locale=${locale}&api_key=YOUR_API_KEY&landscape=${landscape}&page_size=100&page=${page}`;
-        
-        return fetch(OFFERS_ENDPOINT)
-            .then((response) => response.json())
-            .then(async (offers) => {
-                console.log(`received ${landscape} - ${page}`);
-                if (offers && offers.length > 0) {
-                    const products = allProducts[landscape];
-                    for (const offer of offers) {
-                        if (offer.term || offer.commitment === 'PERPETUAL') {
-                            const pa = offer[KEY.PA];
-                            let p = products[pa];
-                            if (!p) {
-                                p = products[pa] = {
-                                    name: offer.merchandising?.copy?.name,
-                                    arrangement_code: pa,
-                                    icon: offer.merchandising?.assets?.icons?.svg,
-                                    planTypes: {},
-                                    customerSegments: {},
-                                    marketSegments: {},
-                                };
-                            }
-                            p.planTypes[computePlanType(offer)] = true;
-                            p.customerSegments[offer.customer_segment] = true;
-                            offer.market_segments.forEach(
-                                (s) => (p.marketSegments[s] = true)
-                            );
+    
+        try {
+            const response = await fetch(OFFERS_ENDPOINT);
+            if (!response.ok) {
+                throw new Error(`Network response failed with status: ${response.statusText}`);
+            }
+    
+            let offers;
+            try {
+                offers = await response.json();
+            } catch (error) {
+                throw new Error('Failed to parse JSON response, error is: ' + error.message);
+            }
+    
+            console.log(`received ${landscape} - ${page}`);
+            if (offers && offers.length > 0) {
+                const products = allProducts[landscape];
+                for (const offer of offers) {
+                    if (offer.term || offer.commitment === 'PERPETUAL') {
+                        const pa = offer[KEY.PA];
+                        let p = products[pa];
+                        if (!p) {
+                            p = products[pa] = {
+                                name: offer.merchandising?.copy?.name,
+                                arrangement_code: pa,
+                                icon: offer.merchandising?.assets?.icons?.svg,
+                                planTypes: {},
+                                customerSegments: {},
+                                marketSegments: {},
+                            };
                         }
+                        p.planTypes[computePlanType(offer)] = true;
+                        p.customerSegments[offer.customer_segment] = true;
+                        offer.market_segments.forEach(
+                            (s) => (p.marketSegments[s] = true)
+                        );
                     }
-                    return await this.fetchPaginatedOffers(allProducts, landscape, locale, ++page);
-                } else {
-                    console.log(
-                        `collected ${
-                            Object.entries(allProducts[landscape]).length
-                        } products for ${landscape}`
-                    );
                 }
-            });
+                return await this.fetchPaginatedOffers(allProducts, landscape, locale, ++page);
+            } else {
+                console.log(
+                    `collected ${
+                        Object.entries(allProducts[landscape]).length
+                    } products for ${landscape}`
+                );
+            }
+        } catch (error) {
+            console.error(`Failed to fetch paginated offers: ${error.message}`);
+            throw error;
+        }
     }
 }

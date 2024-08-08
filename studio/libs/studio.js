@@ -1001,76 +1001,99 @@ var getOwnPropertyDescriptors = Object.getOwnPropertyDescriptors || function get
   });
   return res;
 };
-function _arrayLikeToArray(r7, a5) {
-  (null == a5 || a5 > r7.length) && (a5 = r7.length);
-  for (var e8 = 0, n7 = Array(a5); e8 < a5; e8++) n7[e8] = r7[e8];
-  return n7;
-}
-function _defineProperties(e8, r7) {
-  for (var t5 = 0; t5 < r7.length; t5++) {
-    var o9 = r7[t5];
-    o9.enumerable = o9.enumerable || false, o9.configurable = true, "value" in o9 && (o9.writable = true), Object.defineProperty(e8, _toPropertyKey(o9.key), o9);
+function _defineProperties(target, props) {
+  for (var i5 = 0; i5 < props.length; i5++) {
+    var descriptor = props[i5];
+    descriptor.enumerable = descriptor.enumerable || false;
+    descriptor.configurable = true;
+    if ("value" in descriptor) descriptor.writable = true;
+    Object.defineProperty(target, _toPropertyKey(descriptor.key), descriptor);
   }
 }
-function _createClass(e8, r7, t5) {
-  return r7 && _defineProperties(e8.prototype, r7), t5 && _defineProperties(e8, t5), Object.defineProperty(e8, "prototype", {
+function _createClass(Constructor, protoProps, staticProps) {
+  if (protoProps) _defineProperties(Constructor.prototype, protoProps);
+  if (staticProps) _defineProperties(Constructor, staticProps);
+  Object.defineProperty(Constructor, "prototype", {
     writable: false
-  }), e8;
+  });
+  return Constructor;
 }
-function _createForOfIteratorHelperLoose(r7, e8) {
-  var t5 = "undefined" != typeof Symbol && r7[Symbol.iterator] || r7["@@iterator"];
-  if (t5) return (t5 = t5.call(r7)).next.bind(t5);
-  if (Array.isArray(r7) || (t5 = _unsupportedIterableToArray(r7)) || e8 && r7 && "number" == typeof r7.length) {
-    t5 && (r7 = t5);
-    var o9 = 0;
+function _extends() {
+  _extends = Object.assign ? Object.assign.bind() : function(target) {
+    for (var i5 = 1; i5 < arguments.length; i5++) {
+      var source = arguments[i5];
+      for (var key in source) {
+        if (Object.prototype.hasOwnProperty.call(source, key)) {
+          target[key] = source[key];
+        }
+      }
+    }
+    return target;
+  };
+  return _extends.apply(this, arguments);
+}
+function _inheritsLoose(subClass, superClass) {
+  subClass.prototype = Object.create(superClass.prototype);
+  subClass.prototype.constructor = subClass;
+  _setPrototypeOf(subClass, superClass);
+}
+function _setPrototypeOf(o9, p3) {
+  _setPrototypeOf = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : function _setPrototypeOf2(o10, p4) {
+    o10.__proto__ = p4;
+    return o10;
+  };
+  return _setPrototypeOf(o9, p3);
+}
+function _assertThisInitialized(self2) {
+  if (self2 === void 0) {
+    throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
+  }
+  return self2;
+}
+function _unsupportedIterableToArray(o9, minLen) {
+  if (!o9) return;
+  if (typeof o9 === "string") return _arrayLikeToArray(o9, minLen);
+  var n7 = Object.prototype.toString.call(o9).slice(8, -1);
+  if (n7 === "Object" && o9.constructor) n7 = o9.constructor.name;
+  if (n7 === "Map" || n7 === "Set") return Array.from(o9);
+  if (n7 === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n7)) return _arrayLikeToArray(o9, minLen);
+}
+function _arrayLikeToArray(arr, len) {
+  if (len == null || len > arr.length) len = arr.length;
+  for (var i5 = 0, arr2 = new Array(len); i5 < len; i5++) arr2[i5] = arr[i5];
+  return arr2;
+}
+function _createForOfIteratorHelperLoose(o9, allowArrayLike) {
+  var it = typeof Symbol !== "undefined" && o9[Symbol.iterator] || o9["@@iterator"];
+  if (it) return (it = it.call(o9)).next.bind(it);
+  if (Array.isArray(o9) || (it = _unsupportedIterableToArray(o9)) || allowArrayLike && o9 && typeof o9.length === "number") {
+    if (it) o9 = it;
+    var i5 = 0;
     return function() {
-      return o9 >= r7.length ? {
+      if (i5 >= o9.length) return {
         done: true
-      } : {
+      };
+      return {
         done: false,
-        value: r7[o9++]
+        value: o9[i5++]
       };
     };
   }
   throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _extends() {
-  return _extends = Object.assign ? Object.assign.bind() : function(n7) {
-    for (var e8 = 1; e8 < arguments.length; e8++) {
-      var t5 = arguments[e8];
-      for (var r7 in t5) ({}).hasOwnProperty.call(t5, r7) && (n7[r7] = t5[r7]);
-    }
-    return n7;
-  }, _extends.apply(null, arguments);
-}
-function _inheritsLoose(t5, o9) {
-  t5.prototype = Object.create(o9.prototype), t5.prototype.constructor = t5, _setPrototypeOf(t5, o9);
-}
-function _setPrototypeOf(t5, e8) {
-  return _setPrototypeOf = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : function(t6, e9) {
-    return t6.__proto__ = e9, t6;
-  }, _setPrototypeOf(t5, e8);
-}
-function _toPrimitive(t5, r7) {
-  if ("object" != typeof t5 || !t5) return t5;
-  var e8 = t5[Symbol.toPrimitive];
-  if (void 0 !== e8) {
-    var i5 = e8.call(t5, r7 || "default");
-    if ("object" != typeof i5) return i5;
+function _toPrimitive(input, hint) {
+  if (typeof input !== "object" || input === null) return input;
+  var prim = input[Symbol.toPrimitive];
+  if (prim !== void 0) {
+    var res = prim.call(input, hint || "default");
+    if (typeof res !== "object") return res;
     throw new TypeError("@@toPrimitive must return a primitive value.");
   }
-  return ("string" === r7 ? String : Number)(t5);
+  return (hint === "string" ? String : Number)(input);
 }
-function _toPropertyKey(t5) {
-  var i5 = _toPrimitive(t5, "string");
-  return "symbol" == typeof i5 ? i5 : i5 + "";
-}
-function _unsupportedIterableToArray(r7, a5) {
-  if (r7) {
-    if ("string" == typeof r7) return _arrayLikeToArray(r7, a5);
-    var t5 = {}.toString.call(r7).slice(8, -1);
-    return "Object" === t5 && r7.constructor && (t5 = r7.constructor.name), "Map" === t5 || "Set" === t5 ? Array.from(r7) : "Arguments" === t5 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t5) ? _arrayLikeToArray(r7, a5) : void 0;
-  }
+function _toPropertyKey(arg) {
+  var key = _toPrimitive(arg, "string");
+  return typeof key === "symbol" ? key : String(key);
 }
 var storedAnnotationsSymbol = /* @__PURE__ */ Symbol("mobx-stored-annotations");
 function createDecoratorAnnotation(annotation) {
@@ -1867,7 +1890,10 @@ function allowStateChangesStart(allowStateChanges) {
 function allowStateChangesEnd(prev) {
   globalState.allowStateChanges = prev;
 }
+var _Symbol$toPrimitive;
+_Symbol$toPrimitive = Symbol.toPrimitive;
 var ObservableValue = /* @__PURE__ */ function(_Atom) {
+  _inheritsLoose(ObservableValue2, _Atom);
   function ObservableValue2(value, enhancer, name_, notifySpy, equals) {
     var _this;
     if (name_ === void 0) {
@@ -1895,7 +1921,7 @@ var ObservableValue = /* @__PURE__ */ function(_Atom) {
     if (false) {
       spyReport({
         type: CREATE,
-        object: _this,
+        object: _assertThisInitialized(_this),
         observableKind: "value",
         debugObjectName: _this.name_,
         newValue: "" + _this.value_
@@ -1903,7 +1929,6 @@ var ObservableValue = /* @__PURE__ */ function(_Atom) {
     }
     return _this;
   }
-  _inheritsLoose(ObservableValue2, _Atom);
   var _proto = ObservableValue2.prototype;
   _proto.dehanceValue = function dehanceValue(value) {
     if (this.dehancer !== void 0) {
@@ -1993,11 +2018,12 @@ var ObservableValue = /* @__PURE__ */ function(_Atom) {
   _proto.valueOf = function valueOf() {
     return toPrimitive(this.get());
   };
-  _proto[Symbol.toPrimitive] = function() {
+  _proto[_Symbol$toPrimitive] = function() {
     return this.valueOf();
   };
   return ObservableValue2;
 }(Atom);
+var _Symbol$toPrimitive$1;
 function getFlag(flags, mask) {
   return !!(flags & mask);
 }
@@ -2009,6 +2035,7 @@ function setFlag(flags, mask, newValue) {
   }
   return flags;
 }
+_Symbol$toPrimitive$1 = Symbol.toPrimitive;
 var ComputedValue = /* @__PURE__ */ function() {
   function ComputedValue2(options) {
     this.dependenciesState_ = IDerivationState_.NOT_TRACKING_;
@@ -2202,10 +2229,10 @@ var ComputedValue = /* @__PURE__ */ function() {
   _proto.valueOf = function valueOf() {
     return toPrimitive(this.get());
   };
-  _proto[Symbol.toPrimitive] = function() {
+  _proto[_Symbol$toPrimitive$1] = function() {
     return this.valueOf();
   };
-  return _createClass(ComputedValue2, [{
+  _createClass(ComputedValue2, [{
     key: "isComputing",
     get: function get3() {
       return getFlag(this.flags_, ComputedValue2.isComputingMask_);
@@ -2238,6 +2265,7 @@ var ComputedValue = /* @__PURE__ */ function() {
       this.flags_ = setFlag(this.flags_, ComputedValue2.isPendingUnobservationMask_, newValue);
     }
   }]);
+  return ComputedValue2;
 }();
 ComputedValue.isComputingMask_ = 1;
 ComputedValue.isRunningSetterMask_ = 2;
@@ -2735,9 +2763,9 @@ var Reaction = /* @__PURE__ */ function() {
     var _this2 = this;
     var dispose = function dispose2() {
       _this2.dispose();
-      abortSignal == null || abortSignal.removeEventListener == null || abortSignal.removeEventListener("abort", dispose2);
+      abortSignal == null ? void 0 : abortSignal.removeEventListener == null ? void 0 : abortSignal.removeEventListener("abort", dispose2);
     };
-    abortSignal == null || abortSignal.addEventListener == null || abortSignal.addEventListener("abort", dispose);
+    abortSignal == null ? void 0 : abortSignal.addEventListener == null ? void 0 : abortSignal.addEventListener("abort", dispose);
     dispose[$mobx] = this;
     return dispose;
   };
@@ -2848,7 +2876,7 @@ function isAction(thing) {
   return isFunction(thing) && thing.isMobxAction === true;
 }
 function autorun(view, opts) {
-  var _opts$name, _opts, _opts2, _opts3;
+  var _opts$name, _opts, _opts2, _opts2$signal, _opts3;
   if (opts === void 0) {
     opts = EMPTY_OBJECT;
   }
@@ -2885,7 +2913,7 @@ function autorun(view, opts) {
   function reactionRunner() {
     view(reaction2);
   }
-  if (!((_opts2 = opts) != null && (_opts2 = _opts2.signal) != null && _opts2.aborted)) {
+  if (!((_opts2 = opts) != null && (_opts2$signal = _opts2.signal) != null && _opts2$signal.aborted)) {
     reaction2.schedule_();
   }
   return reaction2.getDisposer_((_opts3 = opts) == null ? void 0 : _opts3.signal);
@@ -3511,7 +3539,6 @@ var ObservableArrayAdministration = /* @__PURE__ */ function() {
         var change = interceptChange(this, {
           type: UPDATE,
           object: this.proxy_,
-          // since "this" is the real array we need to pass its proxy
           index,
           newValue
         });
@@ -3707,9 +3734,13 @@ var isObservableArrayAdministration = /* @__PURE__ */ createInstanceofPredicate(
 function isObservableArray(thing) {
   return isObject(thing) && isObservableArrayAdministration(thing[$mobx]);
 }
+var _Symbol$iterator;
+var _Symbol$toStringTag;
 var ObservableMapMarker = {};
 var ADD = "add";
 var DELETE = "delete";
+_Symbol$iterator = Symbol.iterator;
+_Symbol$toStringTag = Symbol.toStringTag;
 var ObservableMap = /* @__PURE__ */ function() {
   function ObservableMap2(initialData, enhancer_, name_) {
     var _this = this;
@@ -3812,7 +3843,7 @@ var ObservableMap = /* @__PURE__ */ function() {
       transaction(function() {
         var _this3$hasMap_$get;
         _this3.keysAtom_.reportChanged();
-        (_this3$hasMap_$get = _this3.hasMap_.get(key)) == null || _this3$hasMap_$get.setNewValue_(false);
+        (_this3$hasMap_$get = _this3.hasMap_.get(key)) == null ? void 0 : _this3$hasMap_$get.setNewValue_(false);
         var observable2 = _this3.data_.get(key);
         observable2.setNewValue_(void 0);
         _this3.data_["delete"](key);
@@ -3862,7 +3893,7 @@ var ObservableMap = /* @__PURE__ */ function() {
       var observable2 = new ObservableValue(newValue, _this4.enhancer_, false ? _this4.name_ + "." + stringifyKey(key) : "ObservableMap.key", false);
       _this4.data_.set(key, observable2);
       newValue = observable2.value_;
-      (_this4$hasMap_$get = _this4.hasMap_.get(key)) == null || _this4$hasMap_$get.setNewValue_(true);
+      (_this4$hasMap_$get = _this4.hasMap_.get(key)) == null ? void 0 : _this4$hasMap_$get.setNewValue_(true);
       _this4.keysAtom_.reportChanged();
     });
     var notifySpy = isSpyEnabled();
@@ -3927,7 +3958,7 @@ var ObservableMap = /* @__PURE__ */ function() {
       }
     });
   };
-  _proto[Symbol.iterator] = function() {
+  _proto[_Symbol$iterator] = function() {
     return this.entries();
   };
   _proto.forEach = function forEach(callback, thisArg) {
@@ -4042,18 +4073,19 @@ var ObservableMap = /* @__PURE__ */ function() {
   _proto.intercept_ = function intercept_(handler) {
     return registerInterceptor(this, handler);
   };
-  return _createClass(ObservableMap2, [{
+  _createClass(ObservableMap2, [{
     key: "size",
     get: function get3() {
       this.keysAtom_.reportObserved();
       return this.data_.size;
     }
   }, {
-    key: Symbol.toStringTag,
+    key: _Symbol$toStringTag,
     get: function get3() {
       return "Map";
     }
   }]);
+  return ObservableMap2;
 }();
 var isObservableMap = /* @__PURE__ */ createInstanceofPredicate("ObservableMap", ObservableMap);
 function convertToMap(dataStructure) {
@@ -4071,7 +4103,11 @@ function convertToMap(dataStructure) {
     return die(21, dataStructure);
   }
 }
+var _Symbol$iterator$1;
+var _Symbol$toStringTag$1;
 var ObservableSetMarker = {};
+_Symbol$iterator$1 = Symbol.iterator;
+_Symbol$toStringTag$1 = Symbol.toStringTag;
 var ObservableSet = /* @__PURE__ */ function() {
   function ObservableSet2(initialData, enhancer, name_) {
     var _this = this;
@@ -4245,47 +4281,6 @@ var ObservableSet = /* @__PURE__ */ function() {
       }
     });
   };
-  _proto.intersection = function intersection(otherSet) {
-    if (isES6Set(otherSet)) {
-      return otherSet.intersection(this);
-    } else {
-      var dehancedSet = new Set(this);
-      return dehancedSet.intersection(otherSet);
-    }
-  };
-  _proto.union = function union(otherSet) {
-    if (isES6Set(otherSet)) {
-      return otherSet.union(this);
-    } else {
-      var dehancedSet = new Set(this);
-      return dehancedSet.union(otherSet);
-    }
-  };
-  _proto.difference = function difference(otherSet) {
-    return new Set(this).difference(otherSet);
-  };
-  _proto.symmetricDifference = function symmetricDifference(otherSet) {
-    if (isES6Set(otherSet)) {
-      return otherSet.symmetricDifference(this);
-    } else {
-      var dehancedSet = new Set(this);
-      return dehancedSet.symmetricDifference(otherSet);
-    }
-  };
-  _proto.isSubsetOf = function isSubsetOf(otherSet) {
-    return new Set(this).isSubsetOf(otherSet);
-  };
-  _proto.isSupersetOf = function isSupersetOf(otherSet) {
-    return new Set(this).isSupersetOf(otherSet);
-  };
-  _proto.isDisjointFrom = function isDisjointFrom(otherSet) {
-    if (isES6Set(otherSet)) {
-      return otherSet.isDisjointFrom(this);
-    } else {
-      var dehancedSet = new Set(this);
-      return dehancedSet.isDisjointFrom(otherSet);
-    }
-  };
   _proto.replace = function replace2(other) {
     var _this5 = this;
     if (isObservableSet(other)) {
@@ -4323,21 +4318,22 @@ var ObservableSet = /* @__PURE__ */ function() {
   _proto.toString = function toString2() {
     return "[object ObservableSet]";
   };
-  _proto[Symbol.iterator] = function() {
+  _proto[_Symbol$iterator$1] = function() {
     return this.values();
   };
-  return _createClass(ObservableSet2, [{
+  _createClass(ObservableSet2, [{
     key: "size",
     get: function get3() {
       this.atom_.reportObserved();
       return this.data_.size;
     }
   }, {
-    key: Symbol.toStringTag,
+    key: _Symbol$toStringTag$1,
     get: function get3() {
       return "Set";
     }
   }]);
+  return ObservableSet2;
 }();
 var isObservableSet = /* @__PURE__ */ createInstanceofPredicate("ObservableSet", ObservableSet);
 var descriptorCache = /* @__PURE__ */ Object.create(null);
@@ -4661,7 +4657,7 @@ var ObservableObjectAdministration = /* @__PURE__ */ function() {
       }
     }
     try {
-      var _this$pendingKeys_;
+      var _this$pendingKeys_, _this$pendingKeys_$ge;
       startBatch();
       var notify = hasListeners(this);
       var notifySpy = false;
@@ -4689,7 +4685,7 @@ var ObservableObjectAdministration = /* @__PURE__ */ function() {
         propagateChanged(observable2);
       }
       this.keysAtom_.reportChanged();
-      (_this$pendingKeys_ = this.pendingKeys_) == null || (_this$pendingKeys_ = _this$pendingKeys_.get(key)) == null || _this$pendingKeys_.set(key in this.target_);
+      (_this$pendingKeys_ = this.pendingKeys_) == null ? void 0 : (_this$pendingKeys_$ge = _this$pendingKeys_.get(key)) == null ? void 0 : _this$pendingKeys_$ge.set(key in this.target_);
       if (notify || notifySpy) {
         var _change2 = {
           type: REMOVE,
@@ -4724,7 +4720,7 @@ var ObservableObjectAdministration = /* @__PURE__ */ function() {
     return registerInterceptor(this, handler);
   };
   _proto.notifyPropertyAddition_ = function notifyPropertyAddition_(key, value) {
-    var _this$pendingKeys_2;
+    var _this$pendingKeys_2, _this$pendingKeys_2$g;
     var notify = hasListeners(this);
     var notifySpy = false;
     if (notify || notifySpy) {
@@ -4746,7 +4742,7 @@ var ObservableObjectAdministration = /* @__PURE__ */ function() {
         spyReportEnd();
       }
     }
-    (_this$pendingKeys_2 = this.pendingKeys_) == null || (_this$pendingKeys_2 = _this$pendingKeys_2.get(key)) == null || _this$pendingKeys_2.set(true);
+    (_this$pendingKeys_2 = this.pendingKeys_) == null ? void 0 : (_this$pendingKeys_2$g = _this$pendingKeys_2.get(key)) == null ? void 0 : _this$pendingKeys_2$g.set(true);
     this.keysAtom_.reportChanged();
   };
   _proto.ownKeys_ = function ownKeys_() {
@@ -4800,7 +4796,7 @@ function recordAnnotationApplied(adm, annotation, key) {
   if (false) {
     adm.appliedAnnotations_[key] = annotation;
   }
-  (_adm$target_$storedAn = adm.target_[storedAnnotationsSymbol]) == null || delete _adm$target_$storedAn[key];
+  (_adm$target_$storedAn = adm.target_[storedAnnotationsSymbol]) == null ? true : delete _adm$target_$storedAn[key];
 }
 function assertAnnotable(adm, annotation, key) {
   if (false) {
@@ -4838,7 +4834,8 @@ function inherit(ctor, proto) {
   }
 }
 inherit(StubArray, Array.prototype);
-var LegacyObservableArray = /* @__PURE__ */ function(_StubArray) {
+var LegacyObservableArray = /* @__PURE__ */ function(_StubArray, _Symbol$toStringTag2, _Symbol$iterator2) {
+  _inheritsLoose(LegacyObservableArray2, _StubArray);
   function LegacyObservableArray2(initialValues, enhancer, name, owned) {
     var _this;
     if (name === void 0) {
@@ -4850,18 +4847,17 @@ var LegacyObservableArray = /* @__PURE__ */ function(_StubArray) {
     _this = _StubArray.call(this) || this;
     initObservable(function() {
       var adm = new ObservableArrayAdministration(name, enhancer, owned, true);
-      adm.proxy_ = _this;
-      addHiddenFinalProp(_this, $mobx, adm);
+      adm.proxy_ = _assertThisInitialized(_this);
+      addHiddenFinalProp(_assertThisInitialized(_this), $mobx, adm);
       if (initialValues && initialValues.length) {
         _this.spliceWithArray(0, 0, initialValues);
       }
       if (safariPrototypeSetterInheritanceBug) {
-        Object.defineProperty(_this, "0", ENTRY_0);
+        Object.defineProperty(_assertThisInitialized(_this), "0", ENTRY_0);
       }
     });
     return _this;
   }
-  _inheritsLoose(LegacyObservableArray2, _StubArray);
   var _proto = LegacyObservableArray2.prototype;
   _proto.concat = function concat() {
     this[$mobx].atom_.reportObserved();
@@ -4876,7 +4872,7 @@ var LegacyObservableArray = /* @__PURE__ */ function(_StubArray) {
       })
     );
   };
-  _proto[Symbol.iterator] = function() {
+  _proto[_Symbol$iterator2] = function() {
     var self2 = this;
     var nextIndex = 0;
     return makeIterable({
@@ -4891,7 +4887,7 @@ var LegacyObservableArray = /* @__PURE__ */ function(_StubArray) {
       }
     });
   };
-  return _createClass(LegacyObservableArray2, [{
+  _createClass(LegacyObservableArray2, [{
     key: "length",
     get: function get3() {
       return this[$mobx].getArrayLength_();
@@ -4900,12 +4896,13 @@ var LegacyObservableArray = /* @__PURE__ */ function(_StubArray) {
       this[$mobx].setArrayLength_(newLength);
     }
   }, {
-    key: Symbol.toStringTag,
+    key: _Symbol$toStringTag2,
     get: function get3() {
       return "Array";
     }
   }]);
-}(StubArray);
+  return LegacyObservableArray2;
+}(StubArray, Symbol.toStringTag, Symbol.iterator);
 Object.entries(arrayExtensions).forEach(function(_ref) {
   var prop = _ref[0], fn = _ref[1];
   if (prop !== "concat") {

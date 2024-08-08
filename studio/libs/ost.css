@@ -4681,7 +4681,7 @@ a.Dniwja_spectrum-ActionButton {
   block-size: var(--spectrum-icon-triplegripper-height, var(--spectrum-global-dimension-size-85));
 }
 
-/* ../node_modules/@react-spectrum/menu/dist/vars.89a944d6.css */
+/* ../node_modules/@react-spectrum/menu/dist/vars.426580e3.css */
 .Q7FggG_i18nFontFamily {
   font-synthesis: weight;
   font-family:
@@ -4856,7 +4856,6 @@ a.Dniwja_spectrum-ActionButton {
 }
 .Q7FggG_spectrum-Menu-checkmark {
   opacity: 1;
-  box-sizing: content-box;
   padding-block-start: calc(var(--spectrum-selectlist-option-icon-padding-y) - var(--spectrum-selectlist-option-padding-height));
   transform: scale(1);
 }
@@ -12229,7 +12228,7 @@ a.Dniwja_spectrum-ActionButton {
   }
 }
 
-/* ../node_modules/@react-spectrum/combobox/dist/vars.25f9ddd3.css */
+/* ../node_modules/@react-spectrum/combobox/dist/vars.4edc81fc.css */
 .YO3Nla_i18nFontFamily {
   font-synthesis: weight;
   font-family:
@@ -12510,7 +12509,6 @@ a.Dniwja_spectrum-ActionButton {
   max-height: 100%;
 }
 .YO3Nla_spectrum-Textfield-validationIcon {
-  box-sizing: content-box;
   pointer-events: all;
   transition: color var(--spectrum-global-animation-duration-100, .13s) ease-in-out;
   padding-inline-end: calc(var(--spectrum-textfield-padding-x, var(--spectrum-global-dimension-size-150)) / 2);
@@ -12762,7 +12760,7 @@ a.Dniwja_spectrum-ActionButton {
   }
 }
 
-/* ../node_modules/@react-spectrum/listbox/dist/vars.4c57e437.css */
+/* ../node_modules/@react-spectrum/listbox/dist/vars.097e1aaf.css */
 .Q7FggG_i18nFontFamily {
   font-synthesis: weight;
   font-family:
@@ -12937,7 +12935,6 @@ a.Dniwja_spectrum-ActionButton {
 }
 .Q7FggG_spectrum-Menu-checkmark {
   opacity: 1;
-  box-sizing: content-box;
   padding-block-start: calc(var(--spectrum-selectlist-option-icon-padding-y) - var(--spectrum-selectlist-option-padding-height));
   transform: scale(1);
 }
@@ -13318,7 +13315,7 @@ a.Dniwja_spectrum-ActionButton {
   }
 }
 
-/* ../node_modules/@react-spectrum/textfield/dist/vars.9c96c732.css */
+/* ../node_modules/@react-spectrum/textfield/dist/vars.07716e14.css */
 .YO3Nla_i18nFontFamily {
   font-synthesis: weight;
   font-family:
@@ -13599,7 +13596,6 @@ a.Dniwja_spectrum-ActionButton {
   max-height: 100%;
 }
 .YO3Nla_spectrum-Textfield-validationIcon {
-  box-sizing: content-box;
   pointer-events: all;
   transition: color var(--spectrum-global-animation-duration-100, .13s) ease-in-out;
   padding-inline-end: calc(var(--spectrum-textfield-padding-x, var(--spectrum-global-dimension-size-150)) / 2);
@@ -14542,7 +14538,7 @@ a.Dniwja_spectrum-ActionButton {
   }
 }
 
-/* ../node_modules/@react-spectrum/datepicker/dist/styles.b562cf4b.css */
+/* ../node_modules/@react-spectrum/datepicker/dist/styles.36ea4632.css */
 ._2n04KW_react-spectrum-Datepicker-fieldWrapper._2n04KW_react-spectrum-Datepicker-fieldWrapper._2n04KW_react-spectrum-Datepicker-fieldWrapper {
   min-width: var(--spectrum-global-dimension-size-2000);
   width: auto;
@@ -14609,11 +14605,6 @@ a.Dniwja_spectrum-ActionButton {
   height: 0;
   display: none;
 }
-._2n04KW_react-spectrum-Datepicker-inputSized {
-  align-items: center;
-  height: 100%;
-  display: flex;
-}
 ._2n04KW_react-spectrum-Datepicker-rangeDash:before {
   content: "\2013";
 }
@@ -14641,12 +14632,21 @@ a.Dniwja_spectrum-ActionButton {
 ._2n04KW_react-spectrum-DatePicker-cell::selection {
   background: none;
 }
+._2n04KW_react-spectrum-DatePicker-placeholder {
+  text-align: center;
+  visibility: hidden;
+  pointer-events: none;
+  width: 100%;
+  height: 0;
+  font-style: italic;
+  display: block;
+}
 ._2n04KW_react-spectrum-DatePicker-cell._2n04KW_is-placeholder {
   color: var(--spectrum-gray-600);
 }
 ._2n04KW_react-spectrum-DatePicker-cell._2n04KW_is-placeholder ._2n04KW_react-spectrum-DatePicker-placeholder {
-  text-align: center;
-  pointer-events: none;
+  visibility: visible;
+  height: auto;
 }
 ._2n04KW_react-spectrum-DatePicker-cell._2n04KW_is-placeholder ~ ._2n04KW_react-spectrum-Datepicker-literal {
   color: var(--spectrum-global-color-gray-600);
@@ -14710,7 +14710,7 @@ a.Dniwja_spectrum-ActionButton {
   }
 }
 
-/* ../node_modules/@react-spectrum/datepicker/dist/vars.3d0e5be0.css */
+/* ../node_modules/@react-spectrum/datepicker/dist/vars.3692148b.css */
 .YO3Nla_i18nFontFamily {
   font-synthesis: weight;
   font-family:
@@ -14991,7 +14991,6 @@ a.Dniwja_spectrum-ActionButton {
   max-height: 100%;
 }
 .YO3Nla_spectrum-Textfield-validationIcon {
-  box-sizing: content-box;
   pointer-events: all;
   transition: color var(--spectrum-global-animation-duration-100, .13s) ease-in-out;
   padding-inline-end: calc(var(--spectrum-textfield-padding-x, var(--spectrum-global-dimension-size-150)) / 2);

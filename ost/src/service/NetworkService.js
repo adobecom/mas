@@ -7,6 +7,8 @@ export class NetworkService {
         this.apiKey = apiKey;
     }
     
+    // In the long run, we should get rid of loadScript approach and load the list of products 
+    // from Sharepoint or Odin and have proper CORS support and use fetch
     loadScript(src) {
         return new Promise((resolve, reject) => {
             let script = document.querySelector(`head > script[src="${src}"]`);

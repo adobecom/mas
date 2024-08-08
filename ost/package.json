@@ -1,7 +1,7 @@
 {
-  "name": "@adobe/ost",
+  "name": "@adobe/offer-selector-tool",
   "version": "0.0.1",
-  "description": "Offer Selection Tool",
+  "description": "Offer Selector Tool",
   "scripts": {
     "build": "node build.mjs",
     "build:milo": "echo",

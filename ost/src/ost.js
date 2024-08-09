@@ -7,7 +7,10 @@ export class Ost {
     countries = [];
 
     constructor(userContext, appContext, analyticsInfo) {
-        this.networkService = new NetworkService(userContext.accessToken, userContext.apiKey);
+        this.networkService = new NetworkService(
+            userContext.accessToken,
+            userContext.apiKey,
+        );
         this.store = new Store(this.networkService);
         this.userContext = userContext;
         this.appContext = appContext;
@@ -35,9 +38,14 @@ export class Ost {
             console.error('Error fetching countries', error);
         }
         if (this.userContext.country) {
-            const countryInList = countries.find((country) => country.id === this.userContext.country);
+            const countryInList = countries.find(
+                (country) => country.id === this.userContext.country,
+            );
             if (!countryInList) {
-                countries.push({ id: this.userContext.country, name: this.userContext.country });
+                countries.push({
+                    id: this.userContext.country,
+                    name: this.userContext.country,
+                });
             }
         }
         this.userContext.countries = countries;

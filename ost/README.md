@@ -1,1 +1,1 @@
-# OST - Offer Selection Tool
+# OST - Offer Selector Tool

@@ -1,0 +1,8 @@
+body {
+    margin: 0;
+}
+
+sp-theme {
+    background-color: var(--spectrum-background-layer-1-color);
+}
+

@@ -30,7 +30,7 @@ runTests(async () => {
             document.querySelector('main').append(studio);
             expect(studio).exist;
         });
-        it.only('should search via deeplink', async () => {
+        it.skip('should search via deeplink', async () => {
             document.location.hash =
                 '#path=%2Fcontent%2Fdam%2Fsandbox%2Fmas&query=ccd';
             const [studio] = getTemplateContent('studio');

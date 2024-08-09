@@ -17,11 +17,15 @@ class OstUI extends MobxReactionUpdateCustom(LitElement, Reaction) {
         templateInfo: {
             type: { type: String },
             priceInfo: { 
+                type: Object,
+                value: null,
                 disableOptions: { type: Array },
                 priceTypes: { type: Array },
 
              },
             checkoutInfo: {
+                type: Object,
+                value: null,
                 checkoutType: { type: String },
                 workflowStep: { type: String },
                 ctaText: { type: String }
@@ -35,12 +39,12 @@ class OstUI extends MobxReactionUpdateCustom(LitElement, Reaction) {
     }
 
     renderHeader() {
-        return html`<div class="ost-ui__header">
+        return html`<div class="ost-ui-header">
             /div>`
     }
 
     renderContent() {
-        return html`<div class="ost-ui__content">
+        return html`<div class="ost-ui-content">
         </div>`;
     }
 

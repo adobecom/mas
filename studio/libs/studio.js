@@ -5259,7 +5259,7 @@ function deeplink(callback) {
 }
 
 // ../commons/src/aem.js
-var accessToken = localStorage.getItem("masAccessToken");
+var accessToken = window.adobeid.authorize();
 var headers = {
   Authorization: `Bearer ${accessToken}`,
   pragma: "no-cache",
@@ -5858,7 +5858,7 @@ var MasStudio = class extends MobxReactionUpdateCustom(s6, Reaction) {
   }
   editorActionClickHandler(e8) {
     const ostRoot = document.getElementById("ost");
-    const accessToken2 = localStorage.getItem("masAccessToken");
+    const accessToken2 = window.adobeid.authorize();
     const closeDialog = openAsDialog(ostRoot, console.log, {
       zIndex: 20,
       accessToken: accessToken2

@@ -3,9 +3,11 @@ import 'https://main--milo--adobecom.hlx.page/libs/deps/mas/merch-card-all.js';
 import { Store } from '../../src/store/Store.js';
 import { withAem } from '../mocks/aem.js';
 import { mockFetch } from '../mocks/fetch.js';
+import { mockIms } from '../mocks/ims.js';
 
 describe('Store', async () => {
     await mockFetch(withAem);
+    await mockIms();
     describe('Search', () => {
         it('perform a search with [query, path] params', async () => {
             const store = new Store('test');

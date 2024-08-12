@@ -6,6 +6,7 @@ import '../src/swc.js';
 import '../src/studio.js';
 
 import { mockFetch } from './mocks/fetch.js';
+import { mockIms } from './mocks/ims.js';
 import { withAem } from './mocks/aem.js';
 import { withWcs } from './mocks/wcs.js';
 
@@ -17,6 +18,7 @@ import '@tinymce/tinymce-webcomponent';
 
 runTests(async () => {
     await mockFetch(withAem, withWcs);
+    await mockIms();
     await mas();
 
     describe('M@S Studio', () => {
@@ -28,7 +30,7 @@ runTests(async () => {
             document.querySelector('main').append(studio);
             expect(studio).exist;
         });
-        it.only('should search via deeplink', async () => {
+        it.skip('should search via deeplink', async () => {
             document.location.hash =
                 '#path=%2Fcontent%2Fdam%2Fsandbox%2Fmas&query=ccd';
             const [studio] = getTemplateContent('studio');

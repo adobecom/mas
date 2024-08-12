@@ -1,13 +1,5 @@
 import { Fragment } from '../../studio/src/store/Fragment.js';
 
-const accessToken = localStorage.getItem('masAccessToken');
-
-const headers = {
-    Authorization: `Bearer ${accessToken}`,
-    pragma: 'no-cache',
-    'cache-control': 'no-cache',
-};
-
 /**
  * Search for content fragments
  * @param {Object} params - The search options
@@ -26,6 +18,12 @@ export async function searchFragment({ path, query }) {
             queryMode: 'EXACT_WORDS',
         };
     }
+    const accessToken = window.adobeid.authorize();
+    const headers = {
+        Authorization: `Bearer ${accessToken}`,
+        pragma: 'no-cache',
+        'cache-control': 'no-cache',
+    };
     const searchParams = new URLSearchParams({
         query: JSON.stringify({ filter }),
     }).toString();

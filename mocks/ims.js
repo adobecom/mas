@@ -1,8 +1,11 @@
-import { delay } from '../commerce/src/external.js';
+import { delay } from '../archive/commerce/src/external.js';
 
 const { adobeIMS } = window;
 
 async function mockIms(countryCode) {
+    window.adobeid = {
+        authorize: () => '',
+    };
     window.adobeIMS = {
         initialized: true,
         isSignedInUser: () => !!countryCode,

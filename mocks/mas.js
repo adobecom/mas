@@ -1,6 +1,3 @@
-import { init } from '../libs/commerce.js';
-import '../libs/merch-card-all.js';
-
 const locale =
     document
         .querySelector('meta[name="mas-locale"]')
@@ -14,5 +11,11 @@ const config = () => ({
 
 /** in tests, eagerly initialisation breaks mocks */
 export default async () => {
+    const { init } = await import(
+        'https://main--milo--adobecom.hlx.live/libs/deps/mas/commerce.js'
+    );
+    import(
+        'https://main--milo--adobecom.hlx.live/libs/deps/mas/merch-card-all.js'
+    );
     await init(config);
 };

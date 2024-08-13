@@ -1,4 +1,4 @@
-import { init } from '../../libs/commerce.js';
+
 
 const { origin, searchParams } = new URL(import.meta.url);
 
@@ -15,6 +15,10 @@ const config = () => ({
     commerce: { 'commerce.env': commerceEnv },
     locale: { prefix: locale },
 });
+
+const { init } = import(
+    'https://main--milo--adobecom.hlx.page/libs/deps/mas/commerce.js'
+);
 
 init(config);
 

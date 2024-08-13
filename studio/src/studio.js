@@ -8,7 +8,7 @@ import { MobxReactionUpdateCustom } from '@adobe/lit-mobx/lib/mixin-custom.js';
 import { deeplink, pushState } from '@adobe/mas-commons';
 import { Fragment } from './store/Fragment.js';
 import './rte-editor.js';
-import { openAsDialog } from '../libs/ost.js';
+import { openAsDialog, createLinkMarkup } from '../libs/ost.js';
 import { classMap } from 'lit/directives/class-map.js';
 
 const models = {
@@ -16,6 +16,38 @@ const models = {
         path: '/conf/sandbox/settings/dam/cfm/models/merch-card',
         name: 'Merch Card',
     },
+};
+
+const onSelectHandler = (
+    offerSelectorId,
+    type,
+    offer,
+    options,
+    promoOverride,
+) => {
+    log.debug(offerSelectorId, type, offer, options, promoOverride);
+    console.log(offerSelectorId, type, offer, options, promoOverride);
+    const link = createLinkMarkup(
+        Defaults,
+        offerSelectorId,
+        type,
+        offer,
+        options,
+        promoOverride,
+    );
+
+    log.debug(`Use Link: ${link.outerHTML}`);
+    const linkBlob = new Blob([link.outerHTML], { type: 'text/html' });
+    const textBlob = new Blob([link.href], { type: 'text/plain' });
+    // eslint-disable-next-line no-undef
+    const data = [
+        new ClipboardItem({
+            [linkBlob.type]: linkBlob,
+            [textBlob.type]: textBlob,
+        }),
+    ];
+    navigator.clipboard.write(data, log.debug, log.error);
+    closeDialog();
 };
 
 class MasStudio extends MobxReactionUpdateCustom(LitElement, Reaction) {
@@ -348,7 +380,7 @@ class MasStudio extends MobxReactionUpdateCustom(LitElement, Reaction) {
     editorActionClickHandler(e) {
         const ostRoot = document.getElementById('ost');
         const accessToken = window.adobeid.authorize();
-        const closeDialog = openAsDialog(ostRoot, console.log, {
+        const closeDialog = openAsDialog(ostRoot, onSelectHandler, {
             zIndex: 20,
             accessToken,
         });

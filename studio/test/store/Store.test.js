@@ -1,11 +1,13 @@
 import { expect } from '@esm-bundle/chai';
-import '../../../libs/merch-card-all.js';
 import { Store } from '../../src/store/Store.js';
 import { withAem } from '../mocks/aem.js';
 import { mockFetch } from '../mocks/fetch.js';
 import { mockIms } from '../mocks/ims.js';
 
 describe('Store', async () => {
+    await import(
+        'https://main--milo--adobecom.hlx.live/libs/deps/mas/merch-card-all.js'
+    );
     await mockFetch(withAem);
     await mockIms();
     describe('Search', () => {

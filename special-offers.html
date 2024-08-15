@@ -5,25 +5,19 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="mas-features" content="merch-card">
-    <title>Merch Datasource Web Component test page</title>
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="nofollow-links" content="on">
+    <script src="libs/mas.js?features=merch-card" type="module"></script>
+    <title>Special Offers page</title>
     <script>
         window.process = {
             env: {},
         };
     </script>
-    <style>
-        main {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            flex-direction: column;
-            padding-top: 80px;
-        }
-    </style>
 </head>
 <body>
     <main>
-        <template id="cards" class="three-merch-cards">        
+        <template id="cards" class="three-merch-cards">
             <merch-card variant="special-offers">
                 <merch-datasource source="odin" path="/content/dam/sandbox/mas/special-offers-adobe-max" mep></merch-datasource>
             </merch-card>

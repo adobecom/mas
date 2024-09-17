@@ -16,7 +16,7 @@ import { getOffferSelectorTool, openOfferSelectorTool } from './ost.js';
 
 const models = {
     merchCard: {
-        path: '/conf/sandbox/settings/dam/cfm/models/merch-card',
+        path: '/conf/mas/settings/dam/cfm/models/card',
         name: 'Merch Card',
     },
 };

@@ -3,7 +3,7 @@ import { Reaction } from 'mobx';
 import { MobxReactionUpdateCustom } from '@adobe/lit-mobx/lib/mixin-custom.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 
-const MODEL_PATH = '/conf/sandbox/settings/dam/cfm/models/merch-card';
+const MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 
 class MerchCardEditor extends MobxReactionUpdateCustom(LitElement, Reaction) {
     static properties = {

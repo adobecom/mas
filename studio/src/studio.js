@@ -384,7 +384,7 @@ class MasStudio extends MobxReactionUpdateCustom(LitElement, Reaction) {
     async doSearch() {
         const query = this.searchText;
         const variant = this.picker.value.replace('all', '');
-        const path = '/content/dam/sandbox/mas';
+        const path = '/content/dam/mas';
         const search = { query, path, variant };
         pushState(search);
         this.store.doSearch(search);

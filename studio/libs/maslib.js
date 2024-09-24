@@ -1,6 +1,5 @@
 const getMiloLibs = () => {
-    const pageUrl = new URL(window.location.href);
-    const milolibs = new URLSearchParams(pageUrl?.searchParams)?.get('milolibs');
+    const milolibs = new URLSearchParams(window.location.search)?.get('milolibs');
     if (!milolibs) return 'https://www.adobe.com';
     if ('local' === milolibs) return 'http://localhost:6456';
     return `https://${milolibs}.hlx.live`;

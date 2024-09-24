@@ -15,6 +15,6 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
-        "@adobecom/milo": "github:adobecom/milo#content-navigation"
+        "@adobecom/milo": "github:adobecom/milo#stage"
     }
 }

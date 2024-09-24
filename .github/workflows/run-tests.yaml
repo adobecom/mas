@@ -27,7 +27,7 @@ jobs:
       run: npm ci
 
     - name: Force update @adobecom/milo dependency
-      run: npm add github:adobecom/milo#content-navigation
+      run: npm add github:adobecom/milo#stage
 
     - name: Install XVFB
       run: sudo apt-get install xvfb

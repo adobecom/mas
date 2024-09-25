@@ -11,38 +11,32 @@ const VARIANTS = [
 
 class VariantPicker extends LitElement {
     static properties = {
-        initvalue: { type: String },
+        defaultValue: { type: String, attribute: 'default-value' },
+        showAll: { type: Boolean, attribute: 'show-all' },
     };
 
     get value() {
-        return this.querySelector('sp-picker')?.value;
+        return this.shadowRoot.querySelector('sp-picker')?.value;
     }
 
-    createRenderRoot() {
-        return this;
-    }
-
-    renderVariants = () => {
-        return VARIANTS.map(
+    get variants() {
+        return VARIANTS.filter(
+            (variant) => this.showAll || variant.value != 'all',
+        ).map(
             (variant) =>
                 html`<sp-menu-item value="${variant.value}"
                     >${variant.label}</sp-menu-item
                 >`,
         );
-    };
-
-    handler = () => {
-        this.dispatchEvent(new CustomEvent('selectionchange'));
-    };
+    }
 
     render() {
         return html`<sp-picker
             label="Card Variant"
             size="m"
-            value=${this.value || this.initvalue}
-            @change="${this.handler}"
+            value=${this.value || this.defaultValue}
         >
-            ${this.renderVariants()}
+            ${this.variants}
         </sp-picker>`;
     }
 }

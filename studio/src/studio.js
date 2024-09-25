@@ -280,8 +280,9 @@ class MasStudio extends LitElement {
                 ></sp-search>
                 <variant-picker
                     id="vpick"
-                    value="${this.variant}"
-                    @selectionchange="${this.handleVariantChange}"
+                    show-all="true"
+                    default-value="${this.variant}"
+                    @change="${this.handleVariantChange}"
                 ></variant-picker>
                 <sp-button @click=${this.doSearch}>Search</sp-button>
             </div>

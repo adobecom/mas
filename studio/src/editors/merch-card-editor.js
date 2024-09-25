@@ -21,9 +21,10 @@ class MerchCardEditor extends LitElement {
             <sp-field-label for="card-variant">Variant</sp-field-label>
             <variant-picker
                 id="card-variant"
+                show-all="false"
                 data-field="variant"
-                value="${form.variant.values[0]}"
-                @selectionchange="${this.updateFragment}"
+                default-value="${form.variant.values[0]}"
+                @change="${this.updateFragment}"
             ></variant-picker>
             <sp-field-label for="card-title">Title</sp-field-label>
             <sp-textfield

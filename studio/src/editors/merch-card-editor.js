@@ -1,6 +1,5 @@
 import { html, LitElement, nothing } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
-import { renderVariantPicker } from './variant-picker.js';
 
 const MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 
@@ -20,7 +19,12 @@ class MerchCardEditor extends LitElement {
         );
         return html` <p>${this.fragment.path}</p>
             <sp-field-label for="card-variant">Variant</sp-field-label>
-            ${renderVariantPicker(form.variant.values[0], this.updateFragment)}
+            <variant-picker
+                id="card-variant"
+                data-field="variant"
+                value="${form.variant.values[0]}"
+                @selectionchange="${this.updateFragment}"
+            ></variant-picker>
             <sp-field-label for="card-title">Title</sp-field-label>
             <sp-textfield
                 placeholder="Enter card title"

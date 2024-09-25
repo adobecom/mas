@@ -1,4 +1,4 @@
-import { html } from 'lit';
+import { html, LitElement } from 'lit';
 
 //TODO make that feed (excepts ALL maybe) dynamically served from milo
 const VARIANTS = [
@@ -9,23 +9,42 @@ const VARIANTS = [
     { label: 'Special offers', value: 'special-offers', surface: 'acom' },
 ];
 
-const renderVariants = () => {
-    return VARIANTS.map(
-        (variant) =>
-            html`<sp-menu-item value="${variant.value}"
-                >${variant.label}</sp-menu-item
-            >`,
-    );
-};
+class VariantPicker extends LitElement {
+    static properties = {
+        initvalue: { type: String },
+    };
 
-export const renderVariantPicker = (value, handler, id) => {
-    return html`<sp-picker
-        id="${id || 'card-variant'}"
-        label="Card Variant"
-        size="m"
-        value=${value}
-        @change="${handler}"
-    >
-        ${renderVariants()}
-    </sp-picker>`;
-};
+    get value() {
+        return this.querySelector('sp-picker')?.value;
+    }
+
+    createRenderRoot() {
+        return this;
+    }
+
+    renderVariants = () => {
+        return VARIANTS.map(
+            (variant) =>
+                html`<sp-menu-item value="${variant.value}"
+                    >${variant.label}</sp-menu-item
+                >`,
+        );
+    };
+
+    handler = () => {
+        this.dispatchEvent(new CustomEvent('selectionchange'));
+    };
+
+    render() {
+        return html`<sp-picker
+            label="Card Variant"
+            size="m"
+            value=${this.value || this.initvalue}
+            @change="${this.handler}"
+        >
+            ${this.renderVariants()}
+        </sp-picker>`;
+    }
+}
+
+customElements.define('variant-picker', VariantPicker);

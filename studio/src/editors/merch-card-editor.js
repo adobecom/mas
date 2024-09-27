@@ -34,6 +34,14 @@ class MerchCardEditor extends LitElement {
                 value="${form.cardTitle.values[0]}"
                 @change="${this.updateFragment}"
             ></sp-textfield>
+            <sp-field-label for="card-size">Size</sp-field-label>
+            <sp-textfield
+                placeholder="Enter card size"
+                id="card-size"
+                data-field="size"
+                value="${form.size.values[0]}"
+                @change="${this.updateFragment}"
+            ></sp-textfield>
             <sp-field-label for="card-icon">Icons</sp-field-label>
             <sp-textfield
                 placeholder="Enter icon URLs"

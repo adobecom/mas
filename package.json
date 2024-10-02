@@ -10,7 +10,8 @@
     "scripts": {
         "lint": "eslint --fix",
         "test": "npm run test:ci --workspaces",
-        "build": "npm run build --workspaces"
+        "build": "npm run build --workspaces",
+        "studio": "cd studio && npm run proxy & aem up"
     },
     "repository": {
         "type": "git",

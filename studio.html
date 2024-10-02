@@ -6,7 +6,7 @@
         <meta name="robots" content="noindex, nofollow" />
         <meta name="nofollow-links" content="on" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="aem-base-url" content="https://author-p22655-e155390.adobeaemcloud.com/" />
+        <meta name="aem-base-url"/>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/7.2.1/tinymce.min.js"></script>
         <script src="studio/libs/maslib.js"></script>
         <script src="studio/libs/swc.js" type="module"></script>
@@ -60,11 +60,14 @@
     </head>
     <body>
         <main>
-            <sp-theme color="light" scale="medium">
-                <mas-studio
-                    aem-bucket="author-p22655-e155390"
-                ></mas-studio>
-            </sp-theme>
+            <sp-theme color="light" scale="medium"></sp-theme>
         </main>
+        <script>
+            let baseUrl = window.location.href.includes('localhost') ? 'http://localhost:8080' : 'https://qa-odin.adobe.com';
+            document.querySelector('meta[name="aem-base-url"]')?.setAttribute('content', baseUrl);
+            const studio = document.createElement('mas-studio');
+            studio.setAttribute('base-url', baseUrl)
+            document.querySelector('sp-theme').appendChild(studio);
+        </script>
     </body>
 </html>

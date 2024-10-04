@@ -7,6 +7,7 @@ import {
 import './editors/merch-card-editor.js';
 import './editors/variant-picker.js';
 import './rte-editor.js';
+import './top-nav.js';
 
 import { getOffferSelectorTool, openOfferSelectorTool } from './ost.js';
 
@@ -269,7 +270,8 @@ class MasStudio extends LitElement {
 
     render() {
         return html`
-            <h1>Merch at Scale Studio</h1>
+            <top-nav></top-nav>
+            <side-nav></side-nav>
             <div>
                 <sp-search
                     placeholder="Search"

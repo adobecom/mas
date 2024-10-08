@@ -128,6 +128,6 @@ const server = createServer(httpsOptions, (req, res) => {
     }
 });
 
-server.listen(443, () => {
-    console.log('Proxy server is running on port 443');
+server.listen(8443, () => {
+    console.log('Proxy server is running on port 8443');
 });

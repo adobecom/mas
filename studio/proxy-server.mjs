@@ -1,4 +1,5 @@
-import { createServer } from 'node:https';
+import { createServer as createHttpServer } from 'node:http';
+import { createServer as createHttpsServer } from 'node:https';
 import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { readFileSync } from 'fs';
@@ -15,20 +16,36 @@ const targetOrigin = process.argv[2];
 const keyPath = process.argv[3];
 const certPath = process.argv[4];
 
-if (!targetOrigin || !keyPath || !certPath) {
-    console.error('Usage: node proxy.mjs <targetOrigin> <keyPath> <certPath>');
+if (!targetOrigin) {
+    console.error('Usage: node proxy.mjs <targetOrigin> [keyPath] [certPath]');
     process.exit(1);
 }
 
 const targetUrl = new URL(targetOrigin);
 
-// Read the SSL certificate and private key
-const httpsOptions = {
-    key: readFileSync(keyPath),
-    cert: readFileSync(certPath),
-};
+// Variables to hold the server and protocol
+let server;
+let serverProtocol;
+let serverPort;
 
-const server = createServer(httpsOptions, (req, res) => {
+if (keyPath && certPath) {
+    // Read the SSL certificate and private key
+    const httpsOptions = {
+        key: readFileSync(keyPath),
+        cert: readFileSync(certPath),
+    };
+
+    server = createHttpsServer(httpsOptions, requestHandler);
+    serverProtocol = 'https';
+    serverPort = 8443; // Use 8443 for HTTPS
+} else {
+    server = createHttpServer(requestHandler);
+    serverProtocol = 'http';
+    serverPort = 8080; // Use 8080 for HTTP
+}
+
+// Common request handler
+function requestHandler(req, res) {
     const { method, headers, url } = req;
 
     // Shutdown mechanism
@@ -38,7 +55,7 @@ const server = createServer(httpsOptions, (req, res) => {
             console.log('Proxy server has been stopped');
             process.exit(0);
         });
-        return; // Ensure no further processing occurs
+        return;
     }
 
     if (method === 'OPTIONS') {
@@ -126,8 +143,10 @@ const server = createServer(httpsOptions, (req, res) => {
             proxyRequest.end();
         });
     }
-});
+}
 
-server.listen(8443, () => {
-    console.log('Proxy server is running on port 8443');
+server.listen(serverPort, () => {
+    console.log(
+        `Proxy server is running on ${serverProtocol}://localhost:${serverPort}`,
+    );
 });

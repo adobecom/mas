@@ -131,7 +131,7 @@ class AEM {
                 `Failed to get fragment: ${response.status} ${response.statusText}`,
             );
         }
-        return await getFragment(response);
+        return await this.getFragment(response);
     }
 
     /**
@@ -181,7 +181,7 @@ class AEM {
                 `Failed to save fragment: ${response.status} ${response.statusText}`,
             );
         }
-        return await getFragment(response);
+        return await this.getFragment(response);
     }
 
     /**
@@ -222,7 +222,7 @@ class AEM {
         if (!newPath) {
             throw new Error('Failed to extract new path from copy response');
         }
-        await wait(); // give AEM time to process the copy
+        await this.wait(); // give AEM time to process the copy
         let newFragment = await this.getFragmentByPath(newPath);
         if (newFragment) {
             newFragment = await this.sites.cf.fragments.getById(newFragment.id);
@@ -261,7 +261,7 @@ class AEM {
                 `Failed to create fragment: ${response.status} ${response.statusText}`,
             );
         }
-        return await getFragment(response);
+        return await this.getFragment(response);
     }
 
     /**
@@ -393,10 +393,10 @@ class AEM {
                  */
                 getByPath: this.getFragmentByPath.bind(this),
                 /**
-                 * @see getFragmentById
+                 * @see AEM#getFragmentById
                  */
                 getById: (id) =>
-                    getFragmentById(this.baseUrl, id, this.headers),
+                    this.getFragmentById(this.baseUrl, id, this.headers),
                 /**
                  * @see AEM#saveFragment
                  */

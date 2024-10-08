@@ -1,6 +1,3 @@
-import { getFragmentById, getFragment } from './getFragmentById.js';
-import { wait } from './utils.js';
-
 const NETWORK_ERROR_MESSAGE = 'Network error';
 
 const defaultSearchOptions = {
@@ -29,6 +26,10 @@ class AEM {
             pragma: 'no-cache',
             'cache-control': 'no-cache',
         };
+    }
+
+    wait(ms = 1000) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 
     async getCsrfToken() {
@@ -98,6 +99,39 @@ class AEM {
             yield items;
             if (!cursor) break;
         }
+    }
+
+    /**
+     * @param {Response} res
+     * @returns Fragment json
+     */
+    async getFragment(res) {
+        const eTag = res.headers.get('Etag');
+        const fragment = await res.json();
+        fragment.etag = eTag;
+        return fragment;
+    }
+
+    /**
+     * Get fragment by ID
+     * @param {string} baseUrl the aem base url
+     * @param {string} id fragment id
+     * @param {Object} headers optional request headers
+     * @returns {Promise<Object>} the raw fragment item
+     */
+    async getFragmentById(baseUrl, id, headers) {
+        const response = await fetch(
+            `${baseUrl}/adobe/sites/cf/fragments/${id}`,
+            {
+                headers,
+            },
+        );
+        if (!response.ok) {
+            throw new Error(
+                `Failed to get fragment: ${response.status} ${response.statusText}`,
+            );
+        }
+        return await getFragment(response);
     }
 
     /**
@@ -374,7 +408,7 @@ class AEM {
                 /**
                  * @see AEM#createFragment
                  */
-                copy: this.createFragment.bind(this),
+                create: this.createFragment.bind(this),
                 /**
                  * @see AEM#publishFragment
                  */

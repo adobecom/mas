@@ -50,6 +50,7 @@
         "@spectrum-web-components/toast": "^0.47.2",
         "@spectrum-web-components/tooltip": "^0.47.2",
         "@spectrum-web-components/tray": "^0.47.2",
+        "@spectrum-web-components/top-nav": "^0.47.2",
         "@tinymce/tinymce-webcomponent": "^2.1.0",
         "tinymce": "^7.2.1"
     },

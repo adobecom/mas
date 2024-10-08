@@ -7,7 +7,7 @@ sp-theme {
 }
 
 mas-studio {
-    margin: 0 16px;
+    width: 100%;
     display: flex;
     gap: 8px;
     align-items: center;

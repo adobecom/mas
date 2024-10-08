@@ -44,7 +44,7 @@ class TopNav extends LitElement {
                     label="Home"
                     quiet
                 >
-                    <img class="logo" src="img/adobe-logo.svg" alt="Adobe" />
+                    <img class="logo" src="./img/adobe-logo.svg" alt="Adobe" />
                     <strong>Merch @ Scale Studio</strong>
                 </sp-top-nav-item>
                 <sp-top-nav-item href="#" label="Help" placement="bottom-end">

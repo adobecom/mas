@@ -1,5 +1,5 @@
 import { LitElement, nothing } from 'lit';
-import { AEM } from '@adobecom/milo/libs/features/mas/web-components/src/aem.js';
+import { AEM } from './aem.js';
 import { Folder } from './folder.js';
 import { Fragment } from './fragment.js';
 import { EVENT_LOAD, EVENT_LOAD_END, EVENT_LOAD_START } from '../events.js';

@@ -48,16 +48,6 @@ if (keyPath && certPath) {
 function requestHandler(req, res) {
     const { method, headers, url } = req;
 
-    // Shutdown mechanism
-    if (url === '/shutdown') {
-        res.end('Server is shutting down');
-        server.close(() => {
-            console.log('Proxy server has been stopped');
-            process.exit(0);
-        });
-        return;
-    }
-
     if (method === 'OPTIONS') {
         // Handle OPTIONS request directly
         res.writeHead(200, {

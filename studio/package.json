@@ -7,7 +7,7 @@
         "build:milo": "echo",
         "test": "wtr --config ./web-test-runner.config.mjs --coverage --watch --debug",
         "test:ci": "wtr --config ./web-test-runner.config.mjs",
-        "proxy": "node ./proxy-server.mjs https://author-p22655-e155390.adobeaemcloud.com",
+        "proxy": "node ./proxy-server.mjs https://author-p22655-e155390.adobeaemcloud.com ./mas.key ./mas.crt",
         "proxy:publish": "node ./proxy-server.mjs https://publish-p22655-e155390.adobeaemcloud.com"
     },
     "type": "module",

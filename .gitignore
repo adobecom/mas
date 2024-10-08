@@ -18,3 +18,5 @@ milo-libs
 *LICENSE.txt
 swc.json
 studio.json
+*.key
+*.crt

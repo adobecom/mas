@@ -1,6 +1,7 @@
-import { createServer } from 'node:http';
+import { createServer } from 'node:https';
 import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
+import { readFileSync } from 'fs';
 import { URL } from 'node:url';
 
 const corsHeaders = {
@@ -11,24 +12,33 @@ const corsHeaders = {
 };
 
 const targetOrigin = process.argv[2];
+const keyPath = process.argv[3];
+const certPath = process.argv[4];
 
-if (!targetOrigin) {
-    console.error('Usage: node proxy.mjs <targetOrigin>');
+if (!targetOrigin || !keyPath || !certPath) {
+    console.error('Usage: node proxy.mjs <targetOrigin> <keyPath> <certPath>');
     process.exit(1);
 }
 
 const targetUrl = new URL(targetOrigin);
 
-const server = createServer((req, res) => {
+// Read the SSL certificate and private key
+const httpsOptions = {
+    key: readFileSync(keyPath),
+    cert: readFileSync(certPath),
+};
+
+const server = createServer(httpsOptions, (req, res) => {
     const { method, headers, url } = req;
 
-    // shutdown mechanism
+    // Shutdown mechanism
     if (url === '/shutdown') {
         res.end('Server is shutting down');
         server.close(() => {
             console.log('Proxy server has been stopped');
             process.exit(0);
         });
+        return; // Ensure no further processing occurs
     }
 
     if (method === 'OPTIONS') {
@@ -118,6 +128,6 @@ const server = createServer((req, res) => {
     }
 });
 
-server.listen(8080, () => {
-    console.log('Proxy server is running on port 8080');
+server.listen(443, () => {
+    console.log('Proxy server is running on port 443');
 });

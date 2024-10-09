@@ -81,8 +81,8 @@ sp-toast {
 
 sp-status-light {
     position: absolute;
-    top: -6px;
-    right: -0px;
+    bottom: -6px;
+    left: 6px;
 }
 
 /* tinymce styles */

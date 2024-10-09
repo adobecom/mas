@@ -13,7 +13,7 @@
             document.querySelector('meta[name="aem-base-url"]')?.setAttribute('content', baseUrl);
         </script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/7.2.1/tinymce.min.js"></script>
-        <script src="studio/libs/maslib.js"></script>
+        <script src="studio/libs/maslib.js" type="module"></script>
         <script src="studio/libs/swc.js" type="module"></script>
         <script src="studio/libs/aem.js" type="module"></script>
         <script src="studio/libs/studio.js" type="module"></script>
@@ -25,7 +25,12 @@
         <link rel="stylesheet" href="./studio/style.css" />
         <!-- MAS Studio Icon goes here -->
 
+        <mas-commerce-service></mas-commerce-service>
+
         <script>
+            customElements.whenDefined('mas-commerce-service').then(() => {
+                document.querySelector('mas-commerce-service').activate();
+            });
             window.adobeid = {
                 api_parameters: {
                     profile_filter:

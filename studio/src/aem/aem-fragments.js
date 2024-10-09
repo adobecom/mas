@@ -4,9 +4,7 @@ import { Folder } from './folder.js';
 import { Fragment } from './fragment.js';
 import { EVENT_LOAD, EVENT_LOAD_END, EVENT_LOAD_START } from '../events.js';
 
-/**
- * Reference to single
- */
+/** aem-fragment cache */
 let aemFragmentCache;
 
 class AemFragments extends LitElement {
@@ -19,11 +17,6 @@ class AemFragments extends LitElement {
             searchText: { type: String, attribute: 'search' },
             fragment: { type: Object },
         };
-    }
-
-    constructor() {
-        super();
-        aemFragmentCache = document.createElement('aem-fragment').cache;
     }
 
     createRenderRoot() {
@@ -139,7 +132,13 @@ class AemFragments extends LitElement {
             } else {
                 this.currentFolder.add(...fragments);
             }
-            aemFragmentCache?.add(...fragments);
+            if (!aemFragmentCache) {
+                await customElements.whenDefined('aem-fragment').then(() => {
+                    aemFragmentCache =
+                        document.createElement('aem-fragment').cache;
+                });
+            }
+            aemFragmentCache.add(...fragments);
             this.dispatchEvent(new CustomEvent(EVENT_LOAD));
         }
         this.#loading = false;
@@ -173,7 +172,7 @@ class AemFragments extends LitElement {
         let fragment = await this.#aem.sites.cf.fragments.save(this.fragment);
         if (!fragment) throw new Error('Failed to save fragment');
         fragment = new Fragment(fragment);
-        aemFragmentCache?.add(fragment);
+        aemFragmentCache.add(fragment);
         this.setFragment(fragment);
     }
 

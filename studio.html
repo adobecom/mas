@@ -8,7 +8,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="aem-base-url"/>
         <script>
-            let baseUrl = window.location.href.includes('localhost') ? 'http://localhost:8080' : 'https://mas-proxy-odin.corp.adobe.com';
+            const search = new URLSearchParams(document.location.search);
+            let baseUrl = search.get('proxy') === 'local' ? 'http://localhost:8080' : 'https://mas-proxy-odin.corp.adobe.com';
             document.querySelector('meta[name="aem-base-url"]')?.setAttribute('content', baseUrl);
         </script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/7.2.1/tinymce.min.js"></script>

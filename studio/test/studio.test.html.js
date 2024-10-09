@@ -1,8 +1,6 @@
-// @ts-nocheck
 import { runTests } from '@web/test-runner-mocha';
 import { expect } from '@esm-bundle/chai';
 
-//import '@adobecom/milo/libs/features/mas/mas/src/mas.js';
 import '@adobecom/milo/libs/deps/mas/mas.js';
 
 import '../../src/aem/content-navigation.js';
@@ -12,10 +10,6 @@ import '../../src/aem/render-view.js';
 
 import '../src/swc.js';
 import '../src/studio.js';
-
-import { mockFetch } from '@adobecom/milo/libs/features/mas/mocks/fetch.js';
-import { withAem } from '@adobecom/milo/libs/features/mas/mocks/aem.js';
-import { withWcs } from '@adobecom/milo/libs/features/mas/mocks/wcs.js';
 
 import { getTemplateContent, delay } from './utils.js';
 

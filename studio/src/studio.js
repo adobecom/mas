@@ -5,9 +5,10 @@ import {
     pushState,
 } from '@adobecom/milo/libs/features/mas/web-components/src/deeplink.js';
 import './editors/merch-card-editor.js';
-import './editors/variant-picker.js';
 import './rte-editor.js';
-import './top-nav.js';
+import './mas-top-nav.js';
+import './mas-filter-panel.js';
+import './mas-filter-toolbar.js';
 
 import { getOffferSelectorTool, openOfferSelectorTool } from './ost.js';
 
@@ -23,6 +24,7 @@ class MasStudio extends LitElement {
         path: { type: String, state: true },
         variant: { type: String, state: true },
         newFragment: { type: Object, state: true },
+        showFilterPanel: { type: Boolean, state: true },
     };
 
     constructor() {
@@ -32,12 +34,21 @@ class MasStudio extends LitElement {
         this.variant = 'all';
         this.searchText = '';
         this.path = '';
+        this.showFilterPanel = false;
     }
 
     connectedCallback() {
         super.connectedCallback();
         this.registerListeners();
         this.startDeeplink();
+        this.addEventListener('toggle-filter-panel', this.toggleFilterPanel);
+        this.addEventListener('clear-search', this.clearSearch);
+        this.addEventListener('search-fragments', this.doSearch);
+        this.addEventListener('variant-changed', this.handleVariantChange);
+        this.addEventListener(
+            'search-text-changed',
+            this.handleSearchTextChange,
+        );
     }
 
     registerListeners() {
@@ -73,6 +84,22 @@ class MasStudio extends LitElement {
         const state = { ...this.source?.search };
         if (state.path === this.root) state.path = '';
         pushState(state);
+    }
+
+    toggleFilterPanel() {
+        this.showFilterPanel = !this.showFilterPanel;
+    }
+
+    clearSearch() {
+        this.searchText = '';
+        pushState({
+            query: undefined,
+            path: undefined,
+        });
+    }
+
+    handleSearchTextChange(e) {
+        this.searchText = e.detail.searchText;
     }
 
     updated(changedProperties) {
@@ -270,24 +297,12 @@ class MasStudio extends LitElement {
 
     render() {
         return html`
-            <top-nav></top-nav>
+            <mas-top-nav></mas-top-nav>
             <side-nav></side-nav>
-            <div>
-                <sp-search
-                    placeholder="Search"
-                    @change="${this.handleSearch}"
-                    @submit="${this.handleSearch}"
-                    value=${this.searchText}
-                    size="m"
-                ></sp-search>
-                <variant-picker
-                    id="vpick"
-                    show-all="true"
-                    default-value="${this.variant}"
-                    @change="${this.handleVariantChange}"
-                ></variant-picker>
-                <sp-button @click=${this.doSearch}>Search</sp-button>
-            </div>
+            <mas-filter-toolbar></mas-filter-toolbar>
+            ${this.showFilterPanel
+                ? html`<mas-filter-panel></mas-filter-panel>`
+                : nothing}
             ${this.content} ${this.fragmentEditor} ${this.selectFragmentDialog}
             ${this.toast} ${this.loadingIndicator} ${getOffferSelectorTool()}
         `;

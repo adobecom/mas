@@ -9,6 +9,7 @@ class ContentNavigation extends LitElement {
         return css`
             :host {
                 display: block;
+                padding: 0 10px;
             }
 
             #toolbar {
@@ -209,7 +210,7 @@ class ContentNavigation extends LitElement {
             <slot name="toolbar-actions"></slot>
             <sp-action-button emphasized style=${inNoSelectionStyle}>
                 <sp-icon-new-item slot="icon"></sp-icon-new-item>
-                New
+                Create New Card
             </sp-action-button>
             <sp-action-button
                 style=${inNoSelectionStyle}

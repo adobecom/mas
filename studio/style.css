@@ -10,6 +10,7 @@ mas-studio {
     width: 100%;
     display: flex;
     gap: 8px;
+    background-color: var(--spectrum-global-color-gray-100);
     align-items: center;
     flex-direction: column;
     position: absolute;
@@ -119,7 +120,6 @@ render-view {
     flex-wrap: wrap;
     padding-inline-start: 0;
     align-items: start;
-    background-color: var(--spectrum-background-layer-2-color);
 }
 
 content-navigation render-view merch-card .overlay {

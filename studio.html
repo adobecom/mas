@@ -62,12 +62,9 @@
     </head>
     <body>
         <main>
-            <sp-theme color="light" scale="medium"></sp-theme>
+            <sp-theme color="light" scale="medium">
+                <mas-studio base-url="https://author-p22655-e155390.adobeaemcloud.com"></mas-studio>
+            </sp-theme>
         </main>
-        <script>
-            const studio = document.createElement('mas-studio');
-            studio.setAttribute('base-url', baseUrl)
-            document.querySelector('sp-theme').appendChild(studio);
-        </script>
     </body>
 </html>

@@ -104,6 +104,11 @@ export class RteEditor extends HTMLElement {
                     //TODO handle locale.
                     script.setAttribute('type', 'module');
                     editor.contentDocument.head.appendChild(script);
+                    const masCommerceService =
+                        editor.contentDocument.createElement(
+                            'mas-commerce-service',
+                        );
+                    editor.contentDocument.head.appendChild(masCommerceService);
                     // TODO: remove this once pandora is removed from mas.
                     const pandoraScript =
                         editor.contentDocument.createElement('script');

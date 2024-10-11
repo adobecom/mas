@@ -1,6 +1,6 @@
 const getMiloLibs = () => {
     const milolibs = new URLSearchParams(window.location.search)?.get('milolibs');
-    if (!milolibs) return 'https://ccd--milo--adobecom.hlx.live';
+    if (!milolibs) return 'https://www.adobe.com';
     if ('local' === milolibs) return 'http://localhost:6456';
     return `https://${milolibs}.hlx.live`;
 }

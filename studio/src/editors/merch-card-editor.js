@@ -59,6 +59,14 @@ class MerchCardEditor extends LitElement {
                 value="${form.mnemonicIcon.values.join(',')}"
                 @change="${this.updateFragment}"
             ></sp-textfield>
+            <sp-field-label for="card-icon">Badge</sp-field-label>
+            <sp-textfield
+                placeholder="Enter yellow badge text"
+                id="card-badge"
+                data-field="badge"
+                value="${form.badge.values[0]}"
+                @change="${this.updateFragment}"
+            ></sp-textfield>
             <sp-field-label for="card-icon">Background Image</sp-field-label>
             <sp-textfield
                 placeholder="Enter backgroung image URL"

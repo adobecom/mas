@@ -44,7 +44,7 @@ var Ie=Object.defineProperty;var ze=(n,e,t)=>e in n?Ie(n,e,{enumerable:!0,config
             ></sp-textfield>
             <sp-field-label for="card-icon">Badge</sp-field-label>
             <sp-textfield
-                placeholder="Enter yellow badge text"
+                placeholder="Enter badge text"
                 id="card-badge"
                 data-field="badge"
                 value="${e.badge.values[0]}"

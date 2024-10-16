@@ -61,7 +61,7 @@ class MerchCardEditor extends LitElement {
             ></sp-textfield>
             <sp-field-label for="card-icon">Badge</sp-field-label>
             <sp-textfield
-                placeholder="Enter yellow badge text"
+                placeholder="Enter badge text"
                 id="card-badge"
                 data-field="badge"
                 value="${form.badge.values[0]}"

@@ -71,14 +71,6 @@ sp-underlay + sp-dialog {
     width: 80vw;
 }
 
-sp-toast {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    z-index: 10;
-    transform: translateX(-50%);
-}
-
 sp-status-light {
     position: absolute;
     bottom: -6px;
@@ -127,8 +119,7 @@ content-navigation render-view merch-card .overlay {
 }
 
 merch-card-editor {
-    display: block;
-    margin-top: 32px;
+    display: contents;
 }
 
 content-navigation[in-selection] render-view merch-card .overlay {
@@ -142,4 +133,8 @@ content-navigation[in-selection] render-view merch-card .overlay {
     left: 0;
     width: 100%;
     height: 100%;
+}
+
+merch-card-editor mas-multifield {
+    padding-inline-end: 24px;
 }

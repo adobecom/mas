@@ -249,17 +249,41 @@ class MasStudio extends LitElement {
     }
 
     get fragmentEditor() {
-        return html`<sp-overlay type="manual" ?open=${this.source?.fragment}>
+        return html`<sp-overlay type="manual" ?open=${this.fragment}>
             <sp-popover id="editor">
                 <sp-dialog no-divider>
-                    ${this.source?.fragment
+                    ${this.fragment
                         ? html`
                               <merch-card-editor
-                                  .fragment=${this.source?.fragment}
+                                  .fragment=${this.fragment}
                                   @ost-open="${this.openOfferSelectorTool}"
+                                  @refresh-fragment="${this.refreshFragment}"
                                   @update-fragment="${this.updateFragment}"
                               >
                               </merch-card-editor>
+                              <p>Fragment details (not shown on the card)</p>
+                              <sp-divider size="s"></sp-divider>
+                              <sp-field-label for="fragment-title"
+                                  >Fragment Title</sp-field-label
+                              >
+                              <sp-textfield
+                                  placeholder="Enter fragment title"
+                                  id="fragment-title"
+                                  data-field="title"
+                                  value="${this.fragment.title}"
+                                  @change="${this.updateFragmentInternal}"
+                              ></sp-textfield>
+                              <sp-field-label for="fragment-description"
+                                  >Fragment Description</sp-field-label
+                              >
+                              <sp-textfield
+                                  placeholder="Enter fragment description"
+                                  id="fragment-description"
+                                  data-field="description"
+                                  multiline
+                                  value="${this.fragment.description}"
+                                  @change="${this.updateFragmentInternal}"
+                              ></sp-textfield>
                               ${this.fragmentEditorToolbar}
                           `
                         : nothing}
@@ -279,7 +303,7 @@ class MasStudio extends LitElement {
                 bucket="${this.bucket}"
                 variant="${this.variant}"
             ></aem-fragments>
-            <content-navigation source="aem" ?disabled=${this.source?.fragment}>
+            <content-navigation source="aem" ?disabled=${this.fragment}>
                 <table-view .customRenderItem=${this.customRenderItem}>
                     <sp-table-head-cell slot="headers"
                         >Variant</sp-table-head-cell
@@ -386,22 +410,41 @@ class MasStudio extends LitElement {
         await this.editFragment(fragment);
     }
 
+    updateFragmentInternal(e) {
+        const fieldName = e.target.dataset.field;
+        let value = e.target.value;
+        this.fragment.updateFieldInternal(fieldName, value);
+    }
+
     updateFragment({ detail: e }) {
         const fieldName = e.target.dataset.field;
         let value = e.target.value || e.detail?.value;
         value = e.target.multiline ? value?.split(',') : [value ?? ''];
         if (this.fragment.updateField(fieldName, value)) {
-            const aemFragment = this.querySelector(
-                `aem-fragment[fragment="${this.fragment.id}"]`,
-            );
-            aemFragment?.refresh(false);
+            this.fragmentElement?.refresh(false);
         }
+    }
+
+    get fragmentElement() {
+        return this.querySelector(
+            `aem-fragment[fragment="${this.fragment.id}"]`,
+        );
+    }
+
+    /** Refresh the fragment with locally updated data and awaits until ready */
+    async refreshFragment(e) {
+        if (!this.fragmentElement) return;
+        this.fragment.eventTarget ??= this.fragmentElement.parentElement;
+        this.fragmentElement.refresh(false);
+        await this.fragmentElement.updateComplete;
     }
 
     async saveFragment() {
         this.showToast('Saving fragment...');
         try {
             await this.source?.saveFragment();
+            await this.refreshFragment();
+            this.requestUpdate();
             this.showToast('Fragment saved', 'positive');
         } catch (e) {
             this.showToast('Fragment could not be saved', 'negative');

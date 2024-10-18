@@ -1,5 +1,7 @@
 import { html, LitElement, nothing } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+import '../fields/multifield.js';
+import '../fields/mnemonic-field.js';
 
 const MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 
@@ -14,9 +16,9 @@ class MerchCardEditor extends LitElement {
 
     render() {
         if (this.fragment.model.path !== MODEL_PATH) return nothing;
-        const form = Object.fromEntries(
-            this.fragment.fields.map((f) => [f.name, f]),
-        );
+        const form = Object.fromEntries([
+            ...this.fragment.fields.map((f) => [f.name, f]),
+        ]);
         return html` <p>${this.fragment.path}</p>
             <sp-field-label for="card-variant">Variant</sp-field-label>
             <variant-picker
@@ -50,15 +52,6 @@ class MerchCardEditor extends LitElement {
                 value="${form.size.values[0]}"
                 @change="${this.updateFragment}"
             ></sp-textfield>
-            <sp-field-label for="card-icon">Icons</sp-field-label>
-            <sp-textfield
-                placeholder="Enter icon URLs"
-                id="card-icon"
-                data-field="mnemonicIcon"
-                multiline
-                value="${form.mnemonicIcon.values.join(',')}"
-                @change="${this.updateFragment}"
-            ></sp-textfield>
             <sp-field-label for="card-icon">Badge</sp-field-label>
             <sp-textfield
                 placeholder="Enter badge text"
@@ -67,6 +60,16 @@ class MerchCardEditor extends LitElement {
                 value="${form.badge.values[0]}"
                 @change="${this.updateFragment}"
             ></sp-textfield>
+            <sp-field-label for="mnemonic">Mnemonics</sp-field-label>
+            <mas-multifield
+                id="mnemonic"
+                .value="${this.fragment.computed.mnemonics}"
+                @change="${this.updateMnemonics}"
+            >
+                <template>
+                    <mas-mnemonic-field></mas-mnemonic-field>
+                </template>
+            </mas-multifield>
             <sp-field-label for="card-icon">Background Image</sp-field-label>
             <sp-textfield
                 placeholder="Enter backgroung image URL"
@@ -99,6 +102,21 @@ class MerchCardEditor extends LitElement {
 
     updateFragment(e) {
         this.dispatchEvent(new CustomEvent('update-fragment', { detail: e }));
+    }
+
+    updateMnemonics(e) {
+        const mnemonicIcon = [];
+        const mnemonicAlt = [];
+        const mnemonicLink = [];
+        e.target.value.forEach(({ icon, alt, link }) => {
+            mnemonicIcon.push(icon ?? '');
+            mnemonicAlt.push(alt ?? '');
+            mnemonicLink.push(link ?? '');
+        });
+        this.fragment.updateField('mnemonicIcon', mnemonicIcon);
+        this.fragment.updateField('mnemonicAlt', mnemonicAlt);
+        this.fragment.updateField('mnemonicLink', mnemonicLink);
+        this.dispatchEvent(new CustomEvent('refresh-fragment'));
     }
 }
 

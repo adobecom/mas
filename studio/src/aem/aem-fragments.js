@@ -96,6 +96,7 @@ class AemFragments extends LitElement {
     async selectFragment(x, y, fragment) {
         const latest = await this.#aem.sites.cf.fragments.getById(fragment.id);
         Object.assign(fragment, latest);
+        fragment.refreshFrom(latest);
         this.setFragment(fragment);
         this.dispatchEvent(
             new CustomEvent('select-fragment', {
@@ -171,9 +172,7 @@ class AemFragments extends LitElement {
     async saveFragment() {
         let fragment = await this.#aem.sites.cf.fragments.save(this.fragment);
         if (!fragment) throw new Error('Failed to save fragment');
-        fragment = new Fragment(fragment);
-        aemFragmentCache.add(fragment);
-        this.setFragment(fragment);
+        aemFragmentCache.get(fragment.id)?.refreshFrom(fragment);
     }
 
     async copyFragment() {

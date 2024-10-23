@@ -106,9 +106,9 @@ class AEM {
      * @returns Fragment json
      */
     async getFragment(res) {
-        const eTag = res.headers.get('Etag');
+        const etag = res.headers.get('Etag');
         const fragment = await res.json();
-        fragment.etag = eTag;
+        fragment.etag = etag;
         return fragment;
     }
 
@@ -164,7 +164,7 @@ class AEM {
      * @returns {Promise<Object>} the updated fragment
      */
     async saveFragment(fragment) {
-        const { title, fields } = fragment;
+        const { title, description, fields } = fragment;
         const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
             method: 'PUT',
             headers: {
@@ -172,7 +172,7 @@ class AEM {
                 'If-Match': fragment.etag,
                 ...this.headers,
             },
-            body: JSON.stringify({ title, fields }),
+            body: JSON.stringify({ title, description, fields }),
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });

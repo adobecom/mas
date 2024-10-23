@@ -23,6 +23,9 @@ class RenderView extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        this.addEventListener('click', (e) => {
+            e.preventDefault(); // prevent following links.
+        });
         this.parentElement.addEventListener(EVENT_CHANGE, this.forceUpdate);
         this.parentElement.source.addEventListener(
             EVENT_LOAD,

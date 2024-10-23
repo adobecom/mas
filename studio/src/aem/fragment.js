@@ -1,3 +1,5 @@
+import { EVENT_CHANGE } from '../events.js';
+
 export class Fragment {
     path = '';
     hasChanges = false;
@@ -12,18 +14,20 @@ export class Fragment {
      * @param {*} eventTarget DOM element to dispatch events from
      */
     constructor(
-        { id, model, path, title, status, modified, fields },
+        { id, etag, model, path, title, description, status, modified, fields },
         eventTarget,
     ) {
         this.id = id;
         this.model = model;
+        this.etag = etag;
         this.path = path;
         this.name = path.split('/').pop();
         this.title = title;
+        this.description = description;
         this.status = status;
         this.modified = modified;
         this.fields = fields;
-        this.eventTarget = eventTarget;
+        this.eventTarget = eventTarget; /** can be null and set after on save */
     }
 
     get variant() {
@@ -40,15 +44,27 @@ export class Fragment {
         return this.status === 'PUBLISHED' ? 'positive' : 'info';
     }
 
+    refreshFrom(fragmentData) {
+        Object.assign(this, fragmentData);
+        this.hasChanges = false;
+        this.notify();
+    }
+
     notify() {
         this.eventTarget.dispatchEvent(
-            new CustomEvent('change', { detail: this }),
+            new CustomEvent(EVENT_CHANGE, { detail: this }),
         );
     }
 
     toggleSelection(value) {
         if (value !== undefined) this.selected = value;
         else this.selected = !this.selected;
+        this.notify();
+    }
+
+    updateFieldInternal(fieldName, value) {
+        this[fieldName] = value ?? '';
+        this.hasChanges = true;
         this.notify();
     }
 

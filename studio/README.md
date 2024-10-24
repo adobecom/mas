@@ -16,4 +16,4 @@ MAS Studio can be developped with the following markup using the proxy.
 npm run proxy
 ```
 
-Currently the proxy points to the Odin QA bucket (`author-p22655-e155390`) and it can be changed in `package.json`.
+The proxy points to the Odin PROD bucket (`author-p22655-e59433`) and it can be changed in `package.json`.

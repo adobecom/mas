@@ -52,7 +52,7 @@ class MerchCardEditor extends LitElement {
                 value="${form.size.values[0]}"
                 @change="${this.updateFragment}"
             ></sp-textfield>
-            <sp-field-label for="card-icon">Badge</sp-field-label>
+            <sp-field-label for="card-badge">Badge</sp-field-label>
             <sp-textfield
                 placeholder="Enter badge text"
                 id="card-badge"
@@ -97,7 +97,15 @@ class MerchCardEditor extends LitElement {
                 <rte-editor data-field="ctas" @blur="${this.updateFragment}"
                     >${unsafeHTML(form.ctas.values[0])}</rte-editor
                 >
-            </sp-field-group>`;
+            </sp-field-group>
+            <sp-field-label for="promoCode">Promo Code</sp-field-label>
+            <sp-textfield
+                placeholder="Enter promo code"
+                id="promoCode"
+                data-field="promoCode"
+                value="${form.promoCode.values[0]}"
+                @change="${this.updateFragment}"
+            ></sp-textfield>`;
     }
 
     updateFragment(e) {

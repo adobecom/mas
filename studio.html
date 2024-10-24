@@ -80,7 +80,8 @@
             <sp-theme color="light" scale="medium">
                 <script>
                     const studio = document.createElement('mas-studio');
-                    studio.setAttribute('base-url', baseUrl)
+                    studio.setAttribute('base-url', baseUrl);
+                    studio.setAttribute('aem-bucket', bucket);
                     document.querySelector('sp-theme').appendChild(studio);
                 </script>
             </sp-theme>

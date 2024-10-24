@@ -1,6 +1,24 @@
 import { LitElement, html, css } from 'lit';
 
+const EnvColorCode = {
+    prod: 'negative',
+    stage: 'notice',
+    qa: 'positive',
+};
 class MasTopNav extends LitElement {
+    static properties = {
+        env: { type: String },
+    };
+
+    constructor() {
+        super();
+        this.env = 'prod';
+    }
+
+    get envIndicator() {
+        return EnvColorCode[this.env];
+    }
+
     static get styles() {
         return css`
             :host {
@@ -61,6 +79,9 @@ class MasTopNav extends LitElement {
                         ></path>
                     </svg>
                     <strong>Merch @ Scale Studio</strong>
+                </sp-top-nav-item>
+                <sp-top-nav-item href="#" label="Help" placement="bottom-end">
+                    <sp-badge size="s" variant="${this.envIndicator}">${this.env}</sp-badge>
                 </sp-top-nav-item>
                 <sp-top-nav-item href="#" label="Help" placement="bottom-end">
                     <sp-icon-help-outline></sp-icon-help-outline>

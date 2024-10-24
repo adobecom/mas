@@ -134,7 +134,7 @@ var Qe=Object.defineProperty;var we=n=>{throw TypeError(n)};var Xe=(n,e,t)=>e in
             <sp-field-label for="mnemonic">Mnemonics</sp-field-label>
             <mas-multifield
                 id="mnemonic"
-                .value="${this.fragment.computed.mnemonics}"
+                .value="${this.fragment.computed?.mnemonics}"
                 @change="${this.updateMnemonics}"
             >
                 <template>

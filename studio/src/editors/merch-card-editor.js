@@ -63,7 +63,7 @@ class MerchCardEditor extends LitElement {
             <sp-field-label for="mnemonic">Mnemonics</sp-field-label>
             <mas-multifield
                 id="mnemonic"
-                .value="${this.fragment.computed.mnemonics}"
+                .value="${this.fragment.computed?.mnemonics}"
                 @change="${this.updateMnemonics}"
             >
                 <template>

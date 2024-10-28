@@ -6,7 +6,7 @@ const defaults = {
     define: { 'process.env.NODE_ENV': '"production"' },
     external: [],
     format: 'esm',
-    minify: true,
+    minify: false,
     platform: 'browser',
     sourcemap: true,
     target: ['es2020'],
@@ -14,6 +14,7 @@ const defaults = {
 
 await build({
     ...defaults,
+    minify: true,
     entryPoints: ['src/swc.js'],
     outfile: 'libs/swc.js',
 });

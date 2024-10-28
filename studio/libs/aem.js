@@ -1,6 +1,620 @@
-var he=Object.defineProperty;var Ot=i=>{throw TypeError(i)};var ce=(i,t,e)=>t in i?he(i,t,{enumerable:!0,configurable:!0,writable:!0,value:e}):i[t]=e;var y=(i,t,e)=>ce(i,typeof t!="symbol"?t+"":t,e),Mt=(i,t,e)=>t.has(i)||Ot("Cannot "+e);var p=(i,t,e)=>(Mt(i,t,"read from private field"),e?e.call(i):t.get(i)),_=(i,t,e)=>t.has(i)?Ot("Cannot add the same private member more than once"):t instanceof WeakSet?t.add(i):t.set(i,e),b=(i,t,e,s)=>(Mt(i,t,"write to private field"),s?s.call(i,e):t.set(i,e),e);var nt=globalThis,ot=nt.ShadowRoot&&(nt.ShadyCSS===void 0||nt.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,Et=Symbol(),Dt=new WeakMap,W=class{constructor(t,e,s){if(this._$cssResult$=!0,s!==Et)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e}get styleSheet(){let t=this.o,e=this.t;if(ot&&t===void 0){let s=e!==void 0&&e.length===1;s&&(t=Dt.get(e)),t===void 0&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),s&&Dt.set(e,t))}return t}toString(){return this.cssText}},Lt=i=>new W(typeof i=="string"?i:i+"",void 0,Et),G=(i,...t)=>{let e=i.length===1?i[0]:t.reduce((s,r,n)=>s+(o=>{if(o._$cssResult$===!0)return o.cssText;if(typeof o=="number")return o;throw Error("Value passed to 'css' function must be a 'css' function result: "+o+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(r)+i[n+1],i[0]);return new W(e,i,Et)},_t=(i,t)=>{if(ot)i.adoptedStyleSheets=t.map(e=>e instanceof CSSStyleSheet?e:e.styleSheet);else for(let e of t){let s=document.createElement("style"),r=nt.litNonce;r!==void 0&&s.setAttribute("nonce",r),s.textContent=e.cssText,i.appendChild(s)}},at=ot?i=>i:i=>i instanceof CSSStyleSheet?(t=>{let e="";for(let s of t.cssRules)e+=s.cssText;return Lt(e)})(i):i;var{is:de,defineProperty:pe,getOwnPropertyDescriptor:ue,getOwnPropertyNames:me,getOwnPropertySymbols:fe,getPrototypeOf:ge}=Object,P=globalThis,It=P.trustedTypes,$e=It?It.emptyScript:"",be=P.reactiveElementPolyfillSupport,J=(i,t)=>i,wt={toAttribute(i,t){switch(t){case Boolean:i=i?$e:null;break;case Object:case Array:i=i==null?i:JSON.stringify(i)}return i},fromAttribute(i,t){let e=i;switch(t){case Boolean:e=i!==null;break;case Number:e=i===null?null:Number(i);break;case Object:case Array:try{e=JSON.parse(i)}catch{e=null}}return e}},Bt=(i,t)=>!de(i,t),Ht={attribute:!0,type:String,converter:wt,reflect:!1,hasChanged:Bt};Symbol.metadata??(Symbol.metadata=Symbol("metadata")),P.litPropertyMetadata??(P.litPropertyMetadata=new WeakMap);var x=class extends HTMLElement{static addInitializer(t){this._$Ei(),(this.l??(this.l=[])).push(t)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(t,e=Ht){if(e.state&&(e.attribute=!1),this._$Ei(),this.elementProperties.set(t,e),!e.noAccessor){let s=Symbol(),r=this.getPropertyDescriptor(t,s,e);r!==void 0&&pe(this.prototype,t,r)}}static getPropertyDescriptor(t,e,s){let{get:r,set:n}=ue(this.prototype,t)??{get(){return this[e]},set(o){this[e]=o}};return{get(){return r?.call(this)},set(o){let h=r?.call(this);n.call(this,o),this.requestUpdate(t,h,s)},configurable:!0,enumerable:!0}}static getPropertyOptions(t){return this.elementProperties.get(t)??Ht}static _$Ei(){if(this.hasOwnProperty(J("elementProperties")))return;let t=ge(this);t.finalize(),t.l!==void 0&&(this.l=[...t.l]),this.elementProperties=new Map(t.elementProperties)}static finalize(){if(this.hasOwnProperty(J("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(J("properties"))){let e=this.properties,s=[...me(e),...fe(e)];for(let r of s)this.createProperty(r,e[r])}let t=this[Symbol.metadata];if(t!==null){let e=litPropertyMetadata.get(t);if(e!==void 0)for(let[s,r]of e)this.elementProperties.set(s,r)}this._$Eh=new Map;for(let[e,s]of this.elementProperties){let r=this._$Eu(e,s);r!==void 0&&this._$Eh.set(r,e)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(t){let e=[];if(Array.isArray(t)){let s=new Set(t.flat(1/0).reverse());for(let r of s)e.unshift(at(r))}else t!==void 0&&e.push(at(t));return e}static _$Eu(t,e){let s=e.attribute;return s===!1?void 0:typeof s=="string"?s:typeof t=="string"?t.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(t=>this.enableUpdating=t),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(t=>t(this))}addController(t){(this._$EO??(this._$EO=new Set)).add(t),this.renderRoot!==void 0&&this.isConnected&&t.hostConnected?.()}removeController(t){this._$EO?.delete(t)}_$E_(){let t=new Map,e=this.constructor.elementProperties;for(let s of e.keys())this.hasOwnProperty(s)&&(t.set(s,this[s]),delete this[s]);t.size>0&&(this._$Ep=t)}createRenderRoot(){let t=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return _t(t,this.constructor.elementStyles),t}connectedCallback(){this.renderRoot??(this.renderRoot=this.createRenderRoot()),this.enableUpdating(!0),this._$EO?.forEach(t=>t.hostConnected?.())}enableUpdating(t){}disconnectedCallback(){this._$EO?.forEach(t=>t.hostDisconnected?.())}attributeChangedCallback(t,e,s){this._$AK(t,s)}_$EC(t,e){let s=this.constructor.elementProperties.get(t),r=this.constructor._$Eu(t,s);if(r!==void 0&&s.reflect===!0){let n=(s.converter?.toAttribute!==void 0?s.converter:wt).toAttribute(e,s.type);this._$Em=t,n==null?this.removeAttribute(r):this.setAttribute(r,n),this._$Em=null}}_$AK(t,e){let s=this.constructor,r=s._$Eh.get(t);if(r!==void 0&&this._$Em!==r){let n=s.getPropertyOptions(r),o=typeof n.converter=="function"?{fromAttribute:n.converter}:n.converter?.fromAttribute!==void 0?n.converter:wt;this._$Em=r,this[r]=o.fromAttribute(e,n.type),this._$Em=null}}requestUpdate(t,e,s){if(t!==void 0){if(s??(s=this.constructor.getPropertyOptions(t)),!(s.hasChanged??Bt)(this[t],e))return;this.P(t,e,s)}this.isUpdatePending===!1&&(this._$ES=this._$ET())}P(t,e,s){this._$AL.has(t)||this._$AL.set(t,e),s.reflect===!0&&this._$Em!==t&&(this._$Ej??(this._$Ej=new Set)).add(t)}async _$ET(){this.isUpdatePending=!0;try{await this._$ES}catch(e){Promise.reject(e)}let t=this.scheduleUpdate();return t!=null&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??(this.renderRoot=this.createRenderRoot()),this._$Ep){for(let[r,n]of this._$Ep)this[r]=n;this._$Ep=void 0}let s=this.constructor.elementProperties;if(s.size>0)for(let[r,n]of s)n.wrapped!==!0||this._$AL.has(r)||this[r]===void 0||this.P(r,this[r],n)}let t=!1,e=this._$AL;try{t=this.shouldUpdate(e),t?(this.willUpdate(e),this._$EO?.forEach(s=>s.hostUpdate?.()),this.update(e)):this._$EU()}catch(s){throw t=!1,this._$EU(),s}t&&this._$AE(e)}willUpdate(t){}_$AE(t){this._$EO?.forEach(e=>e.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(t)),this.updated(t)}_$EU(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(t){return!0}update(t){this._$Ej&&(this._$Ej=this._$Ej.forEach(e=>this._$EC(e,this[e]))),this._$EU()}updated(t){}firstUpdated(t){}};x.elementStyles=[],x.shadowRootOptions={mode:"open"},x[J("elementProperties")]=new Map,x[J("finalized")]=new Map,be?.({ReactiveElement:x}),(P.reactiveElementVersions??(P.reactiveElementVersions=[])).push("2.0.4");var Y=globalThis,lt=Y.trustedTypes,Vt=lt?lt.createPolicy("lit-html",{createHTML:i=>i}):void 0,At="$lit$",U=`lit$${Math.random().toFixed(9).slice(2)}$`,St="?"+U,ye=`<${St}>`,M=document,Q=()=>M.createComment(""),X=i=>i===null||typeof i!="object"&&typeof i!="function",Ct=Array.isArray,Jt=i=>Ct(i)||typeof i?.[Symbol.iterator]=="function",vt=`[ 	
-\f\r]`,K=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,jt=/-->/g,zt=/>/g,N=RegExp(`>|${vt}(?:([^\\s"'>=/]+)(${vt}*=${vt}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`,"g"),qt=/'/g,Wt=/"/g,Kt=/^(?:script|style|textarea|title)$/i,Tt=i=>(t,...e)=>({_$litType$:i,strings:t,values:e}),$=Tt(1),ke=Tt(2),Ne=Tt(3),A=Symbol.for("lit-noChange"),u=Symbol.for("lit-nothing"),Gt=new WeakMap,O=M.createTreeWalker(M,129);function Yt(i,t){if(!Ct(i)||!i.hasOwnProperty("raw"))throw Error("invalid template strings array");return Vt!==void 0?Vt.createHTML(t):t}var Qt=(i,t)=>{let e=i.length-1,s=[],r,n=t===2?"<svg>":t===3?"<math>":"",o=K;for(let h=0;h<e;h++){let a=i[h],c,m,l=-1,f=0;for(;f<a.length&&(o.lastIndex=f,m=o.exec(a),m!==null);)f=o.lastIndex,o===K?m[1]==="!--"?o=jt:m[1]!==void 0?o=zt:m[2]!==void 0?(Kt.test(m[2])&&(r=RegExp("</"+m[2],"g")),o=N):m[3]!==void 0&&(o=N):o===N?m[0]===">"?(o=r??K,l=-1):m[1]===void 0?l=-2:(l=o.lastIndex-m[2].length,c=m[1],o=m[3]===void 0?N:m[3]==='"'?Wt:qt):o===Wt||o===qt?o=N:o===jt||o===zt?o=K:(o=N,r=void 0);let d=o===N&&i[h+1].startsWith("/>")?" ":"";n+=o===K?a+ye:l>=0?(s.push(c),a.slice(0,l)+At+a.slice(l)+U+d):a+U+(l===-2?h:d)}return[Yt(i,n+(i[e]||"<?>")+(t===2?"</svg>":t===3?"</math>":"")),s]},Z=class i{constructor({strings:t,_$litType$:e},s){let r;this.parts=[];let n=0,o=0,h=t.length-1,a=this.parts,[c,m]=Qt(t,e);if(this.el=i.createElement(c,s),O.currentNode=this.el.content,e===2||e===3){let l=this.el.content.firstChild;l.replaceWith(...l.childNodes)}for(;(r=O.nextNode())!==null&&a.length<h;){if(r.nodeType===1){if(r.hasAttributes())for(let l of r.getAttributeNames())if(l.endsWith(At)){let f=m[o++],d=r.getAttribute(l).split(U),g=/([.?@])?(.*)/.exec(f);a.push({type:1,index:n,name:g[2],strings:d,ctor:g[1]==="."?ct:g[1]==="?"?dt:g[1]==="@"?pt:L}),r.removeAttribute(l)}else l.startsWith(U)&&(a.push({type:6,index:n}),r.removeAttribute(l));if(Kt.test(r.tagName)){let l=r.textContent.split(U),f=l.length-1;if(f>0){r.textContent=lt?lt.emptyScript:"";for(let d=0;d<f;d++)r.append(l[d],Q()),O.nextNode(),a.push({type:2,index:++n});r.append(l[f],Q())}}}else if(r.nodeType===8)if(r.data===St)a.push({type:2,index:n});else{let l=-1;for(;(l=r.data.indexOf(U,l+1))!==-1;)a.push({type:7,index:n}),l+=U.length-1}n++}}static createElement(t,e){let s=M.createElement("template");return s.innerHTML=t,s}};function D(i,t,e=i,s){if(t===A)return t;let r=s!==void 0?e.o?.[s]:e.l,n=X(t)?void 0:t._$litDirective$;return r?.constructor!==n&&(r?._$AO?.(!1),n===void 0?r=void 0:(r=new n(i),r._$AT(i,e,s)),s!==void 0?(e.o??(e.o=[]))[s]=r:e.l=r),r!==void 0&&(t=D(i,r._$AS(i,t.values),r,s)),t}var ht=class{constructor(t,e){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=e}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){let{el:{content:e},parts:s}=this._$AD,r=(t?.creationScope??M).importNode(e,!0);O.currentNode=r;let n=O.nextNode(),o=0,h=0,a=s[0];for(;a!==void 0;){if(o===a.index){let c;a.type===2?c=new H(n,n.nextSibling,this,t):a.type===1?c=new a.ctor(n,a.name,a.strings,this,t):a.type===6&&(c=new ut(n,this,t)),this._$AV.push(c),a=s[++h]}o!==a?.index&&(n=O.nextNode(),o++)}return O.currentNode=M,r}p(t){let e=0;for(let s of this._$AV)s!==void 0&&(s.strings!==void 0?(s._$AI(t,s,e),e+=s.strings.length-2):s._$AI(t[e])),e++}},H=class i{get _$AU(){return this._$AM?._$AU??this.v}constructor(t,e,s,r){this.type=2,this._$AH=u,this._$AN=void 0,this._$AA=t,this._$AB=e,this._$AM=s,this.options=r,this.v=r?.isConnected??!0}get parentNode(){let t=this._$AA.parentNode,e=this._$AM;return e!==void 0&&t?.nodeType===11&&(t=e.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,e=this){t=D(this,t,e),X(t)?t===u||t==null||t===""?(this._$AH!==u&&this._$AR(),this._$AH=u):t!==this._$AH&&t!==A&&this._(t):t._$litType$!==void 0?this.$(t):t.nodeType!==void 0?this.T(t):Jt(t)?this.k(t):this._(t)}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t))}_(t){this._$AH!==u&&X(this._$AH)?this._$AA.nextSibling.data=t:this.T(M.createTextNode(t)),this._$AH=t}$(t){let{values:e,_$litType$:s}=t,r=typeof s=="number"?this._$AC(t):(s.el===void 0&&(s.el=Z.createElement(Yt(s.h,s.h[0]),this.options)),s);if(this._$AH?._$AD===r)this._$AH.p(e);else{let n=new ht(r,this),o=n.u(this.options);n.p(e),this.T(o),this._$AH=n}}_$AC(t){let e=Gt.get(t.strings);return e===void 0&&Gt.set(t.strings,e=new Z(t)),e}k(t){Ct(this._$AH)||(this._$AH=[],this._$AR());let e=this._$AH,s,r=0;for(let n of t)r===e.length?e.push(s=new i(this.O(Q()),this.O(Q()),this,this.options)):s=e[r],s._$AI(n),r++;r<e.length&&(this._$AR(s&&s._$AB.nextSibling,r),e.length=r)}_$AR(t=this._$AA.nextSibling,e){for(this._$AP?.(!1,!0,e);t&&t!==this._$AB;){let s=t.nextSibling;t.remove(),t=s}}setConnected(t){this._$AM===void 0&&(this.v=t,this._$AP?.(t))}},L=class{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,e,s,r,n){this.type=1,this._$AH=u,this._$AN=void 0,this.element=t,this.name=e,this._$AM=r,this.options=n,s.length>2||s[0]!==""||s[1]!==""?(this._$AH=Array(s.length-1).fill(new String),this.strings=s):this._$AH=u}_$AI(t,e=this,s,r){let n=this.strings,o=!1;if(n===void 0)t=D(this,t,e,0),o=!X(t)||t!==this._$AH&&t!==A,o&&(this._$AH=t);else{let h=t,a,c;for(t=n[0],a=0;a<n.length-1;a++)c=D(this,h[s+a],e,a),c===A&&(c=this._$AH[a]),o||(o=!X(c)||c!==this._$AH[a]),c===u?t=u:t!==u&&(t+=(c??"")+n[a+1]),this._$AH[a]=c}o&&!r&&this.j(t)}j(t){t===u?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"")}},ct=class extends L{constructor(){super(...arguments),this.type=3}j(t){this.element[this.name]=t===u?void 0:t}},dt=class extends L{constructor(){super(...arguments),this.type=4}j(t){this.element.toggleAttribute(this.name,!!t&&t!==u)}},pt=class extends L{constructor(t,e,s,r,n){super(t,e,s,r,n),this.type=5}_$AI(t,e=this){if((t=D(this,t,e,0)??u)===A)return;let s=this._$AH,r=t===u&&s!==u||t.capture!==s.capture||t.once!==s.once||t.passive!==s.passive,n=t!==u&&(s===u||r);r&&this.element.removeEventListener(this.name,this,s),n&&this.element.addEventListener(this.name,this,t),this._$AH=t}handleEvent(t){typeof this._$AH=="function"?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t)}},ut=class{constructor(t,e,s){this.element=t,this.type=6,this._$AN=void 0,this._$AM=e,this.options=s}get _$AU(){return this._$AM._$AU}_$AI(t){D(this,t)}},Xt={M:At,P:U,A:St,C:1,L:Qt,R:ht,D:Jt,V:D,I:H,H:L,N:dt,U:pt,B:ct,F:ut},Ee=Y.litHtmlPolyfillSupport;Ee?.(Z,H),(Y.litHtmlVersions??(Y.litHtmlVersions=[])).push("3.2.0");var Zt=(i,t,e)=>{let s=e?.renderBefore??t,r=s._$litPart$;if(r===void 0){let n=e?.renderBefore??null;s._$litPart$=r=new H(t.insertBefore(Q(),n),n,void 0,e??{})}return r._$AI(i),r};var E=class extends x{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){var e;let t=super.createRenderRoot();return(e=this.renderOptions).renderBefore??(e.renderBefore=t.firstChild),t}update(t){let e=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=Zt(e,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return A}};E._$litElement$=!0,E.finalized=!0,globalThis.litElementHydrateSupport?.({LitElement:E});var _e=globalThis.litElementPolyfillSupport;_e?.({LitElement:E});(globalThis.litElementVersions??(globalThis.litElementVersions=[])).push("4.1.1");var mt={ATTRIBUTE:1,CHILD:2,PROPERTY:3,BOOLEAN_ATTRIBUTE:4,EVENT:5,ELEMENT:6},ft=i=>(...t)=>({_$litDirective$:i,values:t}),B=class{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,e,s){this.t=t,this._$AM=e,this.i=s}_$AS(t,e){return this.update(t,e)}update(t,e){return this.render(...e)}};var te="important",we=" !"+te,gt=ft(class extends B{constructor(i){if(super(i),i.type!==mt.ATTRIBUTE||i.name!=="style"||i.strings?.length>2)throw Error("The `styleMap` directive must be used in the `style` attribute and must be the only part in the attribute.")}render(i){return Object.keys(i).reduce((t,e)=>{let s=i[e];return s==null?t:t+`${e=e.includes("-")?e:e.replace(/(?:^(webkit|moz|ms|o)|)(?=[A-Z])/g,"-$&").toLowerCase()}:${s};`},"")}update(i,[t]){let{style:e}=i.element;if(this.ft===void 0)return this.ft=new Set(Object.keys(t)),this.render(t);for(let s of this.ft)t[s]==null&&(this.ft.delete(s),s.includes("-")?e.removeProperty(s):e[s]=null);for(let s in t){let r=t[s];if(r!=null){this.ft.add(s);let n=typeof r=="string"&&r.endsWith(we);s.includes("-")||n?e.setProperty(s,n?r.slice(0,-11):r,n?te:""):e[s]=r}}return A}});var w="change";var xt="load-start",ee="load-end",F="load";var se="mas-render-mode",Ut=class extends E{static get styles(){return G`
+var __defProp = Object.defineProperty;
+var __typeError = (msg) => {
+  throw TypeError(msg);
+};
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
+var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
+var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), setter ? setter.call(obj, value) : member.set(obj, value), value);
+
+// ../node_modules/@lit/reactive-element/css-tag.js
+var t = globalThis;
+var e = t.ShadowRoot && (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype;
+var s = Symbol();
+var o = /* @__PURE__ */ new WeakMap();
+var n = class {
+  constructor(t3, e4, o3) {
+    if (this._$cssResult$ = true, o3 !== s) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
+    this.cssText = t3, this.t = e4;
+  }
+  get styleSheet() {
+    let t3 = this.o;
+    const s2 = this.t;
+    if (e && void 0 === t3) {
+      const e4 = void 0 !== s2 && 1 === s2.length;
+      e4 && (t3 = o.get(s2)), void 0 === t3 && ((this.o = t3 = new CSSStyleSheet()).replaceSync(this.cssText), e4 && o.set(s2, t3));
+    }
+    return t3;
+  }
+  toString() {
+    return this.cssText;
+  }
+};
+var r = (t3) => new n("string" == typeof t3 ? t3 : t3 + "", void 0, s);
+var i = (t3, ...e4) => {
+  const o3 = 1 === t3.length ? t3[0] : e4.reduce((e5, s2, o4) => e5 + ((t4) => {
+    if (true === t4._$cssResult$) return t4.cssText;
+    if ("number" == typeof t4) return t4;
+    throw Error("Value passed to 'css' function must be a 'css' function result: " + t4 + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
+  })(s2) + t3[o4 + 1], t3[0]);
+  return new n(o3, t3, s);
+};
+var S = (s2, o3) => {
+  if (e) s2.adoptedStyleSheets = o3.map((t3) => t3 instanceof CSSStyleSheet ? t3 : t3.styleSheet);
+  else for (const e4 of o3) {
+    const o4 = document.createElement("style"), n4 = t.litNonce;
+    void 0 !== n4 && o4.setAttribute("nonce", n4), o4.textContent = e4.cssText, s2.appendChild(o4);
+  }
+};
+var c = e ? (t3) => t3 : (t3) => t3 instanceof CSSStyleSheet ? ((t4) => {
+  let e4 = "";
+  for (const s2 of t4.cssRules) e4 += s2.cssText;
+  return r(e4);
+})(t3) : t3;
+
+// ../node_modules/@lit/reactive-element/reactive-element.js
+var { is: i2, defineProperty: e2, getOwnPropertyDescriptor: r2, getOwnPropertyNames: h, getOwnPropertySymbols: o2, getPrototypeOf: n2 } = Object;
+var a = globalThis;
+var c2 = a.trustedTypes;
+var l = c2 ? c2.emptyScript : "";
+var p = a.reactiveElementPolyfillSupport;
+var d = (t3, s2) => t3;
+var u = { toAttribute(t3, s2) {
+  switch (s2) {
+    case Boolean:
+      t3 = t3 ? l : null;
+      break;
+    case Object:
+    case Array:
+      t3 = null == t3 ? t3 : JSON.stringify(t3);
+  }
+  return t3;
+}, fromAttribute(t3, s2) {
+  let i5 = t3;
+  switch (s2) {
+    case Boolean:
+      i5 = null !== t3;
+      break;
+    case Number:
+      i5 = null === t3 ? null : Number(t3);
+      break;
+    case Object:
+    case Array:
+      try {
+        i5 = JSON.parse(t3);
+      } catch (t4) {
+        i5 = null;
+      }
+  }
+  return i5;
+} };
+var f = (t3, s2) => !i2(t3, s2);
+var y = { attribute: true, type: String, converter: u, reflect: false, hasChanged: f };
+Symbol.metadata ?? (Symbol.metadata = Symbol("metadata")), a.litPropertyMetadata ?? (a.litPropertyMetadata = /* @__PURE__ */ new WeakMap());
+var b = class extends HTMLElement {
+  static addInitializer(t3) {
+    this._$Ei(), (this.l ?? (this.l = [])).push(t3);
+  }
+  static get observedAttributes() {
+    return this.finalize(), this._$Eh && [...this._$Eh.keys()];
+  }
+  static createProperty(t3, s2 = y) {
+    if (s2.state && (s2.attribute = false), this._$Ei(), this.elementProperties.set(t3, s2), !s2.noAccessor) {
+      const i5 = Symbol(), r4 = this.getPropertyDescriptor(t3, i5, s2);
+      void 0 !== r4 && e2(this.prototype, t3, r4);
+    }
+  }
+  static getPropertyDescriptor(t3, s2, i5) {
+    const { get: e4, set: h3 } = r2(this.prototype, t3) ?? { get() {
+      return this[s2];
+    }, set(t4) {
+      this[s2] = t4;
+    } };
+    return { get() {
+      return e4?.call(this);
+    }, set(s3) {
+      const r4 = e4?.call(this);
+      h3.call(this, s3), this.requestUpdate(t3, r4, i5);
+    }, configurable: true, enumerable: true };
+  }
+  static getPropertyOptions(t3) {
+    return this.elementProperties.get(t3) ?? y;
+  }
+  static _$Ei() {
+    if (this.hasOwnProperty(d("elementProperties"))) return;
+    const t3 = n2(this);
+    t3.finalize(), void 0 !== t3.l && (this.l = [...t3.l]), this.elementProperties = new Map(t3.elementProperties);
+  }
+  static finalize() {
+    if (this.hasOwnProperty(d("finalized"))) return;
+    if (this.finalized = true, this._$Ei(), this.hasOwnProperty(d("properties"))) {
+      const t4 = this.properties, s2 = [...h(t4), ...o2(t4)];
+      for (const i5 of s2) this.createProperty(i5, t4[i5]);
+    }
+    const t3 = this[Symbol.metadata];
+    if (null !== t3) {
+      const s2 = litPropertyMetadata.get(t3);
+      if (void 0 !== s2) for (const [t4, i5] of s2) this.elementProperties.set(t4, i5);
+    }
+    this._$Eh = /* @__PURE__ */ new Map();
+    for (const [t4, s2] of this.elementProperties) {
+      const i5 = this._$Eu(t4, s2);
+      void 0 !== i5 && this._$Eh.set(i5, t4);
+    }
+    this.elementStyles = this.finalizeStyles(this.styles);
+  }
+  static finalizeStyles(s2) {
+    const i5 = [];
+    if (Array.isArray(s2)) {
+      const e4 = new Set(s2.flat(1 / 0).reverse());
+      for (const s3 of e4) i5.unshift(c(s3));
+    } else void 0 !== s2 && i5.push(c(s2));
+    return i5;
+  }
+  static _$Eu(t3, s2) {
+    const i5 = s2.attribute;
+    return false === i5 ? void 0 : "string" == typeof i5 ? i5 : "string" == typeof t3 ? t3.toLowerCase() : void 0;
+  }
+  constructor() {
+    super(), this._$Ep = void 0, this.isUpdatePending = false, this.hasUpdated = false, this._$Em = null, this._$Ev();
+  }
+  _$Ev() {
+    this._$ES = new Promise((t3) => this.enableUpdating = t3), this._$AL = /* @__PURE__ */ new Map(), this._$E_(), this.requestUpdate(), this.constructor.l?.forEach((t3) => t3(this));
+  }
+  addController(t3) {
+    (this._$EO ?? (this._$EO = /* @__PURE__ */ new Set())).add(t3), void 0 !== this.renderRoot && this.isConnected && t3.hostConnected?.();
+  }
+  removeController(t3) {
+    this._$EO?.delete(t3);
+  }
+  _$E_() {
+    const t3 = /* @__PURE__ */ new Map(), s2 = this.constructor.elementProperties;
+    for (const i5 of s2.keys()) this.hasOwnProperty(i5) && (t3.set(i5, this[i5]), delete this[i5]);
+    t3.size > 0 && (this._$Ep = t3);
+  }
+  createRenderRoot() {
+    const t3 = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
+    return S(t3, this.constructor.elementStyles), t3;
+  }
+  connectedCallback() {
+    this.renderRoot ?? (this.renderRoot = this.createRenderRoot()), this.enableUpdating(true), this._$EO?.forEach((t3) => t3.hostConnected?.());
+  }
+  enableUpdating(t3) {
+  }
+  disconnectedCallback() {
+    this._$EO?.forEach((t3) => t3.hostDisconnected?.());
+  }
+  attributeChangedCallback(t3, s2, i5) {
+    this._$AK(t3, i5);
+  }
+  _$EC(t3, s2) {
+    const i5 = this.constructor.elementProperties.get(t3), e4 = this.constructor._$Eu(t3, i5);
+    if (void 0 !== e4 && true === i5.reflect) {
+      const r4 = (void 0 !== i5.converter?.toAttribute ? i5.converter : u).toAttribute(s2, i5.type);
+      this._$Em = t3, null == r4 ? this.removeAttribute(e4) : this.setAttribute(e4, r4), this._$Em = null;
+    }
+  }
+  _$AK(t3, s2) {
+    const i5 = this.constructor, e4 = i5._$Eh.get(t3);
+    if (void 0 !== e4 && this._$Em !== e4) {
+      const t4 = i5.getPropertyOptions(e4), r4 = "function" == typeof t4.converter ? { fromAttribute: t4.converter } : void 0 !== t4.converter?.fromAttribute ? t4.converter : u;
+      this._$Em = e4, this[e4] = r4.fromAttribute(s2, t4.type), this._$Em = null;
+    }
+  }
+  requestUpdate(t3, s2, i5) {
+    if (void 0 !== t3) {
+      if (i5 ?? (i5 = this.constructor.getPropertyOptions(t3)), !(i5.hasChanged ?? f)(this[t3], s2)) return;
+      this.P(t3, s2, i5);
+    }
+    false === this.isUpdatePending && (this._$ES = this._$ET());
+  }
+  P(t3, s2, i5) {
+    this._$AL.has(t3) || this._$AL.set(t3, s2), true === i5.reflect && this._$Em !== t3 && (this._$Ej ?? (this._$Ej = /* @__PURE__ */ new Set())).add(t3);
+  }
+  async _$ET() {
+    this.isUpdatePending = true;
+    try {
+      await this._$ES;
+    } catch (t4) {
+      Promise.reject(t4);
+    }
+    const t3 = this.scheduleUpdate();
+    return null != t3 && await t3, !this.isUpdatePending;
+  }
+  scheduleUpdate() {
+    return this.performUpdate();
+  }
+  performUpdate() {
+    if (!this.isUpdatePending) return;
+    if (!this.hasUpdated) {
+      if (this.renderRoot ?? (this.renderRoot = this.createRenderRoot()), this._$Ep) {
+        for (const [t5, s3] of this._$Ep) this[t5] = s3;
+        this._$Ep = void 0;
+      }
+      const t4 = this.constructor.elementProperties;
+      if (t4.size > 0) for (const [s3, i5] of t4) true !== i5.wrapped || this._$AL.has(s3) || void 0 === this[s3] || this.P(s3, this[s3], i5);
+    }
+    let t3 = false;
+    const s2 = this._$AL;
+    try {
+      t3 = this.shouldUpdate(s2), t3 ? (this.willUpdate(s2), this._$EO?.forEach((t4) => t4.hostUpdate?.()), this.update(s2)) : this._$EU();
+    } catch (s3) {
+      throw t3 = false, this._$EU(), s3;
+    }
+    t3 && this._$AE(s2);
+  }
+  willUpdate(t3) {
+  }
+  _$AE(t3) {
+    this._$EO?.forEach((t4) => t4.hostUpdated?.()), this.hasUpdated || (this.hasUpdated = true, this.firstUpdated(t3)), this.updated(t3);
+  }
+  _$EU() {
+    this._$AL = /* @__PURE__ */ new Map(), this.isUpdatePending = false;
+  }
+  get updateComplete() {
+    return this.getUpdateComplete();
+  }
+  getUpdateComplete() {
+    return this._$ES;
+  }
+  shouldUpdate(t3) {
+    return true;
+  }
+  update(t3) {
+    this._$Ej && (this._$Ej = this._$Ej.forEach((t4) => this._$EC(t4, this[t4]))), this._$EU();
+  }
+  updated(t3) {
+  }
+  firstUpdated(t3) {
+  }
+};
+b.elementStyles = [], b.shadowRootOptions = { mode: "open" }, b[d("elementProperties")] = /* @__PURE__ */ new Map(), b[d("finalized")] = /* @__PURE__ */ new Map(), p?.({ ReactiveElement: b }), (a.reactiveElementVersions ?? (a.reactiveElementVersions = [])).push("2.0.4");
+
+// ../node_modules/lit-html/lit-html.js
+var n3 = globalThis;
+var c3 = n3.trustedTypes;
+var h2 = c3 ? c3.createPolicy("lit-html", { createHTML: (t3) => t3 }) : void 0;
+var f2 = "$lit$";
+var v = `lit$${Math.random().toFixed(9).slice(2)}$`;
+var m = "?" + v;
+var _ = `<${m}>`;
+var w = document;
+var lt = () => w.createComment("");
+var st = (t3) => null === t3 || "object" != typeof t3 && "function" != typeof t3;
+var g = Array.isArray;
+var $ = (t3) => g(t3) || "function" == typeof t3?.[Symbol.iterator];
+var x = "[ 	\n\f\r]";
+var T = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g;
+var E = /-->/g;
+var k = />/g;
+var O = RegExp(`>|${x}(?:([^\\s"'>=/]+)(${x}*=${x}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g");
+var S2 = /'/g;
+var j = /"/g;
+var M = /^(?:script|style|textarea|title)$/i;
+var P = (t3) => (i5, ...s2) => ({ _$litType$: t3, strings: i5, values: s2 });
+var ke = P(1);
+var Oe = P(2);
+var Se = P(3);
+var R = Symbol.for("lit-noChange");
+var D = Symbol.for("lit-nothing");
+var V = /* @__PURE__ */ new WeakMap();
+var I = w.createTreeWalker(w, 129);
+function N(t3, i5) {
+  if (!g(t3) || !t3.hasOwnProperty("raw")) throw Error("invalid template strings array");
+  return void 0 !== h2 ? h2.createHTML(i5) : i5;
+}
+var U = (t3, i5) => {
+  const s2 = t3.length - 1, e4 = [];
+  let h3, o3 = 2 === i5 ? "<svg>" : 3 === i5 ? "<math>" : "", n4 = T;
+  for (let i6 = 0; i6 < s2; i6++) {
+    const s3 = t3[i6];
+    let r4, l2, c4 = -1, a2 = 0;
+    for (; a2 < s3.length && (n4.lastIndex = a2, l2 = n4.exec(s3), null !== l2); ) a2 = n4.lastIndex, n4 === T ? "!--" === l2[1] ? n4 = E : void 0 !== l2[1] ? n4 = k : void 0 !== l2[2] ? (M.test(l2[2]) && (h3 = RegExp("</" + l2[2], "g")), n4 = O) : void 0 !== l2[3] && (n4 = O) : n4 === O ? ">" === l2[0] ? (n4 = h3 ?? T, c4 = -1) : void 0 === l2[1] ? c4 = -2 : (c4 = n4.lastIndex - l2[2].length, r4 = l2[1], n4 = void 0 === l2[3] ? O : '"' === l2[3] ? j : S2) : n4 === j || n4 === S2 ? n4 = O : n4 === E || n4 === k ? n4 = T : (n4 = O, h3 = void 0);
+    const u2 = n4 === O && t3[i6 + 1].startsWith("/>") ? " " : "";
+    o3 += n4 === T ? s3 + _ : c4 >= 0 ? (e4.push(r4), s3.slice(0, c4) + f2 + s3.slice(c4) + v + u2) : s3 + v + (-2 === c4 ? i6 : u2);
+  }
+  return [N(t3, o3 + (t3[s2] || "<?>") + (2 === i5 ? "</svg>" : 3 === i5 ? "</math>" : "")), e4];
+};
+var B = class _B {
+  constructor({ strings: t3, _$litType$: i5 }, s2) {
+    let e4;
+    this.parts = [];
+    let h3 = 0, o3 = 0;
+    const n4 = t3.length - 1, r4 = this.parts, [l2, a2] = U(t3, i5);
+    if (this.el = _B.createElement(l2, s2), I.currentNode = this.el.content, 2 === i5 || 3 === i5) {
+      const t4 = this.el.content.firstChild;
+      t4.replaceWith(...t4.childNodes);
+    }
+    for (; null !== (e4 = I.nextNode()) && r4.length < n4; ) {
+      if (1 === e4.nodeType) {
+        if (e4.hasAttributes()) for (const t4 of e4.getAttributeNames()) if (t4.endsWith(f2)) {
+          const i6 = a2[o3++], s3 = e4.getAttribute(t4).split(v), n5 = /([.?@])?(.*)/.exec(i6);
+          r4.push({ type: 1, index: h3, name: n5[2], strings: s3, ctor: "." === n5[1] ? Y : "?" === n5[1] ? Z : "@" === n5[1] ? q : G }), e4.removeAttribute(t4);
+        } else t4.startsWith(v) && (r4.push({ type: 6, index: h3 }), e4.removeAttribute(t4));
+        if (M.test(e4.tagName)) {
+          const t4 = e4.textContent.split(v), i6 = t4.length - 1;
+          if (i6 > 0) {
+            e4.textContent = c3 ? c3.emptyScript : "";
+            for (let s3 = 0; s3 < i6; s3++) e4.append(t4[s3], lt()), I.nextNode(), r4.push({ type: 2, index: ++h3 });
+            e4.append(t4[i6], lt());
+          }
+        }
+      } else if (8 === e4.nodeType) if (e4.data === m) r4.push({ type: 2, index: h3 });
+      else {
+        let t4 = -1;
+        for (; -1 !== (t4 = e4.data.indexOf(v, t4 + 1)); ) r4.push({ type: 7, index: h3 }), t4 += v.length - 1;
+      }
+      h3++;
+    }
+  }
+  static createElement(t3, i5) {
+    const s2 = w.createElement("template");
+    return s2.innerHTML = t3, s2;
+  }
+};
+function z(t3, i5, s2 = t3, e4) {
+  if (i5 === R) return i5;
+  let h3 = void 0 !== e4 ? s2.o?.[e4] : s2.l;
+  const o3 = st(i5) ? void 0 : i5._$litDirective$;
+  return h3?.constructor !== o3 && (h3?._$AO?.(false), void 0 === o3 ? h3 = void 0 : (h3 = new o3(t3), h3._$AT(t3, s2, e4)), void 0 !== e4 ? (s2.o ?? (s2.o = []))[e4] = h3 : s2.l = h3), void 0 !== h3 && (i5 = z(t3, h3._$AS(t3, i5.values), h3, e4)), i5;
+}
+var F = class {
+  constructor(t3, i5) {
+    this._$AV = [], this._$AN = void 0, this._$AD = t3, this._$AM = i5;
+  }
+  get parentNode() {
+    return this._$AM.parentNode;
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  u(t3) {
+    const { el: { content: i5 }, parts: s2 } = this._$AD, e4 = (t3?.creationScope ?? w).importNode(i5, true);
+    I.currentNode = e4;
+    let h3 = I.nextNode(), o3 = 0, n4 = 0, r4 = s2[0];
+    for (; void 0 !== r4; ) {
+      if (o3 === r4.index) {
+        let i6;
+        2 === r4.type ? i6 = new et(h3, h3.nextSibling, this, t3) : 1 === r4.type ? i6 = new r4.ctor(h3, r4.name, r4.strings, this, t3) : 6 === r4.type && (i6 = new K(h3, this, t3)), this._$AV.push(i6), r4 = s2[++n4];
+      }
+      o3 !== r4?.index && (h3 = I.nextNode(), o3++);
+    }
+    return I.currentNode = w, e4;
+  }
+  p(t3) {
+    let i5 = 0;
+    for (const s2 of this._$AV) void 0 !== s2 && (void 0 !== s2.strings ? (s2._$AI(t3, s2, i5), i5 += s2.strings.length - 2) : s2._$AI(t3[i5])), i5++;
+  }
+};
+var et = class _et {
+  get _$AU() {
+    return this._$AM?._$AU ?? this.v;
+  }
+  constructor(t3, i5, s2, e4) {
+    this.type = 2, this._$AH = D, this._$AN = void 0, this._$AA = t3, this._$AB = i5, this._$AM = s2, this.options = e4, this.v = e4?.isConnected ?? true;
+  }
+  get parentNode() {
+    let t3 = this._$AA.parentNode;
+    const i5 = this._$AM;
+    return void 0 !== i5 && 11 === t3?.nodeType && (t3 = i5.parentNode), t3;
+  }
+  get startNode() {
+    return this._$AA;
+  }
+  get endNode() {
+    return this._$AB;
+  }
+  _$AI(t3, i5 = this) {
+    t3 = z(this, t3, i5), st(t3) ? t3 === D || null == t3 || "" === t3 ? (this._$AH !== D && this._$AR(), this._$AH = D) : t3 !== this._$AH && t3 !== R && this._(t3) : void 0 !== t3._$litType$ ? this.$(t3) : void 0 !== t3.nodeType ? this.T(t3) : $(t3) ? this.k(t3) : this._(t3);
+  }
+  O(t3) {
+    return this._$AA.parentNode.insertBefore(t3, this._$AB);
+  }
+  T(t3) {
+    this._$AH !== t3 && (this._$AR(), this._$AH = this.O(t3));
+  }
+  _(t3) {
+    this._$AH !== D && st(this._$AH) ? this._$AA.nextSibling.data = t3 : this.T(w.createTextNode(t3)), this._$AH = t3;
+  }
+  $(t3) {
+    const { values: i5, _$litType$: s2 } = t3, e4 = "number" == typeof s2 ? this._$AC(t3) : (void 0 === s2.el && (s2.el = B.createElement(N(s2.h, s2.h[0]), this.options)), s2);
+    if (this._$AH?._$AD === e4) this._$AH.p(i5);
+    else {
+      const t4 = new F(e4, this), s3 = t4.u(this.options);
+      t4.p(i5), this.T(s3), this._$AH = t4;
+    }
+  }
+  _$AC(t3) {
+    let i5 = V.get(t3.strings);
+    return void 0 === i5 && V.set(t3.strings, i5 = new B(t3)), i5;
+  }
+  k(t3) {
+    g(this._$AH) || (this._$AH = [], this._$AR());
+    const i5 = this._$AH;
+    let s2, e4 = 0;
+    for (const h3 of t3) e4 === i5.length ? i5.push(s2 = new _et(this.O(lt()), this.O(lt()), this, this.options)) : s2 = i5[e4], s2._$AI(h3), e4++;
+    e4 < i5.length && (this._$AR(s2 && s2._$AB.nextSibling, e4), i5.length = e4);
+  }
+  _$AR(t3 = this._$AA.nextSibling, i5) {
+    for (this._$AP?.(false, true, i5); t3 && t3 !== this._$AB; ) {
+      const i6 = t3.nextSibling;
+      t3.remove(), t3 = i6;
+    }
+  }
+  setConnected(t3) {
+    void 0 === this._$AM && (this.v = t3, this._$AP?.(t3));
+  }
+};
+var G = class {
+  get tagName() {
+    return this.element.tagName;
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  constructor(t3, i5, s2, e4, h3) {
+    this.type = 1, this._$AH = D, this._$AN = void 0, this.element = t3, this.name = i5, this._$AM = e4, this.options = h3, s2.length > 2 || "" !== s2[0] || "" !== s2[1] ? (this._$AH = Array(s2.length - 1).fill(new String()), this.strings = s2) : this._$AH = D;
+  }
+  _$AI(t3, i5 = this, s2, e4) {
+    const h3 = this.strings;
+    let o3 = false;
+    if (void 0 === h3) t3 = z(this, t3, i5, 0), o3 = !st(t3) || t3 !== this._$AH && t3 !== R, o3 && (this._$AH = t3);
+    else {
+      const e5 = t3;
+      let n4, r4;
+      for (t3 = h3[0], n4 = 0; n4 < h3.length - 1; n4++) r4 = z(this, e5[s2 + n4], i5, n4), r4 === R && (r4 = this._$AH[n4]), o3 || (o3 = !st(r4) || r4 !== this._$AH[n4]), r4 === D ? t3 = D : t3 !== D && (t3 += (r4 ?? "") + h3[n4 + 1]), this._$AH[n4] = r4;
+    }
+    o3 && !e4 && this.j(t3);
+  }
+  j(t3) {
+    t3 === D ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t3 ?? "");
+  }
+};
+var Y = class extends G {
+  constructor() {
+    super(...arguments), this.type = 3;
+  }
+  j(t3) {
+    this.element[this.name] = t3 === D ? void 0 : t3;
+  }
+};
+var Z = class extends G {
+  constructor() {
+    super(...arguments), this.type = 4;
+  }
+  j(t3) {
+    this.element.toggleAttribute(this.name, !!t3 && t3 !== D);
+  }
+};
+var q = class extends G {
+  constructor(t3, i5, s2, e4, h3) {
+    super(t3, i5, s2, e4, h3), this.type = 5;
+  }
+  _$AI(t3, i5 = this) {
+    if ((t3 = z(this, t3, i5, 0) ?? D) === R) return;
+    const s2 = this._$AH, e4 = t3 === D && s2 !== D || t3.capture !== s2.capture || t3.once !== s2.once || t3.passive !== s2.passive, h3 = t3 !== D && (s2 === D || e4);
+    e4 && this.element.removeEventListener(this.name, this, s2), h3 && this.element.addEventListener(this.name, this, t3), this._$AH = t3;
+  }
+  handleEvent(t3) {
+    "function" == typeof this._$AH ? this._$AH.call(this.options?.host ?? this.element, t3) : this._$AH.handleEvent(t3);
+  }
+};
+var K = class {
+  constructor(t3, i5, s2) {
+    this.element = t3, this.type = 6, this._$AN = void 0, this._$AM = i5, this.options = s2;
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  _$AI(t3) {
+    z(this, t3);
+  }
+};
+var si = { M: f2, P: v, A: m, C: 1, L: U, R: F, D: $, V: z, I: et, H: G, N: Z, U: q, B: Y, F: K };
+var Re = n3.litHtmlPolyfillSupport;
+Re?.(B, et), (n3.litHtmlVersions ?? (n3.litHtmlVersions = [])).push("3.2.0");
+var Q = (t3, i5, s2) => {
+  const e4 = s2?.renderBefore ?? i5;
+  let h3 = e4._$litPart$;
+  if (void 0 === h3) {
+    const t4 = s2?.renderBefore ?? null;
+    e4._$litPart$ = h3 = new et(i5.insertBefore(lt(), t4), t4, void 0, s2 ?? {});
+  }
+  return h3._$AI(t3), h3;
+};
+
+// ../node_modules/lit-element/lit-element.js
+var r3 = class extends b {
+  constructor() {
+    super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
+  }
+  createRenderRoot() {
+    var _a;
+    const t3 = super.createRenderRoot();
+    return (_a = this.renderOptions).renderBefore ?? (_a.renderBefore = t3.firstChild), t3;
+  }
+  update(t3) {
+    const s2 = this.render();
+    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(t3), this._$Do = Q(s2, this.renderRoot, this.renderOptions);
+  }
+  connectedCallback() {
+    super.connectedCallback(), this._$Do?.setConnected(true);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback(), this._$Do?.setConnected(false);
+  }
+  render() {
+    return R;
+  }
+};
+r3._$litElement$ = true, r3["finalized"] = true, globalThis.litElementHydrateSupport?.({ LitElement: r3 });
+var i3 = globalThis.litElementPolyfillSupport;
+i3?.({ LitElement: r3 });
+(globalThis.litElementVersions ?? (globalThis.litElementVersions = [])).push("4.1.1");
+
+// ../node_modules/lit-html/directive.js
+var t2 = { ATTRIBUTE: 1, CHILD: 2, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4, EVENT: 5, ELEMENT: 6 };
+var e3 = (t3) => (...e4) => ({ _$litDirective$: t3, values: e4 });
+var i4 = class {
+  constructor(t3) {
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  _$AT(t3, e4, i5) {
+    this.t = t3, this._$AM = e4, this.i = i5;
+  }
+  _$AS(t3, e4) {
+    return this.update(t3, e4);
+  }
+  update(t3, e4) {
+    return this.render(...e4);
+  }
+};
+
+// ../node_modules/lit-html/directives/style-map.js
+var ee = "important";
+var ie = " !" + ee;
+var se = e3(class extends i4 {
+  constructor(e4) {
+    if (super(e4), e4.type !== t2.ATTRIBUTE || "style" !== e4.name || e4.strings?.length > 2) throw Error("The `styleMap` directive must be used in the `style` attribute and must be the only part in the attribute.");
+  }
+  render(t3) {
+    return Object.keys(t3).reduce((e4, r4) => {
+      const s2 = t3[r4];
+      return null == s2 ? e4 : e4 + `${r4 = r4.includes("-") ? r4 : r4.replace(/(?:^(webkit|moz|ms|o)|)(?=[A-Z])/g, "-$&").toLowerCase()}:${s2};`;
+    }, "");
+  }
+  update(t3, [e4]) {
+    const { style: r4 } = t3.element;
+    if (void 0 === this.ft) return this.ft = new Set(Object.keys(e4)), this.render(e4);
+    for (const t4 of this.ft) null == e4[t4] && (this.ft.delete(t4), t4.includes("-") ? r4.removeProperty(t4) : r4[t4] = null);
+    for (const t4 in e4) {
+      const s2 = e4[t4];
+      if (null != s2) {
+        this.ft.add(t4);
+        const e5 = "string" == typeof s2 && s2.endsWith(ie);
+        t4.includes("-") || e5 ? r4.setProperty(t4, e5 ? s2.slice(0, -11) : s2, e5 ? ee : "") : r4[t4] = s2;
+      }
+    }
+    return R;
+  }
+});
+
+// src/events.js
+var EVENT_CHANGE = "change";
+var EVENT_LOAD_START = "load-start";
+var EVENT_LOAD_END = "load-end";
+var EVENT_LOAD = "load";
+
+// src/aem/content-navigation.js
+var MAS_RENDER_MODE = "mas-render-mode";
+var ContentNavigation = class extends r3 {
+  static get styles() {
+    return i`
             :host {
                 display: block;
                 padding: 0 10px;
@@ -25,67 +639,167 @@ var he=Object.defineProperty;var Ot=i=>{throw TypeError(i)};var ce=(i,t,e)=>t in
             sp-action-bar[open] {
                 display: flex;
             }
-        `}static get properties(){return{mode:{type:String,attribute:!0,reflect:!0},source:{type:Object,attribute:!1},disabled:{type:Boolean,attribute:!0},inSelection:{type:Boolean,attribute:"in-selection",reflect:!0}}}constructor(){super(),this.mode=sessionStorage.getItem(se)??"render",this.inSelection=!1,this.disabled=!1,this.forceUpdate=this.forceUpdate.bind(this)}connectedCallback(){super.connectedCallback(),this.registerToSource()}disconnectedCallback(){super.disconnectedCallback(),this.unregisterFromSource()}registerToSource(){this.source=document.getElementById(this.getAttribute("source")),this.source&&(this.source.addEventListener(F,this.forceUpdate),this.source.addEventListener(w,this.forceUpdate))}async forceUpdate(){this.requestUpdate()}unregisterFromSource(){this.source?.removeEventListener(F,this.forceUpdate),this.source?.removeEventListener(w,this.forceUpdate)}updated(t){t.size!==0&&(t.has("mode")&&sessionStorage.setItem(se,this.mode),this.forceUpdate())}get currentRenderer(){return[...this.children].find(t=>t.canRender())}get searchInfo(){return $`<sp-icon-search></sp-icon-search> Search results for
-            "${this.source.searchText}"`}get breadcrumbs(){let t=this.source?.currentFolder?.path;if(!t)return u;let s=(t.split("/")??[]).map(r=>{let[n]=t.split(`/${r}/`);return $`<sp-breadcrumb-item
-                value="${n}/${r}"
-                ?disabled=${this.inSelection||this.disabled}
-                >${r}</sp-breadcrumb-item
-            >`});return $`<sp-breadcrumbs
+        `;
+  }
+  static get properties() {
+    return {
+      mode: { type: String, attribute: true, reflect: true },
+      source: { type: Object, attribute: false },
+      disabled: { type: Boolean, attribute: true },
+      inSelection: {
+        type: Boolean,
+        attribute: "in-selection",
+        reflect: true
+      }
+    };
+  }
+  constructor() {
+    super();
+    this.mode = sessionStorage.getItem(MAS_RENDER_MODE) ?? "render";
+    this.inSelection = false;
+    this.disabled = false;
+    this.forceUpdate = this.forceUpdate.bind(this);
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    this.registerToSource();
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.unregisterFromSource();
+  }
+  registerToSource() {
+    this.source = document.getElementById(this.getAttribute("source"));
+    if (!this.source) return;
+    this.source.addEventListener(EVENT_LOAD, this.forceUpdate);
+    this.source.addEventListener(EVENT_CHANGE, this.forceUpdate);
+  }
+  async forceUpdate() {
+    this.requestUpdate();
+  }
+  unregisterFromSource() {
+    this.source?.removeEventListener(EVENT_LOAD, this.forceUpdate);
+    this.source?.removeEventListener(EVENT_CHANGE, this.forceUpdate);
+  }
+  updated(changedProperties) {
+    if (changedProperties.size === 0) return;
+    if (changedProperties.has("mode")) {
+      sessionStorage.setItem(MAS_RENDER_MODE, this.mode);
+    }
+    this.forceUpdate();
+  }
+  get currentRenderer() {
+    return [...this.children].find((child) => child.canRender());
+  }
+  get searchInfo() {
+    return ke`<sp-icon-search></sp-icon-search> Search results for
+            "${this.source.searchText}"`;
+  }
+  get breadcrumbs() {
+    const path = this.source?.currentFolder?.path;
+    if (!path) return D;
+    const folders = path.split("/") ?? [];
+    const breadcrumbs = folders.map((name) => {
+      const [parent] = path.split(`/${name}/`);
+      return ke`<sp-breadcrumb-item
+                value="${parent}/${name}"
+                ?disabled=${this.inSelection || this.disabled}
+                >${name}</sp-breadcrumb-item
+            >`;
+    });
+    return ke`<sp-breadcrumbs
             maxVisibleItems="10"
             @change=${this.handleBreadcrumbChange}
             value="${this.source.path}"
-            >${s}</sp-breadcrumbs
-        >`}handleBreadcrumbChange(t){this.source.path=t.detail.value,this.source.listFragments()}render(){return $`<div id="toolbar">
-                ${this.source.searchText?this.searchInfo:this.breadcrumbs}
+            >${breadcrumbs}</sp-breadcrumbs
+        >`;
+  }
+  handleBreadcrumbChange(event) {
+    this.source.path = event.detail.value;
+    this.source.listFragments();
+  }
+  render() {
+    return ke`<div id="toolbar">
+                ${this.source.searchText ? this.searchInfo : this.breadcrumbs}
                 <div class="divider"></div>
                 ${this.actions}
             </div>
             ${this.selectionActions}
-            <slot></slot> `}toggleSelectionMode(t){this.inSelection=t!==void 0?t:!this.inSelection,this.inSelection||this.source.clearSelection(),this.notify()}get selectionCount(){return this.source.selectedFragments.length??0}get selectionActions(){let t=gt({display:this.selectionCount===1?"flex":"none"}),e=gt({display:this.selectionCount>0?"flex":"none"});return $`<sp-action-bar
+            <slot></slot> `;
+  }
+  toggleSelectionMode(force) {
+    this.inSelection = force !== void 0 ? force : !this.inSelection;
+    if (!this.inSelection) {
+      this.source.clearSelection();
+    }
+    this.notify();
+  }
+  get selectionCount() {
+    return this.source.selectedFragments.length ?? 0;
+  }
+  get selectionActions() {
+    const hasSingleSelection = se({
+      display: this.selectionCount === 1 ? "flex" : "none"
+    });
+    const hasSelection = se({
+      display: this.selectionCount > 0 ? "flex" : "none"
+    });
+    return ke`<sp-action-bar
             emphasized
             ?open=${this.inSelection}
             variant="fixed"
-            @close=${()=>this.toggleSelectionMode(!1)}
+            @close=${() => this.toggleSelectionMode(false)}
         >
             ${this.selectionCount} selected
             <sp-action-button
                 slot="buttons"
-                style=${t}
+                style=${hasSingleSelection}
                 label="Duplicate"
             >
                 <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
             </sp-action-button>
             <sp-action-button
                 slot="buttons"
-                style=${e}
+                style=${hasSelection}
                 label="Delete"
             >
                 <sp-icon-delete-outline slot="icon"></sp-icon-delete-outline>
             </sp-action-button>
             <sp-action-button
                 slot="buttons"
-                style=${e}
+                style=${hasSelection}
                 label="Publish"
             >
                 <sp-icon-publish-check slot="icon"></sp-icon-publish-check>
             </sp-action-button>
             <sp-action-button
                 slot="buttons"
-                style=${e}
+                style=${hasSelection}
                 label="Unpublish"
             >
                 <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
             </sp-action-button>
-        </sp-action-bar>`}get renderActions(){return[...this.children].filter(t=>t.actionData).map(({actionData:[t,e,s]})=>$`<sp-menu-item value="${t}"
-                        >${s} ${e}</sp-menu-item
-                    >`)}get actions(){let t=gt({display:!this.disabled&&!this.inSelection?"flex":"none"});return $`<sp-action-group emphasized>
+        </sp-action-bar>`;
+  }
+  get renderActions() {
+    return [...this.children].filter((child) => child.actionData).map(
+      ({ actionData: [mode, label, icon] }) => ke`<sp-menu-item value="${mode}"
+                        >${icon} ${label}</sp-menu-item
+                    >`
+    );
+  }
+  get actions() {
+    const inNoSelectionStyle = se({
+      display: !this.disabled && !this.inSelection ? "flex" : "none"
+    });
+    return ke`<sp-action-group emphasized>
             <slot name="toolbar-actions"></slot>
-            <sp-action-button emphasized style=${t}>
+            <sp-action-button emphasized style=${inNoSelectionStyle}>
                 <sp-icon-new-item slot="icon"></sp-icon-new-item>
                 Create New Card
             </sp-action-button>
             <sp-action-button
-                style=${t}
+                style=${inNoSelectionStyle}
                 @click=${this.toggleSelectionMode}
             >
                 <sp-icon-selection-checked
@@ -94,7 +808,7 @@ var he=Object.defineProperty;var Ot=i=>{throw TypeError(i)};var ce=(i,t,e)=>t in
                 Select
             </sp-action-button>
             <sp-action-menu
-                style=${t}
+                style=${inNoSelectionStyle}
                 selects="single"
                 value="${this.mode}"
                 placement="left-end"
@@ -102,7 +816,734 @@ var he=Object.defineProperty;var Ot=i=>{throw TypeError(i)};var ce=(i,t,e)=>t in
             >
                 ${this.renderActions}
             </sp-action-menu>
-        </sp-action-group>`}handleRenderModeChange(t){this.mode=t.target.value,this.notify()}notify(){this.dispatchEvent(new CustomEvent(w))}};customElements.define("content-navigation",Ut);var S="Network error",ve={sort:[{on:"created",order:"ASC"}]},tt,$t=class{constructor(t,e){_(this,tt);y(this,"sites",{cf:{fragments:{search:this.searchFragment.bind(this),getByPath:this.getFragmentByPath.bind(this),getById:t=>this.getFragmentById(this.baseUrl,t,this.headers),save:this.saveFragment.bind(this),copy:this.copyFragmentClassic.bind(this),create:this.createFragment.bind(this),publish:this.publishFragment.bind(this),delete:this.deleteFragment.bind(this)}}});y(this,"folders",{list:this.listFoldersClassic.bind(this)});b(this,tt,/^author-/.test(t));let s=e||`https://${t}.adobeaemcloud.com`;this.baseUrl=s;let r=`${s}/adobe/sites`;this.cfFragmentsUrl=`${r}/cf/fragments`,this.cfSearchUrl=`${this.cfFragmentsUrl}/search`,this.cfPublishUrl=`${this.cfFragmentsUrl}/publish`,this.wcmcommandUrl=`${s}/bin/wcmcommand`,this.csrfTokenUrl=`${s}/libs/granite/csrf/token.json`,this.foldersUrl=`${s}/adobe/folders`,this.foldersClassicUrl=`${s}/api/assets`,this.headers={Authorization:`Bearer ${sessionStorage.getItem("masAccessToken")??window.adobeid?.authorize?.()}`,pragma:"no-cache","cache-control":"no-cache"}}wait(t=1e3){return new Promise(e=>setTimeout(e,t))}async getCsrfToken(){let t=await fetch(this.csrfTokenUrl,{headers:this.headers}).catch(s=>{throw new Error(`${S}: ${s.message}`)});if(!t.ok)throw new Error(`Failed to get CSRF token: ${t.status} ${t.statusText}`);let{token:e}=await t.json();return e}async*searchFragment({path:t,query:e="",sort:s}){let r={path:t};e?r.fullText={text:encodeURIComponent(e),queryMode:"EXACT_WORDS"}:r.onlyDirectChildren=!0;let n={...ve,filter:r};s&&(n.sort=s);let o={query:JSON.stringify(n)},h;for(;;){h&&(o.cursor=h);let a=new URLSearchParams(o).toString(),c=await fetch(`${this.cfSearchUrl}?${a}`,{headers:this.headers}).catch(l=>{throw new Error(`${S}: ${l.message}`)});if(!c.ok)throw new Error(`Search failed: ${c.status} ${c.statusText}`);let m;if({items:m,cursor:h}=await c.json(),yield m,!h)break}}async getFragment(t){let e=t.headers.get("Etag"),s=await t.json();return s.etag=e,s}async getFragmentById(t,e,s){let r=await fetch(`${t}/adobe/sites/cf/fragments/${e}`,{headers:s});if(!r.ok)throw new Error(`Failed to get fragment: ${r.status} ${r.statusText}`);return await this.getFragment(r)}async getFragmentByPath(t){let e=p(this,tt)?this.headers:{},s=await fetch(`${this.cfFragmentsUrl}?path=${t}`,{headers:e}).catch(n=>{throw new Error(`${S}: ${n.message}`)});if(!s.ok)throw new Error(`Failed to get fragment: ${s.status} ${s.statusText}`);let{items:r}=await s.json();if(!r||r.length===0)throw new Error("Fragment not found");return r[0]}async saveFragment(t){let{title:e,description:s,fields:r}=t,n=await fetch(`${this.cfFragmentsUrl}/${t.id}`,{method:"PUT",headers:{"Content-Type":"application/json","If-Match":t.etag,...this.headers},body:JSON.stringify({title:e,description:s,fields:r})}).catch(o=>{throw new Error(`${S}: ${o.message}`)});if(!n.ok)throw new Error(`Failed to save fragment: ${n.status} ${n.statusText}`);return await this.getFragment(n)}async copyFragmentClassic(t){let e=await this.getCsrfToken(),s=t.path.split("/").slice(0,-1).join("/"),r=new FormData;r.append("cmd","copyPage"),r.append("srcPath",t.path),r.append("destParentPath",s),r.append("shallow","false"),r.append("_charset_","UTF-8");let n=await fetch(this.wcmcommandUrl,{method:"POST",headers:{...this.headers,"csrf-token":e},body:r}).catch(f=>{throw new Error(`${S}: ${f.message}`)});if(!n.ok)throw new Error(`Failed to copy fragment: ${n.status} ${n.statusText}`);let o=await n.text(),m=new DOMParser().parseFromString(o,"text/html").getElementById("Message")?.textContent.trim();if(!m)throw new Error("Failed to extract new path from copy response");await this.wait();let l=await this.getFragmentByPath(m);return l&&(l=await this.sites.cf.fragments.getById(l.id)),l}async createFragment(t,e){let{title:s,fields:r,model:{id:n}}=t;if(!e||!s||!n)throw new Error(`Missing data to create a fragment: ${e}, ${s}, ${n}`);let o=await fetch(`${this.cfFragmentsUrl}`,{method:"POST",headers:{"Content-Type":"application/json",...this.headers},body:JSON.stringify({title:s,modelId:n,fields:r})}).catch(h=>{throw new Error(`${S}: ${h.message}`)});if(!o.ok)throw new Error(`Failed to create fragment: ${o.status} ${o.statusText}`);return await this.getFragment(o)}async publishFragment(t){let e=await fetch(this.cfPublishUrl,{method:"POST",headers:{"Content-Type":"application/json","If-Match":t.etag,...this.headers},body:JSON.stringify({paths:[t.path],filterReferencesByStatus:["DRAFT","UNPUBLISHED"],workflowModelId:"/var/workflow/models/scheduled_activation_with_references"})}).catch(s=>{throw new Error(`${S}: ${s.message}`)});if(!e.ok)throw new Error(`Failed to publish fragment: ${e.status} ${e.statusText}`);return await e.json()}async deleteFragment(t){let e=await fetch(`${this.cfFragmentsUrl}/${t.id}`,{method:"DELETE",headers:{"Content-Type":"application/json","If-Match":t.etag,...this.headers}}).catch(s=>{throw new Error(`${S}: ${s.message}`)});if(!e.ok)throw new Error(`Failed to delete fragment: ${e.status} ${e.statusText}`);return e}async listFolders(t){let e=new URLSearchParams({path:t}).toString(),s=await fetch(`${this.foldersUrl}/?${e}`,{method:"GET",headers:{...this.headers,"X-Adobe-Accept-Experimental":"1"}}).catch(r=>{throw new Error(`${S}: ${r.message}`)});if(!s.ok)throw new Error(`Failed to list folders: ${s.status} ${s.statusText}`);return await s.json()}async listFoldersClassic(t){let e=t?.replace(/^\/content\/dam/,""),s=await fetch(`${this.foldersClassicUrl}${e}.json?limit=1000`,{method:"GET",headers:{...this.headers}}).catch(o=>{throw new Error(`${S}: ${o.message}`)});if(!s.ok)throw new Error(`Failed to list folders: ${s.status} ${s.statusText}`);let{properties:{name:r},entities:n=[]}=await s.json();return{self:{name:r,path:t},children:n.filter(({class:[o]})=>/folder/.test(o)).map(({properties:{name:o,title:h}})=>({name:o,title:h,folderId:`${t}/${o}`,path:`${t}/${o}`}))}}};tt=new WeakMap;var V,Ft=class Ft{constructor(t){_(this,V,!1);y(this,"folders",[]);y(this,"fragments",[]);this.path=t}open({folderId:t,name:e,title:s},r){p(this,V)||(this.folderId=t,this.name=e,this.title=s,b(this,V,open),r.forEach(n=>{let o=new Ft(n.path);this.folders.push(o)}))}get isOpen(){return p(this,V)}clear(){this.fragments=[]}add(...t){this.fragments=[...this.fragments,...t]}};V=new WeakMap;var et=Ft;var st=class{constructor({id:t,etag:e,model:s,path:r,title:n,description:o,status:h,modified:a,fields:c},m){y(this,"path","");y(this,"hasChanges",!1);y(this,"status","");y(this,"fields",[]);y(this,"selected",!1);this.id=t,this.model=s,this.etag=e,this.path=r,this.name=r.split("/").pop(),this.title=n,this.description=o,this.status=h,this.modified=a,this.fields=c,this.eventTarget=m}get variant(){return this.fields.find(t=>t.name==="variant")?.values?.[0]}get fragmentName(){return this.path.split("/").pop()}get statusVariant(){return this.hasChanges?"yellow":this.status==="PUBLISHED"?"positive":"info"}refreshFrom(t){Object.assign(this,t),this.hasChanges=!1,this.notify()}notify(){this.eventTarget.dispatchEvent(new CustomEvent(w,{detail:this}))}toggleSelection(t){t!==void 0?this.selected=t:this.selected=!this.selected,this.notify()}updateFieldInternal(t,e){this[t]=e??"",this.hasChanges=!0,this.notify()}updateField(t,e){let s=!1;return this.fields.filter(r=>r.name===t).forEach(r=>{r.values.length===e.length&&r.values.every((n,o)=>n===e[o])||(r.values=e,this.hasChanges=!0,s=!0)}),this.notify(),s}};var rt,v,j,it,R,I,C,z,Pt=class extends E{constructor(){super(...arguments);_(this,v);_(this,j);y(this,"currentFolder");_(this,it,new Map);_(this,R,!0);_(this,I);_(this,C);_(this,z)}static get properties(){return{bucket:{type:String},baseUrl:{type:String,attribute:"base-url"},root:{type:String,attribute:!0,reflect:!0},path:{type:String,attribute:!0,reflect:!0},searchText:{type:String,attribute:"search"},fragment:{type:Object}}}createRenderRoot(){return this}connectedCallback(){if(super.connectedCallback(),!this.root)throw new Error("root attribute is required");if(!(this.bucket||this.baseUrl))throw new Error("Either the bucket or baseUrl attribute is required.");b(this,v,new $t(this.bucket,this.baseUrl)),b(this,j,new et(this.root)),this.style.display="none"}async sendSearch(){this.searchText?await this.searchFragments():(await this.openFolder(this.path||this.root),await this.listFragments())}async openFolder(e){b(this,R,!0),this.dispatchEvent(new CustomEvent(xt)),typeof e=="string"?(this.currentFolder=p(this,it).get(e),this.currentFolder||(this.currentFolder=new et(e),p(this,it).set(e,this.currentFolder))):this.currentFolder=e;let{self:s,children:r}=await p(this,v).folders.list(this.currentFolder.path);this.currentFolder.open(s,r)}async selectFragment(e,s,r){let n=await p(this,v).sites.cf.fragments.getById(r.id);Object.assign(r,n),r.refreshFrom(n),this.setFragment(r),this.dispatchEvent(new CustomEvent("select-fragment",{detail:{x:e,y:s,fragment:r},bubbles:!0,composed:!0}))}setFragment(e){this.fragment=e}async processFragments(e,s=!1){p(this,z)&&(p(this,z).cancelled=!0),b(this,z,e),b(this,R,!0),b(this,I,[]),this.currentFolder?.clear(),this.dispatchEvent(new CustomEvent(xt,{bubbles:!0}));for await(let r of e){if(e.cancelled)break;b(this,R,!0);let n=r.map(o=>new st(o,this));s?b(this,I,[...p(this,I),...n]):this.currentFolder.add(...n),rt||await customElements.whenDefined("aem-fragment").then(()=>{rt=document.createElement("aem-fragment").cache}),rt.add(...n),this.dispatchEvent(new CustomEvent(F))}b(this,R,!1),this.dispatchEvent(new CustomEvent(ee,{bubbles:!0}))}async listFragments(){b(this,C,{path:this.path||this.currentFolder.path||p(this,j).path});let e=p(this,v).sites.cf.fragments.search(p(this,C));this.processFragments(e)}async searchFragments(){b(this,C,{query:this.searchText,path:p(this,j).path});let e=await p(this,v).sites.cf.fragments.search(p(this,C));this.processFragments(e,!0)}async saveFragment(){let e=await p(this,v).sites.cf.fragments.save(this.fragment);if(!e)throw new Error("Failed to save fragment");rt.get(e.id)?.refreshFrom(e)}async copyFragment(){let e=this.fragment;this.setFragment(null);let s=await p(this,v).sites.cf.fragments.copy(e);rt?.add(s);let r=new st(s);p(this,C).addToResult(r,e),this.setFragment(r)}async publishFragment(){await p(this,v).sites.cf.fragments.publish(this.fragment)}async deleteFragment(){await p(this,v).sites.cf.fragments.delete(this.fragment),p(this,C).removeFromResult(this.fragment),this.setFragment(null)}clearSelection(){this.fragments.forEach(e=>e.toggleSelection(!1))}get fragments(){return(this.searchText?p(this,I):this.currentFolder?.fragments)??[]}get selectedFragments(){return this.fragments.filter(e=>e.selected)}get folders(){return this.currentFolder?.folders??[]}get search(){return{...p(this,C)}}get loading(){return p(this,R)}render(){return u}};v=new WeakMap,j=new WeakMap,it=new WeakMap,R=new WeakMap,I=new WeakMap,C=new WeakMap,z=new WeakMap;customElements.define("aem-fragments",Pt);var Ae="table",Rt=class extends E{static get styles(){return G`
+        </sp-action-group>`;
+  }
+  handleRenderModeChange(e4) {
+    this.mode = e4.target.value;
+    this.notify();
+  }
+  notify() {
+    this.dispatchEvent(new CustomEvent(EVENT_CHANGE));
+  }
+};
+customElements.define("content-navigation", ContentNavigation);
+
+// src/aem/aem.js
+var NETWORK_ERROR_MESSAGE = "Network error";
+var defaultSearchOptions = {
+  sort: [{ on: "created", order: "ASC" }]
+};
+var _author;
+var AEM = class {
+  constructor(bucket, baseUrlOverride) {
+    __privateAdd(this, _author);
+    __publicField(this, "sites", {
+      cf: {
+        fragments: {
+          /**
+           * @see AEM#searchFragment
+           */
+          search: this.searchFragment.bind(this),
+          /**
+           * @see AEM#getFragmentByPath
+           */
+          getByPath: this.getFragmentByPath.bind(this),
+          /**
+           * @see AEM#getFragmentById
+           */
+          getById: (id) => this.getFragmentById(this.baseUrl, id, this.headers),
+          /**
+           * @see AEM#saveFragment
+           */
+          save: this.saveFragment.bind(this),
+          /**
+           * @see AEM#copyFragmentClassic
+           */
+          copy: this.copyFragmentClassic.bind(this),
+          /**
+           * @see AEM#createFragment
+           */
+          create: this.createFragment.bind(this),
+          /**
+           * @see AEM#publishFragment
+           */
+          publish: this.publishFragment.bind(this),
+          /**
+           * @see AEM#deleteFragment
+           */
+          delete: this.deleteFragment.bind(this)
+        }
+      }
+    });
+    __publicField(this, "folders", {
+      /**
+       * @see AEM#listFolders
+       */
+      list: this.listFoldersClassic.bind(this)
+    });
+    __privateSet(this, _author, /^author-/.test(bucket));
+    const baseUrl = baseUrlOverride || `https://${bucket}.adobeaemcloud.com`;
+    this.baseUrl = baseUrl;
+    const sitesUrl = `${baseUrl}/adobe/sites`;
+    this.cfFragmentsUrl = `${sitesUrl}/cf/fragments`;
+    this.cfSearchUrl = `${this.cfFragmentsUrl}/search`;
+    this.cfPublishUrl = `${this.cfFragmentsUrl}/publish`;
+    this.wcmcommandUrl = `${baseUrl}/bin/wcmcommand`;
+    this.csrfTokenUrl = `${baseUrl}/libs/granite/csrf/token.json`;
+    this.foldersUrl = `${baseUrl}/adobe/folders`;
+    this.foldersClassicUrl = `${baseUrl}/api/assets`;
+    this.headers = {
+      // IMS users might not have all the permissions, token in the sessionStorage is a temporary workaround
+      Authorization: `Bearer ${sessionStorage.getItem("masAccessToken") ?? window.adobeid?.authorize?.()}`,
+      pragma: "no-cache",
+      "cache-control": "no-cache"
+    };
+  }
+  wait(ms = 1e3) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+  async getCsrfToken() {
+    const response = await fetch(this.csrfTokenUrl, {
+      headers: this.headers
+    }).catch((err) => {
+      throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Failed to get CSRF token: ${response.status} ${response.statusText}`
+      );
+    }
+    const { token } = await response.json();
+    return token;
+  }
+  /**
+   * Search for content fragments.
+   * @param {Object} params - The search options
+   * @param {string} [params.path] - The path to search in
+   * @param {string} [params.query] - The search query
+   * @returns A generator function that fetches all the matching data using a cursor that is returned by the search API
+   */
+  async *searchFragment({ path, query = "", sort }) {
+    const filter = {
+      path
+    };
+    if (query) {
+      filter.fullText = {
+        text: encodeURIComponent(query),
+        queryMode: "EXACT_WORDS"
+      };
+    } else {
+      filter.onlyDirectChildren = true;
+    }
+    const searchQuery = { ...defaultSearchOptions, filter };
+    if (sort) {
+      searchQuery.sort = sort;
+    }
+    const params = {
+      query: JSON.stringify(searchQuery)
+    };
+    let cursor;
+    while (true) {
+      if (cursor) {
+        params.cursor = cursor;
+      }
+      const searchParams = new URLSearchParams(params).toString();
+      const response = await fetch(
+        `${this.cfSearchUrl}?${searchParams}`,
+        {
+          headers: this.headers
+        }
+      ).catch((err) => {
+        throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+      });
+      if (!response.ok) {
+        throw new Error(
+          `Search failed: ${response.status} ${response.statusText}`
+        );
+      }
+      let items;
+      ({ items, cursor } = await response.json());
+      yield items;
+      if (!cursor) break;
+    }
+  }
+  /**
+   * @param {Response} res
+   * @returns Fragment json
+   */
+  async getFragment(res) {
+    const etag = res.headers.get("Etag");
+    const fragment = await res.json();
+    fragment.etag = etag;
+    return fragment;
+  }
+  /**
+   * Get fragment by ID
+   * @param {string} baseUrl the aem base url
+   * @param {string} id fragment id
+   * @param {Object} headers optional request headers
+   * @returns {Promise<Object>} the raw fragment item
+   */
+  async getFragmentById(baseUrl, id, headers) {
+    const response = await fetch(
+      `${baseUrl}/adobe/sites/cf/fragments/${id}`,
+      {
+        headers
+      }
+    );
+    if (!response.ok) {
+      throw new Error(
+        `Failed to get fragment: ${response.status} ${response.statusText}`
+      );
+    }
+    return await this.getFragment(response);
+  }
+  /**
+   * Get fragment by path
+   * @param {string} path fragment path
+   * @returns {Promise<Object>} the raw fragment item
+   */
+  async getFragmentByPath(path) {
+    const headers = __privateGet(this, _author) ? this.headers : {};
+    const response = await fetch(`${this.cfFragmentsUrl}?path=${path}`, {
+      headers
+    }).catch((err) => {
+      throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Failed to get fragment: ${response.status} ${response.statusText}`
+      );
+    }
+    const { items } = await response.json();
+    if (!items || items.length === 0) {
+      throw new Error("Fragment not found");
+    }
+    return items[0];
+  }
+  /**
+   * Save given fragment
+   * @param {Object} fragment
+   * @returns {Promise<Object>} the updated fragment
+   */
+  async saveFragment(fragment) {
+    const { title, description, fields } = fragment;
+    const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "If-Match": fragment.etag,
+        ...this.headers
+      },
+      body: JSON.stringify({ title, description, fields })
+    }).catch((err) => {
+      throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Failed to save fragment: ${response.status} ${response.statusText}`
+      );
+    }
+    return await this.getFragment(response);
+  }
+  /**
+   * Copy a content fragment using the AEM classic API
+   * @param {Object} fragment
+   * @returns {Promise<Object>} the copied fragment
+   */
+  async copyFragmentClassic(fragment) {
+    const csrfToken = await this.getCsrfToken();
+    let parentPath = fragment.path.split("/").slice(0, -1).join("/");
+    const formData = new FormData();
+    formData.append("cmd", "copyPage");
+    formData.append("srcPath", fragment.path);
+    formData.append("destParentPath", parentPath);
+    formData.append("shallow", "false");
+    formData.append("_charset_", "UTF-8");
+    const res = await fetch(this.wcmcommandUrl, {
+      method: "POST",
+      headers: {
+        ...this.headers,
+        "csrf-token": csrfToken
+      },
+      body: formData
+    }).catch((err) => {
+      throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+    });
+    if (!res.ok) {
+      throw new Error(
+        `Failed to copy fragment: ${res.status} ${res.statusText}`
+      );
+    }
+    const responseText = await res.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(responseText, "text/html");
+    const message = doc.getElementById("Message");
+    const newPath = message?.textContent.trim();
+    if (!newPath) {
+      throw new Error("Failed to extract new path from copy response");
+    }
+    await this.wait();
+    let newFragment = await this.getFragmentByPath(newPath);
+    if (newFragment) {
+      newFragment = await this.sites.cf.fragments.getById(newFragment.id);
+    }
+    return newFragment;
+  }
+  /**
+   * Create a new fragment in a given folder
+   * @param {*} fragment sample fragment with mimimum req fields: { title: 'sample title', model: {id: '123'}}
+   * @param {String} parentPath - folder in which fragment will be created
+   */
+  async createFragment(fragment, parentPath) {
+    const {
+      title,
+      fields,
+      model: { id: modelId }
+    } = fragment;
+    if (!parentPath || !title || !modelId) {
+      throw new Error(
+        `Missing data to create a fragment: ${parentPath}, ${title}, ${modelId}`
+      );
+    }
+    const response = await fetch(`${this.cfFragmentsUrl}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...this.headers
+      },
+      body: JSON.stringify({ title, modelId, fields })
+    }).catch((err) => {
+      throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Failed to create fragment: ${response.status} ${response.statusText}`
+      );
+    }
+    return await this.getFragment(response);
+  }
+  /**
+   * Publish a fragment
+   * @param {Object} fragment
+   * @returns {Promise<void>}
+   */
+  async publishFragment(fragment) {
+    const response = await fetch(this.cfPublishUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "If-Match": fragment.etag,
+        ...this.headers
+      },
+      body: JSON.stringify({
+        paths: [fragment.path],
+        filterReferencesByStatus: ["DRAFT", "UNPUBLISHED"],
+        workflowModelId: "/var/workflow/models/scheduled_activation_with_references"
+      })
+    }).catch((err) => {
+      throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Failed to publish fragment: ${response.status} ${response.statusText}`
+      );
+    }
+    return await response.json();
+  }
+  /**
+   * Delete a fragment
+   * @param {Object} fragment
+   * @returns {Promise<void>}
+   */
+  async deleteFragment(fragment) {
+    const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "If-Match": fragment.etag,
+        ...this.headers
+      }
+    }).catch((err) => {
+      throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Failed to delete fragment: ${response.status} ${response.statusText}`
+      );
+    }
+    return response;
+  }
+  /**
+   * @param {*} path
+   */
+  async listFolders(path) {
+    const query = new URLSearchParams({
+      path
+    }).toString();
+    const response = await fetch(`${this.foldersUrl}/?${query}`, {
+      method: "GET",
+      headers: {
+        ...this.headers,
+        "X-Adobe-Accept-Experimental": "1"
+      }
+    }).catch((err) => {
+      throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Failed to list folders: ${response.status} ${response.statusText}`
+      );
+    }
+    return await response.json();
+  }
+  /**
+   * @param {*} path
+   */
+  async listFoldersClassic(path) {
+    const relativePath = path?.replace(/^\/content\/dam/, "");
+    const response = await fetch(
+      `${this.foldersClassicUrl}${relativePath}.json?limit=1000`,
+      // TODO: this is a workaround until Folders API is fixed.
+      {
+        method: "GET",
+        headers: { ...this.headers }
+      }
+    ).catch((err) => {
+      throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Failed to list folders: ${response.status} ${response.statusText}`
+      );
+    }
+    const {
+      properties: { name },
+      entities = []
+    } = await response.json();
+    return {
+      self: { name, path },
+      children: entities.filter(({ class: [firstClass] }) => /folder/.test(firstClass)).map(({ properties: { name: name2, title } }) => ({
+        name: name2,
+        title,
+        folderId: `${path}/${name2}`,
+        path: `${path}/${name2}`
+      }))
+    };
+  }
+};
+_author = new WeakMap();
+
+// src/aem/folder.js
+var _open;
+var _Folder = class _Folder {
+  constructor(path) {
+    __privateAdd(this, _open, false);
+    /** @type {Folder[]} */
+    __publicField(this, "folders", []);
+    /** @type {Fragment[]} */
+    __publicField(this, "fragments", []);
+    this.path = path;
+  }
+  open({ folderId, name, title }, children) {
+    if (__privateGet(this, _open)) return;
+    this.folderId = folderId;
+    this.name = name;
+    this.title = title;
+    __privateSet(this, _open, open);
+    children.forEach((child) => {
+      const folder = new _Folder(child.path);
+      this.folders.push(folder);
+    });
+  }
+  get isOpen() {
+    return __privateGet(this, _open);
+  }
+  clear() {
+    this.fragments = [];
+  }
+  add(...fragments) {
+    this.fragments = [...this.fragments, ...fragments];
+  }
+};
+_open = new WeakMap();
+var Folder = _Folder;
+
+// src/aem/fragment.js
+var Fragment = class {
+  /**
+   * @param {*} AEM Fragment JSON object
+   * @param {*} eventTarget DOM element to dispatch events from
+   */
+  constructor({ id, etag, model, path, title, description, status, modified, fields }, eventTarget) {
+    __publicField(this, "path", "");
+    __publicField(this, "hasChanges", false);
+    __publicField(this, "status", "");
+    __publicField(this, "fields", []);
+    __publicField(this, "selected", false);
+    this.id = id;
+    this.model = model;
+    this.etag = etag;
+    this.path = path;
+    this.name = path.split("/").pop();
+    this.title = title;
+    this.description = description;
+    this.status = status;
+    this.modified = modified;
+    this.fields = fields;
+    this.eventTarget = eventTarget;
+  }
+  get variant() {
+    return this.fields.find((field) => field.name === "variant")?.values?.[0];
+  }
+  get fragmentName() {
+    return this.path.split("/").pop();
+  }
+  get statusVariant() {
+    if (this.hasChanges) return "yellow";
+    return this.status === "PUBLISHED" ? "positive" : "info";
+  }
+  refreshFrom(fragmentData) {
+    Object.assign(this, fragmentData);
+    this.hasChanges = false;
+    this.notify();
+  }
+  notify() {
+    this.eventTarget.dispatchEvent(
+      new CustomEvent(EVENT_CHANGE, { detail: this })
+    );
+  }
+  toggleSelection(value) {
+    if (value !== void 0) this.selected = value;
+    else this.selected = !this.selected;
+    this.notify();
+  }
+  updateFieldInternal(fieldName, value) {
+    this[fieldName] = value ?? "";
+    this.hasChanges = true;
+    this.notify();
+  }
+  updateField(fieldName, value) {
+    let change = false;
+    this.fields.filter((field) => field.name === fieldName).forEach((field) => {
+      if (field.values.length === value.length && field.values.every((v2, index) => v2 === value[index]))
+        return;
+      field.values = value;
+      this.hasChanges = true;
+      change = true;
+    });
+    this.notify();
+    return change;
+  }
+};
+
+// src/aem/aem-fragments.js
+var aemFragmentCache;
+var _aem, _rootFolder, _folders, _loading, _searchResult, _search, _cursor;
+var AemFragments = class extends r3 {
+  constructor() {
+    super(...arguments);
+    /**
+     * @type {import('@adobecom/milo/libs/features/mas/web-components').AEM}
+     */
+    __privateAdd(this, _aem);
+    /**
+     * @type {Folder}
+     */
+    __privateAdd(this, _rootFolder);
+    /**
+     * @type {Folder}
+     */
+    __publicField(this, "currentFolder");
+    __privateAdd(this, _folders, /* @__PURE__ */ new Map());
+    __privateAdd(this, _loading, true);
+    /**
+     * Fragments in the search result.
+     */
+    __privateAdd(this, _searchResult);
+    __privateAdd(this, _search);
+    __privateAdd(this, _cursor);
+  }
+  static get properties() {
+    return {
+      bucket: { type: String },
+      baseUrl: { type: String, attribute: "base-url" },
+      root: { type: String, attribute: true, reflect: true },
+      path: { type: String, attribute: true, reflect: true },
+      searchText: { type: String, attribute: "search" },
+      fragment: { type: Object }
+    };
+  }
+  createRenderRoot() {
+    return this;
+  }
+  // last active cursor being processed
+  connectedCallback() {
+    super.connectedCallback();
+    if (!this.root) throw new Error("root attribute is required");
+    if (!(this.bucket || this.baseUrl))
+      throw new Error(
+        "Either the bucket or baseUrl attribute is required."
+      );
+    __privateSet(this, _aem, new AEM(this.bucket, this.baseUrl));
+    __privateSet(this, _rootFolder, new Folder(this.root));
+    this.style.display = "none";
+  }
+  async sendSearch() {
+    if (this.searchText) await this.searchFragments();
+    else {
+      await this.openFolder(this.path || this.root);
+      await this.listFragments();
+    }
+  }
+  /**
+   * @param {Folder} folder
+   */
+  async openFolder(folder) {
+    __privateSet(this, _loading, true);
+    this.dispatchEvent(new CustomEvent(EVENT_LOAD_START));
+    if (typeof folder === "string") {
+      this.currentFolder = __privateGet(this, _folders).get(folder);
+      if (!this.currentFolder) {
+        this.currentFolder = new Folder(folder);
+        __privateGet(this, _folders).set(folder, this.currentFolder);
+      }
+    } else {
+      this.currentFolder = folder;
+    }
+    const { self, children } = await __privateGet(this, _aem).folders.list(
+      this.currentFolder.path
+    );
+    this.currentFolder.open(self, children);
+  }
+  async selectFragment(x2, y2, fragment) {
+    const latest = await __privateGet(this, _aem).sites.cf.fragments.getById(fragment.id);
+    Object.assign(fragment, latest);
+    fragment.refreshFrom(latest);
+    this.setFragment(fragment);
+    this.dispatchEvent(
+      new CustomEvent("select-fragment", {
+        detail: { x: x2, y: y2, fragment },
+        bubbles: true,
+        composed: true
+      })
+    );
+  }
+  setFragment(fragment) {
+    this.fragment = fragment;
+  }
+  async processFragments(cursor, search = false) {
+    if (__privateGet(this, _cursor)) {
+      __privateGet(this, _cursor).cancelled = true;
+    }
+    __privateSet(this, _cursor, cursor);
+    __privateSet(this, _loading, true);
+    __privateSet(this, _searchResult, []);
+    this.currentFolder?.clear();
+    this.dispatchEvent(
+      new CustomEvent(EVENT_LOAD_START, {
+        bubbles: true
+      })
+    );
+    for await (const result of cursor) {
+      if (cursor.cancelled) break;
+      __privateSet(this, _loading, true);
+      const fragments = result.map((item) => new Fragment(item, this));
+      if (search) {
+        __privateSet(this, _searchResult, [...__privateGet(this, _searchResult), ...fragments]);
+      } else {
+        this.currentFolder.add(...fragments);
+      }
+      if (!aemFragmentCache) {
+        await customElements.whenDefined("aem-fragment").then(() => {
+          aemFragmentCache = document.createElement("aem-fragment").cache;
+        });
+      }
+      aemFragmentCache.add(...fragments);
+      this.dispatchEvent(new CustomEvent(EVENT_LOAD));
+    }
+    __privateSet(this, _loading, false);
+    this.dispatchEvent(new CustomEvent(EVENT_LOAD_END, { bubbles: true }));
+  }
+  async listFragments() {
+    __privateSet(this, _search, {
+      path: this.path || this.currentFolder.path || __privateGet(this, _rootFolder).path
+    });
+    const cursor = __privateGet(this, _aem).sites.cf.fragments.search(__privateGet(this, _search));
+    this.processFragments(cursor);
+  }
+  /**
+   * Searches for content fragments based on the provided query parameters.
+   *
+   * @param {Object} search - The search parameters.
+   * @param {string} search.variant - The variant to filter by.
+   */
+  async searchFragments() {
+    __privateSet(this, _search, {
+      query: this.searchText,
+      path: __privateGet(this, _rootFolder).path
+    });
+    const cursor = await __privateGet(this, _aem).sites.cf.fragments.search(__privateGet(this, _search));
+    this.processFragments(cursor, true);
+  }
+  async saveFragment() {
+    let fragment = await __privateGet(this, _aem).sites.cf.fragments.save(this.fragment);
+    if (!fragment) throw new Error("Failed to save fragment");
+    aemFragmentCache.get(fragment.id)?.refreshFrom(fragment);
+  }
+  async copyFragment() {
+    const oldFragment = this.fragment;
+    this.setFragment(null);
+    const fragment = await __privateGet(this, _aem).sites.cf.fragments.copy(oldFragment);
+    aemFragmentCache?.add(fragment);
+    const newFragment = new Fragment(fragment);
+    __privateGet(this, _search).addToResult(newFragment, oldFragment);
+    this.setFragment(newFragment);
+  }
+  async publishFragment() {
+    await __privateGet(this, _aem).sites.cf.fragments.publish(this.fragment);
+  }
+  async deleteFragment() {
+    await __privateGet(this, _aem).sites.cf.fragments.delete(this.fragment);
+    __privateGet(this, _search).removeFromResult(this.fragment);
+    this.setFragment(null);
+  }
+  clearSelection() {
+    this.fragments.forEach((fragment) => fragment.toggleSelection(false));
+  }
+  get fragments() {
+    return (this.searchText ? __privateGet(this, _searchResult) : this.currentFolder?.fragments) ?? [];
+  }
+  get selectedFragments() {
+    return this.fragments.filter((fragment) => fragment.selected);
+  }
+  get folders() {
+    return this.currentFolder?.folders ?? [];
+  }
+  get search() {
+    return { ...__privateGet(this, _search) };
+  }
+  get loading() {
+    return __privateGet(this, _loading);
+  }
+  render() {
+    return D;
+  }
+};
+_aem = new WeakMap();
+_rootFolder = new WeakMap();
+_folders = new WeakMap();
+_loading = new WeakMap();
+_searchResult = new WeakMap();
+_search = new WeakMap();
+_cursor = new WeakMap();
+customElements.define("aem-fragments", AemFragments);
+
+// src/aem/table-view.js
+var MODE = "table";
+var TableView = class extends r3 {
+  static get styles() {
+    return i`
             :host {
                 display: contents;
             }
@@ -110,13 +1551,38 @@ var he=Object.defineProperty;var Ot=i=>{throw TypeError(i)};var ce=(i,t,e)=>t in
             sp-table {
                 height: var(--table-height, 100%);
             }
-        `}static get properties(){return{rowCount:{type:Number,attribute:"row-count"},customRenderItem:{type:Function}}}constructor(){super(),this.forceUpdate=this.forceUpdate.bind(this),this.itemValue=this.itemValue.bind(this),this.renderItem=this.renderItem.bind(this)}get table(){return this.shadowRoot?.querySelector("sp-table")}get tableBody(){return this.table?.querySelector("sp-table-body")}canRender(){return this.parentElement?.mode===Ae&&this.parentElement.source}render(){return this.canRender()?$`
+        `;
+  }
+  static get properties() {
+    return {
+      rowCount: { type: Number, attribute: "row-count" },
+      customRenderItem: { type: Function }
+    };
+  }
+  constructor() {
+    super();
+    this.forceUpdate = this.forceUpdate.bind(this);
+    this.itemValue = this.itemValue.bind(this);
+    this.renderItem = this.renderItem.bind(this);
+  }
+  get table() {
+    return this.shadowRoot?.querySelector("sp-table");
+  }
+  get tableBody() {
+    return this.table?.querySelector("sp-table-body");
+  }
+  canRender() {
+    return this.parentElement?.mode === MODE && this.parentElement.source;
+  }
+  render() {
+    if (!this.canRender()) return D;
+    return ke`
             <sp-table
                 emphasized
                 scroller
                 .itemValue=${this.itemValue}
                 .renderItem=${this.renderItem}
-                selects=${this.parentElement.inSelection?"multiple":void 0}
+                selects=${this.parentElement.inSelection ? "multiple" : void 0}
                 @change=${this.handleTableSelectionChange}
                 @dblclick="${this.handleDoubleClick}"
             >
@@ -133,24 +1599,262 @@ var he=Object.defineProperty;var Ot=i=>{throw TypeError(i)};var ce=(i,t,e)=>t in
                     >
                 </sp-table-head>
             </sp-table>
-        `:u}updated(){(async()=>this.table&&(this.parentElement.inSelection||this.table.deselectAllRows(),this.table.items=this.parentElement.source.fragments,this.table.renderVirtualizedItems()))()}itemValue(t){return t.id}renderItem(t){return t?$` <sp-table-cell>${t.title}</sp-table-cell>
-            <sp-table-cell>${t.name}</sp-table-cell>
-            ${this.customRenderItem?.(t)}
-            <sp-table-cell>${t.status}</sp-table-cell>
-            <sp-table-cell>${t.modified.at}</sp-table-cell>
-            <sp-table-cell>${t.modified.by}</sp-table-cell>`:u}handleDoubleClick(t){if(this.parentElement.inSelection)return;let{value:e}=t.target.closest("sp-table-row");if(!e)return;let s=this.parentElement.source.fragments.find(r=>r.id===e);s&&this.parentElement.source.selectFragment(t.clientX,t.clientY,s)}connectedCallback(){super.connectedCallback(),this.rowCount&&this.style.setProperty("--table-height",`${this.rowCount*40}px`),this.parentElement.addEventListener(w,this.forceUpdate),this.parentElement.source.addEventListener(F,this.forceUpdate),this.parentElement.source.addEventListener(w,this.forceUpdate)}async forceUpdate(){this.requestUpdate()}handleTableSelectionChange(t){let{selected:e}=t.target;this.parentElement.source.fragments.forEach(s=>{s.toggleSelection(e.includes(s.id))})}disconnectedCallback(){super.disconnectedCallback()}get actionData(){return["table","Table view",$`<sp-icon-table slot="icon"></sp-icon-table>`]}};customElements.define("table-view",Rt);var{I:Se}=Xt;var re=()=>document.createComment(""),q=(i,t,e)=>{let s=i._$AA.parentNode,r=t===void 0?i._$AB:t._$AA;if(e===void 0){let n=s.insertBefore(re(),r),o=s.insertBefore(re(),r);e=new Se(n,o,i,i.options)}else{let n=e._$AB.nextSibling,o=e._$AM,h=o!==i;if(h){let a;e._$AQ?.(i),e._$AM=i,e._$AP!==void 0&&(a=i._$AU)!==o._$AU&&e._$AP(a)}if(n!==r||h){let a=e._$AA;for(;a!==n;){let c=a.nextSibling;s.insertBefore(a,r),a=c}}}return e},k=(i,t,e=i)=>(i._$AI(t,e),i),Ce={},ie=(i,t=Ce)=>i._$AH=t,ne=i=>i._$AH,bt=i=>{i._$AP?.(!1,!0);let t=i._$AA,e=i._$AB.nextSibling;for(;t!==e;){let s=t.nextSibling;t.remove(),t=s}};var oe=(i,t,e)=>{let s=new Map;for(let r=t;r<=e;r++)s.set(i[r],r);return s},ae=ft(class extends B{constructor(i){if(super(i),i.type!==mt.CHILD)throw Error("repeat() can only be used in text expressions")}dt(i,t,e){let s;e===void 0?e=t:t!==void 0&&(s=t);let r=[],n=[],o=0;for(let h of i)r[o]=s?s(h,o):o,n[o]=e(h,o),o++;return{values:n,keys:r}}render(i,t,e){return this.dt(i,t,e).values}update(i,[t,e,s]){let r=ne(i),{values:n,keys:o}=this.dt(t,e,s);if(!Array.isArray(r))return this.ut=o,n;let h=this.ut??(this.ut=[]),a=[],c,m,l=0,f=r.length-1,d=0,g=n.length-1;for(;l<=f&&d<=g;)if(r[l]===null)l++;else if(r[f]===null)f--;else if(h[l]===o[d])a[d]=k(r[l],n[d]),l++,d++;else if(h[f]===o[g])a[g]=k(r[f],n[g]),f--,g--;else if(h[l]===o[g])a[g]=k(r[l],n[g]),q(i,a[g+1],r[l]),l++,g--;else if(h[f]===o[d])a[d]=k(r[f],n[d]),q(i,r[l],r[f]),f--,d++;else if(c===void 0&&(c=oe(o,d,g),m=oe(h,l,f)),c.has(h[l]))if(c.has(h[f])){let T=m.get(o[d]),yt=T!==void 0?r[T]:null;if(yt===null){let Nt=q(i,r[l]);k(Nt,n[d]),a[d]=Nt}else a[d]=k(yt,n[d]),q(i,r[l],yt),r[T]=null;d++}else bt(r[f]),f--;else bt(r[l]),l++;for(;d<=g;){let T=q(i,a[g+1]);k(T,n[d]),a[d++]=T}for(;l<=f;){let T=r[l++];T!==null&&bt(T)}return this.ut=o,ie(i,a),A}});var le="render",Te={merchCard:{path:"/conf/mas/settings/dam/cfm/models/card",name:"Merch Card"}},kt=class extends E{constructor(){super(),this.forceUpdate=this.forceUpdate.bind(this)}createRenderRoot(){return this}connectedCallback(){super.connectedCallback(),this.addEventListener("click",t=>{t.preventDefault()}),this.parentElement.addEventListener(w,this.forceUpdate),this.parentElement.source.addEventListener(F,this.forceUpdate),this.parentElement.source.addEventListener(w,this.forceUpdate)}async forceUpdate(t){this.requestUpdate()}renderItem(t){let e=this.parentElement.source.selectedFragments.includes(t);return $`<merch-card
-            class="${e?"selected":""}"
-            @dblclick="${s=>this.handleDoubleClick(s,t)}"
+        `;
+  }
+  updated() {
+    (async () => {
+      if (this.table) {
+        if (!this.parentElement.inSelection) {
+          this.table.deselectAllRows();
+        }
+        this.table.items = this.parentElement.source.fragments;
+        this.table.renderVirtualizedItems();
+      }
+    })();
+  }
+  itemValue(item) {
+    return item.id;
+  }
+  renderItem(item) {
+    if (!item) return D;
+    return ke` <sp-table-cell>${item.title}</sp-table-cell>
+            <sp-table-cell>${item.name}</sp-table-cell>
+            ${this.customRenderItem?.(item)}
+            <sp-table-cell>${item.status}</sp-table-cell>
+            <sp-table-cell>${item.modified.at}</sp-table-cell>
+            <sp-table-cell>${item.modified.by}</sp-table-cell>`;
+  }
+  handleDoubleClick(e4) {
+    if (this.parentElement.inSelection) return;
+    const { value } = e4.target.closest("sp-table-row");
+    if (!value) return;
+    const fragment = this.parentElement.source.fragments.find(
+      (f3) => f3.id === value
+    );
+    if (!fragment) return;
+    this.parentElement.source.selectFragment(
+      e4.clientX,
+      e4.clientY,
+      fragment
+    );
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    if (this.rowCount) {
+      this.style.setProperty("--table-height", `${this.rowCount * 40}px`);
+    }
+    this.parentElement.addEventListener(EVENT_CHANGE, this.forceUpdate);
+    this.parentElement.source.addEventListener(
+      EVENT_LOAD,
+      this.forceUpdate
+    );
+    this.parentElement.source.addEventListener(
+      EVENT_CHANGE,
+      this.forceUpdate
+    );
+  }
+  async forceUpdate() {
+    this.requestUpdate();
+  }
+  handleTableSelectionChange(e4) {
+    const { selected } = e4.target;
+    this.parentElement.source.fragments.forEach((fragment) => {
+      fragment.toggleSelection(selected.includes(fragment.id));
+    });
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+  }
+  get actionData() {
+    return [
+      "table",
+      "Table view",
+      ke`<sp-icon-table slot="icon"></sp-icon-table>`
+    ];
+  }
+};
+customElements.define("table-view", TableView);
+
+// ../node_modules/lit-html/directive-helpers.js
+var { I: et2 } = si;
+var lt2 = () => document.createComment("");
+var at = (o3, t3, i5) => {
+  const n4 = o3._$AA.parentNode, e4 = void 0 === t3 ? o3._$AB : t3._$AA;
+  if (void 0 === i5) {
+    const t4 = n4.insertBefore(lt2(), e4), l2 = n4.insertBefore(lt2(), e4);
+    i5 = new et2(t4, l2, o3, o3.options);
+  } else {
+    const t4 = i5._$AB.nextSibling, l2 = i5._$AM, c4 = l2 !== o3;
+    if (c4) {
+      let t5;
+      i5._$AQ?.(o3), i5._$AM = o3, void 0 !== i5._$AP && (t5 = o3._$AU) !== l2._$AU && i5._$AP(t5);
+    }
+    if (t4 !== e4 || c4) {
+      let o4 = i5._$AA;
+      for (; o4 !== t4; ) {
+        const t5 = o4.nextSibling;
+        n4.insertBefore(o4, e4), o4 = t5;
+      }
+    }
+  }
+  return i5;
+};
+var ct = (o3, t3, i5 = o3) => (o3._$AI(t3, i5), o3);
+var ht = {};
+var dt = (o3, t3 = ht) => o3._$AH = t3;
+var ut = (o3) => o3._$AH;
+var pt = (o3) => {
+  o3._$AP?.(false, true);
+  let t3 = o3._$AA;
+  const i5 = o3._$AB.nextSibling;
+  for (; t3 !== i5; ) {
+    const o4 = t3.nextSibling;
+    t3.remove(), t3 = o4;
+  }
+};
+
+// ../node_modules/lit-html/directives/repeat.js
+var Jt = (e4, s2, t3) => {
+  const r4 = /* @__PURE__ */ new Map();
+  for (let l2 = s2; l2 <= t3; l2++) r4.set(e4[l2], l2);
+  return r4;
+};
+var Qt = e3(class extends i4 {
+  constructor(e4) {
+    if (super(e4), e4.type !== t2.CHILD) throw Error("repeat() can only be used in text expressions");
+  }
+  dt(e4, s2, t3) {
+    let r4;
+    void 0 === t3 ? t3 = s2 : void 0 !== s2 && (r4 = s2);
+    const l2 = [], o3 = [];
+    let i5 = 0;
+    for (const s3 of e4) l2[i5] = r4 ? r4(s3, i5) : i5, o3[i5] = t3(s3, i5), i5++;
+    return { values: o3, keys: l2 };
+  }
+  render(e4, s2, t3) {
+    return this.dt(e4, s2, t3).values;
+  }
+  update(e4, [s2, t3, r4]) {
+    const l2 = ut(e4), { values: o3, keys: i5 } = this.dt(s2, t3, r4);
+    if (!Array.isArray(l2)) return this.ut = i5, o3;
+    const n4 = this.ut ?? (this.ut = []), f3 = [];
+    let u2, c4, d2 = 0, p2 = l2.length - 1, a2 = 0, h3 = o3.length - 1;
+    for (; d2 <= p2 && a2 <= h3; ) if (null === l2[d2]) d2++;
+    else if (null === l2[p2]) p2--;
+    else if (n4[d2] === i5[a2]) f3[a2] = ct(l2[d2], o3[a2]), d2++, a2++;
+    else if (n4[p2] === i5[h3]) f3[h3] = ct(l2[p2], o3[h3]), p2--, h3--;
+    else if (n4[d2] === i5[h3]) f3[h3] = ct(l2[d2], o3[h3]), at(e4, f3[h3 + 1], l2[d2]), d2++, h3--;
+    else if (n4[p2] === i5[a2]) f3[a2] = ct(l2[p2], o3[a2]), at(e4, l2[d2], l2[p2]), p2--, a2++;
+    else if (void 0 === u2 && (u2 = Jt(i5, a2, h3), c4 = Jt(n4, d2, p2)), u2.has(n4[d2])) if (u2.has(n4[p2])) {
+      const s3 = c4.get(i5[a2]), t4 = void 0 !== s3 ? l2[s3] : null;
+      if (null === t4) {
+        const s4 = at(e4, l2[d2]);
+        ct(s4, o3[a2]), f3[a2] = s4;
+      } else f3[a2] = ct(t4, o3[a2]), at(e4, l2[d2], t4), l2[s3] = null;
+      a2++;
+    } else pt(l2[p2]), p2--;
+    else pt(l2[d2]), d2++;
+    for (; a2 <= h3; ) {
+      const s3 = at(e4, f3[h3 + 1]);
+      ct(s3, o3[a2]), f3[a2++] = s3;
+    }
+    for (; d2 <= p2; ) {
+      const e5 = l2[d2++];
+      null !== e5 && pt(e5);
+    }
+    return this.ut = i5, dt(e4, f3), R;
+  }
+});
+
+// src/aem/render-view.js
+var MODE2 = "render";
+var models = {
+  merchCard: {
+    path: "/conf/mas/settings/dam/cfm/models/card",
+    name: "Merch Card"
+  }
+};
+var RenderView = class extends r3 {
+  constructor() {
+    super();
+    this.forceUpdate = this.forceUpdate.bind(this);
+  }
+  createRenderRoot() {
+    return this;
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener("click", (e4) => {
+      e4.preventDefault();
+    });
+    this.parentElement.addEventListener(EVENT_CHANGE, this.forceUpdate);
+    this.parentElement.source.addEventListener(
+      EVENT_LOAD,
+      this.forceUpdate
+    );
+    this.parentElement.source.addEventListener(
+      EVENT_CHANGE,
+      this.forceUpdate
+    );
+  }
+  async forceUpdate(e4) {
+    this.requestUpdate();
+  }
+  renderItem(fragment) {
+    const selected = this.parentElement.source.selectedFragments.includes(fragment);
+    return ke`<merch-card
+            class="${selected ? "selected" : ""}"
+            @dblclick="${(e4) => this.handleDoubleClick(e4, fragment)}"
         >
-            <aem-fragment fragment="${t.id}" ims></aem-fragment>
+            <aem-fragment fragment="${fragment.id}" ims></aem-fragment>
             <sp-status-light
                 size="l"
-                variant="${t.statusVariant}"
+                variant="${fragment.statusVariant}"
             ></sp-status-light>
-            <div class="overlay" @click="${()=>t.toggleSelection()}">
-                ${e?$`<sp-icon-remove slot="icon"></sp-icon-remove>`:$`<sp-icon-add slot="icon"></sp-icon-add>`}
+            <div class="overlay" @click="${() => fragment.toggleSelection()}">
+                ${selected ? ke`<sp-icon-remove slot="icon"></sp-icon-remove>` : ke`<sp-icon-add slot="icon"></sp-icon-add>`}
             </div>
-        </merch-card>`}handleDoubleClick(t,e){this.parentElement.inSelection||this.parentElement.source.selectFragment(t.clientX,t.clientY,e)}canRender(){return this.parentElement?.mode===le&&this.parentElement.source?.fragments}render(){return this.canRender()?$` ${ae(this.parentElement.source.fragments,t=>t.path,t=>{switch(t.model.path){case Te.merchCard.path:return this.renderItem(t);default:return u}})}`:u}get actionData(){return[le,"Render view",$`<sp-icon-view-card slot="icon"></sp-icon-view-card>`]}};customElements.define("render-view",kt);export{et as Folder,st as Fragment};
+        </merch-card>`;
+  }
+  handleDoubleClick(e4, fragment) {
+    if (this.parentElement.inSelection) return;
+    this.parentElement.source.selectFragment(
+      e4.clientX,
+      e4.clientY,
+      fragment
+    );
+  }
+  canRender() {
+    return this.parentElement?.mode === MODE2 && this.parentElement.source?.fragments;
+  }
+  render() {
+    if (!this.canRender()) return D;
+    return ke` ${Qt(
+      this.parentElement.source.fragments,
+      (fragment) => fragment.path,
+      (fragment) => {
+        switch (fragment.model.path) {
+          case models.merchCard.path:
+            return this.renderItem(fragment);
+          default:
+            return D;
+        }
+      }
+    )}`;
+  }
+  get actionData() {
+    return [
+      MODE2,
+      "Render view",
+      ke`<sp-icon-view-card slot="icon"></sp-icon-view-card>`
+    ];
+  }
+};
+customElements.define("render-view", RenderView);
+export {
+  Folder,
+  Fragment
+};
 /*! Bundled license information:
 
 @lit/reactive-element/css-tag.js:

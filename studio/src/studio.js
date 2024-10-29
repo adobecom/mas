@@ -22,7 +22,6 @@ class MasStudio extends LitElement {
         bucket: { type: String, attribute: 'aem-bucket' },
         searchText: { type: String, state: true },
         baseUrl: { type: String, attribute: 'base-url' },
-        root: { type: String, state: true },
         path: { type: String, state: true },
         variant: { type: String, state: true },
         newFragment: { type: Object, state: true },
@@ -33,7 +32,6 @@ class MasStudio extends LitElement {
         super();
         this.bucket = 'e59433';
         this.newFragment = null;
-        this.root = '/content/dam/mas';
         this.variant = 'all';
         this.searchText = '';
         this.path = '';
@@ -85,7 +83,6 @@ class MasStudio extends LitElement {
 
     updateDeeplink() {
         const state = { ...this.source?.search };
-        if (state.path === this.root) state.path = '';
         pushState(state);
     }
 
@@ -304,7 +301,6 @@ class MasStudio extends LitElement {
             <aem-fragments
                 id="aem"
                 base-url="${this.baseUrl}"
-                root="${this.root}"
                 path="${this.path}"
                 search="${this.searchText}"
                 bucket="${this.bucket}"

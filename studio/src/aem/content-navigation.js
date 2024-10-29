@@ -69,6 +69,28 @@ class ContentNavigation extends LitElement {
         if (!this.source) return;
         this.source.addEventListener(EVENT_LOAD, this.forceUpdate);
         this.source.addEventListener(EVENT_CHANGE, this.forceUpdate);
+        this.source.getTopFolders().then((folders) => {
+            this.addTabs(folders);
+        });
+    }
+
+    async addTabs(tabs = ['ccd', 'draft']) {
+        const tabContainer = document.createElement('sp-tabs');
+        tabContainer.setAttribute('emphasized', 'true');
+        tabContainer.setAttribute('size', 'l');
+        tabs.forEach((tab) => {
+            const tabElement = document.createElement('sp-tab');
+            tabElement.setAttribute('label', tab.toUpperCase());
+            tabElement.setAttribute('value', tab);
+            if (tab === 'ccd') tabElement.setAttribute('selected', 'true');
+            tabContainer.appendChild(tabElement);
+        });
+        const source = this.source;
+        tabContainer.addEventListener('change', (event) => {
+            source.path = event.target.selected;
+            source.listFragments();
+        });
+        this.prepend(tabContainer);
     }
 
     async forceUpdate() {
@@ -97,35 +119,9 @@ class ContentNavigation extends LitElement {
             "${this.source.searchText}"`;
     }
 
-    get breadcrumbs() {
-        const path = this.source?.currentFolder?.path;
-        if (!path) return nothing;
-        const folders = path.split('/') ?? [];
-        const breadcrumbs = folders.map((name) => {
-            const [parent] = path.split(`/${name}/`);
-            return html`<sp-breadcrumb-item
-                value="${parent}/${name}"
-                ?disabled=${this.inSelection || this.disabled}
-                >${name}</sp-breadcrumb-item
-            >`;
-        });
-
-        return html`<sp-breadcrumbs
-            maxVisibleItems="10"
-            @change=${this.handleBreadcrumbChange}
-            value="${this.source.path}"
-            >${breadcrumbs}</sp-breadcrumbs
-        >`;
-    }
-
-    handleBreadcrumbChange(event) {
-        this.source.path = event.detail.value;
-        this.source.listFragments();
-    }
-
     render() {
         return html`<div id="toolbar">
-                ${this.source.searchText ? this.searchInfo : this.breadcrumbs}
+                ${this.source.searchText ? this.searchInfo : ''}
                 <div class="divider"></div>
                 ${this.actions}
             </div>

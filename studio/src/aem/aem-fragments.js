@@ -7,12 +7,19 @@ import { EVENT_LOAD, EVENT_LOAD_END, EVENT_LOAD_START } from '../events.js';
 /** aem-fragment cache */
 let aemFragmentCache;
 
+const ROOT = '/content/dam/mas';
+
+const getDamPath = (path) => {
+    if (!path) return ROOT;
+    if (path.startsWith(ROOT)) return path;
+    return ROOT + '/' + path;
+};
+
 class AemFragments extends LitElement {
     static get properties() {
         return {
             bucket: { type: String },
             baseUrl: { type: String, attribute: 'base-url' },
-            root: { type: String, attribute: true, reflect: true },
             path: { type: String, attribute: true, reflect: true },
             searchText: { type: String, attribute: 'search' },
             fragment: { type: Object },
@@ -53,20 +60,19 @@ class AemFragments extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        if (!this.root) throw new Error('root attribute is required');
         if (!(this.bucket || this.baseUrl))
             throw new Error(
                 'Either the bucket or baseUrl attribute is required.',
             );
         this.#aem = new AEM(this.bucket, this.baseUrl);
-        this.#rootFolder = new Folder(this.root);
+        this.#rootFolder = new Folder('/mas');
         this.style.display = 'none';
     }
 
     async sendSearch() {
         if (this.searchText) await this.searchFragments();
         else {
-            await this.openFolder(this.path || this.root);
+            await this.openFolder(getDamPath(this.path));
             await this.listFragments();
         }
     }
@@ -111,6 +117,14 @@ class AemFragments extends LitElement {
         this.fragment = fragment;
     }
 
+    async getTopFolders() {
+        const { children } = await this.#aem.folders.list(ROOT);
+        const displays = window.localStorage.getItem('top_folders') || ['ccd'];
+        return children
+            .map((folder) => folder.name)
+            .filter((child) => displays.includes(child));
+    }
+
     async processFragments(cursor, search = false) {
         if (this.#cursor) {
             this.#cursor.cancelled = true;
@@ -148,7 +162,7 @@ class AemFragments extends LitElement {
 
     async listFragments() {
         this.#search = {
-            path: this.path || this.currentFolder.path || this.#rootFolder.path,
+            path: getDamPath(this.path),
         };
         const cursor = this.#aem.sites.cf.fragments.search(this.#search);
         this.processFragments(cursor);
@@ -230,4 +244,4 @@ class AemFragments extends LitElement {
 
 customElements.define('aem-fragments', AemFragments);
 
-export { AemFragments };
+export { AemFragments, getDamPath };

@@ -105,6 +105,11 @@ content-navigation {
     flex: 1;
 }
 
+sp-tabs {
+    margin-left: 32px;
+}
+
+
 render-view {
     margin: 32px;
     display: flex;

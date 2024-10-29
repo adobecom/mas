@@ -50,6 +50,8 @@ import '@spectrum-web-components/popover/sp-popover.js';
 import '@spectrum-web-components/progress-circle/sp-progress-circle.js';
 import '@spectrum-web-components/search/sp-search.js';
 import '@spectrum-web-components/status-light/sp-status-light.js';
+import '@spectrum-web-components/tabs/sp-tabs.js';
+import '@spectrum-web-components/tabs/sp-tab.js';
 import '@spectrum-web-components/table/sp-table-body.js';
 import '@spectrum-web-components/table/sp-table-cell.js';
 import '@spectrum-web-components/table/sp-table-checkbox-cell.js';

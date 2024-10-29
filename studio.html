@@ -11,7 +11,9 @@
             {
               "imports": {
                 "lit": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js",
-                "lit/directives/unsafe-html.js": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js"
+                "lit/directives/unsafe-html.js": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js",
+                "lit/directives/style-map.js": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js",
+                "lit/directives/repeat.js": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js"
               }
             }
         </script>
@@ -20,9 +22,9 @@
             document.querySelector('meta[name="aem-base-url"]')?.setAttribute('content', baseUrl);
         </script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/7.2.1/tinymce.min.js"></script>
-        <script src="studio/libs/maslib.js" type="module"></script>
+        <script src="studio/src/maslib.js" type="module"></script>
         <script src="studio/libs/swc.js" type="module"></script>
-        <script src="studio/libs/aem.js" type="module"></script>
+        <script src="studio/src/aem/index.js" type="module"></script>
         <script src="studio/src/studio.js" type="module"></script>
 
         <!-- OST -->

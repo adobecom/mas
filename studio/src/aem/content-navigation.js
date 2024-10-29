@@ -66,7 +66,7 @@ class ContentNavigation extends LitElement {
 
     registerToSource() {
         this.source = document.getElementById(this.getAttribute('source'));
-        if (!this.source) return;   
+        if (!this.source) return;
         this.source.addEventListener(EVENT_LOAD, this.forceUpdate);
         this.source.addEventListener(EVENT_CHANGE, this.forceUpdate);
     }

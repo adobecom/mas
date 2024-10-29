@@ -1,6 +1,6 @@
 import { html, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { EVENT_CHANGE, EVENT_LOAD } from '../events';
+import { EVENT_CHANGE, EVENT_LOAD } from '../events.js';
 
 const MODE = 'render';
 

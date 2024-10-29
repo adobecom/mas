@@ -24,7 +24,7 @@ class AemFragments extends LitElement {
     }
 
     /**
-     * @type {import('@adobecom/milo/libs/features/mas/web-components').AEM}
+     * @type {AEM}
      */
     #aem;
 

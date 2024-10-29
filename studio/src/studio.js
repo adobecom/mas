@@ -1,9 +1,6 @@
 import { html, LitElement, nothing } from 'lit';
 import { EVENT_SUBMIT } from './events.js';
-import {
-    deeplink,
-    pushState,
-} from '@adobecom/milo/libs/features/mas/web-components/src/deeplink.js';
+import { deeplink, pushState } from './deeplink.js';
 import './editors/merch-card-editor.js';
 import './rte-editor.js';
 import './mas-top-nav.js';

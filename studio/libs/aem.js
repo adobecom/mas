@@ -1344,7 +1344,7 @@ var AemFragments = class extends r3 {
   constructor() {
     super(...arguments);
     /**
-     * @type {import('@adobecom/milo/libs/features/mas/web-components').AEM}
+     * @type {AEM}
      */
     __privateAdd(this, _aem);
     /**

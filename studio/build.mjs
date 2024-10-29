@@ -24,9 +24,3 @@ await build({
     entryPoints: ['src/aem/index.js'],
     outfile: 'libs/aem.js',
 });
-
-await build({
-    ...defaults,
-    entryPoints: ['src/studio.js'],
-    outfile: 'libs/studio.js',
-});

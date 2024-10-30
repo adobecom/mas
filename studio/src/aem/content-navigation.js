@@ -77,7 +77,7 @@ class ContentNavigation extends LitElement {
         });
     }
 
-    async addTabs(tabs = ['ccd', 'draft']) {
+    async addTabs(tabs) {
         this.#tabs = document.createElement('sp-tabs');
         this.#tabs.setAttribute('emphasized', 'true');
         this.#tabs.setAttribute('size', 'l');

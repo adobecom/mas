@@ -119,10 +119,12 @@ class AemFragments extends LitElement {
 
     async getTopFolders() {
         const { children } = await this.#aem.folders.list(ROOT);
-        const displays = window.localStorage.getItem('top_folders') || ['ccd'];
+        const ignore = window.localStorage.getItem('ignore_folders') || [
+            'images',
+        ];
         return children
             .map((folder) => folder.name)
-            .filter((child) => displays.includes(child));
+            .filter((child) => !ignore.includes(child));
     }
 
     async processFragments(cursor, search = false) {

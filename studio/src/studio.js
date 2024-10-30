@@ -98,7 +98,6 @@ class MasStudio extends LitElement {
         pushState({
             query: undefined,
             path: undefined,
-            fragmentId: undefined,
         });
     }
 
@@ -357,8 +356,8 @@ class MasStudio extends LitElement {
     }
 
     startDeeplink() {
-        this.deeplinkDisposer = deeplink(({ query, path, fragmentId }) => {
-            this.searchText = (query || fragmentId) ?? '';
+        this.deeplinkDisposer = deeplink(({ query, path }) => {
+            this.searchText = query ?? '';
             this.path = path ?? '';
         });
     }
@@ -489,7 +488,6 @@ class MasStudio extends LitElement {
             pushState({
                 query: undefined,
                 path: undefined,
-                fragmentId: undefined,
             });
         }
         if (e.type === EVENT_SUBMIT) {

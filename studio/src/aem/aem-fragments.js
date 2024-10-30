@@ -168,11 +168,6 @@ class AemFragments extends LitElement {
      * Searches for a content fragment by its UUID.
      */
     async searchFragmentByUUID() {
-        this.#search = {
-            fragmentId: this.searchText,
-            query: undefined,
-            path: this.#rootFolder.path,
-        };
         this.#loading = true;
         this.#cursor = null;
         this.#searchResult = [];
@@ -198,15 +193,14 @@ class AemFragments extends LitElement {
      * @param {string} search.variant - The variant to filter by.
      */
     async searchFragments() {
+        this.#search = {
+            query: this.searchText,
+            path: this.#rootFolder.path,
+        };
         const isFragmentId = this.isUUID(this.searchText);
         if (isFragmentId) {
             await this.searchFragmentByUUID();
         } else {
-            this.#search = {
-                fragmentId: undefined,
-                query: this.searchText,
-                path: this.#rootFolder.path,
-            };
             const cursor = await this.#aem.sites.cf.fragments.search(
                 this.#search,
             );

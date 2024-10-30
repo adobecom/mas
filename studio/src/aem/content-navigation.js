@@ -33,6 +33,9 @@ class ContentNavigation extends LitElement {
             }
         `;
     }
+
+    #tabs;
+
     static get properties() {
         return {
             mode: { type: String, attribute: true, reflect: true },
@@ -75,22 +78,29 @@ class ContentNavigation extends LitElement {
     }
 
     async addTabs(tabs = ['ccd', 'draft']) {
-        const tabContainer = document.createElement('sp-tabs');
-        tabContainer.setAttribute('emphasized', 'true');
-        tabContainer.setAttribute('size', 'l');
+        this.#tabs = document.createElement('sp-tabs');
+        this.#tabs.setAttribute('emphasized', 'true');
+        this.#tabs.setAttribute('size', 'l');
         tabs.forEach((tab) => {
             const tabElement = document.createElement('sp-tab');
             tabElement.setAttribute('label', tab.toUpperCase());
             tabElement.setAttribute('value', tab);
             if (tab === 'ccd') tabElement.setAttribute('selected', 'true');
-            tabContainer.appendChild(tabElement);
+            this.#tabs.appendChild(tabElement);
         });
         const source = this.source;
-        tabContainer.addEventListener('change', (event) => {
+        this.#tabs.addEventListener('change', (event) => {
             source.path = event.target.selected;
             source.listFragments();
         });
-        this.prepend(tabContainer);
+        this.prepend(this.#tabs);
+    }
+
+    toggleTabDisabled(disabled) {
+        this.#tabs.disabled = disabled;
+        this.#tabs.querySelectorAll('sp-tab').forEach((tab) => {
+            tab.disabled = disabled;
+        });
     }
 
     async forceUpdate() {
@@ -134,6 +144,7 @@ class ContentNavigation extends LitElement {
         if (!this.inSelection) {
             this.source.clearSelection();
         }
+        this.toggleTabDisabled(this.inSelection);
         this.notify();
     }
 

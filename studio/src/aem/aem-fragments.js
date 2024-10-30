@@ -64,8 +64,9 @@ class AemFragments extends LitElement {
     }
 
     async sendSearch() {
-        if (this.searchText) await this.searchFragments();
-        else {
+        if (this.searchText) {
+            await this.searchFragments();
+        } else {
             await this.openFolder(this.path || this.root);
             await this.listFragments();
         }
@@ -111,6 +112,15 @@ class AemFragments extends LitElement {
         this.fragment = fragment;
     }
 
+    async addToCache(fragments) {
+        if (!aemFragmentCache) {
+            await customElements.whenDefined('aem-fragment').then(() => {
+                aemFragmentCache = document.createElement('aem-fragment').cache;
+            });
+        }
+        aemFragmentCache.add(...fragments);
+    }
+
     async processFragments(cursor, search = false) {
         if (this.#cursor) {
             this.#cursor.cancelled = true;
@@ -133,13 +143,7 @@ class AemFragments extends LitElement {
             } else {
                 this.currentFolder.add(...fragments);
             }
-            if (!aemFragmentCache) {
-                await customElements.whenDefined('aem-fragment').then(() => {
-                    aemFragmentCache =
-                        document.createElement('aem-fragment').cache;
-                });
-            }
-            aemFragmentCache.add(...fragments);
+            this.addToCache(fragments);
             this.dispatchEvent(new CustomEvent(EVENT_LOAD));
         }
         this.#loading = false;
@@ -154,19 +158,60 @@ class AemFragments extends LitElement {
         this.processFragments(cursor);
     }
 
+    isUUID(str) {
+        const uuidRegex =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(str);
+    }
+
     /**
-     * Searches for content fragments based on the provided query parameters.
+     * Searches for a content fragment by its UUID.
+     */
+    async searchFragmentByUUID() {
+        this.#search = {
+            fragmentId: this.searchText,
+            query: undefined,
+            path: this.#rootFolder.path,
+        };
+        this.#loading = true;
+        this.#cursor = null;
+        this.#searchResult = [];
+        this.dispatchEvent(
+            new CustomEvent(EVENT_LOAD_START, {
+                bubbles: true,
+            }),
+        );
+        const fragment = await this.#aem.sites.cf.fragments.getById(
+            this.searchText,
+        );
+        this.#searchResult = [fragment];
+        this.#loading = false;
+        this.addToCache([fragment]);
+        this.dispatchEvent(new CustomEvent(EVENT_LOAD), { bubbles: true });
+        this.dispatchEvent(new CustomEvent(EVENT_LOAD_END, { bubbles: true }));
+    }
+
+    /**
+     * Searches for content fragments based on the provided query.
      *
      * @param {Object} search - The search parameters.
      * @param {string} search.variant - The variant to filter by.
      */
     async searchFragments() {
-        this.#search = {
-            query: this.searchText,
-            path: this.#rootFolder.path,
-        };
-        const cursor = await this.#aem.sites.cf.fragments.search(this.#search);
-        this.processFragments(cursor, true);
+        const isFragmentId = this.isUUID(this.searchText);
+        if (isFragmentId) {
+            await this.searchFragmentByUUID();
+        } else {
+            this.#search = {
+                fragmentId: undefined,
+                query: this.searchText,
+                path: this.#rootFolder.path,
+            };
+            const cursor = await this.#aem.sites.cf.fragments.search(
+                this.#search,
+            );
+            this.processFragments(cursor, true);
+        }
     }
 
     async saveFragment() {

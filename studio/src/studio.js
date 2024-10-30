@@ -94,7 +94,7 @@ class MasStudio extends LitElement {
         this.searchText = '';
         pushState({
             query: undefined,
-            path: undefined,
+            path: this.path,
         });
     }
 

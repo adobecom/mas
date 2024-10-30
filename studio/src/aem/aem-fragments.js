@@ -65,7 +65,7 @@ class AemFragments extends LitElement {
                 'Either the bucket or baseUrl attribute is required.',
             );
         this.#aem = new AEM(this.bucket, this.baseUrl);
-        this.#rootFolder = new Folder('/mas');
+        this.#rootFolder = new Folder(getDamPath());
         this.style.display = 'none';
     }
 
@@ -177,7 +177,7 @@ class AemFragments extends LitElement {
     async searchFragments() {
         this.#search = {
             query: this.searchText,
-            path: this.#rootFolder.path,
+            path: this.path,
         };
         const cursor = await this.#aem.sites.cf.fragments.search(this.#search);
         this.processFragments(cursor, true);

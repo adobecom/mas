@@ -27,6 +27,7 @@ class MasStudio extends LitElement {
         variant: { type: String, state: true },
         newFragment: { type: Object, state: true },
         showFilterPanel: { type: Boolean, state: true },
+        showEditorPanel: { type: Boolean, state: true },
     };
 
     constructor() {
@@ -38,6 +39,7 @@ class MasStudio extends LitElement {
         this.searchText = '';
         this.path = '';
         this.showFilterPanel = false;
+        this.showEditorPanel = false;
     }
 
     connectedCallback() {
@@ -257,43 +259,45 @@ class MasStudio extends LitElement {
     }
 
     get fragmentEditor() {
-        return html`<div id="editor">
-            ${this.fragment
-                ? html`
-                      ${this.fragmentEditorToolbar}
-                      <merch-card-editor
-                          .fragment=${this.fragment}
-                          @ost-open="${this.openOfferSelectorTool}"
-                          @refresh-fragment="${this.refreshFragment}"
-                          @update-fragment="${this.updateFragment}"
-                      >
-                      </merch-card-editor>
-                      <p>Fragment details (not shown on the card)</p>
-                      <sp-divider size="s"></sp-divider>
-                      <sp-field-label for="fragment-title"
-                          >Fragment Title</sp-field-label
-                      >
-                      <sp-textfield
-                          placeholder="Enter fragment title"
-                          id="fragment-title"
-                          data-field="title"
-                          value="${this.fragment.title}"
-                          @change="${this.updateFragmentInternal}"
-                      ></sp-textfield>
-                      <sp-field-label for="fragment-description"
-                          >Fragment Description</sp-field-label
-                      >
-                      <sp-textfield
-                          placeholder="Enter fragment description"
-                          id="fragment-description"
-                          data-field="description"
-                          multiline
-                          value="${this.fragment.description}"
-                          @change="${this.updateFragmentInternal}"
-                      ></sp-textfield>
-                  `
-                : nothing}
-        </div>`;
+        return this.showEditorPanel
+            ? html`<div id="editor">
+                  ${this.fragment
+                      ? html`
+                            ${this.fragmentEditorToolbar}
+                            <merch-card-editor
+                                .fragment=${this.fragment}
+                                @ost-open="${this.openOfferSelectorTool}"
+                                @refresh-fragment="${this.refreshFragment}"
+                                @update-fragment="${this.updateFragment}"
+                            >
+                            </merch-card-editor>
+                            <p>Fragment details (not shown on the card)</p>
+                            <sp-divider size="s"></sp-divider>
+                            <sp-field-label for="fragment-title"
+                                >Fragment Title</sp-field-label
+                            >
+                            <sp-textfield
+                                placeholder="Enter fragment title"
+                                id="fragment-title"
+                                data-field="title"
+                                value="${this.fragment.title}"
+                                @change="${this.updateFragmentInternal}"
+                            ></sp-textfield>
+                            <sp-field-label for="fragment-description"
+                                >Fragment Description</sp-field-label
+                            >
+                            <sp-textfield
+                                placeholder="Enter fragment description"
+                                id="fragment-description"
+                                data-field="description"
+                                multiline
+                                value="${this.fragment.description}"
+                                @change="${this.updateFragmentInternal}"
+                            ></sp-textfield>
+                        `
+                      : nothing}
+              </div>`
+            : nothing;
     }
 
     get content() {
@@ -406,7 +410,7 @@ class MasStudio extends LitElement {
     async handleOpenFragment(e) {
         const { x, fragment } = e.detail;
         await this.adjustEditorPosition(x);
-        document.getElementById('editor').classList.add('open');
+        this.showEditorPanel = true;
         await this.editFragment(fragment);
     }
 
@@ -468,7 +472,7 @@ class MasStudio extends LitElement {
 
     async closeFragmentEditor() {
         await this.source?.setFragment(null);
-        document.getElementById('editor').classList.remove('open');
+        this.showEditorPanel = false;
         this.requestUpdate();
     }
 

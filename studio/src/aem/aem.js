@@ -72,7 +72,6 @@ class AEM {
         const params = {
             query: JSON.stringify(searchQuery),
         };
-        searchQuery.limit = 20;
 
         let cursor;
         while (true) {

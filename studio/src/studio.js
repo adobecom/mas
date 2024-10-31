@@ -259,45 +259,44 @@ class MasStudio extends LitElement {
     }
 
     get fragmentEditor() {
-        return this.showEditorPanel
-            ? html`<div id="editor">
-                  ${this.fragment
-                      ? html`
-                            ${this.fragmentEditorToolbar}
-                            <merch-card-editor
-                                .fragment=${this.fragment}
-                                @ost-open="${this.openOfferSelectorTool}"
-                                @refresh-fragment="${this.refreshFragment}"
-                                @update-fragment="${this.updateFragment}"
-                            >
-                            </merch-card-editor>
-                            <p>Fragment details (not shown on the card)</p>
-                            <sp-divider size="s"></sp-divider>
-                            <sp-field-label for="fragment-title"
-                                >Fragment Title</sp-field-label
-                            >
-                            <sp-textfield
-                                placeholder="Enter fragment title"
-                                id="fragment-title"
-                                data-field="title"
-                                value="${this.fragment.title}"
-                                @change="${this.updateFragmentInternal}"
-                            ></sp-textfield>
-                            <sp-field-label for="fragment-description"
-                                >Fragment Description</sp-field-label
-                            >
-                            <sp-textfield
-                                placeholder="Enter fragment description"
-                                id="fragment-description"
-                                data-field="description"
-                                multiline
-                                value="${this.fragment.description}"
-                                @change="${this.updateFragmentInternal}"
-                            ></sp-textfield>
-                        `
-                      : nothing}
-              </div>`
-            : nothing;
+        if (!this.showEditorPanel) return nothing;
+        return html`<div id="editor">
+            ${this.fragment
+                ? html`
+                      ${this.fragmentEditorToolbar}
+                      <merch-card-editor
+                          .fragment=${this.fragment}
+                          @ost-open="${this.openOfferSelectorTool}"
+                          @refresh-fragment="${this.refreshFragment}"
+                          @update-fragment="${this.updateFragment}"
+                      >
+                      </merch-card-editor>
+                      <p>Fragment details (not shown on the card)</p>
+                      <sp-divider size="s"></sp-divider>
+                      <sp-field-label for="fragment-title"
+                          >Fragment Title</sp-field-label
+                      >
+                      <sp-textfield
+                          placeholder="Enter fragment title"
+                          id="fragment-title"
+                          data-field="title"
+                          value="${this.fragment.title}"
+                          @change="${this.updateFragmentInternal}"
+                      ></sp-textfield>
+                      <sp-field-label for="fragment-description"
+                          >Fragment Description</sp-field-label
+                      >
+                      <sp-textfield
+                          placeholder="Enter fragment description"
+                          id="fragment-description"
+                          data-field="description"
+                          multiline
+                          value="${this.fragment.description}"
+                          @change="${this.updateFragmentInternal}"
+                      ></sp-textfield>
+                  `
+                : nothing}
+        </div>`;
     }
 
     get content() {

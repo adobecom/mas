@@ -26,6 +26,7 @@ class MasStudio extends LitElement {
         variant: { type: String, state: true },
         newFragment: { type: Object, state: true },
         showFilterPanel: { type: Boolean, state: true },
+        showEditorPanel: { type: Boolean, state: true },
     };
 
     constructor() {
@@ -36,6 +37,7 @@ class MasStudio extends LitElement {
         this.searchText = '';
         this.path = '';
         this.showFilterPanel = false;
+        this.showEditorPanel = false;
     }
 
     connectedCallback() {
@@ -174,6 +176,7 @@ class MasStudio extends LitElement {
                 size="l"
                 compact
                 emphasized
+                quiet
             >
                 <sp-action-button
                     label="Save"
@@ -239,7 +242,7 @@ class MasStudio extends LitElement {
                 </sp-action-button>
             </sp-action-group>
             <sp-divider vertical></sp-divider>
-            <sp-action-group size="l">
+            <sp-action-group size="l" quiet>
                 <sp-action-button
                     title="Close"
                     label="Close"
@@ -253,47 +256,44 @@ class MasStudio extends LitElement {
     }
 
     get fragmentEditor() {
-        return html`<sp-overlay type="manual" ?open=${this.fragment}>
-            <sp-popover id="editor">
-                <sp-dialog no-divider>
-                    ${this.fragment
-                        ? html`
-                              <merch-card-editor
-                                  .fragment=${this.fragment}
-                                  @ost-open="${this.openOfferSelectorTool}"
-                                  @refresh-fragment="${this.refreshFragment}"
-                                  @update-fragment="${this.updateFragment}"
-                              >
-                              </merch-card-editor>
-                              <p>Fragment details (not shown on the card)</p>
-                              <sp-divider size="s"></sp-divider>
-                              <sp-field-label for="fragment-title"
-                                  >Fragment Title</sp-field-label
-                              >
-                              <sp-textfield
-                                  placeholder="Enter fragment title"
-                                  id="fragment-title"
-                                  data-field="title"
-                                  value="${this.fragment.title}"
-                                  @change="${this.updateFragmentInternal}"
-                              ></sp-textfield>
-                              <sp-field-label for="fragment-description"
-                                  >Fragment Description</sp-field-label
-                              >
-                              <sp-textfield
-                                  placeholder="Enter fragment description"
-                                  id="fragment-description"
-                                  data-field="description"
-                                  multiline
-                                  value="${this.fragment.description}"
-                                  @change="${this.updateFragmentInternal}"
-                              ></sp-textfield>
-                              ${this.fragmentEditorToolbar}
-                          `
-                        : nothing}
-                </sp-dialog>
-            </sp-popover>
-        </sp-overlay>`;
+        if (!this.showEditorPanel) return nothing;
+        return html`<div id="editor">
+            ${this.fragment
+                ? html`
+                      ${this.fragmentEditorToolbar}
+                      <merch-card-editor
+                          .fragment=${this.fragment}
+                          @ost-open="${this.openOfferSelectorTool}"
+                          @refresh-fragment="${this.refreshFragment}"
+                          @update-fragment="${this.updateFragment}"
+                      >
+                      </merch-card-editor>
+                      <p>Fragment details (not shown on the card)</p>
+                      <sp-divider size="s"></sp-divider>
+                      <sp-field-label for="fragment-title"
+                          >Fragment Title</sp-field-label
+                      >
+                      <sp-textfield
+                          placeholder="Enter fragment title"
+                          id="fragment-title"
+                          data-field="title"
+                          value="${this.fragment.title}"
+                          @change="${this.updateFragmentInternal}"
+                      ></sp-textfield>
+                      <sp-field-label for="fragment-description"
+                          >Fragment Description</sp-field-label
+                      >
+                      <sp-textfield
+                          placeholder="Enter fragment description"
+                          id="fragment-description"
+                          data-field="description"
+                          multiline
+                          value="${this.fragment.description}"
+                          @change="${this.updateFragmentInternal}"
+                      ></sp-textfield>
+                  `
+                : nothing}
+        </div>`;
     }
 
     get content() {
@@ -392,24 +392,20 @@ class MasStudio extends LitElement {
         await this.editFragment(fragment, true);
     }
 
-    async adjustEditorPosition(x, y) {
+    async adjustEditorPosition(x) {
         await this.updateComplete;
         // reposition the editor
         const viewportCenterX = window.innerWidth / 2;
-        const left = x > viewportCenterX ? '1em' : 'inherit';
-        const right = x <= viewportCenterX ? '1em' : 'inherit';
-        this.style.setProperty('--editor--left', left);
-        this.style.setProperty('--editor--right', right);
-        const viewportCenterY = window.innerHeight / 2;
-        const top = y > viewportCenterY ? '1em' : 'inherit';
-        const bottom = y <= viewportCenterY ? '1em' : 'inherit';
-        this.style.setProperty('--editor--top', top);
-        this.style.setProperty('--editor--bottom', bottom);
+        const left = x > viewportCenterX ? '0' : 'inherit';
+        const right = x <= viewportCenterX ? '0' : 'inherit';
+        this.style.setProperty('--editor-left', left);
+        this.style.setProperty('--editor-right', right);
     }
 
     async handleOpenFragment(e) {
-        const { x, y, fragment } = e.detail;
-        await this.adjustEditorPosition(x, y);
+        const { x, fragment } = e.detail;
+        await this.adjustEditorPosition(x);
+        this.showEditorPanel = true;
         await this.editFragment(fragment);
     }
 
@@ -471,6 +467,7 @@ class MasStudio extends LitElement {
 
     async closeFragmentEditor() {
         await this.source?.setFragment(null);
+        this.showEditorPanel = false;
         this.requestUpdate();
     }
 

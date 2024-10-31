@@ -47,22 +47,21 @@ sp-underlay + sp-dialog {
 
 #editor {
     position: fixed;
-    bottom: 1em;
-    left: var(--editor--left);
-    right: var(--editor--right);
-    top: var(--editor--top);
-    bottom: var(--editor--bottom);
-    height: 800px;
-}
-
-#editor sp-dialog {
-    width: 600px;
-    overflow-y: scroll;
+    bottom: 0;
+    top: 0;
+    left: var(--editor-left);
+    right: var(--editor-right);
+    height: 100vh;
+    width: 440px;
+    background-color: var(--spectrum-white);
+    padding: 20px;
+    overflow-y: auto;
+    box-sizing: border-box;
+    box-shadow: 0 2px 6px -1px rgb(0 0 0 / 10%);
 }
 
 #actions {
     display: flex;
-    grid-column: 1 / -1;
     justify-content: end;
 }
 

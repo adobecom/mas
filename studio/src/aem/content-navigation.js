@@ -91,7 +91,8 @@ class ContentNavigation extends LitElement {
         const source = this.source;
         this.#tabs.addEventListener('change', (event) => {
             source.path = event.target.selected;
-            source.listFragments();
+            source.openFolder(source.path);
+            source.searchFragments();
         });
         this.prepend(this.#tabs);
     }

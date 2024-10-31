@@ -69,14 +69,6 @@ class AemFragments extends LitElement {
         this.style.display = 'none';
     }
 
-    async sendSearch() {
-        if (this.searchText) await this.searchFragments();
-        else {
-            await this.openFolder(getDamPath(this.path));
-            await this.listFragments();
-        }
-    }
-
     /**
      * @param {Folder} folder
      */
@@ -84,6 +76,7 @@ class AemFragments extends LitElement {
         this.#loading = true;
         this.dispatchEvent(new CustomEvent(EVENT_LOAD_START));
         if (typeof folder === 'string') {
+            folder = getDamPath(folder);
             this.currentFolder = this.#folders.get(folder);
             if (!this.currentFolder) {
                 this.currentFolder = new Folder(folder);
@@ -162,14 +155,6 @@ class AemFragments extends LitElement {
         this.dispatchEvent(new CustomEvent(EVENT_LOAD_END, { bubbles: true }));
     }
 
-    async listFragments() {
-        this.#search = {
-            path: getDamPath(this.path),
-        };
-        const cursor = this.#aem.sites.cf.fragments.search(this.#search);
-        this.processFragments(cursor);
-    }
-
     /**
      * Searches for content fragments based on the provided query parameters.
      *
@@ -178,11 +163,15 @@ class AemFragments extends LitElement {
      */
     async searchFragments() {
         this.#search = {
-            query: this.searchText,
-            path: this.path,
+            path: getDamPath(this.path),
         };
+        let search = false;
+        if (this.searchText) {
+            this.#search.query = this.searchText;
+            search = true;
+        }
         const cursor = await this.#aem.sites.cf.fragments.search(this.#search);
-        this.processFragments(cursor, true);
+        this.processFragments(cursor, search);
     }
 
     async saveFragment() {

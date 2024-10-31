@@ -108,7 +108,7 @@ class MasStudio extends LitElement {
             changedProperties.has('path') ||
             changedProperties.has('variant')
         ) {
-            this.source?.sendSearch();
+            this.source?.searchFragments();
         }
     }
 

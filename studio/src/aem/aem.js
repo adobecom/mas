@@ -63,9 +63,8 @@ class AEM {
                 text: encodeURIComponent(query),
                 queryMode: 'EXACT_WORDS',
             };
-        } else {
-            filter.onlyDirectChildren = true;
         }
+
         const searchQuery = { ...defaultSearchOptions, filter };
         if (sort) {
             searchQuery.sort = sort;
@@ -73,6 +72,7 @@ class AEM {
         const params = {
             query: JSON.stringify(searchQuery),
         };
+        searchQuery.limit = 20;
 
         let cursor;
         while (true) {

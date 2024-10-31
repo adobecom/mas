@@ -1,6 +1,7 @@
-import { css, html, LitElement, nothing } from 'lit';
+import { css, html, LitElement } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import { EVENT_CHANGE, EVENT_LOAD } from '../events.js';
+import { deeplink } from '../deeplink.js';
 
 const MAS_RENDER_MODE = 'mas-render-mode';
 
@@ -34,12 +35,11 @@ class ContentNavigation extends LitElement {
         `;
     }
 
-    #tabs;
-
     static get properties() {
         return {
             mode: { type: String, attribute: true, reflect: true },
             source: { type: Object, attribute: false },
+            topFolders: { type: Array, attribute: false },
             disabled: { type: Boolean, attribute: true },
             inSelection: {
                 type: Boolean,
@@ -73,35 +73,47 @@ class ContentNavigation extends LitElement {
         this.source.addEventListener(EVENT_LOAD, this.forceUpdate);
         this.source.addEventListener(EVENT_CHANGE, this.forceUpdate);
         this.source.getTopFolders().then((folders) => {
-            this.addTabs(folders);
+            this.topFolders = folders;
         });
     }
 
-    async addTabs(tabs) {
-        this.#tabs = document.createElement('sp-tabs');
-        this.#tabs.setAttribute('emphasized', 'true');
-        this.#tabs.setAttribute('size', 'l');
-        tabs.forEach((tab) => {
-            const tabElement = document.createElement('sp-tab');
-            tabElement.setAttribute('label', tab.toUpperCase());
-            tabElement.setAttribute('value', tab);
-            if (tab === 'ccd') tabElement.setAttribute('selected', 'true');
-            this.#tabs.appendChild(tabElement);
-        });
-        const source = this.source;
-        this.#tabs.addEventListener('change', (event) => {
-            source.path = event.target.selected;
-            source.openFolder(source.path);
-            source.searchFragments();
-        });
-        this.prepend(this.#tabs);
+    handleTabChange(event) {
+        this.source.path = event.target.selected;
+        this.source.openFolder(this.source.path);
+        this.source.searchFragments();
+    }
+
+    get tabs() {
+        return this.querySelector('sp-tabs');
     }
 
     toggleTabDisabled(disabled) {
-        this.#tabs.disabled = disabled;
-        this.#tabs.querySelectorAll('sp-tab').forEach((tab) => {
+        this.tabs.disabled = disabled;
+        this.tabs.querySelectorAll('sp-tab').forEach((tab) => {
             tab.disabled = disabled;
         });
+    }
+
+    renderTabs() {
+        if (!this.topFolders) return '';
+        let selected;
+        deeplink(({ path }) => {
+            selected = path?.split('/')?.pop() ?? 'ccd';
+        });
+        return html`<sp-tabs
+            @change=${this.handleTabChange}
+            emphasized
+            size="l"
+        >
+            ${this.topFolders.map(
+                (folder) =>
+                    html`<sp-tab
+                        label=${folder.toUpperCase()}
+                        value=${folder}
+                        selected=${selected === folder}
+                    ></sp-tab>`,
+            )}
+        </sp-tabs>`;
     }
 
     async forceUpdate() {
@@ -131,7 +143,8 @@ class ContentNavigation extends LitElement {
     }
 
     render() {
-        return html`<div id="toolbar">
+        return html`${this.renderTabs()}
+            <div id="toolbar">
                 ${this.source.searchText ? this.searchInfo : ''}
                 <div class="divider"></div>
                 ${this.actions}

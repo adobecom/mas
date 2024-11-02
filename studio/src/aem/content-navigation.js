@@ -24,6 +24,10 @@ class ContentNavigation extends LitElement {
                 flex: 1;
             }
 
+            sp-tabs {
+                margin-left: 32px;
+            }
+
             sp-action-bar {
                 display: none;
                 flex: 1;

@@ -110,7 +110,9 @@ class MasStudio extends LitElement {
             changedProperties.has('path') ||
             changedProperties.has('variant')
         ) {
-            this.source?.searchFragments();
+            this.contentNavigation?.tabs?.updateComplete.then(() => {
+                this.source?.searchFragments();
+            });
         }
     }
 

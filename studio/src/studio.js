@@ -328,7 +328,6 @@ class MasStudio extends LitElement {
         return html`
             <mas-top-nav env="${this.env}"></mas-top-nav>
             <side-nav></side-nav>
-            <mas-filter-toolbar></mas-filter-toolbar>
             ${this.showFilterPanel
                 ? html`<mas-filter-panel></mas-filter-panel>`
                 : nothing}

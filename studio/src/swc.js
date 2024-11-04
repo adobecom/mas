@@ -58,8 +58,6 @@ import '@spectrum-web-components/table/sp-table-head-cell.js';
 import '@spectrum-web-components/table/sp-table-head.js';
 import '@spectrum-web-components/table/sp-table-row.js';
 import '@spectrum-web-components/table/sp-table.js';
-import '@spectrum-web-components/tabs/sp-tab.js';
-import '@spectrum-web-components/tabs/sp-tabs.js';
 import '@spectrum-web-components/textfield/sp-textfield.js';
 import '@spectrum-web-components/textfield/sp-textfield.js';
 import '@spectrum-web-components/theme/scale-medium.js';

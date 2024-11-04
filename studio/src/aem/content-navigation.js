@@ -24,10 +24,6 @@ class ContentNavigation extends LitElement {
                 flex: 1;
             }
 
-            sp-tabs {
-                margin-left: 32px;
-            }
-
             sp-action-bar {
                 display: none;
                 flex: 1;
@@ -81,52 +77,49 @@ class ContentNavigation extends LitElement {
         });
     }
 
-    openTab(tab) {
-        if (!tab) return;
-        this.source.path = tab;
-        this.source.openFolder(tab);
+    selectConsumer(consumer) {
+        if (!consumer) return;
+        this.source.path = consumer;
+        this.source.openFolder(consumer);
         this.source.searchFragments();
     }
 
-    handleTabChange(event) {
-        this.openTab(event.target.selected);
+    handleConsumerChange(event) {
+        this.selectConsumer(event.target.value);
     }
 
-    get tabs() {
-        return this.shadowRoot.querySelector('sp-tabs');
+    get consumers() {
+        return this.shadowRoot.querySelector('sp-picker');
     }
 
-    toggleTabDisabled(disabled) {
-        this.tabs.disabled = disabled;
-        this.tabs.querySelectorAll('sp-tab').forEach((tab) => {
-            tab.disabled = disabled;
-        });
+    toggleConsumersDisabled(disabled) {
+        this.consumers.disabled = disabled;
     }
 
-    renderTabs() {
+    renderConsumers() {
         if (!this.topFolders) return '';
         let initialSelection;
         deeplink(({ path }) => {
             initialSelection = path?.split('/')?.pop();
         });
-        const selected =
+        const initialValue =
             initialSelection && this.topFolders.includes(initialSelection)
                 ? initialSelection
                 : 'ccd';
-        return html`<sp-tabs
-            @change=${this.handleTabChange}
-            emphasized
-            size="l"
-            selected="${selected}"
+        return html`<sp-picker
+            @change=${this.handleConsumerChange}
+            label="Consumer"
+            class="consumer"
+            size="m"
+            value="${initialValue}"
         >
             ${this.topFolders.map(
                 (folder) =>
-                    html`<sp-tab
-                        label=${folder.toUpperCase()}
-                        value=${folder}
-                    ></sp-tab>`,
+                    html`<sp-menu-item value="${folder}">
+                        ${folder.toUpperCase()}
+                    </sp-menu-item>`,
             )}
-        </sp-tabs>`;
+        </sp-picker>`;
     }
 
     async forceUpdate() {
@@ -144,7 +137,7 @@ class ContentNavigation extends LitElement {
             sessionStorage.setItem(MAS_RENDER_MODE, this.mode);
         }
         this.forceUpdate();
-        this.openTab(this.tabs?.selected);
+        this.selectConsumer(this.consumers?.value);
     }
 
     get currentRenderer() {
@@ -157,7 +150,7 @@ class ContentNavigation extends LitElement {
     }
 
     render() {
-        return html`${this.renderTabs()}
+        return html`${this.renderConsumers()}
             <div id="toolbar">
                 ${this.source.searchText ? this.searchInfo : ''}
                 <div class="divider"></div>
@@ -172,7 +165,7 @@ class ContentNavigation extends LitElement {
         if (!this.inSelection) {
             this.source.clearSelection();
         }
-        this.toggleTabDisabled(this.inSelection);
+        this.toggleConsumersDisabled(this.inSelection);
         this.notify();
     }
 
@@ -241,7 +234,8 @@ class ContentNavigation extends LitElement {
         const inNoSelectionStyle = styleMap({
             display: !this.disabled && !this.inSelection ? 'flex' : 'none',
         });
-        return html`<sp-action-group emphasized>
+        return html`<mas-filter-toolbar></mas-filter-toolbar>
+            <sp-action-group emphasized>
             <slot name="toolbar-actions"></slot>
             <sp-action-button emphasized style=${inNoSelectionStyle}>
                 <sp-icon-new-item slot="icon"></sp-icon-new-item>

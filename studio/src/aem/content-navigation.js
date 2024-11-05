@@ -2,8 +2,8 @@ import { css, html, LitElement, nothing } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import { EVENT_CHANGE, EVENT_LOAD } from '../events.js';
 import { deeplink } from '../deeplink.js';
-import '../mas-filter-panel.js';
-import '../mas-filter-toolbar.js';
+import './mas-filter-panel.js';
+import './mas-filter-toolbar.js';
 
 const MAS_RENDER_MODE = 'mas-render-mode';
 
@@ -151,6 +151,10 @@ class ContentNavigation extends LitElement {
 
     get currentRenderer() {
         return [...this.children].find((child) => child.canRender());
+    }
+
+    get search() {
+        return this.shadowRoot.querySelector('mas-filter-toolbar').search;
     }
 
     get searchInfo() {

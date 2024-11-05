@@ -39,7 +39,6 @@ class MasStudio extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         this.registerListeners();
-        this.startDeeplink();
         this.addEventListener('clear-search', this.clearSearch);
         this.addEventListener('search-fragments', this.doSearch);
         this.addEventListener('variant-changed', this.handleVariantChange);
@@ -47,6 +46,7 @@ class MasStudio extends LitElement {
             'search-text-changed',
             this.handleSearchTextChange,
         );
+        this.startDeeplink();
     }
 
     registerListeners() {
@@ -107,20 +107,16 @@ class MasStudio extends LitElement {
         }
     }
 
-    get search() {
-        return this.querySelector('sp-search');
-    }
-
-    get picker() {
-        return this.querySelector('sp-picker');
-    }
-
     get source() {
         return this.querySelector('aem-fragments');
     }
 
     get contentNavigation() {
         return this.querySelector('content-navigation');
+    }
+
+    get search() {
+        return this.contentNavigation.search;
     }
 
     get fragment() {
@@ -343,6 +339,9 @@ class MasStudio extends LitElement {
     startDeeplink() {
         this.deeplinkDisposer = deeplink(({ query, path }) => {
             this.searchText = query ?? '';
+            if (this.search) {
+                this.search.searchText = query ?? '';
+            }
             this.path = path ?? '';
         });
     }

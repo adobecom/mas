@@ -196,18 +196,19 @@ class AemFragments extends LitElement {
      * @param {string} search.variant - The variant to filter by.
      */
     async searchFragments() {
+        this.#search = {
+            path: getDamPath(this.path),
+        };
+
+        let search = false;
+        if (this.searchText) {
+            this.#search.query = this.searchText;
+            search = true;
+        }
         const isFragmentId = this.isUUID(this.searchText);
         if (isFragmentId) {
             await this.searchFragmentByUUID();
         } else {
-            this.#search = {
-                path: getDamPath(this.path),
-            };
-            let search = false;
-            if (this.searchText) {
-                this.#search.query = this.searchText;
-                search = true;
-            }
             const cursor = await this.#aem.sites.cf.fragments.search(
                 this.#search,
             );

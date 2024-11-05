@@ -1,5 +1,5 @@
 import { html, css, LitElement } from 'lit';
-import './editors/variant-picker.js';
+import '../editors/variant-picker.js';
 
 class MasFilterToolbar extends LitElement {
     static styles = css`
@@ -27,6 +27,11 @@ class MasFilterToolbar extends LitElement {
         super();
         this.searchText = '';
         this.variant = 'all';
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        this.searchText = document.querySelector('mas-studio').searchText;
     }
 
     render() {

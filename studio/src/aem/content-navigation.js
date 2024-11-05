@@ -161,7 +161,6 @@ class ContentNavigation extends LitElement {
     render() {
         return html`<div id="toolbar">
                 ${this.renderConsumers()}
-                ${this.source.searchText ? this.searchInfo : ''}
                 <div class="divider"></div>
                 ${this.actions}
             </div>
@@ -169,6 +168,7 @@ class ContentNavigation extends LitElement {
                 ? html`<mas-filter-panel></mas-filter-panel>`
                 : nothing}
             ${this.selectionActions}
+            ${this.source.searchText ? this.searchInfo : ''}
             <slot></slot> `;
     }
 

@@ -158,23 +158,61 @@ class AemFragments extends LitElement {
         this.dispatchEvent(new CustomEvent(EVENT_LOAD_END, { bubbles: true }));
     }
 
+    isUUID(str) {
+        const uuidRegex =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(str);
+    }
     /**
-     * Searches for content fragments based on the provided query parameters.
+     * Searches for a content fragment by its UUID.
+     */
+    async searchFragmentByUUID() {
+        this.#loading = true;
+        this.#cursor = null;
+        this.#searchResult = [];
+        this.dispatchEvent(
+            new CustomEvent(EVENT_LOAD_START, {
+                bubbles: true,
+            }),
+        );
+        const fragment = await this.#aem.sites.cf.fragments.getById(
+            this.searchText,
+        );
+        if (!fragment || fragment.path.indexOf(getDamPath(this.path)) < 0) {
+            this.#searchResult = [];
+        } else {
+            this.#searchResult = [fragment];
+            this.addToCache([fragment]);
+        }
+        this.#loading = false;
+        this.dispatchEvent(new CustomEvent(EVENT_LOAD), { bubbles: true });
+        this.dispatchEvent(new CustomEvent(EVENT_LOAD_END, { bubbles: true }));
+    }
+
+    /**
+     * Searches for content fragments based on the provided query.
      *
      * @param {Object} search - The search parameters.
      * @param {string} search.variant - The variant to filter by.
      */
     async searchFragments() {
-        this.#search = {
-            path: getDamPath(this.path),
-        };
-        let search = false;
-        if (this.searchText) {
-            this.#search.query = this.searchText;
-            search = true;
+        const isFragmentId = this.isUUID(this.searchText);
+        if (isFragmentId) {
+            await this.searchFragmentByUUID();
+        } else {
+            this.#search = {
+                path: getDamPath(this.path),
+            };
+            let search = false;
+            if (this.searchText) {
+                this.#search.query = this.searchText;
+                search = true;
+            }
+            const cursor = await this.#aem.sites.cf.fragments.search(
+                this.#search,
+            );
+            this.processFragments(cursor, search);
         }
-        const cursor = await this.#aem.sites.cf.fragments.search(this.#search);
-        this.processFragments(cursor, search);
     }
 
     async saveFragment() {

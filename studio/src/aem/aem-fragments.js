@@ -120,6 +120,15 @@ class AemFragments extends LitElement {
             .filter((child) => !ignore.includes(child));
     }
 
+    async addToCache(fragments) {
+        if (!aemFragmentCache) {
+            await customElements.whenDefined('aem-fragment').then(() => {
+                aemFragmentCache = document.createElement('aem-fragment').cache;
+            });
+        }
+        aemFragmentCache.add(...fragments);
+    }
+
     async processFragments(cursor, search = false) {
         if (this.#cursor) {
             this.#cursor.cancelled = true;
@@ -142,13 +151,7 @@ class AemFragments extends LitElement {
             } else {
                 this.currentFolder.add(...fragments);
             }
-            if (!aemFragmentCache) {
-                await customElements.whenDefined('aem-fragment').then(() => {
-                    aemFragmentCache =
-                        document.createElement('aem-fragment').cache;
-                });
-            }
-            aemFragmentCache.add(...fragments);
+            this.addToCache(fragments);
             this.dispatchEvent(new CustomEvent(EVENT_LOAD));
         }
         this.#loading = false;

@@ -1,7 +1,9 @@
-import { css, html, LitElement } from 'lit';
+import { css, html, LitElement, nothing } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import { EVENT_CHANGE, EVENT_LOAD } from '../events.js';
 import { deeplink } from '../deeplink.js';
+import '../mas-filter-panel.js';
+import '../mas-filter-toolbar.js';
 
 const MAS_RENDER_MODE = 'mas-render-mode';
 
@@ -41,6 +43,7 @@ class ContentNavigation extends LitElement {
             source: { type: Object, attribute: false },
             topFolders: { type: Array, attribute: false },
             disabled: { type: Boolean, attribute: true },
+            showFilterPanel: { type: Boolean, state: true },
             inSelection: {
                 type: Boolean,
                 attribute: 'in-selection',
@@ -54,17 +57,23 @@ class ContentNavigation extends LitElement {
         this.mode = sessionStorage.getItem(MAS_RENDER_MODE) ?? 'render';
         this.inSelection = false;
         this.disabled = false;
+        this.showFilterPanel = false;
         this.forceUpdate = this.forceUpdate.bind(this);
     }
 
     connectedCallback() {
         super.connectedCallback();
+        this.addEventListener('toggle-filter-panel', this.toggleFilterPanel);
         this.registerToSource();
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         this.unregisterFromSource();
+    }
+
+    toggleFilterPanel() {
+        this.showFilterPanel = !this.showFilterPanel;
     }
 
     registerToSource() {
@@ -150,12 +159,15 @@ class ContentNavigation extends LitElement {
     }
 
     render() {
-        return html`${this.renderConsumers()}
-            <div id="toolbar">
+        return html`<div id="toolbar">
+                ${this.renderConsumers()}
                 ${this.source.searchText ? this.searchInfo : ''}
                 <div class="divider"></div>
                 ${this.actions}
             </div>
+            ${this.showFilterPanel
+                ? html`<mas-filter-panel></mas-filter-panel>`
+                : nothing}
             ${this.selectionActions}
             <slot></slot> `;
     }
@@ -236,30 +248,30 @@ class ContentNavigation extends LitElement {
         });
         return html`<mas-filter-toolbar></mas-filter-toolbar>
             <sp-action-group emphasized>
-            <slot name="toolbar-actions"></slot>
-            <sp-action-button emphasized style=${inNoSelectionStyle}>
-                <sp-icon-new-item slot="icon"></sp-icon-new-item>
-                Create New Card
-            </sp-action-button>
-            <sp-action-button
-                style=${inNoSelectionStyle}
-                @click=${this.toggleSelectionMode}
-            >
-                <sp-icon-selection-checked
-                    slot="icon"
-                ></sp-icon-selection-checked>
-                Select
-            </sp-action-button>
-            <sp-action-menu
-                style=${inNoSelectionStyle}
-                selects="single"
-                value="${this.mode}"
-                placement="left-end"
-                @change=${this.handleRenderModeChange}
-            >
-                ${this.renderActions}
-            </sp-action-menu>
-        </sp-action-group>`;
+                <slot name="toolbar-actions"></slot>
+                <sp-action-button emphasized style=${inNoSelectionStyle}>
+                    <sp-icon-new-item slot="icon"></sp-icon-new-item>
+                    Create New Card
+                </sp-action-button>
+                <sp-action-button
+                    style=${inNoSelectionStyle}
+                    @click=${this.toggleSelectionMode}
+                >
+                    <sp-icon-selection-checked
+                        slot="icon"
+                    ></sp-icon-selection-checked>
+                    Select
+                </sp-action-button>
+                <sp-action-menu
+                    style=${inNoSelectionStyle}
+                    selects="single"
+                    value="${this.mode}"
+                    placement="left-end"
+                    @change=${this.handleRenderModeChange}
+                >
+                    ${this.renderActions}
+                </sp-action-menu>
+            </sp-action-group>`;
     }
 
     handleRenderModeChange(e) {

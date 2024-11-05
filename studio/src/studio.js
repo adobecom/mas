@@ -4,8 +4,6 @@ import { deeplink, pushState } from './deeplink.js';
 import './editors/merch-card-editor.js';
 import './rte-editor.js';
 import './mas-top-nav.js';
-import './mas-filter-panel.js';
-import './mas-filter-toolbar.js';
 
 import { getOffferSelectorTool, openOfferSelectorTool } from './ost.js';
 
@@ -25,7 +23,6 @@ class MasStudio extends LitElement {
         path: { type: String, state: true },
         variant: { type: String, state: true },
         newFragment: { type: Object, state: true },
-        showFilterPanel: { type: Boolean, state: true },
         showEditorPanel: { type: Boolean, state: true },
     };
 
@@ -36,7 +33,6 @@ class MasStudio extends LitElement {
         this.variant = 'all';
         this.searchText = '';
         this.path = '';
-        this.showFilterPanel = false;
         this.showEditorPanel = false;
     }
 
@@ -44,7 +40,6 @@ class MasStudio extends LitElement {
         super.connectedCallback();
         this.registerListeners();
         this.startDeeplink();
-        this.addEventListener('toggle-filter-panel', this.toggleFilterPanel);
         this.addEventListener('clear-search', this.clearSearch);
         this.addEventListener('search-fragments', this.doSearch);
         this.addEventListener('variant-changed', this.handleVariantChange);
@@ -86,10 +81,6 @@ class MasStudio extends LitElement {
     updateDeeplink() {
         const state = { ...this.source?.search };
         pushState(state);
-    }
-
-    toggleFilterPanel() {
-        this.showFilterPanel = !this.showFilterPanel;
     }
 
     clearSearch() {
@@ -328,9 +319,6 @@ class MasStudio extends LitElement {
         return html`
             <mas-top-nav env="${this.env}"></mas-top-nav>
             <side-nav></side-nav>
-            ${this.showFilterPanel
-                ? html`<mas-filter-panel></mas-filter-panel>`
-                : nothing}
             ${this.content} ${this.fragmentEditor} ${this.selectFragmentDialog}
             ${this.toast} ${this.loadingIndicator} ${getOffferSelectorTool()}
         `;

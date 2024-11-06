@@ -4,7 +4,7 @@ const getMiloLibs = () => {
     );
     if (!milolibs) return 'https://www.adobe.com';
     if ('local' === milolibs) return 'http://localhost:6456';
-    return `https://${milolibs}.hlx.live`;
+    return `https://${milolibs}.hlx.page`;
 };
 
 const injectMasLib = () => {

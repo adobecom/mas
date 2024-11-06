@@ -188,7 +188,7 @@ class AemFragments extends LitElement {
         ) {
             const fragment = new Fragment(fragmentData, this);
             this.#searchResult = [fragment];
-            this.addToCache([fragment]);
+            await this.addToCache([fragment]);
         }
         this.#loading = false;
         this.dispatchEvent(new CustomEvent(EVENT_LOAD), { bubbles: true });

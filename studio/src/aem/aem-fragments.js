@@ -227,7 +227,7 @@ class AemFragments extends LitElement {
 
     async publishFragment() {
         await this.#aem.sites.cf.fragments.publish(this.fragment);
-        // temporary fix till https://jira.corp.adobe.com/browse/MWPW-161647 is implemented
+        // TODO temporary fix till https://jira.corp.adobe.com/browse/MWPW-161647 is implemented
         setTimeout(async () => {
             const latest = await this.#aem.sites.cf.fragments.getById(
                 this.fragment.id,

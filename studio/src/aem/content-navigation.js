@@ -101,10 +101,8 @@ class ContentNavigation extends LitElement {
                 this.#initFromFragmentId = true;
             }
         });
-        this.source.addEventListener(
-            EVENT_LOAD,
-            this.handlerSourceLoad.bind(this),
-        );
+        this.boundHandlerSourceLoad = this.handlerSourceLoad.bind(this);
+        this.source.addEventListener(EVENT_LOAD, this.boundHandlerSourceLoad);
         this.source.addEventListener(EVENT_CHANGE, this.forceUpdate);
         this.source.getTopFolders().then((folders) => {
             this.topFolders = folders;
@@ -119,7 +117,10 @@ class ContentNavigation extends LitElement {
         if (this.deeplinkDisposer) {
             this.deeplinkDisposer();
         }
-        this.source?.removeEventListener(EVENT_LOAD, this.handlerSourceLoad());
+        this.source?.removeEventListener(
+            EVENT_LOAD,
+            this.boundHandlerSourceLoad,
+        );
         this.source?.removeEventListener(EVENT_CHANGE, this.forceUpdate);
     }
 

@@ -9,29 +9,43 @@
         <meta name="aem-base-url" />
         <script type="importmap">
             {
-              "imports": {
-                "lit": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js",
-                "lit/directives/unsafe-html.js": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js",
-                "lit/directives/style-map.js": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js",
-                "lit/directives/repeat.js": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js"
-              }
+                "imports": {
+                    "lit": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js",
+                    "lit/directives/unsafe-html.js": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js",
+                    "lit/directives/style-map.js": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js",
+                    "lit/directives/class-map.js": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js",
+                    "lit/directives/repeat.js": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js",
+                    "prosemirror-state": "/studio/libs/prosemirror.js",
+                    "prosemirror-model": "/studio/libs/prosemirror.js",
+                    "prosemirror-view": "/studio/libs/prosemirror.js",
+                    "prosemirror-keymap": "/studio/libs/prosemirror.js",
+                    "prosemirror-schema-basic": "/studio/libs/prosemirror.js",
+                    "prosemirror-commands": "/studio/libs/prosemirror.js",
+                    "prosemirror-schema-list": "/studio/libs/prosemirror.js",
+                    "prosemirror-history": "/studio/libs/prosemirror.js"
+                }
             }
         </script>
         <script>
             const BUCKETS = {
-                'qa': 'e155390',
-                'stage': 'e59471',
-                'prod': 'e59433'
+                qa: 'e155390',
+                stage: 'e59471',
+                prod: 'e59433',
             };
             const href = window.location.href;
             const envOverride = new URL(href).searchParams.get('aem.env');
-            const bucket = envOverride && BUCKETS[envOverride] ? BUCKETS[envOverride] : BUCKETS.prod;
-            const baseUrl = !envOverride && href.includes('localhost') 
-                ? 'http://localhost:8080' 
-                : `https://author-p22655-${bucket}.adobeaemcloud.com`;
-            document.querySelector('meta[name="aem-base-url"]')?.setAttribute('content', baseUrl);
+            const bucket =
+                envOverride && BUCKETS[envOverride]
+                    ? BUCKETS[envOverride]
+                    : BUCKETS.prod;
+            const baseUrl =
+                !envOverride && href.includes('localhost')
+                    ? 'http://localhost:8080'
+                    : `https://author-p22655-${bucket}.adobeaemcloud.com`;
+            document
+                .querySelector('meta[name="aem-base-url"]')
+                ?.setAttribute('content', baseUrl);
         </script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/7.2.1/tinymce.min.js"></script>
         <script src="studio/src/maslib.js" type="module"></script>
         <script src="studio/libs/swc.js" type="module"></script>
         <script src="studio/src/aem/index.js" type="module"></script>
@@ -40,13 +54,10 @@
         <!-- OST -->
         <script src="studio/ost/index.js"></script>
         <link rel="stylesheet" href="./studio/ost/index.css" />
-
         <link rel="stylesheet" href="./studio/style.css" />
-        <link rel="stylesheet" href="https://use.typekit.net/hah7vzn.css">
+        <link rel="stylesheet" href="https://use.typekit.net/hah7vzn.css" />
         <!-- MAS Studio Icon goes here -->
-
         <mas-commerce-service></mas-commerce-service>
-
         <script>
             window.adobeid = {
                 api_parameters: {

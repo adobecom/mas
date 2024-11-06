@@ -2,12 +2,11 @@ import { html, LitElement, nothing } from 'lit';
 import { EVENT_SUBMIT } from './events.js';
 import { deeplink, pushState } from './deeplink.js';
 import './editors/merch-card-editor.js';
-import './rte-editor.js';
+import './rte/rte-field.js';
+import './rte/rte-link-editor.js';
 import './mas-top-nav.js';
 import './mas-filter-panel.js';
 import './mas-filter-toolbar.js';
-
-import { getOffferSelectorTool, openOfferSelectorTool } from './ost.js';
 
 const EVENT_LOAD_START = 'load-start';
 const EVENT_LOAD_END = 'load-end';
@@ -69,7 +68,6 @@ class MasStudio extends LitElement {
                 this.closeFragmentEditor();
                 this.source.clearSelection();
                 this.contentNavigation.toggleSelectionMode(false);
-                document.activeElement.blur();
             }
         });
 
@@ -266,7 +264,6 @@ class MasStudio extends LitElement {
                       ${this.fragmentEditorToolbar}
                       <merch-card-editor
                           .fragment=${this.fragment}
-                          @ost-open="${this.openOfferSelectorTool}"
                           @refresh-fragment="${this.refreshFragment}"
                           @update-fragment="${this.updateFragment}"
                       >
@@ -335,7 +332,7 @@ class MasStudio extends LitElement {
                 ? html`<mas-filter-panel></mas-filter-panel>`
                 : nothing}
             ${this.content} ${this.fragmentEditor} ${this.selectFragmentDialog}
-            ${this.toast} ${this.loadingIndicator} ${getOffferSelectorTool()}
+            ${this.toast} ${this.loadingIndicator}
         `;
     }
 
@@ -407,6 +404,9 @@ class MasStudio extends LitElement {
     }
 
     async handleOpenFragment(e) {
+        this.showEditorPanel = false;
+        this.requestUpdate();
+        await this.updateComplete;
         const { x, fragment } = e.detail;
         await this.adjustEditorPosition(x);
         this.showEditorPanel = true;
@@ -420,6 +420,7 @@ class MasStudio extends LitElement {
     }
 
     updateFragment({ detail: e }) {
+        if (!this.fragment) return;
         const fieldName = e.target.dataset.field;
         let value = e.target.value || e.detail?.value;
         value = e.target.multiline ? value?.split(',') : [value ?? ''];
@@ -547,10 +548,6 @@ class MasStudio extends LitElement {
         } catch (e) {
             this.showToast('Failed to copy code to clipboard', 'negative');
         }
-    }
-
-    openOfferSelectorTool(e) {
-        openOfferSelectorTool(e, e.target, this.fragment?.variant);
     }
 }
 

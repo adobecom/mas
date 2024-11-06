@@ -15,8 +15,5 @@
     "main": "src/index.js",
     "keywords": [],
     "author": "",
-    "license": "ISC",
-    "dependencies": {
-        "@adobecom/milo": "github:adobecom/milo#stage"
-    }
+    "license": "ISC"
 }

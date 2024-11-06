@@ -447,7 +447,9 @@ class RteField extends LitElement {
         if (isCheckoutLink) {
             try {
                 checkoutParameters = new URLSearchParams(
-                    JSON.parse(selection.node.attrs['data-extra-options']),
+                    JSON.parse(
+                        selection.node.attrs['data-extra-options'] ?? '{}',
+                    ),
                 ).toString();
             } catch (error) {
                 console.error('Error parsing checkout parameters:', error);

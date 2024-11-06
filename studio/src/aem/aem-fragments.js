@@ -233,7 +233,7 @@ class AemFragments extends LitElement {
                 this.fragment.id,
             );
             aemFragmentCache.get(this.fragment.id)?.refreshFrom(latest);
-        }, 10000);
+        }, 5000);
     }
 
     async deleteFragment() {

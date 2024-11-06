@@ -15,6 +15,10 @@ const getDamPath = (path) => {
     return ROOT + '/' + path;
 };
 
+const getTopFolder = (path) => {
+    return path?.substring(ROOT.length + 1)?.split('/')[0];
+};
+
 class AemFragments extends LitElement {
     static get properties() {
         return {
@@ -151,7 +155,7 @@ class AemFragments extends LitElement {
             } else {
                 this.currentFolder.add(...fragments);
             }
-            this.addToCache(fragments);
+            await this.addToCache(fragments);
             this.dispatchEvent(new CustomEvent(EVENT_LOAD));
         }
         this.#loading = false;
@@ -189,6 +193,10 @@ class AemFragments extends LitElement {
         this.dispatchEvent(new CustomEvent(EVENT_LOAD_END, { bubbles: true }));
     }
 
+    isFragmentId(str) {
+        return this.isUUID(str);
+    }
+
     /**
      * Searches for content fragments based on the provided query.
      *
@@ -205,8 +213,7 @@ class AemFragments extends LitElement {
             this.#search.query = this.searchText;
             search = true;
         }
-        const isFragmentId = this.isUUID(this.searchText);
-        if (isFragmentId) {
+        if (this.isFragmentId(this.searchText)) {
             await this.searchFragmentByUUID();
         } else {
             const cursor = await this.#aem.sites.cf.fragments.search(
@@ -277,4 +284,4 @@ class AemFragments extends LitElement {
 
 customElements.define('aem-fragments', AemFragments);
 
-export { AemFragments, getDamPath };
+export { AemFragments, getDamPath, getTopFolder };

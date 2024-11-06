@@ -1,7 +1,8 @@
 import { css, html, LitElement, nothing } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import { EVENT_CHANGE, EVENT_LOAD } from '../events.js';
-import { deeplink } from '../deeplink.js';
+import { deeplink, pushState } from '../deeplink.js';
+import { getTopFolder } from './aem-fragments.js';
 import './mas-filter-panel.js';
 import './mas-filter-toolbar.js';
 
@@ -42,6 +43,7 @@ class ContentNavigation extends LitElement {
             mode: { type: String, attribute: true, reflect: true },
             source: { type: Object, attribute: false },
             topFolders: { type: Array, attribute: false },
+            fragmentFromIdLoaded: { type: Boolean },
             disabled: { type: Boolean, attribute: true },
             showFilterPanel: { type: Boolean, state: true },
             inSelection: {
@@ -51,6 +53,9 @@ class ContentNavigation extends LitElement {
             },
         };
     }
+
+    #initFromFragmentId = false;
+    #initialFolder;
 
     constructor() {
         super();
@@ -76,49 +81,80 @@ class ContentNavigation extends LitElement {
         this.showFilterPanel = !this.showFilterPanel;
     }
 
+    handlerSourceLoad() {
+        if (this.#initFromFragmentId) {
+            this.#initialFolder = getTopFolder(this.source.fragments[0]?.path);
+            this.fragmentFromIdLoaded = true;
+        }
+        this.forceUpdate();
+    }
+
     registerToSource() {
         this.source = document.getElementById(this.getAttribute('source'));
         if (!this.source) return;
-        this.source.addEventListener(EVENT_LOAD, this.forceUpdate);
+        this.deeplinkDisposer = deeplink(({ path, query }) => {
+            this.#initialFolder =
+                path !== '/content/dam/mas' ? path?.split('/')?.pop() : null;
+            if (!this.#initialFolder && this.source.isFragmentId(query)) {
+                document.querySelector('mas-studio').searchText = query;
+                this.source.searchFragments();
+                this.#initFromFragmentId = true;
+            }
+        });
+        this.source.addEventListener(
+            EVENT_LOAD,
+            this.handlerSourceLoad.bind(this),
+        );
         this.source.addEventListener(EVENT_CHANGE, this.forceUpdate);
         this.source.getTopFolders().then((folders) => {
             this.topFolders = folders;
         });
     }
 
-    selectConsumer(consumer) {
-        if (!consumer) return;
-        this.source.path = consumer;
-        this.source.openFolder(consumer);
-        this.source.searchFragments();
+    async forceUpdate() {
+        this.requestUpdate();
     }
 
-    handleConsumerChange(event) {
-        this.selectConsumer(event.target.value);
+    unregisterFromSource() {
+        if (this.deeplinkDisposer) {
+            this.deeplinkDisposer();
+        }
+        this.source?.removeEventListener(EVENT_LOAD, this.handlerSourceLoad());
+        this.source?.removeEventListener(EVENT_CHANGE, this.forceUpdate);
     }
 
-    get consumers() {
+    selectTopFolder(topFolder) {
+        if (!topFolder) return;
+        this.source.path = topFolder;
+        this.source.openFolder(topFolder);
+        pushState({
+            path: this.source.path,
+            query: this.source.searchText,
+        });
+    }
+
+    handleTopFolderChange(event) {
+        this.selectTopFolder(event.target.value);
+    }
+
+    get topFolderPicker() {
         return this.shadowRoot.querySelector('sp-picker');
     }
 
-    toggleConsumersDisabled(disabled) {
-        this.consumers.disabled = disabled;
+    toggleTopFoldersDisabled(disabled) {
+        this.topFolderPicker.disabled = disabled;
     }
 
-    renderConsumers() {
+    renderTopFolders() {
         if (!this.topFolders) return '';
-        let initialSelection;
-        deeplink(({ path }) => {
-            initialSelection = path?.split('/')?.pop();
-        });
         const initialValue =
-            initialSelection && this.topFolders.includes(initialSelection)
-                ? initialSelection
+            this.#initialFolder && this.topFolders.includes(this.#initialFolder)
+                ? this.#initialFolder
                 : 'ccd';
         return html`<sp-picker
-            @change=${this.handleConsumerChange}
-            label="Consumer"
-            class="consumer"
+            @change=${this.handleTopFolderChange}
+            label="TopFolder"
+            class="topFolder"
             size="m"
             value="${initialValue}"
         >
@@ -131,30 +167,21 @@ class ContentNavigation extends LitElement {
         </sp-picker>`;
     }
 
-    async forceUpdate() {
-        this.requestUpdate();
-    }
-
-    unregisterFromSource() {
-        this.source?.removeEventListener(EVENT_LOAD, this.forceUpdate);
-        this.source?.removeEventListener(EVENT_CHANGE, this.forceUpdate);
-    }
-
     updated(changedProperties) {
         if (changedProperties.size === 0) return;
         if (changedProperties.has('mode')) {
             sessionStorage.setItem(MAS_RENDER_MODE, this.mode);
         }
         this.forceUpdate();
-        this.selectConsumer(this.consumers?.value);
+        this.selectTopFolder(this.topFolderPicker?.value);
     }
 
     get currentRenderer() {
         return [...this.children].find((child) => child.canRender());
     }
 
-    get search() {
-        return this.shadowRoot.querySelector('mas-filter-toolbar').search;
+    get toolbar() {
+        return this.shadowRoot.querySelector('mas-filter-toolbar');
     }
 
     get searchInfo() {
@@ -163,8 +190,10 @@ class ContentNavigation extends LitElement {
     }
 
     render() {
+        if (this.#initFromFragmentId && !this.#initialFolder) return '';
+        this.#initFromFragmentId = false;
         return html`<div id="toolbar">
-                ${this.renderConsumers()}
+                ${this.renderTopFolders()}
                 <div class="divider"></div>
                 ${this.actions}
             </div>
@@ -181,7 +210,7 @@ class ContentNavigation extends LitElement {
         if (!this.inSelection) {
             this.source.clearSelection();
         }
-        this.toggleConsumersDisabled(this.inSelection);
+        this.toggleTopFoldersDisabled(this.inSelection);
         this.notify();
     }
 
@@ -250,7 +279,9 @@ class ContentNavigation extends LitElement {
         const inNoSelectionStyle = styleMap({
             display: !this.disabled && !this.inSelection ? 'flex' : 'none',
         });
-        return html`<mas-filter-toolbar></mas-filter-toolbar>
+        return html`<mas-filter-toolbar
+                searchText=${this.source.searchText}
+            ></mas-filter-toolbar>
             <sp-action-group emphasized>
                 <slot name="toolbar-actions"></slot>
                 <sp-action-button emphasized style=${inNoSelectionStyle}>

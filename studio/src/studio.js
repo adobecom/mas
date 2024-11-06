@@ -83,6 +83,10 @@ class MasStudio extends LitElement {
         pushState(state);
     }
 
+    get search() {
+        return this.contentNavigation?.toolbar?.search;
+    }
+
     clearSearch() {
         this.searchText = '';
         pushState({
@@ -101,7 +105,7 @@ class MasStudio extends LitElement {
             changedProperties.has('path') ||
             changedProperties.has('variant')
         ) {
-            this.contentNavigation?.tabs?.updateComplete.then(() => {
+            this.contentNavigation?.topFolderPicker?.updateComplete.then(() => {
                 this.source?.searchFragments();
             });
         }
@@ -113,10 +117,6 @@ class MasStudio extends LitElement {
 
     get contentNavigation() {
         return this.querySelector('content-navigation');
-    }
-
-    get search() {
-        return this.contentNavigation.search;
     }
 
     get fragment() {
@@ -339,9 +339,6 @@ class MasStudio extends LitElement {
     startDeeplink() {
         this.deeplinkDisposer = deeplink(({ query, path }) => {
             this.searchText = query ?? '';
-            if (this.search) {
-                this.search.searchText = query ?? '';
-            }
             this.path = path ?? '';
         });
     }

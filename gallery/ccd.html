@@ -33,6 +33,7 @@
     <!-- <script src="../../../features/spectrum-web-components/dist/button.js" type="module"></script> -->
     <script src="../studio/src/maslib.js" type="module"></script>
     <script src="../studio/libs/swc.js" type="module"></script>
+    <script src="../studio/src/mas.js" type="module"></script>
     <script type="module">
       const params = new URLSearchParams(document.location.search);
       // theme
@@ -54,8 +55,8 @@
 <body>
   <main>
     <sp-theme color="light" scale="medium"> 
+      <mas-gallery></mas-gallery>
       <div class="gallery-content">
-        
         <h1 id="ccd-gallery" tabindex="-1">CCD Gallery <a class="header-anchor" href="#ccd-gallery" href="#ccd-gallery" title="Permalink to this heading">#</a></h1>
         Switch Theme: <a href="?theme=dark">Dark</a> OR <a href="?theme=light">Light</a>
 

@@ -17,3 +17,9 @@ await build({
     entryPoints: ['src/swc.js'],
     outfile: 'libs/swc.js',
 });
+
+await build({
+    ...defaults,
+    entryPoints: ['src/rte/prosemirror.js'],
+    outfile: 'libs/prosemirror.js',
+});

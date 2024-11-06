@@ -1,0 +1,356 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Prosemirror RTE field custom element</title>
+        <meta name="nofollow-links" content="on" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <style>
+            main {
+                margin: 32px;
+                display: grid;
+                gap: 32px;
+                grid-template-columns: 1fr 1fr;
+                height: 90vh;
+            }
+
+            sp-theme {
+                display: contents;
+            }
+
+            rte-field {
+                max-height: 500px;
+            }
+
+            #ost {
+                width: 80vw;
+                height: 80vh;
+            }
+        </style>
+        <!-- OST -->
+        <script src="../../ost/index.js"></script>
+        <link rel="stylesheet" href="../../ost/index.css" />
+    </head>
+    <body>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+
+            import '../../src/swc.js';
+            import '../../src/rte/rte-field.js';
+            import '../../src/rte/rte-link-editor.js';
+            import '@adobecom/milo/libs/deps/mas/mas.js';
+            import { mockFetch } from '@adobecom/milo/libs/features/mas/mocks/fetch.js';
+            import { withWcs } from '@adobecom/milo/libs/features/mas/mocks/wcs.js';
+
+            import {
+                createFromTemplate,
+                delay,
+                simulateClick,
+                selectWordsInTextNode,
+            } from '../utils.js';
+
+            runTests(async () => {
+                await mockFetch(withWcs);
+                describe('RTE Field', () => {
+                    it('should render with default attributes', async function () {
+                        const rte = await createFromTemplate(
+                            'rte',
+                            this.test.title,
+                        );
+                        expect(rte.shadowRoot).exist;
+                    });
+                });
+
+                // Theses are not very stable in headless chrome. Enable them for localing.
+                describe('RTE Field: link features', () => {
+                    let rte;
+                    const clickSave = () => {
+                        const saveButton =
+                            rte.linkEditorElement.shadowRoot.getElementById(
+                                'saveButton',
+                            );
+                        saveButton.click();
+                    };
+
+                    const openLinkEditor = async function () {
+                        rte.linkEditorButtonElement.click();
+                        rte.requestUpdate();
+                        await rte.updateComplete;
+                        await rte.linkEditorElement;
+                    };
+
+                    const firstLink = () =>
+                        rte.shadowRoot.querySelector('.ProseMirror a');
+
+                    const firstParagraph = () =>
+                        rte.shadowRoot.querySelector('.ProseMirror p');
+
+                    it('should allow to remove a link', async function () {
+                        rte = await createFromTemplate(
+                            'rte-link',
+                            this.test.title,
+                        );
+                        rte.selectLink(1);
+                        await delay(100);
+                        rte.unlinkEditorButtonElement.click();
+                        await delay(100);
+                        expect(rte.value).to.equal('<p>Adobe</p>');
+                    });
+
+                    it('should open the link editor on link click and support update', async function () {
+                        rte = await createFromTemplate(
+                            'rte-link',
+                            this.test.title,
+                        );
+                        rte.selectLink(1);
+                        await delay(100);
+                        await openLinkEditor();
+                        const {
+                            href,
+                            text,
+                            title,
+                            target,
+                            checkoutParameters,
+                        } = rte.linkEditorElement;
+                        expect(href).to.equal('https://www.adobe.com');
+                        expect(text).to.equal('Adobe');
+                        expect(title).to.equal('adobe.com homepage');
+                        expect(target).to.equal('_self');
+                        rte.linkEditorElement.href =
+                            'https://www.adobe.com/max';
+                        rte.linkEditorElement.text = 'ebodA';
+                        rte.linkEditorElement.requestUpdate();
+                        await rte.linkEditorElement.updateComplete;
+                        clickSave();
+                        await delay(100);
+                        const a = firstLink();
+                        expect(a.href).to.equal('https://www.adobe.com/max');
+                        expect(a.innerText).to.equal('ebodA');
+                    });
+
+                    it('should open the link editor on selection and support update', async function () {
+                        rte = await createFromTemplate('rte', this.test.title);
+                        await selectWordsInTextNode(rte.editorView, 'only');
+                        await delay(100);
+                        await openLinkEditor();
+                        await rte.linkEditorElement.updateComplete;
+                        expect(rte.linkEditorElement.text).to.equal('only');
+                        rte.linkEditorElement.href = 'https://www.adobe.com';
+                        rte.linkEditorElement.text = 'and links';
+                        rte.linkEditorElement.title = 'Adobe homepage';
+                        rte.linkEditorElement.requestUpdate();
+                        await rte.linkEditorElement.updateComplete;
+                        clickSave();
+                        await delay(100);
+                        const a = firstLink();
+                        expect(a.href).to.equal('https://www.adobe.com/');
+                        expect(a.innerText).to.equal('and links');
+                        expect(a.title).to.equal('Adobe homepage');
+                    });
+
+                    it('should open the link editor and support inserting link', async function () {
+                        rte = await createFromTemplate('rte', this.test.title);
+                        await openLinkEditor();
+                        rte.linkEditorElement.href = 'https://www.adobe.com';
+                        rte.linkEditorElement.text = 'Adobe';
+                        rte.linkEditorElement.title = 'Adobe homepage';
+                        rte.linkEditorElement.requestUpdate();
+                        await rte.linkEditorElement.updateComplete;
+                        clickSave();
+                        await delay(100);
+                        const a = firstLink();
+                        expect(a.href).to.equal('https://www.adobe.com/');
+                        expect(a.innerText).to.equal('Adobe');
+                        expect(a.title).to.equal('Adobe homepage');
+                    });
+                });
+
+                // Theses are not very stable in headless chrome. Enable them for localing.
+                describe('RTE Field: OST features', () => {
+                    let rte;
+
+                    const openOST = async function () {
+                        rte.linkEditorButtonElement.click();
+                        rte.requestUpdate();
+                        await rte.updateComplete;
+                        await rte.linkEditorElement;
+                    };
+
+                    const firstPrice = () =>
+                        rte.shadowRoot.querySelector(
+                            '.ProseMirror span[is="inline-price"]',
+                        );
+
+                    const firstCheckoutLink = () =>
+                        rte.shadowRoot.querySelector(
+                            '.ProseMirror a[is="checkout-link"]',
+                        );
+
+                    it('should open OST', async function () {
+                        if (!localStorage.getItem('masAccessToken')) {
+                            localStorage.setItem('masAccessToken', 'test');
+                        }
+                        const rte = await createFromTemplate(
+                            'rte-all',
+                            this.test.title,
+                        );
+                        await delay(100);
+                        expect(rte.value).to.equal(
+                            '<span is="inline-price" data-wcs-osi="abm"></span><a is="checkout-link" class="accent" href="" data-wcs-osi="abm">Buy now</a><a is="checkout-link" class="primary-outline" href="" data-wcs-osi="abm">Buy now</a><a is="checkout-link" class="secondary" href="" data-wcs-osi="abm">Buy now</a><a is="checkout-link" class="secondary-outline" href="" data-wcs-osi="abm">Buy now</a><a is="checkout-link" class="primary-link" href="" data-wcs-osi="abm">Buy now</a><a is="checkout-link" class="secondary-link" href="" data-wcs-osi="abm">Buy now</a>',
+                        );
+
+                        rte.offerSelectorToolButtonElement.click();
+                        await delay(100);
+                        const cancelButton = document.querySelector(
+                            '[data-testid="productsTab/cancelButton"]',
+                        );
+                        expect(cancelButton).to.exist;
+                        cancelButton.click();
+                    });
+
+                    it('should recognize markup created with TinyMCE', async function () {
+                        const rte = await createFromTemplate(
+                            'rte-tinymce',
+                            this.test.title,
+                        );
+                        await delay(100);
+                        expect(rte.value).to.equal(
+                            '<p>&nbsp;<a is="checkout-link" href="" data-checkout-workflow="UCv3" data-checkout-workflow-step="email" data-wcs-osi="Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ">Get Offer</a>&nbsp;</p><p><a is="checkout-link" href="" data-checkout-workflow="UCv3" data-checkout-workflow-step="email" data-wcs-osi="Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ">Buy now</a></p><p><a is="checkout-link" href="" data-checkout-workflow="UCv3" data-checkout-workflow-step="email" data-wcs-osi="Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ">Buy now</a></p><p><a is="checkout-link" href="" data-checkout-workflow="UCv3" data-checkout-workflow-step="email" data-wcs-osi="Hnk2P6L5wYhnpZLFYTW5upuk2Y3AJXlso8VGWQ0l2TI">Buy now</a></p>',
+                        );
+                    });
+
+                    it.skip('dev', async function () {
+                        const rte = await createFromTemplate(
+                            'rte-dev',
+                            this.test.title,
+                        );
+                    });
+                });
+            });
+        </script>
+        <mas-commerce-service></mas-commerce-service>
+        <button
+            onclick="toggleTheme()"
+            style="position: absolute; right: 0; bottom: 0"
+        >
+            Toggle theme
+        </button>
+        <main>
+            <sp-theme color="light" scale="medium"> </sp-theme>
+        </main>
+        <template id="rte">
+            <rte-field link>
+                <p>Text only</p>
+            </rte-field>
+        </template>
+        <template id="rte-link">
+            <rte-field link
+                ><a href="https://www.adobe.com" title="adobe.com homepage"
+                    >Adobe</a
+                >
+            </rte-field>
+        </template>
+        <template id="rte-all">
+            <rte-field link inline>
+                <span is="inline-price" data-wcs-osi="abm"></span
+                ><a class="accent" is="checkout-link" data-wcs-osi="abm"
+                    >Buy now</a
+                ><a
+                    class="primary-outline"
+                    is="checkout-link"
+                    data-wcs-osi="abm"
+                    >Buy now</a
+                ><a class="secondary" is="checkout-link" data-wcs-osi="abm"
+                    >Buy now</a
+                ><a
+                    class="secondary-outline"
+                    is="checkout-link"
+                    data-wcs-osi="abm"
+                    >Buy now</a
+                ><a class="primary-link" is="checkout-link" data-wcs-osi="abm"
+                    >Buy now</a
+                ><a class="secondary-link" is="checkout-link" data-wcs-osi="abm"
+                    >Buy now</a
+                >
+            </rte-field>
+        </template>
+        <template id="rte-tinymce">
+            <rte-field link defaut-link-style="primary-outline">
+                <div
+                    data-mce-bogus="all"
+                    class="mce-offscreen-selection"
+                    id="sel-mce_0"
+                    style="top: 18px"
+                >
+                    &nbsp;<a
+                        is="checkout-link"
+                        data-checkout-workflow="UCv3"
+                        data-checkout-workflow-step="email"
+                        data-promotion-code=""
+                        data-quantity="1"
+                        data-wcs-osi="Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ"
+                        href=""
+                        data-ims-country="DE"
+                        >Get Offer</a
+                    >&nbsp;
+                </div>
+                <p>
+                    <strong
+                        ><a
+                            is="checkout-link"
+                            data-checkout-workflow="UCv3"
+                            data-checkout-workflow-step="email"
+                            data-promotion-code=""
+                            data-quantity="1"
+                            data-wcs-osi="Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ"
+                            href=""
+                            >Buy now</a
+                        ></strong
+                    >
+                </p>
+                <p>
+                    <strong
+                        ><a
+                            data-checkout-workflow="UCv3"
+                            data-checkout-workflow-step="email"
+                            data-promotion-code=""
+                            data-quantity="1"
+                            data-wcs-osi="Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ"
+                            is=""
+                            >Buy now</a
+                        ></strong
+                    >
+                </p>
+                <p>
+                    <a
+                        is="checkout-link"
+                        href=""
+                        data-checkout-workflow="UCv3"
+                        data-checkout-workflow-step="email"
+                        data-promotion-code=""
+                        data-quantity="1"
+                        data-wcs-osi="Hnk2P6L5wYhnpZLFYTW5upuk2Y3AJXlso8VGWQ0l2TI"
+                        >Buy now</a
+                    >
+                </p>
+            </rte-field>
+        </template>
+        <template id="rte-dev">
+            <div>
+                <rte-field link>
+                    <a href="https://www.adobe.com">Buy now</a> yes evet oui
+                </rte-field>
+                <br />
+                <rte-field link inline>
+                    <a is="checkout-link" data-wcs-osi="abm">Buy now</a>
+                </rte-field>
+                <br />
+                <rte-field inline
+                    ><p><span is="inline-price" data-wcs-osi="abm"></span></p
+                ></rte-field>
+                <br />
+                <rte-field>some text</rte-field>
+            </div>
+        </template>
+    </body>
+</html>

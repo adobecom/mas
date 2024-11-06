@@ -156,6 +156,7 @@ class AemFragments extends LitElement {
                 this.currentFolder.add(...fragments);
             }
             await this.addToCache(fragments);
+            await this.addToCache(fragments);
             this.dispatchEvent(new CustomEvent(EVENT_LOAD));
         }
         this.#loading = false;
@@ -179,16 +180,16 @@ class AemFragments extends LitElement {
                 bubbles: true,
             }),
         );
-        const fragment = await this.#aem.sites.cf.fragments.getById(
+        const fragmentData = await this.#aem.sites.cf.fragments.getById(
             this.searchText,
         );
-        if (!fragment || fragment.path.indexOf(getDamPath(this.path)) < 0) {
-            this.#searchResult = [];
-        } else {
+        if (fragmentData && fragmentData.path.indexOf(getDamPath(this.path)) == 0) {
+            const fragment = new Fragment(fragmentData, this);
             this.#searchResult = [fragment];
             this.addToCache([fragment]);
         }
         this.#loading = false;
+        this.addToCache([fragment]);
         this.dispatchEvent(new CustomEvent(EVENT_LOAD), { bubbles: true });
         this.dispatchEvent(new CustomEvent(EVENT_LOAD_END, { bubbles: true }));
     }

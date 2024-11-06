@@ -320,7 +320,7 @@ class RteField extends LitElement {
     }
 
     #createLinkElement(node) {
-        const isCheckoutLink = node.attrs['data-wcs-osi'];
+        const isCheckoutLink = isNodeCheckoutLink(node);
         const element = isCheckoutLink
             ? document.createElement('a', { is: CUSTOM_ELEMENT_CHECKOUT_LINK })
             : document.createElement('a');
@@ -441,9 +441,18 @@ class RteField extends LitElement {
         const { state } = this.editorView;
         const { selection } = state;
 
-        const checkoutParameters = isNodeCheckoutLink(selection.node)
-            ? selection.node.attrs['data-extra-options'] || null
-            : undefined;
+        const isCheckoutLink = isNodeCheckoutLink(selection.node);
+
+        let checkoutParameters = undefined;
+        if (isCheckoutLink) {
+            try {
+                checkoutParameters = new URLSearchParams(
+                    JSON.parse(selection.node.attrs['data-extra-options']),
+                ).toString();
+            } catch (error) {
+                console.error('Error parsing checkout parameters:', error);
+            }
+        }
 
         if (selection.node?.type.name === 'link') {
             return {
@@ -478,10 +487,27 @@ class RteField extends LitElement {
     }
 
     #handleLinkSave(event) {
-        const { href, text, title, target, variant, checkoutParameters } =
-            event.detail;
+        const { href, text, title, target, variant } = event.detail;
+
+        let { checkoutParameters } = event.detail;
         const { state, dispatch } = this.editorView;
         const { selection } = state;
+
+        let tr = state.tr;
+        const linkNodeType = state.schema.nodes.link;
+
+        if (checkoutParameters) {
+            try {
+                checkoutParameters = JSON.stringify(
+                    Object.fromEntries(
+                        new URLSearchParams(checkoutParameters).entries(),
+                    ),
+                );
+            } catch (error) {
+                console.error('Error parsing checkout parameters:', error);
+            }
+        }
+
         const linkAttrs = {
             href,
             title,
@@ -489,9 +515,6 @@ class RteField extends LitElement {
             class: variant || 'primary-outline',
             'data-extra-options': checkoutParameters || null,
         };
-
-        let tr = state.tr;
-        const linkNodeType = state.schema.nodes.link;
 
         if (selection.node?.type.name === 'link') {
             const updatedNode = linkNodeType.create(

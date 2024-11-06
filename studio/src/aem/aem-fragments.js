@@ -227,6 +227,13 @@ class AemFragments extends LitElement {
 
     async publishFragment() {
         await this.#aem.sites.cf.fragments.publish(this.fragment);
+        //this.fragment.status = 'PUBLISHED';
+        setTimeout(async () => {
+            const latest = await this.#aem.sites.cf.fragments.getById(
+                this.fragment.id,
+            );
+            aemFragmentCache.get(this.fragment.id)?.refreshFrom(latest);
+        }, 10000);
     }
 
     async deleteFragment() {

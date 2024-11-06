@@ -513,7 +513,7 @@ class MasStudio extends LitElement {
         this.showToast('Publishing fragment...');
         try {
             await this.source?.publishFragment();
-            this.showToast('Fragment published', 'positive');
+            this.showToast('Publish request sent', 'positive');
         } catch (e) {
             this.showToast('Fragment could not be published', 'negative');
         }
@@ -523,7 +523,7 @@ class MasStudio extends LitElement {
         this.showToast('Unpublishing fragment...');
         try {
             await this.source?.unpublishFragment();
-            this.showToast('Fragment unpublished', 'positive');
+            this.showToast('Unpublish request sent', 'positive');
         } catch (e) {
             this.showToast('Fragment could not be unpublished', 'negative');
         }

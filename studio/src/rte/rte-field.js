@@ -487,6 +487,7 @@ class RteField extends LitElement {
             title,
             target: target || '_self',
             class: variant || 'primary-outline',
+            tabIndex: '0',
             'data-extra-options': checkoutParameters || null,
         };
 

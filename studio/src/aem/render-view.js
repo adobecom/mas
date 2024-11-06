@@ -41,24 +41,55 @@ class RenderView extends LitElement {
         this.requestUpdate();
     }
 
+    toggleTooltip(open, event, timeout) {
+        clearTimeout(timeout);
+        const currentTarget = event.currentTarget;
+        if (open)
+            return setTimeout(() => {
+                currentTarget.classList.add('has-tooltip');
+            }, 500);
+        currentTarget.classList.remove('has-tooltip');
+    }
+
     renderItem(fragment) {
         const selected =
             this.parentElement.source.selectedFragments.includes(fragment);
-        return html`<merch-card
-            class="${selected ? 'selected' : ''}"
-            @dblclick="${(e) => this.handleDoubleClick(e, fragment)}"
-        >
-            <aem-fragment fragment="${fragment.id}" ims></aem-fragment>
-            <sp-status-light
-                size="l"
-                variant="${fragment.statusVariant}"
-            ></sp-status-light>
-            <div class="overlay" @click="${() => fragment.toggleSelection()}">
-                ${selected
-                    ? html`<sp-icon-remove slot="icon"></sp-icon-remove>`
-                    : html`<sp-icon-add slot="icon"></sp-icon-add>`}
-            </div>
-        </merch-card>`;
+        let tooltipTimeout;
+        return html`<overlay-trigger placement="top"
+            ><merch-card
+                class="${selected ? 'selected' : ''}"
+                slot="trigger"
+                @click="${(e) =>
+                    (tooltipTimeout = this.toggleTooltip(
+                        true,
+                        e,
+                        tooltipTimeout,
+                    ))}"
+                @mouseleave="${(e) =>
+                    this.toggleTooltip(false, e, tooltipTimeout)}"
+                @dblclick="${(e) => {
+                    this.toggleTooltip(false, e, tooltipTimeout);
+                    this.handleDoubleClick(e, fragment);
+                }}"
+            >
+                <aem-fragment fragment="${fragment.id}" ims></aem-fragment>
+                <sp-status-light
+                    size="l"
+                    variant="${fragment.statusVariant}"
+                ></sp-status-light>
+                <div
+                    class="overlay"
+                    @click="${() => fragment.toggleSelection()}"
+                >
+                    ${selected
+                        ? html`<sp-icon-remove slot="icon"></sp-icon-remove>`
+                        : html`<sp-icon-add slot="icon"></sp-icon-add>`}
+                </div>
+            </merch-card>
+            <sp-tooltip slot="hover-content" placement="top"
+                >Double click the card to start editing.</sp-tooltip
+            >
+        </overlay-trigger>`;
     }
 
     handleDoubleClick(e, fragment) {

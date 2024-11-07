@@ -164,29 +164,37 @@ class ContentNavigation extends LitElement {
                 slot="buttons"
                 style=${hasSingleSelection}
                 label="Duplicate"
+                disabled
             >
                 <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
+                <sp-tooltip self-managed placement="top">Duplicate</sp-tooltip>
             </sp-action-button>
             <sp-action-button
                 slot="buttons"
                 style=${hasSelection}
                 label="Delete"
+                disabled
             >
                 <sp-icon-delete-outline slot="icon"></sp-icon-delete-outline>
+                <sp-tooltip self-managed placement="top">Delete</sp-tooltip>
             </sp-action-button>
             <sp-action-button
                 slot="buttons"
                 style=${hasSelection}
                 label="Publish"
+                disabled
             >
                 <sp-icon-publish-check slot="icon"></sp-icon-publish-check>
+                <sp-tooltip self-managed placement="top">Publish</sp-tooltip>
             </sp-action-button>
             <sp-action-button
                 slot="buttons"
                 style=${hasSelection}
                 label="Unpublish"
+                disabled
             >
                 <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
+                <sp-tooltip self-managed placement="top">Unpublish</sp-tooltip>
             </sp-action-button>
         </sp-action-bar>`;
     }
@@ -208,7 +216,7 @@ class ContentNavigation extends LitElement {
         });
         return html`<sp-action-group emphasized>
             <slot name="toolbar-actions"></slot>
-            <sp-action-button emphasized style=${inNoSelectionStyle}>
+            <sp-action-button emphasized style=${inNoSelectionStyle} disabled>
                 <sp-icon-new-item slot="icon"></sp-icon-new-item>
                 Create New Card
             </sp-action-button>

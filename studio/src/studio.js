@@ -225,6 +225,7 @@ class MasStudio extends LitElement {
                     label="Unpublish"
                     value="unpublish"
                     @click="${this.unpublishFragment}"
+                    disabled
                 >
                     <sp-icon-publish-remove
                         slot="icon"

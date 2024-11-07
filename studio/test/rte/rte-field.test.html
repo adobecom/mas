@@ -45,12 +45,30 @@
             import {
                 createFromTemplate,
                 delay,
-                simulateClick,
+                applyChanges,
+                selectNodeAtPos,
                 selectWordsInTextNode,
             } from '../utils.js';
 
             runTests(async () => {
                 await mockFetch(withWcs);
+
+                const openLinkEditor = async function (rte) {
+                    rte.linkEditorButtonElement.click();
+                    rte.requestUpdate();
+                    await rte.updateComplete;
+                    rte.linkEditorElement.requestUpdate();
+                    await rte.linkEditorElement.updateComplete;
+                };
+
+                const clickSave = (rte) => {
+                    const saveButton =
+                        rte.linkEditorElement.shadowRoot.getElementById(
+                            'saveButton',
+                        );
+                    saveButton.click();
+                };
+
                 describe('RTE Field', () => {
                     it('should render with default attributes', async function () {
                         const rte = await createFromTemplate(
@@ -64,20 +82,6 @@
                 // Theses are not very stable in headless chrome. Enable them for localing.
                 describe('RTE Field: link features', () => {
                     let rte;
-                    const clickSave = () => {
-                        const saveButton =
-                            rte.linkEditorElement.shadowRoot.getElementById(
-                                'saveButton',
-                            );
-                        saveButton.click();
-                    };
-
-                    const openLinkEditor = async function () {
-                        rte.linkEditorButtonElement.click();
-                        rte.requestUpdate();
-                        await rte.updateComplete;
-                        await rte.linkEditorElement;
-                    };
 
                     const firstLink = () =>
                         rte.shadowRoot.querySelector('.ProseMirror a');
@@ -104,7 +108,7 @@
                         );
                         rte.selectLink(1);
                         await delay(100);
-                        await openLinkEditor();
+                        await openLinkEditor(rte);
                         const {
                             href,
                             text,
@@ -121,7 +125,7 @@
                         rte.linkEditorElement.text = 'ebodA';
                         rte.linkEditorElement.requestUpdate();
                         await rte.linkEditorElement.updateComplete;
-                        clickSave();
+                        clickSave(rte);
                         await delay(100);
                         const a = firstLink();
                         expect(a.href).to.equal('https://www.adobe.com/max');
@@ -132,7 +136,7 @@
                         rte = await createFromTemplate('rte', this.test.title);
                         await selectWordsInTextNode(rte.editorView, 'only');
                         await delay(100);
-                        await openLinkEditor();
+                        await openLinkEditor(rte);
                         await rte.linkEditorElement.updateComplete;
                         expect(rte.linkEditorElement.text).to.equal('only');
                         rte.linkEditorElement.href = 'https://www.adobe.com';
@@ -140,7 +144,7 @@
                         rte.linkEditorElement.title = 'Adobe homepage';
                         rte.linkEditorElement.requestUpdate();
                         await rte.linkEditorElement.updateComplete;
-                        clickSave();
+                        clickSave(rte);
                         await delay(100);
                         const a = firstLink();
                         expect(a.href).to.equal('https://www.adobe.com/');
@@ -150,13 +154,13 @@
 
                     it('should open the link editor and support inserting link', async function () {
                         rte = await createFromTemplate('rte', this.test.title);
-                        await openLinkEditor();
+                        await openLinkEditor(rte);
                         rte.linkEditorElement.href = 'https://www.adobe.com';
                         rte.linkEditorElement.text = 'Adobe';
                         rte.linkEditorElement.title = 'Adobe homepage';
                         rte.linkEditorElement.requestUpdate();
                         await rte.linkEditorElement.updateComplete;
-                        clickSave();
+                        clickSave(rte);
                         await delay(100);
                         const a = firstLink();
                         expect(a.href).to.equal('https://www.adobe.com/');
@@ -208,8 +212,61 @@
                         cancelButton.click();
                     });
 
+                    it('should allow to author extra checkout parameters', async function () {
+                        rte = await createFromTemplate(
+                            'rte-ost-extra',
+                            this.test.title,
+                        );
+                        await delay(100);
+                        const attributes = {
+                            sc: '1',
+                            pa: 'apcc_direct_individual',
+                            cli: 'cc_desktop',
+                            svar: 'ccd_hp_rec_cards',
+                            ctx: 'a',
+                            mv2: 'accc',
+                            mv: 'product',
+                            promoid: 'ABC',
+                            co: 'US',
+                        };
+
+                        let [node] = selectNodeAtPos(rte.editorView, 1);
+                        applyChanges(rte.editorView, 1, {
+                            ...node.attrs,
+                            'data-extra-options': JSON.stringify(attributes),
+                        });
+                        selectNodeAtPos(rte.editorView, 1);
+                        await openLinkEditor(rte);
+                        const expectedParams = new URLSearchParams(
+                            attributes,
+                        ).toString();
+                        expect(
+                            rte.linkEditorElement.checkoutParameters,
+                        ).to.equal(expectedParams.toString());
+
+                        const newAttributes = {
+                            ...attributes,
+                            sc: '2',
+                            promoid: 'XYZ',
+                        };
+                        const newExpectedParams = new URLSearchParams(
+                            newAttributes,
+                        ).toString();
+
+                        rte.linkEditorElement.checkoutParameters =
+                            newExpectedParams;
+                        rte.linkEditorElement.requestUpdate();
+                        await rte.linkEditorElement.updateComplete;
+                        clickSave(rte);
+                        await delay(100);
+                        [node] = selectNodeAtPos(rte.editorView, 1);
+                        expect(node.attrs['data-extra-options']).to.equal(
+                            JSON.stringify(newAttributes),
+                        );
+                    });
+
                     it('should recognize markup created with TinyMCE', async function () {
-                        const rte = await createFromTemplate(
+                        rte = await createFromTemplate(
                             'rte-tinymce',
                             this.test.title,
                         );
@@ -333,6 +390,13 @@
                         >Buy now</a
                     >
                 </p>
+            </rte-field>
+        </template>
+        <template id="rte-ost-extra">
+            <rte-field link>
+                <a is="checkout-link" class="secondary-link" data-wcs-osi="abm"
+                    >Buy now</a
+                >
             </rte-field>
         </template>
         <template id="rte-dev">

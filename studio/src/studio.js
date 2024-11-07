@@ -51,7 +51,6 @@ class MasStudio extends LitElement {
     registerListeners() {
         this.addEventListener(EVENT_LOAD_START, () => {
             this.requestUpdate();
-            this.updateDeeplink();
         });
         this.addEventListener(EVENT_LOAD_END, () => this.requestUpdate());
 
@@ -76,11 +75,6 @@ class MasStudio extends LitElement {
         }
     }
 
-    updateDeeplink() {
-        const state = { ...this.source?.search };
-        pushState(state);
-    }
-
     get search() {
         return this.contentNavigation?.toolbar?.search;
     }
@@ -103,9 +97,7 @@ class MasStudio extends LitElement {
             changedProperties.has('path') ||
             changedProperties.has('variant')
         ) {
-            this.contentNavigation?.topFolderPicker?.updateComplete.then(() => {
-                this.source?.searchFragments();
-            });
+            this.source?.searchFragments();
         }
     }
 

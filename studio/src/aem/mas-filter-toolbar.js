@@ -1,6 +1,6 @@
 import { html, css, LitElement } from 'lit';
 import '../editors/variant-picker.js';
-import { pushState } from '../deeplink.js';
+import { pushState, deeplink } from '../deeplink.js';
 
 class MasFilterToolbar extends LitElement {
     static styles = css`
@@ -32,7 +32,14 @@ class MasFilterToolbar extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.searchText = document.querySelector('mas-studio').searchText;
+        this.deeplinkDisposer = deeplink(({ query }) => {
+            this.searchText = query;
+        });
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.deeplinkDisposer();
     }
 
     render() {

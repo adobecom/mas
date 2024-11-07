@@ -77,7 +77,6 @@ class AemFragments extends LitElement {
      * @param {Folder} folder
      */
     async openFolder(folder) {
-        this.#loading = true;
         this.dispatchEvent(new CustomEvent(EVENT_LOAD_START));
         if (typeof folder === 'string') {
             folder = getDamPath(folder);

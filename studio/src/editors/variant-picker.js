@@ -14,6 +14,7 @@ class VariantPicker extends LitElement {
     static properties = {
         defaultValue: { type: String, attribute: 'default-value' },
         showAll: { type: Boolean, attribute: 'show-all' },
+        disabled: { type: Boolean, attribute: 'disabled' },
     };
 
     get value() {
@@ -36,6 +37,7 @@ class VariantPicker extends LitElement {
             label="Card Variant"
             size="m"
             value=${this.value || this.defaultValue}
+            ?disabled=${this.disabled}
         >
             ${this.variants}
         </sp-picker>`;

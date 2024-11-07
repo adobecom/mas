@@ -164,6 +164,9 @@ class MasStudio extends LitElement {
                     @click="${this.saveFragment}"
                 >
                     <sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>
+                    <sp-tooltip self-managed placement="bottom"
+                        >Save changes</sp-tooltip
+                    >
                 </sp-action-button>
                 <sp-action-button
                     label="Discard"
@@ -172,6 +175,9 @@ class MasStudio extends LitElement {
                     @click="${this.discardChanges}"
                 >
                     <sp-icon-undo slot="icon"></sp-icon-undo>
+                    <sp-tooltip self-managed placement="bottom"
+                        >Discard changes</sp-tooltip
+                    >
                 </sp-action-button>
                 <sp-action-button
                     label="Clone"
@@ -179,6 +185,9 @@ class MasStudio extends LitElement {
                     @click="${this.copyFragment}"
                 >
                     <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
+                    <sp-tooltip self-managed placement="bottom"
+                        >Clone</sp-tooltip
+                    >
                 </sp-action-button>
                 <sp-action-button
                     label="Publish"
@@ -186,15 +195,22 @@ class MasStudio extends LitElement {
                     @click="${this.publishFragment}"
                 >
                     <sp-icon-publish-check slot="icon"></sp-icon-publish-check>
+                    <sp-tooltip self-managed placement="bottom"
+                        >Publish</sp-tooltip
+                    >
                 </sp-action-button>
                 <sp-action-button
                     label="Unpublish"
                     value="unpublish"
                     @click="${this.unpublishFragment}"
+                    disabled
                 >
                     <sp-icon-publish-remove
                         slot="icon"
                     ></sp-icon-publish-remove>
+                    <sp-tooltip self-managed placement="bottom"
+                        >Unpublish</sp-tooltip
+                    >
                 </sp-action-button>
                 <sp-action-button
                     label="Open in Odin"
@@ -202,6 +218,9 @@ class MasStudio extends LitElement {
                     @click="${this.openFragmentInOdin}"
                 >
                     <sp-icon-open-in slot="icon"></sp-icon-open-in>
+                    <sp-tooltip self-managed placement="bottom"
+                        >Open in Odin</sp-tooltip
+                    >
                 </sp-action-button>
                 <sp-action-button
                     label="Use"
@@ -209,6 +228,7 @@ class MasStudio extends LitElement {
                     @click="${this.copyToUse}"
                 >
                     <sp-icon-code slot="icon"></sp-icon-code>
+                    <sp-tooltip self-managed placement="bottom">Use</sp-tooltip>
                 </sp-action-button>
                 <sp-action-button
                     label="Delete fragment"
@@ -218,6 +238,9 @@ class MasStudio extends LitElement {
                     <sp-icon-delete-outline
                         slot="icon"
                     ></sp-icon-delete-outline>
+                    <sp-tooltip self-managed placement="bottom"
+                        >Delete fragment</sp-tooltip
+                    >
                 </sp-action-button>
             </sp-action-group>
             <sp-divider vertical></sp-divider>
@@ -229,6 +252,9 @@ class MasStudio extends LitElement {
                     @click="${this.closeFragmentEditor}"
                 >
                     <sp-icon-close-circle slot="icon"></sp-icon-close-circle>
+                    <sp-tooltip self-managed placement="bottom"
+                        >Close</sp-tooltip
+                    >
                 </sp-action-button>
             </sp-action-group>
         </div>`;

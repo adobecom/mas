@@ -63,9 +63,8 @@ class AEM {
                 text: encodeURIComponent(query),
                 queryMode: 'EXACT_WORDS',
             };
-        } else {
-            filter.onlyDirectChildren = true;
         }
+
         const searchQuery = { ...defaultSearchOptions, filter };
         if (sort) {
             searchQuery.sort = sort;

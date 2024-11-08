@@ -5,8 +5,6 @@ import './editors/merch-card-editor.js';
 import './rte/rte-field.js';
 import './rte/rte-link-editor.js';
 import './mas-top-nav.js';
-import './mas-filter-panel.js';
-import './mas-filter-toolbar.js';
 
 const EVENT_LOAD_START = 'load-start';
 const EVENT_LOAD_END = 'load-end';
@@ -21,11 +19,9 @@ class MasStudio extends LitElement {
         bucket: { type: String, attribute: 'aem-bucket' },
         searchText: { type: String, state: true },
         baseUrl: { type: String, attribute: 'base-url' },
-        root: { type: String, state: true },
         path: { type: String, state: true },
         variant: { type: String, state: true },
         newFragment: { type: Object, state: true },
-        showFilterPanel: { type: Boolean, state: true },
         showEditorPanel: { type: Boolean, state: true },
     };
 
@@ -33,19 +29,15 @@ class MasStudio extends LitElement {
         super();
         this.bucket = 'e59433';
         this.newFragment = null;
-        this.root = '/content/dam/mas';
         this.variant = 'all';
         this.searchText = '';
         this.path = '';
-        this.showFilterPanel = false;
         this.showEditorPanel = false;
     }
 
     connectedCallback() {
         super.connectedCallback();
         this.registerListeners();
-        this.startDeeplink();
-        this.addEventListener('toggle-filter-panel', this.toggleFilterPanel);
         this.addEventListener('clear-search', this.clearSearch);
         this.addEventListener('search-fragments', this.doSearch);
         this.addEventListener('variant-changed', this.handleVariantChange);
@@ -53,12 +45,12 @@ class MasStudio extends LitElement {
             'search-text-changed',
             this.handleSearchTextChange,
         );
+        this.startDeeplink();
     }
 
     registerListeners() {
         this.addEventListener(EVENT_LOAD_START, () => {
             this.requestUpdate();
-            this.updateDeeplink();
         });
         this.addEventListener(EVENT_LOAD_END, () => this.requestUpdate());
 
@@ -83,21 +75,15 @@ class MasStudio extends LitElement {
         }
     }
 
-    updateDeeplink() {
-        const state = { ...this.source?.search };
-        if (state.path === this.root) state.path = '';
-        pushState(state);
-    }
-
-    toggleFilterPanel() {
-        this.showFilterPanel = !this.showFilterPanel;
+    get search() {
+        return this.contentNavigation?.toolbar?.search;
     }
 
     clearSearch() {
         this.searchText = '';
         pushState({
             query: undefined,
-            path: undefined,
+            path: this.path,
         });
     }
 
@@ -111,16 +97,8 @@ class MasStudio extends LitElement {
             changedProperties.has('path') ||
             changedProperties.has('variant')
         ) {
-            this.source?.sendSearch();
+            this.source?.searchFragments();
         }
-    }
-
-    get search() {
-        return this.querySelector('sp-search');
-    }
-
-    get picker() {
-        return this.querySelector('sp-picker');
     }
 
     get source() {
@@ -327,7 +305,6 @@ class MasStudio extends LitElement {
             <aem-fragments
                 id="aem"
                 base-url="${this.baseUrl}"
-                root="${this.root}"
                 path="${this.path}"
                 search="${this.searchText}"
                 bucket="${this.bucket}"
@@ -353,10 +330,6 @@ class MasStudio extends LitElement {
         return html`
             <mas-top-nav env="${this.env}"></mas-top-nav>
             <side-nav></side-nav>
-            <mas-filter-toolbar></mas-filter-toolbar>
-            ${this.showFilterPanel
-                ? html`<mas-filter-panel></mas-filter-panel>`
-                : nothing}
             ${this.content} ${this.fragmentEditor} ${this.selectFragmentDialog}
             ${this.toast} ${this.loadingIndicator}
         `;

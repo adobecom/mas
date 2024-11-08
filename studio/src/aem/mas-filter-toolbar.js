@@ -1,5 +1,6 @@
 import { html, css, LitElement } from 'lit';
-import './editors/variant-picker.js';
+import '../editors/variant-picker.js';
+import { pushState, deeplink } from '../deeplink.js';
 
 class MasFilterToolbar extends LitElement {
     static styles = css`
@@ -19,7 +20,7 @@ class MasFilterToolbar extends LitElement {
     `;
 
     static properties = {
-        searchText: { type: String, state: true },
+        searchText: { type: String, state: true, attribute: 'search-text' },
         variant: { type: String, state: true },
     };
 
@@ -27,6 +28,18 @@ class MasFilterToolbar extends LitElement {
         super();
         this.searchText = '';
         this.variant = 'all';
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        this.deeplinkDisposer = deeplink(({ query }) => {
+            this.searchText = query;
+        });
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.deeplinkDisposer();
     }
 
     render() {
@@ -63,41 +76,12 @@ class MasFilterToolbar extends LitElement {
 
     handleSearch(e) {
         this.searchText = e.target.value;
-        this.dispatchEvent(
-            new CustomEvent('search-text-changed', {
-                detail: { searchText: this.searchText },
-                bubbles: true,
-                composed: true,
-            }),
-        );
-        if (!this.searchText) {
-            this.dispatchEvent(
-                new CustomEvent('clear-search', {
-                    bubbles: true,
-                    composed: true,
-                }),
-            );
-        }
-        if (e.type === 'submit') {
-            e.preventDefault();
-            this.dispatchEvent(
-                new CustomEvent('search-fragments', {
-                    bubbles: true,
-                    composed: true,
-                }),
-            );
-        }
+        pushState({ query: this.searchText });
     }
 
     handleVariantChange(e) {
         this.variant = e.target.value;
-        this.dispatchEvent(
-            new CustomEvent('variant-changed', {
-                detail: { variant: this.variant },
-                bubbles: true,
-                composed: true,
-            }),
-        );
+        pushState({ variant: this.variant });
     }
 
     doSearch() {

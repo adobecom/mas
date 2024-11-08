@@ -75,6 +75,7 @@ class RenderView extends LitElement {
 
     handleClick(e) {
         if (this.parentElement.inSelection) return;
+        clearTimeout(this.tooltipTimeout);
         const currentTarget = e.currentTarget;
         this.tooltipTimeout = setTimeout(() => {
             currentTarget.classList.add('has-tooltip');

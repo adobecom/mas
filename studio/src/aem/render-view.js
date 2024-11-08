@@ -15,6 +15,7 @@ class RenderView extends LitElement {
     constructor() {
         super();
         this.forceUpdate = this.forceUpdate.bind(this);
+        this.tooltipTimeout = null;
     }
 
     createRenderRoot() {
@@ -41,36 +42,16 @@ class RenderView extends LitElement {
         this.requestUpdate();
     }
 
-    toggleTooltip(open, event, timeout) {
-        clearTimeout(timeout);
-        const currentTarget = event.currentTarget;
-        if (open)
-            return setTimeout(() => {
-                currentTarget.classList.add('has-tooltip');
-            }, 500);
-        currentTarget.classList.remove('has-tooltip');
-    }
-
     renderItem(fragment) {
         const selected =
             this.parentElement.source.selectedFragments.includes(fragment);
-        let tooltipTimeout;
         return html`<overlay-trigger placement="top"
             ><merch-card
                 class="${selected ? 'selected' : ''}"
                 slot="trigger"
-                @click="${(e) =>
-                    (tooltipTimeout = this.toggleTooltip(
-                        true,
-                        e,
-                        tooltipTimeout,
-                    ))}"
-                @mouseleave="${(e) =>
-                    this.toggleTooltip(false, e, tooltipTimeout)}"
-                @dblclick="${(e) => {
-                    this.toggleTooltip(false, e, tooltipTimeout);
-                    this.handleDoubleClick(e, fragment);
-                }}"
+                @click="${this.handleClick}"
+                @mouseleave="${this.handleMouseLeave}"
+                @dblclick="${(e) => this.handleDoubleClick(e, fragment)}"
             >
                 <aem-fragment fragment="${fragment.id}" ims></aem-fragment>
                 <sp-status-light
@@ -92,8 +73,24 @@ class RenderView extends LitElement {
         </overlay-trigger>`;
     }
 
+    handleClick(e) {
+        if (this.parentElement.inSelection) return;
+        const currentTarget = e.currentTarget;
+        this.tooltipTimeout = setTimeout(() => {
+            currentTarget.classList.add('has-tooltip');
+        }, 500);
+    }
+
+    handleMouseLeave(e) {
+        if (this.parentElement.inSelection) return;
+        clearTimeout(this.tooltipTimeout);
+        e.currentTarget.classList.remove('has-tooltip');
+    }
+
     handleDoubleClick(e, fragment) {
         if (this.parentElement.inSelection) return;
+        clearTimeout(this.tooltipTimeout);
+        e.currentTarget.classList.remove('has-tooltip');
         this.parentElement.source.selectFragment(
             e.clientX,
             e.clientY,

@@ -37,7 +37,7 @@ class MasFilterToolbar extends LitElement {
                 @click=${this.handleFilterClick}
                 >Filter</sp-button
             >
-            <sp-picker label="Sort">
+            <sp-picker label="Sort" disabled>
                 <sp-menu-item>Ascending</sp-menu-item>
                 <sp-menu-item>Descending</sp-menu-item>
             </sp-picker>
@@ -53,10 +53,11 @@ class MasFilterToolbar extends LitElement {
                     id="vpick"
                     show-all="true"
                     default-value="${this.variant}"
+                    disabled
                     @change="${this.handleVariantChange}"
                 ></variant-picker>
-                <sp-button @click=${this.doSearch}>Search</sp-button>
             </div>
+            <sp-button @click=${this.doSearch}>Search</sp-button>
         `;
     }
 

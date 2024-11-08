@@ -1,4 +1,4 @@
-import { TextSelection } from 'prosemirror-state';
+import { NodeSelection, TextSelection } from 'prosemirror-state';
 
 window.toggleTheme = () => {
     const theme = document.querySelector('sp-theme');
@@ -113,4 +113,20 @@ export function selectWordsInTextNode(view, words) {
     });
 
     return foundSelection;
+}
+
+export function selectNodeAtPos(view, pos) {
+    const { state } = view;
+    const resolvedPos = state.doc.resolve(pos);
+    const selection = NodeSelection.create(state.doc, resolvedPos.pos);
+    const tr = state.tr.setSelection(selection);
+    view.dispatch(tr);
+    return [selection.node, selection];
+}
+
+export function applyChanges(view, pos, attrs) {
+    const { state, dispatch } = view;
+    const tr = state.tr;
+    tr.setNodeMarkup(pos, null, attrs);
+    dispatch(tr);
 }

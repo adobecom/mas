@@ -7,7 +7,7 @@ const defaultSearchOptions = {
 class AEM {
     #author;
     constructor(bucket, baseUrlOverride) {
-        this.#author = /^author-/.test(bucket);
+        this.#author = Boolean(bucket);
         const baseUrl =
             baseUrlOverride || `https://${bucket}.adobeaemcloud.com`;
         this.baseUrl = baseUrl;
@@ -221,7 +221,7 @@ class AEM {
         if (!newPath) {
             throw new Error('Failed to extract new path from copy response');
         }
-        await this.wait(); // give AEM time to process the copy
+        await this.wait(2000); // give AEM time to process the copy
         let newFragment = await this.getFragmentByPath(newPath);
         if (newFragment) {
             newFragment = await this.sites.cf.fragments.getById(newFragment.id);

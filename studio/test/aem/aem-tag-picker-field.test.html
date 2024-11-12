@@ -1,0 +1,223 @@
+<!doctype html>
+<html>
+    <head>
+        <title>aem-tag-picker-field-field unit tests</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script src="../../src/swc.js" type="module"></script>
+        <style>
+            main {
+                display: flex;
+                flex-direction: column;
+                gap: 32px;
+            }
+
+            sp-theme {
+                display: contents;
+            }
+
+            aem-tag-picker-field {
+                width: 400px;
+                position: relative;
+            }
+        </style>
+    </head>
+
+    <body>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { fixture, oneEvent } from '@open-wc/testing-helpers/pure';
+
+            import {
+                fromAttribute,
+                toAttribute,
+            } from '../../src/aem/aem-tag-picker-field.js';
+
+            import { delay, initElementFromTemplate } from '../utils.js';
+
+            runTests(async () => {
+                describe('aem-tag-picker-field custom element', async () => {
+                    let fetchPromise;
+                    before(() => {
+                        const originalFetch = window.fetch;
+                        window.fetch = async () => {
+                            fetchPromise = originalFetch('/test/aem/tags.json');
+                            return fetchPromise;
+                        };
+                    });
+                    it('Serializes to value attribute', async function () {
+                        let value = toAttribute([]);
+                        expect(value).to.equal('');
+                        value = toAttribute(null);
+                        expect(value).to.equal('');
+                        value = toAttribute([
+                            '/content/cq:tags/mas/product/photoshop',
+                            '/content/cq:tags/mas/product/illustrator',
+                        ]);
+                        expect(value).to.equal(
+                            'mas:product/photoshop,mas:product/illustrator',
+                        );
+                    });
+
+                    it('Parses value attribute', async () => {
+                        let value = fromAttribute('');
+                        expect(value).to.deep.equal([]);
+                        value = fromAttribute(null);
+                        expect(value).to.deep.equal([]);
+                        value = fromAttribute(
+                            '/content/cq:tags/mas/product/photoshop',
+                        );
+                        expect(value).to.deep.equal([]);
+                        value = fromAttribute(
+                            'mas:product/photoshop,mas:product/illustrator',
+                        );
+                        expect(value).to.deep.equal([
+                            '/content/cq:tags/mas/product/photoshop',
+                            '/content/cq:tags/mas/product/illustrator',
+                        ]);
+                    });
+
+                    it('Supports picking a single tag', async function () {
+                        const aemTagPicker = initElementFromTemplate(
+                            'tagPicker1',
+                            this.test.title,
+                        );
+                        aemTagPicker.toggleTag(
+                            '/content/cq:tags/mas/product/cc/photoshop',
+                        );
+                        aemTagPicker.toggleTag(
+                            '/content/cq:tags/mas/product/cc/illustrator',
+                        );
+                        await aemTagPicker.updateComplete;
+                        expect(aemTagPicker.value).to.deep.equal([
+                            '/content/cq:tags/mas/product/cc/illustrator',
+                        ]);
+                    });
+
+                    it('Supports picking multiple tags', async function () {
+                        const aemTagPicker = initElementFromTemplate(
+                            'tagPicker2',
+                            this.test.title,
+                        );
+                        aemTagPicker.toggleTag(
+                            '/content/cq:tags/mas/status/draft',
+                        );
+                        aemTagPicker.toggleTag(
+                            '/content/cq:tags/mas/status/documentation',
+                        );
+                        await aemTagPicker.updateComplete;
+                        expect(aemTagPicker.value).to.deep.equal([
+                            '/content/cq:tags/mas/status/draft',
+                            '/content/cq:tags/mas/status/documentation',
+                        ]);
+                    });
+
+                    it('Allows to delete tags', async function () {
+                        const aemTagPicker = initElementFromTemplate(
+                            'tagPicker2',
+                            this.test.title,
+                        );
+                        aemTagPicker.toggleTag(
+                            '/content/cq:tags/mas/status/draft',
+                        );
+                        aemTagPicker.toggleTag(
+                            '/content/cq:tags/mas/status/documentation',
+                        );
+
+                        await aemTagPicker.updateComplete;
+                        await delay(100);
+                        aemTagPicker.shadowRoot
+                            .querySelector('sp-tag')
+                            .delete();
+                        expect(aemTagPicker.value).to.deep.equal([
+                            '/content/cq:tags/mas/status/documentation',
+                        ]);
+                    });
+
+                    it('Should not require top attribute', async function () {
+                        const aemTagPicker = initElementFromTemplate(
+                            'tagPicker3',
+                            this.test.title,
+                        );
+                        await aemTagPicker.updateComplete;
+                        expect(
+                            aemTagPicker.shadowRoot.querySelector(
+                                'sp-action-button',
+                            ),
+                        ).to.not.be.null;
+                    });
+
+                    it('Should not alter tags outside the scope of the picker', async function () {
+                        const aemTagPicker = initElementFromTemplate(
+                            'tagPicker4',
+                            this.test.title,
+                        );
+                        aemTagPicker.toggleTag(
+                            '/content/cq:tags/mas/status/draft',
+                        );
+                        aemTagPicker.toggleTag(
+                            '/content/cq:tags/mas/status/documentation',
+                        );
+                        await aemTagPicker.updateComplete;
+                        expect(aemTagPicker.value).to.deep.equal([
+                            '/content/cq:tags/mas/product/cc/photoshop',
+                            '/content/cq:tags/mas/status/draft',
+                            '/content/cq:tags/mas/status/documentation',
+                        ]);
+                    });
+
+                    it('Dispatches a change event on add/remove', async function () {
+                        const aemTagPicker = initElementFromTemplate(
+                            'tagPicker2',
+                            this.test.title,
+                        );
+                        const listener = oneEvent(aemTagPicker, 'change');
+                        aemTagPicker.toggleTag(
+                            '/content/cq:tags/mas/status/draft',
+                        );
+                        await listener;
+                        expect(aemTagPicker.value).to.deep.equal([
+                            '/content/cq:tags/mas/status/draft',
+                        ]);
+                    });
+                });
+            });
+        </script>
+        <main>
+            <sp-theme color="light" scale="medium"></sp-theme>
+        </main>
+        <template id="tagPicker1">
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                label="Select a product"
+                top="product"
+                base-url="https://mas-proxy-odin.corp.adobe.com"
+            ></aem-tag-picker-field>
+        </template>
+        <template id="tagPicker2">
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="status"
+                base-url="https://mas-proxy-odin.corp.adobe.com"
+                multiple
+            ></aem-tag-picker-field>
+        </template>
+        <template id="tagPicker3">
+            <aem-tag-picker-field
+                label="Filter"
+                namespace="/content/cq:tags/mas"
+                base-url="https://mas-proxy-odin.corp.adobe.com"
+                multiple
+            ></aem-tag-picker-field>
+        </template>
+        <template id="tagPicker4">
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="status"
+                value="mas:product/cc/photoshop"
+                base-url="https://mas-proxy-odin.corp.adobe.com"
+                multiple
+            ></aem-tag-picker-field>
+        </template>
+    </body>
+</html>

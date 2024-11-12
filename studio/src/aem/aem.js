@@ -51,10 +51,16 @@ class AEM {
      * Search for content fragments.
      * @param {Object} params - The search options
      * @param {string} [params.path] - The path to search in
+     * @param {Array} [params.tags] - The tags
      * @param {string} [params.query] - The search query
      * @returns A generator function that fetches all the matching data using a cursor that is returned by the search API
      */
-    async *searchFragment({ path, query = '', sort }) {
+    async *searchFragment({
+        path,
+        query = '',
+        tags = ['/content/cq:tags/mas/product/cc'],
+        sort,
+    }) {
         const filter = {
             path,
         };
@@ -64,10 +70,12 @@ class AEM {
                 queryMode: 'EXACT_WORDS',
             };
         }
-
         const searchQuery = { ...defaultSearchOptions, filter };
         if (sort) {
             searchQuery.sort = sort;
+        }
+        if (tags.length > 0) {
+            filter.tags = tags;
         }
         const params = {
             query: JSON.stringify(searchQuery),
@@ -380,6 +388,22 @@ class AEM {
         };
     }
 
+    async listTags(root) {
+        const response = await fetch(
+            `${this.baseUrl}/bin/querybuilder.json?path=${root}&type=cq:Tag&orderby=@jcr:path&p.limit=-1`,
+            {
+                method: 'GET',
+                headers: this.headers,
+            },
+        ).catch((error) => console.error('Error:', error));
+        if (!response.ok) {
+            throw new Error(
+                `Failed to list tags: ${response.status} ${response.statusText}`,
+            );
+        }
+        return response.json();
+    }
+
     sites = {
         cf: {
             fragments: {
@@ -418,6 +442,12 @@ class AEM {
                 delete: this.deleteFragment.bind(this),
             },
         },
+    };
+    tags = {
+        /**
+         * @see AEM#listTags
+         */
+        list: this.listTags.bind(this),
     };
     folders = {
         /**

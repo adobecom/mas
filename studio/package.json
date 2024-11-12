@@ -4,9 +4,9 @@
     "description": "Merch at Scale Studio",
     "scripts": {
         "build": "node build.mjs",
-        "build:milo": "echo",
         "test": "wtr --config ./web-test-runner.config.mjs --coverage --watch --debug",
         "test:ci": "wtr --config ./web-test-runner.config.mjs",
+        "proxy:qa": "node ./proxy-server.mjs https://author-p22655-e155390.adobeaemcloud.com",
         "proxy": "node ./proxy-server.mjs https://author-p22655-e59433.adobeaemcloud.com",
         "proxy:publish": "node ./proxy-server.mjs https://publish-p22655-e59433.adobeaemcloud.com",
         "proxy:https": "node ./proxy-server.mjs https://author-p22655-e59433.adobeaemcloud.com ./mas.key ./mas.crt"

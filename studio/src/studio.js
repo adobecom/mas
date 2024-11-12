@@ -55,7 +55,7 @@ class MasStudio extends LitElement {
         this.addEventListener(EVENT_LOAD_END, () => this.requestUpdate());
         this.addEventListener(EVENT_CHANGE, () => {
             if (!this.fragment) this.showEditorPanel = false;
-            this.requestUpdate();
+            else this.requestUpdate();
         });
 
         // Listen for ESC key to close the fragment editor and quit selection mode

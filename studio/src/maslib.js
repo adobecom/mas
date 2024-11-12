@@ -11,7 +11,7 @@ const miloLibs = getMiloLibs();
 
 const injectMasLib = () => {
     const script = document.createElement('script');
-    script.setAttribute('src', `${miloLibs}/libs/deps/mas/mas.js`);
+    script.setAttribute('src', `${miloLibs}/libs/features/mas/mas/dist/mas.js`);
     script.setAttribute('type', 'module');
     document.head.prepend(script);
 };

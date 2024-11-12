@@ -26,6 +26,7 @@ class AemFragments extends LitElement {
             baseUrl: { type: String, attribute: 'base-url' },
             path: { type: String, attribute: true, reflect: true },
             searchText: { type: String, attribute: 'search' },
+            tags: { type: String, attribute: 'tags' },
             fragment: { type: Object },
         };
     }
@@ -38,11 +39,6 @@ class AemFragments extends LitElement {
      * @type {AEM}
      */
     #aem;
-
-    /**
-     * @type {Folder}
-     */
-    #rootFolder;
 
     /**
      * @type {Folder}
@@ -69,7 +65,6 @@ class AemFragments extends LitElement {
                 'Either the bucket or baseUrl attribute is required.',
             );
         this.#aem = new AEM(this.bucket, this.baseUrl);
-        this.#rootFolder = new Folder(getDamPath());
         this.style.display = 'none';
     }
 
@@ -161,6 +156,13 @@ class AemFragments extends LitElement {
         this.dispatchEvent(new CustomEvent(EVENT_LOAD_END, { bubbles: true }));
     }
 
+    update(changedProperties) {
+        super.update(changedProperties);
+        if (changedProperties.has('tags')) {
+            this.searchFragments();
+        }
+    }
+
     isUUID(str) {
         const uuidRegex =
             /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -214,13 +216,16 @@ class AemFragments extends LitElement {
             this.#search.query = this.searchText;
             search = true;
         }
+        if (this.tags) {
+            this.#search.tags = this.tags.split(',');
+        }
         if (this.isFragmentId(this.searchText)) {
             await this.searchFragmentByUUID();
         } else {
             const cursor = await this.#aem.sites.cf.fragments.search(
                 this.#search,
             );
-            this.processFragments(cursor, search);
+            await this.processFragments(cursor, search);
         }
     }
 

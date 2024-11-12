@@ -58,17 +58,18 @@ class AemTagPickerField extends LitElement {
         top: { type: String },
         multiple: { type: Boolean },
         hierarchicalTags: { type: Object, state: true },
-        expandedItem: { type: String },
         ready: { type: Boolean, state: true },
     };
 
     static styles = css`
         :host {
-            display: block;
+            display: flex;
+            align-items: center;
         }
 
         sp-tags {
             width: 100%;
+            position: relative;
         }
 
         sp-sidenav {
@@ -85,7 +86,9 @@ class AemTagPickerField extends LitElement {
 
     constructor() {
         super();
-        this.baseUrl = null;
+        this.baseUrl = document.querySelector(
+            'meta[name="aem-base-url"]',
+        )?.content;
         this.bucket = null;
         this.top = null;
         this.multiple = false;
@@ -175,9 +178,6 @@ class AemTagPickerField extends LitElement {
         }
 
         this.value = currentValue;
-        this.dispatchEvent(
-            new CustomEvent('change', { bubbles: true, composed: true }),
-        );
     }
 
     #handleChange(event) {
@@ -228,16 +228,32 @@ class AemTagPickerField extends LitElement {
                     @delete=${this.#deleteTag}
                     data-path=${path}
                     >${this.#resolveTagTitle(path)}
+                    <sp-icon-label slot="icon"></sp-icon-label>
                 </sp-tag>`,
         )}`;
     }
 
-    updated() {
-        super.updated();
-        this.updateComplete.then(() => this.#updateMargin());
+    updated(changedProperties) {
+        const valueChanged = ![undefined, this.value].includes(
+            changedProperties.get('value'), // skip initial render
+        );
+        if (valueChanged) this.#notifyChange();
+        this.#updateMargin();
     }
 
-    #updateMargin() {
+    async #notifyChange() {
+        this.requestUpdate('value');
+        await this.updateComplete;
+        this.dispatchEvent(
+            new CustomEvent('change', {
+                bubbles: true,
+                composed: true,
+            }),
+        );
+    }
+
+    async #updateMargin() {
+        await this.updateComplete;
         const margin =
             this.shadowRoot.querySelector('sp-tag:last-child')?.offsetTop ?? 0;
         this.style.setProperty('--margin-picker-top', `${margin}px`);
@@ -256,7 +272,7 @@ class AemTagPickerField extends LitElement {
                     >${this.triggerLabel}
                     <sp-icon-labels slot="icon"></sp-icon-labels>
                 </sp-action-button>
-                <sp-popover slot="click-content" open>
+                <sp-popover slot="click-content">
                     <sp-dialog size="s" no-divider>
                         <sp-sidenav @change=${this.#handleChange}>
                             ${this.renderSidenavItems(this.hierarchicalTags)}

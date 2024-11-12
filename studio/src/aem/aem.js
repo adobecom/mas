@@ -55,12 +55,7 @@ class AEM {
      * @param {string} [params.query] - The search query
      * @returns A generator function that fetches all the matching data using a cursor that is returned by the search API
      */
-    async *searchFragment({
-        path,
-        query = '',
-        tags = ['/content/cq:tags/mas/product/cc'],
-        sort,
-    }) {
+    async *searchFragment({ path, query = '', tags = [], sort }) {
         const filter = {
             path,
         };
@@ -171,7 +166,7 @@ class AEM {
      * @returns {Promise<Object>} the updated fragment
      */
     async saveFragment(fragment) {
-        const { title, description, fields } = fragment;
+        const { title, description, tags, fields } = fragment;
         const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
             method: 'PUT',
             headers: {
@@ -179,16 +174,63 @@ class AEM {
                 'If-Match': fragment.etag,
                 ...this.headers,
             },
-            body: JSON.stringify({ title, description, fields }),
+            body: JSON.stringify({
+                title,
+                description,
+                fields,
+            }),
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
+
         if (!response.ok) {
             throw new Error(
                 `Failed to save fragment: ${response.status} ${response.statusText}`,
             );
         }
-        return await this.getFragment(response);
+
+        const fragmentTags = await fetch(
+            `${this.cfFragmentsUrl}/${fragment.id}/tags`,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...this.headers,
+                },
+            },
+        ).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (tags.length === 0) {
+            await fetch(`${this.cfFragmentsUrl}/${fragment.id}/tags`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'If-Match': fragmentTags.headers.get('Etag'),
+                    ...this.headers,
+                },
+            }).catch((err) => {
+                throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+            });
+        } else {
+            await fetch(`${this.cfFragmentsUrl}/${fragment.id}/tags`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'If-Match': fragmentTags.headers.get('Etag'),
+                    ...this.headers,
+                },
+                body: JSON.stringify({
+                    tags,
+                }),
+            }).catch((err) => {
+                throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+            });
+        }
+
+        const newFragment = await this.sites.cf.fragments.getById(fragment.id);
+        return newFragment;
     }
 
     /**

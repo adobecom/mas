@@ -82,10 +82,10 @@
                             'tagPicker1',
                             this.test.title,
                         );
-                        aemTagPicker.toggleTag(
+                        await aemTagPicker.toggleTag(
                             '/content/cq:tags/mas/product/cc/photoshop',
                         );
-                        aemTagPicker.toggleTag(
+                        await aemTagPicker.toggleTag(
                             '/content/cq:tags/mas/product/cc/illustrator',
                         );
                         await aemTagPicker.updateComplete;
@@ -99,10 +99,10 @@
                             'tagPicker2',
                             this.test.title,
                         );
-                        aemTagPicker.toggleTag(
+                        await aemTagPicker.toggleTag(
                             '/content/cq:tags/mas/status/draft',
                         );
-                        aemTagPicker.toggleTag(
+                        await aemTagPicker.toggleTag(
                             '/content/cq:tags/mas/status/documentation',
                         );
                         await aemTagPicker.updateComplete;
@@ -117,18 +117,18 @@
                             'tagPicker2',
                             this.test.title,
                         );
-                        aemTagPicker.toggleTag(
+                        await aemTagPicker.toggleTag(
                             '/content/cq:tags/mas/status/draft',
                         );
-                        aemTagPicker.toggleTag(
+                        await aemTagPicker.toggleTag(
                             '/content/cq:tags/mas/status/documentation',
                         );
-
                         await aemTagPicker.updateComplete;
                         await delay(100);
                         aemTagPicker.shadowRoot
                             .querySelector('sp-tag')
                             .delete();
+                        await aemTagPicker.updateComplete;
                         expect(aemTagPicker.value).to.deep.equal([
                             '/content/cq:tags/mas/status/documentation',
                         ]);
@@ -152,10 +152,10 @@
                             'tagPicker4',
                             this.test.title,
                         );
-                        aemTagPicker.toggleTag(
+                        await aemTagPicker.toggleTag(
                             '/content/cq:tags/mas/status/draft',
                         );
-                        aemTagPicker.toggleTag(
+                        await aemTagPicker.toggleTag(
                             '/content/cq:tags/mas/status/documentation',
                         );
                         await aemTagPicker.updateComplete;
@@ -172,7 +172,7 @@
                             this.test.title,
                         );
                         const listener = oneEvent(aemTagPicker, 'change');
-                        aemTagPicker.toggleTag(
+                        await aemTagPicker.toggleTag(
                             '/content/cq:tags/mas/status/draft',
                         );
                         await listener;

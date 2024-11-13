@@ -58,6 +58,7 @@ class AemTagPickerField extends LitElement {
         top: { type: String },
         multiple: { type: Boolean },
         hierarchicalTags: { type: Object, state: true },
+        selected: { type: String },
         ready: { type: Boolean, state: true },
     };
 
@@ -159,7 +160,8 @@ class AemTagPickerField extends LitElement {
         return root;
     }
 
-    toggleTag(path) {
+    async toggleTag(path) {
+        await this.#data;
         const index = this.value.indexOf(path);
 
         if (!this.multiple) {
@@ -180,8 +182,10 @@ class AemTagPickerField extends LitElement {
         this.value = currentValue;
     }
 
-    #handleChange(event) {
+    async #handleChange(event) {
         const path = event.target.value;
+        event.target.value = '';
+        this.selected = path;
         this.toggleTag(path);
     }
 
@@ -201,11 +205,13 @@ class AemTagPickerField extends LitElement {
             const info = item.__info__;
             const label = info ? this.#resolveTagTitle(info.path) : key;
             const value = info ? info.path : `${parentPath}/${key}`;
-
             return html`
                 <sp-sidenav-item label="${label}" value="${value}">
                     ${hasChildren
                         ? this.renderSidenavItems(item.__children__, value)
+                        : html``}
+                    ${hasChildren
+                        ? html`<sp-icon-labels slot="icon"></sp-icon-labels>`
                         : html`<sp-icon-label slot="icon"></sp-icon-label>`}
                 </sp-sidenav-item>
             `;
@@ -242,7 +248,6 @@ class AemTagPickerField extends LitElement {
     }
 
     async #notifyChange() {
-        this.requestUpdate('value');
         await this.updateComplete;
         this.dispatchEvent(
             new CustomEvent('change', {

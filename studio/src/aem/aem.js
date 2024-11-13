@@ -97,6 +97,12 @@ class AEM {
             }
             let items;
             ({ items, cursor } = await response.json());
+            if (tags.length > 0) {
+                // filter items by tags
+                items = items.filter((item) =>
+                    tags.every((tag) => item.tags.some((t) => t.id === tag)),
+                );
+            }
 
             yield items;
             if (!cursor) break;

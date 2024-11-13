@@ -58,10 +58,7 @@ class MasFilterToolbar extends LitElement {
                 <sp-search
                     placeholder="Search"
                     @change="${this.handleSearch}"
-                    @submit="${(event) => {
-                        event.preventDefault();
-                        this.handleSearch(event);
-                    }}"
+                    @submit="${this.handleSearch}"
                     value=${this.searchText}
                     size="m"
                 ></sp-search>
@@ -78,6 +75,7 @@ class MasFilterToolbar extends LitElement {
     }
 
     handleSearch(e) {
+        e.preventDefault();
         this.searchText = e.target.value;
         pushState({ query: this.searchText });
     }

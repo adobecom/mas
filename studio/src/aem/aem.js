@@ -61,6 +61,7 @@ class AEM {
         if (query) {
             filter.fullText = {
                 text: encodeURIComponent(query),
+                // For info about modes: https://adobe-sites.redoc.ly/tag/Search#operation/fragments/search!path=query/filter/fullText/queryMode&t=request
                 queryMode: 'EDGES',
             };
         }

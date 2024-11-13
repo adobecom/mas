@@ -61,7 +61,7 @@ class AEM {
         if (query) {
             filter.fullText = {
                 text: encodeURIComponent(query),
-                queryMode: 'EXACT_WORDS',
+                queryMode: 'EDGES',
             };
         }
 

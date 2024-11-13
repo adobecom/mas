@@ -15,6 +15,7 @@ class RenderView extends LitElement {
     constructor() {
         super();
         this.forceUpdate = this.forceUpdate.bind(this);
+        this.tooltipTimeout = null;
     }
 
     createRenderRoot() {
@@ -44,25 +45,53 @@ class RenderView extends LitElement {
     renderItem(fragment) {
         const selected =
             this.parentElement.source.selectedFragments.includes(fragment);
-        return html`<merch-card
-            class="${selected ? 'selected' : ''}"
-            @dblclick="${(e) => this.handleDoubleClick(e, fragment)}"
-        >
-            <aem-fragment fragment="${fragment.id}" ims></aem-fragment>
-            <sp-status-light
-                size="l"
-                variant="${fragment.statusVariant}"
-            ></sp-status-light>
-            <div class="overlay" @click="${() => fragment.toggleSelection()}">
-                ${selected
-                    ? html`<sp-icon-remove slot="icon"></sp-icon-remove>`
-                    : html`<sp-icon-add slot="icon"></sp-icon-add>`}
-            </div>
-        </merch-card>`;
+        return html`<overlay-trigger placement="top"
+            ><merch-card
+                class="${selected ? 'selected' : ''}"
+                slot="trigger"
+                @click="${this.handleClick}"
+                @mouseleave="${this.handleMouseLeave}"
+                @dblclick="${(e) => this.handleDoubleClick(e, fragment)}"
+            >
+                <aem-fragment fragment="${fragment.id}" ims></aem-fragment>
+                <sp-status-light
+                    size="l"
+                    variant="${fragment.statusVariant}"
+                ></sp-status-light>
+                <div
+                    class="overlay"
+                    @click="${() => fragment.toggleSelection()}"
+                >
+                    ${selected
+                        ? html`<sp-icon-remove slot="icon"></sp-icon-remove>`
+                        : html`<sp-icon-add slot="icon"></sp-icon-add>`}
+                </div>
+            </merch-card>
+            <sp-tooltip slot="hover-content" placement="top"
+                >Double click the card to start editing.</sp-tooltip
+            >
+        </overlay-trigger>`;
+    }
+
+    handleClick(e) {
+        if (this.parentElement.inSelection) return;
+        clearTimeout(this.tooltipTimeout);
+        const currentTarget = e.currentTarget;
+        this.tooltipTimeout = setTimeout(() => {
+            currentTarget.classList.add('has-tooltip');
+        }, 500);
+    }
+
+    handleMouseLeave(e) {
+        if (this.parentElement.inSelection) return;
+        clearTimeout(this.tooltipTimeout);
+        e.currentTarget.classList.remove('has-tooltip');
     }
 
     handleDoubleClick(e, fragment) {
         if (this.parentElement.inSelection) return;
+        clearTimeout(this.tooltipTimeout);
+        e.currentTarget.classList.remove('has-tooltip');
         this.parentElement.source.selectFragment(
             e.clientX,
             e.clientY,

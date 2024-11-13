@@ -166,13 +166,13 @@ class AEM {
      * @returns {Promise<Object>} the updated fragment
      */
     async saveFragment(fragment) {
-        const { title, description, tags, fields } = fragment;
+        const { title, description, fields } = fragment;
         const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
             method: 'PUT',
             headers: {
+                ...this.headers,
                 'Content-Type': 'application/json',
                 'If-Match': fragment.etag,
-                ...this.headers,
             },
             body: JSON.stringify({
                 title,
@@ -189,48 +189,51 @@ class AEM {
             );
         }
 
+        await this.saveTags(fragment);
+
+        const newFragment = await this.sites.cf.fragments.getById(fragment.id);
+        return newFragment;
+    }
+
+    async saveTags(fragment) {
+        const { newTags } = fragment;
+        if (!newTags) return;
+        // we need this to get the Etag
         const fragmentTags = await fetch(
             `${this.cfFragmentsUrl}/${fragment.id}/tags`,
             {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...this.headers,
-                },
+                headers: this.headers,
             },
         ).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
 
-        if (tags.length === 0) {
+        const etag = fragmentTags.headers.get('Etag');
+        const headers = {
+            ...this.headers,
+            'Content-Type': 'application/json',
+            'If-Match': etag,
+        };
+
+        if (newTags?.length === 0) {
             await fetch(`${this.cfFragmentsUrl}/${fragment.id}/tags`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'If-Match': fragmentTags.headers.get('Etag'),
-                    ...this.headers,
-                },
+                headers,
             }).catch((err) => {
                 throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
             });
         } else {
             await fetch(`${this.cfFragmentsUrl}/${fragment.id}/tags`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'If-Match': fragmentTags.headers.get('Etag'),
-                    ...this.headers,
-                },
+                headers,
                 body: JSON.stringify({
-                    tags,
+                    tags: newTags,
                 }),
             }).catch((err) => {
                 throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
             });
         }
-
-        const newFragment = await this.sites.cf.fragments.getById(fragment.id);
-        return newFragment;
     }
 
     /**

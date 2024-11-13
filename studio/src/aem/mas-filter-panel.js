@@ -28,6 +28,11 @@ class MasFilterPanel extends LitElement {
         this.#source = document.getElementById(this.source);
     }
 
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.#source.removeAttribute('tags');
+    }
+
     handeFilterChange(event) {
         this.#source.setAttribute('tags', event.target.getAttribute('value'));
     }

@@ -78,6 +78,13 @@ class MerchCardEditor extends LitElement {
                 value="${form.backgroundImage.values[0]}"
                 @change="${this.updateFragment}"
             ></sp-textfield>
+            <sp-textfield
+                placeholder="Enter backgroung image URL"
+                id="background-title"
+                data-field="backgroundImage"
+                value="${form.backgroundImageAltText.values[0]}"
+                @change="${this.updateFragment}"
+            ></sp-textfield>
             <sp-field-label for="horizontal"> Prices </sp-field-label>
             <sp-field-group horizontal id="horizontal">
                 <rte-field

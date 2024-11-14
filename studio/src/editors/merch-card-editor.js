@@ -78,10 +78,13 @@ class MerchCardEditor extends LitElement {
                 value="${form.backgroundImage.values[0]}"
                 @change="${this.updateFragment}"
             ></sp-textfield>
+            <sp-field-label for="card-icon"
+                >Background Image Alt Text</sp-field-label
+            >
             <sp-textfield
-                placeholder="Enter backgroung image URL"
-                id="background-title"
-                data-field="backgroundImage"
+                placeholder="Enter backgroung image Alt Text"
+                id="background-alt-text"
+                data-field="backgroundImageAltText"
                 value="${form.backgroundImageAltText.values[0]}"
                 @change="${this.updateFragment}"
             ></sp-textfield>

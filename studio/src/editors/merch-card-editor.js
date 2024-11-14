@@ -145,6 +145,7 @@ class MerchCardEditor extends LitElement {
     #handeTagsChange(e) {
         const value = e.target.getAttribute('value');
         this.fragment.newTags = value ? value.split(',') : []; // do not overwrite the tags array
+        this.fragment.updateField('tags', this.fragment.newTags);
     }
 
     updateFragment(e) {

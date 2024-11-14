@@ -604,6 +604,7 @@ class RteField extends LitElement {
     }
 
     handleOpenOfferSelector(event, element) {
+        if (!event && !element) return;
         ostRteFieldSource = this;
         this.showOfferSelector = true;
         openOfferSelectorTool(element);

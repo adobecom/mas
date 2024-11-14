@@ -111,6 +111,14 @@ content-navigation render-view merch-card .overlay {
     display: none;
 }
 
+merch-card:not(.has-tooltip) ~ sp-tooltip {
+    display: none;
+}
+
+merch-card:hover {
+    background-color: var(--spectrum-background-base-color);
+}
+
 merch-card-editor {
     display: contents;
 }

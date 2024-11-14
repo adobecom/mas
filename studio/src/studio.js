@@ -1,12 +1,10 @@
 import { html, LitElement, nothing } from 'lit';
-import { EVENT_SUBMIT } from './events.js';
+import { EVENT_CHANGE, EVENT_SUBMIT } from './events.js';
 import { deeplink, pushState } from './deeplink.js';
 import './editors/merch-card-editor.js';
 import './rte/rte-field.js';
 import './rte/rte-link-editor.js';
 import './mas-top-nav.js';
-import './mas-filter-panel.js';
-import './mas-filter-toolbar.js';
 
 const EVENT_LOAD_START = 'load-start';
 const EVENT_LOAD_END = 'load-end';
@@ -21,11 +19,9 @@ class MasStudio extends LitElement {
         bucket: { type: String, attribute: 'aem-bucket' },
         searchText: { type: String, state: true },
         baseUrl: { type: String, attribute: 'base-url' },
-        root: { type: String, state: true },
         path: { type: String, state: true },
         variant: { type: String, state: true },
         newFragment: { type: Object, state: true },
-        showFilterPanel: { type: Boolean, state: true },
         showEditorPanel: { type: Boolean, state: true },
     };
 
@@ -33,19 +29,15 @@ class MasStudio extends LitElement {
         super();
         this.bucket = 'e59433';
         this.newFragment = null;
-        this.root = '/content/dam/mas';
         this.variant = 'all';
         this.searchText = '';
         this.path = '';
-        this.showFilterPanel = false;
         this.showEditorPanel = false;
     }
 
     connectedCallback() {
         super.connectedCallback();
         this.registerListeners();
-        this.startDeeplink();
-        this.addEventListener('toggle-filter-panel', this.toggleFilterPanel);
         this.addEventListener('clear-search', this.clearSearch);
         this.addEventListener('search-fragments', this.doSearch);
         this.addEventListener('variant-changed', this.handleVariantChange);
@@ -53,14 +45,18 @@ class MasStudio extends LitElement {
             'search-text-changed',
             this.handleSearchTextChange,
         );
+        this.startDeeplink();
     }
 
     registerListeners() {
         this.addEventListener(EVENT_LOAD_START, () => {
             this.requestUpdate();
-            this.updateDeeplink();
         });
         this.addEventListener(EVENT_LOAD_END, () => this.requestUpdate());
+        this.addEventListener(EVENT_CHANGE, () => {
+            if (!this.fragment) this.showEditorPanel = false;
+            else this.requestUpdate();
+        });
 
         // Listen for ESC key to close the fragment editor and quit selection mode
         document.addEventListener('keydown', (e) => {
@@ -83,21 +79,15 @@ class MasStudio extends LitElement {
         }
     }
 
-    updateDeeplink() {
-        const state = { ...this.source?.search };
-        if (state.path === this.root) state.path = '';
-        pushState(state);
-    }
-
-    toggleFilterPanel() {
-        this.showFilterPanel = !this.showFilterPanel;
+    get search() {
+        return this.contentNavigation?.toolbar?.search;
     }
 
     clearSearch() {
         this.searchText = '';
         pushState({
             query: undefined,
-            path: undefined,
+            path: this.path,
         });
     }
 
@@ -111,16 +101,8 @@ class MasStudio extends LitElement {
             changedProperties.has('path') ||
             changedProperties.has('variant')
         ) {
-            this.source?.sendSearch();
+            this.source?.searchFragments();
         }
-    }
-
-    get search() {
-        return this.querySelector('sp-search');
-    }
-
-    get picker() {
-        return this.querySelector('sp-picker');
     }
 
     get source() {
@@ -186,6 +168,9 @@ class MasStudio extends LitElement {
                     @click="${this.saveFragment}"
                 >
                     <sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>
+                    <sp-tooltip self-managed placement="bottom"
+                        >Save changes</sp-tooltip
+                    >
                 </sp-action-button>
                 <sp-action-button
                     label="Discard"
@@ -194,6 +179,9 @@ class MasStudio extends LitElement {
                     @click="${this.discardChanges}"
                 >
                     <sp-icon-undo slot="icon"></sp-icon-undo>
+                    <sp-tooltip self-managed placement="bottom"
+                        >Discard changes</sp-tooltip
+                    >
                 </sp-action-button>
                 <sp-action-button
                     label="Clone"
@@ -201,6 +189,9 @@ class MasStudio extends LitElement {
                     @click="${this.copyFragment}"
                 >
                     <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
+                    <sp-tooltip self-managed placement="bottom"
+                        >Clone</sp-tooltip
+                    >
                 </sp-action-button>
                 <sp-action-button
                     label="Publish"
@@ -208,15 +199,22 @@ class MasStudio extends LitElement {
                     @click="${this.publishFragment}"
                 >
                     <sp-icon-publish-check slot="icon"></sp-icon-publish-check>
+                    <sp-tooltip self-managed placement="bottom"
+                        >Publish</sp-tooltip
+                    >
                 </sp-action-button>
                 <sp-action-button
                     label="Unpublish"
                     value="unpublish"
                     @click="${this.unpublishFragment}"
+                    disabled
                 >
                     <sp-icon-publish-remove
                         slot="icon"
                     ></sp-icon-publish-remove>
+                    <sp-tooltip self-managed placement="bottom"
+                        >Unpublish</sp-tooltip
+                    >
                 </sp-action-button>
                 <sp-action-button
                     label="Open in Odin"
@@ -224,6 +222,9 @@ class MasStudio extends LitElement {
                     @click="${this.openFragmentInOdin}"
                 >
                     <sp-icon-open-in slot="icon"></sp-icon-open-in>
+                    <sp-tooltip self-managed placement="bottom"
+                        >Open in Odin</sp-tooltip
+                    >
                 </sp-action-button>
                 <sp-action-button
                     label="Use"
@@ -231,6 +232,7 @@ class MasStudio extends LitElement {
                     @click="${this.copyToUse}"
                 >
                     <sp-icon-code slot="icon"></sp-icon-code>
+                    <sp-tooltip self-managed placement="bottom">Use</sp-tooltip>
                 </sp-action-button>
                 <sp-action-button
                     label="Delete fragment"
@@ -240,6 +242,9 @@ class MasStudio extends LitElement {
                     <sp-icon-delete-outline
                         slot="icon"
                     ></sp-icon-delete-outline>
+                    <sp-tooltip self-managed placement="bottom"
+                        >Delete fragment</sp-tooltip
+                    >
                 </sp-action-button>
             </sp-action-group>
             <sp-divider vertical></sp-divider>
@@ -251,6 +256,9 @@ class MasStudio extends LitElement {
                     @click="${this.closeFragmentEditor}"
                 >
                     <sp-icon-close-circle slot="icon"></sp-icon-close-circle>
+                    <sp-tooltip self-managed placement="bottom"
+                        >Close</sp-tooltip
+                    >
                 </sp-action-button>
             </sp-action-group>
         </div>`;
@@ -301,7 +309,6 @@ class MasStudio extends LitElement {
             <aem-fragments
                 id="aem"
                 base-url="${this.baseUrl}"
-                root="${this.root}"
                 path="${this.path}"
                 search="${this.searchText}"
                 bucket="${this.bucket}"
@@ -327,10 +334,6 @@ class MasStudio extends LitElement {
         return html`
             <mas-top-nav env="${this.env}"></mas-top-nav>
             <side-nav></side-nav>
-            <mas-filter-toolbar></mas-filter-toolbar>
-            ${this.showFilterPanel
-                ? html`<mas-filter-panel></mas-filter-panel>`
-                : nothing}
             ${this.content} ${this.fragmentEditor} ${this.selectFragmentDialog}
             ${this.toast} ${this.loadingIndicator}
         `;

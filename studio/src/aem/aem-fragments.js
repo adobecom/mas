@@ -2,17 +2,33 @@ import { LitElement, nothing } from 'lit';
 import { AEM } from './aem.js';
 import { Folder } from './folder.js';
 import { Fragment } from './fragment.js';
-import { EVENT_LOAD, EVENT_LOAD_END, EVENT_LOAD_START } from '../events.js';
+import {
+    EVENT_CHANGE,
+    EVENT_LOAD,
+    EVENT_LOAD_END,
+    EVENT_LOAD_START,
+} from '../events.js';
 
 /** aem-fragment cache */
 let aemFragmentCache;
+
+const ROOT = '/content/dam/mas';
+
+const getDamPath = (path) => {
+    if (!path) return ROOT;
+    if (path.startsWith(ROOT)) return path;
+    return ROOT + '/' + path;
+};
+
+const getTopFolder = (path) => {
+    return path?.substring(ROOT.length + 1)?.split('/')[0];
+};
 
 class AemFragments extends LitElement {
     static get properties() {
         return {
             bucket: { type: String },
             baseUrl: { type: String, attribute: 'base-url' },
-            root: { type: String, attribute: true, reflect: true },
             path: { type: String, attribute: true, reflect: true },
             searchText: { type: String, attribute: 'search' },
             fragment: { type: Object },
@@ -53,32 +69,22 @@ class AemFragments extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        if (!this.root) throw new Error('root attribute is required');
         if (!(this.bucket || this.baseUrl))
             throw new Error(
                 'Either the bucket or baseUrl attribute is required.',
             );
         this.#aem = new AEM(this.bucket, this.baseUrl);
-        this.#rootFolder = new Folder(this.root);
+        this.#rootFolder = new Folder(getDamPath());
         this.style.display = 'none';
-    }
-
-    async sendSearch() {
-        if (this.searchText) {
-            await this.searchFragments();
-        } else {
-            await this.openFolder(this.path || this.root);
-            await this.listFragments();
-        }
     }
 
     /**
      * @param {Folder} folder
      */
     async openFolder(folder) {
-        this.#loading = true;
         this.dispatchEvent(new CustomEvent(EVENT_LOAD_START));
         if (typeof folder === 'string') {
+            folder = getDamPath(folder);
             this.currentFolder = this.#folders.get(folder);
             if (!this.currentFolder) {
                 this.currentFolder = new Folder(folder);
@@ -110,6 +116,16 @@ class AemFragments extends LitElement {
 
     setFragment(fragment) {
         this.fragment = fragment;
+    }
+
+    async getTopFolders() {
+        const { children } = await this.#aem.folders.list(ROOT);
+        const ignore = window.localStorage.getItem('ignore_folders') || [
+            'images',
+        ];
+        return children
+            .map((folder) => folder.name)
+            .filter((child) => !ignore.includes(child));
     }
 
     async addToCache(fragments) {
@@ -150,20 +166,11 @@ class AemFragments extends LitElement {
         this.dispatchEvent(new CustomEvent(EVENT_LOAD_END, { bubbles: true }));
     }
 
-    async listFragments() {
-        this.#search = {
-            path: this.path || this.currentFolder.path || this.#rootFolder.path,
-        };
-        const cursor = this.#aem.sites.cf.fragments.search(this.#search);
-        this.processFragments(cursor);
-    }
-
     isUUID(str) {
         const uuidRegex =
             /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         return uuidRegex.test(str);
     }
-
     /**
      * Searches for a content fragment by its UUID.
      */
@@ -179,12 +186,21 @@ class AemFragments extends LitElement {
         const fragmentData = await this.#aem.sites.cf.fragments.getById(
             this.searchText,
         );
-        const fragment = new Fragment(fragmentData, this);
-        this.#searchResult = [fragment];
+        if (
+            fragmentData &&
+            fragmentData.path.indexOf(getDamPath(this.path)) == 0
+        ) {
+            const fragment = new Fragment(fragmentData, this);
+            this.#searchResult = [fragment];
+            await this.addToCache([fragment]);
+        }
         this.#loading = false;
-        await this.addToCache([fragment]);
         this.dispatchEvent(new CustomEvent(EVENT_LOAD), { bubbles: true });
         this.dispatchEvent(new CustomEvent(EVENT_LOAD_END, { bubbles: true }));
+    }
+
+    isFragmentId(str) {
+        return this.isUUID(str);
     }
 
     /**
@@ -195,17 +211,21 @@ class AemFragments extends LitElement {
      */
     async searchFragments() {
         this.#search = {
-            query: this.searchText,
-            path: this.#rootFolder.path,
+            path: getDamPath(this.path),
         };
-        const isFragmentId = this.isUUID(this.searchText);
-        if (isFragmentId) {
+
+        let search = false;
+        if (this.searchText) {
+            this.#search.query = this.searchText;
+            search = true;
+        }
+        if (this.isFragmentId(this.searchText)) {
             await this.searchFragmentByUUID();
         } else {
             const cursor = await this.#aem.sites.cf.fragments.search(
                 this.#search,
             );
-            this.processFragments(cursor, true);
+            this.processFragments(cursor, search);
         }
     }
 
@@ -217,12 +237,16 @@ class AemFragments extends LitElement {
 
     async copyFragment() {
         const oldFragment = this.fragment;
-        this.setFragment(null);
         const fragment = await this.#aem.sites.cf.fragments.copy(oldFragment);
-        aemFragmentCache?.add(fragment);
-        const newFragment = new Fragment(fragment);
-        this.#search.addToResult(newFragment, oldFragment);
+        const newFragment = new Fragment(fragment, this);
+        aemFragmentCache?.add(newFragment);
+        if (this.searchText) {
+            this.#searchResult.push(newFragment);
+        } else {
+            this.currentFolder?.add(newFragment);
+        }
         this.setFragment(newFragment);
+        this.dispatchEvent(new CustomEvent(EVENT_CHANGE, { bubbles: true }));
     }
 
     async publishFragment() {
@@ -231,8 +255,14 @@ class AemFragments extends LitElement {
 
     async deleteFragment() {
         await this.#aem.sites.cf.fragments.delete(this.fragment);
-        this.#search.removeFromResult(this.fragment);
+        if (this.searchText) {
+            const fragmentIndex = this.#searchResult.indexOf(this.fragment);
+            this.#searchResult.splice(fragmentIndex, 1);
+        } else {
+            this.currentFolder?.remove(this.fragment);
+        }
         this.setFragment(null);
+        this.dispatchEvent(new CustomEvent(EVENT_CHANGE, { bubbles: true }));
     }
 
     clearSelection() {
@@ -270,4 +300,4 @@ class AemFragments extends LitElement {
 
 customElements.define('aem-fragments', AemFragments);
 
-export { AemFragments };
+export { AemFragments, getDamPath, getTopFolder };

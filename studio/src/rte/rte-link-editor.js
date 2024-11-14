@@ -77,6 +77,10 @@ export class RteLinkEditor extends LitElement {
         this.variant = 'accent';
         this.target = '_self';
         this.open = true;
+        this.addEventListener('change', (e) => {
+            // changes in the dialog should not propagate to outside
+            e.stopImmediatePropagation();
+        });
     }
 
     get #checkoutParametersField() {

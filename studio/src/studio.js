@@ -1,5 +1,5 @@
 import { html, LitElement, nothing } from 'lit';
-import { EVENT_SUBMIT } from './events.js';
+import { EVENT_CHANGE, EVENT_SUBMIT } from './events.js';
 import { deeplink, pushState } from './deeplink.js';
 import './editors/merch-card-editor.js';
 import './rte/rte-field.js';
@@ -53,6 +53,10 @@ class MasStudio extends LitElement {
             this.requestUpdate();
         });
         this.addEventListener(EVENT_LOAD_END, () => this.requestUpdate());
+        this.addEventListener(EVENT_CHANGE, () => {
+            if (!this.fragment) this.showEditorPanel = false;
+            else this.requestUpdate();
+        });
 
         // Listen for ESC key to close the fragment editor and quit selection mode
         document.addEventListener('keydown', (e) => {

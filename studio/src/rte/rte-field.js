@@ -569,7 +569,11 @@ class RteField extends LitElement {
                 ? state.schema.text(attributes.text)
                 : null;
 
-        const node = nodeType.create(mergedAttributes, content);
+        const node = nodeType.create(
+            mergedAttributes,
+            content,
+            selection.node?.marks,
+        );
         const tr = selection.empty
             ? state.tr.insert(selection.from, node)
             : state.tr.replaceWith(selection.from, selection.to, node);

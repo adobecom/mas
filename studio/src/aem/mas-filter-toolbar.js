@@ -75,6 +75,7 @@ class MasFilterToolbar extends LitElement {
     }
 
     handleSearch(e) {
+        e.preventDefault();
         this.searchText = e.target.value;
         pushState({ query: this.searchText });
     }

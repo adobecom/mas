@@ -604,7 +604,6 @@ class RteField extends LitElement {
     }
 
     handleOpenOfferSelector(event, element) {
-        if (!event && !element) return;
         ostRteFieldSource = this;
         this.showOfferSelector = true;
         openOfferSelectorTool(element);
@@ -695,6 +694,7 @@ class RteField extends LitElement {
 
     #handleDoubleClickOn(view, pos, node, nodePos, event) {
         const dom = event.target.closest('[data-wcs-osi]');
+        if (!dom) return;
         ostRteFieldSource = this;
         this.showOfferSelector = true;
         this.handleOpenOfferSelector(null, dom);

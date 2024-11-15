@@ -1,5 +1,6 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { classMap } from 'lit/directives/class-map.js';
+import { CHECKOUT_CTA_TEXTS, ANALYTICS_LINK_IDS } from '../constants.js';
 
 export class RteLinkEditor extends LitElement {
     static properties = {
@@ -13,6 +14,12 @@ export class RteLinkEditor extends LitElement {
         checkoutParameters: {
             type: String,
             attribute: 'checkout-parameters',
+            reflect: true,
+        },
+        linkAttrs: { type: Object },
+        analyticsId: {
+            type: String,
+            attribute: 'data-analytics-id',
             reflect: true,
         },
     };
@@ -77,6 +84,7 @@ export class RteLinkEditor extends LitElement {
         this.variant = 'accent';
         this.target = '_self';
         this.open = true;
+        this.analyticsId = '';
         this.addEventListener('change', (e) => {
             // changes in the dialog should not propagate to outside
             e.stopImmediatePropagation();
@@ -90,7 +98,7 @@ export class RteLinkEditor extends LitElement {
             >
             <sp-textfield
                 id="checkoutParameters"
-                placeholder="Exrta checkout parameters: e.g: promoid=12345&mv=1"
+                placeholder="Extra checkout parameters: e.g: promoid=12345&mv=1"
                 .value=${this.checkoutParameters}
                 @input=${(e) => (this.checkoutParameters = e.target.value)}
             ></sp-textfield>`;
@@ -116,6 +124,34 @@ export class RteLinkEditor extends LitElement {
 
     get linkHrefElement() {
         return this.shadowRoot.querySelector('#linkHref');
+    }
+
+    get #checkoutLink() {
+        return this.checkoutParameters !== undefined;
+    }
+    get #analyticsIdField() {
+        const options = this.#checkoutLink
+            ? Object.keys(CHECKOUT_CTA_TEXTS)
+            : ANALYTICS_LINK_IDS;
+        return html` <sp-field-label for="analyticsId"
+                >Analytics Id</sp-field-label
+            >
+            <sp-picker
+                id="analyticsId"
+                .value=${this.analyticsId}
+                @change=${(e) => {
+                    this.analyticsId = e.target.value;
+                }}
+            >
+                <sp-menu>
+                    ${options.map(
+                        (option) =>
+                            html`<sp-menu-item value="${option}"
+                                >${option}</sp-menu-item
+                            >`,
+                    )}
+                </sp-menu>
+            </sp-picker>`;
     }
 
     get #linkVariants() {
@@ -195,8 +231,7 @@ export class RteLinkEditor extends LitElement {
     }
 
     get #editor() {
-        const type =
-            this.checkoutParameters === undefined ? 'Link' : 'Checkout Link';
+        const type = this.#checkoutLink ? 'Checkout Link' : 'Link';
         return html`<sp-dialog close=${this.#handleClose}>
             <h2 slot="heading">Insert/Edit ${type}</h2>
             ${this.#linkHrefField} ${this.#checkoutParametersField}
@@ -229,7 +264,7 @@ export class RteLinkEditor extends LitElement {
                     <sp-menu-item value="_top">Top Frame</sp-menu-item>
                 </sp-menu>
             </sp-picker>
-            ${this.#linkVariants}
+            ${this.#analyticsIdField} ${this.#linkVariants}
             <sp-button
                 id="cancelButton"
                 slot="button"
@@ -269,6 +304,7 @@ export class RteLinkEditor extends LitElement {
             title: this.title,
             target: this.target,
             variant: this.variant,
+            analyticsId: this.analyticsId,
         };
         if (this.checkoutParameters !== undefined) {
             delete data.href;

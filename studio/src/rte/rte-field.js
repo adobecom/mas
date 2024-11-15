@@ -234,6 +234,7 @@ class RteField extends LitElement {
                     'data-wcs-osi': { default: null },
                     title: { default: null },
                     target: { default: null },
+                    'data-analytics-id': { default: null },
                 },
                 parseDOM: [{ tag: 'a', getAttrs: this.#collectDataAttributes }],
                 toDOM: this.#createLinkElement.bind(this),
@@ -463,6 +464,7 @@ class RteField extends LitElement {
                 text: selection.node.textContent || '',
                 target: selection.node.attrs.target || '_self',
                 variant: selection.node.attrs.class || '',
+                analyticsId: selection.node.attrs['data-analytics-id'] || '',
                 checkoutParameters,
             };
         }
@@ -474,6 +476,7 @@ class RteField extends LitElement {
                 text: state.doc.textBetween(selection.from, selection.to),
                 target: '_self',
                 variant: this.defaultLinkStyle,
+                analyticsId: '',
                 checkoutParameters,
             };
         }
@@ -484,12 +487,14 @@ class RteField extends LitElement {
             text: '',
             target: '_self',
             variant: this.defaultLinkStyle,
+            analyticsId: '',
             checkoutParameters,
         };
     }
 
     #handleLinkSave(event) {
-        const { href, text, title, target, variant } = event.detail;
+        const { href, text, title, target, variant, analyticsId } =
+            event.detail;
 
         let { checkoutParameters } = event.detail;
         const { state, dispatch } = this.editorView;
@@ -516,6 +521,7 @@ class RteField extends LitElement {
             target: target || '_self',
             class: variant || 'primary-outline',
             'data-extra-options': checkoutParameters || null,
+            'data-analytics-id': analyticsId || null,
         };
 
         if (selection.node?.type.name === 'link') {
@@ -701,8 +707,10 @@ class RteField extends LitElement {
 
     get linkEditor() {
         if (!this.showLinkEditor) return nothing;
+        const attributes = this.editorView?.state?.selection?.node?.attrs;
         return html`<rte-link-editor
             dialog
+            .linkAttrs=${attributes}
             @save="${this.#boundHandlers.linkSave}"
         ></rte-link-editor>`;
     }

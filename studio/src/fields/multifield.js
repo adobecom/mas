@@ -96,7 +96,7 @@ class MasMultifield extends LitElement {
     /* c8 ignore start */
     // Handle drag start
     dragStart(e, index) {
-        const activeElement = document.activeElement;
+        const activeElement = document.document.activeElement.activeElement;
         if (
             activeElement &&
             activeElement.tagName.toLowerCase() === 'sp-textfield'

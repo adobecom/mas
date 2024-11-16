@@ -99,7 +99,7 @@ class MasMultifield extends LitElement {
         const activeElement = this.shadowRoot.activeElement;
         if (
             activeElement &&
-            activeElement.tagName.toLowerCase() === 'sp-textfield'
+            activeElement.tagName.toLowerCase() === 'mas-mnemonic-field'
         ) {
             e.preventDefault();
             return;

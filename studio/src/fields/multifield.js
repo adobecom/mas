@@ -96,9 +96,13 @@ class MasMultifield extends LitElement {
     /* c8 ignore start */
     // Handle drag start
     dragStart(e, index) {
-        if (e.target.tagName.toLowerCase() === 'sp-textfield') {
-            e.preventDefault();
-            return;
+        let target = e.target;
+        while (target && target !== this) {
+            if (target.tagName.toLowerCase() === 'sp-textfield') {
+                e.preventDefault();
+                return;
+            }
+            target = target.parentElement;
         }
         this.draggingIndex = index;
         e.dataTransfer.effectAllowed = 'move';

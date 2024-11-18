@@ -129,10 +129,12 @@ export class RteLinkEditor extends LitElement {
     get #checkoutLink() {
         return this.checkoutParameters !== undefined;
     }
+
     get #analyticsIdField() {
         const options = this.#checkoutLink
             ? Object.keys(CHECKOUT_CTA_TEXTS)
             : ANALYTICS_LINK_IDS;
+        options.push('');
         return html` <sp-field-label for="analyticsId"
                 >Analytics Id</sp-field-label
             >
@@ -152,6 +154,10 @@ export class RteLinkEditor extends LitElement {
                     )}
                 </sp-menu>
             </sp-picker>`;
+    }
+
+    get linkAnalyticsIdElement() {
+        return this.shadowRoot.querySelector('#analyticsId');
     }
 
     get #linkVariants() {

@@ -2,7 +2,12 @@ import { LitElement, nothing } from 'lit';
 import { AEM } from './aem.js';
 import { Folder } from './folder.js';
 import { Fragment } from './fragment.js';
-import { EVENT_LOAD, EVENT_LOAD_END, EVENT_LOAD_START } from '../events.js';
+import {
+    EVENT_CHANGE,
+    EVENT_LOAD,
+    EVENT_LOAD_END,
+    EVENT_LOAD_START,
+} from '../events.js';
 
 /** aem-fragment cache */
 let aemFragmentCache;
@@ -232,12 +237,16 @@ class AemFragments extends LitElement {
 
     async copyFragment() {
         const oldFragment = this.fragment;
-        this.setFragment(null);
         const fragment = await this.#aem.sites.cf.fragments.copy(oldFragment);
-        aemFragmentCache?.add(fragment);
-        const newFragment = new Fragment(fragment);
-        this.#search.addToResult(newFragment, oldFragment);
+        const newFragment = new Fragment(fragment, this);
+        aemFragmentCache?.add(newFragment);
+        if (this.searchText) {
+            this.#searchResult.push(newFragment);
+        } else {
+            this.currentFolder?.add(newFragment);
+        }
         this.setFragment(newFragment);
+        this.dispatchEvent(new CustomEvent(EVENT_CHANGE, { bubbles: true }));
     }
 
     async publishFragment() {
@@ -246,8 +255,14 @@ class AemFragments extends LitElement {
 
     async deleteFragment() {
         await this.#aem.sites.cf.fragments.delete(this.fragment);
-        this.#search.removeFromResult(this.fragment);
+        if (this.searchText) {
+            const fragmentIndex = this.#searchResult.indexOf(this.fragment);
+            this.#searchResult.splice(fragmentIndex, 1);
+        } else {
+            this.currentFolder?.remove(this.fragment);
+        }
         this.setFragment(null);
+        this.dispatchEvent(new CustomEvent(EVENT_CHANGE, { bubbles: true }));
     }
 
     clearSelection() {

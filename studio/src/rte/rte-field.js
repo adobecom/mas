@@ -575,7 +575,11 @@ class RteField extends LitElement {
                 ? state.schema.text(attributes.text)
                 : null;
 
-        const node = nodeType.create(mergedAttributes, content);
+        const node = nodeType.create(
+            mergedAttributes,
+            content,
+            selection.node?.marks,
+        );
         const tr = selection.empty
             ? state.tr.insert(selection.from, node)
             : state.tr.replaceWith(selection.from, selection.to, node);
@@ -700,6 +704,7 @@ class RteField extends LitElement {
 
     #handleDoubleClickOn(view, pos, node, nodePos, event) {
         const dom = event.target.closest('[data-wcs-osi]');
+        if (!dom) return;
         ostRteFieldSource = this;
         this.showOfferSelector = true;
         this.handleOpenOfferSelector(null, dom);

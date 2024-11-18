@@ -14,6 +14,25 @@ class MerchCardEditor extends LitElement {
         return this;
     }
 
+    get mnemonics() {
+        const mnemonicIcon =
+            this.fragment.fields.find((f) => f.name === 'mnemonicIcon')
+                ?.values ?? [];
+        const mnemonicAlt =
+            this.fragment.fields.find((f) => f.name === 'mnemonicAlt')
+                ?.values ?? [];
+        const mnemonicLink =
+            this.fragment.fields.find((f) => f.name === 'mnemonicLink')
+                ?.values ?? [];
+        return (
+            mnemonicIcon?.map((icon, index) => ({
+                icon,
+                alt: mnemonicAlt[index] ?? '',
+                link: mnemonicLink[index] ?? '',
+            })) ?? []
+        );
+    }
+
     render() {
         if (this.fragment.model.path !== MODEL_PATH) return nothing;
         const form = Object.fromEntries([
@@ -63,7 +82,7 @@ class MerchCardEditor extends LitElement {
             <sp-field-label for="mnemonic">Mnemonics</sp-field-label>
             <mas-multifield
                 id="mnemonic"
-                .value="${this.fragment.computed?.mnemonics}"
+                .value="${this.mnemonics}"
                 @change="${this.updateMnemonics}"
             >
                 <template>

@@ -127,7 +127,6 @@ class ContentNavigation extends LitElement {
     selectTopFolder(topFolder) {
         if (!topFolder) return;
         this.source.path = topFolder;
-        this.source.openFolder(topFolder);
         pushState({
             path: this.source.path,
             query: this.source.searchText,

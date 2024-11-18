@@ -99,7 +99,7 @@ class MasMultifield extends LitElement {
         const activeElement = this.shadowRoot.activeElement;
         if (
             activeElement &&
-            activeElement.tagName.toLowerCase() === 'mas-mnemonic-field'
+            activeElement.tagName.toLowerCase().includes('-field')
         ) {
             e.preventDefault();
             return;

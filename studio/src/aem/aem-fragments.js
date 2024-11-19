@@ -1,6 +1,5 @@
 import { LitElement, nothing } from 'lit';
 import { AEM } from './aem.js';
-import { Folder } from './folder.js';
 import { Fragment } from './fragment.js';
 import {
     EVENT_CHANGE,
@@ -47,7 +46,7 @@ class AemFragments extends LitElement {
     /**
      *
      */
-    currentFolder = [];
+    #currentFragments = [];
 
     #loading = true;
 
@@ -114,7 +113,7 @@ class AemFragments extends LitElement {
         this.#cursor = cursor;
         this.#loading = true;
         this.#searchResult = [];
-        this.currentFolder = [];
+        this.#currentFragments = [];
         this.dispatchEvent(
             new CustomEvent(EVENT_LOAD_START, {
                 bubbles: true,
@@ -127,7 +126,7 @@ class AemFragments extends LitElement {
             if (search) {
                 this.#searchResult = [...this.#searchResult, ...fragments];
             } else {
-                this.currentFolder.push(...fragments);
+                this.#currentFragments.push(...fragments);
             }
             await this.addToCache(fragments);
             this.dispatchEvent(new CustomEvent(EVENT_LOAD));
@@ -213,7 +212,7 @@ class AemFragments extends LitElement {
         if (this.searchText) {
             this.#searchResult.push(newFragment);
         } else {
-            this.currentFolder?.add(newFragment);
+            this.#currentFragments?.add(newFragment);
         }
         this.setFragment(newFragment);
         this.dispatchEvent(new CustomEvent(EVENT_CHANGE, { bubbles: true }));
@@ -229,7 +228,7 @@ class AemFragments extends LitElement {
             const fragmentIndex = this.#searchResult.indexOf(this.fragment);
             this.#searchResult.splice(fragmentIndex, 1);
         } else {
-            this.currentFolder = this.currentFolder.filter(
+            this.#currentFragments = this.#currentFragments.filter(
                 (f) => f.id !== this.fragment.id,
             );
         }
@@ -243,7 +242,7 @@ class AemFragments extends LitElement {
 
     get fragments() {
         return (
-            (this.searchText ? this.#searchResult : this.currentFolder) ?? []
+            (this.searchText ? this.#searchResult : this.#currentFragments) ?? []
         );
     }
 
@@ -252,7 +251,7 @@ class AemFragments extends LitElement {
     }
 
     get folders() {
-        return this.currentFolder?.folders ?? [];
+        return this.#currentFragments?.folders ?? [];
     }
 
     get search() {

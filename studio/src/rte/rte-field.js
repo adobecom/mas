@@ -515,6 +515,7 @@ class RteField extends LitElement {
             title,
             target: target || '_self',
             class: variant || 'primary-outline',
+            tabIndex: '0',
             'data-extra-options': checkoutParameters || null,
         };
 
@@ -698,6 +699,7 @@ class RteField extends LitElement {
 
     #handleDoubleClickOn(view, pos, node, nodePos, event) {
         const dom = event.target.closest('[data-wcs-osi]');
+        if (!dom) return;
         ostRteFieldSource = this;
         this.showOfferSelector = true;
         this.handleOpenOfferSelector(null, dom);

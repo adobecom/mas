@@ -1,5 +1,5 @@
 import { LitElement, nothing } from 'lit';
-import { AEM } from './aem.js';
+import { filterByTags, AEM } from './aem.js';
 import { Folder } from './folder.js';
 import { Fragment } from './fragment.js';
 import {
@@ -31,7 +31,20 @@ class AemFragments extends LitElement {
             baseUrl: { type: String, attribute: 'base-url' },
             path: { type: String, attribute: true, reflect: true },
             searchText: { type: String, attribute: 'search' },
-            tags: { type: String, attribute: 'tags' },
+            tags: {
+                type: Array,
+                attribute: 'tags',
+                converter: {
+                    fromAttribute(value) {
+                        return value
+                            ? value.split(',').map((tag) => tag.trim())
+                            : [];
+                    },
+                    toAttribute(value) {
+                        return value.join(',');
+                    },
+                },
+            },
             fragment: { type: Object },
         };
     }
@@ -185,9 +198,14 @@ class AemFragments extends LitElement {
                 bubbles: true,
             }),
         );
-        const fragmentData = await this.#aem.sites.cf.fragments.getById(
+        let fragmentData = await this.#aem.sites.cf.fragments.getById(
             this.searchText,
         );
+        if (this.tags) {
+            if (!filterByTags(this.tags)(fragmentData)) {
+                fragmentData = null;
+            }
+        }
         if (
             fragmentData &&
             fragmentData.path.indexOf(getDamPath(this.path)) == 0
@@ -222,7 +240,7 @@ class AemFragments extends LitElement {
             search = true;
         }
         if (this.tags) {
-            this.#search.tags = this.tags.split(',');
+            this.#search.tags = this.tags;
         }
         if (this.isFragmentId(this.searchText)) {
             await this.searchFragmentByUUID();

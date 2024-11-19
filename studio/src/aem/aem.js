@@ -4,6 +4,9 @@ const defaultSearchOptions = {
     sort: [{ on: 'created', order: 'ASC' }],
 };
 
+const filterByTags = (tags) => (item) =>
+    tags.every((tag) => item.tags.some((t) => t.id === tag));
+
 class AEM {
     #author;
     constructor(bucket, baseUrlOverride) {
@@ -100,9 +103,7 @@ class AEM {
             ({ items, cursor } = await response.json());
             if (tags.length > 0) {
                 // filter items by tags
-                items = items.filter((item) =>
-                    tags.every((tag) => item.tags.some((t) => t.id === tag)),
-                );
+                items = items.filter(filterByTags(tags));
             }
 
             yield items;
@@ -509,4 +510,4 @@ class AEM {
     };
 }
 
-export { AEM };
+export { filterByTags, AEM };

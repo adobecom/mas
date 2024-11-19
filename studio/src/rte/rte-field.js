@@ -431,6 +431,7 @@ class RteField extends LitElement {
             );
             const container = document.createElement('div');
             container.appendChild(fragment);
+            container.style.whiteSpace = 'pre-wrap';
             return container.innerHTML;
         } catch (error) {
             console.warn('Error serializing content:', error);

@@ -97,10 +97,7 @@ class MasMultifield extends LitElement {
     // Handle drag start
     dragStart(e, index) {
         const activeElement = this.shadowRoot.activeElement;
-        if (
-            activeElement &&
-            activeElement.tagName.toLowerCase().includes('-field')
-        ) {
+        if (activeElement) {
             e.preventDefault();
             return;
         }

@@ -251,7 +251,7 @@ class AemFragments extends LitElement {
     }
 
     get folders() {
-        return this.#currentFragments?.folders ?? [];
+        return this.#currentFragments ?? [];
     }
 
     get search() {

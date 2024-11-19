@@ -212,7 +212,7 @@ class AemFragments extends LitElement {
         if (this.searchText) {
             this.#searchResult.push(newFragment);
         } else {
-            this.#currentFragments?.add(newFragment);
+            this.#currentFragments?.push(newFragment);
         }
         this.setFragment(newFragment);
         this.dispatchEvent(new CustomEvent(EVENT_CHANGE, { bubbles: true }));
@@ -248,10 +248,6 @@ class AemFragments extends LitElement {
 
     get selectedFragments() {
         return this.fragments.filter((fragment) => fragment.selected);
-    }
-
-    get folders() {
-        return this.#currentFragments ?? [];
     }
 
     get search() {

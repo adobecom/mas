@@ -28,6 +28,13 @@ aem up --port 6456
 ```
 and access studio at http://localhost:3000/studio.html?milolibs=local
 
+to test gallery:
+1. shut down npm run studio if you were running it.
+2.
+```
+npm run gallery
+```
+
 Refer to the corresponding README.md under any of the packages:
 * studio - M@S Studio for creating, updating and publishing merch fragments
 * ost-audit - crawls EDS pages HTML for OST links and generates a CSV report

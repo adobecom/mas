@@ -1,23 +1,8 @@
 import { html } from 'lit';
+import { CHECKOUT_CTA_TEXTS } from '../constants.js';
 
 let ostRoot;
 let closeFunction;
-
-const ctaTexts = {
-    'buy-now': 'Buy now',
-    'free-trial': 'Free trial',
-    'start-free-trial': 'Start free trial',
-    'save-now': 'Save now',
-    'get-started': 'Get started',
-    'choose-a-plan': 'Choose a plan',
-    'learn-more': 'Learn more',
-    'change-plan-team-plans': 'Change Plan Team Plans',
-    upgrade: 'Upgrade',
-    'change-plan-team-payment': 'Change Plan Team Payment',
-    'take-the-quiz': 'Take the quiz',
-    'see-more': 'See more',
-    'upgrade-now': 'Upgrade now',
-};
 
 export const ostDefaults = {
     aosApiKey: 'wcms-commerce-ims-user-prod',
@@ -37,7 +22,10 @@ export const ostDefaults = {
     },
     wcsApiKey: 'wcms-commerce-ims-ro-user-cc',
     ctaTextOption: {
-        ctaTexts: Object.entries(ctaTexts).map(([id, name]) => ({ id, name })),
+        ctaTexts: Object.entries(CHECKOUT_CTA_TEXTS).map(([id, name]) => ({
+            id,
+            name,
+        })),
         getDefaultText() {
             return this.ctaTexts[0].id;
         },
@@ -140,9 +128,10 @@ export function onSelect(offerSelectorId, type, offer, options, promoOverride) {
         attributes.is = is;
     }
 
-    const ctaText = ctaTexts[options.ctaText]; // no placeholder key support.
+    const ctaText = CHECKOUT_CTA_TEXTS[options.ctaText]; // no placeholder key support.
     if (ctaText) {
         attributes['text'] = ctaText;
+        attributes['data-analytics-id'] = options.ctaText;
     }
 
     if (promoOverride) {

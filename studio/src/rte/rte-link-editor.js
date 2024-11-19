@@ -126,12 +126,12 @@ export class RteLinkEditor extends LitElement {
         return this.shadowRoot.querySelector('#linkHref');
     }
 
-    get #checkoutLink() {
+    get #isCheckoutLink() {
         return this.checkoutParameters !== undefined;
     }
 
     get #analyticsIdField() {
-        const options = this.#checkoutLink
+        const options = this.#isCheckoutLink
             ? Object.keys(CHECKOUT_CTA_TEXTS)
             : ANALYTICS_LINK_IDS;
         options.push('');
@@ -237,7 +237,7 @@ export class RteLinkEditor extends LitElement {
     }
 
     get #editor() {
-        const type = this.#checkoutLink ? 'Checkout Link' : 'Link';
+        const type = this.#isCheckoutLink ? 'Checkout Link' : 'Link';
         return html`<sp-dialog close=${this.#handleClose}>
             <h2 slot="heading">Insert/Edit ${type}</h2>
             ${this.#linkHrefField} ${this.#checkoutParametersField}

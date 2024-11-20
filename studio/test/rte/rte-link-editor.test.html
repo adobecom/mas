@@ -42,6 +42,7 @@
                         expect(linkEditor.text).to.equal('');
                         expect(linkEditor.title).to.equal('');
                         expect(linkEditor.target).to.equal('_self');
+                        expect(linkEditor.analyticsId).to.equal('');
 
                         expect(linkEditor.linkHrefElement).to.exist;
                         expect(linkEditor.linkTextElement).to.exist;
@@ -50,6 +51,7 @@
                         expect(linkEditor.linkStyleElement).to.not.exist;
                         expect(linkEditor.checkoutParametersElement).to.not
                             .exist;
+                        expect(linkEditor.linkAnalyticsIdElement).to.exist;
                     });
 
                     it('should render given values', async function () {
@@ -83,6 +85,9 @@
                         expect(linkEditor.linkTargetElement.value).to.equal(
                             '_blank',
                         );
+                        expect(linkEditor.linkAnalyticsIdElement.value).to.equal(
+                            'see-terms',
+                        );
                     });
 
                     it('should emit save event with form data', async function () {
@@ -104,6 +109,7 @@
                             title: 'test title',
                             target: '_blank',
                             variant: 'accent',
+                            analyticsId: 'see-terms',
                         });
                     });
 
@@ -132,6 +138,7 @@
                         expect(
                             linkEditor.checkoutParametersElement.value,
                         ).to.equal('');
+                        expect(linkEditor.linkAnalyticsIdElement.value).to.equal('');
                     });
 
                     it('should support checkout and variant parameters', async function () {
@@ -151,6 +158,7 @@
                         linkEditor.checkoutParameters =
                             'promoid=test&mv=1&mv2=2';
                         linkEditor.variant = 'quiet';
+                        linkEditor.analyticsId = 'free-trial';
                         linkEditor.shadowRoot
                             .getElementById('saveButton')
                             .click();
@@ -161,6 +169,7 @@
                             title: 'test title',
                             target: '_blank',
                             variant: 'quiet',
+                            analyticsId: 'free-trial',
                         });
                     });
                 });
@@ -181,6 +190,7 @@
                 text="link text"
                 title="test title"
                 target="_blank"
+                data-analytics-id="see-terms"
             ></rte-link-editor>
         </template>
 
@@ -196,6 +206,7 @@
                 target="_blank"
                 variant="outline"
                 checkout-parameters="promoid=test&mv=other"
+                data-analytics-id="buy-now"
             ></rte-link-editor>
         </template>
     </body>

@@ -73,9 +73,10 @@ class AemTagPickerField extends LitElement {
             position: relative;
         }
 
-        sp-sidenav {
-            min-height: 300px;
+        sp-dialog {
+            min-height: 340px;
             max-height: 50vh;
+            overflow-y: auto;
         }
 
         sp-popover {
@@ -257,8 +258,13 @@ class AemTagPickerField extends LitElement {
         );
     }
 
+    get popoverElement() {
+        return this.shadowRoot.querySelector('sp-popover');
+    }
+
     async #updateMargin() {
         await this.updateComplete;
+        if (!/bottom/.test(this.popoverElement.placement)) return;
         const margin =
             this.shadowRoot.querySelector('sp-tag:last-child')?.offsetTop ?? 0;
         this.style.setProperty('--margin-picker-top', `${margin}px`);

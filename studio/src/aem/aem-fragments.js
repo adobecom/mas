@@ -1,6 +1,5 @@
 import { LitElement, nothing } from 'lit';
 import { filterByTags, AEM } from './aem.js';
-import { Folder } from './folder.js';
 import { Fragment } from './fragment.js';
 import {
     EVENT_CHANGE,
@@ -59,11 +58,9 @@ class AemFragments extends LitElement {
     #aem;
 
     /**
-     * @type {Folder}
+     *
      */
-    currentFolder;
-
-    #folders = new Map();
+    #currentFragments = [];
 
     #loading = true;
 
@@ -84,28 +81,6 @@ class AemFragments extends LitElement {
             );
         this.#aem = new AEM(this.bucket, this.baseUrl);
         this.style.display = 'none';
-    }
-
-    /**
-     * @param {Folder} folder
-     */
-    async openFolder(folder) {
-        this.dispatchEvent(new CustomEvent(EVENT_LOAD_START));
-        if (typeof folder === 'string') {
-            folder = getDamPath(folder);
-            this.currentFolder = this.#folders.get(folder);
-            if (!this.currentFolder) {
-                this.currentFolder = new Folder(folder);
-                this.#folders.set(folder, this.currentFolder);
-            }
-        } else {
-            this.currentFolder = folder;
-        }
-
-        const { self, children } = await this.#aem.folders.list(
-            this.currentFolder.path,
-        );
-        this.currentFolder.open(self, children);
     }
 
     async selectFragment(x, y, fragment) {
@@ -152,7 +127,7 @@ class AemFragments extends LitElement {
         this.#cursor = cursor;
         this.#loading = true;
         this.#searchResult = [];
-        this.currentFolder?.clear();
+        this.#currentFragments = [];
         this.dispatchEvent(
             new CustomEvent(EVENT_LOAD_START, {
                 bubbles: true,
@@ -165,7 +140,7 @@ class AemFragments extends LitElement {
             if (search) {
                 this.#searchResult = [...this.#searchResult, ...fragments];
             } else {
-                this.currentFolder.add(...fragments);
+                this.#currentFragments.push(...fragments);
             }
             await this.addToCache(fragments);
             this.dispatchEvent(new CustomEvent(EVENT_LOAD));
@@ -266,7 +241,7 @@ class AemFragments extends LitElement {
         if (this.searchText) {
             this.#searchResult.push(newFragment);
         } else {
-            this.currentFolder?.add(newFragment);
+            this.#currentFragments?.push(newFragment);
         }
         this.setFragment(newFragment);
         this.dispatchEvent(new CustomEvent(EVENT_CHANGE, { bubbles: true }));
@@ -282,7 +257,9 @@ class AemFragments extends LitElement {
             const fragmentIndex = this.#searchResult.indexOf(this.fragment);
             this.#searchResult.splice(fragmentIndex, 1);
         } else {
-            this.currentFolder?.remove(this.fragment);
+            this.#currentFragments = this.#currentFragments.filter(
+                (f) => f.id !== this.fragment.id,
+            );
         }
         this.setFragment(null);
         this.dispatchEvent(new CustomEvent(EVENT_CHANGE, { bubbles: true }));
@@ -294,18 +271,13 @@ class AemFragments extends LitElement {
 
     get fragments() {
         return (
-            (this.searchText
-                ? this.#searchResult
-                : this.currentFolder?.fragments) ?? []
+            (this.searchText ? this.#searchResult : this.#currentFragments) ??
+            []
         );
     }
 
     get selectedFragments() {
         return this.fragments.filter((fragment) => fragment.selected);
-    }
-
-    get folders() {
-        return this.currentFolder?.folders ?? [];
     }
 
     get search() {

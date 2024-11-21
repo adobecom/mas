@@ -525,22 +525,25 @@ class RteField extends LitElement {
             'data-analytics-id': analyticsId || null,
         };
 
+        const content = state.schema.text(text || selection.node.textContent);
+
         if (selection.node?.type.name === 'link') {
-            const updatedNode = linkNodeType.create(
-                { ...selection.node.attrs, ...linkAttrs },
-                state.schema.text(text || selection.node.textContent),
-            );
-            tr = tr.replaceWith(selection.from, selection.to, updatedNode);
+            tr = tr.delete(selection.from, selection.to);
+            dispatch(tr);
+            const linkNode = linkNodeType.create(linkAttrs, content);
+            tr = tr.insert(selection.from, linkNode);
         } else {
-            const content = state.schema.text(text || '');
             const linkNode = linkNodeType.create(linkAttrs, content);
             tr = selection.empty
                 ? tr.insert(selection.from, linkNode)
                 : tr.replaceWith(selection.from, selection.to, linkNode);
+            tr = tr.delete(selection.from, selection.to);
         }
 
-        dispatch(tr);
+        const newState = state.apply(tr);
+        this.editorView.updateState(newState);
         this.showLinkEditor = false;
+        this.requestUpdate();
     }
 
     #handleEscKey(event) {

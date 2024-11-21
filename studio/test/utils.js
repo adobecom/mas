@@ -130,3 +130,18 @@ export function applyChanges(view, pos, attrs) {
     tr.setNodeMarkup(pos, null, attrs);
     dispatch(tr);
 }
+
+export function initElementFromTemplate(templateId, title) {
+    const spTheme = document.querySelector('sp-theme');
+    const [root] = getTemplateContent(templateId);
+    if (title) {
+        const container = document.createElement('div');
+        const header = document.createElement('h3');
+        header.textContent = title;
+        container.append(header, root);
+        spTheme.append(container);
+    } else {
+        spTheme.append(root);
+    }
+    return root;
+}

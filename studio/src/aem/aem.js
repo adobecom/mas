@@ -4,6 +4,9 @@ const defaultSearchOptions = {
     sort: [{ on: 'created', order: 'ASC' }],
 };
 
+const filterByTags = (tags) => (item) =>
+    tags.every((tag) => item.tags.some((t) => t.id === tag));
+
 class AEM {
     #author;
     constructor(bucket, baseUrlOverride) {
@@ -51,10 +54,11 @@ class AEM {
      * Search for content fragments.
      * @param {Object} params - The search options
      * @param {string} [params.path] - The path to search in
+     * @param {Array} [params.tags] - The tags
      * @param {string} [params.query] - The search query
      * @returns A generator function that fetches all the matching data using a cursor that is returned by the search API
      */
-    async *searchFragment({ path, query = '', sort }) {
+    async *searchFragment({ path, query = '', tags = [], sort }) {
         const filter = {
             path,
         };
@@ -65,10 +69,12 @@ class AEM {
                 queryMode: 'EDGES',
             };
         }
-
         const searchQuery = { ...defaultSearchOptions, filter };
         if (sort) {
             searchQuery.sort = sort;
+        }
+        if (tags.length > 0) {
+            filter.tags = tags;
         }
         const params = {
             query: JSON.stringify(searchQuery),
@@ -95,6 +101,10 @@ class AEM {
             }
             let items;
             ({ items, cursor } = await response.json());
+            if (tags.length > 0) {
+                // filter items by tags
+                items = items.filter(filterByTags(tags));
+            }
 
             yield items;
             if (!cursor) break;
@@ -168,20 +178,70 @@ class AEM {
         const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
             method: 'PUT',
             headers: {
+                ...this.headers,
                 'Content-Type': 'application/json',
                 'If-Match': fragment.etag,
-                ...this.headers,
             },
-            body: JSON.stringify({ title, description, fields }),
+            body: JSON.stringify({
+                title,
+                description,
+                fields,
+            }),
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
+
         if (!response.ok) {
             throw new Error(
                 `Failed to save fragment: ${response.status} ${response.statusText}`,
             );
         }
-        return await this.getFragment(response);
+
+        await this.saveTags(fragment);
+
+        const newFragment = await this.sites.cf.fragments.getById(fragment.id);
+        return newFragment;
+    }
+
+    async saveTags(fragment) {
+        const { newTags } = fragment;
+        if (!newTags) return;
+        // we need this to get the Etag
+        const fragmentTags = await fetch(
+            `${this.cfFragmentsUrl}/${fragment.id}/tags`,
+            {
+                method: 'GET',
+                headers: this.headers,
+            },
+        ).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        const etag = fragmentTags.headers.get('Etag');
+        const headers = {
+            ...this.headers,
+            'Content-Type': 'application/json',
+            'If-Match': etag,
+        };
+
+        if (newTags?.length === 0) {
+            await fetch(`${this.cfFragmentsUrl}/${fragment.id}/tags`, {
+                method: 'DELETE',
+                headers,
+            }).catch((err) => {
+                throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+            });
+        } else {
+            await fetch(`${this.cfFragmentsUrl}/${fragment.id}/tags`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify({
+                    tags: newTags,
+                }),
+            }).catch((err) => {
+                throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+            });
+        }
     }
 
     /**
@@ -381,6 +441,22 @@ class AEM {
         };
     }
 
+    async listTags(root) {
+        const response = await fetch(
+            `${this.baseUrl}/bin/querybuilder.json?path=${root}&type=cq:Tag&orderby=@jcr:path&p.limit=-1`,
+            {
+                method: 'GET',
+                headers: this.headers,
+            },
+        ).catch((error) => console.error('Error:', error));
+        if (!response.ok) {
+            throw new Error(
+                `Failed to list tags: ${response.status} ${response.statusText}`,
+            );
+        }
+        return response.json();
+    }
+
     sites = {
         cf: {
             fragments: {
@@ -420,6 +496,12 @@ class AEM {
             },
         },
     };
+    tags = {
+        /**
+         * @see AEM#listTags
+         */
+        list: this.listTags.bind(this),
+    };
     folders = {
         /**
          * @see AEM#listFolders
@@ -428,4 +510,4 @@ class AEM {
     };
 }
 
-export { AEM };
+export { filterByTags, AEM };

@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 
 const EnvColorCode = {
+    proxy: 'gray',
     prod: 'negative',
     stage: 'notice',
     qa: 'positive',

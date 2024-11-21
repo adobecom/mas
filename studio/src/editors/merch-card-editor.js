@@ -1,4 +1,4 @@
-import { html, LitElement, nothing } from 'lit';
+import { css, html, LitElement, nothing } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import '../fields/multifield.js';
 import '../fields/mnemonic-field.js';
@@ -10,8 +10,49 @@ class MerchCardEditor extends LitElement {
         fragment: { type: Object },
     };
 
+    static styles = css`
+        aem-tag-picker-field {
+            margin-top: 25px;
+        }
+    `;
+
     createRenderRoot() {
         return this;
+    }
+
+    get mnemonics() {
+        const mnemonicIcon =
+            this.fragment.fields.find((f) => f.name === 'mnemonicIcon')
+                ?.values ?? [];
+        const mnemonicAlt =
+            this.fragment.fields.find((f) => f.name === 'mnemonicAlt')
+                ?.values ?? [];
+        const mnemonicLink =
+            this.fragment.fields.find((f) => f.name === 'mnemonicLink')
+                ?.values ?? [];
+        return (
+            mnemonicIcon?.map((icon, index) => ({
+                icon,
+                alt: mnemonicAlt[index] ?? '',
+                link: mnemonicLink[index] ?? '',
+            })) ?? []
+        );
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        this.addEventListener('keydown', this.#handleKeyDown);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.removeEventListener('keydown', this.#handleKeyDown);
+    }
+
+    #handleKeyDown(e) {
+        if (e.key === 'Escape') {
+            e.stopPropagation();
+        }
     }
 
     render() {
@@ -19,7 +60,8 @@ class MerchCardEditor extends LitElement {
         const form = Object.fromEntries([
             ...this.fragment.fields.map((f) => [f.name, f]),
         ]);
-        return html` <p>${this.fragment.path}</p>
+        return html`
+            <p>${this.fragment.path}</p>
             <sp-field-label for="card-variant">Variant</sp-field-label>
             <variant-picker
                 id="card-variant"
@@ -63,7 +105,7 @@ class MerchCardEditor extends LitElement {
             <sp-field-label for="mnemonic">Mnemonics</sp-field-label>
             <mas-multifield
                 id="mnemonic"
-                .value="${this.fragment.computed?.mnemonics}"
+                .value="${this.mnemonics}"
                 @change="${this.updateMnemonics}"
             >
                 <template>
@@ -118,7 +160,21 @@ class MerchCardEditor extends LitElement {
                     @change="${this.updateFragment}"
                     >${unsafeHTML(form.ctas.values[0])}</rte-field
                 >
-            </sp-field-group>`;
+            </sp-field-group>
+            <aem-tag-picker-field
+                label="Tags"
+                namespace="/content/cq:tags/mas"
+                multiple
+                value="${this.fragment.tags.map((tag) => tag.id).join(',')}"
+                @change=${this.#handeTagsChange}
+            ></aem-tag-picker-field>
+        `;
+    }
+
+    #handeTagsChange(e) {
+        const value = e.target.getAttribute('value');
+        this.fragment.newTags = value ? value.split(',') : []; // do not overwrite the tags array
+        this.fragment.updateField('tags', this.fragment.newTags);
     }
 
     updateFragment(e) {

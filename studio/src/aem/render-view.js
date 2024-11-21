@@ -53,7 +53,11 @@ class RenderView extends LitElement {
                 @mouseleave="${this.handleMouseLeave}"
                 @dblclick="${(e) => this.handleDoubleClick(e, fragment)}"
             >
-                <aem-fragment fragment="${fragment.id}" ims></aem-fragment>
+                <aem-fragment
+                    fragment="${fragment.id}"
+                    ims
+                    author
+                ></aem-fragment>
                 <sp-status-light
                     size="l"
                     variant="${fragment.statusVariant}"

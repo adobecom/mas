@@ -6,10 +6,15 @@ import { SharedArray } from 'k6/data';
 const fragments = new SharedArray('fragments', () => {
     const filePath = `./fragment-files/${__ENV.ENV?.length > 0 ? __ENV.ENV + '-' : ''}fragments.csv`;
     const f = open(filePath).split('\n'); // Read CSV
-    const fragmentArray = f
-        .slice(1)
-        .map((line) => line.trim())
-        .filter((line) => line.length === 36); // Remove header, whitespace, and non well formatted items
+    let fragmentArray = f
+        .slice(1) // Remove header,
+        .map((line) => line.trim()) //white spaces,
+        .filter((line) => line.length === 36); // non well formatted items,
+    fragmentArray = fragmentArray.slice(
+        0,
+        __ENV.MAX_FRAGMENTS || fragmentArray.length,
+    ); // limit the number of fragments
+
     console.log('Fragments:', fragmentArray);
     return fragmentArray;
 });

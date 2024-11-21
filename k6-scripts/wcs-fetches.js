@@ -6,7 +6,13 @@ import { SharedArray } from 'k6/data';
 const osis = new SharedArray('fragments', () => {
     const filePath = './wcs-reqs.csv';
     const f = open(filePath).split('\n'); // Read CSV
-    return f.slice(1).map((line) => line.trim()); // Remove header and whitespace
+    let osiArray = f
+        .slice(1) // Remove header,
+        .map((line) => line.trim()) // whitespace,
+        .filter((line) => line.length === 43); // non well formatted items
+    osiArray = osiArray.slice(0, __ENV.MAX_OSI || osiArray.length); // limit the number of osis
+    console.log('OSIs:', osiArray);
+    return osiArray;
 });
 
 export const options = {

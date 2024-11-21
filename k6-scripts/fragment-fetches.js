@@ -6,7 +6,12 @@ import { SharedArray } from 'k6/data';
 const fragments = new SharedArray('fragments', () => {
     const filePath = `./fragment-files/${__ENV.ENV?.length > 0 ? __ENV.ENV + '-' : ''}fragments.csv`;
     const f = open(filePath).split('\n'); // Read CSV
-    return f.slice(1).map((line) => line.trim()); // Remove header and whitespace
+    const fragmentArray = f
+        .slice(1)
+        .map((line) => line.trim())
+        .filter((line) => line.length === 36); // Remove header, whitespace, and non well formatted items
+    console.log('Fragments:', fragmentArray);
+    return fragmentArray;
 });
 
 export const options = {
@@ -35,17 +40,15 @@ export default function () {
     if (!is200) {
         console.error(`Failed URL: ${url}, Status: ${res.status}`);
     } else {
-        check(res, {
-            'response is not empty': (r) => r.body && r.body.length > 0,
-            'cardTitle is not empty': (r) => {
-                const json = JSON.parse(r.body);
-                return (
-                    json.fields &&
-                    json.fields.cardTitle &&
-                    json.fields.cardTitle.length > 0
-                );
+        const fields = res?.body?.length > 0 ? JSON.parse(res.body).fields : {};
+        const fieldCheck = check(fields, {
+            'cardTitle is not empty': (f) => {
+                return f?.cardTitle?.length > 0;
             },
         });
+        if (!fieldCheck) {
+            console.error(`Failed URL: ${url}, Fields: ${fields}`);
+        }
     }
     sleep(SLEEP);
 }

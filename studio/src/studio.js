@@ -27,7 +27,7 @@ class MasStudio extends LitElement {
 
     constructor() {
         super();
-        this.bucket = 'e59433';
+        this.bucket = '';
         this.newFragment = null;
         this.variant = 'all';
         this.searchText = '';
@@ -118,7 +118,7 @@ class MasStudio extends LitElement {
     }
 
     get env() {
-        return BUCKET_TO_ENV[this.bucket] || BUCKET_TO_ENV.e59433;
+        return BUCKET_TO_ENV[this.bucket] || 'proxy';
     }
 
     createRenderRoot() {

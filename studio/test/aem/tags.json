@@ -1,0 +1,569 @@
+{
+    "success": true,
+    "results": 93,
+    "total": 93,
+    "more": false,
+    "offset": 0,
+    "hits": [
+        {
+            "path": "/content/cq:tags/mas/cloud",
+            "excerpt": "",
+            "name": "cloud",
+            "title": "CLOUD"
+        },
+        {
+            "path": "/content/cq:tags/mas/cloud/creative",
+            "excerpt": "",
+            "name": "creative",
+            "title": "CREATIVE"
+        },
+        {
+            "path": "/content/cq:tags/mas/cloud/document",
+            "excerpt": "",
+            "name": "document",
+            "title": "DOCUMENT"
+        },
+        {
+            "path": "/content/cq:tags/mas/cloud/experience",
+            "excerpt": "",
+            "name": "experience",
+            "title": "EXPERIENCE"
+        },
+        {
+            "path": "/content/cq:tags/mas/cloud/others",
+            "excerpt": "",
+            "name": "others",
+            "title": "OTHERS"
+        },
+        {
+            "path": "/content/cq:tags/mas/cloud/publishing_adcloud",
+            "excerpt": "",
+            "name": "publishing_adcloud",
+            "title": "PUBLISHING_ADCLOUD"
+        },
+        {
+            "path": "/content/cq:tags/mas/cloud/sign",
+            "excerpt": "",
+            "name": "sign",
+            "title": "SIGN"
+        },
+        {
+            "path": "/content/cq:tags/mas/commitment",
+            "excerpt": "",
+            "name": "commitment",
+            "title": "COMMITMENT"
+        },
+        {
+            "path": "/content/cq:tags/mas/commitment/access_pass",
+            "excerpt": "",
+            "name": "access_pass",
+            "title": "ACCESS_PASS"
+        },
+        {
+            "path": "/content/cq:tags/mas/commitment/month",
+            "excerpt": "",
+            "name": "month",
+            "title": "MONTH"
+        },
+        {
+            "path": "/content/cq:tags/mas/commitment/perpetual",
+            "excerpt": "",
+            "name": "perpetual",
+            "title": "PERPETUAL"
+        },
+        {
+            "path": "/content/cq:tags/mas/commitment/six_months",
+            "excerpt": "",
+            "name": "six_months",
+            "title": "SIX_MONTHS"
+        },
+        {
+            "path": "/content/cq:tags/mas/commitment/term_license",
+            "excerpt": "",
+            "name": "term_license",
+            "title": "TERM_LICENSE"
+        },
+        {
+            "path": "/content/cq:tags/mas/commitment/three_months",
+            "excerpt": "",
+            "name": "three_months",
+            "title": "THREE_MONTHS"
+        },
+        {
+            "path": "/content/cq:tags/mas/commitment/three_years",
+            "excerpt": "",
+            "name": "three_years",
+            "title": "THREE_YEARS"
+        },
+        {
+            "path": "/content/cq:tags/mas/commitment/two_years",
+            "excerpt": "",
+            "name": "two_years",
+            "title": "TWO_YEARS"
+        },
+        {
+            "path": "/content/cq:tags/mas/commitment/year",
+            "excerpt": "",
+            "name": "year",
+            "title": "YEAR"
+        },
+        {
+            "path": "/content/cq:tags/mas/customer_segment",
+            "excerpt": "",
+            "name": "customer_segment",
+            "title": "CUSTOMER_SEGMENT"
+        },
+        {
+            "path": "/content/cq:tags/mas/customer_segment/enterprise",
+            "excerpt": "",
+            "name": "enterprise",
+            "title": "ENTERPRISE"
+        },
+        {
+            "path": "/content/cq:tags/mas/customer_segment/individual",
+            "excerpt": "",
+            "name": "individual",
+            "title": "INDIVIDUAL"
+        },
+        {
+            "path": "/content/cq:tags/mas/customer_segment/team",
+            "excerpt": "",
+            "name": "team",
+            "title": "TEAM"
+        },
+        {
+            "path": "/content/cq:tags/mas/market_segments",
+            "excerpt": "",
+            "name": "market_segments",
+            "title": "MARKET_SEGMENT",
+            "lastModified": "2024-11-08 13:49:36"
+        },
+        {
+            "path": "/content/cq:tags/mas/market_segments/com",
+            "excerpt": "",
+            "name": "com",
+            "title": "COM"
+        },
+        {
+            "path": "/content/cq:tags/mas/market_segments/edu",
+            "excerpt": "",
+            "name": "edu",
+            "title": "EDU"
+        },
+        {
+            "path": "/content/cq:tags/mas/market_segments/gov",
+            "excerpt": "",
+            "name": "gov",
+            "title": "GOV"
+        },
+        {
+            "path": "/content/cq:tags/mas/offer_type",
+            "excerpt": "",
+            "name": "offer_type",
+            "title": "OFFER_TYPE"
+        },
+        {
+            "path": "/content/cq:tags/mas/offer_type/base",
+            "excerpt": "",
+            "name": "base",
+            "title": "BASE"
+        },
+        {
+            "path": "/content/cq:tags/mas/offer_type/promotion",
+            "excerpt": "",
+            "name": "promotion",
+            "title": "PROMOTION"
+        },
+        {
+            "path": "/content/cq:tags/mas/offer_type/trial",
+            "excerpt": "",
+            "name": "trial",
+            "title": "TRIAL"
+        },
+        {
+            "path": "/content/cq:tags/mas/product",
+            "excerpt": "",
+            "name": "product",
+            "title": "PRODUCT",
+            "lastModified": "2024-11-08 13:49:48"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc",
+            "excerpt": "",
+            "name": "cc",
+            "title": "Creative Cloud"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/adobe-color",
+            "excerpt": "",
+            "name": "adobe-color",
+            "title": "Adobe Color"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/adobe-express",
+            "excerpt": "",
+            "name": "adobe-express",
+            "title": "Adobe Express"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/adobe-firefly",
+            "excerpt": "",
+            "name": "adobe-firefly",
+            "title": "Adobe Firefly"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/adobe-fonts",
+            "excerpt": "",
+            "name": "adobe-fonts",
+            "title": "Adobe Fonts"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/adobe-fresco",
+            "excerpt": "",
+            "name": "adobe-fresco",
+            "title": "Adobe Fresco"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/adobe-stock",
+            "excerpt": "",
+            "name": "adobe-stock",
+            "title": "Adobe Stock"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/aero",
+            "excerpt": "",
+            "name": "aero",
+            "title": "Aero"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/after-effects",
+            "excerpt": "",
+            "name": "after-effects",
+            "title": "After Effects"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/animate",
+            "excerpt": "",
+            "name": "animate",
+            "title": "Animate"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/audition",
+            "excerpt": "",
+            "name": "audition",
+            "title": "Audition"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/behance",
+            "excerpt": "",
+            "name": "behance",
+            "title": "Behance"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/bridge",
+            "excerpt": "",
+            "name": "bridge",
+            "title": "Bridge"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/capture",
+            "excerpt": "",
+            "name": "capture",
+            "title": "Capture"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/character-animator",
+            "excerpt": "",
+            "name": "character-animator",
+            "title": "Character Animator"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/creativecloud",
+            "excerpt": "",
+            "name": "creativecloud",
+            "title": "Creative Cloud All Apps"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/dreamweaver",
+            "excerpt": "",
+            "name": "dreamweaver",
+            "title": "Dreamweaver"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/frame-io",
+            "excerpt": "",
+            "name": "frame-io",
+            "title": "Frame.io"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/illustrator",
+            "excerpt": "",
+            "name": "illustrator",
+            "title": "Illustrator"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/incopy",
+            "excerpt": "",
+            "name": "incopy",
+            "title": "InCopy"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/indesign",
+            "excerpt": "",
+            "name": "indesign",
+            "title": "InDesign"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/lightroom",
+            "excerpt": "",
+            "name": "lightroom",
+            "title": "Lightroom (1TB)"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/lightroom-classic",
+            "excerpt": "",
+            "name": "lightroom-classic",
+            "title": "Lightroom Classic"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/media-encoder",
+            "excerpt": "",
+            "name": "media-encoder",
+            "title": "Media Encoder"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/mixamo",
+            "excerpt": "",
+            "name": "mixamo",
+            "title": "Mixamo"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/photoshop",
+            "excerpt": "",
+            "name": "photoshop",
+            "title": "Photoshop"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/portfolio",
+            "excerpt": "",
+            "name": "portfolio",
+            "title": "Portfolio"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/premiere",
+            "excerpt": "",
+            "name": "premiere",
+            "title": "Premiere Pro"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/substance-3d-designer",
+            "excerpt": "",
+            "name": "substance-3d-designer",
+            "title": "Adobe Substance 3D Designer"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/substance-3d-modeler",
+            "excerpt": "",
+            "name": "substance-3d-modeler",
+            "title": "Adobe Substance 3D Modeler"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/substance-3d-painter",
+            "excerpt": "",
+            "name": "substance-3d-painter",
+            "title": "Adobe Substance 3D Painter"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/substance-3d-sampler",
+            "excerpt": "",
+            "name": "substance-3d-sampler",
+            "title": "Adobe Substance 3D Sampler"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/cc/substance-3d-stager",
+            "excerpt": "",
+            "name": "substance-3d-stager",
+            "title": "Adobe Substance 3D Stager"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/dc",
+            "excerpt": "",
+            "name": "dc",
+            "title": "Document Cloud"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/dc/acrobat-classic",
+            "excerpt": "",
+            "name": "acrobat-classic",
+            "title": "Acrobat Classic"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/dc/acrobat-export-pdf",
+            "excerpt": "",
+            "name": "acrobat-export-pdf",
+            "title": "Acrobat Export PDF"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/dc/acrobat-pdf-pack",
+            "excerpt": "",
+            "name": "acrobat-pdf-pack",
+            "title": "Acrobat PDF Pack"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/dc/acrobat-pro",
+            "excerpt": "",
+            "name": "acrobat-pro",
+            "title": "Acrobat Pro"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/dc/acrobat-reader",
+            "excerpt": "",
+            "name": "acrobat-reader",
+            "title": "Acrobat Reader"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/dc/acrobat-sign",
+            "excerpt": "",
+            "name": "acrobat-sign",
+            "title": "Acrobat Sign"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/dc/acrobat-standard",
+            "excerpt": "",
+            "name": "acrobat-standard",
+            "title": "Acrobat Standard"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/dc/adobe-scan",
+            "excerpt": "",
+            "name": "adobe-scan",
+            "title": "Adobe Scan"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/dc/ai-assistant-acrobat",
+            "excerpt": "",
+            "name": "ai-assistant-acrobat",
+            "title": "AI Assistant for Acrobat"
+        },
+        {
+            "path": "/content/cq:tags/mas/product/dc/fill-sign",
+            "excerpt": "",
+            "name": "fill-sign",
+            "title": "Fill & Sign"
+        },
+        {
+            "path": "/content/cq:tags/mas/status",
+            "excerpt": "",
+            "name": "status",
+            "title": "STATUS"
+        },
+        {
+            "path": "/content/cq:tags/mas/status/archived",
+            "excerpt": "",
+            "name": "archived",
+            "title": "ARCHIVED"
+        },
+        {
+            "path": "/content/cq:tags/mas/status/documentation",
+            "excerpt": "",
+            "name": "documentation",
+            "title": "DOCUMENTATION"
+        },
+        {
+            "path": "/content/cq:tags/mas/status/draft",
+            "excerpt": "",
+            "name": "draft",
+            "title": "DRAFT"
+        },
+        {
+            "path": "/content/cq:tags/mas/term",
+            "excerpt": "",
+            "name": "term",
+            "title": "TERM"
+        },
+        {
+            "path": "/content/cq:tags/mas/term/annual",
+            "excerpt": "",
+            "name": "annual",
+            "title": "ANNUAL"
+        },
+        {
+            "path": "/content/cq:tags/mas/term/half_yearly",
+            "excerpt": "",
+            "name": "half_yearly",
+            "title": "HALF_YEARLY"
+        },
+        {
+            "path": "/content/cq:tags/mas/term/monthly",
+            "excerpt": "",
+            "name": "monthly",
+            "title": "MONTHLY"
+        },
+        {
+            "path": "/content/cq:tags/mas/term/p10y",
+            "excerpt": "",
+            "name": "p10y",
+            "title": "P10Y"
+        },
+        {
+            "path": "/content/cq:tags/mas/term/p15y",
+            "excerpt": "",
+            "name": "p15y",
+            "title": "P15Y"
+        },
+        {
+            "path": "/content/cq:tags/mas/term/p1d",
+            "excerpt": "",
+            "name": "p1d",
+            "title": "P1D"
+        },
+        {
+            "path": "/content/cq:tags/mas/term/p1y",
+            "excerpt": "",
+            "name": "p1y",
+            "title": "P1Y"
+        },
+        {
+            "path": "/content/cq:tags/mas/term/p30d",
+            "excerpt": "",
+            "name": "p30d",
+            "title": "P30D"
+        },
+        {
+            "path": "/content/cq:tags/mas/term/p3d",
+            "excerpt": "",
+            "name": "p3d",
+            "title": "P3D"
+        },
+        {
+            "path": "/content/cq:tags/mas/term/p3y",
+            "excerpt": "",
+            "name": "p3y",
+            "title": "P3Y"
+        },
+        {
+            "path": "/content/cq:tags/mas/term/p7d",
+            "excerpt": "",
+            "name": "p7d",
+            "title": "P7D"
+        },
+        {
+            "path": "/content/cq:tags/mas/term/quarterly",
+            "excerpt": "",
+            "name": "quarterly",
+            "title": "QUARTERLY"
+        },
+        {
+            "path": "/content/cq:tags/mas/term/three_years",
+            "excerpt": "",
+            "name": "three_years",
+            "title": "THREE_YEARS"
+        },
+        {
+            "path": "/content/cq:tags/mas/term/two_years",
+            "excerpt": "",
+            "name": "two_years",
+            "title": "TWO_YEARS"
+        }
+    ]
+}

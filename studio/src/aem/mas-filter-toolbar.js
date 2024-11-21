@@ -44,11 +44,11 @@ class MasFilterToolbar extends LitElement {
 
     render() {
         return html`
-            <sp-button
+            <sp-action-button
+                toggles
                 label="Filter"
-                variant="secondary"
                 @click=${this.handleFilterClick}
-                >Filter</sp-button
+                >Filter</sp-action-button
             >
             <sp-picker label="Sort" disabled>
                 <sp-menu-item>Ascending</sp-menu-item>

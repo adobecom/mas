@@ -34,14 +34,18 @@
             };
             const href = window.location.href;
             const envOverride = new URL(href).searchParams.get('aem.env');
-            const bucket =
-                envOverride && BUCKETS[envOverride]
-                    ? BUCKETS[envOverride]
-                    : BUCKETS.prod;
-            const baseUrl =
-                !envOverride && href.includes('localhost')
-                    ? 'http://localhost:8080'
-                    : `https://author-p22655-${bucket}.adobeaemcloud.com`;
+            const isLocal = href.includes('localhost');
+            let bucket;
+            let baseUrl;
+            if (isLocal) {
+                baseUrl = 'http://localhost:8080';
+            } else {
+                bucket =
+                    envOverride && BUCKETS[envOverride]
+                        ? BUCKETS[envOverride]
+                        : BUCKETS.prod;
+                baseUrl = `https://author-p22655-${bucket}.adobeaemcloud.com`;
+            }
             document
                 .querySelector('meta[name="aem-base-url"]')
                 ?.setAttribute('content', baseUrl);
@@ -102,7 +106,7 @@
                 <script>
                     const studio = document.createElement('mas-studio');
                     studio.setAttribute('base-url', baseUrl);
-                    studio.setAttribute('aem-bucket', bucket);
+                    bucket && studio.setAttribute('aem-bucket', bucket);
                     document.querySelector('sp-theme').appendChild(studio);
                 </script>
             </sp-theme>

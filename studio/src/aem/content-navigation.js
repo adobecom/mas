@@ -198,7 +198,9 @@ class ContentNavigation extends LitElement {
                 ${this.actions}
             </div>
             ${this.showFilterPanel
-                ? html`<mas-filter-panel></mas-filter-panel>`
+                ? html`<mas-filter-panel
+                      source="${this.getAttribute('source')}"
+                  ></mas-filter-panel>`
                 : nothing}
             ${this.selectionActions}
             ${this.source.searchText ? this.searchInfo : ''}
@@ -292,7 +294,11 @@ class ContentNavigation extends LitElement {
             ></mas-filter-toolbar>
             <sp-action-group emphasized>
                 <slot name="toolbar-actions"></slot>
-                <sp-action-button emphasized style=${inNoSelectionStyle} disabled>
+                <sp-action-button
+                    emphasized
+                    style=${inNoSelectionStyle}
+                    disabled
+                >
                     <sp-icon-new-item slot="icon"></sp-icon-new-item>
                     Create New Card
                 </sp-action-button>

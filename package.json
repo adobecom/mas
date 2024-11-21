@@ -12,6 +12,7 @@
         "test": "npm run test:ci --workspaces",
         "build": "npm run build --workspaces",
         "studio": "cd studio && npm run proxy & aem up",
+        "studio:qa": "cd studio && npm run proxy:qa & aem up",
         "gallery": "cd studio && npm run proxy:publish & aem up"
     },
     "repository": {
@@ -22,6 +23,7 @@
         "@adobecom/milo": "github:adobecom/milo#stage",
         "@spectrum-web-components/action-bar": "^0.47.2",
         "@spectrum-web-components/action-button": "^0.47.2",
+        "@spectrum-web-components/action-group": "^0.47.2",
         "@spectrum-web-components/action-menu": "^0.47.2",
         "@spectrum-web-components/badge": "^0.47.2",
         "@spectrum-web-components/breadcrumbs": "^0.47.2",
@@ -48,7 +50,7 @@
         "@spectrum-web-components/split-button": "^0.47.2",
         "@spectrum-web-components/status-light": "^0.47.2",
         "@spectrum-web-components/table": "^0.47.2",
-        "@spectrum-web-components/tabs": "^0.47.2",
+        "@spectrum-web-components/tags": "^0.47.2",
         "@spectrum-web-components/textfield": "^0.47.2",
         "@spectrum-web-components/theme": "^0.47.2",
         "@spectrum-web-components/toast": "^0.47.2",

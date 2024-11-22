@@ -8,16 +8,12 @@ sp-theme {
 
 mas-studio {
     width: 100%;
+    min-height: 100vh;
     display: flex;
     gap: 8px;
     background-color: var(--spectrum-global-color-gray-100);
     align-items: center;
     flex-direction: column;
-    position: absolute;
-    top: 0;
-    right: 0;
-    left: 0;
-    bottom: 0;
 }
 
 mas-studio > ul > li {
@@ -57,7 +53,7 @@ sp-underlay + sp-dialog {
     padding: 20px;
     overflow-y: auto;
     box-sizing: border-box;
-    box-shadow: 0 2px 6px 8px rgb(0 0 0 / 10%);
+    box-shadow: 0 2px 4px 1px rgb(0 0 0 / 10%);
 }
 
 #actions {
@@ -107,11 +103,8 @@ render-view {
     align-items: start;
 }
 
-content-navigation render-view merch-card .overlay {
-    display: none;
-}
-
-merch-card:not(.has-tooltip) ~ sp-tooltip {
+mas-fragment-render:not(.has-tooltip) ~ sp-tooltip,
+mas-fragment-table:not(.has-tooltip) ~ sp-tooltip {
     display: none;
 }
 
@@ -123,7 +116,7 @@ merch-card-editor {
     display: contents;
 }
 
-content-navigation[in-selection] render-view merch-card .overlay {
+merch-card .overlay {
     background-color: rgba(255, 255, 255, 0.5);
     border-radius: 16px;
     position: absolute;
@@ -139,4 +132,27 @@ content-navigation[in-selection] render-view merch-card .overlay {
 merch-card-editor mas-multifield,
 rte-field {
     margin-inline-end: 16px;
+}
+
+mas-content {
+    width: 100%;
+    padding-inline: 30px;
+    box-sizing: border-box;
+}
+
+#content {
+    display: flex;
+    justify-content: center;
+}
+
+#content sp-table {
+    width: 100%;
+}
+
+#content #render {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
 }

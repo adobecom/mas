@@ -51,7 +51,7 @@ class RenderView extends LitElement {
                 slot="trigger"
                 @click="${this.handleClick}"
                 @mouseleave="${this.handleMouseLeave}"
-                @dblclick="${(e) => this.handleDoubleClick(e, fragment)}"
+                @dblclick="${(e) => this.handleDoubleClick(e, fragment.id)}"
             >
                 <aem-fragment fragment="${fragment.id}" ims></aem-fragment>
                 <sp-status-light
@@ -88,14 +88,14 @@ class RenderView extends LitElement {
         e.currentTarget.classList.remove('has-tooltip');
     }
 
-    handleDoubleClick(e, fragment) {
-        if (this.parentElement.inSelection) return;
+    handleDoubleClick(e, fragmentId) {
         clearTimeout(this.tooltipTimeout);
         e.currentTarget.classList.remove('has-tooltip');
-        this.parentElement.source.selectFragment(
-            e.clientX,
-            e.clientY,
-            fragment,
+        this.dispatchEvent(
+            new CustomEvent('selected-fragment', {
+                detail: { x: e.clientX, y: e.clientY, fragmentId },
+                bubbles: true,
+            }),
         );
     }
 

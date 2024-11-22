@@ -5,6 +5,7 @@ const EnvColorCode = {
     stage: 'notice',
     qa: 'positive',
 };
+
 class MasTopNav extends LitElement {
     static properties = {
         env: { type: String },
@@ -22,46 +23,45 @@ class MasTopNav extends LitElement {
     static get styles() {
         return css`
             :host {
-                display: block;
-                width: 100%;
-            }
-            sp-top-nav {
                 width: 100%;
             }
 
-            sp-top-nav-item {
-                margin-inline-end: auto;
-                margin-inline-start: 20px;
+            nav {
+                display: flex;
+                padding-block: 10px;
+                padding-inline: 30px;
+                gap: 20px;
+                align-items: center;
             }
 
-            sp-top-nav-item.logo {
+            #brand {
+                display: flex;
+                align-items: end;
+                gap: 10px;
                 color: #eb1000;
-                width: 24px;
+                text-decoration: none;
             }
 
-            sp-top-nav-item strong {
+            #brand strong {
                 font-size: 21px;
                 font-weight: 800;
                 line-height: 20px;
-                vertical-align: top;
-                padding-inline-start: 5px;
             }
-            sp-top-nav-item[placement='bottom-end'] {
-                margin-inline-end: 10px;
+
+            a {
+                cursor: pointer;
+            }
+
+            a:nth-child(2) {
+                margin-inline-start: auto;
             }
         `;
     }
 
     render() {
         return html`
-            <sp-top-nav>
-                <sp-top-nav-item
-                    class="logo"
-                    size="l"
-                    href="#"
-                    label="Home"
-                    quiet
-                >
+            <nav>
+                <a id="brand" href="#">
                     <svg
                         version="1.1"
                         xmlns="http://www.w3.org/2000/svg"
@@ -79,22 +79,20 @@ class MasTopNav extends LitElement {
                         ></path>
                     </svg>
                     <strong>Merch @ Scale Studio</strong>
-                </sp-top-nav-item>
-                <sp-top-nav-item href="#" label="Help" placement="bottom-end">
-                    <sp-badge size="s" variant="${this.envIndicator}">${this.env}</sp-badge>
-                </sp-top-nav-item>
-                <sp-top-nav-item href="#" label="Help" placement="bottom-end">
+                </a>
+                <a>
+                    <sp-badge size="s" variant="${this.envIndicator}"
+                        >${this.env}</sp-badge
+                    >
+                </a>
+                <a>
                     <sp-icon-help-outline></sp-icon-help-outline>
-                </sp-top-nav-item>
-                <sp-top-nav-item href="#" label="Help" placement="bottom-end">
+                </a>
+                <a>
                     <sp-icon-bell></sp-icon-bell>
-                    <sp-top-nav-item
-                        href="#"
-                        label="Help"
-                        placement="bottom-end"
-                </sp-top-nav-item>
-                </sp-top-nav-item>
-            </sp-top-nav>
+                </a>
+            </nav>
+            <sp-divider></sp-divider>
         `;
     }
 }

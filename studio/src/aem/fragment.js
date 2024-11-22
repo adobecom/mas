@@ -1,6 +1,6 @@
-import { EVENT_CHANGE } from '../events.js';
-
 export class Fragment {
+    static cache;
+
     path = '';
     hasChanges = false;
     status = '';
@@ -11,12 +11,18 @@ export class Fragment {
 
     /**
      * @param {*} AEM Fragment JSON object
-     * @param {*} eventTarget DOM element to dispatch events from
      */
-    constructor(
-        { id, etag, model, path, title, description, status, modified, fields },
-        eventTarget,
-    ) {
+    constructor({
+        id,
+        etag,
+        model,
+        path,
+        title,
+        description,
+        status,
+        modified,
+        fields,
+    }) {
         this.id = id;
         this.model = model;
         this.etag = etag;
@@ -27,7 +33,6 @@ export class Fragment {
         this.status = status;
         this.modified = modified;
         this.fields = fields;
-        this.eventTarget = eventTarget; /** can be null and set after on save */
     }
 
     get variant() {
@@ -47,25 +52,16 @@ export class Fragment {
     refreshFrom(fragmentData) {
         Object.assign(this, fragmentData);
         this.hasChanges = false;
-        this.notify();
-    }
-
-    notify() {
-        this.eventTarget.dispatchEvent(
-            new CustomEvent(EVENT_CHANGE, { detail: this }),
-        );
     }
 
     toggleSelection(value) {
         if (value !== undefined) this.selected = value;
         else this.selected = !this.selected;
-        this.notify();
     }
 
     updateFieldInternal(fieldName, value) {
         this[fieldName] = value ?? '';
         this.hasChanges = true;
-        this.notify();
     }
 
     updateField(fieldName, value) {
@@ -82,7 +78,6 @@ export class Fragment {
                 this.hasChanges = true;
                 change = true;
             });
-        this.notify();
         return change;
     }
 }

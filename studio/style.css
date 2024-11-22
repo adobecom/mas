@@ -109,7 +109,7 @@ mas-fragment-table:not(.has-tooltip) ~ sp-tooltip {
 }
 
 merch-card:hover {
-    background-color: var(--spectrum-background-base-color);
+    background-color: var(--spectrum-background-base-color) !important;
 }
 
 merch-card-editor {
@@ -143,6 +143,7 @@ mas-content {
 #content {
     display: flex;
     justify-content: center;
+    padding-bottom: 50px;
 }
 
 #content sp-table {

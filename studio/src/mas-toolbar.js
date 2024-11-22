@@ -4,6 +4,7 @@ import Store from './store.js';
 import { extractValue, preventDefault } from './utils.js';
 import { updateStore } from './storeUtils.js';
 import './aem/mas-filter-panel.js';
+import './mas-selection-panel.js';
 
 const renderModes = [
     {
@@ -86,11 +87,70 @@ class MasToolbar extends LitElement {
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
 
-    toggleSelectionMode() {}
-
     handleRenderModeChange(ev) {
         localStorage.setItem('mas-render-mode', ev.target.value);
         Store.renderMode.set(ev.target.value);
+    }
+
+    get readActions() {
+        return html`<div id="read">
+            <sp-button
+                label="Filter"
+                variant="secondary"
+                @click=${() => (this._showFilters = !this._showFilters)}
+                >Filter</sp-button
+            >
+            <sp-picker label="Sort" disabled>
+                <sp-menu-item>Ascending</sp-menu-item>
+                <sp-menu-item>Descending</sp-menu-item>
+            </sp-picker>
+            <sp-search
+                placeholder="Search"
+                @change="${extractValue(updateStore('search.query'))}"
+                @submit="${preventDefault(
+                    extractValue(updateStore('search.query')),
+                )}"
+                value=${this.search.value.query}
+                size="m"
+            ></sp-search>
+            <variant-picker
+                id="vpick"
+                show-all="true"
+                default-value="${this.variant}"
+                disabled
+                @change="${this.handleVariantChange}"
+            ></variant-picker>
+            <sp-button @click=${this.doSearch}>Search</sp-button>
+        </div>`;
+    }
+
+    get writeActions() {
+        if (this.selecting.value) return nothing;
+        return html`<div id="write">
+            <sp-action-button emphasized disabled>
+                <sp-icon-new-item slot="icon"></sp-icon-new-item>
+                Create New Card
+            </sp-action-button>
+            <sp-action-button @click=${() => Store.selecting.set(true)}>
+                <sp-icon-selection-checked
+                    slot="icon"
+                ></sp-icon-selection-checked>
+                Select
+            </sp-action-button>
+            <sp-action-menu
+                selects="single"
+                value="${this.renderMode.value}"
+                placement="left-end"
+                @change=${this.handleRenderModeChange}
+            >
+                ${renderModes.map(
+                    ({ value, label, icon }) =>
+                        html`<sp-menu-item value="${value}"
+                            >${icon} ${label}</sp-menu-item
+                        >`,
+                )}
+            </sp-action-menu>
+        </div>`;
     }
 
     get filtersPanel() {
@@ -121,64 +181,10 @@ class MasToolbar extends LitElement {
                             </sp-menu-item>`,
                     )}
                 </sp-picker>
-                <div id="read">
-                    <sp-button
-                        label="Filter"
-                        variant="secondary"
-                        @click=${() => (this._showFilters = !this._showFilters)}
-                        >Filter</sp-button
-                    >
-                    <sp-picker label="Sort" disabled>
-                        <sp-menu-item>Ascending</sp-menu-item>
-                        <sp-menu-item>Descending</sp-menu-item>
-                    </sp-picker>
-                    <sp-search
-                        placeholder="Search"
-                        @change="${extractValue(updateStore('search.query'))}"
-                        @submit="${preventDefault(
-                            extractValue(updateStore('search.query')),
-                        )}"
-                        value=${this.search.value.query}
-                        size="m"
-                    ></sp-search>
-                    <variant-picker
-                        id="vpick"
-                        show-all="true"
-                        default-value="${this.variant}"
-                        disabled
-                        @change="${this.handleVariantChange}"
-                    ></variant-picker>
-                    <sp-button @click=${this.doSearch}>Search</sp-button>
-                </div>
-                <div id="write">
-                    <sp-action-button emphasized disabled>
-                        <sp-icon-new-item slot="icon"></sp-icon-new-item>
-                        Create New Card
-                    </sp-action-button>
-                    <sp-action-button
-                        @click=${() => Store.selecting.update((prev) => !prev)}
-                    >
-                        <sp-icon-selection-checked
-                            slot="icon"
-                        ></sp-icon-selection-checked>
-                        Select
-                    </sp-action-button>
-                    <sp-action-menu
-                        selects="single"
-                        value="${this.renderMode.value}"
-                        placement="left-end"
-                        @change=${this.handleRenderModeChange}
-                    >
-                        ${renderModes.map(
-                            ({ value, label, icon }) =>
-                                html`<sp-menu-item value="${value}"
-                                    >${icon} ${label}</sp-menu-item
-                                >`,
-                        )}
-                    </sp-action-menu>
-                </div>
+                ${this.readActions} ${this.writeActions} ${this.selectionPanel}
             </div>
             ${this.filtersPanel}
+            <mas-selection-panel></mas-selection-panel>
         </div>`;
     }
 }

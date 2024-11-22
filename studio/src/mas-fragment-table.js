@@ -9,23 +9,18 @@ class MasFragmentTable extends LitElement {
         customRender: { type: Function, attribute: false },
     };
 
-    constructor() {
-        super();
-        this.selected = false;
-    }
-
     createRenderRoot() {
         return this;
     }
 
+    selection = new StoreController(this, Store.selection);
+
     connectedCallback() {
         super.connectedCallback();
         this.fragment = new StoreController(this, this.store);
-        this.selected = Store.selection.get().includes(this.fragment.value.id);
     }
 
-    select(event) {
-        this.selected = !this.selected;
+    select() {
         toggleSelection(this.fragment.value.id);
     }
 
@@ -35,7 +30,7 @@ class MasFragmentTable extends LitElement {
         return html`<sp-table-row
             value="${data.id}"
             @change=${this.select}
-            ?selected=${this.selected}
+            ?selected=${this.selection.value.includes(this.fragment.value.id)}
             ><sp-table-cell>${data.title}</sp-table-cell>
             <sp-table-cell>${data.name}</sp-table-cell>
             ${this.customRender?.(data)}

@@ -4,30 +4,19 @@ import Store from './store.js';
 import { toggleSelection } from './storeUtils.js';
 
 class MasFragmentRender extends LitElement {
-    static properties = {
-        store: { type: Object, attribute: false },
-        selected: { state: true },
-    };
-
-    constructor() {
-        super();
-        this.selected = false;
-    }
-
     createRenderRoot() {
         return this;
     }
 
     selecting = new StoreController(this, Store.selecting);
+    selection = new StoreController(this, Store.selection);
 
     connectedCallback() {
         super.connectedCallback();
         this.fragment = new StoreController(this, this.store);
-        this.selected = Store.selection.get().includes(this.fragment.value.id);
     }
 
     select() {
-        this.selected = !this.selected;
         toggleSelection(this.fragment.value.id);
     }
 

@@ -23,6 +23,61 @@ const isNodeCheckoutLink = (node) => {
     return node.type.name === 'link' && node.attrs['data-wcs-osi'] !== null;
 };
 
+class LinkNodeView {
+    constructor(node, view, getPos) {
+        this.node = node;
+        this.view = view;
+        this.getPos = getPos;
+
+        // Create the DOM element
+        const isCheckoutLink = isNodeCheckoutLink(node);
+        this.dom = isCheckoutLink
+            ? document.createElement('a', { is: CUSTOM_ELEMENT_CHECKOUT_LINK })
+            : document.createElement('a');
+
+        // Set attributes (excluding 'text')
+        for (const [key, value] of Object.entries(node.attrs)) {
+            if (value !== null) {
+                this.dom.setAttribute(key, value);
+            }
+        }
+
+        // Set the text content
+        this.dom.textContent = this.node.attrs.text || '';
+
+        // Prevent default click behavior
+        this.dom.addEventListener('click', (e) => e.preventDefault());
+    }
+
+    update(node) {
+        if (node.type !== this.node.type) {
+            return false;
+        }
+        this.node = node;
+
+        // Update attributes (excluding 'text')
+        for (const [key, value] of Object.entries(node.attrs)) {
+            if (value !== null) {
+                this.dom.setAttribute(key, value);
+            }
+        }
+
+        // Update text content
+        this.dom.textContent = this.node.attrs.text || '';
+
+        return true;
+    }
+
+    selectNode() {
+        this.dom.classList.add('ProseMirror-selectednode');
+    }
+
+    deselectNode() {
+        this.dom.classList.remove('ProseMirror-selectednode');
+    }
+}
+
+
 let ostRteFieldSource;
 
 class RteField extends LitElement {
@@ -235,8 +290,17 @@ class RteField extends LitElement {
                     title: { default: null },
                     target: { default: null },
                     'data-analytics-id': { default: null },
+                    text: { default: '' },
                 },
-                parseDOM: [{ tag: 'a', getAttrs: this.#collectDataAttributes }],
+                parseDOM: [
+                    {
+                        tag: 'a',
+                        getAttrs: (dom) => ({
+                            ...this.#collectDataAttributes(dom),
+                            text: dom.textContent || '', // Collect text content as an attribute
+                        }),
+                    },
+                ],
                 toDOM: this.#createLinkElement.bind(this),
             });
         }
@@ -328,7 +392,7 @@ class RteField extends LitElement {
 
         // Set attributes
         for (const [key, value] of Object.entries(node.attrs)) {
-            if (value !== null && key !== 'text') {
+            if (value !== null) {
                 element.setAttribute(key, value);
             }
         }
@@ -354,6 +418,10 @@ class RteField extends LitElement {
                 focus: this.#boundHandlers.focus,
             },
             handleDoubleClickOn: this.#boundHandlers.doubleClickOn,
+            nodeViews: {
+                link: (node, view, getPos) =>
+                    new LinkNodeView(node, view, getPos),
+            },
         });
 
         try {
@@ -461,7 +529,7 @@ class RteField extends LitElement {
             return {
                 href: selection.node.attrs.href,
                 title: selection.node.attrs.title || '',
-                text: selection.node.textContent || '',
+                text: selection.node.attrs.text || '',
                 target: selection.node.attrs.target || '_self',
                 variant: selection.node.attrs.class || '',
                 analyticsId: selection.node.attrs['data-analytics-id'] || '',
@@ -523,27 +591,25 @@ class RteField extends LitElement {
             tabIndex: '0',
             'data-extra-options': checkoutParameters || null,
             'data-analytics-id': analyticsId || null,
+            text: text !== undefined ? text : selection.node?.attrs.text || '',
         };
 
         const content = state.schema.text(text || selection.node.textContent);
-
         if (selection.node?.type.name === 'link') {
-            tr = tr.delete(selection.from, selection.to);
-            dispatch(tr);
-            const linkNode = linkNodeType.create(linkAttrs, content);
-            tr = tr.insert(selection.from, linkNode);
+            const updatedNode = linkNodeType.create(
+                { ...selection.node.attrs, ...linkAttrs },
+                content,
+            );
+            tr = tr.replaceWith(selection.from, selection.to, updatedNode);
         } else {
             const linkNode = linkNodeType.create(linkAttrs, content);
             tr = selection.empty
                 ? tr.insert(selection.from, linkNode)
                 : tr.replaceWith(selection.from, selection.to, linkNode);
-            tr = tr.delete(selection.from, selection.to);
         }
 
-        const newState = state.apply(tr);
-        this.editorView.updateState(newState);
+        dispatch(tr);
         this.showLinkEditor = false;
-        this.requestUpdate();
     }
 
     #handleEscKey(event) {

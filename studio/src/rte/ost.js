@@ -61,7 +61,7 @@ function getObjectDifference(values, defaults) {
 }
 
 export const attributeFilter = (key) =>
-    /^(class|data-|is|href|title)/.test(key);
+    /^(class|data-|is|href|title|target)/.test(key);
 
 const OST_TYPE_MAPPING = {
     price: null,

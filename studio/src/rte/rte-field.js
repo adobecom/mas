@@ -287,6 +287,7 @@ class RteField extends LitElement {
                     'data-perpetual': { default: null },
                     'data-promotion-code': { default: null },
                     'data-wcs-osi': { default: null },
+                    'data-template': { default: null },
                     title: { default: null },
                     target: { default: null },
                     'data-analytics-id': { default: null },
@@ -365,7 +366,7 @@ class RteField extends LitElement {
         for (const name of dom.getAttributeNames()) {
             if (attributeFilter(name)) {
                 const value = dom.getAttribute(name);
-                if (!value) continue;
+                if (value === null) continue;
                 attrs[name] = value;
             }
         }
@@ -392,10 +393,11 @@ class RteField extends LitElement {
 
         // Set attributes
         for (const [key, value] of Object.entries(node.attrs)) {
-            if (value !== null) {
+            if (value) {
                 element.setAttribute(key, value);
             }
         }
+        if (!element.title) element.removeAttribute('title');
         // Serialize and append child nodes (content)
         const fragment = this.#serializer.serializeFragment(node.content);
         element.appendChild(fragment);
@@ -596,10 +598,8 @@ class RteField extends LitElement {
 
         const content = state.schema.text(text || selection.node.textContent);
         if (selection.node?.type.name === 'link') {
-            const updatedNode = linkNodeType.create(
-                { ...selection.node.attrs, ...linkAttrs },
-                content,
-            );
+            const mergedAttributes = { ...selection.node.attrs, ...linkAttrs };
+            const updatedNode = linkNodeType.create(mergedAttributes, content);
             tr = tr.replaceWith(selection.from, selection.to, updatedNode);
         } else {
             const linkNode = linkNodeType.create(linkAttrs, content);
@@ -636,8 +636,8 @@ class RteField extends LitElement {
                 : state.schema.nodes.link; // Fixed to use 'link' node type
 
         const mergedAttributes = {
+            ...(selection.node?.attrs ?? {}),
             ...attributes,
-            class: attributes.class || selection.node?.attrs.class || '',
         };
 
         const content =

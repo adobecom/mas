@@ -29,23 +29,19 @@ class LinkNodeView {
         this.view = view;
         this.getPos = getPos;
 
-        // Create the DOM element
         const isCheckoutLink = isNodeCheckoutLink(node);
         this.dom = isCheckoutLink
             ? document.createElement('a', { is: CUSTOM_ELEMENT_CHECKOUT_LINK })
             : document.createElement('a');
 
-        // Set attributes (excluding 'text')
         for (const [key, value] of Object.entries(node.attrs)) {
             if (value !== null) {
                 this.dom.setAttribute(key, value);
             }
         }
 
-        // Set the text content
-        this.dom.textContent = this.node.attrs.text || '';
+        this.dom.textContent = this.node.textContent || '';
 
-        // Prevent default click behavior
         this.dom.addEventListener('click', (e) => e.preventDefault());
     }
 
@@ -63,7 +59,7 @@ class LinkNodeView {
         }
 
         // Update text content
-        this.dom.textContent = this.node.attrs.text || '';
+        this.dom.textContent = this.node.textContent || '';
 
         return true;
     }
@@ -291,7 +287,6 @@ class RteField extends LitElement {
                     title: { default: null },
                     target: { default: null },
                     'data-analytics-id': { default: null },
-                    text: { default: '' },
                 },
                 parseDOM: [
                     {
@@ -531,7 +526,7 @@ class RteField extends LitElement {
             return {
                 href: selection.node.attrs.href,
                 title: selection.node.attrs.title || '',
-                text: selection.node.attrs.text || '',
+                text: selection.node.textContent || '',
                 target: selection.node.attrs.target || '_self',
                 variant: selection.node.attrs.class || '',
                 analyticsId: selection.node.attrs['data-analytics-id'] || '',
@@ -593,7 +588,6 @@ class RteField extends LitElement {
             tabIndex: '0',
             'data-extra-options': checkoutParameters || null,
             'data-analytics-id': analyticsId || null,
-            text: text !== undefined ? text : selection.node?.attrs.text || '',
         };
 
         const content = state.schema.text(text || selection.node.textContent);

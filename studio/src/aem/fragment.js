@@ -1,3 +1,5 @@
+import { getFragmentStore } from '../storeUtils.js';
+
 export class Fragment {
     static cache;
 

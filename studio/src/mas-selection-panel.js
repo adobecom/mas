@@ -22,6 +22,7 @@ class MasSelectionPanel extends LitElement {
     }
 
     close(event) {
+        if (!this.selecting.value) return;
         if (event instanceof KeyboardEvent && event.code !== 'Escape') return;
         Store.selecting.set(false);
         Store.selection.set([]);

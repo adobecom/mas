@@ -125,7 +125,7 @@ class AEM {
             `${baseUrl}/adobe/sites/cf/fragments/${id}`,
             {
                 headers,
-                signal: abortController.signal,
+                signal: abortController?.signal,
             },
         );
         if (!response.ok) {

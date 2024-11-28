@@ -8,7 +8,10 @@ const Store = {
         data: reactiveStore([]),
         inEdit: reactiveStore(null),
     },
-    folders: reactiveStore([]),
+    folders: {
+        loaded: reactiveStore(false),
+        data: reactiveStore([]),
+    },
     filters: reactiveStore(MasFilters.fromHash()),
     search: reactiveStore(MasSearch.fromHash()),
     renderMode: reactiveStore(
@@ -16,7 +19,6 @@ const Store = {
     ), // 'render' | 'table'
     selecting: reactiveStore(false),
     selection: reactiveStore([]),
-    editorPosition: reactiveStore('left'),
 };
 
 export default Store;

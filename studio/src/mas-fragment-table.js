@@ -1,7 +1,5 @@
 import { LitElement, html } from 'lit';
 import StoreController from './reactiveStore/storeController.js';
-import { toggleSelection } from './storeUtils.js';
-import Store from './store.js';
 
 class MasFragmentTable extends LitElement {
     static properties = {
@@ -13,24 +11,15 @@ class MasFragmentTable extends LitElement {
         return this;
     }
 
-    selection = new StoreController(this, Store.selection);
-
     connectedCallback() {
         super.connectedCallback();
         this.fragment = new StoreController(this, this.store);
     }
 
-    select() {
-        toggleSelection(this.fragment.value.id);
-    }
-
     render() {
         console.log('RERENDER fragment card (table)');
         const data = this.fragment.value;
-        return html`<sp-table-row
-            value="${data.id}"
-            @change=${this.select}
-            ?selected=${this.selection.value.includes(this.fragment.value.id)}
+        return html`<sp-table-row value="${data.id}"
             ><sp-table-cell>${data.title}</sp-table-cell>
             <sp-table-cell>${data.name}</sp-table-cell>
             ${this.customRender?.(data)}

@@ -4,12 +4,15 @@ import Store from './store.js';
 import { toggleSelection } from './storeUtils.js';
 
 class MasFragmentRender extends LitElement {
+    static properties = {
+        selected: { type: Boolean, attribute: true },
+    };
+
     createRenderRoot() {
         return this;
     }
 
     selecting = new StoreController(this, Store.selecting);
-    selection = new StoreController(this, Store.selection);
 
     connectedCallback() {
         super.connectedCallback();
@@ -30,7 +33,7 @@ class MasFragmentRender extends LitElement {
     }
 
     render() {
-        console.log('RERENDER fragment card (render)');
+        console.log('RERENDER fragment card (render)', this.fragment);
         return html`<merch-card>
             <aem-fragment
                 fragment="${this.fragment.value.id}"

@@ -3,6 +3,7 @@ import StoreController from './reactiveStore/storeController.js';
 import Store from './store.js';
 import { extractValue, preventDefault } from './utils.js';
 import { updateStore } from './storeUtils.js';
+import './mas-folder-picker.js';
 import './aem/mas-filter-panel.js';
 import './mas-selection-panel.js';
 
@@ -35,7 +36,7 @@ class MasToolbar extends LitElement {
         #toolbar {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 20px;
 
             & #actions {
                 display: grid;
@@ -81,7 +82,6 @@ class MasToolbar extends LitElement {
         this._showFilters = false;
     }
 
-    folders = new StoreController(this, Store.folders);
     filters = new StoreController(this, Store.filters);
     search = new StoreController(this, Store.search);
     renderMode = new StoreController(this, Store.renderMode);
@@ -161,31 +161,14 @@ class MasToolbar extends LitElement {
     render() {
         console.log('RERENDER toolbar');
         return html`<div id="toolbar">
-            <div id="actions">
-                <sp-picker
-                    @change=${(ev) =>
-                        Store.search.update((prev) => ({
-                            ...prev,
-                            path: ev.target.value,
-                        }))}
-                    label="Top folder"
-                    size="m"
-                    value=${this.search.value.path}
-                    ?disabled=${this.selecting.value}
-                    id="folder-select"
-                >
-                    ${this.folders.value.map(
-                        (folder) =>
-                            html`<sp-menu-item value=${folder}>
-                                ${folder.toUpperCase()}
-                            </sp-menu-item>`,
-                    )}
-                </sp-picker>
-                ${this.readActions} ${this.writeActions} ${this.selectionPanel}
+                <div id="actions">
+                    <mas-folder-picker></mas-folder-picker>
+                    ${this.readActions} ${this.writeActions}
+                    ${this.selectionPanel}
+                </div>
+                ${this.filtersPanel}
             </div>
-            ${this.filtersPanel}
-            <mas-selection-panel></mas-selection-panel>
-        </div>`;
+            <mas-selection-panel></mas-selection-panel>`;
     }
 }
 

@@ -3,8 +3,10 @@ import StoreController from './reactiveStore/storeController.js';
 import Store from './store.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
-import { ReactiveStore } from './reactiveStore/reactiveStore.js';
 import Events from './events.js';
+import { getFragmentStore, getInEditFragment } from './storeUtils.js';
+import { FragmentStore } from './reactiveStore/reactiveStore.js';
+import { editFragment } from './editors/merch-card-editor.js';
 
 const ROOT = '/content/dam/mas';
 
@@ -20,7 +22,7 @@ function isUUID(str) {
     return uuidRegex.test(str);
 }
 
-class MasFetcher extends LitElement {
+export class MasFetcher extends LitElement {
     static properties = {
         bucket: { type: String },
         baseUrl: { type: String, attribute: 'base-url' },
@@ -30,6 +32,11 @@ class MasFetcher extends LitElement {
     constructor() {
         super();
         this._foldersLoaded = false;
+        this.saveFragment = this.saveFragment.bind(this);
+        this.copyFragment = this.copyFragment.bind(this);
+        this.publishFragment = this.publishFragment.bind(this);
+        this.unpublishFragment = this.unpublishFragment.bind(this);
+        this.deleteFragment = this.deleteFragment.bind(this);
     }
 
     #abortController;
@@ -67,7 +74,10 @@ class MasFetcher extends LitElement {
             const folders = children
                 .map((folder) => folder.name)
                 .filter((child) => !ignore.includes(child));
-            Store.folders.set(folders);
+
+            Store.folders.loaded.set(true);
+            Store.folders.data.set(folders);
+
             if (!folders.includes(this.search.value.path))
                 Store.search.update((prev) => ({ ...prev, path: 'ccd' }));
             this._foldersLoaded = true;
@@ -103,7 +113,7 @@ class MasFetcher extends LitElement {
                     fragmentData.path.indexOf(localSearch.path) == 0
                 ) {
                     const fragment = new Fragment(fragmentData);
-                    Store.fragments.data.set([new ReactiveStore(fragment)]);
+                    Store.fragments.data.set([new FragmentStore(fragment)]);
                 }
             } else {
                 const cursor = await this.#aem.sites.cf.fragments.search(
@@ -115,7 +125,7 @@ class MasFetcher extends LitElement {
                         ...prev,
                         ...result.map((item) => {
                             const fragment = new Fragment(item);
-                            return new ReactiveStore(fragment);
+                            return new FragmentStore(fragment);
                         }),
                     ]);
                 }
@@ -142,6 +152,111 @@ class MasFetcher extends LitElement {
         }
 
         Store.fragments.loading.set(false);
+    }
+
+    /** Write */
+
+    async saveFragment() {
+        try {
+            Events.showToast.emit({
+                variant: 'info',
+                content: 'Saving fragment...',
+            });
+
+            const fragment = getInEditFragment();
+            let updatedFragment =
+                await this.#aem.sites.cf.fragments.save(fragment);
+            if (!updatedFragment) throw new Error('Invalid fragment.');
+            getFragmentStore(fragment.id).refreshFrom(updatedFragment);
+
+            Events.showToast.emit({
+                variant: 'positive',
+                content: 'Fragment successfully saved.',
+            });
+        } catch (error) {
+            console.error(`Failed to save fragment: ${error.message}`);
+            Events.showToast.emit({
+                variant: 'negative',
+                content: 'Failed to save fragment.',
+            });
+        }
+    }
+
+    async copyFragment() {
+        try {
+            const fragment = getInEditFragment();
+
+            const result = await this.#aem.sites.cf.fragments.copy(fragment);
+            const newFragment = new Fragment(result);
+            Fragment.cache.add(newFragment);
+
+            Store.fragments.data.update((prev) => [
+                ...prev,
+                new FragmentStore(newFragment),
+            ]);
+            editFragment(newFragment.id);
+
+            Events.fragmentAdded.emit(newFragment.id);
+            Events.showToast.emit({
+                variant: 'positive',
+                content: 'Fragment successfully copied.',
+            });
+        } catch (error) {
+            console.error(`Failed to copy fragment: ${error.message}`);
+            Events.showToast.emit({
+                variant: 'negative',
+                content: 'Failed to copy fragment.',
+            });
+        }
+    }
+
+    async publishFragment() {
+        try {
+            const fragment = getInEditFragment();
+            await this.#aem.sites.cf.fragments.publish(fragment);
+
+            Events.showToast.emit({
+                variant: 'positive',
+                content: 'Fragment successfully published.',
+            });
+        } catch (error) {
+            console.error(`Failed to publish fragment: ${error.message}`);
+            Events.showToast.emit({
+                variant: 'negative',
+                content: 'Failed to publish fragment.',
+            });
+        }
+    }
+
+    async unpublishFragment() {
+        // TODO
+        return Promise.resolve();
+    }
+
+    async deleteFragment() {
+        try {
+            const fragment = getInEditFragment();
+            await this.#aem.sites.cf.fragments.delete(fragment);
+
+            Store.fragments.data.update((prev) => {
+                var result = [...prev];
+                const index = result.indexOf(fragment);
+                result.splice(index, 1);
+                return result;
+            });
+            Store.fragments.inEdit.set(null);
+
+            Events.showToast.emit({
+                variant: 'positive',
+                content: 'Fragment successfully deleted.',
+            });
+        } catch (error) {
+            console.error(`Failed to delete fragment: ${error.message}`);
+            Events.showToast.emit({
+                variant: 'negative',
+                content: 'Failed to delete fragment.',
+            });
+        }
     }
 
     render() {

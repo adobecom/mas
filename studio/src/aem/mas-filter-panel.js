@@ -6,8 +6,8 @@ class MasFilterPanel extends LitElement {
             display: flex;
             align-items: center;
             gap: 16px;
-            padding: 10px;
             flex-wrap: wrap;
+            justify-content: end;
         }
         sp-picker {
             width: 150px;

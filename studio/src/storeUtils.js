@@ -1,10 +1,40 @@
 import Store from './store.js';
-import { ReactiveStore } from './reactiveStore/reactiveStore.js';
+import { FragmentStore, ReactiveStore } from './reactiveStore/reactiveStore.js';
+import { Fragment } from './aem/fragment.js';
 
+/**
+ *
+ * @param {string} id
+ * @returns {FragmentStore}
+ */
 export function getFragmentStore(id) {
     const fragments = Store.fragments.data.get();
     const fragmentStore = fragments.find((f) => f.get().id === id);
     return fragmentStore || null;
+}
+
+/**
+ *
+ * @param {string} id
+ * @returns {Fragment}
+ */
+export function getFragment(id) {
+    const fragments = Store.fragments.data.get();
+    const fragmentStore = fragments.find((f) => f.get().id === id);
+    return fragmentStore?.get() || null;
+}
+
+/**
+ *
+ * @param {string} id
+ * @returns {Fragment}
+ */
+export function getInEditFragment() {
+    const fragments = Store.fragments.data.get();
+    const fragmentStore = fragments.find(
+        (f) => f.get().id === Store.fragments.inEdit.get(),
+    );
+    return fragmentStore?.get() || null;
 }
 
 export function toggleSelection(id) {
@@ -14,6 +44,10 @@ export function toggleSelection(id) {
             selection.filter((selectedId) => selectedId !== id),
         );
     else Store.selection.set([...selection, id]);
+}
+
+export function isInSelection(id) {
+    return Store.selection.get().includes(id);
 }
 
 export function updateStore(path) {

@@ -48,7 +48,7 @@ class MasQueryManager extends LitElement {
     }
 
     getHashFromStore() {
-        const params = new URLSearchParams();
+        const params = new URLSearchParams(window.location.hash.slice(1));
         setHashParams(params, this.search.value);
         setHashParams(params, this.filters.value);
         return params.toString();

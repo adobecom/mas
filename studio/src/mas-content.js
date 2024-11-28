@@ -1,11 +1,13 @@
-import { LitElement, html, nothing, css } from 'lit';
+import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import StoreController from './reactiveStore/storeController.js';
 import Store from './store.js';
 import './mas-fragment-render.js';
 import './mas-fragment-table.js';
 import { reactiveStore } from './reactiveStore/reactiveStore.js';
-import { MerchCardEditor } from './editors/merch-card-editor.js';
+import { isInSelection } from './storeUtils.js';
+import Events from './events.js';
+import { editFragment } from './editors/merch-card-editor.js';
 
 const tooltipTimeout = reactiveStore(null);
 
@@ -14,10 +16,37 @@ class MasContent extends LitElement {
         return this;
     }
 
+    constructor() {
+        super();
+        this.goToFragment = this.goToFragment.bind(this);
+    }
+
     loading = new StoreController(this, Store.fragments.loading);
     fragments = new StoreController(this, Store.fragments.data);
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
+    selection = new StoreController(this, Store.selection);
+
+    connectedCallback() {
+        super.connectedCallback();
+        Events.fragmentAdded.subscribe(this.goToFragment);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        Events.fragmentAdded.unsubscribe(this.goToFragment);
+    }
+
+    async goToFragment(id, skipUpdate = false) {
+        if (!skipUpdate) await this.updateComplete;
+
+        const fragmentElement = document.querySelector(
+            `.mas-fragment[data-id="${id}"]`,
+        );
+        if (!fragmentElement) return;
+
+        fragmentElement.scrollIntoView({ behavior: 'smooth' });
+    }
 
     handleClick(event) {
         if (this.selecting.value) return;
@@ -38,11 +67,12 @@ class MasContent extends LitElement {
 
     edit(id) {
         return function (event) {
+            if (Store.selecting.get()) return;
+            // Remove tooltip
             clearTimeout(tooltipTimeout.get());
             event.currentTarget.classList.remove('has-tooltip');
-            const isNew = id !== Store.fragments.inEdit.get();
-            if (MerchCardEditor.setPosition(event.clientX) || isNew)
-                Store.fragments.inEdit.set(id);
+            // Handle edit
+            editFragment(id, event.clientX);
         };
     }
 
@@ -52,23 +82,33 @@ class MasContent extends LitElement {
                 ${repeat(
                     this.fragments.value,
                     (fragmentStore) => fragmentStore.get().path,
-                    (fragmentStore) =>
-                        html`<overlay-trigger placement="top"
+                    (fragmentStore) => {
+                        const fragment = fragmentStore.get();
+                        const selected = isInSelection(fragment.id);
+                        return html`<overlay-trigger placement="top"
                             ><mas-fragment-render
+                                class="mas-fragment"
+                                data-id=${fragment.id}
                                 slot="trigger"
                                 .store=${fragmentStore}
+                                ?selected=${selected}
                                 @click=${this.handleClick}
                                 @mouseleave=${this.handleMouseLeave}
-                                @dblclick=${this.edit(fragmentStore.get().id)}
+                                @dblclick=${this.edit(fragment.id)}
                             ></mas-fragment-render
                             ><sp-tooltip slot="hover-content" placement="top"
                                 >Double click the card to start
                                 editing.</sp-tooltip
                             >
-                        </overlay-trigger>`,
+                        </overlay-trigger>`;
+                    },
                 )}
             </div>
         `;
+    }
+
+    updateTableSelection(event) {
+        Store.selection.set(Array.from(event.target.selectedSet));
     }
 
     get tableView() {
@@ -76,7 +116,8 @@ class MasContent extends LitElement {
             emphasized
             scroller
             selects=${this.selecting.value ? 'multiple' : undefined}
-            @change=${this.handleTableSelectionChange}
+            selected=${JSON.stringify(this.selection.value)}
+            @change=${this.updateTableSelection}
         >
             <sp-table-head>
                 <sp-table-head-cell sortable>Title</sp-table-head-cell>
@@ -90,18 +131,24 @@ class MasContent extends LitElement {
                 ${repeat(
                     this.fragments.value,
                     (fragmentStore) => fragmentStore.get().path,
-                    (fragmentStore) =>
-                        html`<overlay-trigger placement="top"
+                    (fragmentStore) => {
+                        const fragment = fragmentStore.get();
+                        return html`<overlay-trigger placement="top"
                             ><mas-fragment-table
+                                class="mas-fragment"
+                                data-id=${fragment.id}
                                 slot="trigger"
                                 .store=${fragmentStore}
-                                @dblclick=${this.edit(fragmentStore.get().id)}
+                                @click=${this.handleClick}
+                                @mouseleave=${this.handleMouseLeave}
+                                @dblclick=${this.edit(fragment.id)}
                             ></mas-fragment-table
                             ><sp-tooltip slot="hover-content" placement="top"
                                 >Double click the card to start
                                 editing.</sp-tooltip
                             >
-                        </overlay-trigger>`,
+                        </overlay-trigger>`;
+                    },
                 )}
             </sp-table-body>
         </sp-table>`;

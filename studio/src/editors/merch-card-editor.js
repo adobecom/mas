@@ -3,23 +3,19 @@ import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import '../fields/multifield.js';
 import '../fields/mnemonic-field.js';
 import Store from '../store.js';
-import StoreController from '../reactiveStore/storeController.js';
-import { getFragmentStore } from '../storeUtils.js';
+import { getFragment, getFragmentStore } from '../storeUtils.js';
 import './variant-picker.js';
+import './merch-card-editor-toolbar.js';
+import StoreController from '../reactiveStore/storeController.js';
+import { FragmentStore } from '../reactiveStore/reactiveStore.js';
 
 const MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 
 export class MerchCardEditor extends LitElement {
-    /**
-     * @param {int} x Triggering click x position
-     * @returns {boolean} Position changed
-     */
-    static setPosition(x) {
-        const newPosition = x > window.innerWidth / 2 ? 'left' : 'right';
-        if (newPosition === Store.editorPosition.get()) return false;
-        Store.editorPosition.set(newPosition);
-        return true;
-    }
+    static properties = {
+        refreshing: { state: true },
+        hasChanges: { state: true },
+    };
 
     createRenderRoot() {
         return this;
@@ -28,7 +24,11 @@ export class MerchCardEditor extends LitElement {
     constructor() {
         super();
         this.initialFragment = null;
+        this.refreshing = false;
+        this.hasChanges = false;
         this.close = this.close.bind(this);
+        this.discardChanges = this.discardChanges.bind(this);
+        this.refresh = this.refresh.bind(this);
     }
 
     fragmentInEdit = new StoreController(this, Store.fragments.inEdit);
@@ -43,47 +43,70 @@ export class MerchCardEditor extends LitElement {
         document.removeEventListener('keydown', this.close);
     }
 
-    update() {
-        if (!this.fragmentInEdit.value) this.fragment = null;
-        else
-            this.fragment = new StoreController(
-                this,
-                getFragmentStore(this.fragmentInEdit.value),
-            );
-        super.update();
+    /** @type {FragmentStore} */
+    get fragmentStore() {
+        return getFragmentStore(this.fragmentInEdit.value);
     }
 
     close(event) {
-        if (event.key !== 'Escape') return;
         if (!this.fragmentInEdit.value) return;
+        if (event instanceof KeyboardEvent && event.code !== 'Escape') return;
+        this.open = false;
+        if (this.hasChanges) this.discardChanges(false);
         Store.fragments.inEdit.set(null);
-        // this.fragmentStore.data.set(this.initialFragment);
+        this.initialFragment = null;
+    }
+
+    discardChanges(refresh = true) {
+        this.fragmentStore.refreshFrom(structuredClone(this.initialFragment));
+        this.hasChanges = false;
+        if (refresh) this.refresh();
+    }
+
+    updatePosition(x) {
+        const newPosition = x > window.innerWidth / 2 ? 'left' : 'right';
+        this.style.setProperty(
+            '--editor-left',
+            newPosition === 'left' ? '0' : 'inherit',
+        );
+        this.style.setProperty(
+            '--editor-right',
+            newPosition === 'right' ? '0' : 'inherit',
+        );
+    }
+
+    async editFragment(id, x) {
+        if (x) this.updatePosition(x);
+        if (this.fragmentInEdit.value === id) return;
+        const wasEmpty = !Store.fragments.inEdit.get();
+        Store.fragments.inEdit.set(id);
+        if (!wasEmpty) await this.refresh();
+        this.initialFragment = structuredClone(getFragment(id));
+    }
+
+    async refresh() {
+        this.refreshing = true;
+        await this.updateComplete;
+        this.refreshing = false;
     }
 
     render() {
-        console.log('RERENDER editor card');
-        if (!this.fragmentInEdit.value) return nothing;
+        console.log(this.refreshing, 'editor');
+        if (this.refreshing || !this.fragmentInEdit.value) return nothing;
 
-        const fragment = this.fragment.value;
-
+        const fragment = this.fragmentStore.get();
         if (fragment.model.path !== MODEL_PATH) return nothing;
 
         const form = Object.fromEntries([
             ...fragment.fields.map((f) => [f.name, f]),
         ]);
 
-        // Set position
-        const position = Store.editorPosition.get();
-        this.style.setProperty(
-            '--editor-left',
-            position === 'left' ? '0' : 'inherit',
-        );
-        this.style.setProperty(
-            '--editor-right',
-            position === 'right' ? '0' : 'inherit',
-        );
-
         return html`<div id="editor">
+            <merch-card-editor-toolbar
+                .hasChanges=${this.hasChanges}
+                .close=${this.close}
+                .discardChanges=${this.discardChanges}
+            ></merch-card-editor-toolbar>
             <p>${fragment.path}</p>
             <sp-field-label for="card-variant">Variant</sp-field-label>
             <variant-picker
@@ -200,12 +223,10 @@ export class MerchCardEditor extends LitElement {
         const fieldName = event.target.dataset.field;
         let value = event.target.value || event.detail?.value;
         value = event.target.multiline ? value?.split(',') : [value ?? ''];
-        const fragment = this.fragment.value;
+        const fragment = this.fragmentStore.get();
         fragment.updateField(fieldName, value);
-        this.fragment.store.set(fragment);
-        document
-            .querySelector(`aem-fragment[fragment="${fragment.id}"]`)
-            ?.refresh(false);
+        this.fragmentStore.set(fragment);
+        this.hasChanges = true;
     }
 
     updateMnemonics(e) {
@@ -217,11 +238,20 @@ export class MerchCardEditor extends LitElement {
             mnemonicAlt.push(alt ?? '');
             mnemonicLink.push(link ?? '');
         });
-        this.fragment.updateField('mnemonicIcon', mnemonicIcon);
-        this.fragment.updateField('mnemonicAlt', mnemonicAlt);
-        this.fragment.updateField('mnemonicLink', mnemonicLink);
-        this.dispatchEvent(new CustomEvent('refresh-fragment'));
+        const fragment = this.fragmentStore.get();
+        fragment.updateField('mnemonicIcon', mnemonicIcon);
+        fragment.updateField('mnemonicAlt', mnemonicAlt);
+        fragment.updateField('mnemonicLink', mnemonicLink);
+        this.fragmentStore.set(fragment);
+        this.hasChanges = true;
     }
 }
 
 customElements.define('merch-card-editor', MerchCardEditor);
+
+export async function editFragment(id, x) {
+    /** @type {MerchCardEditor} */
+    const editor = document.querySelector('merch-card-editor');
+    if (!editor) return;
+    return editor.editFragment(id, x);
+}

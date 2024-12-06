@@ -20,3 +20,9 @@ swc.json
 studio.json
 *.key
 *.crt
+
+# IO Runtime Config
+config.json
+MasHealthCheck*.json
+.env*
+.aio

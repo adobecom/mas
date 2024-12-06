@@ -133,7 +133,7 @@ export class RteLinkEditor extends LitElement {
     get #analyticsIdField() {
         const options = this.#isCheckoutLink
             ? Object.keys(CHECKOUT_CTA_TEXTS)
-            : ANALYTICS_LINK_IDS;
+            : [...ANALYTICS_LINK_IDS];
         options.push('');
         return html` <sp-field-label for="analyticsId"
                 >Analytics Id</sp-field-label

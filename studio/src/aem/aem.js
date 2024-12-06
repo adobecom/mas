@@ -58,7 +58,7 @@ class AEM {
      * @param {string} [params.query] - The search query
      * @returns A generator function that fetches all the matching data using a cursor that is returned by the search API
      */
-    async *searchFragment({ path, query = '', tags = [], sort }) {
+    async *searchFragment({ path, query = '', tags = [], sort }, limit) {
         const filter = {
             path,
         };
@@ -79,6 +79,10 @@ class AEM {
         const params = {
             query: JSON.stringify(searchQuery),
         };
+
+        if (limit) {
+            params.limit = limit;
+        }
 
         let cursor;
         while (true) {

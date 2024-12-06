@@ -73,7 +73,6 @@ class LinkNodeView {
     }
 }
 
-
 let ostRteFieldSource;
 
 class RteField extends LitElement {

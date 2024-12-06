@@ -40,8 +40,8 @@ export class Fragment {
     }
 
     get statusVariant() {
-        if (this.hasChanges) return 'yellow';
-        return this.status === 'PUBLISHED' ? 'positive' : 'info';
+        if (this.hasChanges) return 'modified';
+        return this.status === 'PUBLISHED' ? 'published' : 'draft';
     }
 
     refreshFrom(fragmentData) {

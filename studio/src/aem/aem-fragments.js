@@ -105,9 +105,20 @@ class AemFragments extends LitElement {
         const ignore = window.localStorage.getItem('ignore_folders') || [
             'images',
         ];
-        return children
+        const topFolders = children
             .map((folder) => folder.name)
             .filter((child) => !ignore.includes(child));
+
+        // Dispatch a custom event with the top folders
+        this.dispatchEvent(
+            new CustomEvent('top-folders-loaded', {
+                detail: { topFolders },
+                bubbles: true,
+                composed: true,
+            }),
+        );
+
+        return topFolders;
     }
 
     async addToCache(fragments) {

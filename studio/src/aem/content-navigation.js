@@ -20,7 +20,9 @@ class ContentNavigation extends LitElement {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                height: 48px;
+                padding: 16px;
+                gap: 10px;
+                flex-wrap: wrap;
             }
 
             .divider {
@@ -34,6 +36,17 @@ class ContentNavigation extends LitElement {
 
             sp-action-bar[open] {
                 display: flex;
+            }
+
+            #toolbar-actions {
+                display: flex;
+                gap: 10px;
+                justify-self: end;
+                margin: 0 0 0 auto;
+
+                & sp-button {
+                    white-space: nowrap;
+                }
             }
         `;
     }
@@ -69,11 +82,19 @@ class ContentNavigation extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         this.addEventListener('toggle-filter-panel', this.toggleFilterPanel);
+        document.addEventListener(
+            'folder-change',
+            this.handleFolderChange.bind(this),
+        );
         this.registerToSource();
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        document.removeEventListener(
+            'folder-change',
+            this.handleFolderChange.bind(this),
+        );
         this.unregisterFromSource();
     }
 
@@ -133,38 +154,18 @@ class ContentNavigation extends LitElement {
         });
     }
 
-    handleTopFolderChange(event) {
-        this.selectTopFolder(event.target.value);
+    handleFolderChange(event) {
+        const { value, label } = event.detail;
+        this.processFolderSelection(value);
     }
 
-    get topFolderPicker() {
-        return this.shadowRoot.querySelector('sp-picker');
-    }
-
-    toggleTopFoldersDisabled(disabled) {
-        this.topFolderPicker.disabled = disabled;
-    }
-
-    renderTopFolders() {
-        if (!this.topFolders) return '';
-        const initialValue =
-            this.#initialFolder && this.topFolders.includes(this.#initialFolder)
-                ? this.#initialFolder
-                : 'ccd';
-        return html`<sp-picker
-            @change=${this.handleTopFolderChange}
-            label="TopFolder"
-            class="topFolder"
-            size="m"
-            value="${initialValue}"
-        >
-            ${this.topFolders.map(
-                (folder) =>
-                    html`<sp-menu-item value="${folder}">
-                        ${folder.toUpperCase()}
-                    </sp-menu-item>`,
-            )}
-        </sp-picker>`;
+    processFolderSelection(folderValue) {
+        this.selectTopFolder(folderValue);
+        this.source.path = folderValue;
+        pushState({
+            path: this.source.path,
+            query: this.source.searchText,
+        });
     }
 
     updated(changedProperties) {
@@ -173,7 +174,7 @@ class ContentNavigation extends LitElement {
             sessionStorage.setItem(MAS_RENDER_MODE, this.mode);
         }
         this.forceUpdate();
-        this.selectTopFolder(this.topFolderPicker?.value);
+        this.selectTopFolder(this.folderValue);
     }
 
     get currentRenderer() {
@@ -193,7 +194,6 @@ class ContentNavigation extends LitElement {
         if (this.#initFromFragmentId && !this.#initialFolder) return '';
         this.#initFromFragmentId = false;
         return html`<div id="toolbar">
-                ${this.renderTopFolders()}
                 <div class="divider"></div>
                 ${this.actions}
             </div>
@@ -212,7 +212,7 @@ class ContentNavigation extends LitElement {
         if (!this.inSelection) {
             this.source.clearSelection();
         }
-        this.toggleTopFoldersDisabled(this.inSelection);
+        // this.toggleTopFoldersDisabled(this.inSelection);
         this.notify();
     }
 
@@ -292,17 +292,16 @@ class ContentNavigation extends LitElement {
         return html`<mas-filter-toolbar
                 searchText=${this.source.searchText}
             ></mas-filter-toolbar>
-            <sp-action-group emphasized>
-                <slot name="toolbar-actions"></slot>
-                <sp-action-button
-                    emphasized
+            <div id="toolbar-actions">
+                <sp-button
+                    variant="accent"
                     style=${inNoSelectionStyle}
                     disabled
                 >
-                    <sp-icon-new-item slot="icon"></sp-icon-new-item>
+                    <sp-icon-add slot="icon"></sp-icon-add>
                     Create New Card
-                </sp-action-button>
-                <sp-action-button
+                </sp-button>
+                <sp-button
                     style=${inNoSelectionStyle}
                     @click=${this.toggleSelectionMode}
                 >
@@ -310,17 +309,17 @@ class ContentNavigation extends LitElement {
                         slot="icon"
                     ></sp-icon-selection-checked>
                     Select
-                </sp-action-button>
+                </sp-button>
                 <sp-action-menu
                     style=${inNoSelectionStyle}
                     selects="single"
+                    placement="bottom"
                     value="${this.mode}"
-                    placement="left-end"
                     @change=${this.handleRenderModeChange}
                 >
                     ${this.renderActions}
                 </sp-action-menu>
-            </sp-action-group>`;
+            </div>`;
     }
 
     handleRenderModeChange(e) {

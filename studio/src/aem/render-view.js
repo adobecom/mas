@@ -1,6 +1,7 @@
 import { html, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { EVENT_CHANGE, EVENT_LOAD } from '../events.js';
+import './mas-fragment-status.js';
 
 const MODE = 'render';
 
@@ -45,36 +46,42 @@ class RenderView extends LitElement {
     renderItem(fragment) {
         const selected =
             this.parentElement.source.selectedFragments.includes(fragment);
-        return html`<overlay-trigger placement="top"
-            ><merch-card
-                class="${selected ? 'selected' : ''}"
-                slot="trigger"
-                @click="${this.handleClick}"
-                @mouseleave="${this.handleMouseLeave}"
-                @dblclick="${(e) => this.handleDoubleClick(e, fragment)}"
-            >
-                <aem-fragment
-                    fragment="${fragment.id}"
-                    ims
-                    author
-                ></aem-fragment>
-                <sp-status-light
-                    size="l"
-                    variant="${fragment.statusVariant}"
-                ></sp-status-light>
-                <div
-                    class="overlay"
-                    @click="${() => fragment.toggleSelection()}"
+        return html`<div class="render-card">
+            <div class="render-card-header">
+                <div class="render-card-actions"></div>
+                <mas-fragment-status
+                    variant=${fragment.statusVariant}
+                ></mas-fragment-status>
+            </div>
+            <overlay-trigger placement="top"
+                ><merch-card
+                    class="${selected ? 'selected' : ''}"
+                    slot="trigger"
+                    @click="${this.handleClick}"
+                    @mouseleave="${this.handleMouseLeave}"
+                    @dblclick="${(e) => this.handleDoubleClick(e, fragment)}"
                 >
-                    ${selected
-                        ? html`<sp-icon-remove slot="icon"></sp-icon-remove>`
-                        : html`<sp-icon-add slot="icon"></sp-icon-add>`}
-                </div>
-            </merch-card>
-            <sp-tooltip slot="hover-content" placement="top"
-                >Double click the card to start editing.</sp-tooltip
-            >
-        </overlay-trigger>`;
+                    <aem-fragment
+                        fragment="${fragment.id}"
+                        ims
+                        author
+                    ></aem-fragment>
+                    <div
+                        class="overlay"
+                        @click="${() => fragment.toggleSelection()}"
+                    >
+                        ${selected
+                            ? html`<sp-icon-remove
+                                  slot="icon"
+                              ></sp-icon-remove>`
+                            : html`<sp-icon-add slot="icon"></sp-icon-add>`}
+                    </div>
+                </merch-card>
+                <sp-tooltip slot="hover-content" placement="top"
+                    >Double click the card to start editing.</sp-tooltip
+                >
+            </overlay-trigger>
+        </div>`;
     }
 
     handleClick(e) {

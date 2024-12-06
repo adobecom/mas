@@ -5,7 +5,12 @@ import './editors/merch-card-editor.js';
 import './rte/rte-field.js';
 import './rte/rte-link-editor.js';
 import './mas-top-nav.js';
-import './mas-latest-fragments.js';
+import './mas-recently-updated.js';
+import './mas-folder-picker.js';
+import { contentIcon } from './img/content-icon.js';
+import { promosIcon } from './img/promos-icon.js';
+import { ostIcon } from './img/ost-icon.js';
+import { openOfferSelectorTool } from './rte/ost.js';
 
 const EVENT_LOAD_START = 'load-start';
 const EVENT_LOAD_END = 'load-end';
@@ -24,6 +29,7 @@ class MasStudio extends LitElement {
         variant: { type: String, state: true },
         newFragment: { type: Object, state: true },
         showEditorPanel: { type: Boolean, state: true },
+        showSplash: { type: Boolean, state: true },
     };
 
     constructor() {
@@ -34,6 +40,7 @@ class MasStudio extends LitElement {
         this.searchText = '';
         this.path = '';
         this.showEditorPanel = false;
+        this.showSplash = true;
     }
 
     connectedCallback() {
@@ -100,9 +107,13 @@ class MasStudio extends LitElement {
         if (
             changedProperties.has('searchText') ||
             changedProperties.has('path') ||
-            changedProperties.has('variant')
+            changedProperties.has('variant') ||
+            changedProperties.has('showSplash')
         ) {
-            this.source?.searchFragments();
+            // Force search or reload when splash screen is toggled off
+            if (!this.showSplash && this.source) {
+                this.source.searchFragments();
+            }
         }
     }
 
@@ -315,7 +326,11 @@ class MasStudio extends LitElement {
                 bucket="${this.bucket}"
                 variant="${this.variant}"
             ></aem-fragments>
-            <content-navigation source="aem" ?disabled=${this.fragment}>
+            <content-navigation
+                class="${this.showSplash ? 'hide' : 'show'}"
+                source="aem"
+                ?disabled=${this.fragment}
+            >
                 <table-view .customRenderItem=${this.customRenderItem}>
                     <sp-table-head-cell slot="headers"
                         >Variant</sp-table-head-cell
@@ -326,12 +341,13 @@ class MasStudio extends LitElement {
         `;
     }
 
-    get latestFragments() {
-        return html`<mas-latest-fragments
+    get recentlyUpdated() {
+        return html`<mas-recently-updated
+            source="aem"
             base-url="${this.baseUrl}"
             path="${this.path}"
         >
-        </mas-latest-fragments>`;
+        </mas-recently-updated>`;
     }
 
     customRenderItem(item) {
@@ -339,17 +355,118 @@ class MasStudio extends LitElement {
         return html` <sp-table-cell>${item.variant}</sp-table-cell>`;
     }
 
+    goToContent() {
+        this.showSplash = false;
+        this.requestUpdate();
+    }
+
+    openOst() {
+        openOfferSelectorTool();
+    }
+
+    handleHomeClick() {
+        this.showSplash = true;
+        this.requestUpdate();
+    }
+
+    renderSplashScreen() {
+        return html`
+            <div
+                class="${this.showSplash ? 'show' : 'hide'}"
+                id="splash-container"
+            >
+                <h1>Welcome, Nick</h1>
+                <div class="quick-actions">
+                    <h2>Quick Actions</h2>
+                    <div class="actions-grid">
+                        <div
+                            class="quick-action-card"
+                            @click=${this.goToContent}
+                            heading="Go to Content"
+                        >
+                            <div slot="cover-photo">${contentIcon}</div>
+                            <div slot="heading">Go To Content</div>
+                        </div>
+                        <div
+                            class="quick-action-card"
+                            @click=${this.viewPromotions}
+                        >
+                            <div slot="cover-photo">${promosIcon}</div>
+                            <div slot="heading">View Promotions</div>
+                        </div>
+                        <div class="quick-action-card" @click=${this.openOst}>
+                            <div slot="cover-photo">${ostIcon}</div>
+                            <div slot="heading">Open Offer Selector Tool</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="recently-updated">${this.recentlyUpdated}</div>
+            </div>
+        `;
+    }
+
     render() {
         return html`
             <mas-top-nav env="${this.env}"></mas-top-nav>
-            <side-nav></side-nav>
-            ${this.content} ${this.latestFragments} ${this.fragmentEditor}
-            ${this.selectFragmentDialog} ${this.toast} ${this.loadingIndicator}
+            <div class="studio-content">
+                <side-nav>
+                    <div class="dropdown-container">
+                        <mas-folder-picker
+                            @picker-change=${this.handleFolderChange}
+                        ></mas-folder-picker>
+                    </div>
+                    <sp-sidenav>
+                        <sp-sidenav-item
+                            label="Home"
+                            value="home"
+                            @click="${this.handleHomeClick}"
+                            selected
+                        >
+                            <sp-icon-home slot="icon"></sp-icon-home>
+                        </sp-sidenav-item>
+
+                        <sp-sidenav-item label="Promotions" value="promotions">
+                            <sp-icon-promote slot="icon"></sp-icon-promote>
+                        </sp-sidenav-item>
+
+                        <sp-sidenav-item label="Reporting" value="reporting">
+                            <sp-icon-graph-bar-vertical
+                                slot="icon"
+                            ></sp-icon-graph-bar-vertical>
+                        </sp-sidenav-item>
+
+                        <sp-sidenav-divider></sp-sidenav-divider>
+
+                        <sp-sidenav-item label="Support" value="support">
+                            <sp-icon-help slot="icon"></sp-icon-help>
+                        </sp-sidenav-item>
+                    </sp-sidenav>
+                </side-nav>
+                <div class="content-container">
+                    ${this.renderSplashScreen()}
+                    <div class="content">
+                        ${this.content} ${this.fragmentEditor}
+                        ${this.selectFragmentDialog} ${this.toast}
+                        ${!this.showSplash ? this.loadingIndicator : nothing}
+                    </div>
+                </div>
+            </div>
         `;
     }
 
     get toast() {
         return html`<sp-toast timeout="6000" popover></sp-toast>`;
+    }
+
+    handleFolderChange(event) {
+        const selectedValue = event.detail.value;
+        document.dispatchEvent(
+            new CustomEvent('folder-change', {
+                detail: { value: selectedValue },
+            }),
+        );
+        this.bucket = selectedValue;
+        this.requestUpdate();
     }
 
     get loadingIndicator() {

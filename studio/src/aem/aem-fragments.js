@@ -55,7 +55,7 @@ class AemFragments extends LitElement {
     /**
      * @type {AEM}
      */
-    #aem;
+    aem;
 
     /**
      *
@@ -79,12 +79,11 @@ class AemFragments extends LitElement {
             throw new Error(
                 'Either the bucket or baseUrl attribute is required.',
             );
-        this.#aem = new AEM(this.bucket, this.baseUrl);
-        this.style.display = 'none';
+        this.aem = new AEM(this.bucket, this.baseUrl);
     }
 
     async selectFragment(x, y, fragment) {
-        const latest = await this.#aem.sites.cf.fragments.getById(fragment.id);
+        const latest = await this.aem.sites.cf.fragments.getById(fragment.id);
         Object.assign(fragment, latest);
         fragment.refreshFrom(latest);
         this.setFragment(fragment);
@@ -102,7 +101,7 @@ class AemFragments extends LitElement {
     }
 
     async getTopFolders() {
-        const { children } = await this.#aem.folders.list(ROOT);
+        const { children } = await this.aem.folders.list(ROOT);
         const ignore = window.localStorage.getItem('ignore_folders') || [
             'images',
         ];
@@ -173,7 +172,7 @@ class AemFragments extends LitElement {
                 bubbles: true,
             }),
         );
-        let fragmentData = await this.#aem.sites.cf.fragments.getById(
+        let fragmentData = await this.aem.sites.cf.fragments.getById(
             this.searchText,
         );
         if (this.tags) {
@@ -220,7 +219,7 @@ class AemFragments extends LitElement {
         if (this.isFragmentId(this.searchText)) {
             await this.searchFragmentByUUID();
         } else {
-            const cursor = await this.#aem.sites.cf.fragments.search(
+            const cursor = await this.aem.sites.cf.fragments.search(
                 this.#search,
             );
             await this.processFragments(cursor, search);
@@ -228,14 +227,14 @@ class AemFragments extends LitElement {
     }
 
     async saveFragment() {
-        let fragment = await this.#aem.sites.cf.fragments.save(this.fragment);
+        let fragment = await this.aem.sites.cf.fragments.save(this.fragment);
         if (!fragment) throw new Error('Failed to save fragment');
         aemFragmentCache.get(fragment.id)?.refreshFrom(fragment);
     }
 
     async copyFragment() {
         const oldFragment = this.fragment;
-        const fragment = await this.#aem.sites.cf.fragments.copy(oldFragment);
+        const fragment = await this.aem.sites.cf.fragments.copy(oldFragment);
         const newFragment = new Fragment(fragment, this);
         aemFragmentCache?.add(newFragment);
         if (this.searchText) {
@@ -248,11 +247,11 @@ class AemFragments extends LitElement {
     }
 
     async publishFragment() {
-        await this.#aem.sites.cf.fragments.publish(this.fragment);
+        await this.aem.sites.cf.fragments.publish(this.fragment);
     }
 
     async deleteFragment() {
-        await this.#aem.sites.cf.fragments.delete(this.fragment);
+        await this.aem.sites.cf.fragments.delete(this.fragment);
         if (this.searchText) {
             const fragmentIndex = this.#searchResult.indexOf(this.fragment);
             this.#searchResult.splice(fragmentIndex, 1);

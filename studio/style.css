@@ -140,3 +140,19 @@ merch-card-editor mas-multifield,
 rte-field {
     margin-inline-end: 16px;
 }
+
+mas-latest-fragments[loading] {
+    visibility: hidden;
+}
+
+mas-latest-fragments {
+    background-color: var(--spectrum-red-100);
+    padding: 32px;
+}
+
+mas-latest-fragments > .container {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-inline-start: 0;
+}

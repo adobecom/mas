@@ -5,6 +5,7 @@ import './editors/merch-card-editor.js';
 import './rte/rte-field.js';
 import './rte/rte-link-editor.js';
 import './mas-top-nav.js';
+import './mas-latest-fragments.js';
 
 const EVENT_LOAD_START = 'load-start';
 const EVENT_LOAD_END = 'load-end';
@@ -325,6 +326,14 @@ class MasStudio extends LitElement {
         `;
     }
 
+    get latestFragments() {
+        return html`<mas-latest-fragments
+            base-url="${this.baseUrl}"
+            path="${this.path}"
+        >
+        </mas-latest-fragments>`;
+    }
+
     customRenderItem(item) {
         if (!item) return html`<sp-table-cell></sp-table-cell>`;
         return html` <sp-table-cell>${item.variant}</sp-table-cell>`;
@@ -334,8 +343,8 @@ class MasStudio extends LitElement {
         return html`
             <mas-top-nav env="${this.env}"></mas-top-nav>
             <side-nav></side-nav>
-            ${this.content} ${this.fragmentEditor} ${this.selectFragmentDialog}
-            ${this.toast} ${this.loadingIndicator}
+            ${this.content} ${this.latestFragments} ${this.fragmentEditor}
+            ${this.selectFragmentDialog} ${this.toast} ${this.loadingIndicator}
         `;
     }
 

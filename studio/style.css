@@ -208,6 +208,10 @@ rte-field {
     border-radius: var(--spectrum-corner-radius-100);
 }
 
+merch-card:not([variant]) {
+    display: none;
+}
+
 merch-card {
     cursor: pointer;
     user-select: none;

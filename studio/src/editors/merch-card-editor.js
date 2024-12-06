@@ -1,4 +1,4 @@
-import { css, html, LitElement, nothing } from 'lit';
+import { html, LitElement, css, nothing } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import '../fields/multifield.js';
 import '../fields/mnemonic-field.js';
@@ -11,14 +11,25 @@ class MerchCardEditor extends LitElement {
     };
 
     static styles = css`
+        rte-field {
+            width: 100%;
+            border: 1px solid var(--spectrum-global-color-gray-500);
+            border-radius: var(--spectrum-corner-radius-100);
+        }
+
+        mas-multifield,
+        rte-field {
+            margin-inline-end: 16px;
+        }
+
+        sp-textfield {
+            width: 360px;
+        }
+
         aem-tag-picker-field {
             margin-top: 25px;
         }
     `;
-
-    createRenderRoot() {
-        return this;
-    }
 
     get mnemonics() {
         const mnemonicIcon =
@@ -69,6 +80,7 @@ class MerchCardEditor extends LitElement {
                 data-field="variant"
                 default-value="${form.variant.values[0]}"
                 @change="${this.updateFragment}"
+                @input="${this.updateFragment}"
             ></variant-picker>
             <sp-field-label for="card-title">Title</sp-field-label>
             <sp-textfield
@@ -76,7 +88,7 @@ class MerchCardEditor extends LitElement {
                 id="card-title"
                 data-field="cardTitle"
                 value="${form.cardTitle.values[0]}"
-                @change="${this.updateFragment}"
+                @input="${this.updateFragment}"
             ></sp-textfield>
             <sp-field-label for="card-subtitle">Subtitle</sp-field-label>
             <sp-textfield
@@ -84,7 +96,7 @@ class MerchCardEditor extends LitElement {
                 id="card-subtitle"
                 data-field="subtitle"
                 value="${form.subtitle.values[0]}"
-                @change="${this.updateFragment}"
+                @input="${this.updateFragment}"
             ></sp-textfield>
             <sp-field-label for="card-size">Size</sp-field-label>
             <sp-textfield
@@ -92,7 +104,7 @@ class MerchCardEditor extends LitElement {
                 id="card-size"
                 data-field="size"
                 value="${form.size.values[0]}"
-                @change="${this.updateFragment}"
+                @input="${this.updateFragment}"
             ></sp-textfield>
             <sp-field-label for="card-icon">Badge</sp-field-label>
             <sp-textfield
@@ -100,13 +112,14 @@ class MerchCardEditor extends LitElement {
                 id="card-badge"
                 data-field="badge"
                 value="${form.badge.values[0]}"
-                @change="${this.updateFragment}"
+                @input="${this.updateFragment}"
             ></sp-textfield>
             <sp-field-label for="mnemonic">Mnemonics</sp-field-label>
             <mas-multifield
                 id="mnemonic"
                 .value="${this.mnemonics}"
                 @change="${this.updateMnemonics}"
+                @input="${this.updateMnemonics}"
             >
                 <template>
                     <mas-mnemonic-field></mas-mnemonic-field>
@@ -118,7 +131,7 @@ class MerchCardEditor extends LitElement {
                 id="background-title"
                 data-field="backgroundImage"
                 value="${form.backgroundImage.values[0]}"
-                @change="${this.updateFragment}"
+                @input="${this.updateFragment}"
             ></sp-textfield>
             <sp-field-label for="card-icon"
                 >Background Image Alt Text</sp-field-label
@@ -128,7 +141,7 @@ class MerchCardEditor extends LitElement {
                 id="background-alt-text"
                 data-field="backgroundImageAltText"
                 value="${form.backgroundImageAltText.values[0]}"
-                @change="${this.updateFragment}"
+                @input="${this.updateFragment}"
             ></sp-textfield>
             <sp-field-label for="horizontal"> Prices </sp-field-label>
             <sp-field-group horizontal id="horizontal">

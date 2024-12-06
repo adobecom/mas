@@ -1,6 +1,7 @@
 import { html, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { EVENT_CHANGE, EVENT_LOAD } from '../events.js';
+import './render-view-item.js';
+import { EVENT_CHANGE, EVENT_FRAGMENT_CHANGE, EVENT_LOAD } from '../events.js';
 
 const MODE = 'render';
 
@@ -16,6 +17,7 @@ class RenderView extends LitElement {
         super();
         this.forceUpdate = this.forceUpdate.bind(this);
         this.tooltipTimeout = null;
+        this.handleFragmentChange = this.handleFragmentChange.bind(this);
     }
 
     createRenderRoot() {
@@ -36,45 +38,39 @@ class RenderView extends LitElement {
             EVENT_CHANGE,
             this.forceUpdate,
         );
+        document.addEventListener(
+            EVENT_FRAGMENT_CHANGE,
+            this.handleFragmentChange,
+        );
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        document.removeEventListener(
+            EVENT_FRAGMENT_CHANGE,
+            this.handleFragmentChange,
+        );
+    }
+
+    handleFragmentChange(e) {
+        const {
+            detail: {
+                fragment: { id: fragmentId },
+                selection,
+            },
+        } = e;
+        if (!selection) {
+            const aemFragment = this.querySelector(
+                `aem-fragment[fragment="${fragmentId}"]`,
+            )?.refresh(false);
+        }
+        this.querySelector(
+            `render-view-item[fragment="${fragmentId}"]`,
+        )?.requestUpdate();
     }
 
     async forceUpdate(e) {
         this.requestUpdate();
-    }
-
-    renderItem(fragment) {
-        const selected =
-            this.parentElement.source.selectedFragments.includes(fragment);
-        return html`<overlay-trigger placement="top"
-            ><merch-card
-                class="${selected ? 'selected' : ''}"
-                slot="trigger"
-                @click="${this.handleClick}"
-                @mouseleave="${this.handleMouseLeave}"
-                @dblclick="${(e) => this.handleDoubleClick(e, fragment)}"
-            >
-                <aem-fragment
-                    fragment="${fragment.id}"
-                    ims
-                    author
-                ></aem-fragment>
-                <sp-status-light
-                    size="l"
-                    variant="${fragment.statusVariant}"
-                ></sp-status-light>
-                <div
-                    class="overlay"
-                    @click="${() => fragment.toggleSelection()}"
-                >
-                    ${selected
-                        ? html`<sp-icon-remove slot="icon"></sp-icon-remove>`
-                        : html`<sp-icon-add slot="icon"></sp-icon-add>`}
-                </div>
-            </merch-card>
-            <sp-tooltip slot="hover-content" placement="top"
-                >Double click the card to start editing.</sp-tooltip
-            >
-        </overlay-trigger>`;
     }
 
     handleClick(e) {
@@ -116,14 +112,14 @@ class RenderView extends LitElement {
         return html` ${repeat(
             this.parentElement.source.fragments,
             (fragment) => fragment.path,
-            (fragment) => {
-                switch (fragment.model.path) {
-                    case models.merchCard.path:
-                        return this.renderItem(fragment);
-                    default:
-                        return nothing;
-                }
-            },
+            (fragment) =>
+                html`<render-view-item
+                    fragment="${fragment.id}"
+                    .fragment=${fragment}
+                    @click="${this.handleClick}"
+                    @mouseleave="${this.handleMouseLeave}"
+                    @dblclick="${(e) => this.handleDoubleClick(e, fragment)}"
+                ></render-view-item>`,
         )}`;
     }
 

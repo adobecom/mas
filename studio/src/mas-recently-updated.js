@@ -1,4 +1,4 @@
-import { html, LitElement } from 'lit';
+import { html, LitElement, nothing } from 'lit';
 
 import { Fragment } from './aem/fragment.js';
 import { AEM } from './aem/aem.js';
@@ -10,6 +10,7 @@ class MasRecentlyUpdated extends LitElement {
             bucket: { type: String },
             fragments: { type: Array, state: true },
             loading: { type: Boolean, reflect: true },
+            path: { type: String },
             source: { type: String },
         };
     }
@@ -23,6 +24,10 @@ class MasRecentlyUpdated extends LitElement {
         this.fragments = [];
         this.loading = true;
         this.renderItem = this.renderItem.bind(this);
+    }
+
+    updated(changedProperties) {
+        if (changedProperties.has('path')) this.loadFragments();
     }
 
     connectedCallback() {
@@ -57,7 +62,7 @@ class MasRecentlyUpdated extends LitElement {
         const cursor = await this.aem.sites.cf.fragments.search(
             {
                 sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
-                path: '/content/dam/mas',
+                path: `/content/dam/mas/${this.path}`,
                 // tags: ['mas:status/DEMO']
             },
             6,
@@ -83,6 +88,7 @@ class MasRecentlyUpdated extends LitElement {
     }
 
     render() {
+        if (!this.path) return nothing;
         return html` <h2>Recently Updated</h2>
             <div class="container">
                 ${this.fragments.map(this.renderItem)}

@@ -34,7 +34,6 @@ class MasRecentlyUpdated extends LitElement {
         super.connectedCallback();
         this.aem = new AEM(this.bucket, this.baseUrl);
         this.source = document.getElementById(this.source);
-        this.loadFragments();
     }
 
     handleClick(e) {
@@ -57,8 +56,12 @@ class MasRecentlyUpdated extends LitElement {
     }
 
     async loadFragments() {
-        this.loading = true;
         this.fragments = [];
+        if (!this.path) {
+            this.loading = false;
+            return;
+        }
+        this.loading = true;
         const cursor = await this.aem.sites.cf.fragments.search(
             {
                 sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
@@ -68,8 +71,9 @@ class MasRecentlyUpdated extends LitElement {
             6,
         );
         const result = await cursor.next();
-        this.fragments = result.value.map((item) => new Fragment(item, this));
-        this.source.addToCache(this.fragments);
+        const fragments = result.value.map((item) => new Fragment(item, this));
+        await this.source.addToCache(fragments);
+        this.fragments = fragments;
         this.loading = false;
     }
 
@@ -80,10 +84,6 @@ class MasRecentlyUpdated extends LitElement {
             @dblclick="${(e) => this.handleDoubleClick(e, fragment)}"
         >
             <aem-fragment fragment="${fragment.id}" ims author></aem-fragment>
-            <sp-status-light
-                size="l"
-                variant="${fragment.statusVariant}"
-            ></sp-status-light>
         </merch-card>`;
     }
 

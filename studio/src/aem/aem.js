@@ -199,6 +199,7 @@ class AEM {
 
         await this.saveTags(fragment);
 
+        await this.wait(1000);
         const newFragment = await this.sites.cf.fragments.getById(fragment.id);
         return newFragment;
     }

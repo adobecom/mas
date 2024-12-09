@@ -1,0 +1,20 @@
+application:
+  actions: actions
+  web: web-src
+  runtimeManifest:
+    packages:
+      MasHealthCheck:
+        license: Apache-2.0
+        actions:
+          health-check:
+            function: src/health-check/index.js
+            web: 'yes'
+            runtime: nodejs:18
+            inputs:
+              ODIN_CDN_ENDPOINT: $ODIN_CDN_ENDPOINT
+              ODIN_ORIGIN_ENDPOINT: $ODIN_ORIGIN_ENDPOINT
+              WCS_CDN_ENDPOINT: $WCS_CDN_ENDPOINT
+              WCS_ORIGIN_ENDPOINT: $WCS_ORIGIN_ENDPOINT
+            annotations:
+              require-adobe-auth: false
+              final: true

@@ -71,7 +71,10 @@
                 client_id: 'mas-studio',
                 environment: 'prod',
                 locale: 'en_US',
-                redirect_uri: location.href,
+                redirect_uri: location.href.substring(
+                    0,
+                    location.href.length - location.hash.length,
+                ) + '#path=nala',
                 response_type: 'id_token',
                 scope: 'additional_info,additional_info.projectedProductContext,additional_info.roles,AdobeID,openid,read_organizations,read_pc,read_pc.acp,read_pc.dma_aem_ams,read_pc.dma_aem_cloud,read_pc.dma_tartan',
                 useLocalStorage: true,

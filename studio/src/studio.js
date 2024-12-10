@@ -375,7 +375,7 @@ class MasStudio extends LitElement {
                 class="${this.showSplash ? 'show' : 'hide'}"
                 id="splash-container"
             >
-                <h1>Welcome, Mariia</h1>
+                <h1>Welcome, Axel</h1>
                 <div class="quick-actions">
                     <h2>Quick Actions</h2>
                     <div class="actions-grid">

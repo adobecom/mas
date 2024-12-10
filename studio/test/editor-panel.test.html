@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+    <head>
+        <title>editor-panel custom element test page</title>
+        <meta name="nofollow-links" content="on" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <style>
+            body {
+                margin: 32px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            sp-theme {
+                display: contents;
+            }
+
+            editor-panel {
+                width: 600px;
+                top: 32px;
+                bottom: 32px;
+                height: initial;
+            }
+        </style>
+    </head>
+    <body>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import sinon from 'sinon';
+            import { html } from 'lit';
+            import { fixture, oneEvent } from '@open-wc/testing-helpers';
+
+            import '../src/swc.js';
+            import '../src/rte/rte-field.js';
+            import '../src/aem/aem-tag-picker-field.js';
+            import '../src/editors/merch-card-editor.js';
+            import '../src/editor-panel.js';
+            import { EVENT_FRAGMENT_CHANGE } from '../src/events.js';
+            import { Fragment } from '../src/aem/fragment.js';
+
+            import {
+                createFromTemplate,
+                delay,
+                triggerInput,
+            } from './utils.js';
+
+            runTests(async () => {
+                const spTheme = document.querySelector('sp-theme');
+                const originalFetch = window.fetch;
+                const fragmentData = await originalFetch(
+                    '/test/mocks/sites/cf/fragments/cc-all-apps.json',
+                ).then((res) => res.json());
+                window.fetch = async function (args) {
+                    const { pathname } = new URL(args);
+                    if (/querybuilder.json/.test(pathname)) {
+                        return originalFetch('/test/aem/tags.json');
+                    }
+                    return originalFetch(...arguments);
+                };
+
+                describe('editor-panel custom element', () => {
+                    let fragment;
+                    let editorPanel;
+                    const getCardTitleField = () =>
+                        editorPanel.merchCardEditorElement.shadowRoot.getElementById(
+                            'card-title',
+                        );
+                    beforeEach(async () => {
+                        fragment = new Fragment(fragmentData);
+                        editorPanel = await fixture(
+                            html`<editor-panel
+                                .fragment=${fragment}
+                            ></editor-panel> `,
+                            { parentNode: spTheme },
+                        );
+                    });
+
+                    it('implements "discard changes"', async () => {
+                        const discardButton =
+                            editorPanel.shadowRoot.getElementById('btnDiscard');
+                        expect(discardButton.disabled).to.be.true;
+                        triggerInput(getCardTitleField(), 'test title');
+                        expect(
+                            fragment.getField('cardTitle').values,
+                        ).to.deep.equal(['test title']);
+                        await oneEvent(document, EVENT_FRAGMENT_CHANGE);
+                        expect(discardButton.disabled).to.be.false;
+                        const discardEvent = oneEvent(
+                            document,
+                            EVENT_FRAGMENT_CHANGE,
+                        );
+                        discardButton.click();
+                        await discardEvent;
+                        expect(
+                            fragment.getField('cardTitle').values,
+                        ).to.deep.equal([]);
+                        await delay(100);
+                        expect(getCardTitleField().value).to.equal('');
+                    });
+                });
+            });
+        </script>
+        <sp-theme color="light" scale="medium"></sp-theme>
+    </body>
+</html>

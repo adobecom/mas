@@ -131,6 +131,13 @@ export function applyChanges(view, pos, attrs) {
     dispatch(tr);
 }
 
+export function triggerInput(element, value) {
+    element.value = value;
+    element.dispatchEvent(
+        new Event('input', { bubbles: true, composed: true }),
+    );
+}
+
 export function initElementFromTemplate(templateId, title) {
     const spTheme = document.querySelector('sp-theme');
     const [root] = getTemplateContent(templateId);

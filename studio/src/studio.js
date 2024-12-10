@@ -1,6 +1,7 @@
 import { html, LitElement, nothing } from 'lit';
 import { EVENT_CHANGE, EVENT_SUBMIT } from './events.js';
 import { deeplink, pushState } from './deeplink.js';
+import './editor-panel.js';
 import './editors/merch-card-editor.js';
 import './rte/rte-field.js';
 import './rte/rte-link-editor.js';
@@ -41,6 +42,7 @@ class MasStudio extends LitElement {
         this.path = '';
         this.showEditorPanel = false;
         this.showSplash = true;
+        this.showToast = this.showToast.bind(this);
     }
 
     connectedCallback() {
@@ -163,157 +165,15 @@ class MasStudio extends LitElement {
         `;
     }
 
-    get fragmentEditorToolbar() {
-        return html`<div id="actions" slot="heading">
-            <sp-action-group
-                aria-label="Fragment actions"
-                role="group"
-                size="l"
-                compact
-                emphasized
-                quiet
-            >
-                <sp-action-button
-                    label="Save"
-                    title="Save changes"
-                    value="save"
-                    @click="${this.saveFragment}"
-                >
-                    <sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>
-                    <sp-tooltip self-managed placement="bottom"
-                        >Save changes</sp-tooltip
-                    >
-                </sp-action-button>
-                <sp-action-button
-                    label="Discard"
-                    title="Discard changes"
-                    value="discard"
-                    @click="${this.discardChanges}"
-                >
-                    <sp-icon-undo slot="icon"></sp-icon-undo>
-                    <sp-tooltip self-managed placement="bottom"
-                        >Discard changes</sp-tooltip
-                    >
-                </sp-action-button>
-                <sp-action-button
-                    label="Clone"
-                    value="clone"
-                    @click="${this.copyFragment}"
-                >
-                    <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
-                    <sp-tooltip self-managed placement="bottom"
-                        >Clone</sp-tooltip
-                    >
-                </sp-action-button>
-                <sp-action-button
-                    label="Publish"
-                    value="publish"
-                    @click="${this.publishFragment}"
-                >
-                    <sp-icon-publish-check slot="icon"></sp-icon-publish-check>
-                    <sp-tooltip self-managed placement="bottom"
-                        >Publish</sp-tooltip
-                    >
-                </sp-action-button>
-                <sp-action-button
-                    label="Unpublish"
-                    value="unpublish"
-                    @click="${this.unpublishFragment}"
-                    disabled
-                >
-                    <sp-icon-publish-remove
-                        slot="icon"
-                    ></sp-icon-publish-remove>
-                    <sp-tooltip self-managed placement="bottom"
-                        >Unpublish</sp-tooltip
-                    >
-                </sp-action-button>
-                <sp-action-button
-                    label="Open in Odin"
-                    value="open"
-                    @click="${this.openFragmentInOdin}"
-                >
-                    <sp-icon-open-in slot="icon"></sp-icon-open-in>
-                    <sp-tooltip self-managed placement="bottom"
-                        >Open in Odin</sp-tooltip
-                    >
-                </sp-action-button>
-                <sp-action-button
-                    label="Use"
-                    value="use"
-                    @click="${this.copyToUse}"
-                >
-                    <sp-icon-code slot="icon"></sp-icon-code>
-                    <sp-tooltip self-managed placement="bottom">Use</sp-tooltip>
-                </sp-action-button>
-                <sp-action-button
-                    label="Delete fragment"
-                    value="delete"
-                    @click="${this.deleteFragment}"
-                >
-                    <sp-icon-delete-outline
-                        slot="icon"
-                    ></sp-icon-delete-outline>
-                    <sp-tooltip self-managed placement="bottom"
-                        >Delete fragment</sp-tooltip
-                    >
-                </sp-action-button>
-            </sp-action-group>
-            <sp-divider vertical></sp-divider>
-            <sp-action-group size="l" quiet>
-                <sp-action-button
-                    title="Close"
-                    label="Close"
-                    value="close"
-                    @click="${this.closeFragmentEditor}"
-                >
-                    <sp-icon-close-circle slot="icon"></sp-icon-close-circle>
-                    <sp-tooltip self-managed placement="bottom"
-                        >Close</sp-tooltip
-                    >
-                </sp-action-button>
-            </sp-action-group>
-        </div>`;
-    }
-
-    get fragmentEditor() {
+    get editorPanel() {
         if (!this.showEditorPanel) return nothing;
-        return html`<div id="editor">
-            ${this.fragment
-                ? html`
-                      ${this.fragmentEditorToolbar}
-                      <merch-card-editor
-                          .fragment=${this.fragment}
-                          @refresh-fragment="${this.refreshFragment}"
-                          @update-fragment="${this.updateFragment}"
-                      >
-                      </merch-card-editor>
-                      <p>Fragment details (not shown on the card)</p>
-                      <sp-divider size="s"></sp-divider>
-                      <sp-field-label for="fragment-title"
-                          >Fragment Title</sp-field-label
-                      >
-                      <sp-textfield
-                          placeholder="Enter fragment title"
-                          id="fragment-title"
-                          data-field="title"
-                          value="${this.fragment.title}"
-                          @change="${this.updateFragmentInternal}"
-                      ></sp-textfield>
-                      <sp-field-label for="fragment-description"
-                          >Fragment Description</sp-field-label
-                      >
-                      <sp-textfield
-                          placeholder="Enter fragment description"
-                          id="fragment-description"
-                          data-field="description"
-                          multiline
-                          value="${this.fragment.description}"
-                          @change="${this.updateFragmentInternal}"
-                      ></sp-textfield>
-                  `
-                : nothing}
-        </div>`;
+        return html`<editor-panel
+            .showToast=${this.showToast}
+            .fragment=${this.fragment}
+            .source=${this.source}
+            .bucket=${this.bucket}
+            @close=${this.closeFragmentEditor}
+        ></editor-panel>`;
     }
 
     get content() {
@@ -348,6 +208,17 @@ class MasStudio extends LitElement {
             path="${this.path}"
         >
         </mas-recently-updated>`;
+    }
+
+    get editorPanel() {
+        if (!this.showEditorPanel) return nothing;
+        return html`<editor-panel
+            .showToast=${this.showToast}
+            .fragment=${this.fragment}
+            .source=${this.source}
+            .bucket=${this.bucket}
+            @close=${this.closeFragmentEditor}
+        ></editor-panel>`;
     }
 
     customRenderItem(item) {
@@ -445,12 +316,13 @@ class MasStudio extends LitElement {
                 <div class="content-container">
                     ${this.renderSplashScreen()}
                     <div class="content">
-                        ${this.content} ${this.fragmentEditor}
+                        ${this.content} ${this.editorPanel}
                         ${this.selectFragmentDialog} ${this.toast}
                         ${!this.showSplash ? this.loadingIndicator : nothing}
                     </div>
                 </div>
             </div>
+            <side-nav></side-nav>
         `;
     }
 
@@ -542,22 +414,6 @@ class MasStudio extends LitElement {
         await this.editFragment(fragment);
     }
 
-    updateFragmentInternal(e) {
-        const fieldName = e.target.dataset.field;
-        let value = e.target.value;
-        this.fragment.updateFieldInternal(fieldName, value);
-    }
-
-    updateFragment({ detail: e }) {
-        if (!this.fragment) return;
-        const fieldName = e.target.dataset.field;
-        let value = e.target.value || e.detail?.value;
-        value = e.target.multiline ? value?.split(',') : [value ?? ''];
-        if (this.fragment.updateField(fieldName, value)) {
-            this.fragmentElement?.refresh(false);
-        }
-    }
-
     get fragmentElement() {
         return this.querySelector(
             `aem-fragment[fragment="${this.fragment.id}"]`,
@@ -572,37 +428,10 @@ class MasStudio extends LitElement {
         await this.fragmentElement.updateComplete;
     }
 
-    async saveFragment() {
-        this.showToast('Saving fragment...');
-        try {
-            await this.source?.saveFragment();
-            await this.refreshFragment();
-            this.requestUpdate();
-            this.showToast('Fragment saved', 'positive');
-        } catch (e) {
-            this.showToast('Fragment could not be saved', 'negative');
-        }
-    }
-
-    async discardChanges() {
-        await this.source?.discardChanges();
-        this.showToast('Changes discarded', 'info');
-    }
-
-    async copyFragment() {
-        this.showToast('Cloning fragment...');
-        try {
-            await this.source?.copyFragment();
-            this.showToast('Fragment cloned', 'positive');
-        } catch (e) {
-            this.showToast('Fragment could not be cloned', 'negative');
-        }
-    }
-
     async closeFragmentEditor() {
+        this.source?.fragment?.discardChanges();
         await this.source?.setFragment(null);
         this.showEditorPanel = false;
-        this.requestUpdate();
     }
 
     closeConfirmSelect() {
@@ -629,54 +458,6 @@ class MasStudio extends LitElement {
 
     doSearch() {
         this.source?.searchFragments();
-    }
-
-    openFragmentInOdin() {
-        window.open(
-            `https://experience.adobe.com/?repo=${this.bucket}.adobeaemcloud.com#/@odin02/aem/cf/admin/?appId=aem-cf-admin&q=${this.fragment?.fragmentName}`,
-            '_blank',
-        );
-    }
-
-    async publishFragment() {
-        this.showToast('Publishing fragment...');
-        try {
-            await this.source?.publishFragment();
-            this.showToast('Fragment published', 'positive');
-        } catch (e) {
-            this.showToast('Fragment could not be published', 'negative');
-        }
-    }
-
-    async unpublishFragment() {
-        this.showToast('Unpublishing fragment...');
-        try {
-            await this.source?.unpublishFragment();
-            this.showToast('Fragment unpublished', 'positive');
-        } catch (e) {
-            this.showToast('Fragment could not be unpublished', 'negative');
-        }
-    }
-
-    async deleteFragment() {
-        if (confirm('Are you sure you want to delete this fragment?')) {
-            try {
-                await this.source?.deleteFragment();
-                this.showToast('Fragment deleted', 'positive');
-            } catch (e) {
-                this.showToast('Fragment could not be deleted', 'negative');
-            }
-        }
-    }
-
-    async copyToUse() {
-        const code = `<merch-card><aem-fragment fragment="${this.fragment?.id}"></aem-fragment></merch-card>`;
-        try {
-            await navigator.clipboard.writeText(code);
-            this.showToast('Code copied to clipboard', 'positive');
-        } catch (e) {
-            this.showToast('Failed to copy code to clipboard', 'negative');
-        }
     }
 }
 

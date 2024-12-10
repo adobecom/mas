@@ -135,10 +135,6 @@ action-bar {
     align-self: flex-end;
 }
 
-sp-textfield {
-    width: 360px;
-}
-
 sp-underlay + sp-dialog {
     position: fixed;
     top: 50%;
@@ -259,8 +255,17 @@ merch-card:hover {
     background-color: var(--spectrum-background-base-color) !important;
 }
 
-merch-card-editor {
-    display: contents;
+merch-card sp-icon-add,
+merch-card sp-icon-remove {
+    display: none;
+}
+
+merch-card.selected:hover sp-icon-remove {
+    display: block;
+}
+
+merch-card:hover:not(.selected) sp-icon-add {
+    display: block;
 }
 
 content-navigation[in-selection] render-view merch-card .overlay {

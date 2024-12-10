@@ -240,7 +240,7 @@ class AemFragments extends LitElement {
     async saveFragment() {
         let fragment = await this.aem.sites.cf.fragments.save(this.fragment);
         if (!fragment) throw new Error('Failed to save fragment');
-        aemFragmentCache.get(fragment.id)?.refreshFrom(fragment);
+        aemFragmentCache.get(fragment.id)?.refreshFrom(fragment, true);
     }
 
     async copyFragment() {

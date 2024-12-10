@@ -1,5 +1,5 @@
 import { css, html, LitElement } from 'lit';
-import { EVENT_CHANGE } from '../events.js';
+import { EVENT_CHANGE, EVENT_INPUT } from '../events.js';
 
 class MnemonicField extends LitElement {
     static get properties() {
@@ -25,11 +25,13 @@ class MnemonicField extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         this.shadowRoot.addEventListener(EVENT_CHANGE, this.handleChange);
+        this.shadowRoot.addEventListener(EVENT_INPUT, this.handleInput);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         this.shadowRoot.removeEventListener(EVENT_CHANGE, this.handleChange);
+        this.shadowRoot.removeEventListener(EVENT_INPUT, this.handleInput);
     }
 
     handleChange(event) {
@@ -38,6 +40,19 @@ class MnemonicField extends LitElement {
         event.stopPropagation();
         this.dispatchEvent(
             new CustomEvent(EVENT_CHANGE, {
+                bubbles: true,
+                composed: true,
+                detail: this,
+            }),
+        );
+    }
+
+    handleInput(event) {
+        if (event.target === this) return;
+        this[event.target.id] = event.target.value ?? '';
+        event.stopPropagation();
+        this.dispatchEvent(
+            new CustomEvent(EVENT_INPUT, {
                 bubbles: true,
                 composed: true,
                 detail: this,
@@ -54,14 +69,33 @@ class MnemonicField extends LitElement {
     }
 
     render() {
-        return html`
-            <sp-field-label required for="icon">Icon URL</sp-field-label>
-            <sp-textfield id="icon" required placeholder="Enter icon URL" value="${this.icon}" @change="${this.handleChange}"></sp-textfield>
+        return html` <sp-field-label required for="icon"
+                >Icon URL</sp-field-label
+            >
+            <sp-textfield
+                id="icon"
+                required
+                placeholder="Enter icon URL"
+                value="${this.icon}"
+                @change="${this.handleChange}"
+                @input="${this.handleInput}"
+            ></sp-textfield>
             <sp-field-label for="alt">Alt text</sp-field-label>
-            <sp-textfield id="alt" placeholder="enter alt text" value="${this.alt}" @change="${this.handleChange}"></sp-textfield>
+            <sp-textfield
+                id="alt"
+                placeholder="enter alt text"
+                value="${this.alt}"
+                @change="${this.handleChange}"
+                @input="${this.handleInput}"
+            ></sp-textfield>
             <sp-field-label for="link">Link</sp-field-label>
-            <sp-textfield id="link" placeholder="Enter target link" value="${this.link}" @change="${this.handleChange}"></sp-textfield
-        `;
+            <sp-textfield
+                id="link"
+                placeholder="Enter target link"
+                value="${this.link}"
+                @change="${this.handleChange}"
+                @input="${this.handleInput}"
+            ></sp-textfield>`;
     }
 
     static styles = css`

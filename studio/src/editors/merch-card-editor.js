@@ -58,7 +58,6 @@ class MerchCardEditor extends LitElement {
     }
 
     handleKeyDown(event) {
-        event.stopPropagation();
         if (event.code === 'Escape') this.close();
         if (event.code === 'ArrowLeft' && event.shiftKey)
             this.updatePosition('left');

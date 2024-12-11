@@ -1,6 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import StoreController from './reactivity/storeController.js';
-import Store, { isInSelection } from './store.js';
+import Store from './store.js';
 import './mas-fragment-render.js';
 import './mas-fragment-table.js';
 import { reactiveStore } from './reactivity/reactiveStore.js';
@@ -19,6 +19,7 @@ class MasFragment extends LitElement {
     }
 
     selecting = new StoreController(this, Store.selecting);
+    selection = new StoreController(this, Store.selection);
 
     handleClick(event) {
         if (this.selecting.value) return;
@@ -50,7 +51,7 @@ class MasFragment extends LitElement {
     get renderView() {
         if (this.view !== 'render') return nothing;
         const fragment = this.store.get();
-        const selected = isInSelection(fragment.id);
+        const selected = this.selection.value.includes(fragment.id);
         return html`<mas-fragment-render
             class="mas-fragment"
             data-id=${fragment.id}

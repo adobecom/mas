@@ -75,10 +75,6 @@ export function toggleSelection(id) {
     else Store.selection.set([...selection, id]);
 }
 
-export function isInSelection(id) {
-    return Store.selection.get().includes(id);
-}
-
 export function updateStore(path) {
     return function (value) {
         let target = Store;

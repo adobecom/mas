@@ -23,6 +23,57 @@ const isNodeCheckoutLink = (node) => {
     return node.type.name === 'link' && node.attrs['data-wcs-osi'] !== null;
 };
 
+class LinkNodeView {
+    constructor(node, view, getPos) {
+        this.node = node;
+        this.view = view;
+        this.getPos = getPos;
+
+        const isCheckoutLink = isNodeCheckoutLink(node);
+        this.dom = isCheckoutLink
+            ? document.createElement('a', { is: CUSTOM_ELEMENT_CHECKOUT_LINK })
+            : document.createElement('a');
+
+        for (const [key, value] of Object.entries(node.attrs)) {
+            if (value !== null) {
+                this.dom.setAttribute(key, value);
+            }
+        }
+
+        this.dom.textContent = this.node.textContent || '';
+
+        this.dom.addEventListener('click', (e) => e.preventDefault());
+    }
+
+    update(node) {
+        if (node.type !== this.node.type) {
+            return false;
+        }
+        this.node = node;
+
+        // Update attributes (excluding 'text')
+        for (const [key, value] of Object.entries(node.attrs)) {
+            if (value !== null) {
+                this.dom.setAttribute(key, value);
+            }
+        }
+
+        // Update text content
+        this.dom.textContent = this.node.textContent || '';
+
+        return true;
+    }
+
+    selectNode() {
+        this.dom.classList.add('ProseMirror-selectednode');
+    }
+
+    deselectNode() {
+        this.dom.classList.remove('ProseMirror-selectednode');
+    }
+}
+
+
 let ostRteFieldSource;
 
 class RteField extends LitElement {
@@ -232,11 +283,20 @@ class RteField extends LitElement {
                     'data-perpetual': { default: null },
                     'data-promotion-code': { default: null },
                     'data-wcs-osi': { default: null },
+                    'data-template': { default: null },
                     title: { default: null },
                     target: { default: null },
                     'data-analytics-id': { default: null },
                 },
-                parseDOM: [{ tag: 'a', getAttrs: this.#collectDataAttributes }],
+                parseDOM: [
+                    {
+                        tag: 'a',
+                        getAttrs: (dom) => ({
+                            ...this.#collectDataAttributes(dom),
+                            text: dom.textContent || '', // Collect text content as an attribute
+                        }),
+                    },
+                ],
                 toDOM: this.#createLinkElement.bind(this),
             });
         }
@@ -301,7 +361,7 @@ class RteField extends LitElement {
         for (const name of dom.getAttributeNames()) {
             if (attributeFilter(name)) {
                 const value = dom.getAttribute(name);
-                if (!value) continue;
+                if (value === null) continue;
                 attrs[name] = value;
             }
         }
@@ -328,10 +388,11 @@ class RteField extends LitElement {
 
         // Set attributes
         for (const [key, value] of Object.entries(node.attrs)) {
-            if (value !== null && key !== 'text') {
+            if (value) {
                 element.setAttribute(key, value);
             }
         }
+        if (!element.title) element.removeAttribute('title');
         // Serialize and append child nodes (content)
         const fragment = this.#serializer.serializeFragment(node.content);
         element.appendChild(fragment);
@@ -354,6 +415,10 @@ class RteField extends LitElement {
                 focus: this.#boundHandlers.focus,
             },
             handleDoubleClickOn: this.#boundHandlers.doubleClickOn,
+            nodeViews: {
+                link: (node, view, getPos) =>
+                    new LinkNodeView(node, view, getPos),
+            },
         });
 
         try {
@@ -525,14 +590,12 @@ class RteField extends LitElement {
             'data-analytics-id': analyticsId || null,
         };
 
+        const content = state.schema.text(text || selection.node.textContent);
         if (selection.node?.type.name === 'link') {
-            const updatedNode = linkNodeType.create(
-                { ...selection.node.attrs, ...linkAttrs },
-                state.schema.text(text || selection.node.textContent),
-            );
+            const mergedAttributes = { ...selection.node.attrs, ...linkAttrs };
+            const updatedNode = linkNodeType.create(mergedAttributes, content);
             tr = tr.replaceWith(selection.from, selection.to, updatedNode);
         } else {
-            const content = state.schema.text(text || '');
             const linkNode = linkNodeType.create(linkAttrs, content);
             tr = selection.empty
                 ? tr.insert(selection.from, linkNode)
@@ -567,8 +630,8 @@ class RteField extends LitElement {
                 : state.schema.nodes.link; // Fixed to use 'link' node type
 
         const mergedAttributes = {
+            ...(selection.node?.attrs ?? {}),
             ...attributes,
-            class: attributes.class || selection.node?.attrs.class || '',
         };
 
         const content =

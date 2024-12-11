@@ -12,6 +12,7 @@ class TableView extends LitElement {
 
             sp-table {
                 height: var(--table-height, 100%);
+                margin: 20px 16px;
             }
         `;
     }

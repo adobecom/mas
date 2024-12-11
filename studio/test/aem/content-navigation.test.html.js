@@ -7,8 +7,8 @@ import '../../src/aem/aem-fragments.js';
 import '../../src/aem/table-view.js';
 import '../../src/aem/render-view.js';
 
-import { mockFetch } from '@adobecom/milo/libs/features/mas/mocks/fetch.js';
-import { withAem } from '@adobecom/milo/libs/features/mas/mocks/aem.js';
+import { mockFetch } from '@adobecom/milo/libs/features/mas/test/mocks/fetch.js';
+import { withAem } from '@adobecom/milo/libs/features/mas/test/mocks/aem.js';
 import { getTemplateContent } from '../utils.js';
 
 const spTheme = document.querySelector('sp-theme');

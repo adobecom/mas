@@ -23,3 +23,9 @@ await build({
     entryPoints: ['src/rte/prosemirror.js'],
     outfile: 'libs/prosemirror.js',
 });
+
+await build({
+    ...defaults,
+    entryPoints: ['src/spectrum.css.js'],
+    outfile: 'libs/spectrum.js',
+});

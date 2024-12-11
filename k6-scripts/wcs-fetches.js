@@ -29,7 +29,9 @@ export default function () {
     const locale = { country: 'US', locale: 'en_US' };
     const osiIndex = (__VU - 1 + __ITER) % osis.length; // rotates per user & iteration
     const osi = osis[osiIndex];
-    const url = `${__ENV.TEST_WCS_URL}${osi}&country=${locale.country}&language=${locale.country === 'GB' ? 'EN' : 'MULT'}&locale=${locale.locale}&api_key=${api_key}&landscape=PUBLISHED`;
+    const landscape =
+        __ENV.TEST_WCS_URL?.indexOf('.stage.') > 0 ? 'ALL' : 'PUBLISHED';
+    const url = `${__ENV.TEST_WCS_URL}${osi}&country=${locale.country}&language=${locale.country === 'GB' ? 'EN' : 'MULT'}&locale=${locale.locale}&api_key=${api_key}&landscape=${landscape}`;
     const res = http.get(url);
 
     // Assertions to validate response

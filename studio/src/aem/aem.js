@@ -56,9 +56,14 @@ class AEM {
      * @param {string} [params.path] - The path to search in
      * @param {Array} [params.tags] - The tags
      * @param {string} [params.query] - The search query
+     * @param {AbortController} abortController used for cancellation
      * @returns A generator function that fetches all the matching data using a cursor that is returned by the search API
      */
-    async *searchFragment({ path, query = '', tags = [], sort }, limit) {
+    async *searchFragment(
+        { path, query = '', tags = [], sort },
+        limit,
+        abortController,
+    ) {
         const filter = {
             path,
         };
@@ -94,10 +99,10 @@ class AEM {
                 `${this.cfSearchUrl}?${searchParams}`,
                 {
                     headers: this.headers,
+                    signal: abortController?.signal,
                 },
-            ).catch((err) => {
-                throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
-            });
+            );
+
             if (!response.ok) {
                 throw new Error(
                     `Search failed: ${response.status} ${response.statusText}`,
@@ -131,13 +136,15 @@ class AEM {
      * @param {string} baseUrl the aem base url
      * @param {string} id fragment id
      * @param {Object} headers optional request headers
+     * @param {AbortController} abortController used for cancellation
      * @returns {Promise<Object>} the raw fragment item
      */
-    async getFragmentById(baseUrl, id, headers) {
+    async getFragmentById(baseUrl, id, headers, abortController) {
         const response = await fetch(
             `${baseUrl}/adobe/sites/cf/fragments/${id}`,
             {
                 headers,
+                signal: abortController?.signal,
             },
         );
         if (!response.ok) {
@@ -203,8 +210,7 @@ class AEM {
 
         await this.saveTags(fragment);
 
-        const newFragment = await this.sites.cf.fragments.getById(fragment.id);
-        return newFragment;
+        return this.pollUpdatedFragment(fragment);
     }
 
     async saveTags(fragment) {
@@ -245,6 +251,16 @@ class AEM {
             }).catch((err) => {
                 throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
             });
+        }
+    }
+
+    async pollUpdatedFragment(oldFragment) {
+        while (true) {
+            const newFragment = await this.sites.cf.fragments.getById(
+                oldFragment.id,
+            );
+            if (newFragment.etag !== oldFragment.etag) return newFragment;
+            await this.wait(150);
         }
     }
 
@@ -475,8 +491,13 @@ class AEM {
                 /**
                  * @see AEM#getFragmentById
                  */
-                getById: (id) =>
-                    this.getFragmentById(this.baseUrl, id, this.headers),
+                getById: (id, abortController) =>
+                    this.getFragmentById(
+                        this.baseUrl,
+                        id,
+                        this.headers,
+                        abortController,
+                    ),
                 /**
                  * @see AEM#saveFragment
                  */

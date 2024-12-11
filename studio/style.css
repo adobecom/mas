@@ -90,36 +90,23 @@ side-nav sp-sidenav-item:hover {
     font-weight: 700;
 }
 
-.content-container {
+.main-container {
     grid-column: 2 / 3;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    padding: 8px;
+    padding-block: 24px;
+    padding-inline: 16px;
 }
 
-.content {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    flex-grow: 1;
+#content-container {
+    height: 100%;
     border-radius: 8px;
-}
-
-#splash-container {
-    background: linear-gradient(180deg, #fff9f0 0%, #ffffff 100%);
-    background-color: #ffffff;
-    border-radius: 8px;
+    padding-inline: 24px;
+    background-color: var(--spectrum-white);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    padding: 24px;
-    width: 100%;
     box-sizing: border-box;
-}
-
-.content-container .content {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
+    position: relative;
 }
 
 mas-studio > ul > li {
@@ -157,12 +144,29 @@ sp-underlay + sp-dialog {
     width: 440px;
     background-color: var(--spectrum-white);
     padding: 20px;
-    padding-bottom: 75px;
     overflow-y: auto;
     box-sizing: border-box;
     box-shadow: 0px 1px 4px 4px rgb(0 0 0 / 10%);
     border-radius: 8px;
     transition: right 0.3s ease-in-out;
+}
+
+#editor-toolbar {
+    display: flex;
+    justify-content: end;
+    gap: 5px;
+}
+
+#editor aem-tag-picker-field {
+    margin-top: 20px;
+}
+
+merch-card-editor[position='left'] #move-left {
+    display: none;
+}
+
+merch-card-editor[position='right'] #move-right {
+    display: none;
 }
 
 #actions {
@@ -218,7 +222,7 @@ merch-card {
     box-sizing: border-box;
 }
 
-merch-card.selected {
+mas-fragment-render[selected] .render-card {
     outline: 2px solid var(--spectrum-global-color-blue-600);
 }
 
@@ -226,32 +230,11 @@ sp-progress-circle {
     position: absolute;
     top: 50%;
     left: 50%;
-    margin: 0 auto;
+    transform: translate(-50%, -50%);
 }
 
-content-navigation {
-    align-self: stretch;
-    flex: 1;
-    background-color: var(--spectrum-white);
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    box-sizing: border-box;
-}
-
-render-view {
-    margin: 20px 16px;
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    padding-inline-start: 0;
-    align-items: start;
-}
-
-content-navigation render-view merch-card .overlay {
-    display: none;
-}
-
-merch-card:not(.has-tooltip) ~ sp-tooltip {
+mas-fragment-render:not(.has-tooltip) merch-card ~ sp-tooltip,
+mas-fragment-table:not(.has-tooltip) ~ sp-tooltip {
     display: none;
 }
 
@@ -263,7 +246,7 @@ merch-card-editor {
     display: contents;
 }
 
-content-navigation[in-selection] render-view merch-card .overlay {
+merch-card .overlay {
     background-color: rgba(255, 255, 255, 0.5);
     border-radius: 16px;
     position: absolute;
@@ -292,6 +275,49 @@ mas-recently-updated > .container {
     padding-inline-start: 0;
 }
 
+mas-content {
+    width: 100%;
+    padding-inline: 30px;
+    box-sizing: border-box;
+}
+
+#content {
+    display: flex;
+    justify-content: center;
+    padding-bottom: 30px;
+}
+
+#content sp-table {
+    width: 100%;
+    & sp-table-body {
+        background-color: var(--spectrum-gray-100);
+    }
+    --spectrum-table-cell-background-color: transparent;
+}
+
+#content sp-table-body {
+    overflow: hidden;
+}
+
+#content #render {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+/* Splash styles */
+
+#splash-container {
+    background: linear-gradient(180deg, #fff9f0 0%, #ffffff 100%);
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
 #splash-container h1 {
     font-size: 32px;
     font-weight: bold;
@@ -316,13 +342,6 @@ mas-recently-updated > .container {
     margin-top: 0;
     margin-bottom: 16px;
     font-weight: bold;
-}
-
-.actions-grid {
-    display: flex;
-    gap: 16px;
-    justify-content: space-between;
-    margin-top: 24px;
 }
 
 .quick-action-card {
@@ -362,4 +381,17 @@ mas-recently-updated > .container {
     color: #333;
     display: flex;
     align-self: flex-start;
+}
+
+.actions-grid {
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+    margin-top: 24px;
+}
+
+#recently-updated-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
 }

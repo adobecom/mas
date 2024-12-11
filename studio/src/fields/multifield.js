@@ -1,5 +1,4 @@
 import { html, css, LitElement, nothing } from 'lit';
-import { EVENT_CHANGE } from '../events.js';
 
 class MasMultifield extends LitElement {
     static get properties() {
@@ -70,12 +69,12 @@ class MasMultifield extends LitElement {
     }
 
     #changed() {
-        this.dispatchEvent(
-            new CustomEvent(EVENT_CHANGE, {
-                bubbles: true,
-                composed: true,
-            }),
-        );
+        // this.dispatchEvent(
+        //     new CustomEvent(EVENT_CHANGE, {
+        //         bubbles: true,
+        //         composed: true,
+        //     }),
+        // );
     }
 
     // Handle the value change of a field

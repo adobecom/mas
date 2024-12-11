@@ -20,3 +20,9 @@ export const ANALYTICS_LINK_IDS = [
     'see-terms',
     'what-is-included',
 ];
+
+export const FOLDER_MAPPING = {
+    acom: 'Adobe.com',
+    nala: 'CCD',
+    'adobe-home': 'Adobe Home',
+};

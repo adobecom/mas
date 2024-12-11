@@ -1,17 +1,15 @@
 import { html, LitElement, nothing } from 'lit';
-
+import { MasFetcher } from './mas-fetcher.js';
+import Store from './store.js';
+import StoreController from './reactivity/storeController.js';
 import { Fragment } from './aem/fragment.js';
-import { AEM } from './aem/aem.js';
 
 class MasRecentlyUpdated extends LitElement {
     static get properties() {
         return {
             baseUrl: { type: String, attribute: 'base-url' },
             bucket: { type: String },
-            fragments: { type: Array, state: true },
             loading: { type: Boolean, reflect: true },
-            path: { type: String },
-            source: { type: String },
         };
     }
 
@@ -21,77 +19,51 @@ class MasRecentlyUpdated extends LitElement {
 
     constructor() {
         super();
-        this.fragments = [];
+        this.path = null;
         this.loading = true;
-        this.renderItem = this.renderItem.bind(this);
-    }
-
-    updated(changedProperties) {
-        if (changedProperties.has('path')) this.loadFragments();
+        this.updatePath = this.updatePath.bind(this);
     }
 
     connectedCallback() {
         super.connectedCallback();
-        this.aem = new AEM(this.bucket, this.baseUrl);
-        this.source = document.getElementById(this.source);
+        Store.search.subscribe(this.updatePath);
     }
 
-    handleClick(e) {
-        clearTimeout(this.tooltipTimeout);
-        const currentTarget = e.currentTarget;
-        this.tooltipTimeout = setTimeout(() => {
-            currentTarget.classList.add('has-tooltip');
-        }, 500);
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        Store.search.unsubscribe(this.updatePath);
     }
 
-    handleMouseLeave(e) {
-        clearTimeout(this.tooltipTimeout);
-        e.currentTarget.classList.remove('has-tooltip');
+    updatePath(value) {
+        if (this.path === value.path) return;
+        this.path = value.path;
+        this.loadFragments();
     }
 
-    handleDoubleClick(e, fragment) {
-        clearTimeout(this.tooltipTimeout);
-        e.currentTarget.classList.remove('has-tooltip');
-        this.source.selectFragment(e.clientX, e.clientY, fragment);
+    fragments = new StoreController(this, Store.fragments.data);
+
+    /** @type {MasFetcher} */
+    get fetcher() {
+        return document.querySelector('mas-fetcher');
     }
 
     async loadFragments() {
-        this.fragments = [];
-        if (!this.path) {
-            this.loading = false;
-            return;
-        }
         this.loading = true;
-        const cursor = await this.aem.sites.cf.fragments.search(
-            {
-                sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
-                path: `/content/dam/mas/${this.path}`,
-                // tags: ['mas:status/DEMO']
-            },
-            6,
-        );
-        const result = await cursor.next();
-        const fragments = result.value.map((item) => new Fragment(item, this));
-        await this.source.addToCache(fragments);
-        this.fragments = fragments;
+        await this.fetcher.loadRecentlyUpdatedFragments(this.path, 6);
         this.loading = false;
     }
 
-    renderItem(fragment) {
-        return html`<merch-card
-            @click="${this.handleClick}"
-            @mouseleave="${this.handleMouseLeave}"
-            @dblclick="${(e) => this.handleDoubleClick(e, fragment)}"
-        >
-            <aem-fragment fragment="${fragment.id}" ims author></aem-fragment>
-        </merch-card>`;
-    }
-
     render() {
-        if (!this.path) return nothing;
-        return html` <h2>Recently Updated</h2>
-            <div class="container">
-                ${this.fragments.map(this.renderItem)}
+        if (!this.path || this.loading) return nothing;
+        return html`<h2>Recently Updated</h2>
+            <div id="recently-updated-container">
+                ${this.fragments.value.map(
+                    (fragmentStore) =>
+                        html`<mas-fragment
+                            .store=${fragmentStore}
+                            view="render"
+                        ></mas-fragment>`,
+                )}
             </div>`;
     }
 }

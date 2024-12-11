@@ -1,5 +1,3 @@
-import { EVENT_CHANGE } from '../events.js';
-
 export class Fragment {
     path = '';
     hasChanges = false;
@@ -9,14 +7,24 @@ export class Fragment {
 
     selected = false;
 
+    initialValue;
+
     /**
      * @param {*} AEM Fragment JSON object
      * @param {*} eventTarget DOM element to dispatch events from
      */
-    constructor(
-        { id, etag, model, path, title, description, status, modified, fields },
-        eventTarget,
-    ) {
+    constructor({
+        id,
+        etag,
+        model,
+        path,
+        title,
+        description,
+        status,
+        modified,
+        fields,
+        tags,
+    }) {
         this.id = id;
         this.model = model;
         this.etag = etag;
@@ -27,7 +35,8 @@ export class Fragment {
         this.status = status;
         this.modified = modified;
         this.fields = fields;
-        this.eventTarget = eventTarget; /** can be null and set after on save */
+        this.tags = tags || [];
+        this.initialValue = structuredClone(this);
     }
 
     get variant() {
@@ -46,26 +55,25 @@ export class Fragment {
 
     refreshFrom(fragmentData) {
         Object.assign(this, fragmentData);
+        this.initialValue = structuredClone(this);
         this.hasChanges = false;
-        this.notify();
     }
 
-    notify() {
-        this.eventTarget.dispatchEvent(
-            new CustomEvent(EVENT_CHANGE, { detail: this }),
-        );
+    discardChanges() {
+        if (!this.hasChanges) return;
+        Object.assign(this, this.initialValue);
+        this.initialValue = structuredClone(this);
+        this.hasChanges = false;
     }
 
     toggleSelection(value) {
         if (value !== undefined) this.selected = value;
         else this.selected = !this.selected;
-        this.notify();
     }
 
     updateFieldInternal(fieldName, value) {
         this[fieldName] = value ?? '';
         this.hasChanges = true;
-        this.notify();
     }
 
     updateField(fieldName, value) {
@@ -82,7 +90,7 @@ export class Fragment {
                 this.hasChanges = true;
                 change = true;
             });
-        this.notify();
+        if (fieldName === 'tags') this.newTags = value;
         return change;
     }
 }

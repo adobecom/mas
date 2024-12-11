@@ -1,23 +1,9 @@
 import { html, css, LitElement } from 'lit';
+import Store from './store.js';
+import StoreController from './reactivity/storeController.js';
+import { FOLDER_MAPPING } from './constants.js';
 
 export class MasFolderPicker extends LitElement {
-    static properties = {
-        value: { type: String },
-        options: { type: Array },
-        open: { type: Boolean },
-        label: { type: String },
-    };
-
-    constructor() {
-        super();
-        this.options = [];
-        this.value = '';
-        this.label = '';
-        this.open = false;
-
-        this.handleTopFolders = this.handleTopFolders.bind(this);
-    }
-
     static styles = css`
         :host {
             display: block;
@@ -97,88 +83,19 @@ export class MasFolderPicker extends LitElement {
         }
     `;
 
-    connectedCallback() {
-        super.connectedCallback();
-        document.addEventListener('top-folders-loaded', this.handleTopFolders);
+    static properties = {
+        open: { state: true },
+    };
+
+    constructor() {
+        super();
+        this.open = false;
     }
 
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        // Remove the event listener
-        document.removeEventListener(
-            'top-folders-loaded',
-            this.handleTopFolders,
-        );
-    }
-
-    handleTopFolders(event) {
-        const { topFolders } = event.detail;
-
-        const folderMapping = {
-            acom: 'Adobe.com',
-            nala: 'CCD',
-            'adobe-home': 'Adobe Home',
-        };
-
-        this.options = topFolders
-            .map((folder) => ({
-                value: folder.toLowerCase(),
-                label: folderMapping[folder.toLowerCase()] || null,
-            }))
-            .filter((option) => option.label !== null);
-
-        if (this.options.length > 0) {
-            const urlParams = new URLSearchParams(window.location.search);
-            const pathParam = urlParams.get('path');
-            let matchedOption = null;
-
-            if (pathParam) {
-                matchedOption = this.options.find(
-                    (option) => option.value === pathParam.toLowerCase(),
-                );
-            }
-
-            if (matchedOption) {
-                this.value = matchedOption.value;
-                this.label = matchedOption.label;
-            } else {
-                this.value = this.options[0].value;
-                this.label = this.options[0].label;
-            }
-
-            this.dispatchEvent(
-                new CustomEvent('folder-change', {
-                    detail: { value: this.value, label: this.label },
-                    bubbles: true,
-                    composed: true,
-                }),
-            );
-
-            this.requestUpdate();
-        }
-    }
-
-    firstUpdated() {
-        const spMenu = this.shadowRoot.querySelector('sp-menu');
-        if (spMenu) {
-            spMenu.addEventListener(
-                'sp-announce-selected',
-                this.handleSelection.bind(this),
-            );
-        }
-    }
-
-    updated(changedProperties) {
-        if (changedProperties.has('open') && this.open) {
-            const spMenu = this.shadowRoot.querySelector('sp-menu');
-            if (spMenu) {
-                spMenu.addEventListener(
-                    'folder-change',
-                    this.handleSelection.bind(this),
-                );
-            }
-        }
-    }
+    foldersLoaded = new StoreController(this, Store.folders.loaded);
+    folders = new StoreController(this, Store.folders.data);
+    search = new StoreController(this, Store.search);
+    selecting = new StoreController(this, Store.selecting);
 
     toggleDropdown() {
         this.open = !this.open;
@@ -188,28 +105,22 @@ export class MasFolderPicker extends LitElement {
         this.open = false;
     }
 
-    get source() {
-        return document.querySelector('aem-fragments');
-    }
-
     handleSelection(event) {
-        const spMenu = event.target;
-        this.value = spMenu.value;
-        const selectedOption = this.options.find(
-            (option) => option.value === this.value,
-        );
-        this.label = selectedOption ? selectedOption.label : '';
+        const value = event.target.value;
+        Store.search.update((prev) => ({ ...prev, path: value }));
         this.closeDropdown();
-        this.dispatchEvent(
-            new CustomEvent('folder-change', {
-                detail: { value: this.value, label: this.label },
-                bubbles: true,
-                composed: true,
-            }),
-        );
     }
 
     render() {
+        const options = this.folders.value
+            .map((folder) => ({
+                value: folder.toLowerCase(),
+                label: FOLDER_MAPPING[folder.toLowerCase()] || null,
+            }))
+            .filter((option) => option.label !== null);
+        const currentFolder = options.find(
+            (option) => option.value === this.search.value.path,
+        );
         return html`
             <div
                 class="picker-button"
@@ -237,7 +148,9 @@ export class MasFolderPicker extends LitElement {
                             d="M19 0h11v26zM11.1 0H0v26zM15 9.6L22.1 26h-4.6l-2.1-5.2h-5.2z"
                         ></path>
                     </svg>
-                    <span class="surface-selection">${this.label}</span>
+                    <span class="surface-selection"
+                        >${currentFolder?.label}</span
+                    >
                 </span>
                 <sp-icon-chevron-down
                     dir="ltr"
@@ -252,17 +165,18 @@ export class MasFolderPicker extends LitElement {
                               selects="single"
                               role="listbox"
                           >
-                              ${this.options.map(
-                                  (option) => html`
+                              ${options.map(({ value, label }) => {
+                                  const selected =
+                                      this.search.value.path === value;
+                                  return html`
                                       <sp-menu-item
-                                          .value=${option.value}
-                                          ?selected=${this.value ===
-                                          option.value}
+                                          .value=${value}
+                                          ?selected=${selected}
                                       >
-                                          ${option.label}
+                                          ${label}
                                       </sp-menu-item>
-                                  `,
-                              )}
+                                  `;
+                              })}
                           </sp-menu>
                       </sp-popover>
                   `

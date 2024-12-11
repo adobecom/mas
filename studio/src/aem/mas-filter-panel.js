@@ -1,12 +1,8 @@
 import { html, css, LitElement } from 'lit';
 
 class MasFilterPanel extends LitElement {
-    static properties = {
-        source: { type: String },
-    };
     static styles = css`
         :host {
-            padding-inline: 16px;
             display: flex;
         }
 
@@ -26,33 +22,6 @@ class MasFilterPanel extends LitElement {
             color: var(--spectrum-gray-600);
         }
     `;
-
-    #source;
-
-    constructor() {
-        super();
-    }
-
-    connectedCallback() {
-        super.connectedCallback();
-        this.#source = document.getElementById(this.source);
-    }
-
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        this.#source.removeAttribute('tags');
-    }
-
-    handeFilterChange(event) {
-        const newValue = event.target.getAttribute('value');
-        if (!newValue) return;
-        const value = this.#source.getAttribute('tags') || '';
-        let tags = value.split(',').filter((tag) => Boolean(tag));
-        if (tags.includes(newValue))
-            tags = tags.filter((tag) => tag !== newValue);
-        else tags.push(newValue);
-        this.#source.setAttribute('tags', tags.join(','));
-    }
 
     render() {
         return html`

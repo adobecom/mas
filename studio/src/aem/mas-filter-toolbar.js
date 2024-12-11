@@ -9,26 +9,33 @@ class MasFilterToolbar extends LitElement {
             align-items: center;
             gap: 10px;
         }
+
         sp-picker {
             width: 100px;
         }
+
         sp-textfield {
             width: 200px;
         }
+
         sp-action-button {
             border: none;
             font-weight: bold;
         }
+
         sp-action-button:not(.filters-shown) {
             color: var(--spectrum-gray-700);
         }
+
         sp-action-button.filters-shown {
             background-color: var(--spectrum-blue-100);
             color: var(--spectrum-accent-color-1000);
         }
+
         sp-action-button.filters-shown:hover {
             background-color: var(--spectrum-blue-200);
         }
+
         .filters-badge {
             width: 18px;
             height: 18px;
@@ -39,6 +46,7 @@ class MasFilterToolbar extends LitElement {
             color: var(--spectrum-white);
             border-radius: 2px;
         }
+
         sp-search {
             --spectrum-search-border-radius: 16px;
         }

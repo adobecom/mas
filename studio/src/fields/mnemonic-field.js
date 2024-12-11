@@ -1,5 +1,4 @@
 import { css, html, LitElement } from 'lit';
-import { EVENT_CHANGE } from '../events.js';
 
 class MnemonicField extends LitElement {
     static get properties() {
@@ -24,25 +23,25 @@ class MnemonicField extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.shadowRoot.addEventListener(EVENT_CHANGE, this.handleChange);
+        // this.shadowRoot.addEventListener(EVENT_CHANGE, this.handleChange);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        this.shadowRoot.removeEventListener(EVENT_CHANGE, this.handleChange);
+        // this.shadowRoot.removeEventListener(EVENT_CHANGE, this.handleChange);
     }
 
     handleChange(event) {
         if (event.target === this) return;
         this[event.target.id] = event.target.value ?? '';
         event.stopPropagation();
-        this.dispatchEvent(
-            new CustomEvent(EVENT_CHANGE, {
-                bubbles: true,
-                composed: true,
-                detail: this,
-            }),
-        );
+        // this.dispatchEvent(
+        //     new CustomEvent(EVENT_CHANGE, {
+        //         bubbles: true,
+        //         composed: true,
+        //         detail: this,
+        //     }),
+        // );
     }
 
     get value() {

@@ -65,12 +65,6 @@ export class FragmentStore extends ReactiveStore {
         this.refreshAemFragment();
     }
 
-    replaceEtag(etag) {
-        this.value.replaceEtag(etag);
-        this.notify();
-        this.refreshAemFragment();
-    }
-
     discardChanges() {
         this.value.discardChanges();
         this.notify();

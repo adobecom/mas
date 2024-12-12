@@ -27,12 +27,10 @@ export class MasFetcher extends LitElement {
     static properties = {
         bucket: { type: String },
         baseUrl: { type: String, attribute: 'base-url' },
-        _foldersLoaded: { state: true },
     };
 
     constructor() {
         super();
-        this._foldersLoaded = false;
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
         this.publishFragment = this.publishFragment.bind(this);
@@ -63,7 +61,7 @@ export class MasFetcher extends LitElement {
 
     update() {
         super.update();
-        if (!this._foldersLoaded) return;
+        if (!Store.folders.loaded.get()) return;
         this.searchFragments();
     }
 
@@ -85,7 +83,6 @@ export class MasFetcher extends LitElement {
                     ...prev,
                     path: Object.keys(FOLDER_MAPPING).at(0),
                 }));
-            this._foldersLoaded = true;
         } catch (error) {
             console.error(`Could not load folders: ${error.message}`);
             Store.fragments.loading.set(false);

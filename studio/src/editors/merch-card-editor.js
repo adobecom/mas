@@ -8,6 +8,7 @@ import { FragmentStore } from '../reactivity/reactiveStore.js';
 import '../aem/aem-tag-picker-field.js';
 import { MasFetcher } from '../mas-fetcher.js';
 import './variant-picker.js';
+import { Fragment } from '../aem/fragment.js';
 
 const MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 
@@ -46,6 +47,12 @@ class MerchCardEditor extends LitElement {
     get fragmentStore() {
         if (!this.fragmentStoreController.value) return null;
         return this.fragmentStoreController.value;
+    }
+
+    /** @type {Fragment | null} */
+    get fragment() {
+        if (!this.fragmentStore) return null;
+        return this.fragmentStore.get();
     }
 
     connectedCallback() {
@@ -130,47 +137,51 @@ class MerchCardEditor extends LitElement {
         this.refreshing = false;
     }
 
+    get mnemonics() {
+        if (!this.fragment) return [];
+
+        const mnemonicIcon =
+            this.fragment.fields.find((f) => f.name === 'mnemonicIcon')
+                ?.values ?? [];
+        const mnemonicAlt =
+            this.fragment.fields.find((f) => f.name === 'mnemonicAlt')
+                ?.values ?? [];
+        const mnemonicLink =
+            this.fragment.fields.find((f) => f.name === 'mnemonicLink')
+                ?.values ?? [];
+        return (
+            mnemonicIcon?.map((icon, index) => ({
+                icon,
+                alt: mnemonicAlt[index] ?? '',
+                link: mnemonicLink[index] ?? '',
+            })) ?? []
+        );
+    }
+
     render() {
         if (this.loading)
             return html`<div id="editor">
                 <sp-progress-circle indeterminate size="l"></sp-progress-circle>
             </div>`;
 
-        if (this.refreshing) return nothing;
-        if (!this.fragmentStore) return nothing;
+        if (this.refreshing || !this.fragment) return nothing;
 
-        const fragment = this.fragmentStore.get();
-        if (fragment.model.path !== MODEL_PATH) return nothing;
+        if (this.fragment.model.path !== MODEL_PATH) return nothing;
+
         const form = Object.fromEntries([
-            ...fragment.fields.map((f) => [f.name, f]),
+            ...this.fragment.fields.map((f) => [f.name, f]),
         ]);
-
-        // Mnemonics
-        const mnemonicIcon =
-            fragment.fields.find((f) => f.name === 'mnemonicIcon')?.values ??
-            [];
-        const mnemonicAlt =
-            fragment.fields.find((f) => f.name === 'mnemonicAlt')?.values ?? [];
-        const mnemonicLink =
-            fragment.fields.find((f) => f.name === 'mnemonicLink')?.values ??
-            [];
-        const mnemonics =
-            mnemonicIcon?.map((icon, index) => ({
-                icon,
-                alt: mnemonicAlt[index] ?? '',
-                link: mnemonicLink[index] ?? '',
-            })) ?? [];
 
         return html`<div id="editor">
             ${this.toolbar}
-            <p>${fragment.path}</p>
+            <p>${this.fragment.path}</p>
             <sp-field-label for="card-variant">Variant</sp-field-label>
             <variant-picker
                 id="card-variant"
                 ?show-all="false"
                 data-field="variant"
                 default-value="${form.variant.values[0]}"
-                @change="${this.#updateFragment}"
+                @input="${this.#updateFragment}"
                 ?disabled=${this.disabled}
             ></variant-picker>
             <sp-field-label for="card-title">Title</sp-field-label>
@@ -179,7 +190,7 @@ class MerchCardEditor extends LitElement {
                 id="card-title"
                 data-field="cardTitle"
                 value="${form.cardTitle.values[0]}"
-                @change="${this.#updateFragment}"
+                @input="${this.#updateFragment}"
                 ?disabled=${this.disabled}
             ></sp-textfield>
             <sp-field-label for="card-subtitle">Subtitle</sp-field-label>
@@ -188,7 +199,7 @@ class MerchCardEditor extends LitElement {
                 id="card-subtitle"
                 data-field="subtitle"
                 value="${form.subtitle.values[0]}"
-                @change="${this.#updateFragment}"
+                @input="${this.#updateFragment}"
                 ?disabled=${this.disabled}
             ></sp-textfield>
             <sp-field-label for="card-size">Size</sp-field-label>
@@ -197,7 +208,7 @@ class MerchCardEditor extends LitElement {
                 id="card-size"
                 data-field="size"
                 value="${form.size.values[0]}"
-                @change="${this.#updateFragment}"
+                @input="${this.#updateFragment}"
                 ?disabled=${this.disabled}
             ></sp-textfield>
             <sp-field-label for="card-icon">Badge</sp-field-label>
@@ -206,14 +217,15 @@ class MerchCardEditor extends LitElement {
                 id="card-badge"
                 data-field="badge"
                 value="${form.badge.values[0]}"
-                @change="${this.#updateFragment}"
+                @input="${this.#updateFragment}"
                 ?disabled=${this.disabled}
             ></sp-textfield>
             <sp-field-label for="mnemonic">Mnemonics</sp-field-label>
             <mas-multifield
                 id="mnemonic"
-                .value="${mnemonics}"
+                .value="${this.mnemonics}"
                 @change="${this.#updateMnemonics}"
+                @input="${this.#updateMnemonics}"
             >
                 <template>
                     <mas-mnemonic-field></mas-mnemonic-field>
@@ -225,7 +237,7 @@ class MerchCardEditor extends LitElement {
                 id="background-title"
                 data-field="backgroundImage"
                 value="${form.backgroundImage.values[0]}"
-                @change="${this.#updateFragment}"
+                @input="${this.#updateFragment}"
                 ?disabled=${this.disabled}
             ></sp-textfield>
             <sp-field-label for="card-icon"
@@ -236,7 +248,7 @@ class MerchCardEditor extends LitElement {
                 id="background-alt-text"
                 data-field="backgroundImageAltText"
                 value="${form.backgroundImageAltText.values[0]}"
-                @change="${this.#updateFragment}"
+                @input="${this.#updateFragment}"
                 ?disabled=${this.disabled}
             ></sp-textfield>
             <sp-field-label for="horizontal"> Prices </sp-field-label>
@@ -277,7 +289,7 @@ class MerchCardEditor extends LitElement {
                 label="Tags"
                 namespace="/content/cq:tags/mas"
                 multiple
-                value="${fragment.tags.map((tag) => tag.id).join(',')}"
+                value="${this.fragment.tags.map((tag) => tag.id).join(',')}"
                 @change=${this.#handeTagsChange}
             ></aem-tag-picker-field>
             <p>Fragment details (not shown on the card)</p>
@@ -287,7 +299,8 @@ class MerchCardEditor extends LitElement {
                 placeholder="Enter fragment title"
                 id="fragment-title"
                 data-field="title"
-                value="${fragment.title}"
+                value="${this.fragment.title}"
+                @input=${this.#updateFragmentInternal}
                 ?disabled=${this.disabled}
             ></sp-textfield>
             <sp-field-label for="fragment-description"
@@ -298,7 +311,8 @@ class MerchCardEditor extends LitElement {
                 id="fragment-description"
                 data-field="description"
                 multiline
-                value="${fragment.description}"
+                value="${this.fragment.description}"
+                @input=${this.#updateFragmentInternal}
                 ?disabled=${this.disabled}
             ></sp-textfield>
         </div> `;
@@ -319,7 +333,22 @@ class MerchCardEditor extends LitElement {
         this.hasChanges = true;
     }
 
-    #updateMnemonics(e) {
+    #updateFragmentInternal(event) {
+        const fieldName = event.target.dataset.field;
+        let value = event.target.value;
+        this.fragmentStore.updateFieldInternal(fieldName, value);
+        this.hasChanges = true;
+    }
+
+    #updateMnemonics(event) {
+        const mnemonicIcon = [];
+        const mnemonicAlt = [];
+        const mnemonicLink = [];
+        event.target.value.forEach(({ icon, alt, link }) => {
+            mnemonicIcon.push(icon ?? '');
+            mnemonicAlt.push(alt ?? '');
+            mnemonicLink.push(link ?? '');
+        });
         const fragment = this.fragmentStore.get();
         fragment.updateField('mnemonicIcon', mnemonicIcon);
         fragment.updateField('mnemonicAlt', mnemonicAlt);

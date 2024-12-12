@@ -11,7 +11,8 @@ export class ReactiveStore {
     }
 
     set(value) {
-        if (this.value === value) return;
+        // If primitive and equal, no need to update; 'notify' can be used instead if needed
+        if (this.value !== Object(this.value) && this.value === value) return;
         this.value = value;
         this.notify();
     }
@@ -56,6 +57,12 @@ export class FragmentStore extends ReactiveStore {
 
     updateField(name, value) {
         this.value.updateField(name, value);
+        this.notify();
+        this.refreshAemFragment();
+    }
+
+    updateFieldInternal(name, value) {
+        this.value.updateFieldInternal(name, value);
         this.notify();
         this.refreshAemFragment();
     }

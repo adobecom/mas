@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import Store from './store.js';
+import Store, { navigateToPage } from './store.js';
 
 class MasSideNav extends LitElement {
     static styles = css`
@@ -56,12 +56,6 @@ class MasSideNav extends LitElement {
         }
     `;
 
-    navigateTo(target) {
-        return function () {
-            Store.currentPage.set(target);
-        };
-    }
-
     render() {
         return html`<side-nav>
             <div class="dropdown-container">
@@ -71,7 +65,7 @@ class MasSideNav extends LitElement {
                 <sp-sidenav-item
                     label="Home"
                     value="home"
-                    @click="${this.navigateTo('splash')}"
+                    @click="${navigateToPage('splash')}"
                     selected
                 >
                     <sp-icon-home slot="icon"></sp-icon-home>

@@ -2,9 +2,9 @@ import { LitElement, html } from 'lit';
 import { contentIcon } from './img/content-icon.js';
 import { promosIcon } from './img/promos-icon.js';
 import { ostIcon } from './img/ost-icon.js';
-import Store from './store.js';
+import { navigateToPage } from './store.js';
 import './mas-recently-updated.js';
-import { getMerchCardEditor } from './editors/merch-card-editor.js';
+import { openOfferSelectorTool } from './rte/ost.js';
 
 class MasSplashScreen extends LitElement {
     static properties = {
@@ -15,12 +15,8 @@ class MasSplashScreen extends LitElement {
         return this;
     }
 
-    navigateTo(value) {
-        return function () {
-            const editor = getMerchCardEditor();
-            if (editor && !editor.close()) return;
-            Store.currentPage.set(value);
-        };
+    openOst() {
+        openOfferSelectorTool();
     }
 
     render() {
@@ -31,7 +27,7 @@ class MasSplashScreen extends LitElement {
                 <div class="actions-grid">
                     <div
                         class="quick-action-card"
-                        @click=${this.navigateTo('content')}
+                        @click=${navigateToPage('content')}
                         heading="Go to Content"
                     >
                         <div slot="cover-photo">${contentIcon}</div>

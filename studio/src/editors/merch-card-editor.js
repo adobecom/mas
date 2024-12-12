@@ -182,6 +182,7 @@ class MerchCardEditor extends LitElement {
                 data-field="variant"
                 default-value="${form.variant.values[0]}"
                 @input="${this.#updateFragment}"
+                @change="${this.#updateFragment}"
                 ?disabled=${this.disabled}
             ></variant-picker>
             <sp-field-label for="card-title">Title</sp-field-label>
@@ -326,6 +327,7 @@ class MerchCardEditor extends LitElement {
     }
 
     #updateFragment(event) {
+        console.log(event);
         const fieldName = event.target.dataset.field;
         let value = event.target.value || event.detail?.value;
         value = event.target.multiline ? value?.split(',') : [value ?? ''];

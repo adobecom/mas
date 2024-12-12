@@ -44,8 +44,7 @@ class MasFragment extends LitElement {
         clearTimeout(tooltipTimeout.get());
         event.currentTarget.classList.remove('has-tooltip');
         // Handle edit
-        const id = this.store.get()?.id;
-        editFragment(id, event.clientX);
+        editFragment(this.store, event.clientX);
     }
 
     get renderView() {

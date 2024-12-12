@@ -4,7 +4,7 @@ import Store from './store.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
-import { getFragmentStore, getInEditFragment } from './store.js';
+import { getInEditFragment } from './store.js';
 import { FragmentStore } from './reactivity/reactiveStore.js';
 import { editFragment } from './editors/merch-card-editor.js';
 import { FOLDER_MAPPING } from './constants.js';
@@ -201,11 +201,12 @@ export class MasFetcher extends LitElement {
                 content: 'Saving fragment...',
             });
 
-            const fragment = getInEditFragment();
+            const fragmentStore = Store.fragments.inEdit.get();
+            const fragment = fragmentStore.get();
             let updatedFragment =
                 await this.#aem.sites.cf.fragments.save(fragment);
             if (!updatedFragment) throw new Error('Invalid fragment.');
-            getFragmentStore(fragment.id).refreshFrom(updatedFragment);
+            fragmentStore.refreshFrom(updatedFragment);
 
             Events.showToast.emit({
                 variant: 'positive',
@@ -234,11 +235,9 @@ export class MasFetcher extends LitElement {
             const newFragment = new Fragment(result);
             Fragment.cache.add(newFragment);
 
-            Store.fragments.data.update((prev) => [
-                ...prev,
-                new FragmentStore(newFragment),
-            ]);
-            editFragment(newFragment.id);
+            const newFragmentStore = new FragmentStore(newFragment);
+            Store.fragments.data.update((prev) => [...prev, newFragmentStore]);
+            editFragment(newFragmentStore);
 
             Events.fragmentAdded.emit(newFragment.id);
             Events.showToast.emit({
@@ -321,9 +320,14 @@ export class MasFetcher extends LitElement {
         return false;
     }
 
-    async refreshFragment(id) {
+    /**
+     * Updates a given fragment store with the latest data
+     * @param {FragmentStore} store
+     */
+    async refreshFragment(store) {
+        const id = store.get().id;
         const latest = await this.#aem.sites.cf.fragments.getById(id);
-        getFragmentStore(id).refreshFrom(latest);
+        store.refreshFrom(latest);
     }
 
     render() {

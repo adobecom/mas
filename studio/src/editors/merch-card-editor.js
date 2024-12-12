@@ -2,7 +2,7 @@ import { html, LitElement, nothing } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import '../fields/multifield.js';
 import '../fields/mnemonic-field.js';
-import Store, { getFragmentStore, getInEditFragment } from '../store.js';
+import Store from '../store.js';
 import StoreController from '../reactivity/storeController.js';
 import { FragmentStore } from '../reactivity/reactiveStore.js';
 import '../aem/aem-tag-picker-field.js';
@@ -40,7 +40,13 @@ class MerchCardEditor extends LitElement {
         return document.querySelector('mas-fetcher');
     }
 
-    fragmentInEdit = new StoreController(this, Store.fragments.inEdit);
+    fragmentStoreController = new StoreController(this, Store.fragments.inEdit);
+
+    /** @type {FragmentStore | null} */
+    get fragmentStore() {
+        if (!this.fragmentStoreController.value) return null;
+        return this.fragmentStoreController.value;
+    }
 
     connectedCallback() {
         super.connectedCallback();
@@ -52,11 +58,6 @@ class MerchCardEditor extends LitElement {
         document.removeEventListener('keydown', this.handleKeyDown);
     }
 
-    /** @type {FragmentStore} */
-    get fragmentStore() {
-        return getFragmentStore(Store.fragments.inEdit.get());
-    }
-
     handleKeyDown(event) {
         if (event.code === 'Escape') this.close();
         if (event.code === 'ArrowLeft' && event.shiftKey)
@@ -66,7 +67,7 @@ class MerchCardEditor extends LitElement {
     }
 
     close() {
-        if (!this.fragmentInEdit.value) return;
+        if (!this.fragmentStore) return;
         if (this.hasChanges && !window.confirm('Discard all current changes?'))
             return;
         this.discardChanges(false);
@@ -74,6 +75,7 @@ class MerchCardEditor extends LitElement {
     }
 
     discardChanges(refresh = true) {
+        if (!this.hasChanges) return;
         this.fragmentStore.discardChanges();
         this.hasChanges = false;
         if (refresh) this.refresh();
@@ -91,24 +93,26 @@ class MerchCardEditor extends LitElement {
         this.setAttribute('position', position);
     }
 
-    async editFragment(id, x) {
+    async editFragment(store, x) {
         if (x) {
             const newPosition = x > window.innerWidth / 2 ? 'left' : 'right';
             this.updatePosition(newPosition);
         }
-        if (this.fragmentInEdit.value === id) return;
-        const wasEmpty = !Store.fragments.inEdit.get();
+        const id = store.get().id;
+        const currentId = this.fragmentStore?.get().id;
+        if (id === currentId) return;
+        const wasEmpty = !currentId;
         if (
             !wasEmpty &&
             this.hasChanges &&
             !window.confirm('Discard all current changes?')
         )
             return;
-        if (!wasEmpty) this.discardChanges(false);
+        this.discardChanges(false);
         this.loading = true;
-        await this.fetcher.refreshFragment(id);
+        await this.fetcher.refreshFragment(store);
         this.loading = false;
-        Store.fragments.inEdit.set(id);
+        Store.fragments.inEdit.set(store);
         if (!wasEmpty) this.refresh();
     }
 
@@ -125,7 +129,7 @@ class MerchCardEditor extends LitElement {
             </div>`;
 
         if (this.refreshing) return nothing;
-        if (!this.fragmentInEdit.value) return nothing;
+        if (!this.fragmentStore) return nothing;
 
         const fragment = this.fragmentStore.get();
         if (fragment.model.path !== MODEL_PATH) return nothing;
@@ -328,7 +332,7 @@ class MerchCardEditor extends LitElement {
     }
 
     openFragmentInOdin() {
-        const fragment = getInEditFragment();
+        const fragment = this.fragmentStore.get();
         window.open(
             `https://experience.adobe.com/?repo=${this.bucket}.adobeaemcloud.com#/@odin02/aem/cf/admin/?appId=aem-cf-admin&q=${fragment?.fragmentName}`,
             '_blank',
@@ -499,9 +503,9 @@ class MerchCardEditor extends LitElement {
 
 customElements.define('merch-card-editor', MerchCardEditor);
 
-export async function editFragment(id, x) {
+export async function editFragment(store, x) {
     /** @type {MerchCardEditor} */
     const editor = document.querySelector('merch-card-editor');
     if (!editor) return;
-    return editor.editFragment(id, x);
+    return editor.editFragment(store, x);
 }

@@ -2,7 +2,6 @@ import { LitElement, html, css, nothing } from 'lit';
 import StoreController from './reactivity/storeController.js';
 import Store from './store.js';
 import { extractValue, preventDefault } from './utils.js';
-import { updateStore } from './store.js';
 import './mas-folder-picker.js';
 import './aem/mas-filter-panel.js';
 import './mas-selection-panel.js';
@@ -116,6 +115,10 @@ class MasToolbar extends LitElement {
         Store.renderMode.set(ev.target.value);
     }
 
+    updateQuery(value) {
+        Store.search.update((prev) => ({ ...prev, query: value }));
+    }
+
     get readActions() {
         return html`<div id="read">
             <sp-action-button
@@ -134,10 +137,8 @@ class MasToolbar extends LitElement {
             >
             <sp-search
                 placeholder="Search"
-                @change="${extractValue(updateStore('search.query'))}"
-                @submit="${preventDefault(
-                    extractValue(updateStore('search.query')),
-                )}"
+                @change="${extractValue(this.updateQuery)}"
+                @submit="${preventDefault(extractValue(this.updateQuery))}"
                 value=${this.search.value.query}
                 size="m"
             ></sp-search>

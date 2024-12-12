@@ -1,11 +1,7 @@
 import { Fragment } from './aem/fragment.js';
 import MasFilters from './entities/filters.js';
 import MasSearch from './entities/search.js';
-import {
-    FragmentStore,
-    ReactiveStore,
-    reactiveStore,
-} from './reactivity/reactiveStore.js';
+import { reactiveStore } from './reactivity/reactiveStore.js';
 
 const Store = {
     fragments: {
@@ -32,38 +28,11 @@ export default Store;
 /** Utils */
 
 /**
- *
- * @param {string} id
- * @returns {FragmentStore}
- */
-export function getFragmentStore(id) {
-    const fragments = Store.fragments.data.get();
-    const fragmentStore = fragments.find((f) => f.get().id === id);
-    return fragmentStore || null;
-}
-
-/**
- *
- * @param {string} id
- * @returns {Fragment}
- */
-export function getFragment(id) {
-    const fragments = Store.fragments.data.get();
-    const fragmentStore = fragments.find((f) => f.get().id === id);
-    return fragmentStore?.get() || null;
-}
-
-/**
- *
- * @param {string} id
+ * Shortcut for retrieveing the underlying in edit fragment
  * @returns {Fragment}
  */
 export function getInEditFragment() {
-    const fragments = Store.fragments.data.get();
-    const fragmentStore = fragments.find(
-        (f) => f.get().id === Store.fragments.inEdit.get(),
-    );
-    return fragmentStore?.get() || null;
+    return Store.fragments.inEdit.get().get();
 }
 
 export function toggleSelection(id) {
@@ -73,24 +42,4 @@ export function toggleSelection(id) {
             selection.filter((selectedId) => selectedId !== id),
         );
     else Store.selection.set([...selection, id]);
-}
-
-export function updateStore(path) {
-    return function (value) {
-        let target = Store;
-        let lastStore = null;
-        const segments = path.split('.');
-        for (const segment of segments) {
-            if (target instanceof ReactiveStore) {
-                lastStore = target;
-                target = target.get();
-            }
-            target = target[segment];
-        }
-        if (target instanceof ReactiveStore) {
-            target.set(value);
-        } else {
-            lastStore.update((prev) => ({ ...prev, [segments.at(-1)]: value }));
-        }
-    };
 }

@@ -11,6 +11,7 @@ export class ReactiveStore {
     }
 
     set(value) {
+        if (this.value === value) return;
         this.value = value;
         this.notify();
     }

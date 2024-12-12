@@ -62,7 +62,6 @@ class MasStudio extends LitElement {
                 bucket="${this.bucket}"
                 base-url="${this.baseUrl}"
             ></mas-fetcher>
-
             <div class="studio-content">
                 <mas-side-nav></mas-side-nav>
                 <div class="main-container">

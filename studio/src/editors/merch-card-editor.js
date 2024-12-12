@@ -66,12 +66,16 @@ class MerchCardEditor extends LitElement {
             this.updatePosition('right');
     }
 
+    /**
+     * @returns {boolean} Whether or not the editor was closed
+     */
     close() {
-        if (!this.fragmentStore) return;
+        if (!this.fragmentStore) return true;
         if (this.hasChanges && !window.confirm('Discard all current changes?'))
-            return;
+            return false;
         this.discardChanges(false);
         Store.fragments.inEdit.set(null);
+        return true;
     }
 
     discardChanges(refresh = true) {
@@ -93,6 +97,10 @@ class MerchCardEditor extends LitElement {
         this.setAttribute('position', position);
     }
 
+    /**
+     * @param {FragmentStore} store
+     * @param {number | undefined} x
+     */
     async editFragment(store, x) {
         if (x) {
             const newPosition = x > window.innerWidth / 2 ? 'left' : 'right';
@@ -503,9 +511,18 @@ class MerchCardEditor extends LitElement {
 
 customElements.define('merch-card-editor', MerchCardEditor);
 
+/**
+ * @returns {MerchCardEditor}
+ */
+export function getMerchCardEditor() {
+    return document.querySelector('merch-card-editor');
+}
+
+/**
+ * @param {FragmentStore} store
+ * @param {number | undefined} x
+ */
 export async function editFragment(store, x) {
-    /** @type {MerchCardEditor} */
-    const editor = document.querySelector('merch-card-editor');
-    if (!editor) return;
-    return editor.editFragment(store, x);
+    const editor = getMerchCardEditor();
+    editor.editFragment(store, x);
 }

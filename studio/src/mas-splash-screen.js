@@ -3,8 +3,8 @@ import { contentIcon } from './img/content-icon.js';
 import { promosIcon } from './img/promos-icon.js';
 import { ostIcon } from './img/ost-icon.js';
 import Store from './store.js';
-import StoreController from './reactivity/storeController.js';
 import './mas-recently-updated.js';
+import { getMerchCardEditor } from './editors/merch-card-editor.js';
 
 class MasSplashScreen extends LitElement {
     static properties = {
@@ -15,7 +15,13 @@ class MasSplashScreen extends LitElement {
         return this;
     }
 
-    search = new StoreController(this, Store.search);
+    navigateTo(value) {
+        return function () {
+            const editor = getMerchCardEditor();
+            if (editor && !editor.close()) return;
+            Store.currentPage.set(value);
+        };
+    }
 
     render() {
         return html`<div id="splash-container">
@@ -25,7 +31,7 @@ class MasSplashScreen extends LitElement {
                 <div class="actions-grid">
                     <div
                         class="quick-action-card"
-                        @click=${() => Store.currentPage.set('content')}
+                        @click=${this.navigateTo('content')}
                         heading="Go to Content"
                     >
                         <div slot="cover-photo">${contentIcon}</div>

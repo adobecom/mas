@@ -63,40 +63,50 @@
         <!-- MAS Studio Icon goes here -->
         <mas-commerce-service></mas-commerce-service>
         <script>
-            window.adobeid = {
-                api_parameters: {
-                    profile_filter:
-                        "isOwnedByOrg('3B962FB55F5F922E0A495C88@AdobeOrg')",
-                },
-                client_id: 'mas-studio',
-                environment: 'prod',
-                locale: 'en_US',
-                redirect_uri: location.href.substring(
-                    0,
-                    location.href.length - location.hash.length,
-                ) + '#path=acom',
-                response_type: 'id_token',
-                scope: 'additional_info,additional_info.projectedProductContext,additional_info.roles,AdobeID,openid,read_organizations,read_pc,read_pc.acp,read_pc.dma_aem_ams,read_pc.dma_aem_cloud,read_pc.dma_tartan',
-                useLocalStorage: true,
-                authorize() {
-                    const { expire, token } =
-                        window.adobeIMS?.getAccessToken() ?? {};
-                    if (token && (expire?.valueOf() ?? 0) > Date.now())
-                        return token;
-                    window.adobeIMS?.signIn();
-                },
-                onError(error) {
-                    console.error('[M@S Studio] IMS error: ', error);
-                },
-                onReady() {
-                    if (adobeIMS.isSignedInUser()) {
-                        console.info('[M@S Studio] IMS is ready, signed in');
-                    } else {
-                        console.info('[M@S Studio] IMS is ready, signing in');
-                        adobeIMS.signIn();
-                    }
-                },
-            };
+            console.log('tetete');
+            const searchParameters = new URL(window.location.href).searchParams;
+            const accessToken = searchParameters.get("token");
+            console.log('tututu' + accessToken);
+            if (aosAccessToken) {
+                sessionStorage.setItem('AOS_ACCESS_TOKEN', aosAccessToken);
+                searchParameters.delete('token');
+            }
+            if (!accessToken) {
+                window.adobeid = {
+                    api_parameters: {
+                        profile_filter:
+                            "isOwnedByOrg('3B962FB55F5F922E0A495C88@AdobeOrg')",
+                    },
+                    client_id: 'mas-studio',
+                    environment: 'prod',
+                    locale: 'en_US',
+                    redirect_uri: location.href.substring(
+                        0,
+                        location.href.length - location.hash.length,
+                    ) + '#path=acom',
+                    response_type: 'id_token',
+                    scope: 'additional_info,additional_info.projectedProductContext,additional_info.roles,AdobeID,openid,read_organizations,read_pc,read_pc.acp,read_pc.dma_aem_ams,read_pc.dma_aem_cloud,read_pc.dma_tartan',
+                    useLocalStorage: true,
+                    authorize() {
+                        const { expire, token } =
+                            window.adobeIMS?.getAccessToken() ?? {};
+                        if (token && (expire?.valueOf() ?? 0) > Date.now())
+                            return token;
+                        window.adobeIMS?.signIn();
+                    },
+                    onError(error) {
+                        console.error('[M@S Studio] IMS error: ', error);
+                    },
+                    onReady() {
+                        if (adobeIMS.isSignedInUser()) {
+                            console.info('[M@S Studio] IMS is ready, signed in');
+                        } else {
+                            console.info('[M@S Studio] IMS is ready, signing in');
+                            adobeIMS.signIn();
+                        }
+                    },
+                };
+            }
         </script>
         <script src="https://www.adobe.com/libs/deps/imslib.min.js"></script>
     </head>

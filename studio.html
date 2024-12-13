@@ -67,8 +67,8 @@
             const searchParameters = new URL(window.location.href).searchParams;
             const accessToken = searchParameters.get("token");
             console.log('tututu' + accessToken);
-            if (aosAccessToken) {
-                sessionStorage.setItem('AOS_ACCESS_TOKEN', aosAccessToken);
+            if (accessToken) {
+                sessionStorage.setItem('AOS_ACCESS_TOKEN', accessToken);
                 searchParameters.delete('token');
             }
             if (!accessToken) {

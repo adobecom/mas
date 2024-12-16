@@ -7,6 +7,7 @@ const VARIANTS = [
     { label: 'Slice', value: 'ccd-slice', surface: 'ccd' },
     { label: 'Special offers', value: 'special-offers', surface: 'acom' },
     { label: 'Suggested', value: 'ccd-suggested', surface: 'ccd' },
+    { label: 'Pricing widget', value: 'pricing-widget', surface: 'adobe-home' },
 ];
 
 class VariantPicker extends LitElement {

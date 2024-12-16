@@ -1,4 +1,5 @@
 import { LitElement, html, css } from 'lit';
+import { EVENT_COMMERCE_TOGGLE } from './events.js';
 
 const EnvColorCode = {
     proxy: 'gray',
@@ -8,12 +9,14 @@ const EnvColorCode = {
 };
 class MasTopNav extends LitElement {
     static properties = {
-        env: { type: String },
+        aemEnv: { type: String, attribute: 'aem-env' },
+        commerceEnv: { type: String, attribute: 'commerce-env' },
     };
 
     constructor() {
         super();
-        this.env = 'prod';
+        this.aemEnv = 'prod';
+        this.commerceEnv = 'prod';
     }
 
     get envIndicator() {
@@ -53,7 +56,23 @@ class MasTopNav extends LitElement {
         `;
     }
 
+    toggleCommerce(e) {
+        e.preventDefault();
+        this.dispatchEvent(
+            new CustomEvent(EVENT_COMMERCE_TOGGLE, {
+                bubbles: true,
+                composed: true,
+            }),
+        );
+    }
+
     render() {
+        const commerceEnvSwitch =
+            this.commerceEnv === 'stage'
+                ? html`<sp-switch label="Switch" checked>
+                      Stage Commerce
+                  </sp-switch>`
+                : html`<sp-switch label="Switch"> Stage Commerce </sp-switch>`;
         return html`
             <sp-top-nav>
                 <sp-top-nav-item
@@ -81,13 +100,16 @@ class MasTopNav extends LitElement {
                     </svg>
                     <strong>Merch @ Scale Studio</strong>
                 </sp-top-nav-item>
-                <sp-top-nav-item href="#" label="Help" placement="bottom-end">
-                    <sp-badge size="s" variant="${this.envIndicator}">${this.env}</sp-badge>
+                <sp-top-nav-item href="#" label="Odin Env" placement="bottom-end">
+                    <sp-badge size="s" variant="${this.envIndicator}">${this.aemEnv}</sp-badge>
+                </sp-top-nav-item>
+                <sp-top-nav-item href="#" label="Commerce Env" placement="bottom-end" @click="${this.toggleCommerce}">
+                    ${commerceEnvSwitch}
                 </sp-top-nav-item>
                 <sp-top-nav-item href="#" label="Help" placement="bottom-end">
                     <sp-icon-help-outline></sp-icon-help-outline>
                 </sp-top-nav-item>
-                <sp-top-nav-item href="#" label="Help" placement="bottom-end">
+                <sp-top-nav-item href="#" label="Notifications" placement="bottom-end">
                     <sp-icon-bell></sp-icon-bell>
                     <sp-top-nav-item
                         href="#"

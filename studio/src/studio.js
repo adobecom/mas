@@ -1,5 +1,5 @@
 import { html, LitElement, nothing } from 'lit';
-import { EVENT_CHANGE, EVENT_SUBMIT } from './events.js';
+import { EVENT_CHANGE, EVENT_SUBMIT, EVENT_COMMERCE_TOGGLE } from './events.js';
 import { deeplink, pushState } from './deeplink.js';
 import './editor-panel.js';
 import './editors/merch-card-editor.js';
@@ -24,11 +24,13 @@ class MasStudio extends LitElement {
         variant: { type: String, state: true },
         newFragment: { type: Object, state: true },
         showEditorPanel: { type: Boolean, state: true },
+        commerceEnv: { type: String, attribute: 'commerce-env' },
     };
 
     constructor() {
         super();
         this.bucket = '';
+        this.commerceEnv = 'prod';
         this.newFragment = null;
         this.variant = 'all';
         this.searchText = '';
@@ -72,6 +74,19 @@ class MasStudio extends LitElement {
         this.addEventListener('select-fragment', (e) =>
             this.handleOpenFragment(e),
         );
+
+        this.addEventListener(EVENT_COMMERCE_TOGGLE, () => {
+            this.commerceEnv = this.commerceEnv === 'stage' ? 'prod' : 'stage';
+            const service = this.querySelector('mas-commerce-service');
+            const newService = service.cloneNode(true);
+            newService.setAttribute('env', this.commerceEnv);
+            service.remove();
+            this.prepend(newService);
+            // update url
+            const url = new URL(window.location.href);
+            url.searchParams.set('commerce.env', this.commerceEnv);
+            window.history.pushState({}, '', url);
+        });
     }
 
     disconnectedCallback() {
@@ -119,7 +134,7 @@ class MasStudio extends LitElement {
         return this.source?.fragment;
     }
 
-    get env() {
+    get aemEnv() {
         return BUCKET_TO_ENV[this.bucket] || 'proxy';
     }
 
@@ -192,7 +207,13 @@ class MasStudio extends LitElement {
 
     render() {
         return html`
-            <mas-top-nav env="${this.env}"></mas-top-nav>
+            <mas-commerce-service
+                env="${this.commerceEnv}"
+            ></mas-commerce-service>
+            <mas-top-nav
+                aem-env="${this.aemEnv}"
+                commerce-env="${this.commerceEnv}"
+            ></mas-top-nav>
             <side-nav></side-nav>
             ${this.content}${this.editorPanel} ${this.toast}
             ${this.loadingIndicator}

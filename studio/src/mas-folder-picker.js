@@ -1,7 +1,6 @@
 import { html, css, LitElement } from 'lit';
 import Store from './store.js';
-import StoreController from './reactivity/storeController.js';
-import { FOLDER_MAPPING } from './constants.js';
+import StoreController from './reactivity/store-controller.js';
 
 export class MasFolderPicker extends LitElement {
     static styles = css`
@@ -112,12 +111,10 @@ export class MasFolderPicker extends LitElement {
     }
 
     render() {
-        const options = this.folders.value
-            .map((folder) => ({
-                value: folder.toLowerCase(),
-                label: FOLDER_MAPPING[folder.toLowerCase()] || null,
-            }))
-            .filter((option) => option.label !== null);
+        const options = this.folders.value.map((folder) => ({
+            value: folder.toLowerCase(),
+            label: folder.toUpperCase(),
+        }));
         const currentFolder = options.find(
             (option) => option.value === this.search.value.path,
         );

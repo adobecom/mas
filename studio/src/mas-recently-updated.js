@@ -1,15 +1,12 @@
 import { html, LitElement, nothing } from 'lit';
-import { MasFetcher } from './mas-fetcher.js';
 import Store from './store.js';
-import StoreController from './reactivity/storeController.js';
-import { Fragment } from './aem/fragment.js';
+import StoreController from './reactivity/store-controller.js';
 
 class MasRecentlyUpdated extends LitElement {
     static get properties() {
         return {
             baseUrl: { type: String, attribute: 'base-url' },
             bucket: { type: String },
-            loading: { type: Boolean, reflect: true },
         };
     }
 
@@ -17,46 +14,24 @@ class MasRecentlyUpdated extends LitElement {
         return this;
     }
 
-    constructor() {
-        super();
-        this.path = null;
-        this.loading = true;
-        this.updatePath = this.updatePath.bind(this);
-    }
+    fragments = new StoreController(this, Store.fragments.recentlyUpdated.data);
+    loading = new StoreController(
+        this,
+        Store.fragments.recentlyUpdated.loading,
+    );
 
-    connectedCallback() {
-        super.connectedCallback();
-        Store.search.subscribe(this.updatePath);
-    }
-
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        Store.search.unsubscribe(this.updatePath);
-    }
-
-    updatePath(value) {
-        if (this.path === value.path) return;
-        this.path = value.path;
-        this.loadFragments();
-    }
-
-    fragments = new StoreController(this, Store.fragments.data);
-
-    /** @type {MasFetcher} */
-    get fetcher() {
-        return document.querySelector('mas-fetcher');
-    }
-
-    async loadFragments() {
-        this.loading = true;
-        await this.fetcher.loadRecentlyUpdatedFragments(this.path, 6);
-        this.loading = false;
+    get loadingIndicator() {
+        if (!this.loading.value) return nothing;
+        return html`<sp-progress-circle
+            indeterminate
+            size="l"
+        ></sp-progress-circle>`;
     }
 
     render() {
-        if (!this.path || this.loading) return nothing;
         return html`<h2>Recently Updated</h2>
-            <div id="recently-updated-container">
+            <div id="recently-updated-container" ?loading=${this.loading.value}>
+                ${this.loadingIndicator}
                 ${this.fragments.value.map(
                     (fragmentStore) =>
                         html`<mas-fragment

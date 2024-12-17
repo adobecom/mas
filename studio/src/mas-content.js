@@ -1,6 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import StoreController from './reactivity/storeController.js';
+import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import './mas-fragment.js';
 import Events from './events.js';
@@ -15,8 +15,8 @@ class MasContent extends LitElement {
         this.goToFragment = this.goToFragment.bind(this);
     }
 
-    loading = new StoreController(this, Store.fragments.loading);
-    fragments = new StoreController(this, Store.fragments.data);
+    loading = new StoreController(this, Store.fragments.list.loading);
+    fragments = new StoreController(this, Store.fragments.list.data);
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
     selection = new StoreController(this, Store.selection);
@@ -102,15 +102,15 @@ class MasContent extends LitElement {
 
     render() {
         let view = nothing;
-        if (!this.loading.value) {
-            switch (this.renderMode.value) {
-                case 'render':
-                    view = this.renderView;
-                    break;
-                case 'table':
-                    view = this.tableView;
-                    break;
-            }
+        switch (this.renderMode.value) {
+            case 'render':
+                view = this.renderView;
+                break;
+            case 'table':
+                view = this.tableView;
+                break;
+            default:
+                view = this.renderView;
         }
         return html`<div id="content">${view} ${this.loadingIndicator}</div>`;
     }

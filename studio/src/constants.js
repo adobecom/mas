@@ -21,8 +21,6 @@ export const ANALYTICS_LINK_IDS = [
     'what-is-included',
 ];
 
-export const FOLDER_MAPPING = {
-    acom: 'Adobe.com',
-    nala: 'CCD',
-    'adobe-home': 'Adobe Home',
-};
+// TODO remove these?
+export const EVENT_CHANGE = 'change';
+export const EVENT_INPUT = 'input';

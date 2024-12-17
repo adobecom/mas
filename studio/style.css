@@ -394,4 +394,9 @@ mas-content {
     display: flex;
     flex-wrap: wrap;
     gap: 24px;
+    position: relative;
+}
+
+#recently-updated-container[loading] {
+    min-height: 64px;
 }

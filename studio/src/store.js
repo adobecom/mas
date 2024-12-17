@@ -2,26 +2,36 @@ import { Fragment } from './aem/fragment.js';
 import { getMerchCardEditor } from './editors/merch-card-editor.js';
 import MasFilters from './entities/filters.js';
 import MasSearch from './entities/search.js';
-import { reactiveStore } from './reactivity/reactiveStore.js';
+import { reactiveStore } from './reactivity/reactive-store.js';
+
+const initialSearch = MasSearch.fromHash();
+const initialFilters = MasFilters.fromHash();
 
 const Store = {
     fragments: {
-        loading: reactiveStore(true),
-        data: reactiveStore([]),
+        list: {
+            loading: reactiveStore(true),
+            data: reactiveStore([]),
+        },
+        recentlyUpdated: {
+            loading: reactiveStore(true),
+            data: reactiveStore([]),
+            limit: reactiveStore(6),
+        },
         inEdit: reactiveStore(null),
     },
     folders: {
         loaded: reactiveStore(false),
         data: reactiveStore([]),
     },
-    filters: reactiveStore(MasFilters.fromHash()),
-    search: reactiveStore(MasSearch.fromHash()),
+    search: reactiveStore(initialSearch),
+    filters: reactiveStore(initialFilters),
     renderMode: reactiveStore(
         localStorage.getItem('mas-render-mode') || 'render',
     ), // 'render' | 'table'
     selecting: reactiveStore(false),
     selection: reactiveStore([]),
-    currentPage: reactiveStore('splash'), // 'splash' | 'content'
+    currentPage: reactiveStore(initialSearch.query ? 'content' : 'splash'), // 'splash' | 'content'
 };
 
 export default Store;

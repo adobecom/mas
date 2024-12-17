@@ -1,7 +1,7 @@
-import MasEvent from './reactivity/masEvent.js';
+import MasEvent from './reactivity/mas-event.js';
 
 const Events = {
-    showToast: new MasEvent(),
+    toast: new MasEvent(),
     fragmentAdded: new MasEvent(),
 };
 

@@ -1,4 +1,6 @@
 const NETWORK_ERROR_MESSAGE = 'Network error';
+const MAX_POLL_ATTEMPTS = 10;
+const POLL_TIMEOUT = 250;
 
 const defaultSearchOptions = {
     sort: [{ on: 'created', order: 'ASC' }],
@@ -255,13 +257,16 @@ class AEM {
     }
 
     async pollUpdatedFragment(oldFragment) {
-        while (true) {
+        let attempts = 0;
+        while (attempts < MAX_POLL_ATTEMPTS) {
+            attempts++;
             const newFragment = await this.sites.cf.fragments.getById(
                 oldFragment.id,
             );
             if (newFragment.etag !== oldFragment.etag) return newFragment;
-            await this.wait(150);
+            await this.wait(POLL_TIMEOUT);
         }
+        throw new Error('Could not retrieve updated fragment.');
     }
 
     /**

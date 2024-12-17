@@ -1,5 +1,5 @@
 import { LitElement, html } from 'lit';
-import StoreController from './reactivity/storeController.js';
+import StoreController from './reactivity/store-controller.js';
 
 class MasFragmentTable extends LitElement {
     static properties = {

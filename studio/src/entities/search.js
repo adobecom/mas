@@ -9,11 +9,19 @@ export default class MasSearch {
     path;
     query;
 
+    /**
+     * @param {string} path
+     * @param {string} query
+     */
     constructor(path, query) {
         this.path = path;
         this.query = query;
     }
 
+    /**
+     * @param {MasSearch} other
+     * @returns {boolean}
+     */
     equals(other) {
         if (!other || typeof other !== 'object') return;
         if (this.path !== other.path) return false;

@@ -1,5 +1,5 @@
 import { LitElement, html, css, nothing } from 'lit';
-import StoreController from './reactivity/storeController.js';
+import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 
 class MasSelectionPanel extends LitElement {

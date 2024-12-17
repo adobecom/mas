@@ -16,12 +16,12 @@ class MasToast extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        Events.showToast.subscribe(this.show);
+        Events.toast.subscribe(this.show);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        Events.showToast.unsubscribe(this.show);
+        Events.toast.unsubscribe(this.show);
     }
 
     show({ variant, content }) {

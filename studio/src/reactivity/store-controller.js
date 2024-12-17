@@ -1,5 +1,5 @@
 import { LitElement } from 'lit';
-import { ReactiveStore } from './reactiveStore.js';
+import { ReactiveStore } from './reactive-store.js';
 
 export default class StoreController {
     host;

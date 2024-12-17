@@ -1,13 +1,12 @@
 import { LitElement, nothing } from 'lit';
-import StoreController from './reactivity/storeController.js';
+import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
 import { getInEditFragment } from './store.js';
-import { FragmentStore } from './reactivity/reactiveStore.js';
+import { FragmentStore } from './reactivity/fragment-store.js';
 import { editFragment } from './editors/merch-card-editor.js';
-import { FOLDER_MAPPING } from './constants.js';
 
 const ROOT = '/content/dam/mas';
 
@@ -23,7 +22,7 @@ function isUUID(str) {
     return uuidRegex.test(str);
 }
 
-export class MasFetcher extends LitElement {
+export class MasRepository extends LitElement {
     static properties = {
         bucket: { type: String },
         baseUrl: { type: String, attribute: 'base-url' },
@@ -31,6 +30,7 @@ export class MasFetcher extends LitElement {
 
     constructor() {
         super();
+        this.#abortControllers = { search: null, recentlyUpdated: null };
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
         this.publishFragment = this.publishFragment.bind(this);
@@ -38,15 +38,19 @@ export class MasFetcher extends LitElement {
         this.deleteFragment = this.deleteFragment.bind(this);
     }
 
-    #abortController;
-    /**
-     * @type {AEM}
-     */
+    /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
+    #abortControllers;
+    /** @type {AEM} */
     #aem;
 
     filters = new StoreController(this, Store.filters);
     search = new StoreController(this, Store.search);
     currentPage = new StoreController(this, Store.currentPage);
+    foldersLoaded = new StoreController(this, Store.folders.loaded);
+    recentlyUpdatedLimit = new StoreController(
+        this,
+        Store.fragments.recentlyUpdated.limit,
+    );
 
     connectedCallback() {
         super.connectedCallback();
@@ -61,8 +65,13 @@ export class MasFetcher extends LitElement {
 
     update() {
         super.update();
-        if (!Store.folders.loaded.get()) return;
+        if (!this.foldersLoaded.value) return;
+        /**
+         * Automatically fetch data when search/filters update.
+         * Both load methods have page guards (ex. fragments won't be searched on the 'splash' page)
+         */
         this.searchFragments();
+        this.loadRecentlyUpdatedFragments();
     }
 
     async loadFolders() {
@@ -81,12 +90,12 @@ export class MasFetcher extends LitElement {
             if (!folders.includes(this.search.value.path))
                 Store.search.update((prev) => ({
                     ...prev,
-                    path: Object.keys(FOLDER_MAPPING).at(0),
+                    path: folders.at(0),
                 }));
         } catch (error) {
             console.error(`Could not load folders: ${error.message}`);
-            Store.fragments.loading.set(false);
-            Events.showToast.emit({
+            Store.fragments.list.loading.set(false);
+            Events.toast.emit({
                 variant: 'negative',
                 content: 'Could not load folders.',
             });
@@ -95,66 +104,97 @@ export class MasFetcher extends LitElement {
 
     async searchFragments() {
         if (this.currentPage.value !== 'content') return;
-        Store.fragments.loading.set(true);
-        Store.fragments.data.set([]);
+
+        Store.fragments.list.loading.set(true);
+
+        const dataStore = Store.fragments.list.data;
+        const path = this.search.value.path;
+        const query = this.search.value.query;
+
+        // Using loose equality for undefined vs. '' scenarios
+        if (
+            dataStore.getMeta('path') != path ||
+            dataStore.getMeta('query') != query
+        ) {
+            dataStore.set([]);
+            dataStore.removeMeta('path');
+            dataStore.removeMeta('query');
+        }
 
         const localSearch = {
             ...this.search.value,
-            path: getDamPath(this.search.value.path),
+            path: getDamPath(path),
         };
+        const fragments = [];
 
         try {
-            if (this.#abortController) this.#abortController.abort();
-            this.#abortController = new AbortController();
+            if (this.#abortControllers.search)
+                this.#abortControllers.search.abort();
+            this.#abortControllers.search = new AbortController();
 
             if (isUUID(this.search.value.query)) {
                 const fragmentData = await this.#aem.sites.cf.fragments.getById(
-                    this.searchText,
+                    localSearch.query,
+                    this.#abortControllers.search,
                 );
                 if (
                     fragmentData &&
                     fragmentData.path.indexOf(localSearch.path) == 0
                 ) {
                     const fragment = new Fragment(fragmentData);
-                    Store.fragments.data.set([new FragmentStore(fragment)]);
+                    fragments.push(fragment);
+                    dataStore.set([new FragmentStore(fragment)]);
                 }
             } else {
                 const cursor = await this.#aem.sites.cf.fragments.search(
                     localSearch,
                     null,
-                    this.#abortController,
+                    this.#abortControllers.search,
                 );
                 for await (const result of cursor) {
-                    Store.fragments.data.update((prev) => [
-                        ...prev,
-                        ...result.map((item) => {
-                            const fragment = new Fragment(item);
-                            return new FragmentStore(fragment);
-                        }),
-                    ]);
+                    result.forEach((item) => {
+                        const fragment = new Fragment(item);
+                        fragments.push(fragment);
+                    });
                 }
+                dataStore.set(
+                    fragments.map((fragment) => new FragmentStore(fragment)),
+                );
             }
 
-            this.#abortController = null;
+            dataStore.setMeta('path', path);
+            dataStore.setMeta('query', query);
 
-            await this.addToCache(
-                Store.fragments.data.get().map((item) => item.get()),
-            );
+            this.#abortControllers.search = null;
+
+            await this.addToCache(fragments);
         } catch (error) {
             if (error.name === 'AbortError') return;
             console.error(`Could not fetch fragments: ${error.message}`);
-            Events.showToast.emit({
+            Events.toast.emit({
                 variant: 'negative',
                 content: 'Could not load fragments.',
             });
         }
 
-        Store.fragments.loading.set(false);
+        Store.fragments.list.loading.set(false);
     }
 
-    async loadRecentlyUpdatedFragments(path, limit) {
-        if (this.#abortController) this.#abortController.abort();
-        this.#abortController = new AbortController();
+    async loadRecentlyUpdatedFragments() {
+        if (this.currentPage.value !== 'splash') return;
+        if (this.#abortControllers.recentlyUpdated)
+            this.#abortControllers.recentlyUpdated.abort();
+        this.#abortControllers.recentlyUpdated = new AbortController();
+
+        Store.fragments.recentlyUpdated.loading.set(true);
+
+        const dataStore = Store.fragments.recentlyUpdated.data;
+        const path = this.search.value.path;
+
+        if (dataStore.getMeta('path') !== path) {
+            dataStore.set([]);
+            dataStore.removeMeta('path');
+        }
 
         const cursor = await this.#aem.sites.cf.fragments.search(
             {
@@ -162,22 +202,26 @@ export class MasFetcher extends LitElement {
                 path: `/content/dam/mas/${path}`,
                 // tags: ['mas:status/DEMO']
             },
-            limit,
-            this.#abortController,
+            this.recentlyUpdatedLimit.value,
+            this.#abortControllers.recentlyUpdated,
         );
         const result = await cursor.next();
-        Store.fragments.data.set(
+        const fragments = [];
+        dataStore.set(
             result.value.map((item) => {
                 const fragment = new Fragment(item);
+                fragments.push(fragment);
                 return new FragmentStore(fragment);
             }),
         );
 
-        this.#abortController = null;
+        dataStore.setMeta('path', path);
 
-        await this.addToCache(
-            Store.fragments.data.get().map((item) => item.get()),
-        );
+        this.#abortControllers.recentlyUpdated = null;
+
+        await this.addToCache(fragments);
+
+        Store.fragments.recentlyUpdated.loading.set(false);
     }
 
     async addToCache(fragments) {
@@ -196,7 +240,7 @@ export class MasFetcher extends LitElement {
      */
     async saveFragment() {
         try {
-            Events.showToast.emit({
+            Events.toast.emit({
                 variant: 'info',
                 content: 'Saving fragment...',
             });
@@ -208,7 +252,7 @@ export class MasFetcher extends LitElement {
             if (!updatedFragment) throw new Error('Invalid fragment.');
             fragmentStore.refreshFrom(updatedFragment);
 
-            Events.showToast.emit({
+            Events.toast.emit({
                 variant: 'positive',
                 content: 'Fragment successfully saved.',
             });
@@ -216,7 +260,7 @@ export class MasFetcher extends LitElement {
             return true;
         } catch (error) {
             console.error(`Failed to save fragment: ${error.message}`);
-            Events.showToast.emit({
+            Events.toast.emit({
                 variant: 'negative',
                 content: 'Failed to save fragment.',
             });
@@ -236,11 +280,14 @@ export class MasFetcher extends LitElement {
             Fragment.cache.add(newFragment);
 
             const newFragmentStore = new FragmentStore(newFragment);
-            Store.fragments.data.update((prev) => [...prev, newFragmentStore]);
+            Store.fragments.list.data.update((prev) => [
+                ...prev,
+                newFragmentStore,
+            ]);
             editFragment(newFragmentStore);
 
             Events.fragmentAdded.emit(newFragment.id);
-            Events.showToast.emit({
+            Events.toast.emit({
                 variant: 'positive',
                 content: 'Fragment successfully copied.',
             });
@@ -248,7 +295,7 @@ export class MasFetcher extends LitElement {
             return true;
         } catch (error) {
             console.error(`Failed to copy fragment: ${error.message}`);
-            Events.showToast.emit({
+            Events.toast.emit({
                 variant: 'negative',
                 content: 'Failed to copy fragment.',
             });
@@ -264,7 +311,7 @@ export class MasFetcher extends LitElement {
             const fragment = getInEditFragment();
             await this.#aem.sites.cf.fragments.publish(fragment);
 
-            Events.showToast.emit({
+            Events.toast.emit({
                 variant: 'positive',
                 content: 'Fragment successfully published.',
             });
@@ -272,7 +319,7 @@ export class MasFetcher extends LitElement {
             return true;
         } catch (error) {
             console.error(`Failed to publish fragment: ${error.message}`);
-            Events.showToast.emit({
+            Events.toast.emit({
                 variant: 'negative',
                 content: 'Failed to publish fragment.',
             });
@@ -296,7 +343,7 @@ export class MasFetcher extends LitElement {
             const fragment = getInEditFragment();
             await this.#aem.sites.cf.fragments.delete(fragment);
 
-            Store.fragments.data.update((prev) => {
+            Store.fragments.list.data.update((prev) => {
                 var result = [...prev];
                 const index = result.indexOf(fragment);
                 result.splice(index, 1);
@@ -304,7 +351,7 @@ export class MasFetcher extends LitElement {
             });
             Store.fragments.inEdit.set(null);
 
-            Events.showToast.emit({
+            Events.toast.emit({
                 variant: 'positive',
                 content: 'Fragment successfully deleted.',
             });
@@ -312,7 +359,7 @@ export class MasFetcher extends LitElement {
             return true;
         } catch (error) {
             console.error(`Failed to delete fragment: ${error.message}`);
-            Events.showToast.emit({
+            Events.toast.emit({
                 variant: 'negative',
                 content: 'Failed to delete fragment.',
             });
@@ -335,4 +382,4 @@ export class MasFetcher extends LitElement {
     }
 }
 
-customElements.define('mas-fetcher', MasFetcher);
+customElements.define('mas-repository', MasRepository);

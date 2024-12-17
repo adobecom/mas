@@ -1,5 +1,5 @@
 import { LitElement, html, css, nothing } from 'lit';
-import StoreController from './reactivity/storeController.js';
+import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import { extractValue, preventDefault } from './utils.js';
 import './mas-folder-picker.js';
@@ -98,6 +98,10 @@ class MasToolbar extends LitElement {
             flex-grow: 1;
             max-width: 400px;
         }
+
+        #search-results-label {
+            color: var(--spectrum-gray-700);
+        }
     `;
 
     constructor() {
@@ -109,6 +113,7 @@ class MasToolbar extends LitElement {
     search = new StoreController(this, Store.search);
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
+    loading = new StoreController(this, Store.fragments.list.loading);
 
     handleRenderModeChange(ev) {
         localStorage.setItem('mas-render-mode', ev.target.value);
@@ -179,13 +184,20 @@ class MasToolbar extends LitElement {
         return html`<mas-filter-panel></mas-filter-panel>`;
     }
 
+    get searchResultsLabel() {
+        if (this.loading.value || !this.search.value.query) return nothing;
+        return html`<span id="search-results-label"
+            >Search results for "${this.search.value.query}"</span
+        >`;
+    }
+
     render() {
         return html`<div id="toolbar">
                 <div id="actions">
                     ${this.readActions} ${this.writeActions}
                     ${this.selectionPanel}
                 </div>
-                ${this.filtersPanel}
+                ${this.filtersPanel}${this.searchResultsLabel}
             </div>
             <mas-selection-panel></mas-selection-panel>`;
     }

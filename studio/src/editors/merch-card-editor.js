@@ -3,10 +3,10 @@ import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import '../fields/multifield.js';
 import '../fields/mnemonic-field.js';
 import Store from '../store.js';
-import StoreController from '../reactivity/storeController.js';
-import { FragmentStore } from '../reactivity/reactiveStore.js';
+import StoreController from '../reactivity/store-controller.js';
+import { FragmentStore } from '../reactivity/fragment-store.js';
 import '../aem/aem-tag-picker-field.js';
-import { MasFetcher } from '../mas-fetcher.js';
+import { MasRepository } from '../mas-repository.js';
 import './variant-picker.js';
 import { Fragment } from '../aem/fragment.js';
 
@@ -36,9 +36,9 @@ class MerchCardEditor extends LitElement {
         this.refresh = this.refresh.bind(this);
     }
 
-    /** @type {MasFetcher} */
-    get fetcher() {
-        return document.querySelector('mas-fetcher');
+    /** @type {MasRepository} */
+    get repository() {
+        return document.querySelector('mas-repository');
     }
 
     fragmentStoreController = new StoreController(this, Store.fragments.inEdit);
@@ -125,7 +125,7 @@ class MerchCardEditor extends LitElement {
             return;
         this.discardChanges(false);
         this.loading = true;
-        await this.fetcher.refreshFragment(store);
+        await this.repository.refreshFragment(store);
         this.loading = false;
         Store.fragments.inEdit.set(store);
         if (!wasEmpty) this.refresh();
@@ -327,7 +327,6 @@ class MerchCardEditor extends LitElement {
     }
 
     #updateFragment(event) {
-        console.log(event);
         const fieldName = event.target.dataset.field;
         let value = event.target.value || event.detail?.value;
         value = event.target.multiline ? value?.split(',') : [value ?? ''];
@@ -421,7 +420,10 @@ class MerchCardEditor extends LitElement {
                     label="Save"
                     title="Save changes"
                     value="save"
-                    @click="${this.aemAction(this.fetcher.saveFragment, true)}"
+                    @click="${this.aemAction(
+                        this.repository.saveFragment,
+                        true,
+                    )}"
                     ?disabled=${this.disabled}
                 >
                     <sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>
@@ -444,7 +446,7 @@ class MerchCardEditor extends LitElement {
                 <sp-action-button
                     label="Clone"
                     value="clone"
-                    @click="${this.aemAction(this.fetcher.copyFragment)}"
+                    @click="${this.aemAction(this.repository.copyFragment)}"
                     ?disabled=${this.disabled}
                 >
                     <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
@@ -455,7 +457,7 @@ class MerchCardEditor extends LitElement {
                 <sp-action-button
                     label="Publish"
                     value="publish"
-                    @click="${this.aemAction(this.fetcher.publishFragment)}"
+                    @click="${this.aemAction(this.repository.publishFragment)}"
                     ?disabled=${this.disabled}
                 >
                     <sp-icon-publish-check slot="icon"></sp-icon-publish-check>
@@ -466,7 +468,9 @@ class MerchCardEditor extends LitElement {
                 <sp-action-button
                     label="Unpublish"
                     value="unpublish"
-                    @click="${this.aemAction(this.fetcher.unpublishFragment)}"
+                    @click="${this.aemAction(
+                        this.repository.unpublishFragment,
+                    )}"
                     disabled
                 >
                     <sp-icon-publish-remove
@@ -499,7 +503,7 @@ class MerchCardEditor extends LitElement {
                 <sp-action-button
                     label="Delete fragment"
                     value="delete"
-                    @click="${this.aemAction(this.fetcher.deleteFragment)}"
+                    @click="${this.aemAction(this.repository.deleteFragment)}"
                     ?disabled=${this.disabled}
                 >
                     <sp-icon-delete-outline
@@ -551,7 +555,7 @@ export function getMerchCardEditor() {
 
 /**
  * @param {FragmentStore} store
- * @param {number | undefined} x
+ * @param {number | undefined} x - The clientX value of the mouse event (used for positioning - optional)
  */
 export async function editFragment(store, x) {
     const editor = getMerchCardEditor();

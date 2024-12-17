@@ -1,5 +1,5 @@
 import { LitElement, nothing } from 'lit';
-import StoreController from './reactivity/storeController.js';
+import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import { setHashParams } from './utils.js';
 import MasSearch from './entities/search.js';

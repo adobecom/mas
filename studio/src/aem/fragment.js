@@ -39,9 +39,6 @@ export class Fragment {
         this.initialValue = structuredClone(this);
     }
 
-    #notify = notifyChanges;
-    #notifySlow = notifyChangesDebounced;
-
     get variant() {
         return this.fields.find((field) => field.name === 'variant')
             ?.values?.[0];

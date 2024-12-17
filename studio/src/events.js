@@ -4,3 +4,5 @@ const Events = {
     toast: new MasEvent(),
     fragmentAdded: new MasEvent(),
 };
+
+export default Events;

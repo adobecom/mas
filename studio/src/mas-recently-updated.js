@@ -1,17 +1,12 @@
 import { html, LitElement, nothing } from 'lit';
-
-import { Fragment } from './aem/fragment.js';
-import { AEM } from './aem/aem.js';
+import Store from './store.js';
+import StoreController from './reactivity/store-controller.js';
 
 class MasRecentlyUpdated extends LitElement {
     static get properties() {
         return {
             baseUrl: { type: String, attribute: 'base-url' },
             bucket: { type: String },
-            fragments: { type: Array, state: true },
-            loading: { type: Boolean, reflect: true },
-            path: { type: String },
-            source: { type: String },
         };
     }
 
@@ -19,79 +14,31 @@ class MasRecentlyUpdated extends LitElement {
         return this;
     }
 
-    constructor() {
-        super();
-        this.fragments = [];
-        this.loading = true;
-        this.renderItem = this.renderItem.bind(this);
-    }
+    fragments = new StoreController(this, Store.fragments.recentlyUpdated.data);
+    loading = new StoreController(
+        this,
+        Store.fragments.recentlyUpdated.loading,
+    );
 
-    updated(changedProperties) {
-        if (changedProperties.has('path')) this.loadFragments();
-    }
-
-    connectedCallback() {
-        super.connectedCallback();
-        this.aem = new AEM(this.bucket, this.baseUrl);
-        this.source = document.getElementById(this.source);
-    }
-
-    handleClick(e) {
-        clearTimeout(this.tooltipTimeout);
-        const currentTarget = e.currentTarget;
-        this.tooltipTimeout = setTimeout(() => {
-            currentTarget.classList.add('has-tooltip');
-        }, 500);
-    }
-
-    handleMouseLeave(e) {
-        clearTimeout(this.tooltipTimeout);
-        e.currentTarget.classList.remove('has-tooltip');
-    }
-
-    handleDoubleClick(e, fragment) {
-        clearTimeout(this.tooltipTimeout);
-        e.currentTarget.classList.remove('has-tooltip');
-        this.source.selectFragment(e.clientX, e.clientY, fragment);
-    }
-
-    async loadFragments() {
-        this.fragments = [];
-        if (!this.path) {
-            this.loading = false;
-            return;
-        }
-        this.loading = true;
-        const cursor = await this.aem.sites.cf.fragments.search(
-            {
-                sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
-                path: `/content/dam/mas/${this.path}`,
-                // tags: ['mas:status/DEMO']
-            },
-            6,
-        );
-        const result = await cursor.next();
-        const fragments = result.value.map((item) => new Fragment(item, this));
-        await this.source.addToCache(fragments);
-        this.fragments = fragments;
-        this.loading = false;
-    }
-
-    renderItem(fragment) {
-        return html`<merch-card
-            @click="${this.handleClick}"
-            @mouseleave="${this.handleMouseLeave}"
-            @dblclick="${(e) => this.handleDoubleClick(e, fragment)}"
-        >
-            <aem-fragment fragment="${fragment.id}" ims author></aem-fragment>
-        </merch-card>`;
+    get loadingIndicator() {
+        if (!this.loading.value) return nothing;
+        return html`<sp-progress-circle
+            indeterminate
+            size="l"
+        ></sp-progress-circle>`;
     }
 
     render() {
-        if (!this.path) return nothing;
-        return html` <h2>Recently Updated</h2>
-            <div class="container">
-                ${this.fragments.map(this.renderItem)}
+        return html`<h2>Recently Updated</h2>
+            <div id="recently-updated-container" ?loading=${this.loading.value}>
+                ${this.loadingIndicator}
+                ${this.fragments.value.map(
+                    (fragmentStore) =>
+                        html`<mas-fragment
+                            .store=${fragmentStore}
+                            view="render"
+                        ></mas-fragment>`,
+                )}
             </div>`;
     }
 }

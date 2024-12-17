@@ -1,5 +1,5 @@
 import { html, css, LitElement } from 'lit';
-import { toPascalCase } from '../utils.js';
+import { toPascalCase } from './utils.js';
 
 class MasFragmentStatus extends LitElement {
     static styles = css`

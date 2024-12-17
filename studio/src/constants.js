@@ -20,3 +20,7 @@ export const ANALYTICS_LINK_IDS = [
     'see-terms',
     'what-is-included',
 ];
+
+// TODO remove these?
+export const EVENT_CHANGE = 'change';
+export const EVENT_INPUT = 'input';

@@ -7,7 +7,7 @@ import Events from './events.js';
 import { getInEditFragment } from './store.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { editFragment } from './editors/merch-card-editor.js';
-import { looseEquals } from './utils.js';
+import { looseEquals, UserFriendlyError } from './utils.js';
 
 const ROOT = '/content/dam/mas';
 
@@ -236,6 +236,20 @@ export class MasRepository extends LitElement {
     /** Write */
 
     /**
+     * @param {Error} error
+     * @param {string} defaultMessage - Generic toast message (can be overriden by the error's message)
+     */
+    processError(error, defaultMessage) {
+        let message = defaultMessage;
+        if (error instanceof UserFriendlyError) message = error.message;
+        console.error(`Failed to save fragment: ${error.message}`);
+        Events.toast.emit({
+            variant: 'negative',
+            content: message,
+        });
+    }
+
+    /**
      * @returns {Promise<boolean>} Whether or not it was successful
      */
     async saveFragment() {
@@ -259,11 +273,7 @@ export class MasRepository extends LitElement {
 
             return true;
         } catch (error) {
-            console.error(`Failed to save fragment: ${error.message}`);
-            Events.toast.emit({
-                variant: 'negative',
-                content: 'Failed to save fragment.',
-            });
+            this.processError(error, 'Failed to save fragment.');
         }
         return false;
     }
@@ -294,11 +304,7 @@ export class MasRepository extends LitElement {
 
             return true;
         } catch (error) {
-            console.error(`Failed to copy fragment: ${error.message}`);
-            Events.toast.emit({
-                variant: 'negative',
-                content: 'Failed to copy fragment.',
-            });
+            this.processError(error, 'Failed to copy fragment.');
         }
         return false;
     }
@@ -318,11 +324,7 @@ export class MasRepository extends LitElement {
 
             return true;
         } catch (error) {
-            console.error(`Failed to publish fragment: ${error.message}`);
-            Events.toast.emit({
-                variant: 'negative',
-                content: 'Failed to publish fragment.',
-            });
+            this.processError(error, 'Failed to publish fragment.');
         }
         return false;
     }
@@ -358,11 +360,7 @@ export class MasRepository extends LitElement {
 
             return true;
         } catch (error) {
-            console.error(`Failed to delete fragment: ${error.message}`);
-            Events.toast.emit({
-                variant: 'negative',
-                content: 'Failed to delete fragment.',
-            });
+            this.processError(error, 'Failed to delete fragment.');
         }
         return false;
     }

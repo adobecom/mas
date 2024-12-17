@@ -78,3 +78,5 @@ export function debounce(fn, delay) {
         }, delay);
     };
 }
+
+export class UserFriendlyError extends Error {}

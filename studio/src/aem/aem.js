@@ -1,3 +1,5 @@
+import { UserFriendlyError } from '../utils.js';
+
 const NETWORK_ERROR_MESSAGE = 'Network error';
 const MAX_POLL_ATTEMPTS = 10;
 const POLL_TIMEOUT = 250;
@@ -266,7 +268,9 @@ class AEM {
             if (newFragment.etag !== oldFragment.etag) return newFragment;
             await this.wait(POLL_TIMEOUT);
         }
-        throw new Error('Could not retrieve updated fragment.');
+        throw new UserFriendlyError(
+            'Save completed but the updated fragment could not be retrieved.',
+        );
     }
 
     /**

@@ -7,6 +7,7 @@ import Events from './events.js';
 import { getInEditFragment } from './store.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { editFragment } from './editors/merch-card-editor.js';
+import { looseEquals } from './utils.js';
 
 const ROOT = '/content/dam/mas';
 
@@ -111,10 +112,9 @@ export class MasRepository extends LitElement {
         const path = this.search.value.path;
         const query = this.search.value.query;
 
-        // Using loose equality for undefined vs. '' scenarios
         if (
-            dataStore.getMeta('path') != path ||
-            dataStore.getMeta('query') != query
+            !looseEquals(dataStore.getMeta('path'), path) ||
+            !looseEquals(dataStore.getMeta('query'), query)
         ) {
             dataStore.set([]);
             dataStore.removeMeta('path');
@@ -191,7 +191,7 @@ export class MasRepository extends LitElement {
         const dataStore = Store.fragments.recentlyUpdated.data;
         const path = this.search.value.path;
 
-        if (dataStore.getMeta('path') !== path) {
+        if (!looseEquals(dataStore.getMeta('path'), path)) {
             dataStore.set([]);
             dataStore.removeMeta('path');
         }

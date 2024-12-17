@@ -246,7 +246,7 @@ class MasMultifield extends LitElement {
         if (!this.#template || !this.value) return nothing;
         return html`
             <div @change="${this.handleChange}" @input="${this.handleInput}">
-                ${this.value?.map((field, index) =>
+                ${this.value.map((field, index) =>
                     this.renderField(field, index),
                 )}
                 <sp-action-button quiet @click=${this.addField}>

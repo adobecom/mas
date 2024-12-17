@@ -19,6 +19,7 @@ export const ANALYTICS_LINK_IDS = [
     'learn-more',
     'see-terms',
     'what-is-included',
+    'register-now',
 ];
 
 // TODO remove these?

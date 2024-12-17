@@ -39,6 +39,11 @@ export function extractValue(fn) {
     };
 }
 
+/**
+ * @param {URLSearchParams} params
+ * @param {string} param
+ * @param {unknown} value
+ */
 export function setHashParam(params, param, value) {
     if (!value) {
         if (params.has(param)) {
@@ -49,8 +54,27 @@ export function setHashParam(params, param, value) {
     }
 }
 
-export function setHashParams(params, obj) {
-    Object.keys(obj).map((key) => {
-        setHashParam(params, key, obj[key]);
+/**
+ * @param {URLSearchParams} params
+ * @param {Object} source
+ */
+export function setHashParams(params, source) {
+    Object.keys(source).map((key) => {
+        setHashParam(params, key, source[key]);
     });
+}
+
+/**
+ * @param {Function} fn
+ * @param {number} delay
+ * @returns {Function}
+ */
+export function debounce(fn, delay) {
+    let timer;
+    return function (...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            fn.apply(this, args);
+        }, delay);
+    };
 }

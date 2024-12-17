@@ -11,7 +11,6 @@ export class Fragment {
 
     /**
      * @param {*} AEM Fragment JSON object
-     * @param {*} eventTarget DOM element to dispatch events from
      */
     constructor({
         id,
@@ -34,10 +33,14 @@ export class Fragment {
         this.description = description;
         this.status = status;
         this.modified = modified;
+        this.tags = tags;
         this.fields = fields;
         this.tags = tags || [];
         this.initialValue = structuredClone(this);
     }
+
+    #notify = notifyChanges;
+    #notifySlow = notifyChangesDebounced;
 
     get variant() {
         return this.fields.find((field) => field.name === 'variant')
@@ -64,11 +67,6 @@ export class Fragment {
         Object.assign(this, this.initialValue);
         this.initialValue = structuredClone(this);
         this.hasChanges = false;
-    }
-
-    toggleSelection(value) {
-        if (value !== undefined) this.selected = value;
-        else this.selected = !this.selected;
     }
 
     updateFieldInternal(fieldName, value) {

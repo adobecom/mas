@@ -154,6 +154,7 @@ class MerchCardEditor extends LitElement {
             <sp-field-label for="horizontal"> Prices </sp-field-label>
             <sp-field-group horizontal id="horizontal">
                 <rte-field
+                    link
                     inline
                     data-field="prices"
                     default-link-style="primary-outline"

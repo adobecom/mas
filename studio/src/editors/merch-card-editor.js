@@ -125,6 +125,14 @@ class MerchCardEditor extends LitElement {
                     <mas-mnemonic-field></mas-mnemonic-field>
                 </template>
             </mas-multifield>
+            <sp-field-label for="card-icon">Background Color</sp-field-label>
+            <sp-textfield
+                placeholder="Enter background color"
+                id="card-background-color"
+                data-field="backgroundColor"
+                value="${form.backgroundColor.values[0]}"
+                @input="${this.updateFragment}"
+            ></sp-textfield>
             <sp-field-label for="card-icon">Background Image</sp-field-label>
             <sp-textfield
                 placeholder="Enter backgroung image URL"
@@ -146,6 +154,7 @@ class MerchCardEditor extends LitElement {
             <sp-field-label for="horizontal"> Prices </sp-field-label>
             <sp-field-group horizontal id="horizontal">
                 <rte-field
+                    link
                     inline
                     data-field="prices"
                     default-link-style="primary-outline"

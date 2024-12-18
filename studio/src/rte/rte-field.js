@@ -121,6 +121,7 @@ class RteField extends LitElement {
                 }
 
                 a.accent,
+                a.primary,
                 a.primary-outline,
                 a.secondary,
                 a.secondary-outline {
@@ -138,6 +139,11 @@ class RteField extends LitElement {
 
                 a.accent {
                     background-color: var(--spectrum-global-color-blue-500);
+                    color: var(--spectrum-global-color-gray-50);
+                }
+
+                a.primary {
+                    background-color: var(--spectrum-global-color-gray-900);
                     color: var(--spectrum-global-color-gray-50);
                 }
 

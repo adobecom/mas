@@ -91,7 +91,6 @@
                         expect(merchCardEditor.hasChanges).to.be.true;
                         expect(discardButton.disabled).to.be.false;
                         discardButton.click();
-                        await merchCardEditor.updateComplete;
                         expect(
                             fragment.getField('cardTitle').values,
                         ).to.deep.equal([]);

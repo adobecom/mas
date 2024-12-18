@@ -253,12 +253,12 @@ export class MasRepository extends LitElement {
      * @returns {Promise<boolean>} Whether or not it was successful
      */
     async saveFragment() {
-        try {
-            Events.toast.emit({
-                variant: 'info',
-                content: 'Saving fragment...',
-            });
+        Events.toast.emit({
+            variant: 'info',
+            content: 'Saving fragment...',
+        });
 
+        try {
             const fragmentStore = Store.fragments.inEdit.get();
             const fragment = fragmentStore.get();
             let updatedFragment =

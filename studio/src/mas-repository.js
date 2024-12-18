@@ -11,7 +11,7 @@ import { looseEquals, UserFriendlyError } from './utils.js';
 
 const ROOT = '/content/dam/mas';
 
-function getDamPath(path) {
+export function getDamPath(path) {
     if (!path) return ROOT;
     if (path.startsWith(ROOT)) return path;
     return ROOT + '/' + path;

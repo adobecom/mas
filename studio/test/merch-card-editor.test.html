@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
     <head>
-        <title>editor-panel custom element test page</title>
+        <title>Merch Card Editor tests</title>
         <meta name="nofollow-links" content="on" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>
@@ -35,14 +35,16 @@
             import '../src/rte/rte-field.js';
             import '../src/aem/aem-tag-picker-field.js';
             import '../src/editors/merch-card-editor.js';
-            import '../src/editor-panel.js';
-            import { EVENT_FRAGMENT_CHANGE } from '../src/events.js';
+            import '../src/mas-repository.js';
             import { Fragment } from '../src/aem/fragment.js';
+            import { FragmentStore } from '../src/reactivity/fragment-store.js';
+            import Store from '../src/store.js';
 
             import {
                 createFromTemplate,
                 delay,
                 triggerInput,
+                waitForElement,
             } from './utils.js';
 
             runTests(async () => {
@@ -59,48 +61,48 @@
                     return originalFetch(...arguments);
                 };
 
-                describe('editor-panel custom element', () => {
+                describe('Merch Card Editor component', () => {
                     let fragment;
-                    let editorPanel;
-                    const getCardTitleField = () =>
-                        editorPanel.merchCardEditorElement.shadowRoot.getElementById(
-                            'card-title',
-                        );
+                    let fragmentStore;
+                    let merchCardEditor;
                     beforeEach(async () => {
                         fragment = new Fragment(fragmentData);
-                        editorPanel = await fixture(
-                            html`<editor-panel
-                                .fragment=${fragment}
-                            ></editor-panel> `,
+                        fragmentStore = new FragmentStore(fragment);
+                        merchCardEditor = await fixture(
+                            html`<merch-card-editor></merch-card-editor>`,
                             { parentNode: spTheme },
                         );
+                        Store.fragments.inEdit.set(fragmentStore);
                     });
 
                     it('implements "discard changes"', async () => {
-                        const discardButton =
-                            editorPanel.shadowRoot.getElementById('btnDiscard');
+                        const discardButton = document.querySelector(
+                            'sp-action-button[value="discard"]',
+                        );
+                        const titleField = () =>
+                            document.getElementById('card-title');
+                        expect(merchCardEditor.fragmentStore).to.not.be.null;
                         expect(discardButton.disabled).to.be.true;
-                        triggerInput(getCardTitleField(), 'test title');
+                        triggerInput(titleField(), 'test title');
                         expect(
                             fragment.getField('cardTitle').values,
                         ).to.deep.equal(['test title']);
-                        await oneEvent(document, EVENT_FRAGMENT_CHANGE);
+                        await merchCardEditor.updateComplete;
+                        expect(merchCardEditor.hasChanges).to.be.true;
                         expect(discardButton.disabled).to.be.false;
-                        const discardEvent = oneEvent(
-                            document,
-                            EVENT_FRAGMENT_CHANGE,
-                        );
                         discardButton.click();
-                        await discardEvent;
+                        await merchCardEditor.updateComplete;
                         expect(
                             fragment.getField('cardTitle').values,
                         ).to.deep.equal([]);
-                        await delay(100);
-                        expect(getCardTitleField().value).to.equal('');
+                        await merchCardEditor.refreshed;
+                        expect(titleField().value).to.equal('');
                     });
                 });
             });
         </script>
         <sp-theme color="light" scale="medium"></sp-theme>
+        <!-- Needed for the merch-card-editor to render -->
+        <mas-repository bucket="e59341"></mas-repository>
     </body>
 </html>

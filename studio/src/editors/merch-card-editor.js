@@ -137,6 +137,15 @@ class MerchCardEditor extends LitElement {
         this.refreshing = false;
     }
 
+    get refreshed() {
+        return (async () => {
+            if (!this.refreshing) return Promise.resolve();
+            while (this.refreshing) {
+                await this.updateComplete;
+            }
+        })();
+    }
+
     get mnemonics() {
         if (!this.fragment) return [];
 

@@ -71,6 +71,10 @@ export class Fragment {
         this.hasChanges = true;
     }
 
+    getField(fieldName) {
+        return this.fields.find((field) => field.name === fieldName);
+    }
+
     updateField(fieldName, value) {
         let change = false;
         this.fields

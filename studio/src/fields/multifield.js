@@ -1,5 +1,5 @@
 import { html, css, LitElement, nothing } from 'lit';
-import { EVENT_CHANGE, EVENT_INPUT } from '../events.js';
+import { EVENT_CHANGE, EVENT_INPUT } from '../constants.js';
 
 class MasMultifield extends LitElement {
     static get properties() {

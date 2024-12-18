@@ -1,15 +1,3 @@
-import { EVENT_FRAGMENT_CHANGE } from '../events.js';
-import { debounce } from '../utils/debounce.js';
-
-function notifyChanges(details = {}) {
-    document.dispatchEvent(
-        new CustomEvent(EVENT_FRAGMENT_CHANGE, {
-            detail: { fragment: this, ...details },
-        }),
-    );
-}
-
-const notifyChangesDebounced = debounce(notifyChanges, 300);
 export class Fragment {
     path = '';
     hasChanges = false;
@@ -18,6 +6,8 @@ export class Fragment {
     fields = [];
 
     selected = false;
+
+    initialValue;
 
     /**
      * @param {*} AEM Fragment JSON object
@@ -31,8 +21,8 @@ export class Fragment {
         description,
         status,
         modified,
-        tags,
         fields,
+        tags,
     }) {
         this.id = id;
         this.model = model;
@@ -45,11 +35,9 @@ export class Fragment {
         this.modified = modified;
         this.tags = tags;
         this.fields = fields;
-        this.updateOriginal(false);
+        this.tags = tags || [];
+        this.initialValue = structuredClone(this);
     }
-
-    #notify = notifyChanges;
-    #notifySlow = notifyChangesDebounced;
 
     get variant() {
         return this.fields.find((field) => field.name === 'variant')
@@ -61,36 +49,26 @@ export class Fragment {
     }
 
     get statusVariant() {
-        if (this.hasChanges) return 'yellow';
-        return this.status === 'PUBLISHED' ? 'positive' : 'info';
+        if (this.hasChanges) return 'modified';
+        return this.status === 'PUBLISHED' ? 'published' : 'draft';
     }
 
-    updateOriginal(notify = true) {
-        this.original = null; // clear draft
-        this.original = JSON.parse(JSON.stringify(this));
-        if (notify) this.#notify(notify);
-    }
-
-    refreshFrom(fragmentData, notify = false) {
+    refreshFrom(fragmentData) {
         Object.assign(this, fragmentData);
+        this.initialValue = structuredClone(this);
         this.hasChanges = false;
-        this.updateOriginal(notify);
     }
 
     discardChanges() {
-        this.refreshFrom(this.original, true);
-    }
-
-    toggleSelection(value) {
-        if (value !== undefined) this.selected = value;
-        else this.selected = !this.selected;
-        this.#notify({ selection: true });
+        if (!this.hasChanges) return;
+        Object.assign(this, this.initialValue);
+        this.initialValue = structuredClone(this);
+        this.hasChanges = false;
     }
 
     updateFieldInternal(fieldName, value) {
         this[fieldName] = value ?? '';
         this.hasChanges = true;
-        this.#notifySlow();
     }
 
     getField(fieldName) {
@@ -99,15 +77,19 @@ export class Fragment {
 
     updateField(fieldName, value) {
         let change = false;
-        const field = this.getField(fieldName);
-        if (
-            field.values.length === value.length &&
-            field.values.every((v, index) => v === value[index])
-        )
-            return;
-        field.values = value;
-        this.hasChanges = true;
-        change = true;
-        this.#notifySlow();
+        this.fields
+            .filter((field) => field.name === fieldName)
+            .forEach((field) => {
+                if (
+                    field.values.length === value.length &&
+                    field.values.every((v, index) => v === value[index])
+                )
+                    return;
+                field.values = value;
+                this.hasChanges = true;
+                change = true;
+            });
+        if (fieldName === 'tags') this.newTags = value;
+        return change;
     }
 }

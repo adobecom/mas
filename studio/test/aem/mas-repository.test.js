@@ -1,5 +1,5 @@
 import { expect } from '@esm-bundle/chai';
-import { getDamPath } from '../../src/aem/aem-fragments.js';
+import { getDamPath } from '../../src/mas-repository.js';
 
 describe('getDamPath', () => {
     it('should return correct path', () => {

@@ -64,6 +64,20 @@ export class MasRepository extends LitElement {
         this.style.display = 'none';
     }
 
+    /**
+     * @param {Error} error
+     * @param {string} defaultMessage - Generic toast message (can be overriden by the error's message)
+     */
+    processError(error, defaultMessage) {
+        let message = defaultMessage;
+        if (error instanceof UserFriendlyError) message = error.message;
+        console.error(`Failed to save fragment: ${error.message}`);
+        Events.toast.emit({
+            variant: 'negative',
+            content: message,
+        });
+    }
+
     update() {
         super.update();
         if (!this.foldersLoaded.value) return;
@@ -94,12 +108,9 @@ export class MasRepository extends LitElement {
                     path: folders.at(0),
                 }));
         } catch (error) {
-            console.error(`Could not load folders: ${error.message}`);
             Store.fragments.list.loading.set(false);
-            Events.toast.emit({
-                variant: 'negative',
-                content: 'Could not load folders.',
-            });
+            Store.fragments.recentlyUpdated.loading.set(false);
+            this.processError(error, 'Could not load folders.');
         }
     }
 
@@ -170,11 +181,7 @@ export class MasRepository extends LitElement {
             await this.addToCache(fragments);
         } catch (error) {
             if (error.name === 'AbortError') return;
-            console.error(`Could not fetch fragments: ${error.message}`);
-            Events.toast.emit({
-                variant: 'negative',
-                content: 'Could not load fragments.',
-            });
+            this.processError(error, 'Could not load fragments.');
         }
 
         Store.fragments.list.loading.set(false);
@@ -196,30 +203,37 @@ export class MasRepository extends LitElement {
             dataStore.removeMeta('path');
         }
 
-        const cursor = await this.#aem.sites.cf.fragments.search(
-            {
-                sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
-                path: `/content/dam/mas/${path}`,
-                // tags: ['mas:status/DEMO']
-            },
-            this.recentlyUpdatedLimit.value,
-            this.#abortControllers.recentlyUpdated,
-        );
-        const result = await cursor.next();
-        const fragments = [];
-        dataStore.set(
-            result.value.map((item) => {
-                const fragment = new Fragment(item);
-                fragments.push(fragment);
-                return new FragmentStore(fragment);
-            }),
-        );
+        try {
+            const cursor = await this.#aem.sites.cf.fragments.search(
+                {
+                    sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
+                    path: `/content/dam/mas/${path}`,
+                    // tags: ['mas:status/DEMO']
+                },
+                this.recentlyUpdatedLimit.value,
+                this.#abortControllers.recentlyUpdated,
+            );
+            const result = await cursor.next();
+            const fragments = [];
+            dataStore.set(
+                result.value.map((item) => {
+                    const fragment = new Fragment(item);
+                    fragments.push(fragment);
+                    return new FragmentStore(fragment);
+                }),
+            );
 
-        dataStore.setMeta('path', path);
+            dataStore.setMeta('path', path);
 
-        this.#abortControllers.recentlyUpdated = null;
+            this.#abortControllers.recentlyUpdated = null;
 
-        await this.addToCache(fragments);
+            await this.addToCache(fragments);
+        } catch (error) {
+            this.processError(
+                error,
+                'Could not load recently updated fragments.',
+            );
+        }
 
         Store.fragments.recentlyUpdated.loading.set(false);
     }
@@ -234,20 +248,6 @@ export class MasRepository extends LitElement {
     }
 
     /** Write */
-
-    /**
-     * @param {Error} error
-     * @param {string} defaultMessage - Generic toast message (can be overriden by the error's message)
-     */
-    processError(error, defaultMessage) {
-        let message = defaultMessage;
-        if (error instanceof UserFriendlyError) message = error.message;
-        console.error(`Failed to save fragment: ${error.message}`);
-        Events.toast.emit({
-            variant: 'negative',
-            content: message,
-        });
-    }
 
     /**
      * @returns {Promise<boolean>} Whether or not it was successful

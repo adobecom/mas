@@ -9,10 +9,6 @@ let studio;
 const { features } = studiopkg;
 
 test.beforeEach(async ({ page, browserName }) => {
-    test.skip(
-        browserName !== 'chromium',
-        'Not supported to run on multiple browsers.',
-    );
     studio = new StudioPage(page);
 });
 
@@ -51,7 +47,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.renderView).toBeVisible();
 
             const cards = await studio.renderView.locator('merch-card');
-            expect(await cards.count()).toBe(2);
+            expect(await cards.count()).toBe(5);
         });
     });
 });

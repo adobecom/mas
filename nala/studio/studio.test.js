@@ -51,7 +51,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.renderView).toBeVisible();
 
             const cards = await studio.renderView.locator('merch-card');
-            expect(await cards.count()).toBe(1);
+            expect(await cards.count()).toBe(2);
         });
     });
 });

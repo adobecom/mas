@@ -30,6 +30,7 @@ class LinkNodeView {
         this.getPos = getPos;
 
         this.dom = document.createElement('a');
+        this.dom.tabIndex = -1;
 
         for (const [key, value] of Object.entries(node.attrs)) {
             if (value !== null) {
@@ -217,7 +218,7 @@ class RteField extends LitElement {
             escKey: this.#handleEscKey.bind(this),
             ostEvent: this.#handleOstEvent.bind(this),
             linkSave: this.#handleLinkSave.bind(this),
-            blur: this.#handleBlur.bind(this),
+            focusout: this.#handleFocusout.bind(this),
             focus: this.#handleFocus.bind(this),
             doubleClickOn: this.#handleDoubleClickOn.bind(this),
         };
@@ -412,7 +413,7 @@ class RteField extends LitElement {
             editable: () => !this.readOnly,
             dispatchTransaction: this.#handleTransaction.bind(this),
             handleDOMEvents: {
-                blur: this.#boundHandlers.blur,
+                focusout: this.#boundHandlers.focusout,
                 focus: this.#boundHandlers.focus,
             },
             handleDoubleClickOn: this.#boundHandlers.doubleClickOn,
@@ -749,7 +750,7 @@ class RteField extends LitElement {
         if (tr.docChanged) dispatch(tr);
     }
 
-    #handleBlur(view, event) {
+    #handleFocusout(view, event) {
         if (
             event.relatedTarget &&
             this.shadowRoot.contains(event.relatedTarget)

@@ -11,13 +11,13 @@ function displayHelp() {
 
 \x1b[1m2] Options:\x1b[0m
 
-  \x1b[33m* browser=<chrome|firefox|webkit>\x1b[0m    Browser to run the test in
+  \x1b[33m* browser=<firefox|firefox|webkit>\x1b[0m    Browser to run the test in
   \x1b[33m* device=<desktop|mobile>\x1b[0m            Device type to run the test on
   \x1b[33m* test=<.test.js>\x1b[0m                    Specific test file to run (runs all tests in the file)
   \x1b[33m* -g, --g=<@tag>\x1b[0m                     Annotation Tag to filter and run tests by annotation (e.g., @test1, @accordion, @marquee)
   \x1b[33m* mode=<headless|ui|debug|headed>\x1b[0m    Mode (default: headless)
   \x1b[33m* config=<config-file>\x1b[0m               Custom configuration file to use (default: Playwright's default)
-  \x1b[33m* project=<project-name>\x1b[0m             Project configuration (default: mas-live-chromium)
+  \x1b[33m* project=<project-name>\x1b[0m             Project configuration (default: mas-live-firefox)
   \x1b[33m* milolibs=<local|prod|code|feature>\x1b[0m Milo library environment (default: none)
   \x1b[33m* owner=<repo-owner>\x1b[0m                 repo owner (default owner = adobecom) 
 

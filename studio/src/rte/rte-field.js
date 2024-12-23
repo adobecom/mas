@@ -751,13 +751,6 @@ class RteField extends LitElement {
     }
 
     #handleFocusout(view, event) {
-        if (
-            event.relatedTarget &&
-            this.shadowRoot.contains(event.relatedTarget)
-        ) {
-            return false;
-        }
-
         this.hasFocus = false;
         this.isLinkSelected = false;
         this.requestUpdate();

@@ -204,8 +204,6 @@ sp-status-light {
 
 rte-field {
     width: 100%;
-    border: 1px solid var(--spectrum-global-color-gray-500);
-    border-radius: var(--spectrum-corner-radius-100);
 }
 
 merch-card:not([variant]) {

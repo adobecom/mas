@@ -41,7 +41,7 @@
                     before(() => {
                         const originalFetch = window.fetch;
                         window.fetch = async () => {
-                            fetchPromise = originalFetch('/test/aem/tags.json');
+                            fetchPromise = originalFetch('/test/mocks/tags.json');
                             return fetchPromise;
                         };
                     });

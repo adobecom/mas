@@ -10,10 +10,10 @@ let studio;
 
 test.beforeEach(async ({ page, browserName, baseURL }) => {
     test.slow();
-    test.skip(
-        browserName !== 'chromium',
-        'Not supported to run on multiple browsers.',
-    );
+    // test.skip(
+    //     browserName !== 'chromium',
+    //     'Not supported to run on multiple browsers.',
+    // );
     studio = new StudioPage(page);
     features[0].url = `${baseURL}/studio.html`;
     await page.goto(features[0].url);

@@ -28,10 +28,6 @@ class MasFragmentRender extends LitElement {
         toggleSelection(this.fragment.value.id);
     }
 
-    handleCardClick(e) {
-        e.preventDefault();
-    }
-
     get selectionOverlay() {
         if (!this.selecting.value) return nothing;
         return html`<div class="overlay" @click="${this.select}">
@@ -50,7 +46,7 @@ class MasFragmentRender extends LitElement {
                 ></mas-fragment-status>
             </div>
             <overlay-trigger placement="top">
-                <merch-card slot="trigger" @click="${this.handleCardClick}">
+                <merch-card slot="trigger">
                     <aem-fragment
                         fragment="${this.fragment.value.id}"
                         ims

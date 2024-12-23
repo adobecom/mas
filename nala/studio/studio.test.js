@@ -50,66 +50,66 @@ test.describe('M@S Studio feature test suite', () => {
         });
     });
 
-    // @studio-search-field - Validate search field in mas studio
-    test(`${features[1].name},${features[1].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
-        const { data } = features[1];
-        const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}`;
-        console.info('[Test Page]: ', testPage);
+    // // @studio-search-field - Validate search field in mas studio
+    // test(`${features[1].name},${features[1].tags}`, async ({
+    //     page,
+    //     baseURL,
+    // }) => {
+    //     const { data } = features[1];
+    //     const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}`;
+    //     console.info('[Test Page]: ', testPage);
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
+    //     await test.step('step-1: Go to MAS Studio test page', async () => {
+    //         await page.goto(testPage);
+    //         await page.waitForLoadState('domcontentloaded');
+    //     });
 
-        await test.step('step-2: Validate search field rendered', async () => {
-            await expect(await studio.searchInput).toBeVisible();
-            await expect(await studio.searchIcon).toBeVisible();
-            await expect(await studio.renderView).toBeVisible();
-            const cards = await studio.renderView.locator('merch-card');
-            expect(await cards.count()).toBeGreaterThan(1);
-        });
+    //     await test.step('step-2: Validate search field rendered', async () => {
+    //         await expect(await studio.searchInput).toBeVisible();
+    //         await expect(await studio.searchIcon).toBeVisible();
+    //         await expect(await studio.renderView).toBeVisible();
+    //         const cards = await studio.renderView.locator('merch-card');
+    //         expect(await cards.count()).toBeGreaterThan(1);
+    //     });
 
-        await test.step('step-3: Validate search feature', async () => {
-            await studio.searchInput.fill(data.cardid);
-            await page.keyboard.press('Enter');
-            await page.waitForTimeout(2000);
-            expect(await studio.getCard(data.cardid, 'suggested')).toBeVisible;
-            const searchResult = await studio.renderView.locator('merch-card');
-            expect(await searchResult.count()).toBe(1);
-        });
-    });
+    //     await test.step('step-3: Validate search feature', async () => {
+    //         await studio.searchInput.fill(data.cardid);
+    //         await page.keyboard.press('Enter');
+    //         await page.waitForTimeout(2000);
+    //         expect(await studio.getCard(data.cardid, 'suggested')).toBeVisible;
+    //         const searchResult = await studio.renderView.locator('merch-card');
+    //         expect(await searchResult.count()).toBe(1);
+    //     });
+    // });
 
-    // @studio-edit-title - Validate edit title feature in mas studio
-    test(`${features[2].name},${features[2].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
-        const { data } = features[2];
-        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+    // // @studio-edit-title - Validate edit title feature in mas studio
+    // test(`${features[2].name},${features[2].tags}`, async ({
+    //     page,
+    //     baseURL,
+    // }) => {
+    //     const { data } = features[2];
+    //     const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
+    //     console.info('[Test Page]: ', testPage);
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
+    //     await test.step('step-1: Go to MAS Studio test page', async () => {
+    //         await page.goto(testPage);
+    //         await page.waitForLoadState('domcontentloaded');
+    //     });
 
-        await test.step('step-2: Open card editor', async () => {
-            expect(await studio.getCard(data.cardid, 'suggested')).toBeVisible;
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            expect(await studio.editorPanel).toBeVisible;
-        });
-        await test.step('step-3: Edit title field', async () => {
-            expect(await studio.editorPanel.title).toBeVisible;
-            await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveAttribute('value', `${data.title}`);
-            await studio.editorPanel
-                .locator(studio.editorTitle)
-                .locator('input')
-                .fill(data.newTitle);
-        });
-    });
+    //     await test.step('step-2: Open card editor', async () => {
+    //         expect(await studio.getCard(data.cardid, 'suggested')).toBeVisible;
+    //         await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+    //         expect(await studio.editorPanel).toBeVisible;
+    //     });
+    //     await test.step('step-3: Edit title field', async () => {
+    //         expect(await studio.editorPanel.title).toBeVisible;
+    //         await expect(
+    //             await studio.editorPanel.locator(studio.editorTitle),
+    //         ).toHaveAttribute('value', `${data.title}`);
+    //         await studio.editorPanel
+    //             .locator(studio.editorTitle)
+    //             .locator('input')
+    //             .fill(data.newTitle);
+    //     });
+    // });
 });

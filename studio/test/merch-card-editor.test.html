@@ -56,7 +56,11 @@
                 window.fetch = async function (args) {
                     const { pathname } = new URL(args);
                     if (/querybuilder.json/.test(pathname)) {
-                        return originalFetch('/test/aem/tags.json');
+                        return originalFetch('/test/mocks/tags.json');
+                    } else if (/mas.json/.test(pathname)) {
+                        return originalFetch('/test/mocks/folders/default.json');
+                    } else if (/search/.test(pathname)) {
+                        return originalFetch('/test/mocks/sites/cf/fragments/search/default.json');
                     }
                     return originalFetch(...arguments);
                 };
@@ -69,7 +73,7 @@
                         fragment = new Fragment(fragmentData);
                         fragmentStore = new FragmentStore(fragment);
                         merchCardEditor = await fixture(
-                            html`<merch-card-editor></merch-card-editor>`,
+                            html`<merch-card-editor></merch-card-editor><mas-repository bucket="e59341"></mas-repository>`,
                             { parentNode: spTheme },
                         );
                         Store.fragments.inEdit.set(fragmentStore);
@@ -101,7 +105,5 @@
             });
         </script>
         <sp-theme color="light" scale="medium"></sp-theme>
-        <!-- Needed for the merch-card-editor to render -->
-        <mas-repository bucket="e59341"></mas-repository>
     </body>
 </html>

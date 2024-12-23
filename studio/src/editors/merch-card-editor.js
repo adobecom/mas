@@ -12,12 +12,15 @@ import { Fragment } from '../aem/fragment.js';
 
 const MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 
+const merchCardCustomElementPromise = customElements.whenDefined('merch-card');
+
 class MerchCardEditor extends LitElement {
     static properties = {
         refreshing: { state: true, attribute: true },
         disabled: { state: true, attribute: true },
         hasChanges: { state: true, attribute: true },
         loading: { state: true, attribute: true },
+        superWide: { type: Boolean, state: true },
     };
 
     createRenderRoot() {
@@ -30,6 +33,7 @@ class MerchCardEditor extends LitElement {
         this.refreshing = false;
         this.hasChanges = false;
         this.loading = false;
+        this.superWide = false;
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.close = this.close.bind(this);
         this.discardChanges = this.discardChanges.bind(this);
@@ -167,6 +171,28 @@ class MerchCardEditor extends LitElement {
         );
     }
 
+    updated() {
+        this.toggleFields();
+    }
+
+    async toggleFields() {
+        if (!this.fragment) return;
+        const merchCardCustomElement = await merchCardCustomElementPromise;
+        if (!merchCardCustomElement) return;
+        this.querySelectorAll('sp-field-group.toggle').forEach((field) => {
+            field.style.display = 'none';
+        });
+        const variant = merchCardCustomElement.getFragmentMapping(
+            this.fragment.variant,
+        );
+        if (!variant) return;
+        Object.keys(variant).forEach((key) => {
+            const field = this.querySelector(`sp-field-group.toggle#${key}`);
+            if (field) field.style.display = 'block';
+        });
+        this.superWide = variant.size?.includes('super-wide');
+    }
+
     render() {
         if (this.loading)
             return html`<div id="editor">
@@ -184,85 +210,107 @@ class MerchCardEditor extends LitElement {
         return html`<div id="editor">
             ${this.toolbar}
             <p>${this.fragment.path}</p>
-            <sp-field-label for="card-variant">Variant</sp-field-label>
-            <variant-picker
-                id="card-variant"
-                ?show-all="false"
-                data-field="variant"
-                default-value="${form.variant.values[0]}"
-                @input="${this.#updateFragment}"
-                @change="${this.#updateFragment}"
-                ?disabled=${this.disabled}
-            ></variant-picker>
-            <sp-field-label for="card-title">Title</sp-field-label>
-            <sp-textfield
-                placeholder="Enter card title"
-                id="card-title"
-                data-field="cardTitle"
-                value="${form.cardTitle.values[0]}"
-                @input="${this.#updateFragment}"
-                ?disabled=${this.disabled}
-            ></sp-textfield>
-            <sp-field-label for="card-subtitle">Subtitle</sp-field-label>
-            <sp-textfield
-                placeholder="Enter card subtitle"
-                id="card-subtitle"
-                data-field="subtitle"
-                value="${form.subtitle.values[0]}"
-                @input="${this.#updateFragment}"
-                ?disabled=${this.disabled}
-            ></sp-textfield>
-            <sp-field-label for="card-size">Size</sp-field-label>
-            <sp-textfield
-                placeholder="Enter card size"
-                id="card-size"
-                data-field="size"
-                value="${form.size.values[0]}"
-                @input="${this.#updateFragment}"
-                ?disabled=${this.disabled}
-            ></sp-textfield>
-            <sp-field-label for="card-icon">Badge</sp-field-label>
-            <sp-textfield
-                placeholder="Enter badge text"
-                id="card-badge"
-                data-field="badge"
-                value="${form.badge.values[0]}"
-                @input="${this.#updateFragment}"
-                ?disabled=${this.disabled}
-            ></sp-textfield>
-            <sp-field-label for="mnemonic">Mnemonics</sp-field-label>
-            <mas-multifield
-                id="mnemonic"
-                .value="${this.mnemonics}"
-                @change="${this.#updateMnemonics}"
-                @input="${this.#updateMnemonics}"
-            >
-                <template>
-                    <mas-mnemonic-field></mas-mnemonic-field>
-                </template>
-            </mas-multifield>
-            <sp-field-label for="card-icon">Background Image</sp-field-label>
-            <sp-textfield
-                placeholder="Enter backgroung image URL"
-                id="background-title"
-                data-field="backgroundImage"
-                value="${form.backgroundImage.values[0]}"
-                @input="${this.#updateFragment}"
-                ?disabled=${this.disabled}
-            ></sp-textfield>
-            <sp-field-label for="card-icon"
-                >Background Image Alt Text</sp-field-label
-            >
-            <sp-textfield
-                placeholder="Enter backgroung image Alt Text"
-                id="background-alt-text"
-                data-field="backgroundImageAltText"
-                value="${form.backgroundImageAltText.values[0]}"
-                @input="${this.#updateFragment}"
-                ?disabled=${this.disabled}
-            ></sp-textfield>
-            <sp-field-label for="horizontal"> Prices </sp-field-label>
-            <sp-field-group horizontal id="horizontal">
+            <sp-field-group id="variant">
+                <sp-field-label for="card-variant">Variant</sp-field-label>
+                <variant-picker
+                    id="card-variant"
+                    ?show-all="false"
+                    data-field="variant"
+                    default-value="${form.variant.values[0]}"
+                    @change="${this.#handleVariantChange}"
+                    ?disabled=${this.disabled}
+                ></variant-picker>
+            </sp-field-group>
+            <sp-field-group class="toggle" id="size">
+                <sp-field-label for="card-size">Size</sp-field-label>
+                <sp-picker
+                    id="card-size"
+                    data-field="size"
+                    value="${form.size.values[0]}"
+                    @change="${this.#updateFragment}"
+                    ?disabled=${this.disabled}
+                >
+                    <sp-menu-item value="">Normal</sp-menu-item>
+                    <sp-menu-item value="wide">Wide</sp-menu-item>
+                    ${this.superWide
+                        ? html`<sp-menu-item value="super-wide"
+                              >Super wide</sp-menu-item
+                          >`
+                        : nothing}
+                </sp-picker>
+            </sp-field-group>
+            <sp-field-group class="toggle" id="title">
+                <sp-field-label for="card-title">Title</sp-field-label>
+                <sp-textfield
+                    placeholder="Enter card title"
+                    id="card-title"
+                    data-field="cardTitle"
+                    value="${form.cardTitle.values[0]}"
+                    @input="${this.#updateFragment}"
+                    ?disabled=${this.disabled}
+                ></sp-textfield>
+            </sp-field-group>
+            <sp-field-group class="toggle" id="subtitle">
+                <sp-field-label for="card-subtitle">Subtitle</sp-field-label>
+                <sp-textfield
+                    placeholder="Enter card subtitle"
+                    id="card-subtitle"
+                    data-field="subtitle"
+                    value="${form.subtitle.values[0]}"
+                    @input="${this.#updateFragment}"
+                    ?disabled=${this.disabled}
+                ></sp-textfield>
+            </sp-field-group>
+            <sp-field-group class="toggle" id="badge">
+                <sp-field-label for="card-icon">Badge</sp-field-label>
+                <sp-textfield
+                    placeholder="Enter badge text"
+                    id="card-badge"
+                    data-field="badge"
+                    value="${form.badge.values[0]}"
+                    @input="${this.#updateFragment}"
+                    ?disabled=${this.disabled}
+                ></sp-textfield>
+            </sp-field-group>
+            <sp-field-group class="toggle" id="mnemonics">
+                <sp-field-label for="mnemonic">Mnemonics</sp-field-label>
+                <mas-multifield
+                    id="mnemonics"
+                    .value="${this.mnemonics}"
+                    @change="${this.#updateMnemonics}"
+                    @input="${this.#updateMnemonics}"
+                >
+                    <template>
+                        <mas-mnemonic-field></mas-mnemonic-field>
+                    </template>
+                </mas-multifield>
+            </sp-field-group>
+            <sp-field-group class="toggle" id="backgroundImage">
+                <sp-field-label for="card-icon"
+                    >Background Image</sp-field-label
+                >
+                <sp-textfield
+                    placeholder="Enter backgroung image URL"
+                    id="background-title"
+                    data-field="backgroundImage"
+                    value="${form.backgroundImage.values[0]}"
+                    @input="${this.#updateFragment}"
+                    ?disabled=${this.disabled}
+                ></sp-textfield>
+                <sp-field-label for="card-icon"
+                    >Background Image Alt Text</sp-field-label
+                >
+                <sp-textfield
+                    placeholder="Enter backgroung image Alt Text"
+                    id="background-alt-text"
+                    data-field="backgroundImageAltText"
+                    value="${form.backgroundImageAltText.values[0]}"
+                    @input="${this.#updateFragment}"
+                    ?disabled=${this.disabled}
+                ></sp-textfield>
+            </sp-field-group>
+            <sp-field-group class="toggle" horizontal id="prices">
+                <sp-field-label for="horizontal"> Prices </sp-field-label>
                 <rte-field
                     inline
                     data-field="prices"
@@ -272,8 +320,8 @@ class MerchCardEditor extends LitElement {
                     >${unsafeHTML(form.prices.values[0])}</rte-field
                 >
             </sp-field-group>
-            <sp-field-label for="horizontal"> Description </sp-field-label>
-            <sp-field-group horizontal id="horizontal">
+            <sp-field-group class="toggle" horizontal id="description">
+                <sp-field-label for="horizontal"> Description </sp-field-label>
                 <rte-field
                     link
                     data-field="description"
@@ -283,8 +331,8 @@ class MerchCardEditor extends LitElement {
                     >${unsafeHTML(form.description.values[0])}</rte-field
                 >
             </sp-field-group>
-            <sp-field-label for="horizontal"> Footer </sp-field-label>
-            <sp-field-group horizontal id="horizontal">
+            <sp-field-group class="toggle" horizontal id="ctas">
+                <sp-field-label for="horizontal"> Footer </sp-field-label>
                 <rte-field
                     link
                     inline
@@ -326,6 +374,11 @@ class MerchCardEditor extends LitElement {
                 ?disabled=${this.disabled}
             ></sp-textfield>
         </div> `;
+    }
+
+    #handleVariantChange(e) {
+        this.#updateFragment(e);
+        this.toggleFields();
     }
 
     #handeTagsChange(e) {

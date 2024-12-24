@@ -18,35 +18,9 @@ class RenderView extends LitElement {
             store: { type: Object, state: true },
         };
     }
-    constructor() {
-        super();
-        this.tooltipTimeout = null;
-    }
 
     createRenderRoot() {
         return this;
-    }
-
-    handleClick(e) {
-        if (this.store.inSelection) return;
-        clearTimeout(this.tooltipTimeout);
-        const currentTarget = e.currentTarget;
-        this.tooltipTimeout = setTimeout(() => {
-            currentTarget.classList.add('has-tooltip');
-        }, 500);
-    }
-
-    handleMouseLeave(e) {
-        if (this.store.inSelection) return;
-        clearTimeout(this.tooltipTimeout);
-        e.currentTarget.classList.remove('has-tooltip');
-    }
-
-    handleDoubleClick(e, fragment) {
-        if (this.store.inSelection) return;
-        clearTimeout(this.tooltipTimeout);
-        e.currentTarget.classList.remove('has-tooltip');
-        this.store.selectFragment(e.clientX, fragment);
     }
 
     render() {

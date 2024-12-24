@@ -104,9 +104,8 @@ class MasStore {
     }
 
     async addToCache(fragments) {
+        const frags = [];
         if (!aemFragmentCache) {
-            // If you are not using custom elements at all,
-            // you should remove or replace this logic.
             await customElements.whenDefined('aem-fragment');
             const fragEl = document.createElement('aem-fragment');
             aemFragmentCache = fragEl.cache;
@@ -115,10 +114,13 @@ class MasStore {
             const existing = aemFragmentCache.get(fragment.id);
             if (existing) {
                 existing.refreshFrom(fragment);
+                frags.push(existing);
             } else {
                 aemFragmentCache.add(fragment);
+                frags.push(fragment);
             }
         });
+        return frags;
     }
 
     async processFragments(cursor, search = false) {
@@ -132,13 +134,14 @@ class MasStore {
 
         for await (const result of cursor) {
             if (cursor.cancelled) break;
-            const fragments = result.map((item) => new Fragment(item));
+            const fragments = await this.addToCache(
+                result.map((item) => new Fragment(item)),
+            );
             if (search) {
-                this.#searchResult = [...this.#searchResult, ...fragments];
+                this.#searchResult = [...fragments];
             } else {
                 this.#currentFragments.push(...fragments);
             }
-            await this.addToCache(fragments);
         }
 
         this.setStatus('loaded');
@@ -266,7 +269,6 @@ class MasStore {
         this.fragmentPositionX = x;
         this.setStatus(status.loading);
         const latest = await this.#aem.sites.cf.fragments.getById(fragment.id);
-        Object.assign(fragment, latest);
         fragment.refreshFrom(latest);
         this.setFragment(fragment);
         this.setStatus(status.idle);
@@ -286,8 +288,9 @@ class MasStore {
             this.recentlyAbortSignal,
         );
         const result = await cursor.next();
-        const fragments = result.value.map((item) => new Fragment(item));
-        await this.addToCache(fragments);
+        const fragments = await this.addToCache(
+            result.value.map((item) => new Fragment(item)),
+        );
         this.recentlyUpdatedfragments.push(...fragments);
         this.setStatus(status.idle);
     }

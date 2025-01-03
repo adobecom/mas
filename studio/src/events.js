@@ -15,3 +15,4 @@ export const EVENT_KEYDOWN = 'keydown';
 export const EVENT_KEYUP = 'keyup';
 
 export const EVENT_FRAGMENT_CHANGE = 'fragment:change';
+export const EVENT_COMMERCE_TOGGLE = 'commerce:toggle';

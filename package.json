@@ -12,8 +12,7 @@
         "test": "npm run test:ci --workspaces",
         "build": "npm run build --workspaces",
         "studio": "cd studio && npm run proxy & aem up",
-        "studio:qa": "cd studio && npm run proxy:qa & aem up",
-        "gallery": "cd studio && npm run proxy:publish & aem up"
+        "studio:qa": "cd studio && npm run proxy:qa & aem up"
     },
     "repository": {
         "type": "git",
@@ -61,6 +60,7 @@
         "@spectrum-web-components/toast": "^0.47.2",
         "@spectrum-web-components/tooltip": "^0.47.2",
         "@spectrum-web-components/top-nav": "^0.47.2",
+        "@spectrum-web-components/switch": "^0.47.2",
         "@spectrum-web-components/tray": "^0.47.2",
         "prosemirror-commands": "^1.6.1",
         "prosemirror-example-setup": "^1.2.3",

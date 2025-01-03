@@ -5,7 +5,7 @@ window.tacocat = window.tacocat || {};
     "arrangement_code": "1tb_additional_storage_for_esm_enterprise",
     "icon": "https://mcspreview.adobe.io/assets/content/dam/mcs/en/icons/raw/svg/cc_appicon.svg?api_key=preview_svc",
     "planTypes": {
-      "PUF": false
+      "PUF": true
     },
     "customerSegments": {
       "ENTERPRISE": true
@@ -3720,7 +3720,7 @@ window.tacocat = window.tacocat || {};
     }
   },
   "PA-1315": {
-    "name": "Acrobat Pro Plus for Enterprise",
+    "name": "Acrobat Premium for Enterprise",
     "arrangement_code": "PA-1315",
     "icon": "https://mcspreview.adobe.io/assets/content/dam/mcs/en/icons/raw/svg/acrobat_reader_appicon_256.svg?api_key=preview_svc",
     "planTypes": {
@@ -3735,7 +3735,7 @@ window.tacocat = window.tacocat || {};
     "draft": true
   },
   "PA-1316": {
-    "name": "Acrobat Pro Plus for Enterprise",
+    "name": "Acrobat Premium for Enterprise",
     "arrangement_code": "PA-1316",
     "icon": "https://mcspreview.adobe.io/assets/content/dam/mcs/en/icons/raw/svg/acrobat_reader_appicon_256.svg?api_key=preview_svc",
     "planTypes": {
@@ -3889,7 +3889,7 @@ window.tacocat = window.tacocat || {};
     "draft": true
   },
   "PA-1341": {
-    "name": "Acrobat Pro Plus for Teams",
+    "name": "Acrobat Premium for Teams",
     "arrangement_code": "PA-1341",
     "icon": "https://mcspreview.adobe.io/assets/content/dam/mcs/en/icons/raw/svg/acrobat_reader_appicon_256.svg?api_key=preview_svc",
     "planTypes": {

@@ -13,7 +13,8 @@
         "build": "npm run build --workspaces",
         "studio": "cd studio && npm run proxy & aem up",
         "studio:qa": "cd studio && npm run proxy:qa & aem up",
-        "gallery": "cd studio && npm run proxy:publish & aem up"
+        "gallery": "cd studio && npm run proxy:publish & aem up",
+        "nala": "node nala/utils/nala.run.js"
     },
     "repository": {
         "type": "git",
@@ -21,6 +22,7 @@
     },
     "dependencies": {
         "@adobecom/milo": "github:adobecom/milo#stage",
+        "axios": "^1.7.4",
         "@spectrum-css/button": "^13.5.0",
         "@spectrum-css/link": "^5.2.0",
         "@spectrum-css/page": "^8.2.0",
@@ -62,6 +64,7 @@
         "@spectrum-web-components/tooltip": "^0.47.2",
         "@spectrum-web-components/top-nav": "^0.47.2",
         "@spectrum-web-components/tray": "^0.47.2",
+        "@playwright/test": "^1.42.1",
         "prosemirror-commands": "^1.6.1",
         "prosemirror-example-setup": "^1.2.3",
         "prosemirror-keymap": "^1.2.2",

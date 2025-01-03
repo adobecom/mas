@@ -3,8 +3,6 @@ name: Update OST Products
 on:
   schedule:
     - cron: '0 8 * * *' # Daily at 8am UTC (9am CET), triggered on default branch = main
-  pull_request:
-    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 jobs:
@@ -17,7 +15,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        ref: 'MWPW-164253'
+        ref: 'main'
 
     - name: Set up Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4

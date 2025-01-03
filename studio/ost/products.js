@@ -5,7 +5,7 @@ window.tacocat = window.tacocat || {};
     "arrangement_code": "1tb_additional_storage_for_esm_enterprise",
     "icon": "https://mcspreview.adobe.io/assets/content/dam/mcs/en/icons/raw/svg/cc_appicon.svg?api_key=preview_svc",
     "planTypes": {
-      "PUF": true
+      "PUF": false
     },
     "customerSegments": {
       "ENTERPRISE": true

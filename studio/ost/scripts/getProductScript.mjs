@@ -1,8 +1,7 @@
 import fs from 'fs';
 import fetch from 'node-fetch';
-const key = 'AdobeDotComMiniPlansService';
-const offersEndpoint = (key, country, locale, landscape, page) =>
-    `https://aos.adobe.io/offers?country=${country}&merchant=ADOBE&service_providers=MERCHANDISING&locale=${locale}&api_key=${key}&landscape=${landscape}&page_size=100&page=${page}`;
+const offersEndpoint = (country, locale, landscape, page) =>
+    `${process.env.AOS_URL}?country=${country}&merchant=ADOBE&service_providers=MERCHANDISING&locale=${locale}&api_key=${process.env.AOS_API_KEY}&landscape=${landscape}&page_size=100&page=${page}`;
 const ABM = 'ABM';
 const PUF = 'PUF';
 const M2M = 'M2M';
@@ -43,7 +42,7 @@ const KEY = {
 
 const paginatedOffers = (allProducts, landscape, locale, page = 0) => {
     const [, country] = locale.split('_');
-    return fetch(offersEndpoint(key, country, locale, landscape, page))
+    return fetch(offersEndpoint(country, locale, landscape, page))
         .then((response) => response.json())
         .then((offers) => {
             console.log(`received ${landscape} - ${page}}`);

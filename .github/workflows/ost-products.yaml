@@ -3,6 +3,8 @@ name: Update OST Products
 on:
   schedule:
     - cron: '0 8 * * *' # Daily at 8am UTC (9am CET), triggered on default branch = main
+  pull_request:
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 jobs:
@@ -27,6 +29,9 @@ jobs:
      
     - name: Run getProductScript.mjs
       run: node studio/ost/scripts/getProductScript.mjs
+      env:
+        AOS_URL: ${{vars.AOS_URL}}
+        AOS_API_KEY: ${{vars.AOS_API_KEY}}
 
     - name: Check & push changes in products.js
       run: |

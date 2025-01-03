@@ -276,7 +276,7 @@
                         );
                     });
 
-                    it.only('should display char counter in red when max length is exceeded', async function() {
+                    it('should display char counter in red when max length is exceeded', async function() {
                         const rte = await createFromTemplate('rte-maxlength', this.test.title);
                         const span = rte.shadowRoot.querySelector('#counter').firstElementChild;
                         await delay(100);

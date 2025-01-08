@@ -1,16 +1,19 @@
-import { html, nothing } from 'lit';
+import { html, LitElement, nothing } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import '../fields/multifield.js';
 import '../fields/mnemonic-field.js';
 import '../aem/aem-tag-picker-field.js';
 import './variant-picker.js';
-import EditorPanel from '../editor-panel.js';
 
 const MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 
-class MerchCardEditor extends EditorPanel {
+class MerchCardEditor extends LitElement {
     static properties = {
         fragment: { type: Object, attribute: false },
+        fragmentStore: { type: Object },
+        disabled: { type: Boolean },
+        hasChanges: { type: Boolean },
+        updateFragment: { type: Function },
     };
 
     createRenderRoot() {
@@ -19,6 +22,11 @@ class MerchCardEditor extends EditorPanel {
 
     constructor() {
         super();
+        this.fragment = null;
+        this.disabled = false;
+        this.hasChanges = false;
+        this.fragmentStore = null;
+        this.updateFragment = null;
     }
 
     connectedCallback() {
@@ -50,6 +58,10 @@ class MerchCardEditor extends EditorPanel {
         );
     }
 
+    #handleInput(e) {
+        this.updateFragment?.(e);
+    }
+
     render() {
         if (this.fragment.model.path !== MODEL_PATH) return nothing;
 
@@ -64,8 +76,8 @@ class MerchCardEditor extends EditorPanel {
                 ?show-all="false"
                 data-field="variant"
                 default-value="${form.variant.values[0]}"
-                @input="${this.updateFragment}"
-                @change="${this.updateFragment}"
+                @input="${this.#handleInput}"
+                @change="${this.#handleInput}"
                 ?disabled=${this.disabled}
             ></variant-picker>
             <sp-field-label for="card-title">Title</sp-field-label>
@@ -74,7 +86,7 @@ class MerchCardEditor extends EditorPanel {
                 id="card-title"
                 data-field="cardTitle"
                 value="${form.cardTitle.values[0]}"
-                @input="${this.updateFragment}"
+                @input="${this.#handleInput}"
                 ?disabled=${this.disabled}
             ></sp-textfield>
             <sp-field-label for="card-subtitle">Subtitle</sp-field-label>
@@ -83,7 +95,7 @@ class MerchCardEditor extends EditorPanel {
                 id="card-subtitle"
                 data-field="subtitle"
                 value="${form.subtitle.values[0]}"
-                @input="${this.updateFragment}"
+                @input="${this.#handleInput}"
                 ?disabled=${this.disabled}
             ></sp-textfield>
             <sp-field-label for="card-size">Size</sp-field-label>
@@ -92,7 +104,7 @@ class MerchCardEditor extends EditorPanel {
                 id="card-size"
                 data-field="size"
                 value="${form.size.values[0]}"
-                @input="${this.updateFragment}"
+                @input="${this.#handleInput}"
                 ?disabled=${this.disabled}
             ></sp-textfield>
             <sp-field-label for="card-icon">Badge</sp-field-label>
@@ -101,7 +113,7 @@ class MerchCardEditor extends EditorPanel {
                 id="card-badge"
                 data-field="badge"
                 value="${form.badge.values[0]}"
-                @input="${this.updateFragment}"
+                @input="${this.#handleInput}"
                 ?disabled=${this.disabled}
             ></sp-textfield>
             <sp-field-label for="mnemonic">Mnemonics</sp-field-label>
@@ -121,7 +133,7 @@ class MerchCardEditor extends EditorPanel {
                 id="background-title"
                 data-field="backgroundImage"
                 value="${form.backgroundImage.values[0]}"
-                @input="${this.updateFragment}"
+                @input="${this.#handleInput}"
                 ?disabled=${this.disabled}
             ></sp-textfield>
             <sp-field-label for="card-icon"
@@ -132,7 +144,7 @@ class MerchCardEditor extends EditorPanel {
                 id="background-alt-text"
                 data-field="backgroundImageAltText"
                 value="${form.backgroundImageAltText.values[0]}"
-                @input="${this.updateFragment}"
+                @input="${this.#handleInput}"
                 ?disabled=${this.disabled}
             ></sp-textfield>
             <sp-field-label for="horizontal"> Prices </sp-field-label>
@@ -141,7 +153,7 @@ class MerchCardEditor extends EditorPanel {
                     inline
                     data-field="prices"
                     default-link-style="primary-outline"
-                    @change="${this.updateFragment}"
+                    @change="${this.#handleInput}"
                     ?readonly=${this.disabled}
                     >${unsafeHTML(form.prices.values[0])}</rte-field
                 >
@@ -152,7 +164,7 @@ class MerchCardEditor extends EditorPanel {
                     link
                     data-field="description"
                     default-link-style="secondary-link"
-                    @change="${this.updateFragment}"
+                    @change="${this.#handleInput}"
                     ?readonly=${this.disabled}
                     >${unsafeHTML(form.description.values[0])}</rte-field
                 >
@@ -164,7 +176,7 @@ class MerchCardEditor extends EditorPanel {
                     inline
                     data-field="ctas"
                     default-link-style="primary-outline"
-                    @change="${this.updateFragment}"
+                    @change="${this.#handleInput}"
                     ?readonly=${this.disabled}
                     >${unsafeHTML(form.ctas.values[0])}</rte-field
                 >

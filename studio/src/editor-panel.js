@@ -7,12 +7,12 @@ import Store from './store.js';
 
 export default class EditorPanel extends LitElement {
     static properties = {
-        loading: { state: true, attribute: true },
-        refreshing: { state: true, attribute: true },
+        loading: { state: true },
+        refreshing: { state: true },
         source: { type: Object },
         bucket: { type: String },
-        disabled: { state: true, attribute: true },
-        hasChanges: { state: true, attribute: true },
+        disabled: { type: Boolean },
+        hasChanges: { type: Boolean },
         showToast: { type: Function },
     };
 
@@ -50,6 +50,7 @@ export default class EditorPanel extends LitElement {
         this.close = this.close.bind(this);
         this.handleClose = this.handleClose.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
+        this.updateFragment = this.updateFragment.bind(this);
     }
 
     connectedCallback() {
@@ -361,8 +362,6 @@ export default class EditorPanel extends LitElement {
         return html`
             ${this.fragment
                 ? html`
-                      ${this.fragmentEditorToolbar}
-                      <p>${this.fragment.path}</p>
                       <p>Fragment details (not shown on the card)</p>
                       <sp-field-label for="fragment-title"
                           >Fragment Title</sp-field-label
@@ -401,14 +400,18 @@ export default class EditorPanel extends LitElement {
         if (this.refreshing || !this.fragment) return nothing;
 
         return html`<div id="editor">
-            ${this.fragmentEditor} ${this.selectFragmentDialog}
-            <sp-divider size="s"></sp-divider>
+            ${this.fragmentEditorToolbar}
+            <p>${this.fragment.path}</p>
             <merch-card-editor
                 .fragment=${this.fragment}
                 .disabled=${this.disabled}
                 .hasChanges=${this.hasChanges}
+                .fragmentStore=${this.fragmentStore}
+                .updateFragment=${this.updateFragment}
             >
             </merch-card-editor>
+            <sp-divider size="s"></sp-divider>
+            ${this.fragmentEditor}
         </div>`;
     }
 }

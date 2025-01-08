@@ -1,14 +1,19 @@
-import { html, css, nothing } from 'lit';
-import { FragmentEditorBase } from './fragment-editor-base.js';
+import { LitElement, html, css, nothing } from 'lit';
+import StoreController from './reactivity/store-controller.js';
+import { MasRepository } from './mas-repository.js';
+import { FragmentStore } from './reactivity/fragment-store.js';
+import { Fragment } from './aem/fragment.js';
+import Store from './store.js';
 
-class EditorPanel extends FragmentEditorBase {
+export default class EditorPanel extends LitElement {
     static properties = {
-        showToast: { type: Function },
-        fragment: { type: Object, attribute: false },
+        loading: { state: true, attribute: true },
+        refreshing: { state: true, attribute: true },
         source: { type: Object },
         bucket: { type: String },
-        disabled: { type: Boolean },
-        hasChanges: { type: Boolean },
+        disabled: { state: true, attribute: true },
+        hasChanges: { state: true, attribute: true },
+        showToast: { type: Function },
     };
 
     static styles = css`
@@ -30,9 +35,18 @@ class EditorPanel extends FragmentEditorBase {
         }
     `;
 
+    createRenderRoot() {
+        return this;
+    }
+
     constructor() {
         super();
         this.disabled = false;
+        this.refreshing = false;
+        this.hasChanges = false;
+        this.loading = false;
+        this.discardChanges = this.discardChanges.bind(this);
+        this.refresh = this.refresh.bind(this);
         this.close = this.close.bind(this);
         this.handleClose = this.handleClose.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -46,6 +60,107 @@ class EditorPanel extends FragmentEditorBase {
     disconnectedCallback() {
         super.disconnectedCallback();
         document.removeEventListener('keydown', this.handleKeyDown);
+    }
+
+    /** @type {MasRepository} */
+    get repository() {
+        return document.querySelector('mas-repository');
+    }
+
+    fragmentStoreController = new StoreController(this, Store.fragments.inEdit);
+
+    /** @type {FragmentStore | null} */
+    get fragmentStore() {
+        if (!this.fragmentStoreController.value) return null;
+        return this.fragmentStoreController.value;
+    }
+
+    /** @type {Fragment | null} */
+    get fragment() {
+        if (!this.fragmentStore) return null;
+        return this.fragmentStore.get();
+    }
+
+    /**
+     * @returns {boolean} Whether or not the editor was closed
+     */
+    close() {
+        if (!this.fragmentStore) return true;
+        if (this.hasChanges && !window.confirm('Discard all current changes?'))
+            return false;
+        if (this.hasChanges) this.discardChanges();
+        Store.fragments.inEdit.set(null);
+        return true;
+    }
+
+    discardChanges(refresh = true) {
+        if (!this.hasChanges) return;
+        this.fragmentStore.discardChanges();
+        this.hasChanges = false;
+        if (refresh) this.refresh();
+    }
+
+    aemAction(action, reset = false) {
+        return async function () {
+            this.disabled = true;
+            const ok = await action();
+            if (ok && reset) this.hasChanges = false;
+            this.disabled = false;
+        };
+    }
+
+    updatePosition(position) {
+        this.style.setProperty(
+            '--editor-left',
+            position === 'left' ? '0' : 'inherit',
+        );
+        this.style.setProperty(
+            '--editor-right',
+            position === 'right' ? '0' : 'inherit',
+        );
+        this.setAttribute('position', position);
+    }
+
+    /**
+     * @param {FragmentStore} store
+     * @param {number | undefined} x
+     */
+    async editFragment(store, x) {
+        if (x) {
+            const newPosition = x > window.innerWidth / 2 ? 'left' : 'right';
+            this.updatePosition(newPosition);
+        }
+        const id = store.get().id;
+        const currentId = this.fragmentStore?.get().id;
+        if (id === currentId) return;
+        const wasEmpty = !currentId;
+        if (
+            !wasEmpty &&
+            this.hasChanges &&
+            !window.confirm('Discard all current changes?')
+        )
+            return;
+        this.discardChanges(false);
+        this.loading = true;
+        await this.repository.refreshFragment(store);
+        this.loading = false;
+        Store.fragments.inEdit.set(store);
+        if (!wasEmpty) this.refresh();
+    }
+
+    async refresh() {
+        this.refreshing = true;
+        await this.updateComplete;
+        this.refreshing = false;
+    }
+
+    get refreshed() {
+        return (async () => {
+            if (!this.refreshing) return Promise.resolve();
+            while (this.refreshing) {
+                await this.updateComplete;
+            }
+        })();
     }
 
     handleKeyDown(event) {
@@ -87,12 +202,20 @@ class EditorPanel extends FragmentEditorBase {
         this.hasChanges = true;
     }
 
+    updateFragment(event) {
+        const fieldName = event.target.dataset.field;
+        let value = event.target.value || event.detail?.value;
+        value = event.target.multiline ? value?.split(',') : [value ?? ''];
+        this.fragmentStore.updateField(fieldName, value);
+        this.hasChanges = true;
+    }
+
     get fragmentEditorToolbar() {
         return html`<div id="editor-toolbar">
             <sp-action-group
                 aria-label="Fragment actions"
                 role="group"
-                size="m"
+                size="l"
                 compact
                 emphasized
                 quiet
@@ -264,16 +387,46 @@ class EditorPanel extends FragmentEditorBase {
                           @input=${this.#updateFragmentInternal}
                           ?disabled=${this.disabled}
                       ></sp-textfield>
-                      <sp-divider size="s"></sp-divider>
                   `
                 : nothing}
         `;
     }
 
     render() {
-        if (!this.fragment) return nothing;
-        return html`${this.fragmentEditor} ${this.selectFragmentDialog}`;
+        if (this.loading)
+            return html`
+                <sp-progress-circle indeterminate size="l"></sp-progress-circle>
+            `;
+
+        if (this.refreshing || !this.fragment) return nothing;
+
+        return html`<div id="editor">
+            ${this.fragmentEditor} ${this.selectFragmentDialog}
+            <sp-divider size="s"></sp-divider>
+            <merch-card-editor
+                .fragment=${this.fragment}
+                .disabled=${this.disabled}
+                .hasChanges=${this.hasChanges}
+            >
+            </merch-card-editor>
+        </div>`;
     }
 }
 
 customElements.define('editor-panel', EditorPanel);
+
+/**
+ * @returns {EditorPanel}
+ */
+export function getEditorPanel() {
+    return document.querySelector('editor-panel');
+}
+
+/**
+ * @param {FragmentStore} store
+ * @param {number | undefined} x - The clientX value of the mouse event (used for positioning - optional)
+ */
+export async function editFragment(store, x) {
+    const editor = getEditorPanel();
+    editor.editFragment(store, x);
+}

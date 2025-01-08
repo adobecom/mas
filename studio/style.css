@@ -147,6 +147,10 @@ sp-underlay + sp-dialog {
     transition: right 0.3s ease-in-out;
 }
 
+#editor sp-divider {
+    margin: 16px 0;
+}
+
 #editor-toolbar {
     display: flex;
     justify-content: end;
@@ -157,11 +161,11 @@ sp-underlay + sp-dialog {
     margin-top: 20px;
 }
 
-merch-card-editor[position='left'] #move-left {
+editor-panel[position='left'] #move-left {
     display: none;
 }
 
-merch-card-editor[position='right'] #move-right {
+editor-panel[position='right'] #move-right {
     display: none;
 }
 

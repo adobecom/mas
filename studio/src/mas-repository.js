@@ -6,7 +6,7 @@ import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
 import { getInEditFragment } from './store.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
-import { editFragment } from './editors/merch-card-editor.js';
+import { editFragment } from './editor-panel.js';
 import { looseEquals, UserFriendlyError } from './utils.js';
 
 const ROOT = '/content/dam/mas';

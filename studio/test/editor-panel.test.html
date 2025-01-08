@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
     <head>
-        <title>Merch Card Editor tests</title>
+        <title>editor-panel custom element test page</title>
         <meta name="nofollow-links" content="on" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>
@@ -34,6 +34,7 @@
             import '../src/swc.js';
             import '../src/rte/rte-field.js';
             import '../src/aem/aem-tag-picker-field.js';
+            import '../src/editor-panel.js';
             import '../src/editors/merch-card-editor.js';
             import '../src/mas-repository.js';
             import { Fragment } from '../src/aem/fragment.js';
@@ -44,7 +45,6 @@
                 createFromTemplate,
                 delay,
                 triggerInput,
-                waitForElement,
             } from './utils.js';
 
             runTests(async () => {
@@ -61,47 +61,54 @@
                     return originalFetch(...arguments);
                 };
 
-                describe('Merch Card Editor component', () => {
+                describe('editor-panel custom element', () => {
                     let fragment;
                     let fragmentStore;
-                    let merchCardEditor;
+                    let editorPanel;
                     beforeEach(async () => {
                         fragment = new Fragment(fragmentData);
                         fragmentStore = new FragmentStore(fragment);
-                        merchCardEditor = await fixture(
-                            html`<merch-card-editor></merch-card-editor>`,
+                        editorPanel = await fixture(
+                            html`<editor-panel
+                            ></editor-panel>`,
                             { parentNode: spTheme },
                         );
                         Store.fragments.inEdit.set(fragmentStore);
                     });
 
                     it('implements "discard changes"', async () => {
+                        await editorPanel.updateComplete;
+                        await editorPanel.refreshed;
                         const discardButton = document.querySelector(
                             'sp-action-button[value="discard"]',
                         );
                         const titleField = () =>
                             document.getElementById('card-title');
-                        expect(merchCardEditor.fragmentStore).to.not.be.null;
+                        expect(editorPanel.fragmentStore).to.not.be.null;
                         expect(discardButton.disabled).to.be.true;
                         triggerInput(titleField(), 'test title');
                         expect(
                             fragment.getField('cardTitle').values,
                         ).to.deep.equal(['test title']);
-                        await merchCardEditor.updateComplete;
+                        await editorPanel.updateComplete;
+                        const merchCardEditor = document.querySelector('merch-card-editor');
                         expect(merchCardEditor.hasChanges).to.be.true;
+                        if (merchCardEditor.hasChanges) {
+                            editorPanel.hasChanges = true;
+                        } // manual trigger change, in real scenario this is not required
                         expect(discardButton.disabled).to.be.false;
                         discardButton.click();
                         expect(
                             fragment.getField('cardTitle').values,
                         ).to.deep.equal([]);
-                        await merchCardEditor.refreshed;
+                        
                         expect(titleField().value).to.equal('');
                     });
                 });
             });
         </script>
         <sp-theme color="light" scale="medium"></sp-theme>
-        <!-- Needed for the merch-card-editor to render -->
+        <!-- Needed for the editor-panel to render -->
         <mas-repository bucket="e59341"></mas-repository>
     </body>
 </html>

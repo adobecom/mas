@@ -38,13 +38,13 @@ const args = process.argv.slice(2);
 const bucket = args[0];
 const consumer = args[1];
 
-const jwtToken = process.env.MAS_JWT_TOKEN;
+const accessToken = process.env.MAS_ACCESS_TOKEN;
 const apiKey = process.env.MAS_API_KEY;
 
-if (!bucket || !consumer || !jwtToken || !apiKey) {
+if (!bucket || !consumer || !accessToken || !apiKey) {
     console.error('Usage: node gen-locales.mjs <bucket> <consumer>');
     console.error(
-        'Ensure MAS_JWT_TOKEN and MAS_API_KEY are set as environment variables.',
+        'Ensure MAS_ACCESS_TOKEN and MAS_API_KEY are set as environment variables.',
     );
     process.exit(1);
 }
@@ -64,7 +64,7 @@ async function run() {
             headers: {
                 'Content-Type': 'application/json',
                 'X-Adobe-Accept-Experimental': '1',
-                Authorization: `Bearer ${jwtToken}`,
+                Authorization: `Bearer ${accessToken}`,
                 'x-api-key': apiKey,
             },
         };

@@ -93,15 +93,12 @@
                         await editorPanel.updateComplete;
                         const merchCardEditor = document.querySelector('merch-card-editor');
                         expect(merchCardEditor.hasChanges).to.be.true;
-                        if (merchCardEditor.hasChanges) {
-                            editorPanel.hasChanges = true;
-                        } // manual trigger change, in real scenario this is not required
                         expect(discardButton.disabled).to.be.false;
                         discardButton.click();
+                        await delay(100);
                         expect(
                             fragment.getField('cardTitle').values,
                         ).to.deep.equal([]);
-                        
                         expect(titleField().value).to.equal('');
                     });
                 });

@@ -27,7 +27,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Set execute permission for nalarun.sh
+      - name: Set execute permission for pr.run.sh
         run: chmod +x ./nala/utils/pr.run.sh
 
       - name: Run Nala Tests via pr.run.sh

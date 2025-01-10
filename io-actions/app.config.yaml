@@ -3,7 +3,7 @@ application:
   web: web-src
   runtimeManifest:
     packages:
-      MasHealthCheck:
+      MerchAtScale:
         license: Apache-2.0
         actions:
           health-check:
@@ -15,6 +15,16 @@ application:
               ODIN_ORIGIN_ENDPOINT: $ODIN_ORIGIN_ENDPOINT
               WCS_CDN_ENDPOINT: $WCS_CDN_ENDPOINT
               WCS_ORIGIN_ENDPOINT: $WCS_ORIGIN_ENDPOINT
+            annotations:
+              require-adobe-auth: false
+              final: true
+          ost-products:
+            function: src/ost-products/index.js
+            web: 'yes'
+            runtime: nodejs:18
+            inputs:
+              AOS_URL: $AOS_URL
+              AOS_API_KEY: $AOS_API_KEY
             annotations:
               require-adobe-auth: false
               final: true

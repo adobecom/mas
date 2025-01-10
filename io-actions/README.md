@@ -9,7 +9,9 @@
 - in your workspace click on 'Download all' and copy the auth .json in root of this project
 - run `aio app use filename`
 - this should populate the `.env` and the `.aio` file in the project root
-- add ODIN_CDN_ENDPOINT,ODIN_ORIGIN_ENDPOINT,WCS_CDN_ENDPOINT,WCS_ORIGIN_ENDPOINT env vars to .env file
+- for health-check action, 
+    add ODIN_CDN_ENDPOINT,ODIN_ORIGIN_ENDPOINT,WCS_CDN_ENDPOINT,WCS_ORIGIN_ENDPOINT env vars to .env file
+- for ost-products, add AOS_URL and AOS_API_KEY env vars to .env file
 - run `npm i`
 - run `aio where` and verify output is:
 ```

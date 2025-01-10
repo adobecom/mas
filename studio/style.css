@@ -1,5 +1,13 @@
+:root {
+    --mas-nav-height: 50px;
+}
+
 body {
     margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    display: grid;
+    grid-template-rows: auto 1fr; /* Top navigation and flexible content */
 }
 
 sp-theme {
@@ -9,15 +17,96 @@ sp-theme {
 mas-studio {
     width: 100%;
     display: flex;
-    gap: 8px;
     background-color: var(--spectrum-global-color-gray-100);
     align-items: center;
     flex-direction: column;
-    position: absolute;
-    top: 0;
-    right: 0;
-    left: 0;
-    bottom: 0;
+}
+
+.show {
+    display: initial;
+}
+
+.hide {
+    display: none;
+}
+
+.studio-content {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    grid-row: 2 / 3;
+    width: 100%;
+    min-height: calc(100vh - var(--mas-nav-height));
+}
+
+side-nav {
+    grid-column: 1 / 2;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+side-nav sp-sidenav {
+    height: 100%;
+    padding: 16px 0;
+}
+
+side-nav sp-sidenav-heading {
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 8px;
+    padding: 0 16px;
+}
+
+.dropdown-container {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    margin-top: 16px;
+}
+
+side-nav sp-sidenav-item {
+    font-size: 14px;
+    color: #292929;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
+}
+
+sp-sidenav-item sp-icon {
+    width: 20px;
+    height: 20px;
+    color: #292929;
+}
+
+side-nav sp-sidenav-item[selected] {
+    font-weight: 800;
+}
+
+side-nav sp-sidenav-item:hover {
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.main-container {
+    grid-column: 2 / 3;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding-block: 24px;
+    padding-inline: 16px;
+}
+
+#content-container {
+    height: 100%;
+    border-radius: 8px;
+    padding-inline: 24px;
+    background-color: var(--spectrum-white);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    position: relative;
 }
 
 mas-studio > ul > li {
@@ -41,10 +130,90 @@ sp-underlay + sp-dialog {
     background: var(--spectrum-gray-100);
 }
 
+#editor {
+    position: fixed;
+    bottom: 0;
+    top: 0;
+    left: var(--editor-left);
+    right: var(--editor-right);
+    height: 100vh;
+    width: 460px;
+    background-color: var(--spectrum-white);
+    padding: 20px;
+    overflow-y: auto;
+    box-sizing: border-box;
+    box-shadow: 0px 1px 4px 4px rgb(0 0 0 / 10%);
+    border-radius: 8px;
+    transition: right 0.3s ease-in-out;
+}
+
+#editor sp-divider {
+    margin: 16px 0;
+}
+
+#editor-toolbar {
+    display: flex;
+    justify-content: end;
+    gap: 5px;
+}
+
+#editor aem-tag-picker-field {
+    margin-top: 20px;
+}
+
+editor-panel[position='left'] #move-left {
+    display: none;
+}
+
+editor-panel[position='right'] #move-right {
+    display: none;
+}
+
+#actions {
+    display: flex;
+    justify-content: end;
+}
+
 sp-status-light {
-    position: absolute;
-    bottom: -6px;
-    left: 6px;
+    min-block-size: initial;
+    padding: 0;
+    --spectrum-statuslight-spacing-top-to-dot: 0;
+    --spectrum-statuslight-spacing-top-to-label: 0;
+    --spectrum-statuslight-spacing-dot-to-label: 0;
+}
+
+.render-card {
+    display: flex;
+    flex-direction: column;
+    padding: 6px 3px 3px 3px;
+    gap: 6px;
+    border: 1px solid transparent;
+    border-radius: var(--consonant-merch-spacing-xs);
+}
+
+.render-card:has(merch-card[variant='ccd-slice']),
+.render-card:has(merch-card[variant='ccd-suggested']) {
+    border-radius: 4px;
+}
+
+.render-card:hover {
+    border-color: var(--ccd-gray-200-light, #e6e6e6);
+}
+
+.render-card-header {
+    display: flex;
+    justify-content: space-between;
+    padding-inline: 6px;
+}
+
+rte-field {
+    width: 100%;
+    border: 1px solid var(--spectrum-global-color-gray-500);
+    border-radius: var(--spectrum-corner-radius-100);
+}
+
+merch-card:not([variant]) {
+    display: none;
 }
 
 merch-card {
@@ -53,40 +222,25 @@ merch-card {
     box-sizing: border-box;
 }
 
-merch-card.selected {
+mas-fragment-render[selected] .render-card {
     outline: 2px solid var(--spectrum-global-color-blue-600);
 }
 
 sp-progress-circle {
     position: absolute;
     top: 50%;
-    margin: 0 auto;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
 }
 
-content-navigation {
-    align-self: stretch;
-    flex: 1;
-}
-
-render-view {
-    margin: 32px;
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    padding-inline-start: 0;
-    align-items: start;
-}
-
-content-navigation render-view merch-card .overlay {
-    display: none;
-}
-
-merch-card:not(.has-tooltip) ~ sp-tooltip {
+mas-fragment-render:not(.has-tooltip) merch-card ~ sp-tooltip,
+mas-fragment-table:not(.has-tooltip) ~ sp-tooltip {
     display: none;
 }
 
 merch-card:hover {
-    background-color: var(--spectrum-background-base-color);
+    background-color: var(--spectrum-background-base-color) !important;
 }
 
 merch-card sp-icon-add,
@@ -102,7 +256,7 @@ merch-card:hover:not(.selected) sp-icon-add {
     display: block;
 }
 
-content-navigation[in-selection] render-view merch-card .overlay {
+merch-card .overlay {
     background-color: rgba(255, 255, 255, 0.5);
     border-radius: 16px;
     position: absolute;
@@ -113,4 +267,146 @@ content-navigation[in-selection] render-view merch-card .overlay {
     left: 0;
     width: 100%;
     height: 100%;
+}
+
+merch-card-editor mas-multifield,
+rte-field {
+    margin-inline-end: 16px;
+}
+
+mas-recently-updated[loading] {
+    visibility: hidden;
+}
+
+mas-recently-updated > .container {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-inline-start: 0;
+}
+
+mas-content {
+    width: 100%;
+    padding-inline: 30px;
+    box-sizing: border-box;
+}
+
+#content {
+    display: flex;
+    justify-content: center;
+    padding-bottom: 30px;
+}
+
+#content sp-table {
+    width: 100%;
+    & sp-table-body {
+        background-color: var(--spectrum-gray-100);
+    }
+    --spectrum-table-cell-background-color: transparent;
+}
+
+#content sp-table-body {
+    overflow: hidden;
+}
+
+#content #render {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+/* Splash styles */
+
+#splash-container {
+    background: linear-gradient(180deg, #fff9f0 0%, #ffffff 100%);
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#splash-container h1 {
+    font-size: 32px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 24px;
+    margin-top: 0;
+}
+
+.quick-actions {
+    padding: 24px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 32px;
+    max-width: 564px;
+    height: 178px;
+}
+
+.quick-actions h2 {
+    font-size: 18px;
+    color: #333;
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-weight: bold;
+}
+
+.quick-action-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: transform 0.2s;
+    cursor: pointer;
+    border: none;
+}
+
+.quick-action-card:hover {
+    transform: translateY(-4px);
+}
+
+.quick-action-card div[slot='cover-photo'] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 177px;
+    height: 90px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    background-color: #f8f8f8;
+}
+
+.quick-action-card div[slot='cover-photo'] svg {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+}
+
+.quick-action-card div[slot='heading'] {
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+    display: flex;
+    align-self: flex-start;
+}
+
+.actions-grid {
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+    margin-top: 24px;
+}
+
+#recently-updated-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    position: relative;
+}
+
+#recently-updated-container[loading] {
+    min-height: 64px;
 }

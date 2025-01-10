@@ -21,3 +21,7 @@ export const ANALYTICS_LINK_IDS = [
     'what-is-included',
     'register-now',
 ];
+
+// TODO remove these?
+export const EVENT_CHANGE = 'change';
+export const EVENT_INPUT = 'input';

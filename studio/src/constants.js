@@ -25,3 +25,5 @@ export const ANALYTICS_LINK_IDS = [
 // TODO remove these?
 export const EVENT_CHANGE = 'change';
 export const EVENT_INPUT = 'input';
+
+export const EVENT_OST_SELECT = 'ost-select';

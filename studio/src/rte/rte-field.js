@@ -13,7 +13,7 @@ import {
 } from './ost.js';
 
 import prosemirrorStyles from './prosemirror.css.js';
-import { EVENT_OST_SELECT } from '../events.js';
+import { EVENT_OST_SELECT } from '../constants.js';
 import throttle from '../utils/throttle.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
@@ -697,6 +697,7 @@ class RteField extends LitElement {
     }
 
     #updateLength() {
+        console.log(this.editorView.dom.innerText);
         this.length = this.editorView.dom.innerText.length;
     }
 

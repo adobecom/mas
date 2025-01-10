@@ -1,5 +1,5 @@
 import { css, html, LitElement } from 'lit';
-import { EVENT_CHANGE, EVENT_INPUT } from '../events.js';
+import { EVENT_CHANGE, EVENT_INPUT } from '../constants.js';
 
 class MnemonicField extends LitElement {
     static get properties() {

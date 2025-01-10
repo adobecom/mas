@@ -150,7 +150,7 @@ class MasToolbar extends LitElement {
         </div>`;
     }
 
-    get toolbarActions() {
+    get contentManagementControls() {
         if (this.selecting.value) return nothing;
         return html`<div id="write">
             <sp-button variant="accent" disabled>
@@ -194,7 +194,7 @@ class MasToolbar extends LitElement {
     render() {
         return html`<div id="toolbar">
                 <div id="actions">
-                    ${this.searchAndFilterControls} ${this.toolbarActions}
+                    ${this.searchAndFilterControls} ${this.contentManagementControls}
                     ${this.selectionPanel}
                 </div>
                 ${this.filtersPanel}${this.searchResultsLabel}

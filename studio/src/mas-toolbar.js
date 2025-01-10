@@ -124,7 +124,7 @@ class MasToolbar extends LitElement {
         Store.search.update((prev) => ({ ...prev, query: value }));
     }
 
-    get readActions() {
+    get searchAndFilterControls() {
         return html`<div id="read">
             <sp-action-button
                 toggles
@@ -150,7 +150,7 @@ class MasToolbar extends LitElement {
         </div>`;
     }
 
-    get writeActions() {
+    get contentManagementControls() {
         if (this.selecting.value) return nothing;
         return html`<div id="write">
             <sp-button variant="accent" disabled>
@@ -194,8 +194,8 @@ class MasToolbar extends LitElement {
     render() {
         return html`<div id="toolbar">
                 <div id="actions">
-                    ${this.readActions} ${this.writeActions}
-                    ${this.selectionPanel}
+                    ${this.searchAndFilterControls}
+                    ${this.contentManagementControls} ${this.selectionPanel}
                 </div>
                 ${this.filtersPanel}${this.searchResultsLabel}
             </div>

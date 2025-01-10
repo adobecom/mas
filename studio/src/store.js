@@ -1,5 +1,5 @@
 import { Fragment } from './aem/fragment.js';
-import { getMerchCardEditor } from './editors/merch-card-editor.js';
+import { getEditorPanel } from './editor-panel.js';
 import MasFilters from './entities/filters.js';
 import MasSearch from './entities/search.js';
 import { reactiveStore } from './reactivity/reactive-store.js';
@@ -57,7 +57,7 @@ export function toggleSelection(id) {
 
 export function navigateToPage(value) {
     return function () {
-        const editor = getMerchCardEditor();
+        const editor = getEditorPanel();
         if (editor && !editor.close()) return;
         Store.currentPage.set(value);
     };

@@ -47,8 +47,8 @@ export default function () {
     } else {
         const fields = res?.body?.length > 0 ? JSON.parse(res.body).fields : {};
         const fieldCheck = check(fields, {
-            'cardTitle is not empty': (f) => {
-                return f?.cardTitle?.length > 0;
+            'description is not empty': (f) => {
+                return f?.description?.value?.length > 0;
             },
         });
         if (!fieldCheck) {

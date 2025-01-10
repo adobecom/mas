@@ -4,7 +4,7 @@ import Store from './store.js';
 import './mas-fragment-render.js';
 import './mas-fragment-table.js';
 import { reactiveStore } from './reactivity/reactive-store.js';
-import { editFragment } from './editors/merch-card-editor.js';
+import { editFragment } from './editor-panel.js';
 
 const tooltipTimeout = reactiveStore(null);
 

@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import Store, { navigateToPage } from './store.js';
+import { navigateToPage } from './store.js';
 
 class MasSideNav extends LitElement {
     static styles = css`
@@ -54,6 +54,18 @@ class MasSideNav extends LitElement {
             cursor: pointer;
             font-weight: 700;
         }
+
+        .side-nav-support {
+            position: absolute;
+            bottom: 0;
+            width: 220px;
+        }
+
+        .side-nav-support .side-nav-new-window {
+            position: absolute;
+            right: 0;
+            padding-right: 5px;
+        }
     `;
 
     render() {
@@ -80,11 +92,20 @@ class MasSideNav extends LitElement {
                         slot="icon"
                     ></sp-icon-graph-bar-vertical>
                 </sp-sidenav-item>
-
-                <sp-sidenav-divider></sp-sidenav-divider>
-
-                <sp-sidenav-item label="Support" value="support">
+                <sp-sidenav-item
+                    class="side-nav-support"
+                    label="Support"
+                    value="support"
+                    @click="${() =>
+                        window.open(
+                            'https://adobe.enterprise.slack.com/archives/C02RZERR9CH',
+                            '_blank',
+                        )}"
+                >
                     <sp-icon-help slot="icon"></sp-icon-help>
+                    <sp-icon-link-out-light
+                        class="side-nav-new-window"
+                    ></sp-icon-link-out-light>
                 </sp-sidenav-item>
             </sp-sidenav>
         </side-nav>`;

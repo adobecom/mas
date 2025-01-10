@@ -84,6 +84,7 @@ class MasSideNav extends LitElement {
                 <sp-sidenav-divider></sp-sidenav-divider>
 
                 <sp-sidenav-item
+                    style="position: absolute; bottom: 0;"
                     label="Support"
                     value="support"
                     @click="${() =>

@@ -83,7 +83,15 @@ class MasSideNav extends LitElement {
 
                 <sp-sidenav-divider></sp-sidenav-divider>
 
-                <sp-sidenav-item label="Support" value="support">
+                <sp-sidenav-item
+                    label="Support"
+                    value="support"
+                    @click="${() =>
+                        window.open(
+                            'https://adobe.enterprise.slack.com/archives/C02RZERR9CH',
+                            '_blank',
+                        )}"
+                >
                     <sp-icon-help slot="icon"></sp-icon-help>
                 </sp-sidenav-item>
             </sp-sidenav>

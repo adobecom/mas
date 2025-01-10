@@ -89,6 +89,7 @@ const OST_OPTION_ATTRIBUTE_MAPPING = {
     wcsOsi: 'data-wcs-osi',
     workflow: 'data-checkout-workflow',
     workflowStep: 'data-checkout-workflow-step',
+    storedPromoOverride: 'data-promotion-code',
 };
 
 export const OST_OPTION_ATTRIBUTE_MAPPING_REVERSE = Object.fromEntries(
@@ -196,12 +197,16 @@ export function openOfferSelectorTool(offerElement) {
             }
         });
 
-        ['promotionCode', 'checkoutType', 'workflowStep', 'country'].forEach(
-            (key) => {
-                const value = offerSelectorPlaceholderOptions[key];
-                if (value) searchParameters.append(key, value);
-            },
-        );
+        [
+            'promotionCode', // contextual promo code (e.g. set on card/)
+            'storedPromoOverride', // promo code set directly on price/CTA
+            'checkoutType',
+            'workflowStep',
+            'country',
+        ].forEach((key) => {
+            const value = offerSelectorPlaceholderOptions[key];
+            if (value) searchParameters.append(key, value);
+        });
     }
     ostRoot.style.display = 'block';
     closeFunction = window.ost.openOfferSelectorTool({

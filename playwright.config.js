@@ -43,6 +43,7 @@ const config = {
         actionTimeout: 60000,
 
         trace: 'on-first-retry',
+        screenshot: 'only-on-failure',
         baseURL:
             process.env.PR_BRANCH_LIVE_URL ||
             process.env.LOCAL_TEST_LIVE_URL ||

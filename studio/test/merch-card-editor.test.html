@@ -44,7 +44,6 @@
                 createFromTemplate,
                 delay,
                 triggerInput,
-                waitForElement,
             } from './utils.js';
 
             runTests(async () => {
@@ -58,9 +57,13 @@
                     if (/querybuilder.json/.test(pathname)) {
                         return originalFetch('/test/mocks/tags.json');
                     } else if (/mas.json/.test(pathname)) {
-                        return originalFetch('/test/mocks/folders/default.json');
+                        return originalFetch(
+                            '/test/mocks/folders/default.json',
+                        );
                     } else if (/search/.test(pathname)) {
-                        return originalFetch('/test/mocks/sites/cf/fragments/search/default.json');
+                        return originalFetch(
+                            '/test/mocks/sites/cf/fragments/search/default.json',
+                        );
                     }
                     return originalFetch(...arguments);
                 };
@@ -73,7 +76,10 @@
                         fragment = new Fragment(fragmentData);
                         fragmentStore = new FragmentStore(fragment);
                         merchCardEditor = await fixture(
-                            html`<merch-card-editor></merch-card-editor><mas-repository bucket="e59341"></mas-repository>`,
+                            html`<merch-card-editor></merch-card-editor
+                                ><mas-repository
+                                    bucket="e59341"
+                                ></mas-repository>`,
                             { parentNode: spTheme },
                         );
                         Store.fragments.inEdit.set(fragmentStore);

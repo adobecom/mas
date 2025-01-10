@@ -2,11 +2,18 @@ export default class StudioPage {
     constructor(page) {
         this.page = page;
 
+        this.quickActions = page.locator('.quick-actions');
+        this.recentlyUpdated = page.locator('.recently-updated');
+        this.gotoContent = page.locator(
+            '.quick-action-card[heading="Go to Content"]',
+        );
+
         this.searchInput = page.locator('sp-search  input');
         this.searchIcon = page.locator('sp-search sp-icon-magnify');
         this.filter = page.locator('sp-action-button[label="Filter"]');
         this.topFolder = page.locator('sp-picker[label="TopFolder"] > button');
-        this.renderView = page.locator('render-view');
+        this.renderView = page.locator('#render');
+        this.quickActions = page.locator('.quick-actions');
         this.editorPanel = page.locator('editor-panel');
         this.suggestedCard = page.locator(
             'merch-card[variant="ccd-suggested"]',

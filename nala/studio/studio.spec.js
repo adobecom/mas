@@ -3,6 +3,12 @@ export default {
     features: [
         {
             tcid: '0',
+            name: '@studio-load',
+            path: '/studio.html',
+            tags: '@mas-studio',
+        },
+        {
+            tcid: '1',
             name: '@studio-direct-search',
             path: '/studio.html',
             data: {
@@ -21,7 +27,7 @@ export default {
             tags: '@mas-studio',
         },
         {
-            tcid: '1',
+            tcid: '2',
             name: '@studio-search-field',
             path: '/studio.html',
             data: {
@@ -31,7 +37,7 @@ export default {
             tags: '@mas-studio',
         },
         {
-            tcid: '2',
+            tcid: '3',
             name: '@studio-edit-title',
             path: '/studio.html',
             data: {

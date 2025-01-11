@@ -13,7 +13,7 @@ const pageParam = url.searchParams.get('page');
 const initialPage =
     pageParam === 'welcome'
         ? 'splash'
-        : initialSearch.query || initialSearch.path
+        : initialSearch.path
           ? 'content'
           : 'splash';
 

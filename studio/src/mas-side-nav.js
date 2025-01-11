@@ -4,6 +4,7 @@ import { navigateToPage } from './store.js';
 class MasSideNav extends LitElement {
     static styles = css`
         side-nav {
+            height: 100%;
             grid-column: 1 / 2;
             display: flex;
             flex-direction: column;
@@ -68,6 +69,13 @@ class MasSideNav extends LitElement {
         }
     `;
 
+    navigateToSplash() {
+        const url = new URL(window.location.href);
+        url.searchParams.set('page', 'welcome');
+        history.pushState({}, '', url.toString());
+        navigateToPage('splash')();
+    }
+
     render() {
         return html`<side-nav>
             <div class="dropdown-container">
@@ -77,7 +85,7 @@ class MasSideNav extends LitElement {
                 <sp-sidenav-item
                     label="Home"
                     value="home"
-                    @click="${navigateToPage('splash')}"
+                    @click="${this.navigateToSplash}"
                     selected
                 >
                     <sp-icon-home slot="icon"></sp-icon-home>

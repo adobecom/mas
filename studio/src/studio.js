@@ -12,7 +12,7 @@ import './mas-toast.js';
 import './mas-hash-manager.js';
 import './mas-splash-screen.js';
 import StoreController from './reactivity/store-controller.js';
-import Store from './store.js';
+import Store, { navigateToPage } from './store.js';
 
 const BUCKET_TO_ENV = {
     e155390: 'qa',
@@ -54,6 +54,25 @@ class MasStudio extends LitElement {
         return html`<mas-splash-screen
             base-url=${this.baseUrl}
         ></mas-splash-screen>`;
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+    }
+
+    handleInitialPageLoad() {
+        const url = new URL(window.location.href);
+        const pageParam = url.searchParams.get('page');
+
+        if (pageParam === 'welcome') {
+            navigateToPage('splash')();
+            history.pushState({}, '', url.toString());
+            return;
+        } else {
+            url.searchParams.delete('page');
+            history.replaceState({}, '', url.toString());
+            navigateToPage('content')();
+        }
     }
 
     render() {

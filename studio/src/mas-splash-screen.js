@@ -31,6 +31,13 @@ class MasSplashScreen extends LitElement {
         openOfferSelectorTool();
     }
 
+    navigateToContent() {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('page');
+        history.replaceState({}, '', url.toString());
+        navigateToPage('content')();
+    }
+
     render() {
         return html`<div id="splash-container">
             <h1>Welcome, ${this.userName}</h1>
@@ -39,7 +46,7 @@ class MasSplashScreen extends LitElement {
                 <div class="actions-grid">
                     <div
                         class="quick-action-card"
-                        @click=${navigateToPage('content')}
+                        @click=${this.navigateToContent}
                         heading="Go to Content"
                     >
                         <div slot="cover-photo">${contentIcon}</div>

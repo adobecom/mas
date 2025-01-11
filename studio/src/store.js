@@ -7,6 +7,16 @@ import { reactiveStore } from './reactivity/reactive-store.js';
 const initialSearch = MasSearch.fromHash();
 const initialFilters = MasFilters.fromHash();
 
+const url = new URL(window.location.href);
+const pageParam = url.searchParams.get('page');
+
+const initialPage =
+    pageParam === 'welcome'
+        ? 'splash'
+        : initialSearch.query || initialSearch.path
+          ? 'content'
+          : 'splash';
+
 const Store = {
     fragments: {
         list: {
@@ -31,7 +41,7 @@ const Store = {
     ), // 'render' | 'table'
     selecting: reactiveStore(false),
     selection: reactiveStore([]),
-    currentPage: reactiveStore(initialSearch.query ? 'content' : 'splash'), // 'splash' | 'content'
+    currentPage: reactiveStore(initialPage), // 'splash' | 'content'
 };
 
 export default Store;

@@ -101,51 +101,50 @@ async function main(params) {
                 params,
             );
         });
-        Promise.all(promises).then(() => {
-            console.log('fetched all AOS responses, assembling...');
-            const combinedProducts = allProducts.PUBLISHED;
-            Object.keys(allProducts.DRAFT).forEach((pa) => {
-                const draftOffer = allProducts.DRAFT[pa];
-                if (!combinedProducts[pa]) {
-                    console.log(`found ${pa} to be draft`);
-                    combinedProducts[pa] = {
-                        ...draftOffer,
-                        draft: true,
-                    };
-                } // merge planTypes, customerSegments and marketSegments for published and draft offers
-                else if (
-                    JSON.stringify(combinedProducts[pa]) !==
-                    JSON.stringify(draftOffer)
-                ) {
-                    console.log(
-                        `found ${pa} to be draft, but there is already a published offer with the same PA.`,
-                    );
-                    combinedProducts[pa].planTypes = {
-                        ...combinedProducts[pa].planTypes,
-                        ...draftOffer.planTypes,
-                    };
-                    combinedProducts[pa].customerSegments = {
-                        ...combinedProducts[pa].customerSegments,
-                        ...draftOffer.customerSegments,
-                    };
-                    combinedProducts[pa].marketSegments = {
-                        ...combinedProducts[pa].marketSegments,
-                        ...draftOffer.marketSegments,
-                    };
-                }
-            });
-
-            return {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Cache-Control': 'max-age=86400', // cached in Adobe IO gateway 24 hours
-                },
-                statusCode: 200,
-                body: {
-                    data: combinedProducts,
-                },
-            };
+        await Promise.all(promises);
+        console.log('awaited');
+        console.log('fetched all AOS responses, assembling...');
+        const combinedProducts = allProducts.PUBLISHED;
+        Object.keys(allProducts.DRAFT).forEach((pa) => {
+            const draftOffer = allProducts.DRAFT[pa];
+            if (!combinedProducts[pa]) {
+                console.log(`found ${pa} to be draft`);
+                combinedProducts[pa] = {
+                    ...draftOffer,
+                    draft: true,
+                };
+            } // merge planTypes, customerSegments and marketSegments for published and draft offers
+            else if (
+                JSON.stringify(combinedProducts[pa]) !==
+                JSON.stringify(draftOffer)
+            ) {
+                console.log(
+                    `found ${pa} to be draft, but there is already a published offer with the same PA.`,
+                );
+                combinedProducts[pa].planTypes = {
+                    ...combinedProducts[pa].planTypes,
+                    ...draftOffer.planTypes,
+                };
+                combinedProducts[pa].customerSegments = {
+                    ...combinedProducts[pa].customerSegments,
+                    ...draftOffer.customerSegments,
+                };
+                combinedProducts[pa].marketSegments = {
+                    ...combinedProducts[pa].marketSegments,
+                    ...draftOffer.marketSegments,
+                };
+            }
         });
+        return {
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'max-age=86400', // cached in Adobe IO gateway 24 hours
+            },
+            statusCode: 200,
+            body: {
+                combinedProducts,
+            },
+        };
     } catch (error) {
         return {
             statusCode: 500,

@@ -13,6 +13,7 @@ import './mas-hash-manager.js';
 import './mas-splash-screen.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
+import Events from './events.js';
 
 const BUCKET_TO_ENV = {
     e155390: 'qa',
@@ -31,15 +32,33 @@ class MasStudio extends LitElement {
         this.bucket = 'e59433';
     }
 
+    // we need to completely remove&add element to the dom
+    toggleCommerce(env) {
+        const service = this.querySelector('mas-commerce-service');
+        const newService = service.cloneNode(true);
+        newService.setAttribute('env', env);
+        service.remove();
+        this.prepend(newService);
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+    }
+
     createRenderRoot() {
         return this;
     }
 
-    get env() {
+    get aemEnv() {
         return BUCKET_TO_ENV[this.bucket] || BUCKET_TO_ENV.e59433;
     }
 
     currentPage = new StoreController(this, Store.currentPage);
+    commerceEnv = new StoreController(this, Store.commerceEnv);
 
     get content() {
         if (this.currentPage.value !== 'content') return nothing;
@@ -58,7 +77,14 @@ class MasStudio extends LitElement {
 
     render() {
         return html`
-            <mas-top-nav env="${this.env}"></mas-top-nav>
+            ${this.commerceEnv?.value == 'stage'
+                ? html`<mas-commerce-service
+                      env="stage"
+                  ></mas-commerce-service>`
+                : html`<mas-commerce-service
+                      env="prod"
+                  ></mas-commerce-service>`}
+            <mas-top-nav aem-env="${this.aemEnv}"></mas-top-nav>
             <mas-repository
                 bucket="${this.bucket}"
                 base-url="${this.baseUrl}"

@@ -14,6 +14,7 @@ class MasHashManager extends LitElement {
 
     filters = new StoreController(this, Store.filters);
     search = new StoreController(this, Store.search);
+    commerceEnv = new StoreController(this, Store.commerceEnv);
 
     connectedCallback() {
         super.connectedCallback();
@@ -51,6 +52,10 @@ class MasHashManager extends LitElement {
         const params = new URLSearchParams(window.location.hash.slice(1));
         setHashParams(params, this.search.value);
         setHashParams(params, this.filters.value);
+        const isCommerceStage = this.commerceEnv.value == 'stage';
+        setHashParams(params, {
+            'commerce.env': isCommerceStage ? this.commerceEnv.value : null,
+        });
         return params.toString();
     }
 

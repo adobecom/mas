@@ -1,5 +1,10 @@
 import { html } from 'lit';
-import { CHECKOUT_CTA_TEXTS } from '../constants.js';
+import {
+    CHECKOUT_CTA_TEXTS,
+    WCS_LANDSCAPE_PUBLISHED,
+    WCS_LANDSCAPE_DRAFT,
+} from '../constants.js';
+import Store from '../store.js';
 
 let ostRoot;
 let closeFunction;
@@ -164,6 +169,10 @@ export function getOffferSelectorTool() {
 }
 
 export function openOfferSelectorTool(offerElement) {
+    const landscape =
+        Store.commerceEnv?.value == 'stage'
+            ? WCS_LANDSCAPE_DRAFT
+            : WCS_LANDSCAPE_PUBLISHED;
     if (!ostRoot) {
         ostRoot = document.createElement('div');
         document.body.appendChild(ostRoot);
@@ -214,6 +223,7 @@ export function openOfferSelectorTool(offerElement) {
         rootElement: ostRoot,
         zIndex: 20,
         aosAccessToken,
+        landscape,
         searchParameters,
         searchOfferSelectorId,
         defaultPlaceholderOptions,

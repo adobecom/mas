@@ -34,10 +34,12 @@
             import '../src/swc.js';
             import '../src/rte/rte-field.js';
             import '../src/aem/aem-tag-picker-field.js';
-            import '../src/editors/merch-card-editor.js';
             import '../src/editor-panel.js';
-            import { EVENT_FRAGMENT_CHANGE } from '../src/events.js';
+            import '../src/editors/merch-card-editor.js';
+            import '../src/mas-repository.js';
             import { Fragment } from '../src/aem/fragment.js';
+            import { FragmentStore } from '../src/reactivity/fragment-store.js';
+            import Store from '../src/store.js';
 
             import {
                 createFromTemplate,
@@ -61,46 +63,49 @@
 
                 describe('editor-panel custom element', () => {
                     let fragment;
+                    let fragmentStore;
                     let editorPanel;
-                    const getCardTitleField = () =>
-                        editorPanel.merchCardEditorElement.shadowRoot.getElementById(
-                            'card-title',
-                        );
                     beforeEach(async () => {
                         fragment = new Fragment(fragmentData);
+                        fragmentStore = new FragmentStore(fragment);
                         editorPanel = await fixture(
                             html`<editor-panel
-                                .fragment=${fragment}
-                            ></editor-panel> `,
+                            ></editor-panel>`,
                             { parentNode: spTheme },
                         );
+                        Store.fragments.inEdit.set(fragmentStore);
                     });
 
                     it('implements "discard changes"', async () => {
-                        const discardButton =
-                            editorPanel.shadowRoot.getElementById('btnDiscard');
+                        await editorPanel.updateComplete;
+                        await editorPanel.refreshed;
+                        const discardButton = document.querySelector(
+                            'sp-action-button[value="discard"]',
+                        );
+                        const titleField = () =>
+                            document.getElementById('card-title');
+                        expect(editorPanel.fragmentStore).to.not.be.null;
                         expect(discardButton.disabled).to.be.true;
-                        triggerInput(getCardTitleField(), 'test title');
+                        triggerInput(titleField(), 'test title');
                         expect(
                             fragment.getField('cardTitle').values,
                         ).to.deep.equal(['test title']);
-                        await oneEvent(document, EVENT_FRAGMENT_CHANGE);
+                        await editorPanel.updateComplete;
+                        const merchCardEditor = document.querySelector('merch-card-editor');
+                        expect(merchCardEditor.hasChanges).to.be.true;
                         expect(discardButton.disabled).to.be.false;
-                        const discardEvent = oneEvent(
-                            document,
-                            EVENT_FRAGMENT_CHANGE,
-                        );
                         discardButton.click();
-                        await discardEvent;
+                        await delay(100);
                         expect(
                             fragment.getField('cardTitle').values,
                         ).to.deep.equal([]);
-                        await delay(100);
-                        expect(getCardTitleField().value).to.equal('');
+                        expect(titleField().value).to.equal('');
                     });
                 });
             });
         </script>
         <sp-theme color="light" scale="medium"></sp-theme>
+        <!-- Needed for the editor-panel to render -->
+        <mas-repository bucket="e59341"></mas-repository>
     </body>
 </html>

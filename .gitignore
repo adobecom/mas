@@ -20,6 +20,8 @@ swc.json
 studio.json
 *.key
 *.crt
+test-html-results/
+test-results/
 
 # IO Runtime Config
 config.json

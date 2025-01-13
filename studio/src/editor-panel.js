@@ -1,28 +1,24 @@
-import { html, LitElement, css, nothing } from 'lit';
-import { EVENT_CLOSE, EVENT_FRAGMENT_CHANGE, EVENT_SAVE } from './events.js';
+import { LitElement, html, css, nothing } from 'lit';
+import StoreController from './reactivity/store-controller.js';
+import { MasRepository } from './mas-repository.js';
+import { FragmentStore } from './reactivity/fragment-store.js';
+import { Fragment } from './aem/fragment.js';
+import Store from './store.js';
 
-class EditorPanel extends LitElement {
+export default class EditorPanel extends LitElement {
     static properties = {
-        showToast: { type: Function },
-        fragment: { type: Object },
+        loading: { state: true },
+        refreshing: { state: true },
         source: { type: Object },
         bucket: { type: String },
+        disabled: { type: Boolean },
+        hasChanges: { type: Boolean },
+        showToast: { type: Function },
     };
 
     static styles = css`
-        :host {
-            position: fixed;
-            bottom: 0;
-            top: 0;
-            left: var(--editor-left);
-            right: var(--editor-right);
-            height: 100vh;
-            width: 440px;
-            background-color: var(--spectrum-white);
-            padding: 20px;
-            overflow-y: auto;
-            box-sizing: border-box;
-            box-shadow: 0 2px 6px 8px rgb(0 0 0 / 10%);
+        sp-divider {
+            margin: 16px 0;
         }
 
         merch-card-editor {
@@ -39,69 +35,146 @@ class EditorPanel extends LitElement {
         }
     `;
 
+    createRenderRoot() {
+        return this;
+    }
+
     constructor() {
         super();
-        this.handleFragmentChange = this.handleFragmentChange.bind(this);
+        this.disabled = false;
+        this.refreshing = false;
+        this.hasChanges = false;
+        this.loading = false;
+        this.discardChanges = this.discardChanges.bind(this);
+        this.refresh = this.refresh.bind(this);
+        this.close = this.close.bind(this);
         this.handleClose = this.handleClose.bind(this);
+        this.handleKeyDown = this.handleKeyDown.bind(this);
+        this.updateFragment = this.updateFragment.bind(this);
     }
 
     connectedCallback() {
         super.connectedCallback();
-        this.addEventListener(EVENT_CLOSE, this.handleClose);
-        document.addEventListener(
-            EVENT_FRAGMENT_CHANGE,
-            this.handleFragmentChange,
-        );
+        document.addEventListener('keydown', this.handleKeyDown);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        this.removeEventListener(EVENT_CLOSE, this.handleClose);
-        document.removeEventListener(
-            EVENT_FRAGMENT_CHANGE,
-            this.handleFragmentChange,
-        );
+        document.removeEventListener('keydown', this.handleKeyDown);
     }
 
-    handleFragmentChange(e) {
-        if (e.detail?.fragment === this.fragment) {
-            this.requestUpdate();
+    /** @type {MasRepository} */
+    get repository() {
+        return document.querySelector('mas-repository');
+    }
+
+    fragmentStoreController = new StoreController(this, Store.fragments.inEdit);
+
+    /** @type {FragmentStore | null} */
+    get fragmentStore() {
+        if (!this.fragmentStoreController.value) return null;
+        return this.fragmentStoreController.value;
+    }
+
+    /** @type {Fragment | null} */
+    get fragment() {
+        if (!this.fragmentStore) return null;
+        return this.fragmentStore.get();
+    }
+
+    /**
+     * @returns {boolean} Whether or not the editor was closed
+     */
+    close() {
+        if (!this.fragmentStore) return true;
+        if (this.hasChanges && !window.confirm('Discard all current changes?'))
+            return false;
+        if (this.hasChanges) this.discardChanges();
+        Store.fragments.inEdit.set(null);
+        return true;
+    }
+
+    discardChanges(refresh = true) {
+        if (!this.hasChanges) return;
+        this.fragmentStore.discardChanges();
+        this.hasChanges = false;
+        if (refresh) this.refresh();
+    }
+
+    aemAction(action, reset = false) {
+        return async function () {
+            this.disabled = true;
+            const ok = await action();
+            if (ok && reset) this.hasChanges = false;
+            this.disabled = false;
+        };
+    }
+
+    updatePosition(position) {
+        this.style.setProperty(
+            '--editor-left',
+            position === 'left' ? '0' : 'inherit',
+        );
+        this.style.setProperty(
+            '--editor-right',
+            position === 'right' ? '0' : 'inherit',
+        );
+        this.setAttribute('position', position);
+    }
+
+    /**
+     * @param {FragmentStore} store
+     * @param {number | undefined} x
+     */
+    async editFragment(store, x) {
+        if (x) {
+            const newPosition = x > window.innerWidth / 2 ? 'left' : 'right';
+            this.updatePosition(newPosition);
         }
+        const id = store.get().id;
+        const currentId = this.fragmentStore?.get().id;
+        if (id === currentId) return;
+        const wasEmpty = !currentId;
+        if (
+            !wasEmpty &&
+            this.hasChanges &&
+            !window.confirm('Discard all current changes?')
+        )
+            return;
+        this.discardChanges(false);
+        this.loading = true;
+        await this.repository.refreshFragment(store);
+        this.loading = false;
+        Store.fragments.inEdit.set(store);
+        if (!wasEmpty) this.refresh();
+    }
+
+    async refresh() {
+        this.refreshing = true;
+        await this.updateComplete;
+        this.refreshing = false;
+    }
+
+    get refreshed() {
+        return (async () => {
+            if (!this.refreshing) return Promise.resolve();
+            while (this.refreshing) {
+                await this.updateComplete;
+            }
+        })();
+    }
+
+    handleKeyDown(event) {
+        if (event.code === 'Escape') this.close();
+        if (event.code === 'ArrowLeft' && event.shiftKey)
+            this.updatePosition('left');
+        if (event.code === 'ArrowRight' && event.shiftKey)
+            this.updatePosition('right');
     }
 
     handleClose(e) {
         if (e.target === this) return;
         e.stopPropagation();
-    }
-
-    async saveFragment() {
-        this.showToast('Saving fragment...');
-        try {
-            await this.source?.saveFragment();
-            this.dispatchEvent(new CustomEvent(EVENT_SAVE));
-            this.showToast('Fragment saved', 'positive');
-        } catch (e) {
-            this.showToast('Fragment could not be saved', 'negative');
-        }
-    }
-
-    async discardChanges() {
-        const fragment = this.fragment;
-        fragment.discardChanges();
-        this.fragment = null; // this is needed to force a re-render
-        this.requestUpdate();
-        await this.updateComplete;
-        this.fragment = fragment;
-    }
-
-    async publishFragment() {
-        this.showToast('Publishing fragment...');
-        try {
-            await this.source?.publishFragment();
-            this.showToast('Fragment published', 'positive');
-        } catch (e) {
-            this.showToast('Fragment could not be published', 'negative');
-        }
     }
 
     openFragmentInOdin() {
@@ -110,27 +183,6 @@ class EditorPanel extends LitElement {
             `https://experience.adobe.com/?repo=author-p22655-${this.bucket}.adobeaemcloud.com#/@odin02/aem/cf/admin${parent}?appId=aem-cf-admin&q=${this.fragment?.fragmentName}`,
             '_blank',
         );
-    }
-
-    async unpublishFragment() {
-        this.showToast('Unpublishing fragment...');
-        try {
-            await this.source?.unpublishFragment();
-            this.showToast('Fragment unpublished', 'positive');
-        } catch (e) {
-            this.showToast('Fragment could not be unpublished', 'negative');
-        }
-    }
-
-    async deleteFragment() {
-        if (confirm('Are you sure you want to delete this fragment?')) {
-            try {
-                await this.source?.deleteFragment();
-                this.showToast('Fragment deleted', 'positive');
-            } catch (e) {
-                this.showToast('Fragment could not be deleted', 'negative');
-            }
-        }
     }
 
     async copyToUse() {
@@ -144,32 +196,23 @@ class EditorPanel extends LitElement {
         }
     }
 
-    async copyFragment() {
-        this.showToast('Cloning fragment...');
-        try {
-            await this.source?.copyFragment();
-            this.showToast('Fragment cloned', 'positive');
-        } catch (e) {
-            this.showToast('Fragment could not be cloned', 'negative');
-        }
+    #updateFragmentInternal(event) {
+        const fieldName = event.target.dataset.field;
+        let value = event.target.value;
+        this.fragmentStore.updateFieldInternal(fieldName, value);
+        this.hasChanges = true;
     }
 
-    updateFragmentInternal(e) {
-        const fieldName = e.target.dataset.field;
-        let value = e.target.value;
-        this.fragment.updateFieldInternal(fieldName, value);
-    }
-
-    updateFragment({ detail: e }) {
-        if (!this.fragment) return;
-        const fieldName = e.target.dataset.field;
-        let value = e.target.value || e.detail?.value;
-        value = e.target.multiline ? value?.split(',') : [value ?? ''];
-        this.fragment.updateField(fieldName, value);
+    updateFragment(event) {
+        const fieldName = event.target.dataset.field;
+        let value = event.target.value || event.detail?.value;
+        value = event.target.multiline ? value?.split(',') : [value ?? ''];
+        this.fragmentStore.updateField(fieldName, value);
+        this.hasChanges = true;
     }
 
     get fragmentEditorToolbar() {
-        return html`<div id="actions" slot="heading">
+        return html`<div id="editor-toolbar">
             <sp-action-group
                 aria-label="Fragment actions"
                 role="group"
@@ -179,9 +222,26 @@ class EditorPanel extends LitElement {
                 quiet
             >
                 <sp-action-button
-                    label="Save changes"
-                    ?disabled=${!this.fragment.hasChanges}
-                    @click="${this.saveFragment}"
+                    label="Move left"
+                    title="Move left"
+                    value="left"
+                    id="move-left"
+                    @click="${() => this.updatePosition('left')}"
+                >
+                    <sp-icon-chevron-left slot="icon"></sp-icon-chevron-left>
+                    <sp-tooltip self-managed placement="bottom"
+                        >Move left</sp-tooltip
+                    >
+                </sp-action-button>
+                <sp-action-button
+                    label="Save"
+                    title="Save changes"
+                    value="save"
+                    @click="${this.aemAction(
+                        this.repository.saveFragment,
+                        true,
+                    )}"
+                    ?disabled=${this.disabled}
                 >
                     <sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>
                     <sp-tooltip self-managed placement="bottom"
@@ -189,17 +249,23 @@ class EditorPanel extends LitElement {
                     >
                 </sp-action-button>
                 <sp-action-button
-                    label="Discard changes"
-                    id="btnDiscard"
-                    ?disabled=${!this.fragment.hasChanges}
+                    label="Discard"
+                    title="Discard changes"
+                    value="discard"
                     @click="${this.discardChanges}"
+                    ?disabled=${this.disabled || !this.hasChanges}
                 >
                     <sp-icon-undo slot="icon"></sp-icon-undo>
                     <sp-tooltip self-managed placement="bottom"
                         >Discard changes</sp-tooltip
                     >
                 </sp-action-button>
-                <sp-action-button label="Clone" @click="${this.copyFragment}">
+                <sp-action-button
+                    label="Clone"
+                    value="clone"
+                    @click="${this.aemAction(this.repository.copyFragment)}"
+                    ?disabled=${this.disabled}
+                >
                     <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
                     <sp-tooltip self-managed placement="bottom"
                         >Clone</sp-tooltip
@@ -207,7 +273,9 @@ class EditorPanel extends LitElement {
                 </sp-action-button>
                 <sp-action-button
                     label="Publish"
-                    @click="${this.publishFragment}"
+                    value="publish"
+                    @click="${this.aemAction(this.repository.publishFragment)}"
+                    ?disabled=${this.disabled}
                 >
                     <sp-icon-publish-check slot="icon"></sp-icon-publish-check>
                     <sp-tooltip self-managed placement="bottom"
@@ -216,7 +284,10 @@ class EditorPanel extends LitElement {
                 </sp-action-button>
                 <sp-action-button
                     label="Unpublish"
-                    @click="${this.unpublishFragment}"
+                    value="unpublish"
+                    @click="${this.aemAction(
+                        this.repository.unpublishFragment,
+                    )}"
                     disabled
                 >
                     <sp-icon-publish-remove
@@ -228,20 +299,29 @@ class EditorPanel extends LitElement {
                 </sp-action-button>
                 <sp-action-button
                     label="Open in Odin"
+                    value="open"
                     @click="${this.openFragmentInOdin}"
+                    ?disabled=${this.disabled}
                 >
                     <sp-icon-open-in slot="icon"></sp-icon-open-in>
                     <sp-tooltip self-managed placement="bottom"
                         >Open in Odin</sp-tooltip
                     >
                 </sp-action-button>
-                <sp-action-button label="Use" @click="${this.copyToUse}">
+                <sp-action-button
+                    label="Use"
+                    value="use"
+                    @click="${this.copyToUse}"
+                    ?disabled=${this.disabled}
+                >
                     <sp-icon-code slot="icon"></sp-icon-code>
                     <sp-tooltip self-managed placement="bottom">Use</sp-tooltip>
                 </sp-action-button>
                 <sp-action-button
                     label="Delete fragment"
-                    @click="${this.deleteFragment}"
+                    value="delete"
+                    @click="${this.aemAction(this.repository.deleteFragment)}"
+                    ?disabled=${this.disabled}
                 >
                     <sp-icon-delete-outline
                         slot="icon"
@@ -250,40 +330,39 @@ class EditorPanel extends LitElement {
                         >Delete fragment</sp-tooltip
                     >
                 </sp-action-button>
-            </sp-action-group>
-            <sp-divider vertical></sp-divider>
-            <sp-action-group size="l" quiet>
                 <sp-action-button
+                    title="Close"
                     label="Close"
-                    @click="${() =>
-                        this.dispatchEvent(new CustomEvent(EVENT_CLOSE))}"
+                    value="close"
+                    @click="${this.close}"
+                    ?disabled=${this.disabled}
                 >
                     <sp-icon-close-circle slot="icon"></sp-icon-close-circle>
                     <sp-tooltip self-managed placement="bottom"
                         >Close</sp-tooltip
                     >
                 </sp-action-button>
+                <sp-action-button
+                    label="Move right"
+                    title="Move right"
+                    value="right"
+                    id="move-right"
+                    @click="${() => this.updatePosition('right')}"
+                >
+                    <sp-icon-chevron-right slot="icon"></sp-icon-chevron-right>
+                    <sp-tooltip self-managed placement="bottom"
+                        >Move right</sp-tooltip
+                    >
+                </sp-action-button>
             </sp-action-group>
         </div>`;
     }
 
-    get merchCardEditorElement() {
-        return this.shadowRoot.querySelector('merch-card-editor');
-    }
-
     get fragmentEditor() {
-        return html`<div id="editor">
+        return html`
             ${this.fragment
                 ? html`
-                      ${this.fragmentEditorToolbar}
-                      <merch-card-editor
-                          .fragment=${this.fragment}
-                          @close="${this.handleClose}"
-                          @update-fragment="${this.updateFragment}"
-                      >
-                      </merch-card-editor>
                       <p>Fragment details (not shown on the card)</p>
-                      <sp-divider size="s"></sp-divider>
                       <sp-field-label for="fragment-title"
                           >Fragment Title</sp-field-label
                       >
@@ -292,7 +371,8 @@ class EditorPanel extends LitElement {
                           id="fragment-title"
                           data-field="title"
                           value="${this.fragment.title}"
-                          @input="${this.updateFragmentInternal}"
+                          @input=${this.#updateFragmentInternal}
+                          ?disabled=${this.disabled}
                       ></sp-textfield>
                       <sp-field-label for="fragment-description"
                           >Fragment Description</sp-field-label
@@ -303,17 +383,53 @@ class EditorPanel extends LitElement {
                           data-field="description"
                           multiline
                           value="${this.fragment.description}"
-                          @input="${this.updateFragmentInternal}"
+                          @input=${this.#updateFragmentInternal}
+                          ?disabled=${this.disabled}
                       ></sp-textfield>
                   `
                 : nothing}
-        </div>`;
+        `;
     }
 
     render() {
-        if (!this.fragment) return nothing;
-        return html`${this.fragmentEditor} ${this.selectFragmentDialog}`;
+        if (this.loading)
+            return html`
+                <sp-progress-circle indeterminate size="l"></sp-progress-circle>
+            `;
+
+        if (this.refreshing || !this.fragment) return nothing;
+
+        return html`<div id="editor">
+            ${this.fragmentEditorToolbar}
+            <p>${this.fragment.path}</p>
+            <merch-card-editor
+                .fragment=${this.fragment}
+                .disabled=${this.disabled}
+                .hasChanges=${this.hasChanges}
+                .fragmentStore=${this.fragmentStore}
+                .updateFragment=${this.updateFragment}
+            >
+            </merch-card-editor>
+            <sp-divider size="s"></sp-divider>
+            ${this.fragmentEditor}
+        </div>`;
     }
 }
 
 customElements.define('editor-panel', EditorPanel);
+
+/**
+ * @returns {EditorPanel}
+ */
+export function getEditorPanel() {
+    return document.querySelector('editor-panel');
+}
+
+/**
+ * @param {FragmentStore} store
+ * @param {number | undefined} x - The clientX value of the mouse event (used for positioning - optional)
+ */
+export async function editFragment(store, x) {
+    const editor = getEditorPanel();
+    editor.editFragment(store, x);
+}

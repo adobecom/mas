@@ -1,4 +1,3 @@
-const SUCCESS = 'success';
 const KEY_PA = 'product_arrangement_code';
 const ABM = 'ABM';
 const PUF = 'PUF';
@@ -141,14 +140,12 @@ async function main(params) {
                 'Cache-Control': 'max-age=86400', // cached in Adobe IO gateway 24 hours
             },
             statusCode: 200,
-            body: {
-                combinedProducts,
-            },
+            body: JSON.stringify(combinedProducts),
         };
     } catch (error) {
         return {
             statusCode: 500,
-            body: `ERROR in I/O action: ${error.toString()}`,
+            body: `ERROR in I/O action: ${error.toString()}.`,
         };
     }
 }

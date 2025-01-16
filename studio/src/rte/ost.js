@@ -91,7 +91,6 @@ const OST_OPTION_ATTRIBUTE_MAPPING = {
     displayTax: 'data-display-tax',
     forceTaxExclusive: 'data-tax-exclusive',
     isPerpetual: 'data-perpetual',
-    storedPromoOverride: 'data-promotion-code',
     wcsOsi: 'data-wcs-osi',
     workflow: 'data-checkout-workflow',
     workflowStep: 'data-checkout-workflow-step',

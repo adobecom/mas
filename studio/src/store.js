@@ -3,6 +3,7 @@ import { getEditorPanel } from './editor-panel.js';
 import MasFilters from './entities/filters.js';
 import MasSearch from './entities/search.js';
 import { reactiveStore } from './reactivity/reactive-store.js';
+import { WCS_ENV_PROD } from './constants.js';
 
 const params = Object.fromEntries(
     new URLSearchParams(window.location.hash.slice(1)),
@@ -35,7 +36,7 @@ const Store = {
     selecting: reactiveStore(false),
     selection: reactiveStore([]),
     currentPage: reactiveStore(initialSearch.query ? 'content' : 'splash'), // 'splash' | 'content'
-    commerceEnv: reactiveStore(params['commerce.env'] ?? 'prod'),
+    commerceEnv: reactiveStore(params['commerce.env'] ?? WCS_ENV_PROD),
 };
 
 export default Store;

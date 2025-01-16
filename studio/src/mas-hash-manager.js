@@ -4,6 +4,7 @@ import Store from './store.js';
 import { setHashParams } from './utils.js';
 import MasSearch from './entities/search.js';
 import MasFilters from './entities/filters.js';
+import { WCS_ENV_STAGE } from './constants.js';
 
 class MasHashManager extends LitElement {
     constructor() {
@@ -52,7 +53,7 @@ class MasHashManager extends LitElement {
         const params = new URLSearchParams(window.location.hash.slice(1));
         setHashParams(params, this.search.value);
         setHashParams(params, this.filters.value);
-        const isCommerceStage = this.commerceEnv.value == 'stage';
+        const isCommerceStage = this.commerceEnv.value === WCS_ENV_STAGE;
         setHashParams(params, {
             'commerce.env': isCommerceStage ? this.commerceEnv.value : null,
         });

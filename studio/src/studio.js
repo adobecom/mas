@@ -13,7 +13,7 @@ import './mas-hash-manager.js';
 import './mas-splash-screen.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
-import Events from './events.js';
+import { WCS_ENV_STAGE } from './constants.js';
 
 const BUCKET_TO_ENV = {
     e155390: 'qa',
@@ -75,15 +75,19 @@ class MasStudio extends LitElement {
         ></mas-splash-screen>`;
     }
 
+    // we need a conditional render of <mas-commerce-service>
+    // to trigger LIT to recreate element in DOM
+    get commerceService() {
+        this.commerceEnv.value === WCS_ENV_STAGE
+            ? html`<mas-commerce-service
+                  env="${WCS_ENV_STAGE}"
+              ></mas-commerce-service>`
+            : html`<mas-commerce-service></mas-commerce-service>`;
+    }
+
     render() {
         return html`
-            ${this.commerceEnv?.value == 'stage'
-                ? html`<mas-commerce-service
-                      env="stage"
-                  ></mas-commerce-service>`
-                : html`<mas-commerce-service
-                      env="prod"
-                  ></mas-commerce-service>`}
+            ${this.commerceService}
             <mas-top-nav aem-env="${this.aemEnv}"></mas-top-nav>
             <mas-repository
                 bucket="${this.bucket}"

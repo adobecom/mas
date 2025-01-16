@@ -46,7 +46,7 @@ jobs:
           IMS_PASS: ${{ secrets.IMS_PASS }}
 
       - name: Upload screenshots
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: test-results

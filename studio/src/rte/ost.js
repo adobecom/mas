@@ -1,13 +1,19 @@
 import { html } from 'lit';
 import {
     CHECKOUT_CTA_TEXTS,
+    EVENT_OST_SELECT,
     WCS_LANDSCAPE_PUBLISHED,
     WCS_LANDSCAPE_DRAFT,
 } from '../constants.js';
 import Store from '../store.js';
 
-let ostRoot;
+let ostRoot = document.getElementById('ost');
 let closeFunction;
+
+if (!ostRoot) {
+    ostRoot = document.createElement('div');
+    document.body.appendChild(ostRoot);
+}
 
 export const ostDefaults = {
     aosApiKey: 'wcms-commerce-ims-user-prod',
@@ -22,7 +28,7 @@ export const ostDefaults = {
         displayRecurrence: true,
         displayPerUnit: false,
         displayTax: false,
-        displayOldPrice: false,
+        displayOldPrice: true,
         forceTaxExclusive: true,
     },
     wcsApiKey: 'wcms-commerce-ims-ro-user-cc',
@@ -105,7 +111,7 @@ export const OST_OPTION_ATTRIBUTE_MAPPING_REVERSE = Object.fromEntries(
 );
 
 const OST_OPTION_DEFAULTS = {
-    displayOldPrice: false,
+    displayOldPrice: true,
     displayPerUnit: false,
     displayRecurrence: true,
     displayTax: false,
@@ -151,7 +157,7 @@ export function onSelect(offerSelectorId, type, offer, options, promoOverride) {
     }
 
     ostRoot.dispatchEvent(
-        new CustomEvent('use', {
+        new CustomEvent(EVENT_OST_SELECT, {
             detail: attributes,
             bubbles: true,
         }),

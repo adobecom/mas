@@ -13,6 +13,7 @@ import {
 } from './ost.js';
 
 import prosemirrorStyles from './prosemirror.css.js';
+import { EVENT_OST_SELECT } from '../constants.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
@@ -118,6 +119,10 @@ class RteField extends LitElement {
                     box-sizing: border-box;
                     display: inline-flex;
                     align-content: center;
+                }
+
+                .price-unit-type:before {
+                    content: ' ';
                 }
 
                 a.accent,
@@ -227,7 +232,10 @@ class RteField extends LitElement {
         document.addEventListener('keydown', this.#boundHandlers.escKey, {
             capture: true,
         });
-        document.addEventListener('use', this.#boundHandlers.ostEvent);
+        document.addEventListener(
+            EVENT_OST_SELECT,
+            this.#boundHandlers.ostEvent,
+        );
     }
 
     disconnectedCallback() {
@@ -235,7 +243,10 @@ class RteField extends LitElement {
         document.removeEventListener('keydown', this.#boundHandlers.escKey, {
             capture: true,
         });
-        document.removeEventListener('use', this.#boundHandlers.ostEvent);
+        document.removeEventListener(
+            EVENT_OST_SELECT,
+            this.#boundHandlers.ostEvent,
+        );
         this.editorView?.destroy();
     }
 
@@ -629,7 +640,7 @@ class RteField extends LitElement {
                 : state.schema.nodes.link; // Fixed to use 'link' node type
 
         const mergedAttributes = {
-            ...(selection.node?.attrs ?? {}),
+            class: selection.node?.attrs.class,
             ...attributes,
         };
 

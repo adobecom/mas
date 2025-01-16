@@ -29,3 +29,11 @@ export const ANALYTICS_LINK_IDS = [
 // TODO remove these?
 export const EVENT_CHANGE = 'change';
 export const EVENT_INPUT = 'input';
+
+export const KEY_ENTER = 'Enter';
+export const EVENT_KEYDOWN = 'keydown';
+export const EVENT_KEYUP = 'keyup';
+
+export const EVENT_FRAGMENT_CHANGE = 'fragment:change';
+
+export const EVENT_OST_SELECT = 'ost-select';

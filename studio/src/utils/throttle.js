@@ -1,3 +1,10 @@
+/**
+ * When some UI functions are called too frequently, it can cause performance issues.
+ * This function can be used to throttle the function calls to a certain limit.
+ * @param {Function} func to throttle
+ * @param {Number} limit timeout in ms
+ * @returns a throttled version of the input function.
+ */
 function throttle(func, limit) {
     let lastFunc;
     let lastRan;

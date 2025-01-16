@@ -46,7 +46,7 @@ export class MasRepository extends LitElement {
 
     filters = new StoreController(this, Store.filters);
     search = new StoreController(this, Store.search);
-    currentPage = new StoreController(this, Store.currentPage);
+    page = new StoreController(this, Store.page);
     foldersLoaded = new StoreController(this, Store.folders.loaded);
     recentlyUpdatedLimit = new StoreController(
         this,
@@ -69,9 +69,12 @@ export class MasRepository extends LitElement {
      * @param {string} defaultMessage - Generic toast message (can be overriden by the error's message)
      */
     processError(error, defaultMessage) {
+        if (error.name === 'AbortError') return;
         let message = defaultMessage;
         if (error instanceof UserFriendlyError) message = error.message;
-        console.error(`Failed to save fragment: ${error.message}`);
+        console.error(
+            `${defaultMessage ? `${defaultMessage}: ` : ''}${error.message}`,
+        );
         Events.toast.emit({
             variant: 'negative',
             content: message,
@@ -83,7 +86,7 @@ export class MasRepository extends LitElement {
         if (!this.foldersLoaded.value) return;
         /**
          * Automatically fetch data when search/filters update.
-         * Both load methods have page guards (ex. fragments won't be searched on the 'splash' page)
+         * Both load methods have page guards (ex. fragments won't be searched on the 'welcome' page)
          */
         this.searchFragments();
         this.loadRecentlyUpdatedFragments();
@@ -115,7 +118,7 @@ export class MasRepository extends LitElement {
     }
 
     async searchFragments() {
-        if (this.currentPage.value !== 'content') return;
+        if (this.page.value !== 'content') return;
 
         Store.fragments.list.loading.set(true);
 
@@ -180,7 +183,6 @@ export class MasRepository extends LitElement {
 
             await this.addToCache(fragments);
         } catch (error) {
-            if (error.name === 'AbortError') return;
             this.processError(error, 'Could not load fragments.');
         }
 
@@ -188,7 +190,7 @@ export class MasRepository extends LitElement {
     }
 
     async loadRecentlyUpdatedFragments() {
-        if (this.currentPage.value !== 'splash') return;
+        if (this.page.value !== 'welcome') return;
         if (this.#abortControllers.recentlyUpdated)
             this.#abortControllers.recentlyUpdated.abort();
         this.#abortControllers.recentlyUpdated = new AbortController();

@@ -194,8 +194,8 @@ class MasToolbar extends LitElement {
     render() {
         return html`<div id="toolbar">
                 <div id="actions">
-                    ${this.searchAndFilterControls} ${this.contentManagementControls}
-                    ${this.selectionPanel}
+                    ${this.searchAndFilterControls}
+                    ${this.contentManagementControls} ${this.selectionPanel}
                 </div>
                 ${this.filtersPanel}${this.searchResultsLabel}
             </div>

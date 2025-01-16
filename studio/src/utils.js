@@ -40,6 +40,34 @@ export function extractValue(fn) {
 }
 
 /**
+ * @param {string} param
+ * @returns {string | null}
+ */
+export function getHashParam(param) {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    return params.get(param);
+}
+
+/**
+ * @returns {URLSearchParams}
+ */
+export function getHashParams() {
+    return new URLSearchParams(window.location.hash.slice(1));
+}
+
+/**
+ * @returns {Record<string, string>}
+ */
+export function getHashParamsAsObject() {
+    const obj = {};
+    const params = getHashParams();
+    params.forEach((_, key) => {
+        obj[key] = params.get(key);
+    });
+    return obj;
+}
+
+/**
  * @param {URLSearchParams} params
  * @param {string} param
  * @param {unknown} value

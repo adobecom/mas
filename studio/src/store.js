@@ -1,37 +1,41 @@
 import { Fragment } from './aem/fragment.js';
 import { getEditorPanel } from './editor-panel.js';
-import MasFilters from './entities/filters.js';
-import MasSearch from './entities/search.js';
-import { reactiveStore } from './reactivity/reactive-store.js';
+import { pageModifier } from './modifiers.js';
+import { HashLinkedStore } from './reactivity/hash-linked-store.js';
+import { ReactiveStore } from './reactivity/reactive-store.js';
+import { getHashParam } from './utils.js';
 
-const initialSearch = MasSearch.fromHash();
-const initialFilters = MasFilters.fromHash();
+const hasQuery = Boolean(getHashParam('query'));
 
 const Store = {
     fragments: {
         list: {
-            loading: reactiveStore(true),
-            data: reactiveStore([]),
+            loading: new ReactiveStore(true),
+            data: new ReactiveStore([]),
         },
         recentlyUpdated: {
-            loading: reactiveStore(true),
-            data: reactiveStore([]),
-            limit: reactiveStore(6),
+            loading: new ReactiveStore(true),
+            data: new ReactiveStore([]),
+            limit: new ReactiveStore(6),
         },
-        inEdit: reactiveStore(null),
+        inEdit: new ReactiveStore(null),
     },
     folders: {
-        loaded: reactiveStore(false),
-        data: reactiveStore([]),
+        loaded: new ReactiveStore(false),
+        data: new ReactiveStore([]),
     },
-    search: reactiveStore(initialSearch),
-    filters: reactiveStore(initialFilters),
-    renderMode: reactiveStore(
+    search: new HashLinkedStore(['path', 'query']),
+    filters: new HashLinkedStore([]),
+    renderMode: new ReactiveStore(
         localStorage.getItem('mas-render-mode') || 'render',
     ), // 'render' | 'table'
-    selecting: reactiveStore(false),
-    selection: reactiveStore([]),
-    currentPage: reactiveStore(initialSearch.query ? 'content' : 'splash'), // 'splash' | 'content'
+    selecting: new ReactiveStore(false),
+    selection: new ReactiveStore([]),
+    page: new HashLinkedStore(
+        'page',
+        hasQuery ? 'content' : 'welcome',
+        pageModifier,
+    ), // 'welcome' | 'content'
 };
 
 export default Store;
@@ -59,6 +63,6 @@ export function navigateToPage(value) {
     return function () {
         const editor = getEditorPanel();
         if (editor && !editor.close()) return;
-        Store.currentPage.set(value);
+        Store.page.set(value);
     };
 }

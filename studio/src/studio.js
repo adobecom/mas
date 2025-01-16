@@ -9,7 +9,6 @@ import './mas-toolbar.js';
 import './mas-content.js';
 import './mas-repository.js';
 import './mas-toast.js';
-import './mas-hash-manager.js';
 import './mas-splash-screen.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
@@ -39,10 +38,10 @@ class MasStudio extends LitElement {
         return BUCKET_TO_ENV[this.bucket] || BUCKET_TO_ENV.e59433;
     }
 
-    currentPage = new StoreController(this, Store.currentPage);
+    page = new StoreController(this, Store.page);
 
     get content() {
-        if (this.currentPage.value !== 'content') return nothing;
+        if (this.page.value !== 'content') return nothing;
         return html`<div id="content-container">
             <mas-toolbar></mas-toolbar>
             <mas-content></mas-content>
@@ -50,7 +49,7 @@ class MasStudio extends LitElement {
     }
 
     get splashScreen() {
-        if (this.currentPage.value !== 'splash') return nothing;
+        if (this.page.value !== 'welcome') return nothing;
         return html`<mas-splash-screen
             base-url=${this.baseUrl}
         ></mas-splash-screen>`;
@@ -71,7 +70,6 @@ class MasStudio extends LitElement {
             </div>
             <editor-panel></editor-panel>
             <mas-toast></mas-toast>
-            <mas-hash-manager></mas-hash-manager>
         `;
     }
 }

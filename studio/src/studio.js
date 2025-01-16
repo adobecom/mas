@@ -75,19 +75,13 @@ class MasStudio extends LitElement {
         ></mas-splash-screen>`;
     }
 
-    // we need a conditional render of <mas-commerce-service>
-    // to trigger LIT to recreate element in DOM
-    get commerceService() {
-        this.commerceEnv.value === WCS_ENV_STAGE
-            ? html`<mas-commerce-service
-                  env="${WCS_ENV_STAGE}"
-              ></mas-commerce-service>`
-            : html`<mas-commerce-service></mas-commerce-service>`;
-    }
-
     render() {
         return html`
-            ${this.commerceService}
+            ${this.commerceEnv.value === WCS_ENV_STAGE
+                ? html`<mas-commerce-service
+                      env="${WCS_ENV_STAGE}"
+                  ></mas-commerce-service>`
+                : html`<mas-commerce-service></mas-commerce-service>`}
             <mas-top-nav aem-env="${this.aemEnv}"></mas-top-nav>
             <mas-repository
                 bucket="${this.bucket}"

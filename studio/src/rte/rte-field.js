@@ -14,6 +14,7 @@ import {
 
 import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
+import throttle from '../utils/throttle.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
@@ -86,6 +87,8 @@ class RteField extends LitElement {
         readOnly: { type: Boolean, attribute: 'readonly' },
         showLinkEditor: { type: Boolean, state: true },
         defaultLinkStyle: { type: String, attribute: 'default-link-style' },
+        maxLength: { type: Number, attribute: 'max-length' },
+        length: { type: Number, state: true },
     };
 
     static get styles() {
@@ -109,6 +112,10 @@ class RteField extends LitElement {
                     flex: 1;
                     color: var(--spectrum-global-color-gray-800);
                     background-color: var(--spectrum-global-color-gray-50);
+                }
+
+                .exceeded {
+                    color: var(--spectrum-global-color-red-700);
                 }
 
                 rte-link-editor {
@@ -212,6 +219,8 @@ class RteField extends LitElement {
         this.showLinkEditor = false;
         this.inline = false;
         this.link = false;
+        this.maxLength = 70;
+        this.length = 0;
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
             ostEvent: this.#handleOstEvent.bind(this),
@@ -219,6 +228,7 @@ class RteField extends LitElement {
             blur: this.#handleBlur.bind(this),
             focus: this.#handleFocus.bind(this),
             doubleClickOn: this.#handleDoubleClickOn.bind(this),
+            updateLength: throttle(this.#updateLength.bind(this), 100),
         };
     }
 
@@ -236,6 +246,10 @@ class RteField extends LitElement {
             EVENT_OST_SELECT,
             this.#boundHandlers.ostEvent,
         );
+        this.updateLengthInterval = setInterval(
+            this.#boundHandlers.updateLength,
+            1000,
+        );
     }
 
     disconnectedCallback() {
@@ -248,6 +262,7 @@ class RteField extends LitElement {
             this.#boundHandlers.ostEvent,
         );
         this.editorView?.destroy();
+        clearInterval(this.updateLengthInterval);
     }
 
     #initEditorSchema() {
@@ -479,6 +494,7 @@ class RteField extends LitElement {
             this.editorView.updateState(newState);
 
             if (newState.doc) {
+                this.#boundHandlers.updateLength();
                 const value = this.#serializeContent(newState);
                 // skip change event during initialization
                 const isFirstChange = this.value === null;
@@ -680,6 +696,10 @@ class RteField extends LitElement {
             !selection.node.attrs['data-wcs-osi'];
     }
 
+    #updateLength() {
+        this.length = this.editorView.dom.innerText.length;
+    }
+
     async openLinkEditor() {
         const attrs = this.#getLinkAttrs();
         this.showLinkEditor = true;
@@ -799,12 +819,18 @@ class RteField extends LitElement {
     }
 
     render() {
+        const lengthExceeded = this.length > this.maxLength;
         return html`
             <sp-action-group size="m" aria-label="RTE toolbar actions">
                 ${this.#formatButtons} ${this.#linkEditorButton}
                 ${this.#unlinkEditorButton} ${this.#offerSelectorToolButton}
             </sp-action-group>
             <div id="editor"></div>
+            <p id="counter">
+                <span class="${lengthExceeded ? 'exceeded' : ''}"
+                    >${this.length}</span
+                >/${this.maxLength}
+            </p>
             ${this.linkEditor}
         `;
     }

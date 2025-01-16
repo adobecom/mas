@@ -1,7 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 
-import { EVENT_OST_SELECT } from '../../src/events.js';
+import { EVENT_OST_SELECT } from '../../src/constants.js';
 
 describe('onSelect', () => {
     let dispatchEventStub;

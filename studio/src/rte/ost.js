@@ -1,6 +1,5 @@
 import { html } from 'lit';
-import { CHECKOUT_CTA_TEXTS } from '../constants.js';
-import { EVENT_OST_SELECT } from '../events.js';
+import { CHECKOUT_CTA_TEXTS, EVENT_OST_SELECT } from '../constants.js';
 
 let ostRoot = document.getElementById('ost');
 let closeFunction;

@@ -1,4 +1,5 @@
 import { html, LitElement, nothing } from 'lit';
+import './editor-panel.js';
 import './editors/merch-card-editor.js';
 import './rte/rte-field.js';
 import './rte/rte-link-editor.js';
@@ -68,7 +69,7 @@ class MasStudio extends LitElement {
                     ${this.splashScreen} ${this.content}
                 </div>
             </div>
-            <merch-card-editor></merch-card-editor>
+            <editor-panel></editor-panel>
             <mas-toast></mas-toast>
             <mas-hash-manager></mas-hash-manager>
         `;

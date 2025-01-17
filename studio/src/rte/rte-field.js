@@ -93,6 +93,7 @@ class RteField extends LitElement {
                     gap: 8px;
                     flex-direction: column;
                     font-size: var(--spectrum-font-size-200);
+                    padding: 6px;
                 }
 
                 :host([focused]) #editor {

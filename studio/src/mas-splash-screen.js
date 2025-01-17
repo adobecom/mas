@@ -11,6 +11,18 @@ class MasSplashScreen extends LitElement {
         baseUrl: { type: String, attribute: 'base-url' },
     };
 
+    async firstUpdated() {
+        super.firstUpdated();
+        try {
+            const profile = await window.adobeIMS?.getProfile();
+            const [firstName] = (profile?.displayName ?? 'User').split(' ');
+            this.userName = firstName;
+            this.requestUpdate();
+        } catch (e) {
+            this.userName = 'User';
+        }
+    }
+
     createRenderRoot() {
         return this;
     }
@@ -21,7 +33,7 @@ class MasSplashScreen extends LitElement {
 
     render() {
         return html`<div id="splash-container">
-            <h1>Welcome, Nick</h1>
+            <h1>Welcome, ${this.userName}</h1>
             <div class="quick-actions">
                 <h2>Quick Actions</h2>
                 <div class="actions-grid">

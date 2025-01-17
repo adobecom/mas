@@ -38,7 +38,7 @@
             import '../../src/swc.js';
             import '../../src/rte/rte-field.js';
             import '../../src/rte/rte-link-editor.js';
-            import '@adobecom/milo/libs/deps/mas/mas.js';
+            import '@adobecom/milo/libs/features/mas/dist/mas.js';
             import { mockFetch } from '@adobecom/milo/libs/features/mas/test/mocks/fetch.js';
             import { withWcs } from '@adobecom/milo/libs/features/mas/test/mocks/wcs.js';
 
@@ -387,6 +387,11 @@
                     >Buy now</a
                 >
             </rte-field>
+        </template>
+        <template id="rte-maxlength">
+                <rte-field>
+                    this is a text that exceeds the 40 characters limit
+                </rte-field>
         </template>
         <template id="rte-dev">
             <div>

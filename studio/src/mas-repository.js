@@ -134,7 +134,7 @@ export class MasRepository extends LitElement {
 
         const localSearch = {
             ...this.search.value,
-            path: getDamPath(path),
+            path: getDamPath(path) + `/en_US`,
         };
         const fragments = [];
 

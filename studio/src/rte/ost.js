@@ -195,9 +195,9 @@ export function openOfferSelectorTool(offerElement) {
     if (offerElement) {
         searchParameters.append(
             'type',
-            offerElement.isCheckoutLink ? 'checkout' : 'price',
+            offerElement.isInlinePrice ? 'price' : 'checkout',
         );
-        if (offerElement.isCheckoutLink) {
+        if (!offerElement.isInlinePrice) {
             searchParameters.append('text', offerElement.innerText);
         }
         searchOfferSelectorId = offerElement.getAttribute('data-wcs-osi');

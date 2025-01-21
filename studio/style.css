@@ -413,3 +413,8 @@ mas-content {
 #recently-updated-container[loading] {
     min-height: 64px;
 }
+
+sp-field-group {
+    display: block;
+    margin: 16px 0;
+}

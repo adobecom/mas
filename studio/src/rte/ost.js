@@ -1,8 +1,19 @@
 import { html } from 'lit';
-import { CHECKOUT_CTA_TEXTS } from '../constants.js';
+import {
+    CHECKOUT_CTA_TEXTS,
+    EVENT_OST_SELECT,
+    WCS_LANDSCAPE_PUBLISHED,
+    WCS_LANDSCAPE_DRAFT,
+} from '../constants.js';
+import Store from '../store.js';
 
-let ostRoot;
+let ostRoot = document.getElementById('ost');
 let closeFunction;
+
+if (!ostRoot) {
+    ostRoot = document.createElement('div');
+    document.body.appendChild(ostRoot);
+}
 
 export const ostDefaults = {
     aosApiKey: 'wcms-commerce-ims-user-prod',
@@ -17,7 +28,7 @@ export const ostDefaults = {
         displayRecurrence: true,
         displayPerUnit: false,
         displayTax: false,
-        displayOldPrice: false,
+        displayOldPrice: true,
         forceTaxExclusive: true,
     },
     wcsApiKey: 'wcms-commerce-ims-ro-user-cc',
@@ -89,6 +100,7 @@ const OST_OPTION_ATTRIBUTE_MAPPING = {
     wcsOsi: 'data-wcs-osi',
     workflow: 'data-checkout-workflow',
     workflowStep: 'data-checkout-workflow-step',
+    storedPromoOverride: 'data-promotion-code',
 };
 
 export const OST_OPTION_ATTRIBUTE_MAPPING_REVERSE = Object.fromEntries(
@@ -99,7 +111,7 @@ export const OST_OPTION_ATTRIBUTE_MAPPING_REVERSE = Object.fromEntries(
 );
 
 const OST_OPTION_DEFAULTS = {
-    displayOldPrice: false,
+    displayOldPrice: true,
     displayPerUnit: false,
     displayRecurrence: true,
     displayTax: false,
@@ -145,7 +157,7 @@ export function onSelect(offerSelectorId, type, offer, options, promoOverride) {
     }
 
     ostRoot.dispatchEvent(
-        new CustomEvent('use', {
+        new CustomEvent(EVENT_OST_SELECT, {
             detail: attributes,
             bubbles: true,
         }),
@@ -163,6 +175,10 @@ export function getOffferSelectorTool() {
 }
 
 export function openOfferSelectorTool(offerElement) {
+    const landscape =
+        Store.commerceEnv?.value == 'stage'
+            ? WCS_LANDSCAPE_DRAFT
+            : WCS_LANDSCAPE_PUBLISHED;
     if (!ostRoot) {
         ostRoot = document.createElement('div');
         document.body.appendChild(ostRoot);
@@ -196,12 +212,16 @@ export function openOfferSelectorTool(offerElement) {
             }
         });
 
-        ['promotionCode', 'checkoutType', 'workflowStep', 'country'].forEach(
-            (key) => {
-                const value = offerSelectorPlaceholderOptions[key];
-                if (value) searchParameters.append(key, value);
-            },
-        );
+        [
+            'promotionCode', // contextual promo code (e.g. set on card/)
+            'storedPromoOverride', // promo code set directly on price/CTA
+            'checkoutType',
+            'workflowStep',
+            'country',
+        ].forEach((key) => {
+            const value = offerSelectorPlaceholderOptions[key];
+            if (value) searchParameters.append(key, value);
+        });
     }
     ostRoot.style.display = 'block';
     closeFunction = window.ost.openOfferSelectorTool({
@@ -209,6 +229,7 @@ export function openOfferSelectorTool(offerElement) {
         rootElement: ostRoot,
         zIndex: 20,
         aosAccessToken,
+        landscape,
         searchParameters,
         searchOfferSelectorId,
         defaultPlaceholderOptions,

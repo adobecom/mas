@@ -25,6 +25,6 @@ test-results/
 
 # IO Runtime Config
 config.json
-MasHealthCheck*.json
+MerchAtScale-*.json
 .env*
 .aio

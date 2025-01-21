@@ -166,7 +166,7 @@ class MasMultifield extends LitElement {
     }
 
     /* c8 ignore start */
-    // Handle drag start
+    // Handle drag start//
     dragStart(e, index) {
         const activeElement = this.shadowRoot.activeElement;
         if (activeElement) {

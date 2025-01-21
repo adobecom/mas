@@ -15,7 +15,7 @@ class MasLocalePicker extends LitElement {
         return html`
             <sp-picker
                 label="Select Locale"
-                @change="${this._handleChange}"
+                @change="${this.#handleChange}"
                 value="${this.value}"
             >
                 ${Store.locale.data.map(
@@ -34,7 +34,7 @@ class MasLocalePicker extends LitElement {
         return Store.locale.current.get();
     }
 
-    _handleChange(event) {
+    #handleChange(event) {
         Store.locale.current.set(event.target.value);
         this.dispatchEvent(
             new CustomEvent('change', {

@@ -3,10 +3,6 @@ name: Trigger OST Products action
 on:
   schedule:
     - cron: '0 8 * * *' # Daily at 8am UTC (9am CET), triggered on default branch = main
-  pull_request: # tmp, remove
-    branches:
-      - main
-    types: [opened, synchronize, reopened]
   workflow_dispatch: # trigger
 
 jobs:

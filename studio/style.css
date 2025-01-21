@@ -220,6 +220,11 @@ merch-card {
     box-sizing: border-box;
 }
 
+merch-card a,
+merch-card button {
+    pointer-events: none;
+}
+
 mas-fragment-render[selected] .render-card {
     outline: 2px solid var(--spectrum-global-color-blue-600);
 }

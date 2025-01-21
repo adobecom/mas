@@ -11,6 +11,7 @@ import './mas-repository.js';
 import './mas-toast.js';
 import './mas-hash-manager.js';
 import './mas-splash-screen.js';
+import './filters/locale-picker.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import { WCS_ENV_STAGE } from './constants.js';

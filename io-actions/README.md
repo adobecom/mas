@@ -39,6 +39,9 @@ You are currently in:
 - `aio app test && aio app deploy` to test, build and deploy all actions on Runtime and static files to CDN
 - `aio app undeploy` to undeploy the app
 
+If you need to force re-deploy:
+- `aio app deploy --force-deploy --no-publish`
+
 ## Config
 
 ### `.env`

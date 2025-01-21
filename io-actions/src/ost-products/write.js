@@ -1,3 +1,6 @@
+const stateLib = require('@adobe/aio-lib-state');
+const zlib = require('zlib');
+
 const KEY_PA = 'product_arrangement_code';
 const ABM = 'ABM';
 const PUF = 'PUF';
@@ -82,6 +85,7 @@ const paginatedOffers = (allProducts, landscape, locale, params, page = 0) => {
 
 async function main(params) {
     try {
+        const state = await stateLib.init();
         const options = [
             { locale: 'en_US', landscape: 'DRAFT' },
             { locale: 'en_US', landscape: 'PUBLISHED' },
@@ -134,13 +138,17 @@ async function main(params) {
                 };
             }
         });
+        const ostResult = {
+            combinedProducts,
+            dateTime: new Date().toString(),
+        };
+        const compressed = zlib
+            .brotliCompressSync(JSON.stringify(ostResult, null, 0))
+            .toString('base64');
+        await state.put('ostResult', compressed);
         return {
-            headers: {
-                'Content-Type': 'application/json',
-                'Cache-Control': 'max-age=86400', // cached in Adobe IO gateway 24 hours
-            },
             statusCode: 200,
-            body: JSON.stringify(combinedProducts),
+            body: 'Successfully generated OST Products List',
         };
     } catch (error) {
         return {

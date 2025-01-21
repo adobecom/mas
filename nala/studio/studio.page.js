@@ -73,10 +73,8 @@ export default class StudioPage {
             throw new Error(`Invalid card type: ${cardType}`);
         }
 
-        return card
-            .filter({
-                has: this.page.locator(`aem-fragment[fragment="${id}"]`),
-            })
-            .locator('..');
+        return card.filter({
+            has: this.page.locator(`aem-fragment[fragment="${id}"]`),
+        });
     }
 }

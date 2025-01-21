@@ -218,7 +218,6 @@ merch-card {
     cursor: pointer;
     user-select: none;
     box-sizing: border-box;
-    pointer-events: none;
 }
 
 mas-fragment-render[selected] .render-card {

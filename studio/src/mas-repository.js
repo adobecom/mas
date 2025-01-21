@@ -134,7 +134,7 @@ export class MasRepository extends LitElement {
 
         const localSearch = {
             ...this.search.value,
-            path: getDamPath(path),
+            path: getDamPath(path) + '/en_US',
         };
         const fragments = [];
 
@@ -196,7 +196,7 @@ export class MasRepository extends LitElement {
         Store.fragments.recentlyUpdated.loading.set(true);
 
         const dataStore = Store.fragments.recentlyUpdated.data;
-        const path = this.search.value.path;
+        const path = this.search.value.path + '/en_US';
 
         if (!looseEquals(dataStore.getMeta('path'), path)) {
             dataStore.set([]);

@@ -24,7 +24,7 @@ You are currently in:
 
 - `aio app dev` to start your local Dev server
 - App will run on `localhost:9080` by default
-- open https://localhost:9080/api/v1/web/MasHealthCheck/health-check
+- open https://localhost:9080/api/v1/web/MerchAtScale/health-check
 
 
 ## Test & Coverage

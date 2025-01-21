@@ -1,4 +1,5 @@
 import { LitElement, html, css } from 'lit';
+import Store from './store.js';
 
 const EnvColorCode = {
     proxy: 'gray',
@@ -8,16 +9,16 @@ const EnvColorCode = {
 };
 class MasTopNav extends LitElement {
     static properties = {
-        env: { type: String },
+        aemEnv: { type: String, attribute: 'aem-env' },
     };
 
     constructor() {
         super();
-        this.env = 'prod';
+        this.aemEnv = 'prod';
     }
 
     get envIndicator() {
-        return EnvColorCode[this.env];
+        return EnvColorCode[this.aemEnv];
     }
 
     static get styles() {
@@ -67,6 +68,10 @@ class MasTopNav extends LitElement {
         `;
     }
 
+    _toggleCommerce(e) {
+        Store.commerceEnv.set(e.target.checked ? 'stage' : 'prod');
+    }
+
     render() {
         return html`
             <nav>
@@ -93,8 +98,19 @@ class MasTopNav extends LitElement {
                 </a>
                 <a>
                     <sp-badge size="s" variant="${this.envIndicator}"
-                        >${this.env}</sp-badge
+                        >${this.aemEnv}</sp-badge
                     >
+                </a>
+                <a>
+                    <sp-switch
+                        label="Switch"
+                        @change="${this._toggleCommerce}"
+                        .checked=${Store.commerceEnv.value == 'stage'
+                            ? true
+                            : false}
+                    >
+                        Stage Commerce
+                    </sp-switch>
                 </a>
                 <a>
                     <sp-icon-help-outline></sp-icon-help-outline>

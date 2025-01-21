@@ -32,9 +32,9 @@
                 stage: 'e59471',
                 prod: 'e59433',
             };
-            const href = window.location.href;
-            const envOverride = new URL(href).searchParams.get('aem.env');
-            const isLocal = href.includes('localhost');
+            const params = new URLSearchParams(window.location.search);
+            const envOverride = params.get('aem.env');
+            const isLocal = window.location.href.includes('localhost');
             let bucket;
             let baseUrl;
             if (isLocal) {
@@ -60,8 +60,6 @@
         <link rel="stylesheet" href="./studio/ost/index.css" />
         <link rel="stylesheet" href="./studio/style.css" />
         <link rel="stylesheet" href="https://use.typekit.net/hah7vzn.css" />
-        <!-- MAS Studio Icon goes here -->
-        <mas-commerce-service></mas-commerce-service>
         <script>
             window.adobeid = {
                 api_parameters: {
@@ -107,6 +105,7 @@
                     const studio = document.createElement('mas-studio');
                     studio.setAttribute('base-url', baseUrl);
                     bucket && studio.setAttribute('aem-bucket', bucket);
+                    params.get('commerce.env') && studio.setAttribute('commerce-env', params.get('commerce.env'));
                     document.querySelector('sp-theme').appendChild(studio);
                 </script>
             </sp-theme>

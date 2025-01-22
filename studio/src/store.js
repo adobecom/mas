@@ -34,6 +34,7 @@ const Store = {
             return '/' + Store.locale.current.get();
         },
         data: [
+            { code: 'pt_BR', flag: '🇧🇷', name: 'Brazil' },
             { code: 'fr_CA', flag: '🇨🇦', name: 'Canada' },
             { code: 'zh_CN', flag: '🇨🇳', name: 'China' },
             { code: 'cs_CZ', flag: '🇨🇿', name: 'Czech Republic' },
@@ -45,13 +46,12 @@ const Store = {
             { code: 'id_ID', flag: '🇮🇩', name: 'Indonesia' },
             { code: 'it_IT', flag: '🇮🇹', name: 'Italy' },
             { code: 'ja_JP', flag: '🇯🇵', name: 'Japan' },
-            { code: 'ko_KR', flag: '🇰🇷', name: 'South Korea' },
             { code: 'es_MX', flag: '🇲🇽', name: 'Mexico' },
             { code: 'nl_NL', flag: '🇳🇱', name: 'Netherlands' },
             { code: 'nb_NO', flag: '🇳🇴', name: 'Norway' },
             { code: 'pl_PL', flag: '🇵🇱', name: 'Poland' },
-            { code: 'pt_BR', flag: '🇧🇷', name: 'Brazil' },
             { code: 'ru_RU', flag: '🇷🇺', name: 'Russia' },
+            { code: 'ko_KR', flag: '🇰🇷', name: 'South Korea' },
             { code: 'es_ES', flag: '🇪🇸', name: 'Spain' },
             { code: 'sv_SE', flag: '🇸🇪', name: 'Sweden' },
             { code: 'th_TH', flag: '🇹🇭', name: 'Thailand' },

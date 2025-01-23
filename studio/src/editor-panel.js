@@ -4,6 +4,8 @@ import { MasRepository } from './mas-repository.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
+import Events from './events.js';
+import { VARIANTS } from './constants.js';
 
 export default class EditorPanel extends LitElement {
     static properties = {
@@ -13,7 +15,6 @@ export default class EditorPanel extends LitElement {
         bucket: { type: String },
         disabled: { type: Boolean },
         hasChanges: { type: Boolean },
-        showToast: { type: Function },
     };
 
     static styles = css`
@@ -186,14 +187,51 @@ export default class EditorPanel extends LitElement {
         );
     }
 
+    getFragmentPropsToUse() {
+        const props = {};
+        this.fragment?.fields.forEach((field) => {
+            if (field.name === 'cardTitle' && field.values?.length) {
+                props.cardTitle = field.values[0];
+            }
+            if (field.name === 'variant' && field.values?.length) {
+                props.variantCode = field.values[0];
+            }
+        });
+        VARIANTS.forEach((variant) => {
+            if (variant.value === props.variantCode) {
+                props.variantLabel = variant.label;
+                props.surface = variant.surface;
+            }
+        });
+        return props;
+    }
+
     async copyToUse() {
-        //@TODO make it generic.
-        const code = `<merch-card><aem-fragment fragment="${this.fragment?.id}"></aem-fragment></merch-card>`;
+        //@TODO make it generic also for merch-card-collection
+        const props = this.getFragmentPropsToUse();
+        const code = `<merch-card><aem-fragment fragment="${this.fragment?.id}" title="${props.cardTitle}"></aem-fragment></merch-card>`;
         try {
-            await navigator.clipboard.writeText(code);
-            this.showToast('Code copied to clipboard', 'positive');
+            const richText = `
+                <a href="https://mas.adobe.com/studio.html#path=${props.surface}&fragment=${this.fragment?.id}">
+                    merch-card: ${props.surface.toUpperCase()} / ${props.variantLabel} / ${props.cardTitle}
+                </a>
+            `;
+            await navigator.clipboard.write([
+                /* global ClipboardItem */
+                new ClipboardItem({
+                    'text/plain': new Blob([code], { type: 'text/plain' }),
+                    'text/html': new Blob([richText], { type: 'text/html' }),
+                }),
+            ]);
+            Events.toast.emit({
+                variant: 'positive',
+                content: 'Code copied to clipboard',
+            });
         } catch (e) {
-            this.showToast('Failed to copy code to clipboard', 'negative');
+            Events.toast.emit({
+                variant: 'negative',
+                content: 'Failed to copy code to clipboard',
+            });
         }
     }
 

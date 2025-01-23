@@ -200,7 +200,7 @@ export default class EditorPanel extends LitElement {
     #updateFragmentInternal(event) {
         const fieldName = event.target.dataset.field;
         let value = event.target.value;
-        this.fragmentStore.updateFieldInternal(fieldName, value);
+        this.fragment.updateFieldInternal(fieldName, value);
         this.hasChanges = true;
     }
 
@@ -209,7 +209,7 @@ export default class EditorPanel extends LitElement {
         let value = event.target.value || event.detail?.value;
         if (value === event.target.dataset.defaultValue) value = undefined;
         value = event.target.multiline ? value?.split(',') : [value ?? ''];
-        this.fragmentStore.updateField(fieldName, value);
+        this.fragment.updateField(fieldName, value);
         this.hasChanges = true;
     }
 
@@ -406,6 +406,8 @@ export default class EditorPanel extends LitElement {
             <p>${this.fragment.path}</p>
             <merch-card-editor
                 .disabled=${this.disabled}
+                .fragment=${this.fragment}
+                .fragmentStore=${this.fragmentStore}
                 .hasChanges=${this.hasChanges}
                 .updateFragment=${this.updateFragment}
             >

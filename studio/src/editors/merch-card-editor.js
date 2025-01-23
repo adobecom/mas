@@ -13,6 +13,8 @@ const merchCardCustomElementPromise = customElements.whenDefined('merch-card');
 
 class MerchCardEditor extends LitElement {
     static properties = {
+        fragment: { type: Object, attribute: false },
+        fragmentStore: { type: Object },
         disabled: { type: Boolean },
         hasChanges: { type: Boolean },
         updateFragment: { type: Function },
@@ -20,13 +22,10 @@ class MerchCardEditor extends LitElement {
         superWide: { type: Boolean, state: true },
     };
 
-    fragmentStoreController = new StoreController(this, Store.fragments.inEdit);
-
     constructor() {
         super();
         this.disabled = false;
         this.hasChanges = false;
-        this.fragmentStore = null;
         this.updateFragment = null;
         this.wide = false;
         this.superWide = false;
@@ -42,10 +41,6 @@ class MerchCardEditor extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
-    }
-
-    get fragment() {
-        return this.fragmentStoreController.value?.get();
     }
 
     get mnemonics() {
@@ -272,11 +267,10 @@ class MerchCardEditor extends LitElement {
             mnemonicAlt.push(alt ?? '');
             mnemonicLink.push(link ?? '');
         });
-        const fragment = this.fragmentStore.get();
-        fragment.updateField('mnemonicIcon', mnemonicIcon);
-        fragment.updateField('mnemonicAlt', mnemonicAlt);
-        fragment.updateField('mnemonicLink', mnemonicLink);
-        this.fragmentStore.set(fragment);
+        this.fragment.updateField('mnemonicIcon', mnemonicIcon);
+        this.fragment.updateField('mnemonicAlt', mnemonicAlt);
+        this.fragment.updateField('mnemonicLink', mnemonicLink);
+        this.fragmentStore.set(this.fragment);
         this.hasChanges = true;
     }
 }

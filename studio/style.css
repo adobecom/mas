@@ -221,6 +221,11 @@ merch-card {
     pointer-events: none;
 }
 
+merch-card a,
+merch-card button {
+    pointer-events: none;
+}
+
 mas-fragment-render[selected] .render-card {
     outline: 2px solid var(--spectrum-global-color-blue-600);
 }
@@ -408,4 +413,9 @@ mas-content {
 
 #recently-updated-container[loading] {
     min-height: 64px;
+}
+
+sp-field-group {
+    display: block;
+    margin: 16px 0;
 }

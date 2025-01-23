@@ -181,6 +181,17 @@ class MerchCardEditor extends LitElement {
                     >${unsafeHTML(form.ctas.values[0])}</rte-field
                 >
             </sp-field-group>
+
+            <sp-field-label for="card-icon">Background Image</sp-field-label>
+            <sp-textfield
+                placeholder="Enter background image URL"
+                id="background-title"
+                data-field="backgroundImage"
+                value="${form.backgroundImage.values[0]}"
+                @input="${this.#handleInput}"
+                ?disabled=${this.disabled}
+            ></sp-textfield>
+
             <aem-tag-picker-field
                 label="Tags"
                 namespace="/content/cq:tags/mas"

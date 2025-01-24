@@ -192,10 +192,6 @@ export default class EditorPanel extends LitElement {
         );
     }
 
-    get clipboardContent() {
-        return this.clipboardText;
-    }
-
     getFragmentPropsToUse() {
         const props = {
             cardTitle: this.fragment?.getField('cardTitle')?.values[0],
@@ -217,22 +213,28 @@ export default class EditorPanel extends LitElement {
         });
     }
 
-    async copyToUse() {
+    generateCodeToUse() {
         const props = this.getFragmentPropsToUse();
         const webComponentName = MODEL_WEB_COMPONENT_MAPPING[this.fragment?.model?.name];
         if (!webComponentName) {
             this.showNegativeAlert();
-            return;
+            return [];
         }
 
         const code = `<${webComponentName}><aem-fragment fragment="${this.fragment?.id}" title="${props.cardTitle}"></aem-fragment></${webComponentName}>`;
-        try {
-            const richText = `
+        const richText = `
                 <a href="https://mas.adobe.com/studio.html#path=${props.surface}&fragment=${this.fragment?.id}">
                     ${webComponentName}: ${props.surface.toUpperCase()} / ${props.variantLabel} / ${props.cardTitle}
                 </a>
             `;
-            this.clipboardText = [code, richText];
+        return [code, richText];
+    }
+
+    async copyToUse() {
+        const [code, richText] = this.generateCodeToUse();
+        if (!code || !richText) return;
+
+        try {
             await navigator.clipboard.write([
                 /* global ClipboardItem */
                 new ClipboardItem({

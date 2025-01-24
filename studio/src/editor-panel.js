@@ -98,7 +98,6 @@ export default class EditorPanel extends LitElement {
         Store.fragments.discard.set(true);
         await this.updateComplete;
         Store.fragments.discard.set(false);
-        console.log('Changes discarded');
     }
 
     updatePosition(position) {

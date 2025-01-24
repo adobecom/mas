@@ -5,7 +5,12 @@ import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
 import Events from './events.js';
-import { VARIANTS } from './constants.js';
+import { VARIANTS } from './editors/variant-picker.js';
+
+const MODEL_WEB_COMPONENT_MAPPING = {
+    'Card': 'merch-card',
+    'Card Collection': 'merch-card-collection'
+};
 
 export default class EditorPanel extends LitElement {
     static properties = {
@@ -187,16 +192,15 @@ export default class EditorPanel extends LitElement {
         );
     }
 
+    get clipboardContent() {
+        return this.clipboardText;
+    }
+
     getFragmentPropsToUse() {
-        const props = {};
-        this.fragment?.fields.forEach((field) => {
-            if (field.name === 'cardTitle' && field.values?.length) {
-                props.cardTitle = field.values[0];
-            }
-            if (field.name === 'variant' && field.values?.length) {
-                props.variantCode = field.values[0];
-            }
-        });
+        const props = {
+            cardTitle: this.fragment?.getField('cardTitle')?.values[0],
+            variantCode: this.fragment?.getField('variant')?.values[0]
+        };
         VARIANTS.forEach((variant) => {
             if (variant.value === props.variantCode) {
                 props.variantLabel = variant.label;
@@ -206,16 +210,29 @@ export default class EditorPanel extends LitElement {
         return props;
     }
 
+    showNegativeAlert() {
+        Events.toast.emit({
+            variant: 'negative',
+            content: 'Failed to copy code to clipboard',
+        });
+    }
+
     async copyToUse() {
-        //@TODO make it generic also for merch-card-collection
         const props = this.getFragmentPropsToUse();
-        const code = `<merch-card><aem-fragment fragment="${this.fragment?.id}" title="${props.cardTitle}"></aem-fragment></merch-card>`;
+        const webComponentName = MODEL_WEB_COMPONENT_MAPPING[this.fragment?.model?.name];
+        if (!webComponentName) {
+            this.showNegativeAlert();
+            return;
+        }
+
+        const code = `<${webComponentName}><aem-fragment fragment="${this.fragment?.id}" title="${props.cardTitle}"></aem-fragment></${webComponentName}>`;
         try {
             const richText = `
                 <a href="https://mas.adobe.com/studio.html#path=${props.surface}&fragment=${this.fragment?.id}">
-                    merch-card: ${props.surface.toUpperCase()} / ${props.variantLabel} / ${props.cardTitle}
+                    ${webComponentName}: ${props.surface.toUpperCase()} / ${props.variantLabel} / ${props.cardTitle}
                 </a>
             `;
+            this.clipboardText = [code, richText];
             await navigator.clipboard.write([
                 /* global ClipboardItem */
                 new ClipboardItem({
@@ -228,10 +245,7 @@ export default class EditorPanel extends LitElement {
                 content: 'Code copied to clipboard',
             });
         } catch (e) {
-            Events.toast.emit({
-                variant: 'negative',
-                content: 'Failed to copy code to clipboard',
-            });
+            this.showNegativeAlert();
         }
     }
 

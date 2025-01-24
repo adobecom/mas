@@ -101,6 +101,23 @@
                         ).to.deep.equal([]);
                         expect(titleField().value).to.equal('');
                     });
+
+                    it('implements "use"', async () => {
+                        await editorPanel.updateComplete;
+                        await editorPanel.refreshed;
+                        const useButton = document.querySelector(
+                            'sp-action-button[value="use"]',
+                        );
+                        const titleField = () => document.getElementById('card-title');
+                        triggerInput(titleField(), 'test title');
+                        await editorPanel.updateComplete;
+                        useButton.click();
+                        await delay(100);
+                        const clipboardContent = editorPanel.clipboardContent;
+                        expect(clipboardContent[0]).to.equal('<merch-card><aem-fragment fragment="fragment-cc-all-apps" title="test title"></aem-fragment></merch-card>');
+                        expect(clipboardContent[1].includes('https://mas.adobe.com/studio.html#path=ccd&fragment=fragment-cc-all-apps'));
+                        expect(clipboardContent[1].includes('merch-card: CCD / Slice / test title'));
+                    });
                 });
             });
         </script>

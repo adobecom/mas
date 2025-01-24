@@ -7,7 +7,7 @@ import Store from './store.js';
 
 export default class EditorPanel extends LitElement {
     static properties = {
-        loading: { type: Boolean },
+        loading: { state: true },
         source: { type: Object },
         bucket: { type: String },
         disabled: { type: Boolean },
@@ -122,7 +122,7 @@ export default class EditorPanel extends LitElement {
             this.updatePosition(newPosition);
         }
         const id = store.get().id;
-        const currentId = this.fragmentStore?.get?.()?.id;
+        const currentId = this.fragment?.id;
         if (id === currentId) return;
         const wasEmpty = !currentId;
         if (

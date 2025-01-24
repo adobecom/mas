@@ -41,7 +41,7 @@ export class FragmentStore extends ReactiveStore {
     }
 
     refreshAemFragment() {
-        if (this.value === null) return;
+        if (!this.value) return;
         document
             .querySelector(`aem-fragment[fragment="${this.value.id}"]`)
             ?.refresh(false);

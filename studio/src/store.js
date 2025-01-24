@@ -1,9 +1,9 @@
 import { Fragment } from './aem/fragment.js';
-import { getEditorPanel } from './editor-panel.js';
 import MasFilters from './entities/filters.js';
 import MasSearch from './entities/search.js';
 import { reactiveStore } from './reactivity/reactive-store.js';
 import { WCS_ENV_PROD } from './constants.js';
+import { FragmentStore } from './reactivity/fragment-store.js';
 
 const params = Object.fromEntries(
     new URLSearchParams(window.location.hash.slice(1)),
@@ -22,7 +22,8 @@ const Store = {
             data: reactiveStore([]),
             limit: reactiveStore(6),
         },
-        inEdit: reactiveStore(null),
+        inEdit: new FragmentStore(null),
+        discard: reactiveStore(false), // will be toggled true / false to trigger a discard in the editor.
     },
     folders: {
         loaded: reactiveStore(false),
@@ -95,9 +96,9 @@ export function toggleSelection(id) {
 }
 
 export function navigateToPage(value) {
-    return function () {
-        const editor = getEditorPanel();
-        if (editor && !editor.close()) return;
+    return () => {
+        Store.fragments.inEdit.discardChanges();
+        Store.fragments.inEdit.set(null);
         Store.currentPage.set(value);
     };
 }

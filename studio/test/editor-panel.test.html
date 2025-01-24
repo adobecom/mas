@@ -56,7 +56,7 @@
                 window.fetch = async function (args) {
                     const { pathname } = new URL(args);
                     if (/querybuilder.json/.test(pathname)) {
-                        return originalFetch('/test/aem/tags.json');
+                        return originalFetch('/test/mocks/tags.json');
                     }
                     return originalFetch(...arguments);
                 };
@@ -67,18 +67,16 @@
                     let editorPanel;
                     beforeEach(async () => {
                         fragment = new Fragment(fragmentData);
-                        fragmentStore = new FragmentStore(fragment);
                         editorPanel = await fixture(
-                            html`<editor-panel
-                            ></editor-panel>`,
+                            html`<editor-panel></editor-panel>`,
                             { parentNode: spTheme },
                         );
-                        Store.fragments.inEdit.set(fragmentStore);
+                        Store.fragments.inEdit.set(fragment);
                     });
 
                     it('implements "discard changes"', async () => {
+                        editorPanel.requestUpdate();
                         await editorPanel.updateComplete;
-                        await editorPanel.refreshed;
                         const discardButton = document.querySelector(
                             'sp-action-button[value="discard"]',
                         );
@@ -91,8 +89,10 @@
                             fragment.getField('cardTitle').values,
                         ).to.deep.equal(['test title']);
                         await editorPanel.updateComplete;
-                        const merchCardEditor = document.querySelector('merch-card-editor');
-                        expect(merchCardEditor.hasChanges).to.be.true;
+                        const merchCardEditor =
+                            document.querySelector('merch-card-editor');
+                        await delay(100);
+                        expect(editorPanel.hasChanges).to.be.true;
                         expect(discardButton.disabled).to.be.false;
                         discardButton.click();
                         await delay(100);

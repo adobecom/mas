@@ -7,12 +7,10 @@ import Store from './store.js';
 
 export default class EditorPanel extends LitElement {
     static properties = {
-        loading: { state: true },
-        refreshing: { state: true },
+        loading: { type: Boolean },
         source: { type: Object },
         bucket: { type: String },
         disabled: { type: Boolean },
-        hasChanges: { type: Boolean },
         showToast: { type: Function },
     };
 
@@ -35,22 +33,20 @@ export default class EditorPanel extends LitElement {
         }
     `;
 
-    createRenderRoot() {
-        return this;
-    }
+    fragmentStoreController = new StoreController(this, Store.fragments.inEdit);
 
     constructor() {
         super();
         this.disabled = false;
-        this.refreshing = false;
-        this.hasChanges = false;
         this.loading = false;
-        this.discardChanges = this.discardChanges.bind(this);
-        this.refresh = this.refresh.bind(this);
         this.close = this.close.bind(this);
         this.handleClose = this.handleClose.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.updateFragment = this.updateFragment.bind(this);
+    }
+
+    createRenderRoot() {
+        return this;
     }
 
     connectedCallback() {
@@ -68,18 +64,20 @@ export default class EditorPanel extends LitElement {
         return document.querySelector('mas-repository');
     }
 
-    fragmentStoreController = new StoreController(this, Store.fragments.inEdit);
-
     /** @type {FragmentStore | null} */
     get fragmentStore() {
-        if (!this.fragmentStoreController.value) return null;
-        return this.fragmentStoreController.value;
+        if (!this.fragmentStoreController.store) return null;
+        return this.fragmentStoreController.store;
     }
 
     /** @type {Fragment | null} */
     get fragment() {
-        if (!this.fragmentStore) return null;
-        return this.fragmentStore.get();
+        if (!this.fragmentStore?.value) return null;
+        return this.fragmentStore.value;
+    }
+
+    get hasChanges() {
+        return this.fragmentStore?.value?.hasChanges;
     }
 
     /**
@@ -94,20 +92,13 @@ export default class EditorPanel extends LitElement {
         return true;
     }
 
-    discardChanges(refresh = true) {
+    async discardChanges() {
         if (!this.hasChanges) return;
         this.fragmentStore.discardChanges();
-        this.hasChanges = false;
-        if (refresh) this.refresh();
-    }
-
-    aemAction(action, reset = false) {
-        return async function () {
-            this.disabled = true;
-            const ok = await action();
-            if (ok && reset) this.hasChanges = false;
-            this.disabled = false;
-        };
+        Store.fragments.discard.set(true);
+        await this.updateComplete;
+        Store.fragments.discard.set(false);
+        console.log('Changes discarded');
     }
 
     updatePosition(position) {
@@ -132,7 +123,7 @@ export default class EditorPanel extends LitElement {
             this.updatePosition(newPosition);
         }
         const id = store.get().id;
-        const currentId = this.fragmentStore?.get().id;
+        const currentId = this.fragmentStore?.get?.()?.id;
         if (id === currentId) return;
         const wasEmpty = !currentId;
         if (
@@ -143,25 +134,9 @@ export default class EditorPanel extends LitElement {
             return;
         this.discardChanges(false);
         this.loading = true;
+        Store.fragments.inEdit.set(store.value);
         await this.repository.refreshFragment(store);
         this.loading = false;
-        Store.fragments.inEdit.set(store);
-        if (!wasEmpty) this.refresh();
-    }
-
-    async refresh() {
-        this.refreshing = true;
-        await this.updateComplete;
-        this.refreshing = false;
-    }
-
-    get refreshed() {
-        return (async () => {
-            if (!this.refreshing) return Promise.resolve();
-            while (this.refreshing) {
-                await this.updateComplete;
-            }
-        })();
     }
 
     handleKeyDown(event) {
@@ -200,17 +175,14 @@ export default class EditorPanel extends LitElement {
     #updateFragmentInternal(event) {
         const fieldName = event.target.dataset.field;
         let value = event.target.value;
-        this.fragment.updateFieldInternal(fieldName, value);
-        this.hasChanges = true;
+        this.fragmentStore.updateFieldInternal(fieldName, value);
     }
 
     updateFragment(event) {
         const fieldName = event.target.dataset.field;
         let value = event.target.value || event.detail?.value;
-        if (value === event.target.dataset.defaultValue) value = undefined;
         value = event.target.multiline ? value?.split(',') : [value ?? ''];
-        this.fragment.updateField(fieldName, value);
-        this.hasChanges = true;
+        this.fragmentStore.updateField(fieldName, value);
     }
 
     get fragmentEditorToolbar() {
@@ -239,10 +211,7 @@ export default class EditorPanel extends LitElement {
                     label="Save"
                     title="Save changes"
                     value="save"
-                    @click="${this.aemAction(
-                        this.repository.saveFragment,
-                        true,
-                    )}"
+                    @click="${this.repository.saveFragment}"
                     ?disabled=${this.disabled}
                 >
                     <sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>
@@ -265,7 +234,7 @@ export default class EditorPanel extends LitElement {
                 <sp-action-button
                     label="Clone"
                     value="clone"
-                    @click="${this.aemAction(this.repository.copyFragment)}"
+                    @click="${this.repository.copyFragment}"
                     ?disabled=${this.disabled}
                 >
                     <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
@@ -276,7 +245,7 @@ export default class EditorPanel extends LitElement {
                 <sp-action-button
                     label="Publish"
                     value="publish"
-                    @click="${this.aemAction(this.repository.publishFragment)}"
+                    @click="${this.repository.publishFragment}"
                     ?disabled=${this.disabled}
                 >
                     <sp-icon-publish-check slot="icon"></sp-icon-publish-check>
@@ -287,9 +256,7 @@ export default class EditorPanel extends LitElement {
                 <sp-action-button
                     label="Unpublish"
                     value="unpublish"
-                    @click="${this.aemAction(
-                        this.repository.unpublishFragment,
-                    )}"
+                    @click="${this.repository.unpublishFragment}"
                     disabled
                 >
                     <sp-icon-publish-remove
@@ -322,7 +289,7 @@ export default class EditorPanel extends LitElement {
                 <sp-action-button
                     label="Delete fragment"
                     value="delete"
-                    @click="${this.aemAction(this.repository.deleteFragment)}"
+                    @click="${this.repository.deleteFragment}"
                     ?disabled=${this.disabled}
                 >
                     <sp-icon-delete-outline
@@ -399,16 +366,15 @@ export default class EditorPanel extends LitElement {
                 <sp-progress-circle indeterminate size="l"></sp-progress-circle>
             `;
 
-        if (this.refreshing || !this.fragment) return nothing;
+        if (!this.fragment) return nothing;
 
         return html`<div id="editor">
             ${this.fragmentEditorToolbar}
             <p>${this.fragment.path}</p>
             <merch-card-editor
-                .disabled=${this.disabled}
                 .fragment=${this.fragment}
+                .disabled=${this.disabled}
                 .fragmentStore=${this.fragmentStore}
-                .hasChanges=${this.hasChanges}
                 .updateFragment=${this.updateFragment}
             >
             </merch-card-editor>

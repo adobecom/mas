@@ -418,3 +418,7 @@ sp-field-group {
     display: block;
     margin: 16px 0;
 }
+
+sp-field-group#backgroundImage sp-textfield {
+    width: 100%;
+}

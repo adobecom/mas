@@ -4,8 +4,8 @@ import '../fields/multifield.js';
 import '../fields/mnemonic-field.js';
 import '../aem/aem-tag-picker-field.js';
 import './variant-picker.js';
-import StoreController from '../reactivity/store-controller.js';
 import Store from '../store.js';
+import StoreController from '../reactivity/store-controller.js';
 
 const MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 
@@ -16,16 +16,16 @@ class MerchCardEditor extends LitElement {
         fragment: { type: Object, attribute: false },
         fragmentStore: { type: Object },
         disabled: { type: Boolean },
-        hasChanges: { type: Boolean },
         updateFragment: { type: Function },
         wide: { type: Boolean, state: true },
         superWide: { type: Boolean, state: true },
     };
 
+    discardController = new StoreController(this, Store.fragments.discard);
+
     constructor() {
         super();
         this.disabled = false;
-        this.hasChanges = false;
         this.updateFragment = null;
         this.wide = false;
         this.superWide = false;
@@ -89,13 +89,13 @@ class MerchCardEditor extends LitElement {
     }
 
     render() {
+        if (Store.fragments.discard.get()) return nothing;
         if (!this.fragment) return nothing;
         if (this.fragment.model.path !== MODEL_PATH) return nothing;
 
         const form = Object.fromEntries([
             ...this.fragment.fields.map((f) => [f.name, f]),
         ]);
-
         return html`
             <sp-field-group id="variant">
                 <sp-field-label for="card-variant">Variant</sp-field-label>
@@ -199,7 +199,7 @@ class MerchCardEditor extends LitElement {
                     ?disabled=${this.disabled}
                 ></sp-textfield>
             </sp-field-group>
-            <sp-field-group class="toggle" horizontal id="prices">
+            <sp-field-group class="toggle" id="prices">
                 <sp-field-label for="prices">Prices</sp-field-label>
                 <rte-field
                     id="prices"
@@ -211,7 +211,7 @@ class MerchCardEditor extends LitElement {
                     >${unsafeHTML(form.prices.values[0])}</rte-field
                 >
             </sp-field-group>
-            <sp-field-group class="toggle" horizontal id="description">
+            <sp-field-group class="toggle" id="description">
                 <sp-field-label for="description">Description</sp-field-label>
                 <rte-field
                     id="description"
@@ -223,7 +223,7 @@ class MerchCardEditor extends LitElement {
                     >${unsafeHTML(form.description.values[0])}</rte-field
                 >
             </sp-field-group>
-            <sp-field-group class="toggle" horizontal id="ctas">
+            <sp-field-group class="toggle" id="ctas">
                 <sp-field-label for="ctas">Footer</sp-field-label>
                 <rte-field
                     id="ctas"
@@ -255,7 +255,6 @@ class MerchCardEditor extends LitElement {
         const value = e.target.getAttribute('value');
         const newTags = value ? value.split(',') : []; // do not overwrite the tags array
         this.fragmentStore.updateField('tags', newTags);
-        this.hasChanges = true;
     }
 
     #updateMnemonics(event) {
@@ -267,11 +266,11 @@ class MerchCardEditor extends LitElement {
             mnemonicAlt.push(alt ?? '');
             mnemonicLink.push(link ?? '');
         });
-        this.fragment.updateField('mnemonicIcon', mnemonicIcon);
-        this.fragment.updateField('mnemonicAlt', mnemonicAlt);
-        this.fragment.updateField('mnemonicLink', mnemonicLink);
-        this.fragmentStore.set(this.fragment);
-        this.hasChanges = true;
+        const fragment = this.fragmentStore.get();
+        fragment.updateField('mnemonicIcon', mnemonicIcon);
+        fragment.updateField('mnemonicAlt', mnemonicAlt);
+        fragment.updateField('mnemonicLink', mnemonicLink);
+        this.fragmentStore.set(fragment);
     }
 }
 

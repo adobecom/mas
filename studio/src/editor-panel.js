@@ -344,13 +344,15 @@ export default class EditorPanel extends LitElement {
         return html`<div id="editor">
             ${this.fragmentEditorToolbar}
             <p>${this.fragment.path}</p>
-            <merch-card-editor
-                .fragment=${this.fragment}
-                .disabled=${this.disabled}
-                .fragmentStore=${this.fragmentStore}
-                .updateFragment=${this.updateFragment}
-            >
-            </merch-card-editor>
+            ${Store.editor.discard.get()
+                ? nothing
+                : html` <merch-card-editor
+                      .fragment=${this.fragment}
+                      .disabled=${this.disabled}
+                      .fragmentStore=${this.fragmentStore}
+                      .updateFragment=${this.updateFragment}
+                  >
+                  </merch-card-editor>`}
             <sp-divider size="s"></sp-divider>
             ${this.fragmentEditor}
         </div>`;

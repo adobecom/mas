@@ -5,7 +5,6 @@ import '../fields/mnemonic-field.js';
 import '../aem/aem-tag-picker-field.js';
 import './variant-picker.js';
 import Store from '../store.js';
-import StoreController from '../reactivity/store-controller.js';
 
 const MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 
@@ -20,8 +19,6 @@ class MerchCardEditor extends LitElement {
         wide: { type: Boolean, state: true },
         superWide: { type: Boolean, state: true },
     };
-
-    discardController = new StoreController(this, Store.editor.discard);
 
     constructor() {
         super();
@@ -89,7 +86,6 @@ class MerchCardEditor extends LitElement {
     }
 
     render() {
-        if (Store.editor.discard.get()) return nothing;
         if (!this.fragment) return nothing;
         if (this.fragment.model.path !== MODEL_PATH) return nothing;
 

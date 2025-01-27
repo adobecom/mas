@@ -12,14 +12,19 @@ import './mas-toast.js';
 import './mas-splash-screen.js';
 import './filters/locale-picker.js';
 import StoreController from './reactivity/store-controller.js';
-import Store from './store.js';
-import { WCS_ENV_STAGE } from './constants.js';
+import Store, { linkStoreToHash } from './store.js';
+import { WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
 
 const BUCKET_TO_ENV = {
     e155390: 'qa',
     e59471: 'stage',
     e59433: 'prod',
 };
+
+linkStoreToHash(Store.search, ['path', 'query'], { path: 'drafts' });
+linkStoreToHash(Store.filters, ['locale'], { locale: 'en_US' });
+linkStoreToHash(Store.page, 'page', 'welcome');
+linkStoreToHash(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
 
 class MasStudio extends LitElement {
     static properties = {

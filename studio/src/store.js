@@ -162,11 +162,7 @@ export function unlinkStoreFromHash(store) {
     if (!hashLink) return;
     window.removeEventListener('hashchange', hashLink.from);
     store.unsubscribe(hashLink.to);
+    store.removeMeta('hashLink');
 }
-
-linkStoreToHash(Store.search, ['path', 'query']);
-linkStoreToHash(Store.filters, ['locale'], { locale: 'en_US' });
-linkStoreToHash(Store.page, 'page', 'welcome');
-linkStoreToHash(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
 
 // #endregion

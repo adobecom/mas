@@ -1,22 +1,18 @@
 export class ReactiveStore {
     value;
-    /** @type {((value: any) => any)[]} */
-    modifiers = [];
+    /** @type {(value: any) => any} */
+    validator;
     #subscribers = [];
     /** @type {Record<string, any>} - Contains any relevant store additional data */
-    #meta;
+    #meta = {};
 
     /**
      * @param {any} initialValue
-     * @param {(value: any) => any | ((value: any) => any)[]} modifiers
+     * @param {(value: any) => any} validator
      */
-    constructor(initialValue, modifiers) {
-        if (modifiers)
-            this.modifiers.push(
-                ...(Array.isArray(modifiers) ? modifiers : [modifiers]),
-            );
-        this.value = this.modify(initialValue);
-        this.#meta = {};
+    constructor(initialValue, validator) {
+        this.validator = validator;
+        this.value = this.validate(initialValue);
     }
 
     get() {
@@ -26,7 +22,7 @@ export class ReactiveStore {
     set(value) {
         // If primitive and equal, no need to update; 'notify' can be used instead if needed
         if (this.value !== Object(this.value) && this.value === value) return;
-        this.value = this.modify(value);
+        this.value = this.validate(value);
         this.notify();
     }
 
@@ -34,7 +30,7 @@ export class ReactiveStore {
      * @param {(value: any) => any} fn
      */
     update(fn) {
-        this.value = this.modify(fn(this.value));
+        this.value = this.validate(fn(this.value));
         this.notify();
     }
 
@@ -61,12 +57,13 @@ export class ReactiveStore {
         }
     }
 
-    modify(value) {
-        let modifiedValue = value;
-        for (const modifier of this.modifiers) {
-            modifiedValue = modifier(modifiedValue);
-        }
-        return modifiedValue;
+    validate(value) {
+        if (this.validator) return this.validator(value);
+        return value;
+    }
+
+    hasMeta(key) {
+        return Object.hasOwn(this.#meta, key);
     }
 
     getMeta(key) {

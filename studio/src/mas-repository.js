@@ -105,7 +105,10 @@ export class MasRepository extends LitElement {
             Store.folders.loaded.set(true);
             Store.folders.data.set(folders);
 
-            if (!folders.includes(this.search.value.path))
+            if (
+                !folders.includes(this.search.value.path) &&
+                !this.search.value.query
+            )
                 Store.search.update((prev) => ({
                     ...prev,
                     path: folders.at(0),

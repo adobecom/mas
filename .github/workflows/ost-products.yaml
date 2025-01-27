@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Refresh cache
-      run: curl $OST_PRODUCTS_URL
+      run: curl $OST_PRODUCTS_URL$OST_WRITE_API_KEY
       env:
         OST_PRODUCTS_URL: ${{ vars.OST_PRODUCTS_URL }}
+        OST_WRITE_API_KEY: ${{ secrets.OST_WRITE_API_KEY }}

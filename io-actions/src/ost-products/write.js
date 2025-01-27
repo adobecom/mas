@@ -85,6 +85,10 @@ const paginatedOffers = (allProducts, landscape, locale, params, page = 0) => {
 
 async function main(params) {
     try {
+        const { key, OST_WRITE_API_KEY } = params;
+        if (key !== OST_WRITE_API_KEY) {
+            throw new Error('Invalid or missing action api key');
+        }
         const state = await stateLib.init();
         const options = [
             { locale: 'en_US', landscape: 'DRAFT' },
@@ -145,7 +149,8 @@ async function main(params) {
         const compressed = zlib
             .brotliCompressSync(JSON.stringify(ostResult, null, 0))
             .toString('base64');
-        await state.put('ostResult', compressed);
+        // will be stored in state for a year. state is separated per workspace.
+        await state.put('ostResult', compressed, { ttl: stateLib.MAX_TTL });
         return {
             statusCode: 200,
             body: 'Successfully generated OST Products List',

@@ -37,6 +37,7 @@ application:
             inputs:
               AOS_URL: $AOS_URL
               AOS_API_KEY: $AOS_API_KEY
+              OST_WRITE_API_KEY: $OST_WRITE_API_KEY
             annotations:
               require-adobe-auth: false
           ost-products-read:

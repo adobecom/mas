@@ -261,7 +261,7 @@ export class MasRepository extends LitElement {
         });
 
         try {
-            const fragmentStore = Store.fragments.inEdit.get();
+            const fragmentStore = Store.fragments.inEdit;
             const fragment = fragmentStore.get();
             let updatedFragment =
                 await this.#aem.sites.cf.fragments.save(fragment);

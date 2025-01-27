@@ -94,6 +94,11 @@ export function navigateToPage(value) {
  *                             object containing the default values for as many properties as needed
  */
 export function linkStoreToHash(store, params, defaultValue) {
+    if (store.hasMeta('hashLink')) {
+        console.error('Cannot link to hash a store that is already linked.');
+        return;
+    }
+
     const isPrimitive = !Array.isArray(params);
 
     function syncFromHash() {

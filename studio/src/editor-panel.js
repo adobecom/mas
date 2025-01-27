@@ -166,6 +166,7 @@ export default class EditorPanel extends LitElement {
 
     handleKeyDown(event) {
         if (event.code === 'Escape') this.close();
+        if (!event.ctrlKey) return;
         if (event.code === 'ArrowLeft' && event.shiftKey)
             this.updatePosition('left');
         if (event.code === 'ArrowRight' && event.shiftKey)

@@ -48,6 +48,7 @@ export class MasRepository extends LitElement {
     search = new StoreController(this, Store.search);
     page = new StoreController(this, Store.page);
     foldersLoaded = new StoreController(this, Store.folders.loaded);
+
     recentlyUpdatedLimit = new StoreController(
         this,
         Store.fragments.recentlyUpdated.limit,
@@ -140,7 +141,7 @@ export class MasRepository extends LitElement {
 
         const localSearch = {
             ...this.search.value,
-            path: getDamPath(path),
+            path: `${getDamPath(path)}/${this.filters.value.locale}`,
         };
         const fragments = [];
 
@@ -201,7 +202,7 @@ export class MasRepository extends LitElement {
         Store.fragments.recentlyUpdated.loading.set(true);
 
         const dataStore = Store.fragments.recentlyUpdated.data;
-        const path = this.search.value.path;
+        const path = `${this.search.value.path}/${this.filters.value.locale}`;
 
         if (!looseEquals(dataStore.getMeta('path'), path)) {
             dataStore.set([]);

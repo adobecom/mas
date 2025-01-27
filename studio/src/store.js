@@ -1,4 +1,5 @@
 import { Fragment } from './aem/fragment.js';
+import { WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
 import { getEditorPanel } from './editor-panel.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
 import { getHashParam, getHashParams, setHashParams } from './utils.js';
@@ -24,23 +25,34 @@ const Store = {
         data: new ReactiveStore([]),
     },
     search: new ReactiveStore({}),
-    filters: new ReactiveStore({}),
+    filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
     renderMode: new ReactiveStore(
         localStorage.getItem('mas-render-mode') || 'render',
     ), // 'render' | 'table'
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
     page: new ReactiveStore(hasQuery ? 'content' : 'welcome', pageValidator), // 'welcome' | 'content'
+    commerceEnv: new ReactiveStore(WCS_ENV_PROD, commerceEnvValidator), // 'stage' | 'prod'
 };
 
 export default Store;
 
 // #region Validators
 
+function filtersValidator(value) {
+    if (!value.locale) value.locale = 'en_US';
+    return value;
+}
+
 function pageValidator(value) {
     if (value === 'content') return value;
     console.log(value, 'valid1');
     return 'welcome';
+}
+
+function commerceEnvValidator(value) {
+    if (value === WCS_ENV_STAGE) return value;
+    return WCS_ENV_PROD;
 }
 
 // #endregion
@@ -102,8 +114,9 @@ export function linkStoreToHash(store, params, defaultValue) {
             const hashValue = {};
             for (const param of params) {
                 hashValue[param] = getHashParam(param);
-                if (hashValue[param] && hashValue[param] !== value[param]) {
+                if (hashValue[param] !== value[param]) {
                     if (
+                        !hashValue[param] &&
                         defaultValues[param] &&
                         value[param] === defaultValues[param]
                     )
@@ -111,6 +124,8 @@ export function linkStoreToHash(store, params, defaultValue) {
                     else hasChanges = true;
                 }
             }
+            if (Array.isArray(params) && params.includes('locale'))
+                console.log('ok2', hasChanges, hashValue, params);
             if (hasChanges) store.set(hashValue);
         }
     }
@@ -154,7 +169,8 @@ export function unlinkStoreFromHash(store) {
 }
 
 linkStoreToHash(Store.search, ['path', 'query']);
-linkStoreToHash(Store.filters, []);
+linkStoreToHash(Store.filters, ['locale'], { locale: 'en_US' });
 linkStoreToHash(Store.page, 'page', 'welcome');
+linkStoreToHash(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
 
 // #endregion

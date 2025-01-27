@@ -13,6 +13,8 @@ import {
 } from './ost.js';
 
 import prosemirrorStyles from './prosemirror.css.js';
+import { EVENT_OST_SELECT } from '../constants.js';
+import throttle from '../utils/throttle.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
@@ -29,10 +31,8 @@ class LinkNodeView {
         this.view = view;
         this.getPos = getPos;
 
-        const isCheckoutLink = isNodeCheckoutLink(node);
-        this.dom = isCheckoutLink
-            ? document.createElement('a', { is: CUSTOM_ELEMENT_CHECKOUT_LINK })
-            : document.createElement('a');
+        this.dom = document.createElement('a');
+        this.dom.tabIndex = -1;
 
         for (const [key, value] of Object.entries(node.attrs)) {
             if (value !== null) {
@@ -77,7 +77,7 @@ let ostRteFieldSource;
 
 class RteField extends LitElement {
     static properties = {
-        hasFocus: { type: Boolean, state: true },
+        hasFocus: { type: Boolean, attribute: 'focused', reflect: true },
         inline: { type: Boolean, attribute: 'inline' },
         link: { type: Boolean, attribute: 'link' },
         isLinkSelected: { type: Boolean, state: true },
@@ -85,6 +85,8 @@ class RteField extends LitElement {
         readOnly: { type: Boolean, attribute: 'readonly' },
         showLinkEditor: { type: Boolean, state: true },
         defaultLinkStyle: { type: String, attribute: 'default-link-style' },
+        maxLength: { type: Number, attribute: 'max-length' },
+        length: { type: Number, state: true },
     };
 
     static get styles() {
@@ -95,9 +97,14 @@ class RteField extends LitElement {
                     gap: 8px;
                     flex-direction: column;
                     font-size: var(--spectrum-font-size-200);
-                    background-color: var(--spectrum-global-color-gray-200);
-                    padding: 6px;
                 }
+
+                :host([focused]) #editor {
+                    outline: 2px solid;
+                    outline-color: rgb(20, 122, 243);
+                    outline-offset: 2px;
+                }
+
                 p {
                     margin: 0;
                 }
@@ -108,6 +115,12 @@ class RteField extends LitElement {
                     flex: 1;
                     color: var(--spectrum-global-color-gray-800);
                     background-color: var(--spectrum-global-color-gray-50);
+                    border: 1px solid rgb(144, 144, 144);
+                    border-radius: 4px;
+                }
+
+                .exceeded {
+                    color: var(--spectrum-global-color-red-700);
                 }
 
                 rte-link-editor {
@@ -120,6 +133,10 @@ class RteField extends LitElement {
                     align-content: center;
                 }
 
+                .price-unit-type:before {
+                    content: ' ';
+                }
+
                 a.accent,
                 a.primary-outline,
                 a.secondary,
@@ -128,12 +145,6 @@ class RteField extends LitElement {
                     text-decoration: none;
                     padding: 0 14px;
                     border-radius: 16px;
-                }
-
-                a.primary-link,
-                a.secondary-link {
-                    height: initial;
-                    padding: 0 4px;
                 }
 
                 a.accent {
@@ -156,6 +167,12 @@ class RteField extends LitElement {
                     background-color: initial;
                     border: 2px solid var(--spectrum-global-color-gray-300);
                     color: var(--spectrum-global-color-gray-900);
+                }
+
+                a.primary-link,
+                a.secondary-link {
+                    height: initial;
+                    padding: 0 4px;
                 }
 
                 a.primary-link {
@@ -183,6 +200,7 @@ class RteField extends LitElement {
 
                 div.ProseMirror-focused
                     span[is='inline-price'].ProseMirror-selectednode,
+                div.ProseMirror-focused a.ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode {
                     outline: 2px dashed var(--spectrum-global-color-blue-500);
                     outline-offset: 2px;
@@ -207,13 +225,16 @@ class RteField extends LitElement {
         this.showLinkEditor = false;
         this.inline = false;
         this.link = false;
+        this.maxLength = 70;
+        this.length = 0;
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
             ostEvent: this.#handleOstEvent.bind(this),
             linkSave: this.#handleLinkSave.bind(this),
-            blur: this.#handleBlur.bind(this),
+            focusout: this.#handleFocusout.bind(this),
             focus: this.#handleFocus.bind(this),
             doubleClickOn: this.#handleDoubleClickOn.bind(this),
+            updateLength: throttle(this.#updateLength.bind(this), 100),
         };
     }
 
@@ -227,7 +248,14 @@ class RteField extends LitElement {
         document.addEventListener('keydown', this.#boundHandlers.escKey, {
             capture: true,
         });
-        document.addEventListener('use', this.#boundHandlers.ostEvent);
+        document.addEventListener(
+            EVENT_OST_SELECT,
+            this.#boundHandlers.ostEvent,
+        );
+        this.updateLengthInterval = setInterval(
+            this.#boundHandlers.updateLength,
+            1000,
+        );
     }
 
     disconnectedCallback() {
@@ -235,8 +263,12 @@ class RteField extends LitElement {
         document.removeEventListener('keydown', this.#boundHandlers.escKey, {
             capture: true,
         });
-        document.removeEventListener('use', this.#boundHandlers.ostEvent);
+        document.removeEventListener(
+            EVENT_OST_SELECT,
+            this.#boundHandlers.ostEvent,
+        );
         this.editorView?.destroy();
+        clearInterval(this.updateLengthInterval);
     }
 
     #initEditorSchema() {
@@ -273,7 +305,6 @@ class RteField extends LitElement {
                 atom: true,
                 inline: true,
                 attrs: {
-                    is: { default: null },
                     class: { default: null },
                     href: { default: '' },
                     'data-checkout-workflow': { default: null },
@@ -380,10 +411,7 @@ class RteField extends LitElement {
     }
 
     #createLinkElement(node) {
-        const isCheckoutLink = isNodeCheckoutLink(node);
-        const element = isCheckoutLink
-            ? document.createElement('a', { is: CUSTOM_ELEMENT_CHECKOUT_LINK })
-            : document.createElement('a');
+        const element = document.createElement('a');
 
         // Set attributes
         for (const [key, value] of Object.entries(node.attrs)) {
@@ -410,7 +438,7 @@ class RteField extends LitElement {
             editable: () => !this.readOnly,
             dispatchTransaction: this.#handleTransaction.bind(this),
             handleDOMEvents: {
-                blur: this.#boundHandlers.blur,
+                focusout: this.#boundHandlers.focusout,
                 focus: this.#boundHandlers.focus,
             },
             handleDoubleClickOn: this.#boundHandlers.doubleClickOn,
@@ -468,6 +496,7 @@ class RteField extends LitElement {
             this.editorView.updateState(newState);
 
             if (newState.doc) {
+                this.#boundHandlers.updateLength();
                 const value = this.#serializeContent(newState);
                 // skip change event during initialization
                 const isFirstChange = this.value === null;
@@ -629,7 +658,7 @@ class RteField extends LitElement {
                 : state.schema.nodes.link; // Fixed to use 'link' node type
 
         const mergedAttributes = {
-            ...(selection.node?.attrs ?? {}),
+            class: selection.node?.attrs.class,
             ...attributes,
         };
 
@@ -667,6 +696,10 @@ class RteField extends LitElement {
         this.isLinkSelected =
             selection.node?.type.name === 'link' &&
             !selection.node.attrs['data-wcs-osi'];
+    }
+
+    #updateLength() {
+        this.length = this.editorView.dom.innerText.length;
     }
 
     async openLinkEditor() {
@@ -747,14 +780,7 @@ class RteField extends LitElement {
         if (tr.docChanged) dispatch(tr);
     }
 
-    #handleBlur(view, event) {
-        if (
-            event.relatedTarget &&
-            this.shadowRoot.contains(event.relatedTarget)
-        ) {
-            return false;
-        }
-
+    #handleFocusout(view, event) {
         this.hasFocus = false;
         this.isLinkSelected = false;
         this.requestUpdate();
@@ -788,12 +814,18 @@ class RteField extends LitElement {
     }
 
     render() {
+        const lengthExceeded = this.length > this.maxLength;
         return html`
-            <sp-action-group size="m" aria-label="RTE toolbar actions">
+            <sp-action-group quiet size="m" aria-label="RTE toolbar actions">
                 ${this.#formatButtons} ${this.#linkEditorButton}
                 ${this.#unlinkEditorButton} ${this.#offerSelectorToolButton}
             </sp-action-group>
             <div id="editor"></div>
+            <p id="counter">
+                <span class="${lengthExceeded ? 'exceeded' : ''}"
+                    >${this.length}</span
+                >/${this.maxLength}
+            </p>
             ${this.linkEditor}
         `;
     }

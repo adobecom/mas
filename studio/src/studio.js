@@ -10,8 +10,10 @@ import './mas-content.js';
 import './mas-repository.js';
 import './mas-toast.js';
 import './mas-splash-screen.js';
+import './filters/locale-picker.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
+import { WCS_ENV_STAGE } from './constants.js';
 
 const BUCKET_TO_ENV = {
     e155390: 'qa',
@@ -30,15 +32,33 @@ class MasStudio extends LitElement {
         this.bucket = 'e59433';
     }
 
+    // we need to completely remove&add element to the dom
+    toggleCommerce(env) {
+        const service = this.querySelector('mas-commerce-service');
+        const newService = service.cloneNode(true);
+        newService.setAttribute('env', env);
+        service.remove();
+        this.prepend(newService);
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+    }
+
     createRenderRoot() {
         return this;
     }
 
-    get env() {
+    get aemEnv() {
         return BUCKET_TO_ENV[this.bucket] || BUCKET_TO_ENV.e59433;
     }
 
     page = new StoreController(this, Store.page);
+    commerceEnv = new StoreController(this, Store.commerceEnv);
 
     get content() {
         if (this.page.value !== 'content') return nothing;
@@ -57,7 +77,12 @@ class MasStudio extends LitElement {
 
     render() {
         return html`
-            <mas-top-nav env="${this.env}"></mas-top-nav>
+            ${this.commerceEnv.value === WCS_ENV_STAGE
+                ? html`<mas-commerce-service
+                      env="${WCS_ENV_STAGE}"
+                  ></mas-commerce-service>`
+                : html`<mas-commerce-service></mas-commerce-service>`}
+            <mas-top-nav aem-env="${this.aemEnv}"></mas-top-nav>
             <mas-repository
                 bucket="${this.bucket}"
                 base-url="${this.baseUrl}"

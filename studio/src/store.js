@@ -5,7 +5,6 @@ import { ReactiveStore } from './reactivity/reactive-store.js';
 import { getHashParam, getHashParams, setHashParams } from './utils.js';
 
 const hasQuery = Boolean(getHashParam('query'));
-console.log('watafak', hasQuery);
 
 const Store = {
     fragments: {
@@ -46,7 +45,6 @@ function filtersValidator(value) {
 
 function pageValidator(value) {
     if (value === 'content') return value;
-    console.log(value, 'valid1');
     return 'welcome';
 }
 
@@ -124,8 +122,6 @@ export function linkStoreToHash(store, params, defaultValue) {
                     else hasChanges = true;
                 }
             }
-            if (Array.isArray(params) && params.includes('locale'))
-                console.log('ok2', hasChanges, hashValue, params);
             if (hasChanges) store.set(hashValue);
         }
     }

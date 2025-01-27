@@ -3,13 +3,20 @@ application:
   web: web-src
   runtimeManifest:
     packages:
-      MasHealthCheck:
+      MerchAtScale:
         license: Apache-2.0
-        actions:
+        actions:      
+          fragment:
+            function: src/fragment/pipeline.js
+            web: 'yes'
+            runtime: nodejs:22
+            annotations:
+              require-adobe-auth: false      
+              final: true
           health-check:
             function: src/health-check/index.js
             web: 'yes'
-            runtime: nodejs:18
+            runtime: nodejs:22
             inputs:
               ODIN_CDN_ENDPOINT: $ODIN_CDN_ENDPOINT
               ODIN_ORIGIN_ENDPOINT: $ODIN_ORIGIN_ENDPOINT
@@ -18,3 +25,4 @@ application:
             annotations:
               require-adobe-auth: false
               final: true
+              

@@ -13,7 +13,6 @@
         "build": "npm run build --workspaces",
         "studio": "cd studio && npm run proxy & aem up",
         "studio:qa": "cd studio && npm run proxy:qa & aem up",
-        "gallery": "cd studio && npm run proxy:publish & aem up",
         "nala": "node nala/utils/nala.run.js"
     },
     "repository": {
@@ -63,6 +62,7 @@
         "@spectrum-web-components/toast": "^0.47.2",
         "@spectrum-web-components/tooltip": "^0.47.2",
         "@spectrum-web-components/top-nav": "^0.47.2",
+        "@spectrum-web-components/switch": "^0.47.2",
         "@spectrum-web-components/tray": "^0.47.2",
         "@playwright/test": "^1.42.1",
         "prosemirror-commands": "^1.6.1",

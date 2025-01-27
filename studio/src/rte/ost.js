@@ -1,5 +1,11 @@
 import { html } from 'lit';
-import { CHECKOUT_CTA_TEXTS, EVENT_OST_SELECT } from '../constants.js';
+import {
+    CHECKOUT_CTA_TEXTS,
+    EVENT_OST_SELECT,
+    WCS_LANDSCAPE_PUBLISHED,
+    WCS_LANDSCAPE_DRAFT,
+} from '../constants.js';
+import Store from '../store.js';
 
 let ostRoot = document.getElementById('ost');
 let closeFunction;
@@ -94,6 +100,7 @@ const OST_OPTION_ATTRIBUTE_MAPPING = {
     wcsOsi: 'data-wcs-osi',
     workflow: 'data-checkout-workflow',
     workflowStep: 'data-checkout-workflow-step',
+    storedPromoOverride: 'data-promotion-code',
 };
 
 export const OST_OPTION_ATTRIBUTE_MAPPING_REVERSE = Object.fromEntries(
@@ -168,6 +175,14 @@ export function getOffferSelectorTool() {
 }
 
 export function openOfferSelectorTool(offerElement) {
+    const landscape =
+        Store.commerceEnv?.value == 'stage'
+            ? WCS_LANDSCAPE_DRAFT
+            : WCS_LANDSCAPE_PUBLISHED;
+    if (!ostRoot) {
+        ostRoot = document.createElement('div');
+        document.body.appendChild(ostRoot);
+    }
     let searchOfferSelectorId;
     const aosAccessToken =
         localStorage.getItem('masAccessToken') ?? window.adobeid.authorize();
@@ -180,9 +195,9 @@ export function openOfferSelectorTool(offerElement) {
     if (offerElement) {
         searchParameters.append(
             'type',
-            offerElement.isCheckoutLink ? 'checkout' : 'price',
+            offerElement.isInlinePrice ? 'price' : 'checkout',
         );
-        if (offerElement.isCheckoutLink) {
+        if (!offerElement.isInlinePrice) {
             searchParameters.append('text', offerElement.innerText);
         }
         searchOfferSelectorId = offerElement.getAttribute('data-wcs-osi');
@@ -198,7 +213,8 @@ export function openOfferSelectorTool(offerElement) {
         });
 
         [
-            'storedPromoOverride',
+            'promotionCode', // contextual promo code (e.g. set on card/)
+            'storedPromoOverride', // promo code set directly on price/CTA
             'checkoutType',
             'workflowStep',
             'country',
@@ -213,6 +229,7 @@ export function openOfferSelectorTool(offerElement) {
         rootElement: ostRoot,
         zIndex: 20,
         aosAccessToken,
+        landscape,
         searchParameters,
         searchOfferSelectorId,
         defaultPlaceholderOptions,

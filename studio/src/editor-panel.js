@@ -359,7 +359,6 @@ export default class EditorPanel extends LitElement {
                 .fragmentStore=${this.fragmentStore}
                 .updateFragment=${this.updateFragment}
             ></merch-card-editor>
-            }
             <sp-divider size="s"></sp-divider>
             ${this.fragmentEditor}
         </div>`;

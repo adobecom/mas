@@ -11,6 +11,27 @@ const params = Object.fromEntries(
 const initialSearch = MasSearch.fromHash();
 const initialFilters = MasFilters.fromHash();
 
+function discardChanges() {
+    if (!Store.editor.hasChanges) return;
+    Store.editor.discard.set(true);
+    Store.fragments.inEdit.discardChanges();
+    setTimeout(() => Store.editor.discard.set(false), 1); // to force re-render
+}
+
+function closeEditor() {
+    if (Store.editor.hasChanges) {
+        if (window.confirm('Discard all current changes?')) {
+            Store.editor.discardChanges();
+            Store.fragments.inEdit.set(null);
+            return true;
+        } else {
+            return false;
+        }
+    }
+    Store.fragments.inEdit.set(null);
+    return true;
+}
+
 const Store = {
     fragments: {
         list: {
@@ -23,7 +44,14 @@ const Store = {
             limit: reactiveStore(6),
         },
         inEdit: new FragmentStore(null),
-        discard: reactiveStore(false), // will be toggled true / false to trigger a discard in the editor.
+    },
+    editor: {
+        close: closeEditor,
+        discard: reactiveStore(false),
+        discardChanges,
+        get hasChanges() {
+            return Store.fragments.inEdit.get()?.hasChanges || false;
+        },
     },
     folders: {
         loaded: reactiveStore(false),
@@ -97,8 +125,8 @@ export function toggleSelection(id) {
 
 export function navigateToPage(value) {
     return () => {
-        Store.fragments.inEdit.discardChanges();
-        Store.fragments.inEdit.set(null);
-        Store.currentPage.set(value);
+        if (Store.editor.close()) {
+            Store.currentPage.set(value);
+        }
     };
 }

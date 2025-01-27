@@ -92,7 +92,7 @@
                         const merchCardEditor =
                             document.querySelector('merch-card-editor');
                         await delay(100);
-                        expect(editorPanel.hasChanges).to.be.true;
+                        expect(Store.editor.hasChanges).to.be.true;
                         expect(discardButton.disabled).to.be.false;
                         discardButton.click();
                         await delay(100);

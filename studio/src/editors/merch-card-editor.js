@@ -21,7 +21,7 @@ class MerchCardEditor extends LitElement {
         superWide: { type: Boolean, state: true },
     };
 
-    discardController = new StoreController(this, Store.fragments.discard);
+    discardController = new StoreController(this, Store.editor.discard);
 
     constructor() {
         super();
@@ -89,7 +89,7 @@ class MerchCardEditor extends LitElement {
     }
 
     render() {
-        if (Store.fragments.discard.get()) return nothing;
+        if (Store.editor.discard.get()) return nothing;
         if (!this.fragment) return nothing;
         if (this.fragment.model.path !== MODEL_PATH) return nothing;
 

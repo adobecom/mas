@@ -34,12 +34,12 @@ export default class EditorPanel extends LitElement {
     `;
 
     fragmentStoreController = new StoreController(this, Store.fragments.inEdit);
+    discardController = new StoreController(this, Store.editor.discard);
 
     constructor() {
         super();
         this.disabled = false;
         this.loading = false;
-        this.close = this.close.bind(this);
         this.handleClose = this.handleClose.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.updateFragment = this.updateFragment.bind(this);
@@ -76,30 +76,6 @@ export default class EditorPanel extends LitElement {
         return this.fragmentStore.value;
     }
 
-    get hasChanges() {
-        return this.fragmentStore?.value?.hasChanges;
-    }
-
-    /**
-     * @returns {boolean} Whether or not the editor was closed
-     */
-    close() {
-        if (!this.fragmentStore) return true;
-        if (this.hasChanges && !window.confirm('Discard all current changes?'))
-            return false;
-        if (this.hasChanges) this.discardChanges();
-        Store.fragments.inEdit.set(null);
-        return true;
-    }
-
-    async discardChanges() {
-        if (!this.hasChanges) return;
-        this.fragmentStore.discardChanges();
-        Store.fragments.discard.set(true);
-        await this.updateComplete;
-        Store.fragments.discard.set(false);
-    }
-
     updatePosition(position) {
         this.style.setProperty(
             '--editor-left',
@@ -125,17 +101,15 @@ export default class EditorPanel extends LitElement {
         const currentId = this.fragment?.id;
         if (id === currentId) return;
         const wasEmpty = !currentId;
-        if (
-            !wasEmpty &&
-            this.hasChanges &&
-            !window.confirm('Discard all current changes?')
-        )
-            return;
-        this.discardChanges(false);
+        if (!wasEmpty && !Store.editor.close()) return;
         this.loading = true;
         Store.fragments.inEdit.set(store.value);
         await this.repository.refreshFragment(store);
         this.loading = false;
+    }
+
+    discardChanges() {
+        Store.editor.discardChanges();
     }
 
     handleKeyDown(event) {
@@ -223,7 +197,7 @@ export default class EditorPanel extends LitElement {
                     title="Discard changes"
                     value="discard"
                     @click="${this.discardChanges}"
-                    ?disabled=${this.disabled || !this.hasChanges}
+                    ?disabled=${this.disabled || !Store.editor.hasChanges}
                 >
                     <sp-icon-undo slot="icon"></sp-icon-undo>
                     <sp-tooltip self-managed placement="bottom"
@@ -302,7 +276,7 @@ export default class EditorPanel extends LitElement {
                     title="Close"
                     label="Close"
                     value="close"
-                    @click="${this.close}"
+                    @click="${Store.editor.close}"
                     ?disabled=${this.disabled}
                 >
                     <sp-icon-close-circle slot="icon"></sp-icon-close-circle>

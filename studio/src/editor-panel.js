@@ -4,6 +4,7 @@ import { MasRepository } from './mas-repository.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
+import Events from './events.js';
 
 export default class EditorPanel extends LitElement {
     static properties = {
@@ -12,6 +13,7 @@ export default class EditorPanel extends LitElement {
         bucket: { type: String },
         disabled: { type: Boolean },
         showToast: { type: Function },
+        discarded: { type: Boolean, state: true },
     };
 
     static styles = css`
@@ -34,15 +36,16 @@ export default class EditorPanel extends LitElement {
     `;
 
     fragmentStoreController = new StoreController(this, Store.fragments.inEdit);
-    discardController = new StoreController(this, Store.editor.discard);
 
     constructor() {
         super();
         this.disabled = false;
         this.loading = false;
+        this.discarded = false;
         this.handleClose = this.handleClose.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.updateFragment = this.updateFragment.bind(this);
+        this.changesDiscarded = this.changesDiscarded.bind(this);
     }
 
     createRenderRoot() {
@@ -52,11 +55,13 @@ export default class EditorPanel extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         document.addEventListener('keydown', this.handleKeyDown);
+        Events.changesDiscarded.subscribe(this.changesDiscarded);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         document.removeEventListener('keydown', this.handleKeyDown);
+        Events.changesDiscarded.unsubscribe(this.changesDiscarded);
     }
 
     /** @type {MasRepository} */
@@ -66,6 +71,7 @@ export default class EditorPanel extends LitElement {
 
     /** @type {FragmentStore | null} */
     get fragmentStore() {
+        if (this.discarded) return null;
         if (!this.fragmentStoreController.store) return null;
         return this.fragmentStoreController.store;
     }
@@ -93,27 +99,30 @@ export default class EditorPanel extends LitElement {
      * @param {number | undefined} x
      */
     async editFragment(store, x) {
-        if (x) {
-            const newPosition = x > window.innerWidth / 2 ? 'left' : 'right';
-            this.updatePosition(newPosition);
-        }
         const id = store.get().id;
         const currentId = this.fragment?.id;
         if (id === currentId) return;
         const wasEmpty = !currentId;
         if (!wasEmpty && !Store.editor.close()) return;
+        if (x) {
+            const newPosition = x > window.innerWidth / 2 ? 'left' : 'right';
+            this.updatePosition(newPosition);
+        }
         this.loading = true;
         Store.fragments.inEdit.set(store.value);
         await this.repository.refreshFragment(store);
         this.loading = false;
     }
 
-    discardChanges() {
-        Store.editor.discardChanges();
+    async changesDiscarded() {
+        this.discarded = true;
+        this.requestUpdate();
+        await this.updateComplete;
+        this.discarded = false;
     }
 
     handleKeyDown(event) {
-        if (event.code === 'Escape') this.close();
+        if (event.code === 'Escape') Store.editor.close();
         if (!event.ctrlKey) return;
         if (event.code === 'ArrowLeft' && event.shiftKey)
             this.updatePosition('left');
@@ -196,7 +205,7 @@ export default class EditorPanel extends LitElement {
                     label="Discard"
                     title="Discard changes"
                     value="discard"
-                    @click="${this.discardChanges}"
+                    @click="${Store.editor.discardChanges}"
                     ?disabled=${this.disabled || !Store.editor.hasChanges}
                 >
                     <sp-icon-undo slot="icon"></sp-icon-undo>
@@ -344,15 +353,13 @@ export default class EditorPanel extends LitElement {
         return html`<div id="editor">
             ${this.fragmentEditorToolbar}
             <p>${this.fragment.path}</p>
-            ${Store.editor.discard.get()
-                ? nothing
-                : html` <merch-card-editor
-                      .fragment=${this.fragment}
-                      .disabled=${this.disabled}
-                      .fragmentStore=${this.fragmentStore}
-                      .updateFragment=${this.updateFragment}
-                  >
-                  </merch-card-editor>`}
+            <merch-card-editor
+                .fragment=${this.fragment}
+                .disabled=${this.disabled}
+                .fragmentStore=${this.fragmentStore}
+                .updateFragment=${this.updateFragment}
+            ></merch-card-editor>
+            }
             <sp-divider size="s"></sp-divider>
             ${this.fragmentEditor}
         </div>`;

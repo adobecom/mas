@@ -4,6 +4,7 @@ import MasSearch from './entities/search.js';
 import { reactiveStore } from './reactivity/reactive-store.js';
 import { WCS_ENV_PROD } from './constants.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
+import Events from './events.js';
 
 const params = Object.fromEntries(
     new URLSearchParams(window.location.hash.slice(1)),
@@ -13,9 +14,8 @@ const initialFilters = MasFilters.fromHash();
 
 function discardChanges() {
     if (!Store.editor.hasChanges) return;
-    Store.editor.discard.set(true);
     Store.fragments.inEdit.discardChanges();
-    setTimeout(() => Store.editor.discard.set(false), 1); // to force re-render
+    Events.changesDiscarded.emit();
 }
 
 function closeEditor() {
@@ -47,7 +47,6 @@ const Store = {
     },
     editor: {
         close: closeEditor,
-        discard: reactiveStore(false),
         discardChanges,
         get hasChanges() {
             return Store.fragments.inEdit.get()?.hasChanges || false;
@@ -111,7 +110,7 @@ export default Store;
  * @returns {Fragment}
  */
 export function getInEditFragment() {
-    return Store.fragments.inEdit.get().get();
+    return Store.fragments.inEdit.get();
 }
 
 export function toggleSelection(id) {

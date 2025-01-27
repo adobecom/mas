@@ -4,7 +4,6 @@ import '../fields/multifield.js';
 import '../fields/mnemonic-field.js';
 import '../aem/aem-tag-picker-field.js';
 import './variant-picker.js';
-import Store from '../store.js';
 
 const MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 
@@ -13,7 +12,7 @@ const merchCardCustomElementPromise = customElements.whenDefined('merch-card');
 class MerchCardEditor extends LitElement {
     static properties = {
         fragment: { type: Object, attribute: false },
-        fragmentStore: { type: Object },
+        fragmentStore: { type: Object, attribute: false },
         disabled: { type: Boolean },
         updateFragment: { type: Function },
         wide: { type: Boolean, state: true },

@@ -27,12 +27,6 @@ application:
             annotations:
               require-adobe-auth: false
               final: true
-          translate:
-            function: src/fragment/translate.js
-            runtime: nodejs:22
-            inputs:
-              annotations:
-                require-adobe-auth: false
           ost-products-write:
             function: src/ost-products/write.js
             web: 'yes'
@@ -47,12 +41,6 @@ application:
             function: src/ost-products/read.js
             web: 'yes'
             runtime: nodejs:22
-            annotations:
-              require-adobe-auth: false
-        sequences:
-          fragment:
-            actions: 'fetch,translate'
-            web: 'yes'
             annotations:
               require-adobe-auth: false
 

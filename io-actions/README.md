@@ -41,6 +41,8 @@ You are currently in:
 
 If you need to force re-deploy:
 - `aio app deploy --force-deploy --no-publish`
+To deploy specific action
+- `aio app deploy -a ost-products-read`
 
 ## Config
 

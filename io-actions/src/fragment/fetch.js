@@ -1,11 +1,9 @@
 const fetch = require('node-fetch');
-
-async function main({ id, locale }) {
+const { odinId } = require('./paths.js');
+async function fetchFragment({ id, locale }) {
     if (id) {
         try {
-            const response = await fetch(
-                `https://odin.adobe.com/adobe/sites/fragments/${id}`,
-            );
+            const response = await fetch(odinId(id));
             if (response.status == 200) {
                 const body = await response.json();
                 return {
@@ -15,13 +13,13 @@ async function main({ id, locale }) {
                 };
             }
             return {
-                status: response.status,
+                status: 404,
                 message: 'requested fragment not found',
             };
         } catch (e) {
             return {
                 status: 500,
-                message: 'error parsing response',
+                message: `error parsing response ${e}`,
             };
         }
     }
@@ -31,4 +29,4 @@ async function main({ id, locale }) {
     };
 }
 
-exports.main = main;
+exports.fetchFragment = fetchFragment;

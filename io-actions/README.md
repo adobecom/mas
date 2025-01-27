@@ -2,12 +2,12 @@
 
 ## Setup / First Steps
 
-- install aio cli
-- Request access to I/O Runtime in Adobe Corp org
+- install aio cli running `npm install -g @adobe/aio-cli`
+- Request access to I/O Runtime in Adobe Corp org (you can do that on #milo-dev)
 - navigate to Developer Console https://developer.adobe.com/console
 - in 'Merch at Scale' project, create a workspace with your ldap
 - in your workspace click on 'Download all' and copy the auth .json in root of this project
-- run `aio app use filename`
+- run `aio app use <filename>` 
 - this should populate the `.env` and the `.aio` file in the project root
 - ask a colleague for values:
     - for health-check action, 

@@ -112,6 +112,7 @@ div[data-offer-selector-id] > .price {
 .JuTe6q_spectrum {
   background-color: var(--spectrum-alias-background-color-default, var(--spectrum-global-color-gray-100));
   -webkit-tap-highlight-color: #0000;
+  z-index: 2;
 }
 /*# sourceMappingURL=vars.3c44f451.css.map */
 

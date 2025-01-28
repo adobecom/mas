@@ -25,7 +25,8 @@ async function fillOutSignInForm(props, page) {
   await page.locator('[data-id=PasswordPage-ContinueButton]').click();
   await page.locator('div.ActionList-Item:nth-child(1)').click();
   await page.waitForURL(`${props.url}#`);
-  await expect(page).toHaveURL(`${props.url}#`);
+  let formattedUrl = props.url.toLowerCase();
+  expect(page.url()).toContain(formattedUrl);
 }
 
 export default { fillOutSignInForm };

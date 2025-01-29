@@ -150,7 +150,6 @@ class MerchCardEditor extends LitElement {
             <sp-field-label for="horizontal"> Prices </sp-field-label>
             <sp-field-group horizontal id="horizontal">
                 <rte-field
-                    inline
                     data-field="prices"
                     default-link-style="primary-outline"
                     @change="${this.#handleInput}"
@@ -169,43 +168,14 @@ class MerchCardEditor extends LitElement {
                     >${unsafeHTML(form.description.values[0])}</rte-field
                 >
             </sp-field-group>
-
-            <sp-field-label for="stock-checkbox-label"
-                >Stock Checkbox Label</sp-field-label
-            >
-            <sp-textfield
-                placeholder="Enter stock checkbox label"
-                id="stock-checkbox-label"
-                data-field="stockCheckboxLabel"
-                value="${form.stockCheckboxLabel?.values[0]}"
-                @input="${this.#handleInput}"
+            <sp-checkbox
+                size="m"
+                data-value="${form.stockCheckbox?.values[0]}"
+                checked="${form.stockCheckbox?.values[0] === 'true'}"
+                @change="${this.#handleInput}"
                 ?disabled=${this.disabled}
-            ></sp-textfield>
-            <sp-field-label for="stock-offers"> Stock Offers </sp-field-label>
-            <sp-field-group horizontal id="stock-offers">
-                <rte-field
-                    link
-                    inline
-                    data-field="stockOffers"
-                    default-link-style="primary-outline"
-                    @change="${this.#handleInput}"
-                    ?readonly=${this.disabled}
-                    >${unsafeHTML(form.stockOffers?.values[0])}</rte-field
-                >
-            </sp-field-group>
-
-            <sp-field-label for="secure-transaction"
-                >Secure Transaction</sp-field-label
+                >Show Stock Checkbox</sp-checkbox
             >
-            <sp-textfield
-                placeholder="Enter secure transaction label"
-                id="secure-transaction"
-                data-field="secureLabel"
-                value="${form.secureLabel?.values[0]}"
-                @input="${this.#handleInput}"
-                ?disabled=${this.disabled}
-            ></sp-textfield>
-
             <sp-field-label for="horizontal"> Footer </sp-field-label>
             <sp-field-group horizontal id="horizontal">
                 <rte-field

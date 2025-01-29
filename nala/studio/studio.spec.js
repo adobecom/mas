@@ -55,7 +55,7 @@ export default {
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
                 title: 'Field Edit & Save',
-                newTitle: 'Edited Clone Card',
+                newTitle: 'Cloned Field Edit',
                 newSubtitle: 'New Subtitle',
                 newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
                 newDescription: 'New Test Description'

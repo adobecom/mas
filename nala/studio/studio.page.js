@@ -36,7 +36,8 @@ export default class StudioPage {
         // Editor panel toolbar
         this.cloneCard = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="clone"]')
         this.closeEditor = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="close"]')
-        this.closeEditor = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="delete"]')
+        this.deleteCard = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="delete"]')
+        this.saveCard = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="save"]')
         // suggested cards
         this.suggestedCard = page.locator(
             'merch-card[variant="ccd-suggested"]',

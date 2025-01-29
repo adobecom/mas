@@ -150,11 +150,8 @@ test.describe('M@S Studio feature test suite', () => {
         await test.step('step-3: Close card editor', async () => {
             await studio.closeEditor.click();
             expect(await studio.editorPanel).not.toBeVisible();
-        })
+        });
 
-        await test.step('step-4: Open Editor for Cloned Card', async () => {
-            
-        })
 
         // await test.step('step-3: Edit title field', async () => {
         //     expect(await studio.editorPanel.title).toBeVisible;
@@ -174,8 +171,8 @@ test.describe('M@S Studio feature test suite', () => {
         // });
     });
 
-      // @studio-clone-edit-save-delete - Clone Field & Edit card, edit, save then delete
-      test(`${features[4].name},${features[4].tags}`, async ({
+    // @studio-clone-edit-save-delete - Clone Field & Edit card, edit, save then delete
+    test(`${features[4].name},${features[4].tags}`, async ({
         page,
         baseURL,
     }) => {
@@ -213,16 +210,22 @@ test.describe('M@S Studio feature test suite', () => {
 
         await test.step('step-3: Clone card and open editor', async () => {
             await studio.cloneCard.click();
-            await page.waitForTimeout(5000);
-            let clonedCard = await studio.getCard(data.cardid, 'suggested', 'cloned')
-            let clonedCardID = await clonedCard.getAttribute('id');
-            data.clonedCardID = clonedCardID
+            await page.waitForTimeout(2000);
+            let clonedCard = await studio.getCard(
+                data.cardid,
+                'suggested',
+                'cloned',
+            );
+            let clonedCardID = await clonedCard
+                .locator('aem-fragment')
+                .getAttribute('fragment');
+            data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(5000);
-        })
+            await page.waitForTimeout(2000);
+        });
 
-        await test.step('step-4: Edit title field', async () => {
+        await test.step('step-4: Edit title fields and save card', async () => {
             expect(await studio.editorPanel.title).toBeVisible;
             await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
@@ -234,56 +237,63 @@ test.describe('M@S Studio feature test suite', () => {
             await studio.editorPanel
                 .locator(studio.editorSubtitle)
                 .locator('input')
-                .fill(data.newSubtitle)
+                .fill(data.newSubtitle);
             await studio.editorPanel
                 .locator(studio.editorIconURL)
                 .locator('input')
-                .fill(data.newIconURL)
+                .fill(data.newIconURL);
             await studio.editorPanel
                 .locator(studio.editorDescription)
-                .fill(data.newDescription)
-            await page.waitForTimeout(10000);
+                .fill(data.newDescription);
+            await studio.saveCard.click();
+            await page.waitForTimeout(2000);
         });
 
-        await test.step('step-5: Validate edited fields in Editor', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveAttribute('value', `${data.newTitle}`);
-            await expect(
-                await studio.editorPanel.locator(studio.editorSubtitle),
-            ).toHaveAttribute('value', `${data.newSubtitle}`);
-            // await expect(
-            //     await studio.editorPanel.locator(studio.editorIconURL),
-            // ).toHaveAttribute('value', `${data.newIconURL}`);
-            // expect(
-            //     await studio.editorPanel.locator(studio.editorDescription).innerText(),
-            // ).toBe(`${data.newDescription}`);
+        // await test.step(
+        //     'step-5: Validate edited fields in Editor',
+        //     async () => {
+        //         await expect(
+        //             await studio.editorPanel.locator(studio.editorTitle),
+        //         ).toHaveAttribute('value', `${data.newTitle}`);
+        //         await expect(
+        //             await studio.editorPanel.locator(studio.editorSubtitle),
+        //         ).toHaveAttribute('value', `${data.newSubtitle}`);
+        //         await expect(
+        //             await studio.editorPanel.locator(studio.editorIconURL),
+        //         ).toHaveAttribute('value', `${data.newIconURL}`);
+        //         expect(
+        //             await studio.editorPanel
+        //                 .locator(studio.editorDescription)
+        //                 .innerText(),
+        //         ).toBe(`${data.newDescription}`);
+        //     },
+        // );
+
+        await test.step('step-6: Search for the cloned card and verify changes', async () => {
+            await studio.searchInput.fill(data.clonedCardID);
+            await page.keyboard.press('Enter');
+            await page.waitForTimeout(2000);
+            expect(
+                await studio.getCard(data.clonedCardID, 'suggested'),
+            ).toBeVisible();
         });
 
-        await test.step('step-5: Validate edited fields in Content', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveAttribute('value', `${data.newTitle}`);
-            await expect(
-                await studio.editorPanel.locator(studio.editorSubtitle),
-            ).toHaveAttribute('value', `${data.newSubtitle}`);
-            // await expect(
-            //     await studio.editorPanel.locator(studio.editorIconURL),
-            // ).toHaveAttribute('value', `${data.newIconURL}`);
-            // expect(
-            //     await studio.editorPanel.locator(studio.editorDescription).innerText(),
-            // ).toBe(`${data.newDescription}`);
+        await test.step('step-7: Verify applied changes in card then delete', async () => {
+            expect(await studio.cardIcon.getAttribute('src')).toBe(
+                data.newIconURL,
+            );
+            expect(await studio.suggestedCardTitle).toHaveText(data.newTitle);
+            expect(await studio.suggestedCardEyebrow).toHaveText(
+                data.newSubtitle,
+            );
+            expect(await studio.suggestedCardDescription).toHaveText(
+                data.newDescription,
+            );
+            await studio.deleteCard.click();
+            await page.waitForTimeout(3000);
+            expect(
+                await studio.getCard(data.clonedCardID, 'suggested'),
+            ).not.toBeVisible();
         });
-
-        // await test.step('step-3: Close card editor', async () => {
-        //     await studio.closeEditor.click();
-        //     expect(await studio.editorPanel).not.toBeVisible();
-        // })
-
-        // await test.step('step-4: Open Editor for Cloned Card', async () => {
-            
-        // })
-    })
-
-    
+    });
 });

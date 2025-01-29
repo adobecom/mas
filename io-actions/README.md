@@ -2,12 +2,12 @@
 
 ## Setup / First Steps
 
-- install aio cli
-- Request access to I/O Runtime in Adobe Corp org
+- install aio cli running `npm install -g @adobe/aio-cli`
+- Request access to I/O Runtime in Adobe Corp org (you can do that on #milo-dev)
 - navigate to Developer Console https://developer.adobe.com/console
 - in Mas HealthCheck project, create a workspace with your ldap
 - in your workspace click on 'Download all' and copy the auth .json in root of this project
-- run `aio app use filename`
+- run `aio app use <filename>` 
 - this should populate the `.env` and the `.aio` file in the project root
 - add ODIN_CDN_ENDPOINT,ODIN_ORIGIN_ENDPOINT,WCS_CDN_ENDPOINT,WCS_ORIGIN_ENDPOINT env vars to .env file
 - run `npm i`
@@ -24,7 +24,7 @@ You are currently in:
 
 - `aio app dev` to start your local Dev server
 - App will run on `localhost:9080` by default
-- open https://localhost:9080/api/v1/web/MasHealthCheck/health-check
+- open https://localhost:9080/api/v1/web/MerchAtScale/health-check
 
 
 ## Test & Coverage

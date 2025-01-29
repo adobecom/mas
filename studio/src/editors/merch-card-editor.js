@@ -127,10 +127,12 @@ class MerchCardEditor extends LitElement {
                     <mas-mnemonic-field></mas-mnemonic-field>
                 </template>
             </mas-multifield>
-            <sp-field-label for="card-icon">Background Image</sp-field-label>
+            <sp-field-label for="background-image"
+                >Background Image</sp-field-label
+            >
             <sp-textfield
                 placeholder="Enter background image URL"
-                id="background-title"
+                id="background-image"
                 data-field="backgroundImage"
                 value="${form.backgroundImage.values[0]}"
                 @input="${this.#handleInput}"
@@ -147,9 +149,10 @@ class MerchCardEditor extends LitElement {
                 @input="${this.#handleInput}"
                 ?disabled=${this.disabled}
             ></sp-textfield>
-            <sp-field-label for="horizontal"> Prices </sp-field-label>
-            <sp-field-group horizontal id="horizontal">
+            <sp-field-group>
+                <sp-field-label for="prices"> Prices </sp-field-label>
                 <rte-field
+                    id="prices"
                     data-field="prices"
                     default-link-style="primary-outline"
                     @change="${this.#handleInput}"
@@ -157,9 +160,10 @@ class MerchCardEditor extends LitElement {
                     >${unsafeHTML(form.prices.values[0])}</rte-field
                 >
             </sp-field-group>
-            <sp-field-label for="horizontal"> Description </sp-field-label>
-            <sp-field-group horizontal id="horizontal">
+            <sp-field-group>
+                <sp-field-label for="description"> Description </sp-field-label>
                 <rte-field
+                    id="description"
                     link
                     data-field="description"
                     default-link-style="secondary-link"
@@ -170,15 +174,16 @@ class MerchCardEditor extends LitElement {
             </sp-field-group>
             <sp-checkbox
                 size="m"
-                data-value="${form.stockCheckbox?.values[0]}"
-                checked="${form.stockCheckbox?.values[0] === 'true'}"
+                data-value="${form.showStockCheckbox?.values[0]}"
+                checked="${form.showStockCheckbox?.values[0] === 'true'}"
                 @change="${this.#handleInput}"
                 ?disabled=${this.disabled}
                 >Show Stock Checkbox</sp-checkbox
             >
-            <sp-field-label for="horizontal"> Footer </sp-field-label>
-            <sp-field-group horizontal id="horizontal">
+            <sp-field-group>
+                <sp-field-label for="footer"> Footer </sp-field-label>
                 <rte-field
+                    id="footer"
                     link
                     inline
                     data-field="ctas"

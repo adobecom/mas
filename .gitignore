@@ -20,10 +20,12 @@ swc.json
 studio.json
 *.key
 *.crt
+test-html-results/
+test-results/
 
 # IO Runtime Config
 config.json
-MerchAtScale*.json
+MerchAtScale-*.json
 .env*
 .aio
 

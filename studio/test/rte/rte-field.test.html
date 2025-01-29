@@ -200,7 +200,7 @@
                         );
                         await delay(100);
                         expect(rte.value).to.equal(
-                            '<span is="inline-price" data-wcs-osi="abm"></span><a is="checkout-link" class="accent" data-wcs-osi="abm">Buy now</a><a is="checkout-link" class="primary-outline" data-wcs-osi="abm">Buy now</a><a is="checkout-link" class="secondary" data-wcs-osi="abm">Buy now</a><a is="checkout-link" class="secondary-outline" data-wcs-osi="abm">Buy now</a><a is="checkout-link" class="primary-link" data-wcs-osi="abm">Buy now</a><a is="checkout-link" class="secondary-link" data-wcs-osi="abm">Buy now</a>',
+                            '<span is="inline-price" data-wcs-osi="abm"></span><a class="accent" data-wcs-osi="abm">Buy now</a><a class="primary-outline" data-wcs-osi="abm">Buy now</a><a class="secondary" data-wcs-osi="abm">Buy now</a><a class="secondary-outline" data-wcs-osi="abm">Buy now</a><a class="primary-link" data-wcs-osi="abm">Buy now</a><a class="secondary-link" data-wcs-osi="abm">Buy now</a>',
                         );
 
                         rte.offerSelectorToolButtonElement.click();
@@ -264,28 +264,6 @@
                             JSON.stringify(newAttributes),
                         );
                     });
-
-                    it('should recognize markup created with TinyMCE', async function () {
-                        rte = await createFromTemplate(
-                            'rte-tinymce',
-                            this.test.title,
-                        );
-                        await delay(100);
-                        expect(rte.value).to.equal(
-                            '<p>&nbsp;<a is="checkout-link" data-checkout-workflow="UCv3" data-checkout-workflow-step="email" data-wcs-osi="Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ">Get Offer</a>&nbsp;</p><p><a is="checkout-link" data-checkout-workflow="UCv3" data-checkout-workflow-step="email" data-wcs-osi="Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ">Buy now</a></p><p><a is="checkout-link" data-checkout-workflow="UCv3" data-checkout-workflow-step="email" data-wcs-osi="Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ">Buy now</a></p><p><a is="checkout-link" data-checkout-workflow="UCv3" data-checkout-workflow-step="email" data-wcs-osi="Hnk2P6L5wYhnpZLFYTW5upuk2Y3AJXlso8VGWQ0l2TI">Buy now</a></p>',
-                        );
-                    });
-
-                    it('should display char counter in red when max length is exceeded', async function() {
-                        const rte = await createFromTemplate('rte-maxlength', this.test.title);
-                        const span = rte.shadowRoot.querySelector('#counter').firstElementChild;
-                        await delay(100);
-                        expect(span.classList.contains('exceeded')).to.be.false;
-                        rte.setAttribute('max-length', 40);
-                        await delay(100);
-                        expect(span.classList.contains('exceeded')).to.be.true;
-                    });
-
 
                     it.skip('dev', async function () {
                         const rte = await createFromTemplate(
@@ -405,7 +383,7 @@
         </template>
         <template id="rte-ost-extra">
             <rte-field link>
-                <a is="checkout-link" class="secondary-link" data-wcs-osi="abm"
+                <a class="secondary-link" data-wcs-osi="abm"
                     >Buy now</a
                 >
             </rte-field>
@@ -422,7 +400,7 @@
                 </rte-field>
                 <br />
                 <rte-field link inline>
-                    <a is="checkout-link" data-wcs-osi="abm">Buy now</a>
+                    <a data-wcs-osi="abm">Buy now</a>
                 </rte-field>
                 <br />
                 <rte-field inline

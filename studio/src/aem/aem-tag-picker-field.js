@@ -8,7 +8,7 @@ const namespaces = {};
 /**
  * Converts from attribute (tag format) to property (path format)
  * @param {string} value Tag format string (e.g., "mas:product/photoshop")
- * @returns {string} Path format string (e.g., "/content/cq:tags/mas/product/photoshop")
+ * @returns {string[]} Path format string (e.g., "/content/cq:tags/mas/product/photoshop")
  */
 export function fromAttribute(value) {
     if (!value) return [];
@@ -16,7 +16,7 @@ export function fromAttribute(value) {
     return tags
         .map((tag) => tag.trim())
         .map((tag) => {
-            if (AEM_TAG_PATTERN.test(value) === false) return false;
+            if (AEM_TAG_PATTERN.test(tag) === false) return false;
             const [namespace, path] = tag.split(':');
             if (!namespace || !path) return '';
             return path ? `/content/cq:tags/${namespace}/${path}` : '';
@@ -26,7 +26,7 @@ export function fromAttribute(value) {
 
 /**
  * Converts from property (path format) to attribute (tag format)
- * @param {string} value Path format string (e.g., "/content/cq:tags/mas/product/photoshop")
+ * @param {string[]} value Path format string (e.g., "/content/cq:tags/mas/product/photoshop")
  * @returns {string} Tag format string (e.g., "mas:product/photoshop")
  */
 export function toAttribute(value) {
@@ -60,12 +60,15 @@ class AemTagPickerField extends LitElement {
         hierarchicalTags: { type: Object, state: true },
         selected: { type: String },
         ready: { type: Boolean, state: true },
+        selection: { type: String },
+        flatTags: { type: Array, state: true },
     };
 
     static styles = css`
         :host {
             display: flex;
             align-items: center;
+            flex-direction: column;
         }
 
         sp-tags {
@@ -82,6 +85,11 @@ class AemTagPickerField extends LitElement {
         sp-popover {
             margin-top: var(--margin-picker-top, 0px);
         }
+
+        sp-picker {
+            width: 100%;
+            margin-top: 16px;
+        }
     `;
 
     #aem;
@@ -95,9 +103,11 @@ class AemTagPickerField extends LitElement {
         this.top = null;
         this.multiple = false;
         this.hierarchicalTags = new Map();
+        this.flatTags = [];
         this.value = [];
         this.#aem = null;
         this.ready = false;
+        this.selection = '';
     }
 
     connectedCallback() {
@@ -131,11 +141,22 @@ class AemTagPickerField extends LitElement {
             await this.#data;
         }
 
-        const tagsToDisplay = [...this.#data.values()].filter((tag) => {
-            return tag.path.startsWith(this.#tagsRoot);
-        });
+        const allTags = [...this.#data.values()].filter((tag) =>
+            tag.path.startsWith(this.#tagsRoot),
+        );
 
-        this.hierarchicalTags = this.buildHierarchy(tagsToDisplay);
+        if (this.selection === 'picker') {
+            this.flatTags = allTags
+                .filter((tag) => tag.title) // Ensure title exists
+                .sort((a, b) =>
+                    a.title.localeCompare(b.title, undefined, {
+                        sensitivity: 'base',
+                    }),
+                )
+                .map((tag) => tag.path);
+        } else {
+            this.hierarchicalTags = this.buildHierarchy(allTags);
+        }
         this.ready = true;
     }
 
@@ -166,12 +187,10 @@ class AemTagPickerField extends LitElement {
         const index = this.value.indexOf(path);
 
         if (!this.multiple) {
-            // If multiple is false, replace the entire value
             this.value = [path];
             return;
         }
 
-        // For multiple selection, toggle the clicked path
         const currentValue = [...(this.value || [])];
 
         if (index === -1) {
@@ -210,7 +229,7 @@ class AemTagPickerField extends LitElement {
                 <sp-sidenav-item label="${label}" value="${value}">
                     ${hasChildren
                         ? this.renderSidenavItems(item.__children__, value)
-                        : html``}
+                        : nothing}
                     ${hasChildren
                         ? html`<sp-icon-labels slot="icon"></sp-icon-labels>`
                         : html`<sp-icon-label slot="icon"></sp-icon-label>`}
@@ -225,8 +244,22 @@ class AemTagPickerField extends LitElement {
 
     get tags() {
         if (this.ready === false) return nothing;
+        if (this.selection === 'picker') {
+            return html`
+                <sp-picker @change=${this.#handleChange} value=${this.value}>
+                    ${repeat(
+                        this.flatTags,
+                        (path) => path,
+                        (path) =>
+                            html`<sp-menu-item value="${path}">
+                                ${this.#resolveTagTitle(path)}
+                            </sp-menu-item>`,
+                    )}
+                </sp-picker>
+            `;
+        }
         if (this.tagsInHierarchy.length === 0) return nothing;
-        return html` ${repeat(
+        return repeat(
             this.tagsInHierarchy,
             (path) => path,
             (path) =>
@@ -237,14 +270,13 @@ class AemTagPickerField extends LitElement {
                     >${this.#resolveTagTitle(path)}
                     <sp-icon-label slot="icon"></sp-icon-label>
                 </sp-tag>`,
-        )}`;
+        );
     }
 
     updated(changedProperties) {
-        const valueChanged = ![undefined, this.value].includes(
-            changedProperties.get('value'), // skip initial render
-        );
-        if (valueChanged) this.#notifyChange();
+        if (changedProperties.has('value')) {
+            this.#notifyChange();
+        }
         this.#updateMargin();
     }
 
@@ -264,7 +296,11 @@ class AemTagPickerField extends LitElement {
 
     async #updateMargin() {
         await this.updateComplete;
-        if (!/bottom/.test(this.popoverElement.placement)) return;
+        if (
+            !this.popoverElement ||
+            !/bottom/.test(this.popoverElement.placement)
+        )
+            return;
         const margin =
             this.shadowRoot.querySelector('sp-tag:last-child')?.offsetTop ?? 0;
         this.style.setProperty('--margin-picker-top', `${margin}px`);
@@ -277,22 +313,47 @@ class AemTagPickerField extends LitElement {
     }
 
     render() {
-        return html`<sp-tags>
-            <overlay-trigger placement="bottom">
-                <sp-action-button slot="trigger"
-                    >${this.triggerLabel}
-                    <sp-icon-labels slot="icon"></sp-icon-labels>
-                </sp-action-button>
-                <sp-popover slot="click-content">
-                    <sp-dialog size="s" no-divider>
-                        <sp-sidenav @change=${this.#handleChange}>
-                            ${this.renderSidenavItems(this.hierarchicalTags)}
-                        </sp-sidenav>
-                    </sp-dialog>
-                </sp-popover>
-            </overlay-trigger>
-            ${this.tags}
-        </sp-tags> `;
+        return html`
+            ${this.selection !== 'picker'
+                ? html`
+                      <sp-tags>
+                          <overlay-trigger placement="bottom">
+                              <sp-action-button slot="trigger">
+                                  ${this.triggerLabel}
+                                  <sp-icon-labels slot="icon"></sp-icon-labels>
+                              </sp-action-button>
+                              <sp-popover slot="click-content">
+                                  <sp-dialog size="s" no-divider>
+                                      <sp-sidenav @change=${this.#handleChange}>
+                                          ${this.renderSidenavItems(
+                                              this.hierarchicalTags,
+                                          )}
+                                      </sp-sidenav>
+                                  </sp-dialog>
+                              </sp-popover>
+                          </overlay-trigger>
+                          ${this.tags}
+                      </sp-tags>
+                  `
+                : nothing}
+            ${this.selection === 'picker'
+                ? html`
+                      <sp-picker
+                          @change=${this.#handleChange}
+                          value=${this.value}
+                      >
+                          ${repeat(
+                              this.flatTags,
+                              (path) => path,
+                              (path) =>
+                                  html`<sp-menu-item value="${path}">
+                                      ${this.#resolveTagTitle(path)}
+                                  </sp-menu-item>`,
+                          )}
+                      </sp-picker>
+                  `
+                : nothing}
+        `;
     }
 }
 

@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
     <head>
-        <title>aem-tag-picker-field-field unit tests</title>
+        <title>aem-tag-picker-field unit tests</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script src="../../src/swc.js" type="module"></script>
         <style>
@@ -180,6 +180,96 @@
                             '/content/cq:tags/mas/status/draft',
                         ]);
                     });
+
+                    it('Renders tags using sp-picker when selection is picker', async function () {
+                        const aemTagPicker = initElementFromTemplate(
+                            'tagPicker5',
+                            this.test.title,
+                        );
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+                        
+                        const picker = aemTagPicker.shadowRoot.querySelector('sp-picker');
+                        expect(picker).to.not.be.null;
+                        const items = picker.querySelectorAll('sp-menu-item');
+                        expect(items.length).to.be.above(0);
+                    });
+
+                    it('Tags are sorted alphabetically in picker', async function () {
+                        const aemTagPicker = initElementFromTemplate(
+                            'tagPicker5',
+                            this.test.title,
+                        );
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+                        const picker =
+                            aemTagPicker.shadowRoot.querySelector('sp-picker');
+                        const items = picker.querySelectorAll('sp-menu-item');
+                        const titles = Array.from(items).map((item) =>
+                            item.textContent.trim(),
+                        );
+                        const sortedTitles = [...titles].sort((a, b) =>
+                            a.localeCompare(b, undefined, {
+                                sensitivity: 'base',
+                            }),
+                        );
+                        expect(titles).to.deep.equal(sortedTitles);
+                    });
+
+                    it('Dispatches a change event on tag selection via sp-picker', async function () {
+                        const aemTagPicker = initElementFromTemplate(
+                            'tagPicker5',
+                            this.test.title,
+                        );
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+                        
+                        const picker = aemTagPicker.shadowRoot.querySelector('sp-picker');
+                        expect(picker).to.not.be.null;
+                        
+                        // Setup listener before interaction
+                        const listener = oneEvent(aemTagPicker, 'change');
+                        
+                        // Get items
+                        const items = picker.querySelectorAll('sp-menu-item');
+                        expect(items.length).to.be.above(0);
+                        
+                        // Get the first item's value and toggle it
+                        const firstItem = items[0];
+                        const value = firstItem.getAttribute('value');
+                        await aemTagPicker.toggleTag(value);
+                        
+                        // Wait for the change event
+                        const event = await listener;
+                        expect(event.type).to.equal('change');
+                        expect(aemTagPicker.value).to.include(value);
+                    });
+
+                    it('Renders initial value in picker mode', async function () {
+                        const aemTagPicker = initElementFromTemplate(
+                            'tagPicker6',
+                            this.test.title,
+                        );
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+                        
+                        const picker = aemTagPicker.shadowRoot.querySelector('sp-picker');
+                        expect(picker).to.not.be.null;
+                        
+                        const items = picker.querySelectorAll('sp-menu-item');
+                        expect(items.length).to.be.above(0);
+                        
+                        // Find the selected item
+                        const selectedValue = '/content/cq:tags/mas/product/dc/acrobat-classic';
+                        const selectedItem = Array.from(items).find(
+                            item => item.getAttribute('value') === selectedValue
+                        );
+                        expect(selectedItem).to.not.be.undefined;
+                        
+                        // Verify component value (array) and picker value (string)
+                        expect(aemTagPicker.value).to.deep.equal([selectedValue]);
+                        expect(picker.value).to.equal(selectedValue);
+                    });
                 });
             });
         </script>
@@ -217,6 +307,23 @@
                 value="mas:product/cc/photoshop"
                 base-url="https://mas-proxy-odin.corp.adobe.com"
                 multiple
+            ></aem-tag-picker-field>
+        </template>
+        <template id="tagPicker5">
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="product"
+                base-url="https://mas-proxy-odin.corp.adobe.com"
+                selection="picker"
+            ></aem-tag-picker-field>
+        </template>
+        <template id="tagPicker6">
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="product"
+                base-url="https://mas-proxy-odin.corp.adobe.com"
+                selection="picker"
+                value="mas:product/dc/acrobat-classic"
             ></aem-tag-picker-field>
         </template>
     </body>

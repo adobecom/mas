@@ -5,6 +5,7 @@ class MasLocalePicker extends LitElement {
     static styles = css`
         sp-picker {
             width: 200px;
+            margin-top: 16px;
         }
         .flag {
             margin-right: 8px;
@@ -34,8 +35,7 @@ class MasLocalePicker extends LitElement {
         return Store.locale.current.get();
     }
 
-    #handleChange(event) {
-        Store.locale.current.set(event.target.value);
+    #handleChange() {
         this.dispatchEvent(
             new CustomEvent('change', {
                 detail: { value: this.value },

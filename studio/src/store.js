@@ -3,6 +3,7 @@ import MasFilters from './entities/filters.js';
 import MasSearch from './entities/search.js';
 import { reactiveStore } from './reactivity/reactive-store.js';
 import { WCS_ENV_PROD } from './constants.js';
+import { getEditorPanel } from './editor-panel.js';
 
 const params = Object.fromEntries(
     new URLSearchParams(window.location.hash.slice(1)),

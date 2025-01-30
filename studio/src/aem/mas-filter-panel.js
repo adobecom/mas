@@ -1,4 +1,5 @@
 import { html, css, LitElement } from 'lit';
+import Store from '../store.js';
 
 class MasFilterPanel extends LitElement {
     static styles = css`
@@ -23,47 +24,62 @@ class MasFilterPanel extends LitElement {
         }
     `;
 
+    #handleTagChange() {
+        Store.search.set({ ...Store.search.get(), tags: this.tags });
+    }
+
+    #handleLocaleChange(event) {
+        Store.locale.current.set(event.target.value);
+    }
+
+    get tags() {
+        return [...this.shadowRoot.querySelectorAll('aem-tag-picker-field')]
+            .map((p) => p.value?.[0])
+            .filter((v) => v);
+    }
+
     render() {
         return html`
             <div id="filters-panel">
                 <span id="filters-label">Filters</span>
-                <sp-picker label="Product" selected="None">
-                    <sp-menu-item>Adobe Color</sp-menu-item>
-                    <sp-menu-item>Adobe Express</sp-menu-item>
-                    <sp-menu-item>Adobe Firefly</sp-menu-item>
-                    <sp-menu-item>Adobe Fonts</sp-menu-item>
-                    <sp-menu-item>Adobe Fresco</sp-menu-item>
-                    <sp-menu-item>Adobe Stock</sp-menu-item>
-                </sp-picker>
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="product"
+                    selection="picker"
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
 
-                <sp-picker label="Customer Segment">
-                    <sp-menu-item>Enterprise</sp-menu-item>
-                    <sp-menu-item>Individual</sp-menu-item>
-                    <sp-menu-item>Team</sp-menu-item>
-                </sp-picker>
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="customer_segment"
+                    selection="picker"
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
 
-                <sp-picker label="Offer Type" selected="None">
-                    <sp-menu-item>Base</sp-menu-item>
-                    <sp-menu-item>Promotion</sp-menu-item>
-                    <sp-menu-item>Trial</sp-menu-item>
-                </sp-picker>
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="offer_type"
+                    selection="picker"
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
 
-                <sp-picker label="Plan Type">
-                    <sp-menu-item>All</sp-menu-item>
-                    <sp-menu-item>ABM</sp-menu-item>
-                    <sp-menu-item>PUF</sp-menu-item>
-                    <sp-menu-item>M2M</sp-menu-item>
-                    <sp-menu-item>P3Y</sp-menu-item>
-                    <sp-menu-item>Perpetual</sp-menu-item>
-                </sp-picker>
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="plan_type"
+                    selection="picker"
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
 
-                <sp-picker label="Market Segment">
-                    <sp-menu-item>Com</sp-menu-item>
-                    <sp-menu-item>Edu</sp-menu-item>
-                    <sp-menu-item>Gov</sp-menu-item>
-                </sp-picker>
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="market_segments"
+                    selection="picker"
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
 
-                <mas-locale-picker></mas-locale-picker>
+                <mas-locale-picker
+                    @change=${this.#handleLocaleChange}
+                ></mas-locale-picker>
             </div>
         `;
     }

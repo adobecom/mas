@@ -1,7 +1,6 @@
 import { ReactiveStore } from './reactive-store.js';
 
 export class FragmentStore extends ReactiveStore {
-
     loading = false;
 
     constructor(value) {

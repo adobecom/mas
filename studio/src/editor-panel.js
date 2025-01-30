@@ -218,6 +218,7 @@ export default class EditorPanel extends LitElement {
                     label="Save"
                     title="Save changes"
                     value="save"
+                    ?disabled="${!Store.editor.hasChanges}"
                     @click="${this.repository.saveFragment}"
                 >
                     <sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>
@@ -229,6 +230,7 @@ export default class EditorPanel extends LitElement {
                     label="Discard"
                     title="Discard changes"
                     value="discard"
+                    ?disabled="${!Store.editor.hasChanges}"
                     @click="${Store.editor.discardChanges}"
                 >
                     <sp-icon-undo slot="icon"></sp-icon-undo>

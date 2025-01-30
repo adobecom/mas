@@ -8,12 +8,11 @@ import Events from './events.js';
 
 export default class EditorPanel extends LitElement {
     static properties = {
-        loading: { state: true },
         source: { type: Object },
         bucket: { type: String },
-        disabled: { type: Boolean },
         showToast: { type: Function },
         discarded: { type: Boolean, state: true },
+        showDeleteDialog: { type: Boolean, state: true }, // New state property
     };
 
     static styles = css`
@@ -33,19 +32,26 @@ export default class EditorPanel extends LitElement {
         sp-textfield {
             width: 360px;
         }
+
+        /* Optional: Styles for the dialog */
+        sp-dialog {
+            max-width: 500px;
+        }
     `;
 
     fragmentStoreController = new StoreController(this, Store.fragments.inEdit);
 
     constructor() {
         super();
-        this.disabled = false;
-        this.loading = false;
         this.discarded = false;
+        this.showDeleteDialog = false; // Initialize dialog visibility
         this.handleClose = this.handleClose.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.updateFragment = this.updateFragment.bind(this);
         this.changesDiscarded = this.changesDiscarded.bind(this);
+        this.deleteFragment = this.deleteFragment.bind(this);
+        this.confirmDelete = this.confirmDelete.bind(this); // Handler for confirmation
+        this.cancelDelete = this.cancelDelete.bind(this); // Handler for cancellation
     }
 
     createRenderRoot() {
@@ -108,10 +114,8 @@ export default class EditorPanel extends LitElement {
             const newPosition = x > window.innerWidth / 2 ? 'left' : 'right';
             this.updatePosition(newPosition);
         }
-        this.loading = true;
         Store.fragments.inEdit.set(store.value);
         await this.repository.refreshFragment(store);
-        this.loading = false;
     }
 
     async changesDiscarded() {
@@ -167,6 +171,27 @@ export default class EditorPanel extends LitElement {
         this.fragmentStore.updateField(fieldName, value);
     }
 
+    async deleteFragment() {
+        // Ask for confirmation using sp-underlay and sp-dialog
+        this.showDeleteDialog = true;
+    }
+
+    async confirmDelete() {
+        this.showDeleteDialog = false;
+        try {
+            await this.repository.deleteFragment(this.fragment);
+            this.showToast('Fragment deleted successfully', 'positive');
+            Store.editor.close();
+        } catch (error) {
+            console.error('Error deleting fragment:', error);
+            this.showToast('Failed to delete fragment', 'negative');
+        }
+    }
+
+    cancelDelete() {
+        this.showDeleteDialog = false;
+    }
+
     get fragmentEditorToolbar() {
         return html`<div id="editor-toolbar">
             <sp-action-group
@@ -194,7 +219,6 @@ export default class EditorPanel extends LitElement {
                     title="Save changes"
                     value="save"
                     @click="${this.repository.saveFragment}"
-                    ?disabled=${this.disabled}
                 >
                     <sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>
                     <sp-tooltip self-managed placement="bottom"
@@ -206,7 +230,6 @@ export default class EditorPanel extends LitElement {
                     title="Discard changes"
                     value="discard"
                     @click="${Store.editor.discardChanges}"
-                    ?disabled=${this.disabled || !Store.editor.hasChanges}
                 >
                     <sp-icon-undo slot="icon"></sp-icon-undo>
                     <sp-tooltip self-managed placement="bottom"
@@ -217,7 +240,6 @@ export default class EditorPanel extends LitElement {
                     label="Clone"
                     value="clone"
                     @click="${this.repository.copyFragment}"
-                    ?disabled=${this.disabled}
                 >
                     <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
                     <sp-tooltip self-managed placement="bottom"
@@ -228,7 +250,6 @@ export default class EditorPanel extends LitElement {
                     label="Publish"
                     value="publish"
                     @click="${this.repository.publishFragment}"
-                    ?disabled=${this.disabled}
                 >
                     <sp-icon-publish-check slot="icon"></sp-icon-publish-check>
                     <sp-tooltip self-managed placement="bottom"
@@ -252,7 +273,6 @@ export default class EditorPanel extends LitElement {
                     label="Open in Odin"
                     value="open"
                     @click="${this.openFragmentInOdin}"
-                    ?disabled=${this.disabled}
                 >
                     <sp-icon-open-in slot="icon"></sp-icon-open-in>
                     <sp-tooltip self-managed placement="bottom"
@@ -263,7 +283,6 @@ export default class EditorPanel extends LitElement {
                     label="Use"
                     value="use"
                     @click="${this.copyToUse}"
-                    ?disabled=${this.disabled}
                 >
                     <sp-icon-code slot="icon"></sp-icon-code>
                     <sp-tooltip self-managed placement="bottom">Use</sp-tooltip>
@@ -271,8 +290,7 @@ export default class EditorPanel extends LitElement {
                 <sp-action-button
                     label="Delete fragment"
                     value="delete"
-                    @click="${this.repository.deleteFragment}"
-                    ?disabled=${this.disabled}
+                    @click="${this.deleteFragment}"
                 >
                     <sp-icon-delete-outline
                         slot="icon"
@@ -286,7 +304,6 @@ export default class EditorPanel extends LitElement {
                     label="Close"
                     value="close"
                     @click="${Store.editor.close}"
-                    ?disabled=${this.disabled}
                 >
                     <sp-icon-close-circle slot="icon"></sp-icon-close-circle>
                     <sp-tooltip self-managed placement="bottom"
@@ -309,6 +326,39 @@ export default class EditorPanel extends LitElement {
         </div>`;
     }
 
+    get deleteConfirmationDialog() {
+        if (!this.showDeleteDialog) return nothing;
+        return html`
+            <sp-underlay open @click="${this.cancelDelete}"></sp-underlay>
+            <sp-dialog
+                open
+                variant="confirmation"
+                @sp-dialog-confirm="${this.confirmDelete}"
+                @sp-dialog-dismiss="${this.cancelDelete}"
+            >
+                <h1 slot="heading">Confirm Deletion</h1>
+                <p>
+                    Are you sure you want to delete this fragment? This action
+                    cannot be undone.
+                </p>
+                <sp-button
+                    slot="button"
+                    variant="secondary"
+                    @click="${this.cancelDelete}"
+                >
+                    Cancel
+                </sp-button>
+                <sp-button
+                    slot="button"
+                    variant="accent"
+                    @click="${this.confirmDelete}"
+                >
+                    Delete
+                </sp-button>
+            </sp-dialog>
+        `;
+    }
+
     get fragmentEditor() {
         return html`
             ${this.fragment
@@ -323,7 +373,6 @@ export default class EditorPanel extends LitElement {
                           data-field="title"
                           value="${this.fragment.title}"
                           @input=${this.#updateFragmentInternal}
-                          ?disabled=${this.disabled}
                       ></sp-textfield>
                       <sp-field-label for="fragment-description"
                           >Fragment Description</sp-field-label
@@ -335,7 +384,6 @@ export default class EditorPanel extends LitElement {
                           multiline
                           value="${this.fragment.description}"
                           @input=${this.#updateFragmentInternal}
-                          ?disabled=${this.disabled}
                       ></sp-textfield>
                   `
                 : nothing}
@@ -343,24 +391,25 @@ export default class EditorPanel extends LitElement {
     }
 
     render() {
-        if (this.loading)
-            return html`
-                <sp-progress-circle indeterminate size="l"></sp-progress-circle>
-            `;
-
         if (!this.fragment) return nothing;
-
         return html`<div id="editor">
+            ${this.fragmentStore.loading
+                ? html`
+                      <sp-progress-circle
+                          indeterminate
+                          size="l"
+                      ></sp-progress-circle>
+                  `
+                : nothing}
             ${this.fragmentEditorToolbar}
             <p>${this.fragment.path}</p>
             <merch-card-editor
                 .fragment=${this.fragment}
-                .disabled=${this.disabled}
                 .fragmentStore=${this.fragmentStore}
                 .updateFragment=${this.updateFragment}
             ></merch-card-editor>
             <sp-divider size="s"></sp-divider>
-            ${this.fragmentEditor}
+            ${this.fragmentEditor} ${this.deleteConfirmationDialog}
         </div>`;
     }
 }

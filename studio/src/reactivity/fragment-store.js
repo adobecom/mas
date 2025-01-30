@@ -1,6 +1,9 @@
 import { ReactiveStore } from './reactive-store.js';
 
 export class FragmentStore extends ReactiveStore {
+
+    loading = false;
+
     constructor(value) {
         super(value);
     }
@@ -8,6 +11,11 @@ export class FragmentStore extends ReactiveStore {
     set(value) {
         super.set(value);
         this.refreshAemFragment();
+    }
+
+    setLoading(loading = false) {
+        this.loading = loading;
+        this.notify();
     }
 
     update(fn) {

@@ -13,7 +13,6 @@ class MerchCardEditor extends LitElement {
     static properties = {
         fragment: { type: Object, attribute: false },
         fragmentStore: { type: Object, attribute: false },
-        disabled: { type: Boolean },
         updateFragment: { type: Function },
         wide: { type: Boolean, state: true },
         superWide: { type: Boolean, state: true },
@@ -21,7 +20,6 @@ class MerchCardEditor extends LitElement {
 
     constructor() {
         super();
-        this.disabled = false;
         this.updateFragment = null;
         this.wide = false;
         this.superWide = false;
@@ -100,7 +98,6 @@ class MerchCardEditor extends LitElement {
                     data-field="variant"
                     default-value="${form.variant.values[0]}"
                     @change="${this.#handleVariantChange}"
-                    ?disabled=${this.disabled}
                 ></variant-picker>
             </sp-field-group>
             <sp-field-group class="toggle" id="size">
@@ -111,7 +108,6 @@ class MerchCardEditor extends LitElement {
                     value="${form.size.values[0] || 'normal'}"
                     data-default-value="normal"
                     @change="${this.updateFragment}"
-                    ?disabled=${this.disabled}
                 >
                     <sp-menu-item value="normal">Normal</sp-menu-item>
                     ${this.wide
@@ -132,7 +128,6 @@ class MerchCardEditor extends LitElement {
                     data-field="cardTitle"
                     value="${form.cardTitle.values[0]}"
                     @input="${this.updateFragment}"
-                    ?disabled=${this.disabled}
                 ></sp-textfield>
             </sp-field-group>
             <sp-field-group class="toggle" id="subtitle">
@@ -143,7 +138,6 @@ class MerchCardEditor extends LitElement {
                     data-field="subtitle"
                     value="${form.subtitle.values[0]}"
                     @input="${this.updateFragment}"
-                    ?disabled=${this.disabled}
                 ></sp-textfield>
             </sp-field-group>
             <sp-field-group class="toggle" id="badge">
@@ -154,7 +148,6 @@ class MerchCardEditor extends LitElement {
                     data-field="badge"
                     value="${form.badge.values[0]}"
                     @input="${this.updateFragment}"
-                    ?disabled=${this.disabled}
                 ></sp-textfield>
             </sp-field-group>
             <sp-field-group class="toggle" id="mnemonics">
@@ -180,7 +173,6 @@ class MerchCardEditor extends LitElement {
                     data-field="backgroundImage"
                     value="${form.backgroundImage.values[0]}"
                     @input="${this.updateFragment}"
-                    ?disabled=${this.disabled}
                 ></sp-textfield>
                 <sp-field-label for="background-image-alt-text"
                     >Background Image Alt Text</sp-field-label
@@ -191,7 +183,6 @@ class MerchCardEditor extends LitElement {
                     data-field="backgroundImageAltText"
                     value="${form.backgroundImageAltText.values[0]}"
                     @input="${this.updateFragment}"
-                    ?disabled=${this.disabled}
                 ></sp-textfield>
             </sp-field-group>
             <sp-field-group class="toggle" id="prices">
@@ -202,7 +193,6 @@ class MerchCardEditor extends LitElement {
                     data-field="prices"
                     default-link-style="primary-outline"
                     @change="${this.updateFragment}"
-                    ?readonly=${this.disabled}
                     >${unsafeHTML(form.prices.values[0])}</rte-field
                 >
             </sp-field-group>
@@ -214,7 +204,6 @@ class MerchCardEditor extends LitElement {
                     data-field="description"
                     default-link-style="secondary-link"
                     @change="${this.updateFragment}"
-                    ?readonly=${this.disabled}
                     >${unsafeHTML(form.description.values[0])}</rte-field
                 >
             </sp-field-group>
@@ -227,7 +216,6 @@ class MerchCardEditor extends LitElement {
                     data-field="ctas"
                     default-link-style="primary-outline"
                     @change="${this.updateFragment}"
-                    ?readonly=${this.disabled}
                     >${unsafeHTML(form.ctas.values[0])}</rte-field
                 >
             </sp-field-group>

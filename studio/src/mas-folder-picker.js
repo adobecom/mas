@@ -84,11 +84,17 @@ export class MasFolderPicker extends LitElement {
 
     static properties = {
         open: { state: true },
+        selectionHandled: { type: Boolean },
     };
 
     constructor() {
         super();
         this.open = false;
+        this.selectionHandled = false;
+    }
+
+    update(changedProperties) {
+        super.update(changedProperties);
     }
 
     foldersLoaded = new StoreController(this, Store.folders.loaded);
@@ -107,6 +113,7 @@ export class MasFolderPicker extends LitElement {
     handleSelection(event) {
         const value = event.target.value;
         Store.search.update((prev) => ({ ...prev, path: value }));
+        this.selectionHandled = true;
         this.closeDropdown();
     }
 
@@ -183,12 +190,15 @@ export class MasFolderPicker extends LitElement {
     }
 
     handleFocusOut(event) {
-        const isStillWithinComponent = this.shadowRoot.contains(
-            event.relatedTarget,
-        );
-        if (!isStillWithinComponent) {
-            this.closeDropdown();
+        if(this.selectionHandled) {
+            console.log('here', this.selectionHandled)
+            return;
         }
+        if (!this.shadowRoot.contains(event.relatedTarget)) {
+            this.selectionHandled = false;
+            console.log('out of focus', this.selectionHandled)
+            this.closeDropdown();
+        }    
     }
 
     handleKeyDown(event) {

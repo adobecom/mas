@@ -127,6 +127,7 @@ export class MasFolderPicker extends LitElement {
                 aria-expanded=${this.open ? 'true' : 'false'}
                 tabindex="0"
                 @keydown=${this.handleKeyDown}
+                @focusout=${this.handleFocusOut}
             >
                 <span class="button-content">
                     <svg
@@ -182,9 +183,11 @@ export class MasFolderPicker extends LitElement {
     }
 
     handleFocusOut(event) {
-        if (!this.contains(event.relatedTarget)) {
+        if (this.shadowRoot.contains(event.relatedTarget)) {
+            return;
+        } else {
             this.closeDropdown();
-        }
+        } 
     }
 
     handleKeyDown(event) {

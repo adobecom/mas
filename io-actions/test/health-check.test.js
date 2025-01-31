@@ -1,8 +1,6 @@
-import chai from 'chai';
-import nock from 'nock';
-import action from '../src/health-check/index.js';
-
-const expect = chai.expect;
+const { expect } = require('chai');
+const nock = require('nock');
+const action = require('../src/health-check/index.js');
 
 const ODIN_RESPONSE = {
     path: '/content/dam/mas/nala/ccd/slice-cc-allapps31211',

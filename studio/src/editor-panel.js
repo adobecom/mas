@@ -212,6 +212,12 @@ export default class EditorPanel extends LitElement {
         this.hasChanges = true;
     }
 
+    #handleLocReady() {
+        const value = !this.fragment.getField('locReady').values[0];
+        this.fragment.updateField('locReady', [value]);
+        this.hasChanges = true;
+    }
+
     get fragmentEditorToolbar() {
         return html`<div id="editor-toolbar">
             <sp-action-group
@@ -386,7 +392,17 @@ export default class EditorPanel extends LitElement {
                           value="${this.fragment.description}"
                           @input=${this.#updateFragmentInternal}
                           ?disabled=${this.disabled}
-                      ></sp-textfield>
+                          ><
+                      </sp-textfield>
+                      <sp-field-label for="fragment-locready"
+                          >Send to translation?</sp-field-label
+                      >
+                      <sp-switch
+                          ?checked="${this.fragment.getField('locReady')
+                              .values[0]}"
+                          @click="${this.#handleLocReady}"
+                      >
+                      </sp-switch>
                   `
                 : nothing}
         `;

@@ -38,16 +38,28 @@ export default Store;
 
 // #region Validators
 
+/**
+ * @param {object} value
+ * @returns {object}
+ */
 function filtersValidator(value) {
     if (!value.locale) value.locale = 'en_US';
     return value;
 }
 
+/**
+ * @param {string} value
+ * @returns {string}
+ */
 function pageValidator(value) {
     if (value === 'content') return value;
     return 'welcome';
 }
 
+/**
+ * @param {string} value
+ * @returns {string}
+ */
 function commerceEnvValidator(value) {
     if (value === WCS_ENV_STAGE) return value;
     return WCS_ENV_PROD;

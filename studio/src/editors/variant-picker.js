@@ -8,8 +8,8 @@ const VARIANTS = [
     { label: 'Special offers', value: 'special-offers', surface: 'acom' },
     { label: 'Suggested', value: 'ccd-suggested', surface: 'ccd' },
     {
-        label: 'Pricing',
-        value: 'ah-pricing',
+        label: 'Try Buy Widget',
+        value: 'ah-try-buy-widget',
         surface: 'adobe-home',
     },
 ];

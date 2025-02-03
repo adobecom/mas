@@ -12,6 +12,7 @@ export default class EditorPanel extends LitElement {
         bucket: { type: String },
         showDeleteDialog: { type: Boolean, state: true },
         showDiscardDialog: { type: Boolean, state: true },
+        showEditor: { type: Boolean, state: true }, // Used to force re-rendering of the editor
     };
 
     static styles = css`
@@ -52,6 +53,7 @@ export default class EditorPanel extends LitElement {
         super();
         this.showDeleteDialog = false;
         this.showDiscardDialog = false;
+        this.showEditor = true;
         // Used to resolve the discard confirmation promise.
         this.#discardPromiseResolver = null;
 
@@ -88,7 +90,7 @@ export default class EditorPanel extends LitElement {
 
     /** @type {Fragment | null} */
     get fragment() {
-        return this.inEdit?.value;
+        return this.inEdit?.get();
     }
 
     updatePosition(position) {
@@ -227,11 +229,10 @@ export default class EditorPanel extends LitElement {
         if (Store.editor.hasChanges) {
             const confirmed = await this.promptDiscardChanges();
             if (confirmed) {
-                const fragment = this.fragment;
                 this.inEdit.discardChanges();
-                this.inEdit.set();
+                this.showEditor = false;
                 await this.updateComplete;
-                this.inEdit.set(fragment);
+                this.showEditor = true;
             }
         }
     }
@@ -251,7 +252,7 @@ export default class EditorPanel extends LitElement {
             // The user confirmed – discard changes.
             this.inEdit.discardChanges();
         }
-        this.inEdit.set(null);
+        this.inEdit.set();
         return true;
     }
 
@@ -538,11 +539,13 @@ export default class EditorPanel extends LitElement {
             <div id="editor">
                 ${this.fragmentEditorToolbar}
                 <p>${this.fragment.path}</p>
-                <merch-card-editor
-                    .fragment=${this.fragment}
-                    .fragmentStore=${this.inEdit}
-                    .updateFragment=${this.updateFragment}
-                ></merch-card-editor>
+                ${this.showEditor
+                    ? html` <merch-card-editor
+                          .fragment=${this.fragment}
+                          .fragmentStore=${this.inEdit}
+                          .updateFragment=${this.updateFragment}
+                      ></merch-card-editor>`
+                    : nothing}
                 <sp-divider size="s"></sp-divider>
                 ${this.fragmentEditor} ${this.deleteConfirmationDialog}
                 ${this.discardConfirmationDialog}

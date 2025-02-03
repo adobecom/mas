@@ -1,16 +1,7 @@
-import { debounce } from '../utils.js';
 import { ReactiveStore } from './reactive-store.js';
 
 export class FragmentStore extends ReactiveStore {
     loading = false;
-
-    constructor(value) {
-        super(value);
-        this.refreshAemFragment = debounce(
-            this.refreshAemFragment.bind(this),
-            50,
-        );
-    }
 
     set(value) {
         super.set(value);

@@ -31,7 +31,7 @@ async function getDictionary(context) {
         if (!id) {
             return null;
         }
-        const response = await fetch(odinReferences(id, true));
+        const response = await fetch(odinReferences(id));
 
         if (response.status == 200) {
             const raw = await response.json();

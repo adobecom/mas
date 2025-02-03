@@ -1,7 +1,8 @@
 const fetch = require('node-fetch');
 const { PATH_TOKENS, odinPath } = require('./paths.js');
 /**
- * we expect a body to already have been fetched, and a locale to be requested
+ * we expect a body to already have been fetched, and a locale to be requested.
+ * This transformer name is a bit abusive: it just fetches a translation if the locale is different from the source locale.
  */
 async function translate(context) {
     const { body, locale } = context;

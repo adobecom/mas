@@ -151,17 +151,16 @@ test.describe('M@S Studio feature test suite', () => {
             expect(await studio.editorPanel.title).toBeVisible;
             await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveAttribute('value', `${data.title}`);
+            ).toHaveValue(`${data.title}`);
             await studio.editorPanel
                 .locator(studio.editorTitle)
-                .locator('input')
                 .fill(data.newTitle);
         });
 
         await test.step('step-4: Validate edited title field', async () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveAttribute('value', `${data.newTitle}`);
+            ).toHaveValue(`${data.newTitle}`);
         });
     });
 
@@ -223,18 +222,15 @@ test.describe('M@S Studio feature test suite', () => {
             expect(await studio.editorPanel.title).toBeVisible;
             await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveAttribute('value', `${data.title}`);
+            ).toHaveValue(`${data.title}`);
             await studio.editorPanel
                 .locator(studio.editorTitle)
-                .locator('input')
                 .fill(data.newTitle);
             await studio.editorPanel
                 .locator(studio.editorSubtitle)
-                .locator('input')
                 .fill(data.newSubtitle);
             await studio.editorPanel
                 .locator(studio.editorIconURL)
-                .locator('input')
                 .fill(data.newIconURL);
             await studio.editorPanel
                 .locator(studio.editorDescription)
@@ -243,25 +239,22 @@ test.describe('M@S Studio feature test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        // await test.step(
-        //     'step-5: Validate edited fields in Editor panel',
-        //     async () => {
-        //         await expect(
-        //             await studio.editorPanel.locator(studio.editorTitle),
-        //         ).toHaveAttribute('value', `${data.newTitle}`);
-        //         await expect(
-        //             await studio.editorPanel.locator(studio.editorSubtitle),
-        //         ).toHaveAttribute('value', `${data.newSubtitle}`);
-        //         await expect(
-        //             await studio.editorPanel.locator(studio.editorIconURL),
-        //         ).toHaveAttribute('value', `${data.newIconURL}`);
-        //         expect(
-        //             await studio.editorPanel
-        //                 .locator(studio.editorDescription)
-        //                 .innerText(),
-        //         ).toBe(`${data.newDescription}`);
-        //     },
-        // );
+        await test.step('step-5: Validate edited fields in Editor panel', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorTitle),
+            ).toHaveValue(`${data.newTitle}`);
+            await expect(
+                await studio.editorPanel.locator(studio.editorSubtitle),
+            ).toHaveValue(`${data.newSubtitle}`);
+            await expect(
+                await studio.editorPanel.locator(studio.editorIconURL),
+            ).toHaveValue(`${data.newIconURL}`);
+            expect(
+                await studio.editorPanel
+                    .locator(studio.editorDescription)
+                    .innerText(),
+            ).toBe(`${data.newDescription}`);
+        });
 
         await test.step('step-6: Search for the cloned card and verify changes', async () => {
             await studio.searchInput.fill(data.clonedCardID);
@@ -270,6 +263,7 @@ test.describe('M@S Studio feature test suite', () => {
             expect(
                 await studio.getCard(data.clonedCardID, 'suggested'),
             ).toBeVisible();
+            await page.waitForTimeout(3000);
         });
 
         await test.step('step-7: Verify applied changes in card then delete', async () => {

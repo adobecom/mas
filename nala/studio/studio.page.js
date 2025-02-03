@@ -29,9 +29,9 @@ export default class StudioPage {
         this.cardIcon = page.locator('merch-icon');
         this.cardBadge = page.locator('.ccd-slice-badge');
         // Editor panel fields
-        this.editorTitle = page.locator('#card-title');
-        this.editorSubtitle = page.locator('#card-subtitle');
-        this.editorIconURL = page.locator('#icon');
+        this.editorTitle = page.locator('#card-title input');
+        this.editorSubtitle = page.locator('#card-subtitle input');
+        this.editorIconURL = page.locator('#icon input');
         this.editorDescription = page.locator(
             'sp-field-group >> rte-field[id="description"] >> div[contenteditable="true"]',
         );

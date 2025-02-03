@@ -23,7 +23,7 @@ const Store = {
         },
         inEdit: new FragmentStore(null),
     },
-    operation: reactiveStore(), // current operation in progress, editor ones as well as batch ones
+    operation: reactiveStore(), // current operation in progress, editor or content navigation batch operations
     editor: {
         get hasChanges() {
             return Store.fragments.inEdit.get()?.hasChanges || false;

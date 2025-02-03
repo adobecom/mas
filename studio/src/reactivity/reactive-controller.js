@@ -2,7 +2,7 @@ import { LitElement } from 'lit';
 import { ReactiveStore } from './reactive-store.js';
 
 /**
- * This controllers only tracks the stores and request an update on the host when any of the stores change.
+ * This controller monitors the stores and requests an update on the host whenever any of the stores change.
  */
 export default class ReactiveController {
     host;

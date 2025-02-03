@@ -291,7 +291,7 @@ export class MasRepository extends LitElement {
      */
     async copyFragment() {
         try {
-            this.inEdit.setLoading(true);
+            this.operation.set(OPERATIONS.CLONE);
             const result = await this.#aem.sites.cf.fragments.copy(
                 this.inEdit.get(),
             );
@@ -303,9 +303,9 @@ export class MasRepository extends LitElement {
                 ...prev,
                 newFragmentStore,
             ]);
-            this.inEdit.set(newFragmentStore);
+            this.inEdit.set(newFragment);
 
-            this.inEdit.setLoading(false);
+            this.operation.set();
             Events.fragmentAdded.emit(newFragment.id);
             Events.toast.emit({
                 variant: 'positive',
@@ -313,7 +313,7 @@ export class MasRepository extends LitElement {
             });
             return true;
         } catch (error) {
-            this.inEdit.setLoading(false);
+            this.operation.set();
             this.processError(error, 'Failed to copy fragment.');
         }
         return false;
@@ -324,10 +324,10 @@ export class MasRepository extends LitElement {
      */
     async publishFragment() {
         try {
-            this.inEdit.setLoading(true);
+            this.operation.set(OPERATIONS.PUBLISH);
             await this.#aem.sites.cf.fragments.publish(this.inEdit.get());
 
-            this.inEdit.setLoading(false);
+            this.operation.set();
             Events.toast.emit({
                 variant: 'positive',
                 content: 'Fragment successfully published.',
@@ -335,7 +335,7 @@ export class MasRepository extends LitElement {
 
             return true;
         } catch (error) {
-            this.inEdit.setLoading(false);
+            this.operation.set();
             this.processError(error, 'Failed to publish fragment.');
         }
         return false;
@@ -354,7 +354,7 @@ export class MasRepository extends LitElement {
      */
     async deleteFragment() {
         try {
-            this.inEdit.setLoading(true);
+            this.operation.set(OPERATIONS.DELETE);
             const fragment = this.inEdit.get();
             await this.#aem.sites.cf.fragments.delete(fragment);
 
@@ -365,15 +365,14 @@ export class MasRepository extends LitElement {
                 return result;
             });
             this.inEdit.set(null);
-
-            this.inEdit.setLoading(false);
+            this.operation.set();
             Events.toast.emit({
                 variant: 'positive',
                 content: 'Fragment successfully deleted.',
             });
             return true;
         } catch (error) {
-            this.inEdit.setLoading(false);
+            this.operation.set();
             this.processError(error, 'Failed to delete fragment.');
         }
         return false;

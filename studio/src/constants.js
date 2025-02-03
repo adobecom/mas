@@ -43,5 +43,6 @@ export const OPERATIONS = {
     DISCARD: 'discard',
     PUBLISH: 'publish',
     SAVE: 'save',
+    CLONE: 'clone',
     UNPUBLISH: 'unpublish',
 };

@@ -316,7 +316,15 @@ export default class EditorPanel extends LitElement {
                         value="clone"
                         @click="${this.repository.copyFragment}"
                     >
-                        <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
+                        ${this.operation.equals(OPERATIONS.CLONE)
+                            ? html`<sp-progress-circle
+                                  indeterminate
+                                  size="s"
+                              ></sp-progress-circle>`
+                            : html` <sp-icon-duplicate
+                                  slot="icon"
+                              ></sp-icon-duplicate>`}
+
                         <sp-tooltip self-managed placement="bottom"
                             >Clone</sp-tooltip
                         >
@@ -326,9 +334,14 @@ export default class EditorPanel extends LitElement {
                         value="publish"
                         @click="${this.repository.publishFragment}"
                     >
-                        <sp-icon-publish-check
-                            slot="icon"
-                        ></sp-icon-publish-check>
+                        ${this.operation.equals(OPERATIONS.PUBLISH)
+                            ? html`<sp-progress-circle
+                                  indeterminate
+                                  size="s"
+                              ></sp-progress-circle>`
+                            : html` <sp-icon-publish-check
+                                  slot="icon"
+                              ></sp-icon-publish-check>`}
                         <sp-tooltip self-managed placement="bottom"
                             >Publish</sp-tooltip
                         >
@@ -371,9 +384,15 @@ export default class EditorPanel extends LitElement {
                         value="delete"
                         @click="${this.deleteFragment}"
                     >
-                        <sp-icon-delete-outline
-                            slot="icon"
-                        ></sp-icon-delete-outline>
+                        ${this.operation.equals(OPERATIONS.DELETE)
+                            ? html`<sp-progress-circle
+                                  indeterminate
+                                  size="s"
+                              ></sp-progress-circle>`
+                            : html` <sp-icon-delete-outline
+                                  slot="icon"
+                              ></sp-icon-delete-outline>`}
+
                         <sp-tooltip self-managed placement="bottom"
                             >Delete fragment</sp-tooltip
                         >

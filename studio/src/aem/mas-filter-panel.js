@@ -45,35 +45,35 @@ class MasFilterPanel extends LitElement {
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
                     top="product"
-                    selection="picker"
+                    selection="checkbox"
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
                     top="customer_segment"
-                    selection="picker"
+                    selection="checkbox"
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
                     top="offer_type"
-                    selection="picker"
+                    selection="checkbox"
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
                     top="plan_type"
-                    selection="picker"
+                    selection="checkbox"
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
                     top="market_segments"
-                    selection="picker"
+                    selection="checkbox"
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 

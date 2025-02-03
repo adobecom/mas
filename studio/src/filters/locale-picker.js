@@ -5,7 +5,6 @@ class MasLocalePicker extends LitElement {
     static styles = css`
         sp-picker {
             width: 200px;
-            margin-top: 16px;
         }
         .flag {
             margin-right: 8px;

@@ -16,7 +16,6 @@
             }
 
             aem-tag-picker-field {
-                width: 400px;
                 position: relative;
             }
         </style>
@@ -41,7 +40,9 @@
                     before(() => {
                         const originalFetch = window.fetch;
                         window.fetch = async () => {
-                            fetchPromise = originalFetch('/test/mocks/tags.json');
+                            fetchPromise = originalFetch(
+                                '/test/mocks/tags.json',
+                            );
                             return fetchPromise;
                         };
                     });
@@ -188,8 +189,9 @@
                         );
                         await aemTagPicker.loadTags();
                         await aemTagPicker.updateComplete;
-                        
-                        const picker = aemTagPicker.shadowRoot.querySelector('sp-picker');
+
+                        const picker =
+                            aemTagPicker.shadowRoot.querySelector('sp-picker');
                         expect(picker).to.not.be.null;
                         const items = picker.querySelectorAll('sp-menu-item');
                         expect(items.length).to.be.above(0);
@@ -223,22 +225,23 @@
                         );
                         await aemTagPicker.loadTags();
                         await aemTagPicker.updateComplete;
-                        
-                        const picker = aemTagPicker.shadowRoot.querySelector('sp-picker');
+
+                        const picker =
+                            aemTagPicker.shadowRoot.querySelector('sp-picker');
                         expect(picker).to.not.be.null;
-                        
+
                         // Setup listener before interaction
                         const listener = oneEvent(aemTagPicker, 'change');
-                        
+
                         // Get items
                         const items = picker.querySelectorAll('sp-menu-item');
                         expect(items.length).to.be.above(0);
-                        
+
                         // Get the first item's value and toggle it
                         const firstItem = items[0];
                         const value = firstItem.getAttribute('value');
                         await aemTagPicker.toggleTag(value);
-                        
+
                         // Wait for the change event
                         const event = await listener;
                         expect(event.type).to.equal('change');
@@ -252,22 +255,27 @@
                         );
                         await aemTagPicker.loadTags();
                         await aemTagPicker.updateComplete;
-                        
-                        const picker = aemTagPicker.shadowRoot.querySelector('sp-picker');
+
+                        const picker =
+                            aemTagPicker.shadowRoot.querySelector('sp-picker');
                         expect(picker).to.not.be.null;
-                        
+
                         const items = picker.querySelectorAll('sp-menu-item');
                         expect(items.length).to.be.above(0);
-                        
+
                         // Find the selected item
-                        const selectedValue = '/content/cq:tags/mas/product/dc/acrobat-classic';
+                        const selectedValue =
+                            '/content/cq:tags/mas/product/dc/acrobat-classic';
                         const selectedItem = Array.from(items).find(
-                            item => item.getAttribute('value') === selectedValue
+                            (item) =>
+                                item.getAttribute('value') === selectedValue,
                         );
                         expect(selectedItem).to.not.be.undefined;
-                        
+
                         // Verify component value (array) and picker value (string)
-                        expect(aemTagPicker.value).to.deep.equal([selectedValue]);
+                        expect(aemTagPicker.value).to.deep.equal([
+                            selectedValue,
+                        ]);
                         expect(picker.value).to.equal(selectedValue);
                     });
                 });
@@ -314,7 +322,7 @@
                 namespace="/content/cq:tags/mas"
                 top="product"
                 base-url="https://mas-proxy-odin.corp.adobe.com"
-                selection="picker"
+                selection="checkbox"
             ></aem-tag-picker-field>
         </template>
         <template id="tagPicker6">
@@ -322,7 +330,7 @@
                 namespace="/content/cq:tags/mas"
                 top="product"
                 base-url="https://mas-proxy-odin.corp.adobe.com"
-                selection="picker"
+                selection="checkbox"
                 value="mas:product/dc/acrobat-classic"
             ></aem-tag-picker-field>
         </template>

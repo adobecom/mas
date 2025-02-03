@@ -27,7 +27,7 @@ class MasFilterPanel extends LitElement {
 
     filters = new StoreController(this, Store.filters);
 
-    #updateFilter(property) {
+    #updateFilterHandler(property) {
         return function (event) {
             if (!event.detail) return;
             Store.filters.update((prev) => ({
@@ -79,7 +79,7 @@ class MasFilterPanel extends LitElement {
 
                 <mas-locale-picker
                     value=${this.filters.value.locale}
-                    @change=${this.#updateFilter('locale')}
+                    @change=${this.#updateFilterHandler('locale')}
                 ></mas-locale-picker>
             </div>
         `;

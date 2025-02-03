@@ -1,5 +1,8 @@
 import { expect } from '@esm-bundle/chai';
-import Store, { linkStoreToHash, unlinkStoreFromHash } from '../../src/store';
+import Store, {
+    linkStoreToHash,
+    unlinkStoreFromHash,
+} from '../../src/store.js';
 import { oneEvent } from '@open-wc/testing-helpers/pure';
 
 describe('Hash linking', () => {

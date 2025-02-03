@@ -43,6 +43,7 @@ export default Store;
  * @returns {object}
  */
 function filtersValidator(value) {
+    if (!value) return { locale: 'en_US' }; // eventually we can have a constant, initialFilters
     if (!value.locale) value.locale = 'en_US';
     return value;
 }

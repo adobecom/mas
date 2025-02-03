@@ -1,3 +1,4 @@
+import { debounce } from '../utils.js';
 import { ReactiveStore } from './reactive-store.js';
 
 export class FragmentStore extends ReactiveStore {
@@ -5,6 +6,10 @@ export class FragmentStore extends ReactiveStore {
 
     constructor(value) {
         super(value);
+        this.refreshAemFragment = debounce(
+            this.refreshAemFragment.bind(this),
+            50,
+        );
     }
 
     set(value) {

@@ -62,6 +62,8 @@ class AemTagPickerField extends LitElement {
 
         // Temporary selections in 'checkbox' mode (before Apply)
         tempValue: { type: Array, state: true },
+
+        searchQuery: { type: String, state: true },
     };
 
     static styles = css`
@@ -94,24 +96,34 @@ class AemTagPickerField extends LitElement {
             margin-top: var(--margin-picker-top, 0px);
         }
 
-        div[slot='footer'] {
+        #content {
+            padding: 8px;
+        }
+
+        #footer {
             width: 100%;
+            height: 40px;
+            align-items: center;
             display: flex;
             gap: 8px;
             justify-content: end;
         }
 
-        div[slot='footer'] span {
+        #footer span {
             flex: 1;
         }
 
         .checkbox-list {
             display: flex;
             flex-direction: column;
-            gap: 16px;
-            max-height: 250px; /* Adjust as needed */
+            gap: 2px;
+            max-height: 246px;
             overflow-y: auto;
             padding-inline-start: 4px;
+        }
+
+        sp-checkbox {
+            height: 40px;
         }
     `;
 
@@ -132,6 +144,7 @@ class AemTagPickerField extends LitElement {
         this.#aem = null;
         this.ready = false;
         this.selection = ''; // e.g., 'picker' | 'checkbox' | ...
+        this.searchQuery = '';
         this.open = false;
     }
 
@@ -388,12 +401,20 @@ class AemTagPickerField extends LitElement {
     }
 
     /**
-     * Renders checkbox mode in a Spectrum popover/dialog:
      * - Clicking the action button toggles the popover.
      * - The list of sp-checkbox is scrollable if too large.
      * - The footer shows # selected, plus Reset/Apply.
      */
     renderCheckboxMode() {
+        let filteredTags = this.flatTags;
+        if (this.flatTags.length > 7) {
+            filteredTags = this.flatTags.filter((path) =>
+                this.#resolveTagTitle(path)
+                    .toLowerCase()
+                    .includes(this.searchQuery.toLowerCase()),
+            );
+        }
+
         return html`
             <overlay-trigger placement="bottom" .open=${this.open}>
                 <sp-action-button
@@ -405,10 +426,68 @@ class AemTagPickerField extends LitElement {
 
                 <sp-popover
                     slot="click-content"
+                    direction="bottom"
                     class="checkbox-popover"
                     @close=${() => (this.open = false)}
                 >
-                    <sp-dialog size="s" no-divider>
+                    <div id="content">
+                        ${this.flatTags.length > 7
+                            ? html`
+                                  <sp-search
+                                      @input=${(e) =>
+                                          (this.searchQuery = e.target.value)}
+                                      placeholder="Search"
+                                  ></sp-search>
+                              `
+                            : nothing}
+                        <div class="checkbox-list">
+                            ${filteredTags.map((path) => {
+                                const checked = this.tempValue.includes(path);
+                                return html`
+                                    <sp-checkbox
+                                        value="${path}"
+                                        ?checked=${checked}
+                                        @change=${this.#handleCheckboxToggle}
+                                    >
+                                        ${this.#resolveTagTitle(path)}
+                                    </sp-checkbox>
+                                `;
+                            })}
+                        </div>
+                        <div id="footer">
+                            <span> ${this.tempValue.length} Selected </span>
+                            <sp-button
+                                size="s"
+                                @click=${this.resetSelection}
+                                variant="secondary"
+                                treatment="outline"
+                            >
+                                Reset
+                            </sp-button>
+                            <sp-button size="s" @click=${this.applySelection}>
+                                Apply
+                            </sp-button>
+                        </div>
+                    </div>
+                </sp-popover>
+            </overlay-trigger>
+        `;
+        return html`
+            <overlay-trigger placement="bottom" .open=${this.open}>
+                <sp-action-button
+                    slot="trigger"
+                    @click=${() => (this.open = !this.open)}
+                >
+                    ${this.triggerLabel}
+                </sp-action-button>
+
+                <sp-popover
+                    slot="click-content"
+                    direction="bottom"
+                    class="checkbox-popover"
+                    @close=${() => (this.open = false)}
+                >
+                    <div id="content">
                         <div class="checkbox-list">
                             ${this.flatTags.map((path) => {
                                 const checked = this.tempValue.includes(path);
@@ -423,7 +502,7 @@ class AemTagPickerField extends LitElement {
                                 `;
                             })}
                         </div>
-                        <div slot="footer">
+                        <div id="footer">
                             <span> ${this.tempValue.length} Selected </span>
                             <sp-button
                                 size="s"
@@ -437,7 +516,7 @@ class AemTagPickerField extends LitElement {
                                 Apply
                             </sp-button>
                         </div>
-                    </sp-dialog>
+                    </div>
                 </sp-popover>
             </overlay-trigger>
         `;

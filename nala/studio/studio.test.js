@@ -203,7 +203,10 @@ test.describe('M@S Studio feature test suite', () => {
 
         await test.step('step-3: Clone card and open editor', async () => {
             await studio.cloneCard.click();
-            await expect(studio.toastPositive).toBeVisible({ timeout: 10000 });
+            await expect(studio.toastPositive).toHaveText(
+                'Fragment successfully copied.',
+                { timeout: 10000 },
+            );
             let clonedCard = await studio.getCard(
                 data.cardid,
                 'suggested',
@@ -236,7 +239,10 @@ test.describe('M@S Studio feature test suite', () => {
                 .locator(studio.editorDescription)
                 .fill(data.newDescription);
             await studio.saveCard.click();
-            await expect(studio.toastPositive).toBeVisible({ timeout: 10000 });
+            await expect(studio.toastPositive).toHaveText(
+                'Fragment successfully saved.',
+                { timeout: 10000 },
+            );
         });
 
         await test.step('step-5: Validate edited fields in Editor panel', async () => {
@@ -276,7 +282,10 @@ test.describe('M@S Studio feature test suite', () => {
                 data.newDescription,
             );
             await studio.deleteCard.click();
-            await expect(studio.toastPositive).toBeVisible({ timeout: 10000 });
+            await expect(studio.toastPositive).toHaveText(
+                'Fragment successfully deleted.',
+                { timeout: 10000 },
+            );
             await expect(
                 await studio.getCard(data.clonedCardID, 'suggested'),
             ).not.toBeVisible();

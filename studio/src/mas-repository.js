@@ -5,8 +5,8 @@ import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
-import { editFragment } from './editor-panel.js';
 import { looseEquals, UserFriendlyError } from './utils.js';
+import { OPERATIONS } from './constants.js';
 
 const ROOT = '/content/dam/mas';
 
@@ -29,6 +29,7 @@ export class MasRepository extends LitElement {
     };
 
     inEdit = Store.fragments.inEdit;
+    operation = Store.operation;
 
     constructor() {
         super();
@@ -88,8 +89,12 @@ export class MasRepository extends LitElement {
          * Automatically fetch data when search/filters update.
          * Both load methods have page guards (ex. fragments won't be searched on the 'splash' page)
          */
-        this.searchFragments();
-        this.loadRecentlyUpdatedFragments();
+        if (this.currentPage.value === 'content') {
+            this.searchFragments();
+        }
+        if (this.currentPage.value === 'splash') {
+            this.loadRecentlyUpdatedFragments();
+        }
     }
 
     async loadFolders() {
@@ -260,23 +265,22 @@ export class MasRepository extends LitElement {
             variant: 'info',
             content: 'Saving fragment...',
         });
-
+        this.operation.set(OPERATIONS.SAVE);
         try {
-            this.inEdit.setLoading(true);
             let updatedFragment = await this.#aem.sites.cf.fragments.save(
                 this.inEdit.get(),
             );
             if (!updatedFragment) throw new Error('Invalid fragment.');
             this.inEdit.refreshFrom(updatedFragment);
 
-            this.inEdit.setLoading(false);
             Events.toast.emit({
                 variant: 'positive',
                 content: 'Fragment successfully saved.',
             });
+            this.operation.set();
             return true;
         } catch (error) {
-            this.inEdit.setLoading(false);
+            this.operation.set();
             this.processError(error, 'Failed to save fragment.');
         }
         return false;
@@ -299,7 +303,7 @@ export class MasRepository extends LitElement {
                 ...prev,
                 newFragmentStore,
             ]);
-            editFragment(newFragmentStore);
+            this.inEdit.set(newFragmentStore);
 
             this.inEdit.setLoading(false);
             Events.fragmentAdded.emit(newFragment.id);
@@ -360,7 +364,7 @@ export class MasRepository extends LitElement {
                 result.splice(index, 1);
                 return result;
             });
-            Store.fragments.inEdit.set(null);
+            this.inEdit.set(null);
 
             this.inEdit.setLoading(false);
             Events.toast.emit({
@@ -380,11 +384,11 @@ export class MasRepository extends LitElement {
      * @param {FragmentStore} store
      */
     async refreshFragment(store) {
-        const id = store.get().id;
         this.inEdit.setLoading(true);
+        const id = store.get().id;
         const latest = await this.#aem.sites.cf.fragments.getById(id);
-        this.inEdit.setLoading(false);
         store.refreshFrom(latest);
+        this.inEdit.setLoading(false);
     }
 
     render() {

@@ -1,18 +1,17 @@
 import { LitElement, html, css, nothing } from 'lit';
-import StoreController from './reactivity/store-controller.js';
 import { MasRepository } from './mas-repository.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
-import Events from './events.js';
+import ReactiveController from './reactivity/reactive-controller.js';
+import { OPERATIONS } from './constants.js';
 
 export default class EditorPanel extends LitElement {
     static properties = {
         source: { type: Object },
         bucket: { type: String },
-        showToast: { type: Function },
-        discarded: { type: Boolean, state: true },
-        showDeleteDialog: { type: Boolean, state: true }, // New state property
+        showDeleteDialog: { type: Boolean, state: true },
+        showDiscardDialog: { type: Boolean, state: true },
     };
 
     static styles = css`
@@ -39,19 +38,33 @@ export default class EditorPanel extends LitElement {
         }
     `;
 
-    fragmentStoreController = new StoreController(this, Store.fragments.inEdit);
+    inEdit = Store.fragments.inEdit;
+    operation = Store.operation;
+
+    reactiveController = new ReactiveController(this, [
+        this.inEdit,
+        this.operation,
+    ]);
+
+    #discardPromiseResolver;
 
     constructor() {
         super();
-        this.discarded = false;
-        this.showDeleteDialog = false; // Initialize dialog visibility
+        this.showDeleteDialog = false;
+        this.showDiscardDialog = false;
+        // Used to resolve the discard confirmation promise.
+        this.#discardPromiseResolver = null;
+
+        // Bind methods
         this.handleClose = this.handleClose.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.updateFragment = this.updateFragment.bind(this);
-        this.changesDiscarded = this.changesDiscarded.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
-        this.confirmDelete = this.confirmDelete.bind(this); // Handler for confirmation
-        this.cancelDelete = this.cancelDelete.bind(this); // Handler for cancellation
+        this.confirmDelete = this.confirmDelete.bind(this);
+        this.cancelDelete = this.cancelDelete.bind(this);
+        this.discardConfirmed = this.discardConfirmed.bind(this);
+        this.cancelDiscard = this.cancelDiscard.bind(this);
+        this.onToolbarDiscard = this.onToolbarDiscard.bind(this);
     }
 
     createRenderRoot() {
@@ -61,13 +74,11 @@ export default class EditorPanel extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         document.addEventListener('keydown', this.handleKeyDown);
-        Events.changesDiscarded.subscribe(this.changesDiscarded);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         document.removeEventListener('keydown', this.handleKeyDown);
-        Events.changesDiscarded.unsubscribe(this.changesDiscarded);
     }
 
     /** @type {MasRepository} */
@@ -75,17 +86,9 @@ export default class EditorPanel extends LitElement {
         return document.querySelector('mas-repository');
     }
 
-    /** @type {FragmentStore | null} */
-    get fragmentStore() {
-        if (this.discarded) return null;
-        if (!this.fragmentStoreController.store) return null;
-        return this.fragmentStoreController.store;
-    }
-
     /** @type {Fragment | null} */
     get fragment() {
-        if (!this.fragmentStore?.value) return null;
-        return this.fragmentStore.value;
+        return this.inEdit?.value;
     }
 
     updatePosition(position) {
@@ -109,24 +112,19 @@ export default class EditorPanel extends LitElement {
         const currentId = this.fragment?.id;
         if (id === currentId) return;
         const wasEmpty = !currentId;
-        if (!wasEmpty && !Store.editor.close()) return;
+        // If there is an existing fragment and unsaved changes,
+        // prompt to discard before switching.
+        if (!wasEmpty && !(await this.closeEditor())) return;
         if (x) {
             const newPosition = x > window.innerWidth / 2 ? 'left' : 'right';
             this.updatePosition(newPosition);
         }
-        Store.fragments.inEdit.set(store.value);
+        this.inEdit.set(store.value);
         await this.repository.refreshFragment(store);
     }
 
-    async changesDiscarded() {
-        this.discarded = true;
-        this.requestUpdate();
-        await this.updateComplete;
-        this.discarded = false;
-    }
-
     handleKeyDown(event) {
-        if (event.code === 'Escape') Store.editor.close();
+        if (event.code === 'Escape') this.closeEditor();
         if (!event.ctrlKey) return;
         if (event.code === 'ArrowLeft' && event.shiftKey)
             this.updatePosition('left');
@@ -148,27 +146,24 @@ export default class EditorPanel extends LitElement {
     }
 
     async copyToUse() {
-        //@TODO make it generic.
+        // @TODO make it generic.
         const code = `<merch-card><aem-fragment fragment="${this.fragment?.id}"></aem-fragment></merch-card>`;
         try {
             await navigator.clipboard.writeText(code);
-            this.showToast('Code copied to clipboard', 'positive');
-        } catch (e) {
-            this.showToast('Failed to copy code to clipboard', 'negative');
-        }
+        } catch (e) {}
     }
 
     #updateFragmentInternal(event) {
         const fieldName = event.target.dataset.field;
         let value = event.target.value;
-        this.fragmentStore.updateFieldInternal(fieldName, value);
+        this.inEdit.updateFieldInternal(fieldName, value);
     }
 
     updateFragment(event) {
         const fieldName = event.target.dataset.field;
         let value = event.target.value || event.detail?.value;
         value = event.target.multiline ? value?.split(',') : [value ?? ''];
-        this.fragmentStore.updateField(fieldName, value);
+        this.inEdit.updateField(fieldName, value);
     }
 
     async deleteFragment() {
@@ -180,11 +175,9 @@ export default class EditorPanel extends LitElement {
         this.showDeleteDialog = false;
         try {
             await this.repository.deleteFragment(this.fragment);
-            this.showToast('Fragment deleted successfully', 'positive');
-            Store.editor.close();
+            await this.closeEditor();
         } catch (error) {
             console.error('Error deleting fragment:', error);
-            this.showToast('Failed to delete fragment', 'negative');
         }
     }
 
@@ -192,140 +185,229 @@ export default class EditorPanel extends LitElement {
         this.showDeleteDialog = false;
     }
 
+    /**
+     * Prompts the user to confirm discarding changes.
+     * Returns a Promise that resolves with true if the user confirms,
+     * or false if the user cancels.
+     */
+    promptDiscardChanges() {
+        return new Promise((resolve) => {
+            this.#discardPromiseResolver = resolve;
+            this.showDiscardDialog = true;
+        });
+    }
+
+    /**
+     * Called when the user confirms discarding changes.
+     */
+    discardConfirmed() {
+        this.showDiscardDialog = false;
+        if (this.#discardPromiseResolver) {
+            this.#discardPromiseResolver(true);
+            this.#discardPromiseResolver = null;
+        }
+    }
+
+    /**
+     * Called when the user cancels the discard confirmation.
+     */
+    cancelDiscard() {
+        this.showDiscardDialog = false;
+        if (this.#discardPromiseResolver) {
+            this.#discardPromiseResolver(false);
+            this.#discardPromiseResolver = null;
+        }
+    }
+
+    /**
+     * Handler for the toolbar “Discard” action.
+     * Uses the same prompt so that the user always sees a consistent confirmation.
+     */
+    async onToolbarDiscard() {
+        if (Store.editor.hasChanges) {
+            const confirmed = await this.promptDiscardChanges();
+            if (confirmed) {
+                const fragment = this.fragment;
+                this.inEdit.discardChanges();
+                this.inEdit.set();
+                await this.updateComplete;
+                this.inEdit.set(fragment);
+            }
+        }
+    }
+
+    /**
+     * Closes the editor.
+     * If there are unsaved changes, the user is prompted to confirm discarding them.
+     * Returns a Promise that resolves to true if the editor was closed,
+     * or false if the operation was canceled.
+     */
+    async closeEditor() {
+        if (Store.editor.hasChanges) {
+            const confirmed = await this.promptDiscardChanges();
+            if (!confirmed) {
+                return false;
+            }
+            // The user confirmed – discard changes.
+            this.inEdit.discardChanges();
+        }
+        this.inEdit.set(null);
+        return true;
+    }
+
     get fragmentEditorToolbar() {
-        return html`<div id="editor-toolbar">
-            <sp-action-group
-                aria-label="Fragment actions"
-                role="group"
-                size="l"
-                compact
-                emphasized
-                quiet
-            >
-                <sp-action-button
-                    label="Move left"
-                    title="Move left"
-                    value="left"
-                    id="move-left"
-                    @click="${() => this.updatePosition('left')}"
+        return html`
+            <div id="editor-toolbar">
+                <sp-action-group
+                    aria-label="Fragment actions"
+                    role="group"
+                    size="l"
+                    compact
+                    emphasized
+                    quiet
                 >
-                    <sp-icon-chevron-left slot="icon"></sp-icon-chevron-left>
-                    <sp-tooltip self-managed placement="bottom"
-                        >Move left</sp-tooltip
+                    <sp-action-button
+                        label="Move left"
+                        title="Move left"
+                        value="left"
+                        id="move-left"
+                        @click="${() => this.updatePosition('left')}"
                     >
-                </sp-action-button>
-                <sp-action-button
-                    label="Save"
-                    title="Save changes"
-                    value="save"
-                    ?disabled="${!Store.editor.hasChanges}"
-                    @click="${this.repository.saveFragment}"
-                >
-                    <sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>
-                    <sp-tooltip self-managed placement="bottom"
-                        >Save changes</sp-tooltip
+                        <sp-icon-chevron-left
+                            slot="icon"
+                        ></sp-icon-chevron-left>
+                        <sp-tooltip self-managed placement="bottom"
+                            >Move left</sp-tooltip
+                        >
+                    </sp-action-button>
+                    <sp-action-button
+                        label="Save"
+                        title="Save changes"
+                        value="save"
+                        ?disabled="${!Store.editor.hasChanges}"
+                        @click="${this.repository.saveFragment}"
                     >
-                </sp-action-button>
-                <sp-action-button
-                    label="Discard"
-                    title="Discard changes"
-                    value="discard"
-                    ?disabled="${!Store.editor.hasChanges}"
-                    @click="${Store.editor.discardChanges}"
-                >
-                    <sp-icon-undo slot="icon"></sp-icon-undo>
-                    <sp-tooltip self-managed placement="bottom"
-                        >Discard changes</sp-tooltip
+                        ${this.operation.equals(OPERATIONS.SAVE)
+                            ? html`<sp-progress-circle
+                                  indeterminate
+                                  size="s"
+                              ></sp-progress-circle>`
+                            : html`<sp-icon-save-floppy
+                                  slot="icon"
+                              ></sp-icon-save-floppy>`}
+                        <sp-tooltip self-managed placement="bottom"
+                            >Save changes</sp-tooltip
+                        >
+                    </sp-action-button>
+                    <sp-action-button
+                        label="Discard"
+                        title="Discard changes"
+                        value="discard"
+                        ?disabled="${!Store.editor.hasChanges}"
+                        @click="${this.onToolbarDiscard}"
                     >
-                </sp-action-button>
-                <sp-action-button
-                    label="Clone"
-                    value="clone"
-                    @click="${this.repository.copyFragment}"
-                >
-                    <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
-                    <sp-tooltip self-managed placement="bottom"
-                        >Clone</sp-tooltip
+                        <sp-icon-undo slot="icon"></sp-icon-undo>
+                        <sp-tooltip self-managed placement="bottom"
+                            >Discard changes</sp-tooltip
+                        >
+                    </sp-action-button>
+                    <sp-action-button
+                        label="Clone"
+                        value="clone"
+                        @click="${this.repository.copyFragment}"
                     >
-                </sp-action-button>
-                <sp-action-button
-                    label="Publish"
-                    value="publish"
-                    @click="${this.repository.publishFragment}"
-                >
-                    <sp-icon-publish-check slot="icon"></sp-icon-publish-check>
-                    <sp-tooltip self-managed placement="bottom"
-                        >Publish</sp-tooltip
+                        <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
+                        <sp-tooltip self-managed placement="bottom"
+                            >Clone</sp-tooltip
+                        >
+                    </sp-action-button>
+                    <sp-action-button
+                        label="Publish"
+                        value="publish"
+                        @click="${this.repository.publishFragment}"
                     >
-                </sp-action-button>
-                <sp-action-button
-                    label="Unpublish"
-                    value="unpublish"
-                    @click="${this.repository.unpublishFragment}"
-                    disabled
-                >
-                    <sp-icon-publish-remove
-                        slot="icon"
-                    ></sp-icon-publish-remove>
-                    <sp-tooltip self-managed placement="bottom"
-                        >Unpublish</sp-tooltip
+                        <sp-icon-publish-check
+                            slot="icon"
+                        ></sp-icon-publish-check>
+                        <sp-tooltip self-managed placement="bottom"
+                            >Publish</sp-tooltip
+                        >
+                    </sp-action-button>
+                    <sp-action-button
+                        label="Unpublish"
+                        value="unpublish"
+                        @click="${this.repository.unpublishFragment}"
+                        disabled
                     >
-                </sp-action-button>
-                <sp-action-button
-                    label="Open in Odin"
-                    value="open"
-                    @click="${this.openFragmentInOdin}"
-                >
-                    <sp-icon-open-in slot="icon"></sp-icon-open-in>
-                    <sp-tooltip self-managed placement="bottom"
-                        >Open in Odin</sp-tooltip
+                        <sp-icon-publish-remove
+                            slot="icon"
+                        ></sp-icon-publish-remove>
+                        <sp-tooltip self-managed placement="bottom"
+                            >Unpublish</sp-tooltip
+                        >
+                    </sp-action-button>
+                    <sp-action-button
+                        label="Open in Odin"
+                        value="open"
+                        @click="${this.openFragmentInOdin}"
                     >
-                </sp-action-button>
-                <sp-action-button
-                    label="Use"
-                    value="use"
-                    @click="${this.copyToUse}"
-                >
-                    <sp-icon-code slot="icon"></sp-icon-code>
-                    <sp-tooltip self-managed placement="bottom">Use</sp-tooltip>
-                </sp-action-button>
-                <sp-action-button
-                    label="Delete fragment"
-                    value="delete"
-                    @click="${this.deleteFragment}"
-                >
-                    <sp-icon-delete-outline
-                        slot="icon"
-                    ></sp-icon-delete-outline>
-                    <sp-tooltip self-managed placement="bottom"
-                        >Delete fragment</sp-tooltip
+                        <sp-icon-open-in slot="icon"></sp-icon-open-in>
+                        <sp-tooltip self-managed placement="bottom"
+                            >Open in Odin</sp-tooltip
+                        >
+                    </sp-action-button>
+                    <sp-action-button
+                        label="Use"
+                        value="use"
+                        @click="${this.copyToUse}"
                     >
-                </sp-action-button>
-                <sp-action-button
-                    title="Close"
-                    label="Close"
-                    value="close"
-                    @click="${Store.editor.close}"
-                >
-                    <sp-icon-close-circle slot="icon"></sp-icon-close-circle>
-                    <sp-tooltip self-managed placement="bottom"
-                        >Close</sp-tooltip
+                        <sp-icon-code slot="icon"></sp-icon-code>
+                        <sp-tooltip self-managed placement="bottom"
+                            >Use</sp-tooltip
+                        >
+                    </sp-action-button>
+                    <sp-action-button
+                        label="Delete fragment"
+                        value="delete"
+                        @click="${this.deleteFragment}"
                     >
-                </sp-action-button>
-                <sp-action-button
-                    label="Move right"
-                    title="Move right"
-                    value="right"
-                    id="move-right"
-                    @click="${() => this.updatePosition('right')}"
-                >
-                    <sp-icon-chevron-right slot="icon"></sp-icon-chevron-right>
-                    <sp-tooltip self-managed placement="bottom"
-                        >Move right</sp-tooltip
+                        <sp-icon-delete-outline
+                            slot="icon"
+                        ></sp-icon-delete-outline>
+                        <sp-tooltip self-managed placement="bottom"
+                            >Delete fragment</sp-tooltip
+                        >
+                    </sp-action-button>
+                    <sp-action-button
+                        title="Close"
+                        label="Close"
+                        value="close"
+                        @click="${this.closeEditor}"
                     >
-                </sp-action-button>
-            </sp-action-group>
-        </div>`;
+                        <sp-icon-close-circle
+                            slot="icon"
+                        ></sp-icon-close-circle>
+                        <sp-tooltip self-managed placement="bottom"
+                            >Close</sp-tooltip
+                        >
+                    </sp-action-button>
+                    <sp-action-button
+                        label="Move right"
+                        title="Move right"
+                        value="right"
+                        id="move-right"
+                        @click="${() => this.updatePosition('right')}"
+                    >
+                        <sp-icon-chevron-right
+                            slot="icon"
+                        ></sp-icon-chevron-right>
+                        <sp-tooltip self-managed placement="bottom"
+                            >Move right</sp-tooltip
+                        >
+                    </sp-action-button>
+                </sp-action-group>
+            </div>
+        `;
     }
 
     get deleteConfirmationDialog() {
@@ -356,6 +438,40 @@ export default class EditorPanel extends LitElement {
                     @click="${this.confirmDelete}"
                 >
                     Delete
+                </sp-button>
+            </sp-dialog>
+        `;
+    }
+
+    get discardConfirmationDialog() {
+        if (!this.showDiscardDialog) return nothing;
+        return html`
+            <sp-underlay open @click="${this.cancelDiscard}"></sp-underlay>
+            <sp-dialog
+                open
+                variant="confirmation"
+                @sp-dialog-confirm="${this.discardConfirmed}"
+                @sp-dialog-dismiss="${this.cancelDiscard}"
+            >
+                <h1 slot="heading">Confirm Discard</h1>
+                <p>
+                    Are you sure you want to discard changes? This action cannot
+                    be undone.
+                </p>
+                <sp-button
+                    slot="button"
+                    variant="secondary"
+                    @click="${this.cancelDiscard}"
+                >
+                    Cancel
+                </sp-button>
+                <sp-button
+                    slot="button"
+                    variant="accent"
+                    id="btnDiscard"
+                    @click="${this.discardConfirmed}"
+                >
+                    Discard
                 </sp-button>
             </sp-dialog>
         `;
@@ -394,42 +510,26 @@ export default class EditorPanel extends LitElement {
 
     render() {
         if (!this.fragment) return nothing;
-        return html`<div id="editor">
-            ${this.fragmentStore.loading
-                ? html`
-                      <sp-progress-circle
-                          indeterminate
-                          size="l"
-                      ></sp-progress-circle>
-                  `
-                : nothing}
-            ${this.fragmentEditorToolbar}
-            <p>${this.fragment.path}</p>
-            <merch-card-editor
-                .fragment=${this.fragment}
-                .fragmentStore=${this.fragmentStore}
-                .updateFragment=${this.updateFragment}
-            ></merch-card-editor>
-            <sp-divider size="s"></sp-divider>
-            ${this.fragmentEditor} ${this.deleteConfirmationDialog}
-        </div>`;
+        if (this.inEdit.loading)
+            return html`<sp-progress-circle
+                indeterminate
+                size="l"
+            ></sp-progress-circle>`;
+        return html`
+            <div id="editor">
+                ${this.fragmentEditorToolbar}
+                <p>${this.fragment.path}</p>
+                <merch-card-editor
+                    .fragment=${this.fragment}
+                    .fragmentStore=${this.inEdit}
+                    .updateFragment=${this.updateFragment}
+                ></merch-card-editor>
+                <sp-divider size="s"></sp-divider>
+                ${this.fragmentEditor} ${this.deleteConfirmationDialog}
+                ${this.discardConfirmationDialog}
+            </div>
+        `;
     }
 }
 
 customElements.define('editor-panel', EditorPanel);
-
-/**
- * @returns {EditorPanel}
- */
-export function getEditorPanel() {
-    return document.querySelector('editor-panel');
-}
-
-/**
- * @param {FragmentStore} store
- * @param {number | undefined} x - The clientX value of the mouse event (used for positioning - optional)
- */
-export async function editFragment(store, x) {
-    const editor = getEditorPanel();
-    editor.editFragment(store, x);
-}

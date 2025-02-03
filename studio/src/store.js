@@ -1,36 +1,14 @@
-import { Fragment } from './aem/fragment.js';
 import MasFilters from './entities/filters.js';
 import MasSearch from './entities/search.js';
 import { reactiveStore } from './reactivity/reactive-store.js';
 import { WCS_ENV_PROD } from './constants.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
-import Events from './events.js';
 
 const params = Object.fromEntries(
     new URLSearchParams(window.location.hash.slice(1)),
 );
 const initialSearch = MasSearch.fromHash();
 const initialFilters = MasFilters.fromHash();
-
-function discardChanges() {
-    if (!Store.editor.hasChanges) return;
-    Store.fragments.inEdit.discardChanges();
-    Events.changesDiscarded.emit();
-}
-
-function closeEditor() {
-    if (Store.editor.hasChanges) {
-        if (window.confirm('Discard all current changes?')) {
-            Store.editor.discardChanges();
-            Store.fragments.inEdit.set(null);
-            return true;
-        } else {
-            return false;
-        }
-    }
-    Store.fragments.inEdit.set(null);
-    return true;
-}
 
 const Store = {
     fragments: {
@@ -45,9 +23,8 @@ const Store = {
         },
         inEdit: new FragmentStore(null),
     },
+    operation: reactiveStore(), // current operation in progress, editor ones as well as batch ones
     editor: {
-        close: closeEditor,
-        discardChanges,
         get hasChanges() {
             return Store.fragments.inEdit.get()?.hasChanges || false;
         },
@@ -105,13 +82,7 @@ export default Store;
 
 /** Utils */
 
-/**
- * Shortcut for retrieveing the underlying in edit fragment
- * @returns {Fragment}
- */
-export function getInEditFragment() {
-    return Store.fragments.inEdit.get();
-}
+const editorPanel = () => document.querySelector('editor-panel');
 
 export function toggleSelection(id) {
     const selection = Store.selection.get();
@@ -122,9 +93,17 @@ export function toggleSelection(id) {
     else Store.selection.set([...selection, id]);
 }
 
+export function editFragment(store, x) {
+    editorPanel().editFragment(store, x);
+}
+
 export function navigateToPage(value) {
-    return () => {
-        if (Store.editor.close()) {
+    return async () => {
+        const confirmed =
+            !Store.editor.hasChanges ||
+            (await editorPanel().promptDiscardChanges());
+        if (confirmed) {
+            Store.fragments.inEdit.set();
             Store.currentPage.set(value);
         }
     };

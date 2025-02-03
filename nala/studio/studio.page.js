@@ -18,6 +18,9 @@ export default class StudioPage {
         this.suggestedCard = page.locator(
             'merch-card[variant="ccd-suggested"]',
         );
+        this.toastPositive = page.locator(
+            'mas-toast >> sp-toast[variant="positive"]',
+        );
         this.sliceCard = page.locator('merch-card[variant="ccd-slice"]');
         this.sliceCardWide = page.locator(
             'merch-card[variant="ccd-slice"][size="wide"]',

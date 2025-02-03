@@ -138,17 +138,21 @@ test.describe('M@S Studio feature test suite', () => {
             await studio.searchInput.fill(data.cardid);
             await page.keyboard.press('Enter');
             await page.waitForTimeout(2000);
-            expect(await studio.getCard(data.cardid, 'suggested')).toBeVisible;
+            expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).toBeVisible();
         });
 
         await test.step('step-2: Open card editor', async () => {
             expect(await studio.getCard(data.cardid, 'suggested')).toBeVisible;
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            expect(await studio.editorPanel).toBeVisible;
+            await expect(await studio.editorPanel).toBeVisible();
         });
 
         await test.step('step-3: Edit title field', async () => {
-            expect(await studio.editorPanel.title).toBeVisible;
+            expect(
+                await studio.editorPanel.locator(studio.editorTitle),
+            ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
             ).toHaveValue(`${data.title}`);
@@ -192,13 +196,19 @@ test.describe('M@S Studio feature test suite', () => {
             await studio.searchInput.fill(data.cardid);
             await page.keyboard.press('Enter');
             await page.waitForTimeout(2000);
-            expect(await studio.getCard(data.cardid, 'suggested')).toBeVisible;
+            expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).toBeVisible();
         });
 
         await test.step('step-2: Open card editor', async () => {
-            expect(await studio.getCard(data.cardid, 'suggested')).toBeVisible;
+            expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).toBeVisible();
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            expect(await studio.editorPanel).toBeVisible;
+            expect(
+                await studio.editorPanel.locator(studio.editorTitle),
+            ).toBeVisible();
         });
 
         await test.step('step-3: Clone card and open editor', async () => {
@@ -222,7 +232,9 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-4: Edit fields and save card', async () => {
-            expect(await studio.editorPanel.title).toBeVisible;
+            expect(
+                await studio.editorPanel.locator(studio.editorTitle),
+            ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
             ).toHaveValue(`${data.title}`);

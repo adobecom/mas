@@ -14,7 +14,7 @@ export default class StudioPage {
         this.topFolder = page.locator('sp-picker[label="TopFolder"] > button');
         this.renderView = page.locator('#render');
         this.quickActions = page.locator('.quick-actions');
-        this.editorPanel = page.locator('editor-panel');
+        this.editorPanel = page.locator('editor-panel > #editor');
         this.suggestedCard = page.locator(
             'merch-card[variant="ccd-suggested"]',
         );

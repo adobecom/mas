@@ -7,7 +7,6 @@ class MasSideNav extends LitElement {
             grid-column: 1 / 2;
             display: flex;
             flex-direction: column;
-            overflow-y: auto;
         }
 
         side-nav sp-sidenav {

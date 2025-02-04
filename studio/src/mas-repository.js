@@ -130,6 +130,7 @@ export class MasRepository extends LitElement {
         const dataStore = Store.fragments.list.data;
         const path = this.search.value.path;
         const query = this.search.value.query;
+        const tags = this.search.value.tags;
 
         if (
             !looseEquals(dataStore.getMeta('path'), path) ||
@@ -143,6 +144,7 @@ export class MasRepository extends LitElement {
         const localSearch = {
             ...this.search.value,
             path: getDamPath(path) + Store.locale.path,
+            tags,
         };
         const fragments = [];
 
@@ -216,7 +218,6 @@ export class MasRepository extends LitElement {
                 {
                     sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
                     path: `/content/dam/mas/${path}`,
-                    // tags: ['mas:status/DEMO']
                 },
                 this.recentlyUpdatedLimit.value,
                 this.#abortControllers.recentlyUpdated,

@@ -383,9 +383,10 @@ class AemTagPickerField extends LitElement {
         });
     }
 
-    applySelection() {
+    async applySelection() {
         this.value = [...this.tempValue];
         this.overlayTrigger.open = false;
+        await this.updateComplete;
         this.dispatchEvent(
             new CustomEvent('change', {
                 bubbles: true,

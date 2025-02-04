@@ -39,12 +39,13 @@ class MasFilterPanel extends LitElement {
     }
 
     #handleTagChange(event) {
-        this.tags = event.target.value;
+        const tags = event.target.getAttribute('value');
+        this.tags = tags ? tags.split(',') : [];
         Store.search.set({ ...Store.search.get(), tags: this.tags });
     }
 
     #handleLocaleChange(event) {
-        Store.locale.current.set(event.target.value);
+        Store.locale.current.set(event.targetvalue);
     }
 
     render() {
@@ -55,7 +56,7 @@ class MasFilterPanel extends LitElement {
                     namespace="/content/cq:tags/mas"
                     top="product"
                     selection="checkbox"
-                    .value=${this.tags}
+                    value=${this.tags}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
@@ -63,7 +64,7 @@ class MasFilterPanel extends LitElement {
                     namespace="/content/cq:tags/mas"
                     top="customer_segment"
                     selection="checkbox"
-                    .value=${this.tags}
+                    value=${this.tags}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
@@ -71,7 +72,7 @@ class MasFilterPanel extends LitElement {
                     namespace="/content/cq:tags/mas"
                     top="offer_type"
                     selection="checkbox"
-                    .value=${this.tags}
+                    value=${this.tags}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
@@ -79,7 +80,7 @@ class MasFilterPanel extends LitElement {
                     namespace="/content/cq:tags/mas"
                     top="plan_type"
                     selection="checkbox"
-                    .value=${this.tags}
+                    value=${this.tags}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
@@ -87,7 +88,7 @@ class MasFilterPanel extends LitElement {
                     namespace="/content/cq:tags/mas"
                     top="market_segments"
                     selection="checkbox"
-                    .value=${this.tags}
+                    value=${this.tags}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 

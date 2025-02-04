@@ -63,6 +63,7 @@ const Store = {
         ],
     },
     search: reactiveStore(initialSearch),
+    searchTags: reactiveStore(initialSearchTags),
     filters: reactiveStore(initialFilters),
     renderMode: reactiveStore(
         localStorage.getItem('mas-render-mode') || 'render',

@@ -35,17 +35,14 @@
             import { delay, initElementFromTemplate } from '../utils.js';
 
             runTests(async () => {
-                describe('aem-tag-picker-field custom element', async () => {
-                    let fetchPromise;
-                    before(() => {
-                        const originalFetch = window.fetch;
-                        window.fetch = async () => {
-                            fetchPromise = originalFetch(
-                                '/test/mocks/tags.json',
-                            );
-                            return fetchPromise;
-                        };
-                    });
+                let fetchPromise;
+                const originalFetch = window.fetch;
+                window.fetch = async () => {
+                    fetchPromise = originalFetch('/test/mocks/tags.json');
+                    return fetchPromise;
+                };
+
+                describe('aem-tag-picker-field custom element: tag-picker', async () => {
                     it('Serializes to value attribute', async function () {
                         let value = toAttribute([]);
                         expect(value).to.equal('');
@@ -113,6 +110,21 @@
                         ]);
                     });
 
+                    it('Dispatches a change event on add/remove', async function () {
+                        const aemTagPicker = initElementFromTemplate(
+                            'tagPicker2',
+                            this.test.title,
+                        );
+                        const listener = oneEvent(aemTagPicker, 'change');
+                        await aemTagPicker.toggleTag(
+                            '/content/cq:tags/mas/status/draft',
+                        );
+                        await listener;
+                        expect(aemTagPicker.value).to.deep.equal([
+                            '/content/cq:tags/mas/status/draft',
+                        ]);
+                    });
+
                     it('Allows to delete tags', async function () {
                         const aemTagPicker = initElementFromTemplate(
                             'tagPicker2',
@@ -143,11 +155,13 @@
                         await aemTagPicker.updateComplete;
                         expect(
                             aemTagPicker.shadowRoot.querySelector(
-                                'sp-action-button',
+                                'sp-action-button' /* tag picker button */,
                             ),
                         ).to.not.be.null;
                     });
+                });
 
+                describe('aem-tag-picker-field custom element: checkbox', async () => {
                     it('Should not alter tags outside the scope of the picker', async function () {
                         const aemTagPicker = initElementFromTemplate(
                             'tagPicker4',
@@ -167,88 +181,53 @@
                         ]);
                     });
 
-                    it('Dispatches a change event on add/remove', async function () {
+                    it('Dispatches a change event on click to Apply button', async function () {
                         const aemTagPicker = initElementFromTemplate(
-                            'tagPicker2',
+                            'tagPicker5',
                             this.test.title,
                         );
                         const listener = oneEvent(aemTagPicker, 'change');
-                        await aemTagPicker.toggleTag(
-                            '/content/cq:tags/mas/status/draft',
-                        );
-                        await listener;
-                        expect(aemTagPicker.value).to.deep.equal([
-                            '/content/cq:tags/mas/status/draft',
-                        ]);
-                    });
-
-                    it('Renders tags using sp-picker when selection is picker', async function () {
-                        const aemTagPicker = initElementFromTemplate(
-                            'tagPicker5',
-                            this.test.title,
-                        );
                         await aemTagPicker.loadTags();
                         await aemTagPicker.updateComplete;
 
-                        const picker =
-                            aemTagPicker.shadowRoot.querySelector('sp-picker');
-                        expect(picker).to.not.be.null;
-                        const items = picker.querySelectorAll('sp-menu-item');
-                        expect(items.length).to.be.above(0);
-                    });
+                        aemTagPicker.shadowRoot
+                            .querySelector('sp-action-button')
+                            .click();
+                        await delay(50);
 
-                    it('Tags are sorted alphabetically in picker', async function () {
-                        const aemTagPicker = initElementFromTemplate(
-                            'tagPicker4',
-                            this.test.title,
-                        );
-                        await aemTagPicker.loadTags();
-                        await aemTagPicker.updateComplete;
-                        const picker =
-                            aemTagPicker.shadowRoot.querySelector('sp-picker');
-                        const items = picker.querySelectorAll('sp-menu-item');
-                        const titles = Array.from(items).map((item) =>
-                            item.textContent.trim(),
-                        );
-                        const sortedTitles = [...titles].sort((a, b) =>
-                            a.localeCompare(b, undefined, {
-                                sensitivity: 'base',
-                            }),
-                        );
-                        expect(titles).to.deep.equal(sortedTitles);
-                    });
+                        const checkboxList =
+                            aemTagPicker.shadowRoot.querySelector(
+                                '.checkbox-list',
+                            );
 
-                    it('Dispatches a change event on tag selection via sp-picker', async function () {
-                        const aemTagPicker = initElementFromTemplate(
-                            'tagPicker5',
-                            this.test.title,
-                        );
-                        await aemTagPicker.loadTags();
-                        await aemTagPicker.updateComplete;
-
-                        const picker =
-                            aemTagPicker.shadowRoot.querySelector('sp-picker');
-                        expect(picker).to.not.be.null;
+                        const applyButton =
+                            aemTagPicker.shadowRoot.querySelector(
+                                'sp-button[variant="accent"]',
+                            );
+                        expect(applyButton).to.not.be.null;
 
                         // Setup listener before interaction
-                        const listener = oneEvent(aemTagPicker, 'change');
 
                         // Get items
-                        const items = picker.querySelectorAll('sp-menu-item');
+                        const items =
+                            checkboxList.querySelectorAll('sp-checkbox');
                         expect(items.length).to.be.above(0);
 
                         // Get the first item's value and toggle it
                         const firstItem = items[0];
-                        const value = firstItem.getAttribute('value');
-                        await aemTagPicker.toggleTag(value);
-
+                        firstItem.click();
+                        await delay(50);
                         // Wait for the change event
+                        applyButton.click();
+                        await delay(50);
                         const event = await listener;
                         expect(event.type).to.equal('change');
-                        expect(aemTagPicker.value).to.include(value);
+                        expect(aemTagPicker.getAttribute('value')).to.include(
+                            'mas:status/archived',
+                        );
                     });
 
-                    it('Renders initial value in picker mode', async function () {
+                    it('Tags are sorted alphabetically in picker', async function () {
                         const aemTagPicker = initElementFromTemplate(
                             'tagPicker6',
                             this.test.title,
@@ -256,27 +235,28 @@
                         await aemTagPicker.loadTags();
                         await aemTagPicker.updateComplete;
 
-                        const picker =
-                            aemTagPicker.shadowRoot.querySelector('sp-picker');
-                        expect(picker).to.not.be.null;
+                        aemTagPicker.shadowRoot
+                            .querySelector('sp-action-button')
+                            .click();
+                        await delay(50);
 
-                        const items = picker.querySelectorAll('sp-menu-item');
+                        const checkboxList =
+                            aemTagPicker.shadowRoot.querySelector(
+                                '.checkbox-list',
+                            );
+
+                        const items =
+                            checkboxList.querySelectorAll('sp-checkbox');
                         expect(items.length).to.be.above(0);
 
-                        // Find the selected item
-                        const selectedValue =
-                            '/content/cq:tags/mas/product/dc/acrobat-classic';
-                        const selectedItem = Array.from(items).find(
-                            (item) =>
-                                item.getAttribute('value') === selectedValue,
+                        const actual = [...items].map((item) =>
+                            item.textContent.trim(),
                         );
-                        expect(selectedItem).to.not.be.undefined;
-
-                        // Verify component value (array) and picker value (string)
-                        expect(aemTagPicker.value).to.deep.equal([
-                            selectedValue,
+                        expect(actual).to.deep.equal([
+                            'ARCHIVED',
+                            'DOCUMENTATION',
+                            'DRAFT',
                         ]);
-                        expect(picker.value).to.equal(selectedValue);
                     });
                 });
             });
@@ -308,8 +288,9 @@
         <template id="tagPicker4">
             <aem-tag-picker-field
                 namespace="/content/cq:tags/mas"
-                top="cloud"
-                selection="checkbox"
+                value="mas:product/cc/photoshop"
+                top="status"
+                multiple
             ></aem-tag-picker-field>
         </template>
         <template id="tagPicker5">
@@ -323,10 +304,8 @@
         <template id="tagPicker6">
             <aem-tag-picker-field
                 namespace="/content/cq:tags/mas"
-                label="Select product"
-                top="product"
+                top="status"
                 selection="checkbox"
-                value="mas:product/dc/acrobat-classic"
             ></aem-tag-picker-field>
         </template>
     </body>

@@ -64,6 +64,7 @@ class MasFilterPanel extends LitElement {
                     top="customer_segment"
                     selection="checkbox"
                     .value=${this.tags}
+                    @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
                 <aem-tag-picker-field
@@ -71,6 +72,7 @@ class MasFilterPanel extends LitElement {
                     top="offer_type"
                     selection="checkbox"
                     .value=${this.tags}
+                    @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
                 <aem-tag-picker-field
@@ -78,6 +80,7 @@ class MasFilterPanel extends LitElement {
                     top="plan_type"
                     selection="checkbox"
                     .value=${this.tags}
+                    @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
                 <aem-tag-picker-field
@@ -85,6 +88,7 @@ class MasFilterPanel extends LitElement {
                     top="market_segments"
                     selection="checkbox"
                     .value=${this.tags}
+                    @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
                 <mas-locale-picker

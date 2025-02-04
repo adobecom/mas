@@ -94,6 +94,10 @@ class AemTagPickerField extends LitElement {
             margin-top: var(--margin-picker-top, 0px);
         }
 
+        sp-checkbox {
+            align-items: center;
+        }
+
         #content {
             padding: 8px;
         }
@@ -114,7 +118,6 @@ class AemTagPickerField extends LitElement {
         sp-popover.checkbox-popover {
             min-width: 248px;
             border-radius: 10px;
-            background: var(--Alias-background-app-frame-elevated, #fff);
         }
 
         .checkbox-list {
@@ -149,7 +152,6 @@ class AemTagPickerField extends LitElement {
         this.ready = false;
         this.selection = ''; // e.g., 'checkbox' | ''
         this.searchQuery = '';
-        this.open = false;
     }
 
     connectedCallback() {
@@ -335,7 +337,10 @@ class AemTagPickerField extends LitElement {
         );
     }
 
-    // Helps shift the popover downward if many sp-tags are displayed
+    get overlayTrigger() {
+        return this.shadowRoot.querySelector('overlay-trigger');
+    }
+
     get popoverElement() {
         return this.shadowRoot.querySelector('sp-popover');
     }
@@ -372,7 +377,7 @@ class AemTagPickerField extends LitElement {
     }
 
     resetSelection() {
-        this.tempValue = [...this.value];
+        this.tempValue = [];
         this.shadowRoot.querySelectorAll('sp-checkbox').forEach((checkbox) => {
             checkbox.checked = this.tempValue.includes(checkbox.value);
         });
@@ -380,7 +385,7 @@ class AemTagPickerField extends LitElement {
 
     applySelection() {
         this.value = [...this.tempValue];
-        this.open = false;
+        this.overlayTrigger.open = false;
         this.dispatchEvent(
             new CustomEvent('change', {
                 bubbles: true,
@@ -389,20 +394,13 @@ class AemTagPickerField extends LitElement {
         );
     }
 
-    #handleCheckoxMenuOpen() {
-        this.tempValue = [...this.value];
-    }
-
     #handleCheckoxMenuClose() {
         this.tempValue = [...this.value];
     }
 
-    /**
-     * - Clicking the action button toggles the popover.
-     * - The list of sp-checkbox is scrollable if too large.
-     * - The footer shows # selected, plus Reset/Apply.
-     */
-    renderCheckboxMode() {
+    get checkboxMenu() {
+        if (!this.ready) return nothing;
+
         let filteredTags = this.flatTags;
         if (this.flatTags.length > 7) {
             filteredTags = this.flatTags.filter((path) =>
@@ -413,10 +411,61 @@ class AemTagPickerField extends LitElement {
         }
 
         return html`
+            <div id="content">
+                ${this.flatTags.length > 7
+                    ? html`
+                          <sp-search
+                              @input=${(e) =>
+                                  (this.searchQuery = e.target.value)}
+                              placeholder="Search"
+                          ></sp-search>
+                      `
+                    : nothing}
+                <div class="checkbox-list">
+                    ${repeat(
+                        filteredTags,
+                        (path) => path, // Unique key for each item
+                        (path) => {
+                            const checked = this.tempValue.includes(path);
+                            return html`
+                                <sp-checkbox
+                                    value="${path}"
+                                    ?checked=${checked}
+                                    @change=${this.#handleCheckboxToggle}
+                                >
+                                    ${this.#resolveTagTitle(path)}
+                                </sp-checkbox>
+                            `;
+                        },
+                    )}
+                </div>
+                <div id="footer">
+                    <span> ${this.selectedText} </span>
+                    <sp-button
+                        size="s"
+                        @click=${this.resetSelection}
+                        variant="secondary"
+                        treatment="outline"
+                    >
+                        Reset
+                    </sp-button>
+                    <sp-button size="s" @click=${this.applySelection}>
+                        Apply
+                    </sp-button>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * - Clicking the action button toggles the popover.
+     * - The list of sp-checkbox is scrollable if too large.
+     * - The footer shows # selected, plus Reset/Apply.
+     */
+    renderCheckboxMode() {
+        return html`
             <overlay-trigger
                 placement="bottom"
-                .open=${this.open}
-                @sp-opened=${this.#handleCheckoxMenuOpen}
                 @sp-closed=${this.#handleCheckoxMenuClose}
             >
                 <sp-action-button slot="trigger" quiet>
@@ -424,50 +473,8 @@ class AemTagPickerField extends LitElement {
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
 
-                <sp-popover
-                    slot="click-content"
-                    placement="bottom"
-                    class="checkbox-popover"
-                >
-                    <div id="content">
-                        ${this.flatTags.length > 7
-                            ? html`
-                                  <sp-search
-                                      @input=${(e) =>
-                                          (this.searchQuery = e.target.value)}
-                                      placeholder="Search"
-                                  ></sp-search>
-                              `
-                            : nothing}
-                        <div class="checkbox-list">
-                            ${filteredTags.map((path) => {
-                                const checked = this.tempValue.includes(path);
-                                return html`
-                                    <sp-checkbox
-                                        value="${path}"
-                                        ?checked=${checked}
-                                        @change=${this.#handleCheckboxToggle}
-                                    >
-                                        ${this.#resolveTagTitle(path)}
-                                    </sp-checkbox>
-                                `;
-                            })}
-                        </div>
-                        <div id="footer">
-                            <span> ${this.selectedText} </span>
-                            <sp-button
-                                size="s"
-                                @click=${this.resetSelection}
-                                variant="secondary"
-                                treatment="outline"
-                            >
-                                Reset
-                            </sp-button>
-                            <sp-button size="s" @click=${this.applySelection}>
-                                Apply
-                            </sp-button>
-                        </div>
-                    </div>
+                <sp-popover slot="click-content" class="checkbox-popover">
+                    ${this.checkboxMenu}
                 </sp-popover>
             </overlay-trigger>
         `;

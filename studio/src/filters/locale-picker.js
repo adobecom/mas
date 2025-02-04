@@ -13,7 +13,7 @@ class MasLocalePicker extends LitElement {
 
     render() {
         return html`
-            <sp-picker
+            <sp-combobox
                 label="Select Locale"
                 @change="${this.#handleChange}"
                 value="${this.value}"
@@ -21,12 +21,15 @@ class MasLocalePicker extends LitElement {
                 ${Store.locale.data.map(
                     (locale) => html`
                         <sp-menu-item value="${locale.code}">
-                            <span class="flag">${locale.flag}</span>
+                            <span slot="icon" class="flag"
+                                >YWES ${locale.flag}</span
+                            >
+                            <sp-icon-add slot="icon"></sp-icon-add>
                             ${locale.name}
                         </sp-menu-item>
                     `,
                 )}
-            </sp-picker>
+            </sp-combobox>
         `;
     }
 

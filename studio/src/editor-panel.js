@@ -206,7 +206,8 @@ export default class EditorPanel extends LitElement {
 
     updateFragment(event) {
         const fieldName = event.target.dataset.field;
-        let value = event.target.value || event.detail?.value;
+        let value =
+            event.target.value || event.detail?.value || event.target?.checked;
         value = event.target.multiline ? value?.split(',') : [value ?? ''];
         this.fragmentStore.updateField(fieldName, value);
         this.hasChanges = true;

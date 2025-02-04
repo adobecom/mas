@@ -157,9 +157,18 @@ class MerchCardEditor extends LitElement {
                     default-link-style="primary-outline"
                     @change="${this.#handleInput}"
                     ?readonly=${this.disabled}
-                    >${unsafeHTML(form.prices.values[0])}</rte-field
+                    >${unsafeHTML(form.prices?.values[0])}</rte-field
                 >
             </sp-field-group>
+            <sp-field-label for="promo-text">Promo Text</sp-field-label>
+            <sp-textfield
+                placeholder="Enter green promo text"
+                id="promo-text"
+                data-field="promoText"
+                value="${form.promoText?.values[0]}"
+                @input="${this.#handleInput}"
+                ?disabled=${this.disabled}
+            ></sp-textfield>
             <sp-field-group>
                 <sp-field-label for="description"> Description </sp-field-label>
                 <rte-field
@@ -174,11 +183,12 @@ class MerchCardEditor extends LitElement {
             </sp-field-group>
             <sp-checkbox
                 size="m"
-                data-value="${form.showStockCheckbox?.values[0]}"
-                checked="${form.showStockCheckbox?.values[0] === 'true'}"
+                data-field="showStockCheckbox"
+                value="${form.showStockCheckbox?.values[0]}"
+                .checked="${form.showStockCheckbox?.values[0]}"
                 @change="${this.#handleInput}"
                 ?disabled=${this.disabled}
-                >Show Stock Checkbox</sp-checkbox
+                >Stock Checkbox</sp-checkbox
             >
             <sp-field-group>
                 <sp-field-label for="footer"> Footer </sp-field-label>

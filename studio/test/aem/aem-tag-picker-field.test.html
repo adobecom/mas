@@ -199,7 +199,7 @@
 
                     it('Tags are sorted alphabetically in picker', async function () {
                         const aemTagPicker = initElementFromTemplate(
-                            'tagPicker5',
+                            'tagPicker4',
                             this.test.title,
                         );
                         await aemTagPicker.loadTags();
@@ -308,16 +308,15 @@
         <template id="tagPicker4">
             <aem-tag-picker-field
                 namespace="/content/cq:tags/mas"
-                top="status"
-                value="mas:product/cc/photoshop"
-                multiple
+                top="cloud"
+                selection="checkbox"
             ></aem-tag-picker-field>
         </template>
         <template id="tagPicker5">
             <aem-tag-picker-field
                 namespace="/content/cq:tags/mas"
-                label="Select product"
-                top="product"
+                label="Select status"
+                top="status"
                 selection="checkbox"
             ></aem-tag-picker-field>
         </template>

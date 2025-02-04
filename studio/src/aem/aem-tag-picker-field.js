@@ -45,7 +45,7 @@ class AemTagPickerField extends LitElement {
         label: { type: String },
         bucket: { type: String },
         // Controls whether popover is open in 'checkbox' mode
-        open: { type: Boolean },
+        open: { type: Boolean, state: true },
         // The actual selected tag paths (e.g., ["/content/cq:tags/namespace/top/foo"])
         value: {
             type: Array,
@@ -79,15 +79,11 @@ class AemTagPickerField extends LitElement {
             max-height: 326px;
         }
 
-        :host([selection='checkbox']) sp-dialog {
-            width: 100%;
-            height: 100%;
-        }
-
         sp-tags {
             width: 100%;
             position: relative;
         }
+
         sp-dialog {
             min-height: 340px;
             max-height: 50vh;
@@ -117,6 +113,8 @@ class AemTagPickerField extends LitElement {
 
         sp-popover.checkbox-popover {
             min-width: 248px;
+            border-radius: 10px;
+            background: var(--Alias-background-app-frame-elevated, #fff);
         }
 
         .checkbox-list {
@@ -370,11 +368,14 @@ class AemTagPickerField extends LitElement {
         const checkboxes = this.shadowRoot.querySelectorAll('sp-checkbox');
         this.tempValue = [...checkboxes]
             .filter((checkbox) => checkbox.checked)
-            .map((checkbox) => checkbox.value);
+            .map((checkbox) => checkbox.getAttribute('value'));
     }
 
     resetSelection() {
         this.tempValue = [...this.value];
+        this.shadowRoot.querySelectorAll('sp-checkbox').forEach((checkbox) => {
+            checkbox.checked = this.tempValue.includes(checkbox.value);
+        });
     }
 
     applySelection() {
@@ -386,6 +387,14 @@ class AemTagPickerField extends LitElement {
                 composed: true,
             }),
         );
+    }
+
+    #handleCheckoxMenuOpen() {
+        this.tempValue = [...this.value];
+    }
+
+    #handleCheckoxMenuClose() {
+        this.tempValue = [...this.value];
     }
 
     /**
@@ -404,7 +413,12 @@ class AemTagPickerField extends LitElement {
         }
 
         return html`
-            <overlay-trigger placement="bottom" .open=${this.open}>
+            <overlay-trigger
+                placement="bottom"
+                .open=${this.open}
+                @sp-opened=${this.#handleCheckoxMenuOpen}
+                @sp-closed=${this.#handleCheckoxMenuClose}
+            >
                 <sp-action-button slot="trigger" quiet>
                     ${this.triggerLabel}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
@@ -414,7 +428,6 @@ class AemTagPickerField extends LitElement {
                     slot="click-content"
                     placement="bottom"
                     class="checkbox-popover"
-                    @close=${() => (this.open = false)}
                 >
                     <div id="content">
                         ${this.flatTags.length > 7

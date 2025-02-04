@@ -24,7 +24,8 @@ class MasFilterPanel extends LitElement {
         }
     `;
 
-    #handleTagChange() {
+    #handleTagChange(event) {
+        
         Store.search.set({ ...Store.search.get(), tags: this.tags });
     }
 
@@ -41,7 +42,7 @@ class MasFilterPanel extends LitElement {
     render() {
         return html`
             <div id="filters-panel">
-                <span id="filters-label">Filters</span>
+                <sp-icon-filter size="s"></sp-icon-filter>
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
                     top="product"

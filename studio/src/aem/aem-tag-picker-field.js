@@ -103,7 +103,7 @@ class AemTagPickerField extends LitElement {
         }
 
         #footer {
-            width: 100%;
+            padding: 8px;
             height: 40px;
             align-items: center;
             display: flex;
@@ -113,6 +113,10 @@ class AemTagPickerField extends LitElement {
 
         #footer span {
             flex: 1;
+        }
+
+        sp-popover.checkbox-popover {
+            min-width: 248px;
         }
 
         .checkbox-list {
@@ -152,6 +156,7 @@ class AemTagPickerField extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        this.multiple = this.multiple ?? this.selection === SELECTION_CHECKBOX;
         this.#aem = new AEM(this.bucket, this.baseUrl);
         this.loadTags();
     }
@@ -337,6 +342,12 @@ class AemTagPickerField extends LitElement {
         return this.shadowRoot.querySelector('sp-popover');
     }
 
+    get selectedText() {
+        const count = this.tempValue.length;
+        if (count < 2) return `${count} tag selected`;
+        return `${count} tags selected`;
+    }
+
     async #updateMargin() {
         await this.updateComplete;
         if (
@@ -354,19 +365,12 @@ class AemTagPickerField extends LitElement {
         return this.multiple ? 'Select tags' : 'Select a tag';
     }
 
-    // -------------- Checkbox Mode Methods --------------
-
     #handleCheckboxToggle(event) {
         event.stopPropagation();
-        const path = event.target.value;
-        const current = [...this.tempValue];
-        const idx = current.indexOf(path);
-        if (idx > -1) {
-            current.splice(idx, 1);
-        } else {
-            current.push(path);
-        }
-        this.tempValue = current;
+        const checkboxes = this.shadowRoot.querySelectorAll('sp-checkbox');
+        this.tempValue = [...checkboxes]
+            .filter((checkbox) => checkbox.checked)
+            .map((checkbox) => checkbox.value);
     }
 
     resetSelection() {
@@ -376,6 +380,12 @@ class AemTagPickerField extends LitElement {
     applySelection() {
         this.value = [...this.tempValue];
         this.open = false;
+        this.dispatchEvent(
+            new CustomEvent('change', {
+                bubbles: true,
+                composed: true,
+            }),
+        );
     }
 
     /**
@@ -431,7 +441,7 @@ class AemTagPickerField extends LitElement {
                             })}
                         </div>
                         <div id="footer">
-                            <span> ${this.tempValue.length} Selected </span>
+                            <span> ${this.selectedText} </span>
                             <sp-button
                                 size="s"
                                 @click=${this.resetSelection}

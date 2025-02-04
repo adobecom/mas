@@ -1,9 +1,16 @@
 import { ReactiveStore } from './reactive-store.js';
 
 export class FragmentStore extends ReactiveStore {
+    loading = false;
+
     set(value) {
         super.set(value);
         this.refreshAemFragment();
+    }
+
+    setLoading(loading = false) {
+        this.loading = loading;
+        this.notify();
     }
 
     update(fn) {
@@ -30,12 +37,14 @@ export class FragmentStore extends ReactiveStore {
     }
 
     discardChanges() {
+        if (!this.value) return;
         this.value.discardChanges();
         this.notify();
         this.refreshAemFragment();
     }
 
     refreshAemFragment() {
+        if (!this.value) return;
         document
             .querySelector(`aem-fragment[fragment="${this.value.id}"]`)
             ?.refresh(false);

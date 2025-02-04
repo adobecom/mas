@@ -1,9 +1,8 @@
-import { Fragment } from './aem/fragment.js';
 import MasFilters from './entities/filters.js';
 import MasSearch from './entities/search.js';
 import { reactiveStore } from './reactivity/reactive-store.js';
 import { WCS_ENV_PROD } from './constants.js';
-import { getEditorPanel } from './editor-panel.js';
+import { FragmentStore } from './reactivity/fragment-store.js';
 
 const params = Object.fromEntries(
     new URLSearchParams(window.location.hash.slice(1)),
@@ -22,7 +21,13 @@ const Store = {
             data: reactiveStore([]),
             limit: reactiveStore(6),
         },
-        inEdit: reactiveStore(null),
+        inEdit: new FragmentStore(null),
+    },
+    operation: reactiveStore(), // current operation in progress, editor or content navigation batch operations
+    editor: {
+        get hasChanges() {
+            return Store.fragments.inEdit.get()?.hasChanges || false;
+        },
     },
     folders: {
         loaded: reactiveStore(false),
@@ -78,13 +83,7 @@ export default Store;
 
 /** Utils */
 
-/**
- * Shortcut for retrieveing the underlying in edit fragment
- * @returns {Fragment}
- */
-export function getInEditFragment() {
-    return Store.fragments.inEdit.get().get();
-}
+const editorPanel = () => document.querySelector('editor-panel');
 
 export function toggleSelection(id) {
     const selection = Store.selection.get();
@@ -95,10 +94,18 @@ export function toggleSelection(id) {
     else Store.selection.set([...selection, id]);
 }
 
+export function editFragment(store, x) {
+    editorPanel().editFragment(store, x);
+}
+
 export function navigateToPage(value) {
-    return function () {
-        const editor = getEditorPanel();
-        if (editor && !editor.close()) return;
-        Store.currentPage.set(value);
+    return async () => {
+        const confirmed =
+            !Store.editor.hasChanges ||
+            (await editorPanel().promptDiscardChanges());
+        if (confirmed) {
+            Store.fragments.inEdit.set();
+            Store.currentPage.set(value);
+        }
     };
 }

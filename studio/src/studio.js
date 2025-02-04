@@ -60,7 +60,6 @@ class MasStudio extends LitElement {
 
     currentPage = new StoreController(this, Store.currentPage);
     commerceEnv = new StoreController(this, Store.commerceEnv);
-    currentPage = new StoreController(this, Store.currentPage);
 
     get content() {
         if (this.currentPage.value !== 'content') return nothing;

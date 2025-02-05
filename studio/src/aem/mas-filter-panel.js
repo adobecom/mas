@@ -63,12 +63,7 @@ class MasFilterPanel extends LitElement {
                     <sp-menu-item>Gov</sp-menu-item>
                 </sp-picker>
 
-                <sp-picker label="Country">
-                    <sp-menu-item>United States</sp-menu-item>
-                    <sp-menu-item>United Kingdom</sp-menu-item>
-                    <sp-menu-item>Canada</sp-menu-item>
-                    <sp-menu-item>Australia</sp-menu-item>
-                </sp-picker>
+                <mas-locale-picker></mas-locale-picker>
             </div>
         `;
     }

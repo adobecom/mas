@@ -3,6 +3,7 @@ const SUCCESS = 'success';
 const ERROR = 'error';
 const OK = 'ok';
 const FAIL = 'fail';
+
 async function main(params) {
     const checkEndpoint = async (endpoint, validateJson) => {
         let result = OK;

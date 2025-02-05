@@ -258,6 +258,24 @@
                             'DRAFT',
                         ]);
                     });
+
+                    it('a search bar is down for more than 7 items', async function () {
+                        const aemTagPicker = initElementFromTemplate(
+                            'tagPicker7',
+                            this.test.title,
+                        );
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        aemTagPicker.shadowRoot
+                            .querySelector('sp-action-button')
+                            .click();
+                        await delay(50);
+
+                        const spSearch =
+                            aemTagPicker.shadowRoot.querySelector('sp-search');
+                        expect(spSearch).to.not.be.null;
+                    });
                 });
             });
         </script>
@@ -305,6 +323,14 @@
             <aem-tag-picker-field
                 namespace="/content/cq:tags/mas"
                 top="status"
+                selection="checkbox"
+            ></aem-tag-picker-field>
+        </template>
+        <template id="tagPicker7">
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="product"
+                label="Select a product"
                 selection="checkbox"
             ></aem-tag-picker-field>
         </template>

@@ -52,6 +52,7 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-open-in.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-promote.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-publish-check.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-publish-remove.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-refresh.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-remove.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-save-floppy.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-selection-checked.js';

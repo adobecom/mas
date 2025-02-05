@@ -75,7 +75,7 @@ class AemTagPickerField extends LitElement {
         }
 
         :host([selection='checkbox']) {
-            width: 248px;
+            max-width: 248px;
             max-height: 326px;
         }
 
@@ -169,6 +169,11 @@ class AemTagPickerField extends LitElement {
     // Returns the cached data for this namespace (if loaded)
     get #data() {
         return namespaces[this.namespace];
+    }
+
+    clear() {
+        this.value = [];
+        this.tempValue = [];
     }
 
     async loadTags() {

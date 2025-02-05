@@ -1,22 +1,15 @@
-import { html, css, LitElement } from 'lit';
+import { html, css, LitElement, nothing } from 'lit';
 import Store from '../store.js';
+import ReactiveController from '../reactivity/reactive-controller.js';
 
 class MasFilterPanel extends LitElement {
     static styles = css`
         :host {
             display: flex;
-        }
-
-        #filters-panel {
-            display: flex;
+            min-height: 32px;
             gap: 10px;
             align-items: center;
             flex-wrap: wrap;
-
-            & aem-tag-picker-field,
-            sp-picker {
-                width: 150px;
-            }
         }
 
         #filters-label {
@@ -33,52 +26,67 @@ class MasFilterPanel extends LitElement {
         Store.search.set({ ...Store.search.get(), tags });
     }
 
+    #handleRefresh() {
+        Store.search.set({ ...Store.search.get(), tags: [] });
+        this.shadowRoot
+            .querySelectorAll('aem-tag-picker-field')
+            .forEach((tagPicker) => {
+                tagPicker.clear();
+            });
+    }
+
     render() {
         return html`
-            <div id="filters-panel">
-                ${this.filterIcon}
-                <aem-tag-picker-field
-                    namespace="/content/cq:tags/mas"
-                    top="offer_type"
-                    label="Offer Type"
-                    selection="checkbox"
-                    @change=${this.#handleTagChange}
-                ></aem-tag-picker-field>
+            ${this.filterIcon}
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="offer_type"
+                label="Offer Type"
+                selection="checkbox"
+                @change=${this.#handleTagChange}
+            ></aem-tag-picker-field>
 
-                <aem-tag-picker-field
-                    namespace="/content/cq:tags/mas"
-                    top="plan_type"
-                    label="Plan Type"
-                    selection="checkbox"
-                    @change=${this.#handleTagChange}
-                ></aem-tag-picker-field>
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="plan_type"
+                label="Plan Type"
+                selection="checkbox"
+                @change=${this.#handleTagChange}
+            ></aem-tag-picker-field>
 
-                <mas-locale-picker></mas-locale-picker>
+            <mas-locale-picker></mas-locale-picker>
 
-                <aem-tag-picker-field
-                    namespace="/content/cq:tags/mas"
-                    top="market_segments"
-                    label="Market Segments"
-                    selection="checkbox"
-                    @change=${this.#handleTagChange}
-                ></aem-tag-picker-field>
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="market_segments"
+                label="Market Segments"
+                selection="checkbox"
+                @change=${this.#handleTagChange}
+            ></aem-tag-picker-field>
 
-                <aem-tag-picker-field
-                    namespace="/content/cq:tags/mas"
-                    top="customer_segment"
-                    label="Customer Segment"
-                    selection="checkbox"
-                    @change=${this.#handleTagChange}
-                ></aem-tag-picker-field>
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="customer_segment"
+                label="Customer Segment"
+                selection="checkbox"
+                @change=${this.#handleTagChange}
+            ></aem-tag-picker-field>
 
-                <aem-tag-picker-field
-                    namespace="/content/cq:tags/mas"
-                    top="status"
-                    label="Status"
-                    selection="checkbox"
-                    @change=${this.#handleTagChange}
-                ></aem-tag-picker-field>
-            </div>
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="status"
+                label="Status"
+                selection="checkbox"
+                @change=${this.#handleTagChange}
+            ></aem-tag-picker-field>
+
+            <sp-action-button
+                quiet
+                @click=${this.#handleRefresh}
+                title="Clear all filters"
+            >
+                <sp-icon-refresh slot="icon"></sp-icon-refresh>
+            </sp-action-button>
         `;
     }
 

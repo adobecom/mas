@@ -33,7 +33,7 @@ class MasLocalePicker extends LitElement {
         }
     `;
 
-    controller = new ReactiveController(this, [Store.locale.current]);
+    storeController = new ReactiveController(this, [Store.locale.current]);
 
     constructor() {
         super();
@@ -79,7 +79,7 @@ class MasLocalePicker extends LitElement {
                                     <span slot="icon" class="flag"
                                         >${locale.flag}</span
                                     >
-                                    ${locale.name}
+                                    ${locale.name} (${locale.code})
                                 </sp-menu-item>
                             `,
                         )}

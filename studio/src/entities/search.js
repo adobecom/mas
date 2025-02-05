@@ -3,7 +3,7 @@ export default class MasSearch {
         const params = Object.fromEntries(
             new URLSearchParams(window.location.hash.slice(1)),
         );
-        return new MasSearch(params.path, params.query, params.tags);
+        return new MasSearch(params.path, params.query);
     }
 
     path;

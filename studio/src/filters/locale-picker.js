@@ -9,10 +9,6 @@ class MasLocalePicker extends LitElement {
     };
 
     static styles = css`
-        :host {
-            --mod-textfield-focus-indicator-width: 0;
-        }
-
         .flag {
             margin-right: 8px;
         }
@@ -101,10 +97,6 @@ class MasLocalePicker extends LitElement {
             e.currentTarget.getAttribute('value') || Store.locale.current.get();
         Store.locale.current.set(selectedValue);
         e.target.closest('overlay-trigger').open = false;
-    }
-
-    get value() {
-        return Store.locale.current.get();
     }
 }
 

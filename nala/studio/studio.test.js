@@ -294,6 +294,10 @@ test.describe('M@S Studio feature test suite', () => {
                 data.newDescription,
             );
             await studio.deleteCard.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.confirmationDialog
+                .locator(studio.deleteDialog)
+                .click();
             await expect(studio.toastPositive).toHaveText(
                 'Fragment successfully deleted.',
                 { timeout: 10000 },

@@ -15,9 +15,11 @@ export default class StudioPage {
         this.renderView = page.locator('#render');
         this.quickActions = page.locator('.quick-actions');
         this.editorPanel = page.locator('editor-panel > #editor');
-        this.suggestedCard = page.locator(
-            'merch-card[variant="ccd-suggested"]',
+        this.confirmationDialog = page.locator(
+            'sp-dialog[variant="confirmation"]',
         );
+        this.cancelDialog = page.locator('sp-button:has-text("Cancel")');
+        this.deleteDialog = page.locator('sp-button:has-text("Delete")');
         this.toastPositive = page.locator(
             'mas-toast >> sp-toast[variant="positive"]',
         );

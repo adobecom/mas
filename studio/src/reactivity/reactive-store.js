@@ -77,4 +77,12 @@ export class ReactiveStore {
     removeMeta(key) {
         delete this.#meta[key];
     }
+
+    /**
+     * @param {any} value
+     * @returns {boolean}
+     */
+    equals(value) {
+        return this.value === value;
+    }
 }

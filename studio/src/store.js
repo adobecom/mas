@@ -1,6 +1,5 @@
-import { Fragment } from './aem/fragment.js';
 import { WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
-import { getEditorPanel } from './editor-panel.js';
+import { FragmentStore } from './reactivity/fragment-store.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
 import { getHashParam, getHashParams, setHashParams } from './utils.js';
 
@@ -17,7 +16,13 @@ const Store = {
             data: new ReactiveStore([]),
             limit: new ReactiveStore(6),
         },
-        inEdit: new ReactiveStore(null),
+        inEdit: new FragmentStore(null),
+    },
+    operation: new ReactiveStore(), // current operation in progress, editor or content navigation batch operations
+    editor: {
+        get hasChanges() {
+            return Store.fragments.inEdit.get()?.hasChanges || false;
+        },
     },
     folders: {
         loaded: new ReactiveStore(false),
@@ -70,13 +75,7 @@ function commerceEnvValidator(value) {
 
 // #region Utils
 
-/**
- * Shortcut for retrieveing the underlying in edit fragment
- * @returns {Fragment}
- */
-export function getInEditFragment() {
-    return Store.fragments.inEdit.get().get();
-}
+const editorPanel = () => document.querySelector('editor-panel');
 
 export function toggleSelection(id) {
     const selection = Store.selection.get();
@@ -87,11 +86,19 @@ export function toggleSelection(id) {
     else Store.selection.set([...selection, id]);
 }
 
+export function editFragment(store, x) {
+    editorPanel().editFragment(store, x);
+}
+
 export function navigateToPage(value) {
-    return function () {
-        const editor = getEditorPanel();
-        if (editor && !editor.close()) return;
-        Store.page.set(value);
+    return async () => {
+        const confirmed =
+            !Store.editor.hasChanges ||
+            (await editorPanel().promptDiscardChanges());
+        if (confirmed) {
+            Store.fragments.inEdit.set();
+            Store.page.set(value);
+        }
     };
 }
 

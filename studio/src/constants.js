@@ -66,3 +66,12 @@ export const LOCALES = [
     { code: 'vi_VN', flag: '🇻🇳', name: 'Vietnam' },
     { code: 'zh_TW', flag: '🇹🇼', name: 'Taiwan' },
 ];
+
+export const OPERATIONS = {
+    DELETE: 'delete',
+    DISCARD: 'discard',
+    PUBLISH: 'publish',
+    SAVE: 'save',
+    CLONE: 'clone',
+    UNPUBLISH: 'unpublish',
+};

@@ -29,7 +29,7 @@ export default class StudioPage {
         this.cardIcon = page.locator('merch-icon');
         this.cardBadge = page.locator('.ccd-slice-badge');
         // Editor panel fields
-        this.editorTitle = page.locator('#card-title');
+        this.editorTitle = page.locator('#card-title input');
         // suggested cards
         this.suggestedCard = page.locator(
             'merch-card[variant="ccd-suggested"]',

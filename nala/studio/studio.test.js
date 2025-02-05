@@ -151,17 +151,16 @@ test.describe('M@S Studio feature test suite', () => {
             expect(await studio.editorPanel.title).toBeVisible;
             await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveAttribute('value', `${data.title}`);
+            ).toHaveValue(`${data.title}`);
             await studio.editorPanel
                 .locator(studio.editorTitle)
-                .locator('input')
                 .fill(data.newTitle);
         });
 
         await test.step('step-4: Validate edited title field', async () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveAttribute('value', `${data.newTitle}`);
+            ).toHaveValue(`${data.newTitle}`);
         });
     });
 });

@@ -14,9 +14,14 @@ export default class StudioPage {
         this.topFolder = page.locator('sp-picker[label="TopFolder"] > button');
         this.renderView = page.locator('#render');
         this.quickActions = page.locator('.quick-actions');
-        this.editorPanel = page.locator('editor-panel');
-        this.suggestedCard = page.locator(
-            'merch-card[variant="ccd-suggested"]',
+        this.editorPanel = page.locator('editor-panel > #editor');
+        this.confirmationDialog = page.locator(
+            'sp-dialog[variant="confirmation"]',
+        );
+        this.cancelDialog = page.locator('sp-button:has-text("Cancel")');
+        this.deleteDialog = page.locator('sp-button:has-text("Delete")');
+        this.toastPositive = page.locator(
+            'mas-toast >> sp-toast[variant="positive"]',
         );
         this.sliceCard = page.locator('merch-card[variant="ccd-slice"]');
         this.sliceCardWide = page.locator(
@@ -30,6 +35,24 @@ export default class StudioPage {
         this.cardBadge = page.locator('.ccd-slice-badge');
         // Editor panel fields
         this.editorTitle = page.locator('#card-title input');
+        this.editorSubtitle = page.locator('#card-subtitle input');
+        this.editorIconURL = page.locator('#icon input');
+        this.editorDescription = page.locator(
+            'sp-field-group >> rte-field[id="description"] >> div[contenteditable="true"]',
+        );
+        // Editor panel toolbar
+        this.cloneCard = page.locator(
+            'div[id="editor-toolbar"] >> sp-action-button[value="clone"]',
+        );
+        this.closeEditor = page.locator(
+            'div[id="editor-toolbar"] >> sp-action-button[value="close"]',
+        );
+        this.deleteCard = page.locator(
+            'div[id="editor-toolbar"] >> sp-action-button[value="delete"]',
+        );
+        this.saveCard = page.locator(
+            'div[id="editor-toolbar"] >> sp-action-button[value="save"]',
+        );
         // suggested cards
         this.suggestedCard = page.locator(
             'merch-card[variant="ccd-suggested"]',
@@ -61,7 +84,7 @@ export default class StudioPage {
         );
     }
 
-    async getCard(id, cardType) {
+    async getCard(id, cardType, cloned) {
         const cardVariant = {
             suggested: this.suggestedCard,
             slice: this.sliceCard,
@@ -71,6 +94,12 @@ export default class StudioPage {
         const card = cardVariant[cardType];
         if (!card) {
             throw new Error(`Invalid card type: ${cardType}`);
+        }
+
+        if (cloned) {
+            return card.filter({
+                has: this.page.locator(`aem-fragment:not([fragment="${id}"])`),
+            });
         }
 
         return card.filter({

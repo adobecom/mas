@@ -186,6 +186,18 @@ class MerchCardEditor extends LitElement {
                     >${unsafeHTML(form.ctas.values[0])}</rte-field
                 >
             </sp-field-group>
+                        <sp-field-group class="toggle" id="osi">
+                <sp-field-label for="ctas">OSI</sp-field-label>
+                <rte-field
+                    id="osi"
+                    link
+                    inline
+                    data-field="osi"
+                    default-link-style="primary-outline"
+                    @change="${this.updateFragment}"
+                    >${unsafeHTML(form.osi.values[0])}</rte-field
+                >
+            </sp-field-group>
             <aem-tag-picker-field
                 label="Tags"
                 namespace="/content/cq:tags/mas"

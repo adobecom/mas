@@ -1,0 +1,16 @@
+name: Trigger OST Products action
+
+on:
+  schedule:
+    - cron: '0 8 * * *' # Daily at 8am UTC (9am CET), triggered on default branch = main
+  workflow_dispatch: # trigger
+
+jobs:
+  update-products:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Refresh cache
+      run: curl $OST_PRODUCTS_URL$OST_WRITE_API_KEY
+      env:
+        OST_PRODUCTS_URL: ${{ vars.OST_PRODUCTS_URL }}
+        OST_WRITE_API_KEY: ${{ secrets.OST_WRITE_API_KEY }}

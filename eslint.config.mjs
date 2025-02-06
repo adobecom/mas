@@ -14,6 +14,7 @@ const config = {
         '/libs/',
         '**/libs/**',
         '**/dist/**',
+        'studio/ost/index.js',
     ],
     ...eslintPluginPrettierRecommended,
 };

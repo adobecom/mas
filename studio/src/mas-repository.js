@@ -384,10 +384,10 @@ export class MasRepository extends LitElement {
      * @param {FragmentStore} store
      */
     async refreshFragment(store) {
-        const fragment = store.get();
         this.inEdit.setLoading(true);
-        const latest = await this.#aem.sites.cf.fragments.getById(fragment.id);
-        fragment.refreshFrom(latest);
+        const id = store.get().id;
+        const latest = await this.#aem.sites.cf.fragments.getById(id);
+        store.refreshFrom(latest);
         this.inEdit.setLoading(false);
     }
 

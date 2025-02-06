@@ -326,7 +326,9 @@ class AemTagPickerField extends LitElement {
         if (changedProperties.has('value')) {
             // Keep tempValue in sync if outside changes the main value
             this.tempValue = [...this.value];
-            this.#notifyChange();
+            if (changedProperties.get('value') !== undefined) {
+                this.#notifyChange();
+            }
         }
         this.#updateMargin();
     }

@@ -187,7 +187,7 @@ export class MasFolderPicker extends LitElement {
             return;
         } else {
             this.closeDropdown();
-        } 
+        }
     }
 
     handleKeyDown(event) {
@@ -204,6 +204,8 @@ export class MasFolderPicker extends LitElement {
                     firstMenuItem.focus();
                 }
             });
+        } else if (event.key === 'Escape' || event.key === 'Tab') {
+            this.closeDropdown();
         }
     }
 }

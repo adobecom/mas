@@ -181,6 +181,18 @@ class MerchCardEditor extends LitElement {
                     >${unsafeHTML(form.description.values[0])}</rte-field
                 >
             </sp-field-group>
+            <sp-field-group>
+                <sp-field-label for="callout"> Callout text </sp-field-label>
+                <rte-field
+                    id="callout"
+                    link
+                    data-field="callout"
+                    default-link-style="secondary-link"
+                    @change="${this.#handleInput}"
+                    ?readonly=${this.disabled}
+                    >${unsafeHTML(form.callout?.values[0])}</rte-field
+                >
+            </sp-field-group>
             <sp-checkbox
                 size="m"
                 data-field="showStockCheckbox"

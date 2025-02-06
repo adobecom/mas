@@ -23,11 +23,11 @@ class MasFilterPanel extends LitElement {
         ]
             .flatMap((tagPicker) => tagPicker.getAttribute('value').split(','))
             .filter((tag) => tag);
-        Store.search.set({ ...Store.search.get(), tags });
+        Store.search.update((prev) => ({ ...prev, tags }));
     }
 
     #handleRefresh() {
-        Store.search.set({ ...Store.search.get(), tags: [] });
+        Store.search.update((prev) => ({ ...prev, tags: [] }));
         this.shadowRoot
             .querySelectorAll('aem-tag-picker-field')
             .forEach((tagPicker) => {

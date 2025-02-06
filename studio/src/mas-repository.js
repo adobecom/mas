@@ -7,6 +7,7 @@ import Events from './events.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { looseEquals, UserFriendlyError } from './utils.js';
 import { OPERATIONS } from './constants.js';
+import ReactiveController from './reactivity/reactive-controller.js';
 
 const ROOT = '/content/dam/mas';
 
@@ -51,6 +52,7 @@ export class MasRepository extends LitElement {
     currentPage = new StoreController(this, Store.currentPage);
     foldersLoaded = new StoreController(this, Store.folders.loaded);
     localeController = new StoreController(this, Store.locale.current);
+    reactiveController = new ReactiveController(this, [Store.user]);
 
     recentlyUpdatedLimit = new StoreController(
         this,
@@ -172,8 +174,14 @@ export class MasRepository extends LitElement {
                     null,
                     this.#abortControllers.search,
                 );
+                const currentUserEmail = Store.user.get()?.email;
                 for await (const result of cursor) {
                     result.forEach((item) => {
+                        if (
+                            currentUserEmail &&
+                            item.created.by !== currentUserEmail
+                        )
+                            return;
                         const fragment = new Fragment(item);
                         fragments.push(fragment);
                     });

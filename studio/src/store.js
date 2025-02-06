@@ -76,6 +76,8 @@ const Store = {
     selection: reactiveStore([]),
     currentPage: reactiveStore(initialSearch.query ? 'content' : 'splash'), // 'splash' | 'content'
     commerceEnv: reactiveStore(params['commerce.env'] ?? WCS_ENV_PROD),
+    user: reactiveStore(),
+    profile: reactiveStore(),
 };
 
 export default Store;
@@ -108,3 +110,5 @@ export function navigateToPage(value) {
         }
     };
 }
+
+Store.profile.set(await adobeIMS.getProfile());

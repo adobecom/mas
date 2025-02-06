@@ -210,10 +210,6 @@ rte-field {
     width: 100%;
 }
 
-merch-card:not([variant]) {
-    display: none;
-}
-
 merch-card {
     cursor: pointer;
     user-select: none;
@@ -244,11 +240,6 @@ mas-fragment-table:not(.has-tooltip) ~ sp-tooltip {
 
 merch-card:hover {
     background-color: var(--spectrum-background-base-color) !important;
-}
-
-merch-card sp-icon-add,
-merch-card sp-icon-remove {
-    display: none;
 }
 
 merch-card.selected:hover sp-icon-remove {
@@ -433,4 +424,24 @@ sp-underlay + sp-dialog {
     transform: translate(-50%, -50%);
     z-index: 1;
     background: var(--spectrum-gray-100);
+}
+
+.render-card-header {
+    height: 32px;
+}
+
+mas-fragment-render div[slot="trigger"] {
+    position: relative;
+}
+
+mas-fragment-render[unkown] sp-icon-cover-image {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+mas-fragment-render[unkown] merch-card {
+    width: 303px;
+    height: 203px;
 }

@@ -171,6 +171,10 @@ class AemTagPickerField extends LitElement {
         return namespaces[this.namespace];
     }
 
+    get selectedTags() {
+        return this.value.map((path) => this.#data.get(path));
+    }
+
     clear() {
         this.value = [];
         this.tempValue = [];
@@ -248,6 +252,7 @@ class AemTagPickerField extends LitElement {
         if (!this.multiple) {
             // single select
             this.value = [path];
+            await this.#notifyChange();
             return;
         }
         // multi select
@@ -257,6 +262,7 @@ class AemTagPickerField extends LitElement {
             currentValue.splice(index, 1);
         }
         this.value = currentValue;
+        await this.#notifyChange();
     }
 
     // sp-sidenav "change" event handler
@@ -335,7 +341,6 @@ class AemTagPickerField extends LitElement {
 
     async #notifyChange() {
         await this.updateComplete;
-        if (this.selection === SELECTION_CHECKBOX) return;
         this.dispatchEvent(
             new CustomEvent('change', {
                 bubbles: true,
@@ -394,12 +399,7 @@ class AemTagPickerField extends LitElement {
         this.value = [...this.tempValue];
         this.overlayTrigger.open = false;
         await this.updateComplete;
-        this.dispatchEvent(
-            new CustomEvent('change', {
-                bubbles: true,
-                composed: true,
-            }),
-        );
+        this.#notifyChange();
     }
 
     #handleCheckoxMenuClose() {
@@ -471,13 +471,15 @@ class AemTagPickerField extends LitElement {
      * - The footer shows # selected, plus Reset/Apply.
      */
     renderCheckboxMode() {
+        const selectCount =
+            this.value.length > 0 ? html`(${this.value.length})` : '';
         return html`
             <overlay-trigger
                 placement="bottom"
                 @sp-closed=${this.#handleCheckoxMenuClose}
             >
                 <sp-action-button slot="trigger" quiet>
-                    ${this.triggerLabel}
+                    ${this.triggerLabel} ${selectCount}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
 

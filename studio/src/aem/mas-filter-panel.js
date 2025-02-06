@@ -1,33 +1,78 @@
-import { html, css, LitElement, nothing } from 'lit';
+import { html, css, LitElement } from 'lit';
+import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
-import ReactiveController from '../reactivity/reactive-controller.js';
+
+// Helper function to get tags from picker value
+function getTagsFromPicker(picker) {
+    return picker
+        .getAttribute('value')
+        .split(',')
+        .filter((tag) => tag);
+}
+
+// Helper function to filter out tags of a specific type
+function filterOutTagType(tags, tagType) {
+    return tags.filter((tag) => !tag.startsWith(`mas:${tagType}`));
+}
+
+const EMPTY_TAGS = {
+    offer_type: [],
+    plan_type: [],
+    market_segments: [],
+    customer_segment: [],
+    status: [],
+};
 
 class MasFilterPanel extends LitElement {
+    static properties = {
+        tagsByType: { type: Object, state: true },
+    };
+
     static styles = css`
         :host {
             display: flex;
-            min-height: 32px;
+            flex-direction: column;
             gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
         }
 
         #filters-label {
             color: var(--spectrum-gray-600);
         }
+
+        #filters {
+            display: flex;
+            min-height: 32px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
     `;
 
-    #handleTagChange() {
-        const tags = [
-            ...this.shadowRoot.querySelectorAll('aem-tag-picker-field'),
-        ]
-            .flatMap((tagPicker) => tagPicker.getAttribute('value').split(','))
-            .filter((tag) => tag);
-        Store.search.update((prev) => ({ ...prev, tags }));
+    constructor() {
+        super();
+        this.tagsByType = { ...EMPTY_TAGS };
+    }
+
+    #handleTagChange(e) {
+        const picker = e.target;
+        // Update the tags for this specific type, adding top value to each tag
+        this.tagsByType = {
+            ...this.tagsByType,
+            [picker.top]: picker.selectedTags.map((tag) => ({
+                ...tag,
+                top: picker.top,
+            })),
+        };
+        // Update the store with all tags except this type, then add new ones
+        const tags = getTagsFromPicker(picker);
+        Store.search.update((prev) => {
+            const existingTags = filterOutTagType(prev.tags ?? [], picker.top);
+            return { ...prev, tags: [...existingTags, ...tags] };
+        });
     }
 
     #handleRefresh() {
         Store.search.update((prev) => ({ ...prev, tags: [] }));
+        this.tagsByType = { ...EMPTY_TAGS };
         this.shadowRoot
             .querySelectorAll('aem-tag-picker-field')
             .forEach((tagPicker) => {
@@ -35,58 +80,105 @@ class MasFilterPanel extends LitElement {
             });
     }
 
+    #handleTagDelete(e) {
+        const value = e.target.value;
+        const picker = this.shadowRoot.querySelector(
+            `aem-tag-picker-field[top="${value.top}"]`,
+        );
+        // Update tagsByType to remove only the specific tag
+        this.tagsByType = {
+            ...this.tagsByType,
+            [value.top]: this.tagsByType[value.top].filter(
+                (tag) => tag.path !== value.path,
+            ),
+        };
+        // Update picker value to match
+        picker.value = picker.value.filter((p) => p !== value.path);
+        // Update store
+        Store.search.update((prev) => {
+            const tagId = `mas:${value.top}/${value.path.split('/').pop()}`;
+            const existingTags = prev.tags.filter((tag) => tag !== tagId);
+            return { ...prev, tags: existingTags };
+        });
+    }
+
     render() {
         return html`
-            ${this.filterIcon}
-            <aem-tag-picker-field
-                namespace="/content/cq:tags/mas"
-                top="offer_type"
-                label="Offer Type"
-                selection="checkbox"
-                @change=${this.#handleTagChange}
-            ></aem-tag-picker-field>
+            <div id="filters">
+                ${this.filterIcon}
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="offer_type"
+                    label="Offer Type"
+                    multiple
+                    selection="checkbox"
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
 
-            <aem-tag-picker-field
-                namespace="/content/cq:tags/mas"
-                top="plan_type"
-                label="Plan Type"
-                selection="checkbox"
-                @change=${this.#handleTagChange}
-            ></aem-tag-picker-field>
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="plan_type"
+                    label="Plan Type"
+                    multiple
+                    selection="checkbox"
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
 
-            <mas-locale-picker></mas-locale-picker>
+                <mas-locale-picker></mas-locale-picker>
 
-            <aem-tag-picker-field
-                namespace="/content/cq:tags/mas"
-                top="market_segments"
-                label="Market Segments"
-                selection="checkbox"
-                @change=${this.#handleTagChange}
-            ></aem-tag-picker-field>
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="market_segments"
+                    label="Market Segments"
+                    multiple
+                    selection="checkbox"
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
 
-            <aem-tag-picker-field
-                namespace="/content/cq:tags/mas"
-                top="customer_segment"
-                label="Customer Segment"
-                selection="checkbox"
-                @change=${this.#handleTagChange}
-            ></aem-tag-picker-field>
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="customer_segment"
+                    multiple
+                    label="Customer Segment"
+                    selection="checkbox"
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
 
-            <aem-tag-picker-field
-                namespace="/content/cq:tags/mas"
-                top="status"
-                label="Status"
-                selection="checkbox"
-                @change=${this.#handleTagChange}
-            ></aem-tag-picker-field>
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="status"
+                    label="Status"
+                    multiple
+                    selection="checkbox"
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
 
-            <sp-action-button
-                quiet
-                @click=${this.#handleRefresh}
-                title="Clear all filters"
-            >
-                <sp-icon-refresh slot="icon"></sp-icon-refresh>
-            </sp-action-button>
+                <sp-action-button
+                    quiet
+                    @click=${this.#handleRefresh}
+                    title="Clear all filters"
+                    >Reset Filters
+                    <sp-icon-refresh slot="icon"></sp-icon-refresh>
+                </sp-action-button>
+            </div>
+            <sp-tags>
+                ${repeat(
+                    Object.values(this.tagsByType)
+                        .flat()
+                        .filter((tag) => tag),
+                    (tag) => tag.path,
+                    (tag) => html`
+                        <sp-tag
+                            key=${tag.path}
+                            size="s"
+                            deletable
+                            @delete=${this.#handleTagDelete}
+                            .value=${tag}
+                            >${tag.title}</sp-tag
+                        >
+                    `,
+                )}
+            </sp-tags>
         `;
     }
 

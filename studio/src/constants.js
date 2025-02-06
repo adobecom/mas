@@ -37,3 +37,12 @@ export const EVENT_KEYUP = 'keyup';
 export const EVENT_FRAGMENT_CHANGE = 'fragment:change';
 
 export const EVENT_OST_SELECT = 'ost-select';
+
+export const OPERATIONS = {
+    DELETE: 'delete',
+    DISCARD: 'discard',
+    PUBLISH: 'publish',
+    SAVE: 'save',
+    CLONE: 'clone',
+    UNPUBLISH: 'unpublish',
+};

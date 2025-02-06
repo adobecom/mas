@@ -20,6 +20,10 @@ export class ReactiveStore {
         this.notify();
     }
 
+    equals(value) {
+        return this.value === value;
+    }
+
     update(fn) {
         this.value = fn(this.value);
         this.notify();

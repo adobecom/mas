@@ -1,0 +1,197 @@
+<!doctype html>
+<html>
+    <head>
+        <title>mas-filter-panel unit tests</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script src="../../src/swc.js" type="module"></script>
+        <style>
+            main {
+                display: flex;
+                flex-direction: column;
+                gap: 32px;
+            }
+
+            sp-theme {
+                display: contents;
+            }
+
+            mas-filter-panel {
+                position: relative;
+            }
+        </style>
+    </head>
+
+    <body>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { fixture, oneEvent } from '@open-wc/testing-helpers/pure';
+            import { delay, initElementFromTemplate } from '../utils.js';
+            import Store from '../../src/store.js';
+            import '../../src/aem/mas-filter-panel.js';
+            import '../../src/aem/aem-tag-picker-field.js';
+
+            runTests(async () => {
+                let fetchPromise;
+                const originalFetch = window.fetch;
+                window.fetch = async () => {
+                    fetchPromise = originalFetch('/test/mocks/tags.json');
+                    return fetchPromise;
+                };
+
+                describe('mas-filter-panel custom element', async () => {
+                    it('Should initialize with empty tag values', async function () {
+                        const filterPanel = initElementFromTemplate(
+                            'filterPanel1',
+                            this.test.title,
+                        );
+                        await filterPanel.updateComplete;
+                        expect(filterPanel.tagsByType).to.deep.equal({
+                            offer_type: [],
+                            plan_type: [],
+                            market_segments: [],
+                            customer_segment: [],
+                            status: [],
+                        });
+                    });
+
+                    it('Should update tags when a tag is selected', async function () {
+                        const filterPanel = initElementFromTemplate(
+                            'filterPanel1',
+                            this.test.title,
+                        );
+                        await filterPanel.updateComplete;
+
+                        const offerTypePicker = filterPanel.shadowRoot.querySelector('aem-tag-picker-field[top="offer_type"]');
+                        expect(offerTypePicker).to.not.be.null;
+
+                        // Simulate tag selection
+                        await offerTypePicker.toggleTag('/content/cq:tags/mas/offer_type/base');
+                        expect(filterPanel.tagsByType.offer_type).to.have.lengthOf(1);
+                    });
+
+                    it('Should update store when tags change', async function () {
+                        const filterPanel = initElementFromTemplate(
+                            'filterPanel1',
+                            this.test.title,
+                        );
+                        await filterPanel.updateComplete;
+
+                        const statusPicker = filterPanel.shadowRoot.querySelector('aem-tag-picker-field[top="status"]');
+                        expect(statusPicker).to.not.be.null;
+
+                        // Simulate tag selection
+                        await statusPicker.toggleTag('/content/cq:tags/mas/status/draft');
+                        const storeState = await Store.search.get();
+                        expect(storeState.tags).to.include('mas:status/draft');
+                    });
+
+                    it('Should clear all tags when reset is clicked', async function () {
+                        const filterPanel = initElementFromTemplate(
+                            'filterPanel1',
+                            this.test.title,
+                        );
+                        await filterPanel.updateComplete;
+
+                        // Set some initial tags
+                        const statusPicker = filterPanel.shadowRoot.querySelector('aem-tag-picker-field[top="status"]');
+                        await statusPicker.toggleTag('/content/cq:tags/mas/status/draft');
+                        expect(filterPanel.tagsByType.status).to.have.lengthOf(1);
+
+                        // Click reset button
+                        const resetButton = filterPanel.shadowRoot.querySelector('sp-action-button');
+                        resetButton.click();
+
+                        await filterPanel.updateComplete;
+                        expect(Object.values(filterPanel.tagsByType).flat()).to.have.lengthOf(0);
+
+                        const storeState = await Store.search.get();
+                        expect(storeState.tags).to.have.lengthOf(0);
+                    });
+
+                    it('Should maintain other tag types when one type changes', async function () {
+                        const filterPanel = initElementFromTemplate(
+                            'filterPanel1',
+                            this.test.title,
+                        );
+                        await filterPanel.updateComplete;
+
+                        // Add status tag
+                        const statusPicker = filterPanel.shadowRoot.querySelector('aem-tag-picker-field[top="status"]');
+                        await statusPicker.toggleTag('/content/cq:tags/mas/status/draft');
+
+                        // Add offer type tag
+                        const offerTypePicker = filterPanel.shadowRoot.querySelector('aem-tag-picker-field[top="offer_type"]');
+                        await offerTypePicker.toggleTag('/content/cq:tags/mas/offer_type/base');
+
+                        expect(filterPanel.tagsByType.status).to.have.lengthOf(1);
+                        expect(filterPanel.tagsByType.offer_type).to.have.lengthOf(1);
+
+                        // Change status tag
+                        await statusPicker.toggleTag('/content/cq:tags/mas/status/draft'); // unselect first
+                        await statusPicker.toggleTag('/content/cq:tags/mas/status/documentation'); // select new
+
+                        const storeState = await Store.search.get();
+                        expect(storeState.tags).to.include('mas:offer_type/base');
+                        expect(storeState.tags).to.include('mas:status/documentation');
+                        expect(storeState.tags).to.not.include('mas:status/draft');
+                    });
+
+                    it('Should only delete the clicked tag when delete icon is clicked', async function () {
+                        const filterPanel = initElementFromTemplate(
+                            'filterPanel1',
+                            this.test.title,
+                        );
+                        await filterPanel.updateComplete;
+
+                        const statusPicker = filterPanel.shadowRoot.querySelector('aem-tag-picker-field[top="status"]');
+                        const offerTypePicker = filterPanel.shadowRoot.querySelector('aem-tag-picker-field[top="offer_type"]');
+
+                        const draftPath = '/content/cq:tags/mas/status/draft';
+                        const documentationPath = '/content/cq:tags/mas/status/documentation';
+                        const basePath = '/content/cq:tags/mas/offer_type/base';
+                        // Add tags
+                        await statusPicker.toggleTag(draftPath);
+                        await statusPicker.toggleTag(documentationPath);
+                        await offerTypePicker.toggleTag(basePath);
+                        await filterPanel.updateComplete;
+
+                        // Verify initial tags
+                        const initialTags = filterPanel.shadowRoot.querySelectorAll('sp-tag');
+                        let tagLabels = Array.from(initialTags).map(tag => tag.textContent.trim());
+                        expect(tagLabels).to.include('DOCUMENTATION');
+                        expect(tagLabels).to.include('BASE');
+                        expect(tagLabels).to.include('DRAFT');
+
+                        // Find and click delete on the draft tag
+                        const draftTag = filterPanel.shadowRoot.querySelector(`sp-tag[key="${draftPath}"]`);
+                        expect(draftTag, 'Draft tag should be rendered').to.not.be.null;
+                        const clearButton = draftTag.shadowRoot.querySelector('sp-clear-button');
+                        expect(clearButton, 'Clear button should be rendered').to.not.be.null;
+                        clearButton.click();
+                        await delay(50);
+
+                        await filterPanel.updateComplete;
+
+                        // Verify state
+                        expect(filterPanel.tagsByType.status).to.have.lengthOf(1);
+                        expect(filterPanel.tagsByType.offer_type).to.have.lengthOf(1);
+
+                        // Verify rendered tags
+                        const remainingTags = filterPanel.shadowRoot.querySelectorAll('sp-tag');
+                        tagLabels = Array.from(remainingTags).map(tag => tag.textContent.trim());
+                        expect(tagLabels).to.include('DOCUMENTATION');
+                        expect(tagLabels).to.include('BASE');
+                        expect(tagLabels).to.not.include('DRAFT');
+                    });
+                });
+            });
+        </script>
+        <main>
+            <sp-theme color="light" scale="medium"></sp-theme>
+        </main>
+        <template id="filterPanel1">
+            <mas-filter-panel></mas-filter-panel>
+        </template>
+    </body>
+</html>

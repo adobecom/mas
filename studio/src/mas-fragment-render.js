@@ -82,11 +82,13 @@ class MasFragmentRender extends LitElement {
                             ims
                             author
                         ></aem-fragment>
-                        ${this.selectionOverlay} 
+                        ${this.selectionOverlay}
                     </merch-card>
                     ${this.coverageIcon}
-                <div>
-                <sp-tooltip slot="hover-content" placement="top">Double click the card to start editing.</sp-tooltip>
+                </div>
+                <sp-tooltip slot="hover-content" placement="top"
+                    >Double click the card to start editing.</sp-tooltip
+                >
             </overlay-trigger>
         </div>`;
     }

@@ -4,6 +4,7 @@
         <title>editor-panel custom element test page</title>
         <meta name="nofollow-links" content="on" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="../style.css" />
         <style>
             body {
                 margin: 32px;
@@ -56,7 +57,17 @@
                 window.fetch = async function (args) {
                     const { pathname } = new URL(args);
                     if (/querybuilder.json/.test(pathname)) {
-                        return originalFetch('/test/aem/tags.json');
+                        return originalFetch('/test/mocks/tags.json');
+                    }
+                    if (/mas.json/.test(pathname)) {
+                        return originalFetch(
+                            '/test/mocks/folders/default.json',
+                        );
+                    }
+                    if (/search/.test(pathname)) {
+                        return originalFetch(
+                            '/test/mocks/sites/cf/fragments/search/default.json',
+                        );
                     }
                     return originalFetch(...arguments);
                 };
@@ -67,18 +78,19 @@
                     let editorPanel;
                     beforeEach(async () => {
                         fragment = new Fragment(fragmentData);
-                        fragmentStore = new FragmentStore(fragment);
                         editorPanel = await fixture(
-                            html`<editor-panel
-                            ></editor-panel>`,
+                            html`<editor-panel></editor-panel>
+                                <mas-repository
+                                    bucket="e59341"
+                                ></mas-repository>`,
                             { parentNode: spTheme },
                         );
-                        Store.fragments.inEdit.set(fragmentStore);
+                        Store.fragments.inEdit.set(fragment);
                     });
 
                     it('implements "discard changes"', async () => {
+                        editorPanel.requestUpdate();
                         await editorPanel.updateComplete;
-                        await editorPanel.refreshed;
                         const discardButton = document.querySelector(
                             'sp-action-button[value="discard"]',
                         );
@@ -91,10 +103,15 @@
                             fragment.getField('cardTitle').values,
                         ).to.deep.equal(['test title']);
                         await editorPanel.updateComplete;
-                        const merchCardEditor = document.querySelector('merch-card-editor');
-                        expect(merchCardEditor.hasChanges).to.be.true;
+                        const merchCardEditor =
+                            document.querySelector('merch-card-editor');
+                        await delay(100);
+                        expect(Store.editor.hasChanges).to.be.true;
                         expect(discardButton.disabled).to.be.false;
                         discardButton.click();
+                        await delay(100);
+                        const btnDiscard = document.querySelector('#btnDiscard');
+                        btnDiscard.click();
                         await delay(100);
                         expect(
                             fragment.getField('cardTitle').values,
@@ -105,7 +122,5 @@
             });
         </script>
         <sp-theme color="light" scale="medium"></sp-theme>
-        <!-- Needed for the editor-panel to render -->
-        <mas-repository bucket="e59341"></mas-repository>
     </body>
 </html>

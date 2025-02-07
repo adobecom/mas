@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const nock = require('nock');
 const replace = require('../../src/fragment/replace.js').replace;
-const DICTIONARY_RESPONSE = require('./dictionary.json');
+const DICTIONARY_RESPONSE = require('./mocks/dictionary.json');
 const DICTIONARY_CF_RESPONSE = {
     items: [
         {

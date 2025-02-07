@@ -222,7 +222,7 @@ class MerchCardEditor extends LitElement {
                     link
                     data-field="callout"
                     default-link-style="secondary-link"
-                    @change="${this.#handleInput}"
+                    @change="${this.updateFragment}"
                     ?readonly=${this.disabled}
                     >${unsafeHTML(form.callout?.values[0])}</rte-field
                 >
@@ -232,7 +232,7 @@ class MerchCardEditor extends LitElement {
                 data-field="showStockCheckbox"
                 value="${form.showStockCheckbox?.values[0]}"
                 .checked="${form.showStockCheckbox?.values[0]}"
-                @change="${this.#handleInput}"
+                @change="${this.updateFragment}"
                 ?disabled=${this.disabled}
                 >Stock Checkbox</sp-checkbox
             >
@@ -255,7 +255,7 @@ class MerchCardEditor extends LitElement {
                 id="background-title"
                 data-field="backgroundImage"
                 value="${form.backgroundImage.values[0]}"
-                @input="${this.#handleInput}"
+                @input="${this.updateFragment}"
                 ?disabled=${this.disabled}
             ></sp-textfield>
 

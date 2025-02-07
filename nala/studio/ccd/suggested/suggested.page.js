@@ -1,4 +1,4 @@
-export default class SuggestedPage {
+export default class CCDSuggestedPage {
     constructor(page) {
         this.page = page;
 
@@ -14,9 +14,5 @@ export default class SuggestedPage {
         this.cardCTALink = page.locator(
             'div[slot="cta"] a[is="checkout-link"]',
         );
-        // this.price = page.locator('span[data-template="price"]');
-        // this.priceStrikethrough = page.locator(
-        //     'span[data-template="strikethrough"]',
-        // );
     }
 }

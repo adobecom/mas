@@ -37,7 +37,7 @@ export default class StudioPage {
         this.editorSubtitle = page.locator('#card-subtitle input');
         this.editorBadge = page.locator('#card-badge input');
         this.editorIconURL = page.locator('#icon input');
-        this.editorBackgroundURL = page.locator('#background-image input');
+        this.editorBackgroundImage = page.locator('#background-image input');
         this.editorPrices = page.locator(
             'sp-field-group >> rte-field[id="prices"] >> div[contenteditable="true"]',
         );

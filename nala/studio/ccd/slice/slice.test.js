@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import StudioPage from '../../studio.page.js';
-import CCDSliceSpec from './slice.spec.js'
+import CCDSliceSpec from './slice.spec.js';
 import CCDSlicePage from './slice.page.js';
 import ims from '../../../libs/imslogin.js';
 
@@ -150,24 +150,28 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             ).toBeVisible();
             expect(
                 await studio.editorPanel.locator(studio.editorSize),
-            ).toHaveAttribute('value', 'wide');     
+            ).toHaveAttribute('value', 'wide');
             await studio.editorPanel.locator(studio.editorSize).click();
             await page.getByRole('option', { name: 'normal' }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-4: Validate new size of the card', async () => {
-            await expect(await studio.getCard(data.cardid, 'slice')).not.toHaveAttribute('size', 'wide');
+            await expect(
+                await studio.getCard(data.cardid, 'slice'),
+            ).not.toHaveAttribute('size', 'wide');
         });
 
-        await test.step('step-5: Edit size field back', async () => {    
+        await test.step('step-5: Edit size field back', async () => {
             await studio.editorPanel.locator(studio.editorSize).click();
             await page.getByRole('option', { name: 'wide' }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-6: Validate new size of the card', async () => {
-            await expect(await studio.getCard(data.cardid, 'slice-wide')).toBeVisible();
+            await expect(
+                await studio.getCard(data.cardid, 'slice-wide'),
+            ).toBeVisible();
         });
     });
 
@@ -216,9 +220,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorBadge),
             ).toHaveValue(data.badge);
-            await studio.editorPanel
-                .locator(studio.editorBadge)
-                .fill('');
+            await studio.editorPanel.locator(studio.editorBadge).fill('');
         });
 
         await test.step('step-4: Validate edited badge field in Editor panel', async () => {
@@ -245,9 +247,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-5: Validate badge new badge on the card', async () => {
             await expect(await slice.cardBadge).toBeVisible();
-            await expect(await slice.cardBadge).toHaveText(
-                data.newBadge,
-            );
+            await expect(await slice.cardBadge).toHaveText(data.newBadge);
         });
     });
 
@@ -295,7 +295,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             ).toBeVisible();
             expect(
                 await studio.editorPanel.locator(studio.editorDescription),
-            ).toContainText(`${data.description}`);
+            ).toContainText(data.description);
             await studio.editorPanel
                 .locator(studio.editorDescription)
                 .fill(data.newDescription);
@@ -304,7 +304,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         await test.step('step-4: Validate edited background URL field in Editor panel', async () => {
             expect(
                 await studio.editorPanel.locator(studio.editorDescription),
-            ).toContainText(`${data.newDescription}`);
+            ).toContainText(data.newDescription);
         });
 
         await test.step('step-5: Validate edited background src on the card', async () => {
@@ -358,7 +358,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorIconURL),
-            ).toHaveValue(`${data.iconURL}`);
+            ).toHaveValue(data.iconURL);
             await studio.editorPanel
                 .locator(studio.editorIconURL)
                 .fill(data.newIconURL);
@@ -367,13 +367,13 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         await test.step('step-4: Validate edited mnemonic URL field in Editor panel', async () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorIconURL),
-            ).toHaveValue(`${data.newIconURL}`);
+            ).toHaveValue(data.newIconURL);
         });
 
         await test.step('step-5: Validate edited mnemonic src on the card', async () => {
             await expect(await slice.cardIcon).toHaveAttribute(
                 'src',
-                `${data.newIconURL}`,
+                data.newIconURL,
             );
         });
     });
@@ -447,12 +447,15 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         await test.step('step-7: Validate edited background image url field in Editor panel', async () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorBackgroundImage),
-            ).toHaveValue(`${data.newBackgroundURL}`);
+            ).toHaveValue(data.newBackgroundURL);
         });
 
         await test.step('step-8: Validate new image on the card', async () => {
             await expect(await slice.cardImage).toBeVisible();
-            await expect(await slice.cardImage).toHaveAttribute('src', `${data.newBackgroundURL}`);
+            await expect(await slice.cardImage).toHaveAttribute(
+                'src',
+                data.newBackgroundURL,
+            );
         });
     });
 
@@ -492,7 +495,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             ).toBeVisible();
             await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
             await expect(await studio.editorPanel).toBeVisible();
-
         });
 
         await test.step('step-3: Clone card and open editor', async () => {
@@ -521,7 +523,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             ).toBeVisible();
             expect(
                 await studio.editorPanel.locator(studio.editorDescription),
-            ).toContainText(`${data.description}`);
+            ).toContainText(data.description);
             await studio.editorPanel
                 .locator(studio.editorBadge)
                 .fill(data.newBadge);
@@ -543,15 +545,15 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         await test.step('step-5: Validate edited fields in Editor panel', async () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorBadge),
-            ).toHaveValue(`${data.newBadge}`);
+            ).toHaveValue(data.newBadge);
             await expect(
                 await studio.editorPanel.locator(studio.editorIconURL),
-            ).toHaveValue(`${data.newIconURL}`);
+            ).toHaveValue(data.newIconURL);
             expect(
                 await studio.editorPanel
                     .locator(studio.editorDescription)
                     .innerText(),
-            ).toBe(`${data.newDescription}`);
+            ).toBe(data.newDescription);
         });
 
         await test.step('step-6: Search for the cloned card and verify changes then delete the card', async () => {
@@ -565,15 +567,13 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 await studio.getCard(data.clonedCardID, 'slice-wide'),
             ).not.toBeVisible();
 
-            await expect(await slice.cardBadge).toHaveText(
-                data.newBadge,
-            );
+            await expect(await slice.cardBadge).toHaveText(data.newBadge);
             await expect(await slice.cardDescription).toHaveText(
                 data.newDescription,
             );
             await expect(await slice.cardIcon).toHaveAttribute(
                 'src',
-                `${data.newIconURL}`,
+                data.newIconURL,
             );
             await studio.deleteCard.click();
             await expect(await studio.confirmationDialog).toBeVisible();

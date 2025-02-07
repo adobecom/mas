@@ -65,7 +65,8 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
-                backgroundURL: 'https://milo.adobe.com/assets/img/commerce/media_10bef5ec21c22fd7fe201cb02735082df13bf4960.jpeg',
+                backgroundURL:
+                    'https://milo.adobe.com/assets/img/commerce/media_10bef5ec21c22fd7fe201cb02735082df13bf4960.jpeg',
                 newBackgroundURL:
                     'https://milo.adobe.com/assets/img/commerce/media_158c1c22b1322dd28d7912d30fb27f29aa79f79b1.png',
             },
@@ -88,6 +89,5 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice',
         },
-
     ],
 };

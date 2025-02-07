@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import StudioPage from '../../studio.page.js';
-import CCDSuggestedSpec from './suggested.spec.js'
+import CCDSuggestedSpec from './suggested.spec.js';
 import CCDSuggestedPage from './suggested.page.js';
 import ims from '../../../libs/imslogin.js';
 
@@ -150,7 +150,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveValue(`${data.title}`);
+            ).toHaveValue(data.title);
             await studio.editorPanel
                 .locator(studio.editorTitle)
                 .fill(data.newTitle);
@@ -159,13 +159,11 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-4: Validate edited title field in Editor panel', async () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveValue(`${data.newTitle}`);
+            ).toHaveValue(data.newTitle);
         });
 
         await test.step('step-5: Validate edited title field on the card', async () => {
-            await expect(await suggested.cardTitle).toHaveText(
-                data.newTitle,
-            );
+            await expect(await suggested.cardTitle).toHaveText(data.newTitle);
         });
     });
 
@@ -213,7 +211,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorSubtitle),
-            ).toHaveValue(`${data.subtitle}`);
+            ).toHaveValue(data.subtitle);
             await studio.editorPanel
                 .locator(studio.editorSubtitle)
                 .fill(data.newSubtitle);
@@ -222,7 +220,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-4: Validate edited eyebrow/subtitle field in Editor panel', async () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorSubtitle),
-            ).toHaveValue(`${data.newSubtitle}`);
+            ).toHaveValue(data.newSubtitle);
         });
 
         await test.step('step-5: Validate edited eyebrow field on the card', async () => {
@@ -276,7 +274,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             ).toBeVisible();
             expect(
                 await studio.editorPanel.locator(studio.editorDescription),
-            ).toContainText(`${data.description}`);
+            ).toContainText(data.description);
             await studio.editorPanel
                 .locator(studio.editorDescription)
                 .fill(data.newDescription);
@@ -285,7 +283,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-4: Validate edited background URL field in Editor panel', async () => {
             expect(
                 await studio.editorPanel.locator(studio.editorDescription),
-            ).toContainText(`${data.newDescription}`);
+            ).toContainText(data.newDescription);
         });
 
         await test.step('step-5: Validate edited background src on the card', async () => {
@@ -339,7 +337,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorIconURL),
-            ).toHaveValue(`${data.iconURL}`);
+            ).toHaveValue(data.iconURL);
             await studio.editorPanel
                 .locator(studio.editorIconURL)
                 .fill(data.newIconURL);
@@ -348,13 +346,13 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-4: Validate edited mnemonic URL field in Editor panel', async () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorIconURL),
-            ).toHaveValue(`${data.newIconURL}`);
+            ).toHaveValue(data.newIconURL);
         });
 
         await test.step('step-5: Validate edited mnemonic src on the card', async () => {
             await expect(await suggested.cardIcon).toHaveAttribute(
                 'src',
-                `${data.newIconURL}`,
+                data.newIconURL,
             );
         });
     });
@@ -412,13 +410,13 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-4: Validate edited background image url field in Editor panel', async () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorBackgroundImage),
-            ).toHaveValue(`${data.newBackgroundURL}`);
+            ).toHaveValue(data.newBackgroundURL);
         });
 
         await test.step('step-5: Validate edited eyebrow field on the card', async () => {
             await expect(
                 await studio.getCard(data.cardid, 'suggested'),
-            ).toHaveAttribute('background-image', `${data.newBackgroundURL}`);
+            ).toHaveAttribute('background-image', data.newBackgroundURL);
         });
     });
 
@@ -486,7 +484,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveValue(`${data.title}`);
+            ).toHaveValue(data.title);
             await studio.editorPanel
                 .locator(studio.editorTitle)
                 .fill(data.newTitle);
@@ -509,18 +507,18 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-5: Validate edited fields in Editor panel', async () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveValue(`${data.newTitle}`);
+            ).toHaveValue(data.newTitle);
             await expect(
                 await studio.editorPanel.locator(studio.editorSubtitle),
-            ).toHaveValue(`${data.newSubtitle}`);
+            ).toHaveValue(data.newSubtitle);
             await expect(
                 await studio.editorPanel.locator(studio.editorIconURL),
-            ).toHaveValue(`${data.newIconURL}`);
+            ).toHaveValue(data.newIconURL);
             expect(
                 await studio.editorPanel
                     .locator(studio.editorDescription)
                     .innerText(),
-            ).toBe(`${data.newDescription}`);
+            ).toBe(data.newDescription);
         });
 
         await test.step('step-6: Search for the cloned card and verify changes then delete the card', async () => {
@@ -530,9 +528,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(
                 await studio.getCard(data.clonedCardID, 'suggested'),
             ).toBeVisible();
-            await expect(await suggested.cardTitle).toHaveText(
-                data.newTitle,
-            );
+            await expect(await suggested.cardTitle).toHaveText(data.newTitle);
             await expect(await suggested.cardEyebrow).toHaveText(
                 data.newSubtitle,
             );
@@ -541,7 +537,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             );
             await expect(await suggested.cardIcon).toHaveAttribute(
                 'src',
-                `${data.newIconURL}`,
+                data.newIconURL,
             );
             await studio.deleteCard.click();
             await expect(await studio.confirmationDialog).toBeVisible();

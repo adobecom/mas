@@ -15,16 +15,31 @@ const osis = new SharedArray('fragments', () => {
     return osiArray;
 });
 
+const NB_USERS = __ENV.USERS || 10;
+
+export const RAMP = [
+    { duration: __ENV.DURATION || '10s', target: NB_USERS },
+    { duration: __ENV.DURATION * 2 || '20s', target: NB_USERS },
+    { duration: __ENV.DURATION || '10s', target: 0 },
+];
+
+export const STEP = [
+    { duration: '1s', target: NB_USERS },
+    { duration: __ENV.DURATION || '20s', target: NB_USERS },
+];
+
 export const options = {
-    stages: [
-        { duration: __ENV.DURATION || '10s', target: __ENV.USERS || 10 },
-        { duration: __ENV.DURATION * 2 || '20s', target: __ENV.USERS || 10 },
-        { duration: __ENV.DURATION || '10s', target: 0 },
-    ],
+    stages: __ENV.PROFILE === 'STEP' ? STEP : RAMP,
 };
+
+const logHeaders = (response) =>
+    ['Server-Timing', 'Cache-Control', 'X-Request-Id', 'Akamai-Grn']
+        .map((header) => `${header}: ${response.headers[header]}`)
+        .join(', ');
 
 export default function () {
     const SLEEP = __ENV.SLEEP || 1;
+    const LOG = __ENV.LOG || false;
     const api_key = __ENV.APIKEY || 'wcms-commerce-ims-ro-user-milo';
     const locale = { country: 'US', locale: 'en_US' };
     const osiIndex = (__VU - 1 + __ITER) % osis.length; // rotates per user & iteration
@@ -40,8 +55,15 @@ export default function () {
         'is status 200': (r) => r.status === 200,
     });
     if (!is200) {
-        console.error(`Failed URL: ${url}, Status: ${res.status}`);
+        console.error(
+            `URL: ${url}, Status: ${res.status}, Headers: ${logHeaders(res)}`,
+        );
     } else {
+        if (LOG) {
+            console.log(
+                `URL: ${url}, Status: ${res.status}, Headers: ${logHeaders(res)}`,
+            );
+        }
         check(res, {
             'response is not empty': (r) => r.body && r.body.length > 0,
             'price is not empty': (r) => {

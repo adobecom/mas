@@ -1,10 +1,9 @@
 import { LitElement, html, nothing } from 'lit';
 import StoreController from './reactivity/store-controller.js';
-import Store from './store.js';
+import Store, { editFragment } from './store.js';
 import './mas-fragment-render.js';
 import './mas-fragment-table.js';
 import { reactiveStore } from './reactivity/reactive-store.js';
-import { editFragment } from './editor-panel.js';
 
 const tooltipTimeout = reactiveStore(null);
 

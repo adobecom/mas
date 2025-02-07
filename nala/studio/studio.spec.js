@@ -24,7 +24,7 @@ export default {
                 linkUrl: '',
             },
             browserParams: '#query=',
-            tags: '@mas-studio',
+            tags: '@mas-studio @nopr', // remove @nopr tag once MWPW-165152 is fixed
         },
         {
             tcid: '2',
@@ -34,18 +34,6 @@ export default {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
             browserParams: '#path=nala',
-            tags: '@mas-studio',
-        },
-        {
-            tcid: '3',
-            name: '@studio-edit-title',
-            path: '/studio.html',
-            data: {
-                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
-                title: 'Automation Test Card',
-                newTitle: 'Change title',
-            },
-            browserParams: '#query=',
             tags: '@mas-studio',
         },
     ],

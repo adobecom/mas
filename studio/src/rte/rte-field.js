@@ -84,6 +84,7 @@ class RteField extends LitElement {
         priceSelected: { type: Boolean, state: true },
         readOnly: { type: Boolean, attribute: 'readonly' },
         showLinkEditor: { type: Boolean, state: true },
+        showIconEditor: { type: Boolean, state: true },
         defaultLinkStyle: { type: String, attribute: 'default-link-style' },
         maxLength: { type: Number, attribute: 'max-length' },
         length: { type: Number, state: true },
@@ -123,7 +124,7 @@ class RteField extends LitElement {
                     color: var(--spectrum-global-color-red-700);
                 }
 
-                rte-link-editor {
+                rte-link-editor, rte-icon-editor {
                     display: contents;
                 }
 
@@ -193,6 +194,17 @@ class RteField extends LitElement {
                     white-space: nowrap;
                     margin: 0 1px;
                 }
+                
+                .ProseMirror .icon-button {
+                    height: auto;
+                    padding: 0;
+                    border: 0;
+                    min-inline-size: 18px;
+                }
+                
+                .ProseMirror .icon-button:hover {
+                    background-color: transparent;
+                }
 
                 .price.price-strikethrough {
                     text-decoration: line-through;
@@ -223,6 +235,7 @@ class RteField extends LitElement {
         this.isLinkSelected = false;
         this.priceSelected = false;
         this.showLinkEditor = false;
+        this.showIconEditor = false;
         this.inline = false;
         this.link = false;
         this.maxLength = 70;
@@ -231,6 +244,7 @@ class RteField extends LitElement {
             escKey: this.#handleEscKey.bind(this),
             ostEvent: this.#handleOstEvent.bind(this),
             linkSave: this.#handleLinkSave.bind(this),
+            iconSave: this.#handleIconSave.bind(this),
             focusout: this.#handleFocusout.bind(this),
             focus: this.#handleFocus.bind(this),
             doubleClickOn: this.#handleDoubleClickOn.bind(this),
@@ -296,6 +310,22 @@ class RteField extends LitElement {
                 },
             ],
             toDOM: this.#createInlinePriceElement.bind(this),
+        });
+
+        nodes = nodes.addToStart('icon', {
+            group: 'inline',
+            inline: true,
+            atom: true,
+            attrs: {
+                class: { default: null },
+            },
+            parseDOM: [
+                {
+                    tag: '.icon-button',
+                    getAttrs: this.#collectDataAttributes,
+                }
+            ],
+            toDOM: this.#createIconElement.bind(this),
         });
 
         if (this.link) {
@@ -396,6 +426,28 @@ class RteField extends LitElement {
             }
         }
         return attrs;
+    }
+
+    #createIconElement(node) {
+        const tooltipText = node.content.content[0].text.trim();
+
+        const icon = document.createElement('sp-icon-info');
+        icon.setAttribute('slot', 'icon');
+        const button = document.createElement('sp-action-button');
+        button.setAttribute('quiet', '');
+        button.setAttribute('icon-only', '');
+        button.setAttribute('class', 'icon-button');
+        button.append(icon);
+
+        if (tooltipText) {
+            const tooltip = document.createElement('sp-tooltip');
+            tooltip.setAttribute('placement', 'top');
+            tooltip.setAttribute('self-managed', '');
+            tooltip.textContent = tooltipText;
+            button.append(tooltip);
+        }
+
+        return button;
     }
 
     #createInlinePriceElement(node) {
@@ -585,6 +637,18 @@ class RteField extends LitElement {
         };
     }
 
+    #handleIconSave(event) {
+        const { tooltip } = event.detail;
+        const { state, dispatch } = this.editorView;
+        const { selection } = state;
+
+        const node = state.schema.nodes.icon.create({}, state.schema.text(tooltip || ' '));
+        const tr = state.tr.insert(selection.from, node)
+        dispatch(tr);
+
+        this.showIconEditor = false;
+    }
+
     #handleLinkSave(event) {
         const { href, text, title, target, variant, analyticsId } =
             event.detail;
@@ -621,6 +685,8 @@ class RteField extends LitElement {
         const content = state.schema.text(text || selection.node.textContent);
         if (selection.node?.type.name === 'link') {
             const mergedAttributes = { ...selection.node.attrs, ...linkAttrs };
+            console.log('aaa link');
+            console.log(mergedAttributes);
             const updatedNode = linkNodeType.create(mergedAttributes, content);
             tr = tr.replaceWith(selection.from, selection.to, updatedNode);
         } else {
@@ -635,12 +701,15 @@ class RteField extends LitElement {
     }
 
     #handleEscKey(event) {
-        if (!this.showLinkEditor) return;
+        if (!this.showLinkEditor && !this.showIconEditor) return;
         // Handle ESC key at the RteField level
         if (event.key === 'Escape') {
             event.stopPropagation(); // Stop propagation here
             if (this.showLinkEditor) {
                 this.showLinkEditor = false;
+                this.requestUpdate();
+            } else if (this.showIconEditor) {
+                this.showIconEditor = false;
                 this.requestUpdate();
             }
             closeOfferSelectorTool();
@@ -707,6 +776,12 @@ class RteField extends LitElement {
         this.showLinkEditor = true;
         await this.updateComplete;
         Object.assign(this.linkEditorElement, { ...attrs, open: true });
+    }
+
+    async openIconEditor() {
+        this.showIconEditor = true;
+        await this.updateComplete;
+        Object.assign(this.iconEditorElement, { open: true });
     }
 
     handleOpenOfferSelector(event, element) {
@@ -809,8 +884,20 @@ class RteField extends LitElement {
         ></rte-link-editor>`;
     }
 
+    get iconEditor() {
+        if (!this.showIconEditor) return nothing;
+        return html`<rte-icon-editor
+            dialog
+            @save="${this.#boundHandlers.iconSave}"
+        ></rte-icon-editor>`;
+    }
+
     get linkEditorElement() {
         return this.shadowRoot.querySelector('rte-link-editor');
+    }
+
+    get iconEditorElement() {
+        return this.shadowRoot.querySelector('rte-icon-editor');
     }
 
     render() {
@@ -819,6 +906,7 @@ class RteField extends LitElement {
             <sp-action-group quiet size="m" aria-label="RTE toolbar actions">
                 ${this.#formatButtons} ${this.#linkEditorButton}
                 ${this.#unlinkEditorButton} ${this.#offerSelectorToolButton}
+                ${this.#iconsButton}
             </sp-action-group>
             <div id="editor"></div>
             <p id="counter">
@@ -827,6 +915,20 @@ class RteField extends LitElement {
                 >/${this.maxLength}
             </p>
             ${this.linkEditor}
+            ${this.iconEditor}
+        `;
+    }
+
+    get #iconsButton() {
+        return html`
+            <sp-action-button
+                emphasized
+                id="addIconButton"
+                @click=${this.openIconEditor}
+                title="Info Icon"
+            >
+                <sp-icon-info slot="icon"></sp-icon-info>
+            </sp-action-button>
         `;
     }
 

@@ -3,6 +3,7 @@ import './editor-panel.js';
 import './editors/merch-card-editor.js';
 import './rte/rte-field.js';
 import './rte/rte-link-editor.js';
+import './rte/rte-icon-editor.js';
 import './mas-top-nav.js';
 import './mas-side-nav.js';
 import './mas-toolbar.js';

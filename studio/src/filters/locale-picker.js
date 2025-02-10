@@ -13,6 +13,11 @@ class MasLocalePicker extends LitElement {
             margin-right: 8px;
         }
 
+        sp-action-button {
+            display: flex;
+            flex-direction: row-reverse;
+        }
+
         sp-popover {
             padding: 8px;
             max-height: 326px;
@@ -29,7 +34,7 @@ class MasLocalePicker extends LitElement {
         }
     `;
 
-    storeController = new ReactiveController(this, [Store.locale.current]);
+    reactiveController = new ReactiveController(this, [Store.locale.current]);
 
     constructor() {
         super();
@@ -51,7 +56,7 @@ class MasLocalePicker extends LitElement {
             <overlay-trigger placement="bottom">
                 <!-- The action button that triggers the overlay -->
                 <sp-action-button slot="trigger" quiet>
-                    Country
+                    Country: (${this.currentLocale})
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
 

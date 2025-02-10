@@ -1,6 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { AEM } from './aem.js';
+import { EVENT_OST_SELECT } from '../constants.js';
 
 const AEM_TAG_PATTERN = /^[a-zA-Z][a-zA-Z0-9]*:/;
 const namespaces = {};
@@ -98,12 +99,41 @@ class AemTagPickerField extends LitElement {
         this.value = [];
         this.#aem = null;
         this.ready = false;
+        this._onOstSelect = this._onOstSelect.bind(this);
     }
+
+    _onOstSelect = (event) => {
+        console.log(event.composedPath());
+        const dummy = { offerType: 'BASE', planType: 'ABM' };
+        const convertCamelToSnake = (str) => {
+            return str.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+        };
+        const newTagPaths = Object.entries(dummy).map(([key, value]) => {
+            const formattedKey = convertCamelToSnake(key);
+            const formattedValue = value.toLowerCase();
+            return `/content/cq:tags/mas/${formattedKey}/${formattedValue}`;
+        });
+        newTagPaths.forEach((tagPath) => {
+            if (!this.value.includes(tagPath)) {
+                this.value = [...this.value, tagPath];
+            }
+        });
+    };
 
     connectedCallback() {
         super.connectedCallback();
         this.#aem = new AEM(this.bucket, this.baseUrl);
         this.loadTags();
+        document.addEventListener(EVENT_OST_SELECT, this._onOstSelect, {
+            capture: true,
+        });
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        document.removeEventListener(EVENT_OST_SELECT, this._onOstSelect, {
+            capture: true,
+        });
     }
 
     get #tagsRoot() {

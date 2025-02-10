@@ -4,7 +4,6 @@ import { MasRepository } from './mas-repository.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
-import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 
 export default class EditorPanel extends LitElement {
     static properties = {
@@ -368,18 +367,6 @@ export default class EditorPanel extends LitElement {
             ${this.fragment
                 ? html`
                       <p>Fragment details (not shown on the card)</p>
-                      <sp-field-group class="toggle" id="osi">
-                          <sp-field-label for="ctas">OSI</sp-field-label>
-                          <rte-field
-                              id="osi"
-                              link
-                              inline
-                              data-field="osi"
-                              default-link-style="primary-outline"
-                              @change="${this.updateFragment}"
-                              >${unsafeHTML(form.osi.values[0])}</rte-field
-                          >
-                      </sp-field-group>
                       <sp-field-label for="fragment-title"
                           >Fragment Title</sp-field-label
                       >

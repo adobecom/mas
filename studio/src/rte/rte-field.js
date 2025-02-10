@@ -678,6 +678,7 @@ class RteField extends LitElement {
 
         dispatch(tr);
         this.showOfferSelector = false;
+        ostRteFieldSource = null;
         closeOfferSelectorTool();
     }
 

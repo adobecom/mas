@@ -201,9 +201,11 @@ class MerchCardEditor extends LitElement {
                 <rte-field
                     id="description"
                     link
+                    upt-link
                     data-field="description"
                     default-link-style="secondary-link"
                     @change="${this.updateFragment}"
+                    .context=${this.fragmentStore}
                     >${unsafeHTML(form.description.values[0])}</rte-field
                 >
             </sp-field-group>

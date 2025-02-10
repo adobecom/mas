@@ -222,6 +222,7 @@ class MerchCardEditor extends LitElement {
                 <rte-field
                     id="callout"
                     link
+                    icon
                     data-field="callout"
                     default-link-style="secondary-link"
                     @change="${this.updateFragment}"

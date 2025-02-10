@@ -80,6 +80,7 @@ class RteField extends LitElement {
         hasFocus: { type: Boolean, attribute: 'focused', reflect: true },
         inline: { type: Boolean, attribute: 'inline' },
         link: { type: Boolean, attribute: 'link' },
+        icon: { type: Boolean, attribute: 'icon' },
         isLinkSelected: { type: Boolean, state: true },
         priceSelected: { type: Boolean, state: true },
         readOnly: { type: Boolean, attribute: 'readonly' },
@@ -312,21 +313,24 @@ class RteField extends LitElement {
             toDOM: this.#createInlinePriceElement.bind(this),
         });
 
-        nodes = nodes.addToStart('icon', {
-            group: 'inline',
-            inline: true,
-            atom: true,
-            attrs: {
-                class: { default: null },
-            },
-            parseDOM: [
-                {
-                    tag: '.icon-button',
-                    getAttrs: this.#collectDataAttributes,
-                }
-            ],
-            toDOM: this.#createIconElement.bind(this),
-        });
+        if (this.icon) {
+            nodes = nodes.addToStart('icon', {
+                group: 'inline',
+                content: 'text*',
+                atom: true,
+                inline: true,
+                attrs: {
+                    class: { default: null },
+                },
+                parseDOM: [
+                    {
+                        tag: '.icon-button',
+                        getAttrs: this.#collectDataAttributes,
+                    }
+                ],
+                toDOM: this.#createIconElement.bind(this),
+            });
+        }
 
         if (this.link) {
             nodes = nodes.addToStart('link', {
@@ -429,7 +433,7 @@ class RteField extends LitElement {
     }
 
     #createIconElement(node) {
-        const tooltipText = node.content.content[0].text.trim();
+        const tooltipText = node.content.content[0]?.text.trim();
 
         const icon = document.createElement('sp-icon-info');
         icon.setAttribute('slot', 'icon');
@@ -920,12 +924,13 @@ class RteField extends LitElement {
     }
 
     get #iconsButton() {
+        if (!this.icon) return nothing;
         return html`
             <sp-action-button
                 emphasized
                 id="addIconButton"
                 @click=${this.openIconEditor}
-                title="Info Icon"
+                title="Add Icon"
             >
                 <sp-icon-info slot="icon"></sp-icon-info>
             </sp-action-button>

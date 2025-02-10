@@ -75,6 +75,7 @@ class MasFilterPanel extends LitElement {
 
     #handleRefresh() {
         Store.search.update((prev) => ({ ...prev, tags: [] }));
+        Store.user.set(null);
         this.tagsByType = { ...EMPTY_TAGS };
         this.shadowRoot
             .querySelectorAll('aem-tag-picker-field')

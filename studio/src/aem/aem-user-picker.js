@@ -81,7 +81,7 @@ class AemUserPicker extends LitElement {
     }
 
     get endpoint() {
-        return `https://bps-il.adobe.io/jil-api/v2/organizations/3B962FB55F5F922E0A495C88@AdobeOrg/user-groups/805679796/users/?page=0&page_size=20&search_query=${encodeURIComponent(
+        return `https://bps-il.adobe.io/jil-api/v2/organizations/3B962FB55F5F922E0A495C88@AdobeOrg/user-groups/805679796/users/?page=0&page_size=100&search_query=${encodeURIComponent(
             this.search,
         )}&sort=FNAME_LNAME&sort_order=ASC&currentPage=1&filterQuery=`;
     }

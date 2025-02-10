@@ -57,6 +57,10 @@ export class ReactiveStore {
     removeMeta(key) {
         delete this.#meta[key];
     }
+
+    toString() {
+        return this.value;
+    }
 }
 
 export function reactiveStore(initialValue) {

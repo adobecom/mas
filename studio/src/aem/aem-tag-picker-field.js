@@ -115,6 +115,11 @@ class AemTagPickerField extends LitElement {
             flex: 1;
         }
 
+        sp-action-button {
+            display: flex;
+            flex-direction: row-reverse;
+        }
+
         sp-popover.checkbox-popover {
             min-width: 248px;
             border-radius: 10px;

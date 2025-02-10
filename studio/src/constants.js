@@ -46,3 +46,5 @@ export const OPERATIONS = {
     CLONE: 'clone',
     UNPUBLISH: 'unpublish',
 };
+
+export const LOCALE_DEFAULT = 'en_US';

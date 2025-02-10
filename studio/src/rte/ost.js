@@ -9,6 +9,7 @@ import Store from '../store.js';
 
 let ostRoot = document.getElementById('ost');
 let closeFunction;
+let ostTriggerSource;
 
 if (!ostRoot) {
     ostRoot = document.createElement('div');
@@ -126,7 +127,57 @@ const OST_VALUE_MAPPING = {
     false: false,
 };
 
-export function onSelect(offerSelectorId, type, offer, options, promoOverride) {
+export function onOfferSelect(
+    offerSelectorId,
+    type,
+    offer,
+    options,
+    promoOverride,
+) {
+    const changes = getObjectDifference(options, OST_OPTION_DEFAULTS);
+
+    const attributes = { 'data-wcs-osi': offerSelectorId };
+
+    const template = OST_TYPE_MAPPING[type] ?? type;
+    if (template) {
+        attributes['data-template'] = template;
+    }
+    const is = OST_IS_MAPPING[type];
+    if (is) {
+        attributes.is = is;
+    }
+
+    const ctaText = CHECKOUT_CTA_TEXTS[options.ctaText]; // no placeholder key support.
+    if (ctaText) {
+        attributes['text'] = ctaText;
+        attributes['data-analytics-id'] = options.ctaText;
+    }
+
+    if (promoOverride) {
+        attributes['data-promotion-code'] = promoOverride;
+    }
+    for (const [key, value] of Object.entries(changes)) {
+        const attribute = OST_OPTION_ATTRIBUTE_MAPPING[key];
+        if (attribute) {
+            attributes[attribute] = value;
+        }
+    }
+
+    ostRoot.dispatchEvent(
+        new CustomEvent(EVENT_OST_OFFER_SELECT, {
+            detail: attributes,
+            bubbles: true,
+        }),
+    );
+}
+
+export function onPlaceholderSelect(
+    offerSelectorId,
+    type,
+    offer,
+    options,
+    promoOverride,
+) {
     const changes = getObjectDifference(options, OST_OPTION_DEFAULTS);
 
     const attributes = { 'data-wcs-osi': offerSelectorId };
@@ -174,7 +225,7 @@ export function getOffferSelectorTool() {
     `;
 }
 
-export function openOfferSelectorTool(offerElement) {
+export function openOfferSelectorTool(triggerElement, offerElement) {
     const landscape =
         Store.commerceEnv?.value == 'stage'
             ? WCS_LANDSCAPE_DRAFT
@@ -235,7 +286,8 @@ export function openOfferSelectorTool(offerElement) {
         defaultPlaceholderOptions,
         offerSelectorPlaceholderOptions,
         dialog: true,
-        onSelect,
+        onSelect:
+            this.tagName === 'OSI-FIELD' ? onOfferSelect : onPlaceholderSelect,
     });
 }
 

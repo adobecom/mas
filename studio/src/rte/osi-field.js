@@ -72,7 +72,7 @@ class OsiField extends LitElement {
         osiFieldSource = this;
         debugger;
         this.showOfferSelector = true;
-        openOfferSelectorTool(element);
+        openOfferSelectorTool(this, element);
     }
 
     render() {

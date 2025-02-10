@@ -1,6 +1,7 @@
-import { html, css, LitElement } from 'lit';
+import { html, css, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
+import ReactiveController from '../reactivity/reactive-controller.js';
 
 // Helper function to get tags from picker value
 function getTagsFromPicker(picker) {
@@ -46,6 +47,8 @@ class MasFilterPanel extends LitElement {
             flex-wrap: wrap;
         }
     `;
+
+    storeController = new ReactiveController(this, [Store.user]);
 
     constructor() {
         super();
@@ -100,6 +103,10 @@ class MasFilterPanel extends LitElement {
             const existingTags = prev.tags.filter((tag) => tag !== tagId);
             return { ...prev, tags: existingTags };
         });
+    }
+
+    #handleUserDelete() {
+        Store.user.set(null);
     }
 
     render() {
@@ -180,6 +187,18 @@ class MasFilterPanel extends LitElement {
                         >
                     `,
                 )}
+                ${Store.user.get()
+                    ? html`
+                          <sp-tag
+                              size="s"
+                              deletable
+                              @delete=${this.#handleUserDelete}
+                              >${Store.user.get().firstName}
+                              ${Store.user.get().lastName}
+                              <sp-icon-user slot="icon" size="s"></sp-icon-user>
+                          </sp-tag>
+                      `
+                    : nothing}
             </sp-tags>
         `;
     }

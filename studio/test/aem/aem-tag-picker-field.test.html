@@ -26,6 +26,8 @@
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
             import { fixture, oneEvent } from '@open-wc/testing-helpers/pure';
+            import { mockFetch } from '../utils.js';
+
 
             import {
                 fromAttribute,
@@ -35,12 +37,7 @@
             import { delay, initElementFromTemplate } from '../utils.js';
 
             runTests(async () => {
-                let fetchPromise;
-                const originalFetch = window.fetch;
-                window.fetch = async () => {
-                    fetchPromise = originalFetch('/test/mocks/tags.json');
-                    return fetchPromise;
-                };
+                mockFetch();
 
                 describe('aem-tag-picker-field custom element: tag-picker', async () => {
                     it('Serializes to value attribute', async function () {

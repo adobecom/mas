@@ -29,20 +29,6 @@ class AemUserPicker extends LitElement {
             padding-bottom: 8px;
         }
 
-        .user-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .user-name {
-            font-weight: bold;
-        }
-
-        .user-email {
-            font-size: 0.9em;
-            color: var(--spectrum-global-color-gray-700);
-        }
-
         .loading-spinner {
             display: flex;
             justify-content: center;
@@ -107,7 +93,7 @@ class AemUserPicker extends LitElement {
         this.error = '';
 
         try {
-            const response = await fetch(`/studio/src/aem/users.json`, {
+            const response = await fetch(this.endpoint, {
                 headers: {
                     Authorization: `Bearer ${window.adobeid?.authorize?.()}`,
                     'x-api-key': 'mas-commerce',
@@ -178,17 +164,15 @@ class AemUserPicker extends LitElement {
                                                 value="${user.id}"
                                                 @click="${this.handleSelect}"
                                             >
-                                                <div class="user-info">
-                                                    <span class="user-name"
-                                                        >${user.firstName}
-                                                        ${user.lastName}</span
-                                                    >
-                                                    <span class="user-email"
-                                                        >${user.email}</span
-                                                    >
-                                                </div>
-                                                ${user.id ===
-                                                Store.user.get()?.id
+                                                <span
+                                                    >${user.firstName}
+                                                    ${user.lastName}</span
+                                                >
+                                                <span slot="description"
+                                                    >${user.email}</span
+                                                >
+                                                ${user.email ===
+                                                Store.user.get()?.email
                                                     ? html`
                                                           <sp-icon-checkmark-circle
                                                               slot="icon"

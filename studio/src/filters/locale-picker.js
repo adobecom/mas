@@ -56,7 +56,7 @@ class MasLocalePicker extends LitElement {
             <overlay-trigger placement="bottom">
                 <!-- The action button that triggers the overlay -->
                 <sp-action-button slot="trigger" quiet>
-                    Country: (${this.currentLocale})
+                    Country: (${Store.locale.current})
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
 

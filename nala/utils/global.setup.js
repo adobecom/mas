@@ -13,7 +13,7 @@ async function getGitHubPRBranchLiveUrl() {
 
   // get the pr branch name
   const branch = process.env.GITHUB_HEAD_REF;    
-  const prBranch = branch.replace(/\//g, '-');
+  const prBranch = branch ? branch.replace(/\//g, '-') : prReference.split('/')[2].replace(/\//g, '-');
 
   // get the org and repo 
   const repository = process.env.GITHUB_REPOSITORY;

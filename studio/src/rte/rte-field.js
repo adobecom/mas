@@ -712,9 +712,9 @@ class RteField extends LitElement {
 
         const nodeType = state.schema.nodes.link;
 
+        const selectionClasses = selection.node?.attrs.class;
         const attributes = {
-            class: selection.node?.attrs.class,
-            is: CUSTOM_ELEMENT_UPT_LINK,
+            class: `upt-link${selectionClasses ? ` ${selectionClasses}` : ''}`,
             href: '#',
         };
 

@@ -712,7 +712,7 @@ class RteField extends LitElement {
     handleOpenOfferSelector(event, element) {
         ostRteFieldSource = this;
         this.showOfferSelector = true;
-        openOfferSelectorTool(element);
+        openOfferSelectorTool(this, element);
     }
 
     get #linkEditorButton() {

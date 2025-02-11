@@ -174,7 +174,7 @@ export function getOffferSelectorTool() {
     `;
 }
 
-export function openOfferSelectorTool(offerElement) {
+export function openOfferSelectorTool(triggerElement, offerElement) {
     const landscape =
         Store.commerceEnv?.value == 'stage'
             ? WCS_LANDSCAPE_DRAFT
@@ -235,7 +235,10 @@ export function openOfferSelectorTool(offerElement) {
         defaultPlaceholderOptions,
         offerSelectorPlaceholderOptions,
         dialog: true,
-        onSelect,
+        onSelect:
+        triggerElement.tagName === 'OSI-FIELD'
+            ? onOfferSelect
+            : onPlaceholderSelect,
     });
 }
 

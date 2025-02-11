@@ -40,7 +40,6 @@ class OsiField extends LitElement {
         if (osiFieldSource !== this) return;
         this.selectedOffer = offerSelectorId;
         this.showOfferSelector = false;
-        osiFieldSource = null;
         closeOfferSelectorTool();
     }
 

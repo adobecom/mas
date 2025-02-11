@@ -89,7 +89,6 @@ class RteField extends LitElement {
         defaultLinkStyle: { type: String, attribute: 'default-link-style' },
         maxLength: { type: Number, attribute: 'max-length' },
         length: { type: Number, state: true },
-        context: { type: Object, attribute: false }, // Store containing the entity this field is related to (optional)
     };
 
     static get styles() {
@@ -714,14 +713,10 @@ class RteField extends LitElement {
 
         const nodeType = state.schema.nodes.link;
 
-        const { wcsOsi, promoCode } = this.context.get();
-
         const attributes = {
             class: selection.node?.attrs.class,
             is: CUSTOM_ELEMENT_UPT_LINK,
             href: '#',
-            'data-wcs-osi': wcsOsi,
-            'data-promotion-code': promoCode,
         };
 
         const content = state.schema.text('{{see-terms}}');

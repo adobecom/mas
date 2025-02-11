@@ -309,7 +309,6 @@ class RteField extends LitElement {
                 atom: true,
                 inline: true,
                 attrs: {
-                    is: { default: null },
                     class: { default: null },
                     href: { default: '' },
                     'data-checkout-workflow': { default: null },

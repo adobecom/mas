@@ -196,9 +196,9 @@ class AEM {
         const { title, description, fields } = fragment;
         const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
             method: 'PUT',
+            credentials: 'include',
             headers: {
                 ...this.headers,
-                credentials: 'include',
                 'Content-Type': 'application/json',
                 'If-Match': fragment.etag,
             },
@@ -230,6 +230,7 @@ class AEM {
             `${this.cfFragmentsUrl}/${fragment.id}/tags`,
             {
                 method: 'GET',
+                credentials: 'include',
                 headers: this.headers,
             },
         ).catch((err) => {
@@ -239,7 +240,6 @@ class AEM {
         const etag = fragmentTags.headers.get('Etag');
         const headers = {
             ...this.headers,
-            credentials: 'include',
             'Content-Type': 'application/json',
             'If-Match': etag,
         };
@@ -247,6 +247,7 @@ class AEM {
         if (newTags?.length === 0) {
             await fetch(`${this.cfFragmentsUrl}/${fragment.id}/tags`, {
                 method: 'DELETE',
+                credentials: 'include',
                 headers,
             }).catch((err) => {
                 throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
@@ -254,6 +255,7 @@ class AEM {
         } else {
             await fetch(`${this.cfFragmentsUrl}/${fragment.id}/tags`, {
                 method: 'PUT',
+                credentials: 'include',
                 headers,
                 body: JSON.stringify({
                     tags: newTags,
@@ -296,9 +298,9 @@ class AEM {
 
         const res = await fetch(this.wcmcommandUrl, {
             method: 'POST',
+            credentials: 'include',
             headers: {
                 ...this.headers,
-                credentials: 'include',
                 'csrf-token': csrfToken,
             },
             body: formData,
@@ -344,10 +346,10 @@ class AEM {
         }
         const response = await fetch(`${this.cfFragmentsUrl}`, {
             method: 'POST',
+            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
                 ...this.headers,
-                credentials: 'include',
             },
             body: JSON.stringify({ title, modelId, fields }),
         }).catch((err) => {
@@ -369,11 +371,11 @@ class AEM {
     async publishFragment(fragment) {
         const response = await fetch(this.cfPublishUrl, {
             method: 'POST',
+            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
                 'If-Match': fragment.etag,
                 ...this.headers,
-                credentials: 'include',
             },
             body: JSON.stringify({
                 paths: [fragment.path],
@@ -400,11 +402,11 @@ class AEM {
     async deleteFragment(fragment) {
         const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
             method: 'DELETE',
+            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
                 'If-Match': fragment.etag,
                 ...this.headers,
-                credentials: 'include',
             },
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
@@ -427,9 +429,9 @@ class AEM {
 
         const response = await fetch(`${this.foldersUrl}/?${query}`, {
             method: 'GET',
+            credentials: 'include',
             headers: {
                 ...this.headers,
-                credentials: 'include',
                 'X-Adobe-Accept-Experimental': '1',
             },
         }).catch((err) => {
@@ -453,6 +455,7 @@ class AEM {
             `${this.foldersClassicUrl}${relativePath}.json?limit=1000`, // TODO: this is a workaround until Folders API is fixed.
             {
                 method: 'GET',
+                credentials: 'include',
                 headers: { ...this.headers },
             },
         ).catch((err) => {
@@ -486,6 +489,7 @@ class AEM {
             `${this.baseUrl}/bin/querybuilder.json?path=${root}&type=cq:Tag&orderby=@jcr:path&p.limit=-1`,
             {
                 method: 'GET',
+                credentials: 'include',
                 headers: this.headers,
             },
         ).catch((error) => console.error('Error:', error));

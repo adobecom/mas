@@ -127,7 +127,13 @@ const OST_VALUE_MAPPING = {
     false: false,
 };
 
-export function onPlaceholderSelect(offerSelectorId, type, offer, options, promoOverride) {
+export function onPlaceholderSelect(
+    offerSelectorId,
+    type,
+    offer,
+    options,
+    promoOverride,
+) {
     const changes = getObjectDifference(options, OST_OPTION_DEFAULTS);
 
     const attributes = { 'data-wcs-osi': offerSelectorId };
@@ -246,9 +252,9 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
         offerSelectorPlaceholderOptions,
         dialog: true,
         onSelect:
-        triggerElement.tagName === 'OSI-FIELD'
-            ? onOfferSelect
-            : onPlaceholderSelect,
+            triggerElement.tagName === 'OSI-FIELD'
+                ? onOfferSelect
+                : onPlaceholderSelect,
     });
 }
 

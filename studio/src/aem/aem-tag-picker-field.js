@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { AEM } from './aem.js';
-import { EVENT_OST_OFFER_SELECT } from '../constants.js'
+import { EVENT_OST_OFFER_SELECT } from '../constants.js';
 
 const AEM_TAG_PATTERN = /^[a-zA-Z][a-zA-Z0-9]*:/;
 const namespaces = {};

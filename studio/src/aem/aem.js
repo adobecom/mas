@@ -32,7 +32,6 @@ class AEM {
             Authorization: `Bearer ${sessionStorage.getItem('masAccessToken') ?? window.adobeid?.authorize?.()}`,
             pragma: 'no-cache',
             'cache-control': 'no-cache',
-            credentials: 'include',
         };
     }
 
@@ -199,6 +198,7 @@ class AEM {
             method: 'PUT',
             headers: {
                 ...this.headers,
+                credentials: 'include',
                 'Content-Type': 'application/json',
                 'If-Match': fragment.etag,
             },
@@ -239,6 +239,7 @@ class AEM {
         const etag = fragmentTags.headers.get('Etag');
         const headers = {
             ...this.headers,
+            credentials: 'include',
             'Content-Type': 'application/json',
             'If-Match': etag,
         };
@@ -297,6 +298,7 @@ class AEM {
             method: 'POST',
             headers: {
                 ...this.headers,
+                credentials: 'include',
                 'csrf-token': csrfToken,
             },
             body: formData,
@@ -345,6 +347,7 @@ class AEM {
             headers: {
                 'Content-Type': 'application/json',
                 ...this.headers,
+                credentials: 'include',
             },
             body: JSON.stringify({ title, modelId, fields }),
         }).catch((err) => {
@@ -370,6 +373,7 @@ class AEM {
                 'Content-Type': 'application/json',
                 'If-Match': fragment.etag,
                 ...this.headers,
+                credentials: 'include',
             },
             body: JSON.stringify({
                 paths: [fragment.path],
@@ -400,6 +404,7 @@ class AEM {
                 'Content-Type': 'application/json',
                 'If-Match': fragment.etag,
                 ...this.headers,
+                credentials: 'include',
             },
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
@@ -424,6 +429,7 @@ class AEM {
             method: 'GET',
             headers: {
                 ...this.headers,
+                credentials: 'include',
                 'X-Adobe-Accept-Experimental': '1',
             },
         }).catch((err) => {

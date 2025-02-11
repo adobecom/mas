@@ -689,8 +689,6 @@ class RteField extends LitElement {
         const content = state.schema.text(text || selection.node.textContent);
         if (selection.node?.type.name === 'link') {
             const mergedAttributes = { ...selection.node.attrs, ...linkAttrs };
-            console.log('aaa link');
-            console.log(mergedAttributes);
             const updatedNode = linkNodeType.create(mergedAttributes, content);
             tr = tr.replaceWith(selection.from, selection.to, updatedNode);
         } else {

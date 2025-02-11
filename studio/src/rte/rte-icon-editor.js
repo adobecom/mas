@@ -24,11 +24,6 @@ export class RteIconEditor extends LitElement {
             z-index: 1;
             background: var(--spectrum-gray-100);
         }
-        
-        sp-dialog {
-            width: 100%;
-            max-width: 750px;
-        }
 
         sp-dialog {
             width: 100%;
@@ -80,7 +75,6 @@ export class RteIconEditor extends LitElement {
 
     #handleSave(e) {
         e.preventDefault();
-        //
         const data = {
             tooltip: this.tooltip,
         };

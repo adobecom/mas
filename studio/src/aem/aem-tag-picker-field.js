@@ -1,6 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { AEM } from './aem.js';
+import { EVENT_OST_OFFER_SELECT } from '../constants.js'
 
 const AEM_TAG_PATTERN = /^[a-zA-Z][a-zA-Z0-9]*:/;
 const namespaces = {};
@@ -100,10 +101,54 @@ class AemTagPickerField extends LitElement {
         this.ready = false;
     }
 
+    _onOstSelect = ({ detail: { offer } }) => {
+        const { offer_type, planType, market_segments } = offer;
+        console.log(offer);
+        this.value = '';
+        const extractedOffer = {
+            offer_type,
+            planType,
+            market_segments:
+                Array.isArray(market_segments) && market_segments.length > 0
+                    ? market_segments[0]
+                    : market_segments,
+        };
+        console.log(extractedOffer);
+        const convertCamelToSnake = (str) => {
+            return str.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+        };
+        const newTagPaths = Object.entries(extractedOffer).map(
+            ([key, value]) => {
+                const formattedKey = convertCamelToSnake(key);
+                const formattedValue = value.toLowerCase();
+                return `/content/cq:tags/mas/${formattedKey}/${formattedValue}`;
+            },
+        );
+        newTagPaths.forEach((tagPath) => {
+            if (!this.value.includes(tagPath)) {
+                this.value = [...this.value, tagPath];
+            }
+        });
+    };
+
     connectedCallback() {
         super.connectedCallback();
         this.#aem = new AEM(this.bucket, this.baseUrl);
         this.loadTags();
+        document.addEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelect, {
+            capture: true,
+        });
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        document.removeEventListener(
+            EVENT_OST_OFFER_SELECT,
+            this._onOstSelect,
+            {
+                capture: true,
+            },
+        );
     }
 
     get #tagsRoot() {

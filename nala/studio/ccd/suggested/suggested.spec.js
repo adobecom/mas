@@ -89,5 +89,19 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-suggested',
         },
+        {
+            tcid: '7',
+            name: '@studio-suggested-edit-price',
+            path: '/studio.html',
+            data: {
+                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                price: 'US$17.24/mo',
+                strikethroughPrice: 'US$34.49/mo',
+                newPrice: 'US$17.24/moper license',
+                newStrikethroughPrice: 'US$34.49/moper license',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-suggested',
+        },
     ],
 };

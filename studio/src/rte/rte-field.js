@@ -772,7 +772,11 @@ class RteField extends LitElement {
     }
 
     #updateLength() {
-        this.length = this.editorView.dom.innerText.length;
+        let tooltipLength = 0;
+        this.editorView.dom.querySelectorAll('sp-tooltip').forEach((tooltip) => {
+            tooltipLength += tooltip.innerText.length;
+        });
+        this.length = this.editorView.dom.innerText.length - tooltipLength;
     }
 
     async openLinkEditor() {

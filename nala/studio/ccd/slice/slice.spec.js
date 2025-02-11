@@ -89,5 +89,43 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice',
         },
+        {
+            tcid: '7',
+            name: '@studio-slice-edit-price',
+            path: '/studio.html',
+            data: {
+                cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+                price: 'US$17.24/mo',
+                strikethroughPrice: 'US$34.49/mo',
+                newPrice: 'US$17.24/moper license',
+                newStrikethroughPrice: 'US$34.49/moper license',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice',
+        },
+        {
+            tcid: '8',
+            name: '@studio-slice-edit-cta-ost',
+            path: '/studio.html',
+            data: {
+                cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+                ctaText: 'Buy now',
+                newCtaText: 'Save now',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice',
+        },
+        {
+            tcid: '9',
+            name: '@studio-slice-edit-cta-link',
+            path: '/studio.html',
+            data: {
+                cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+                ctaText: 'Buy now',
+                newCtaText: 'Buy now 2',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice',
+        },
     ],
 };

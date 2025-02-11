@@ -134,6 +134,7 @@ sp-underlay + sp-dialog {
     position: fixed;
     bottom: 0;
     top: 0;
+    z-index: 2;
     left: var(--editor-left);
     right: var(--editor-right);
     height: 100vh;

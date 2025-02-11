@@ -16,12 +16,16 @@ class OsiField extends LitElement {
         this.selectedOffer = '';
         this.showOfferSelector = false;
         this.#boundHandlers = {
+            escKey: this.#handleEscKey.bind(this),
             ostEvent: this.#handleOstEvent.bind(this),
         };
     }
 
     connectedCallback() {
         super.connectedCallback();
+        document.addEventListener('keydown', this.#boundHandlers.escKey, {
+            capture: true,
+        });
         document.addEventListener(
             EVENT_OST_OFFER_SELECT,
             this.#boundHandlers.ostEvent,
@@ -30,6 +34,9 @@ class OsiField extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        document.removeEventListener('keydown', this.#boundHandlers.escKey, {
+            capture: true,
+        });
         document.removeEventListener(
             EVENT_OST_OFFER_SELECT,
             this.#boundHandlers.ostEvent,
@@ -41,6 +48,18 @@ class OsiField extends LitElement {
         this.selectedOffer = offerSelectorId;
         this.showOfferSelector = false;
         closeOfferSelectorTool();
+    }
+
+    #handleEscKey(event) {
+        if (!this.showOfferSelector) return;
+        if (event.key === 'Escape') {
+            event.stopPropagation(); // Stop propagation here
+            if (this.showLinkEditor) {
+                this.showLinkEditor = false;
+                this.requestUpdate();
+            }
+            closeOfferSelectorTool();
+        }
     }
 
     get #offerSelectorToolButton() {

@@ -37,28 +37,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[0];
-        // uncomment the following line once MWPW-165149 is fixed and delete the line after
-        // const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
-        const testPage = `${baseURL}${features[0].path}${miloLibs}${'#path=nala'}`;
+        const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-        });
-
-        // remove this step once MWPW-165149 is fixed
-        await test.step('step-1a: Go to MAS Studio content test page', async () => {
-            await expect(await studio.gotoContent).toBeVisible();
-            await studio.gotoContent.click();
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        // remove this step once MWPW-165152 is fixed
-        await test.step('step-1b: Search for the card', async () => {
-            await studio.searchInput.fill(data.cardid);
-            await page.keyboard.press('Enter');
-            await page.waitForTimeout(2000);
         });
 
         await test.step('step-2: Open card editor', async () => {
@@ -112,28 +96,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[1];
-        // uncomment the following line once MWPW-165149 is fixed and delete the line after
-        // const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
-        const testPage = `${baseURL}${features[1].path}${miloLibs}${'#path=nala'}`;
+        const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-        });
-
-        // remove this step once MWPW-165149 is fixed
-        await test.step('step-1a: Go to MAS Studio content test page', async () => {
-            await expect(await studio.gotoContent).toBeVisible();
-            await studio.gotoContent.click();
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        // remove this step once MWPW-165152 is fixed
-        await test.step('step-1b: Search for the card', async () => {
-            await studio.searchInput.fill(data.cardid);
-            await page.keyboard.press('Enter');
-            await page.waitForTimeout(2000);
         });
 
         await test.step('step-2: Open card editor', async () => {
@@ -173,28 +141,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[2];
-        // uncomment the following line once MWPW-165149 is fixed and delete the line after
-        // const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
-        const testPage = `${baseURL}${features[2].path}${miloLibs}${'#path=nala'}`;
+        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-        });
-
-        // remove this step once MWPW-165149 is fixed
-        await test.step('step-1a: Go to MAS Studio content test page', async () => {
-            await expect(await studio.gotoContent).toBeVisible();
-            await studio.gotoContent.click();
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        // remove this step once MWPW-165152 is fixed
-        await test.step('step-1b: Search for the card', async () => {
-            await studio.searchInput.fill(data.cardid);
-            await page.keyboard.press('Enter');
-            await page.waitForTimeout(2000);
         });
 
         await test.step('step-2: Open card editor', async () => {
@@ -236,28 +188,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[3];
-        // uncomment the following line once MWPW-165149 is fixed and delete the line after
-        // const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
-        const testPage = `${baseURL}${features[3].path}${miloLibs}${'#path=nala'}`;
+        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-        });
-
-        // remove this step once MWPW-165149 is fixed
-        await test.step('step-1a: Go to MAS Studio content test page', async () => {
-            await expect(await studio.gotoContent).toBeVisible();
-            await studio.gotoContent.click();
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        // remove this step once MWPW-165152 is fixed
-        await test.step('step-1b: Search for the card', async () => {
-            await studio.searchInput.fill(data.cardid);
-            await page.keyboard.press('Enter');
-            await page.waitForTimeout(2000);
         });
 
         await test.step('step-2: Open card editor', async () => {
@@ -299,28 +235,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[4];
-        // uncomment the following line once MWPW-165149 is fixed and delete the line after
-        // const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
-        const testPage = `${baseURL}${features[4].path}${miloLibs}${'#path=nala'}`;
+        const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-        });
-
-        // remove this step once MWPW-165149 is fixed
-        await test.step('step-1a: Go to MAS Studio content test page', async () => {
-            await expect(await studio.gotoContent).toBeVisible();
-            await studio.gotoContent.click();
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        // remove this step once MWPW-165152 is fixed
-        await test.step('step-1b: Search for the card', async () => {
-            await studio.searchInput.fill(data.cardid);
-            await page.keyboard.press('Enter');
-            await page.waitForTimeout(2000);
         });
 
         await test.step('step-2: Open card editor', async () => {
@@ -363,28 +283,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[5];
-        // uncomment the following line once MWPW-165149 is fixed and delete the line after
-        // const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.cardid}`;
-        const testPage = `${baseURL}${features[5].path}${miloLibs}${'#path=nala'}`;
+        const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-        });
-
-        // remove this step once MWPW-165149 is fixed
-        await test.step('step-1a: Go to MAS Studio content test page', async () => {
-            await expect(await studio.gotoContent).toBeVisible();
-            await studio.gotoContent.click();
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        // remove this step once MWPW-165152 is fixed
-        await test.step('step-1b: Search for the card', async () => {
-            await studio.searchInput.fill(data.cardid);
-            await page.keyboard.press('Enter');
-            await page.waitForTimeout(2000);
         });
 
         await test.step('step-2: Open card editor', async () => {
@@ -426,28 +330,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[6];
-        // uncomment the following line once MWPW-165149 is fixed and delete the line after
-        // const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.cardid}`;
-        const testPage = `${baseURL}${features[6].path}${miloLibs}${'#path=nala'}`;
+        const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-        });
-
-        // remove this step once MWPW-165149 is fixed
-        await test.step('step-1a: Go to MAS Studio content test page', async () => {
-            await expect(await studio.gotoContent).toBeVisible();
-            await studio.gotoContent.click();
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        // remove this step once MWPW-165152 is fixed
-        await test.step('step-1b: Search for the card', async () => {
-            await studio.searchInput.fill(data.cardid);
-            await page.keyboard.press('Enter');
-            await page.waitForTimeout(2000);
         });
 
         await test.step('step-2: Open card editor', async () => {
@@ -522,9 +410,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-6: Search for the cloned card and verify changes then delete the card', async () => {
-            await studio.searchInput.fill(data.clonedCardID);
-            await page.keyboard.press('Enter');
-            await page.waitForTimeout(2000);
+            const clonedCard = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.clonedCardID}`;
+            await page.goto(clonedCard);
+            await page.waitForLoadState('domcontentloaded');
             await expect(
                 await studio.getCard(data.clonedCardID, 'suggested'),
             ).toBeVisible();

@@ -84,13 +84,6 @@ test.describe('M@S Studio feature test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        // remove this step once MWPW-165149 is fixed
-        await test.step('step-1a: Go to MAS Studio content test page', async () => {
-            await expect(await studio.gotoContent).toBeVisible();
-            await studio.gotoContent.click();
-            await page.waitForLoadState('domcontentloaded');
-        });
-
         await test.step('step-2: Validate search field rendered', async () => {
             await expect(await studio.searchInput).toBeVisible();
             await expect(await studio.searchIcon).toBeVisible();

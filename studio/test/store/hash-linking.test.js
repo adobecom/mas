@@ -29,7 +29,7 @@ describe('Hash linking', () => {
         document.location.hash = 'path=drafts';
         linkStoreToHash(Store.search, ['path'], { path: 'acom' });
         expect(Store.search.get().path).to.equal('drafts');
-        Store.search.update((prev) => ({ ...prev, path: 'acom' }));
+        Store.search.set((prev) => ({ ...prev, path: 'acom' }));
         await oneEvent(window, 'hashchange');
         expect(document.location.hash).to.equal('');
     });

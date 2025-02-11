@@ -1,7 +1,7 @@
 import { html, LitElement } from 'lit';
 
 //TODO make that feed (excepts ALL maybe) dynamically served from milo
-const VARIANTS = [
+export const VARIANTS = [
     { label: 'All', value: 'all', surface: 'all' },
     { label: 'Catalog', value: 'catalog', surface: 'acom' },
     { label: 'Slice', value: 'ccd-slice', surface: 'ccd' },

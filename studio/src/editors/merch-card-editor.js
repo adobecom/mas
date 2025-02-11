@@ -4,7 +4,7 @@ import '../fields/multifield.js';
 import '../fields/mnemonic-field.js';
 import '../aem/aem-tag-picker-field.js';
 import './variant-picker.js';
-import '../rte/osi-field.js'
+import '../rte/osi-field.js';
 
 const MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 
@@ -222,10 +222,7 @@ class MerchCardEditor extends LitElement {
             </sp-field-group>
             <sp-field-group>
                 <sp-field-label for="osi-field">OSI</sp-field-label>
-                <osi-field
-                    id="osi-field"
-                    data-field="osi-field"
-                ></osi-field>
+                <osi-field id="osi-field" data-field="osi-field"></osi-field>
             </sp-field-group>
             <aem-tag-picker-field
                 label="Tags"

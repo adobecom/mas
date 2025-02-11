@@ -350,7 +350,7 @@ export class MasRepository extends LitElement {
             Store.fragments.list.data.update((prev) => {
                 var result = [...prev];
                 const index = result.findIndex(
-                    (item) => item.value.id === fragment.id,
+                    (fragmentStore) => fragmentStore.value.id === fragment.id,
                 );
                 result.splice(index, 1);
                 return result;

@@ -103,7 +103,6 @@ class AemTagPickerField extends LitElement {
 
     _onOstSelect = ({ detail: { offer } }) => {
         const { offer_type, planType, market_segments } = offer;
-        console.log(offer);
         this.value = '';
         const extractedOffer = {
             offer_type,
@@ -113,7 +112,6 @@ class AemTagPickerField extends LitElement {
                     ? market_segments[0]
                     : market_segments,
         };
-        console.log(extractedOffer);
         const convertCamelToSnake = (str) => {
             return str.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
         };

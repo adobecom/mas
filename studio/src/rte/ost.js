@@ -2,6 +2,7 @@ import { html } from 'lit';
 import {
     CHECKOUT_CTA_TEXTS,
     EVENT_OST_SELECT,
+    EVENT_OST_OFFER_SELECT,
     WCS_LANDSCAPE_PUBLISHED,
     WCS_LANDSCAPE_DRAFT,
 } from '../constants.js';
@@ -126,7 +127,7 @@ const OST_VALUE_MAPPING = {
     false: false,
 };
 
-export function onSelect(offerSelectorId, type, offer, options, promoOverride) {
+export function onPlaceholderSelect(offerSelectorId, type, offer, options, promoOverride) {
     const changes = getObjectDifference(options, OST_OPTION_DEFAULTS);
 
     const attributes = { 'data-wcs-osi': offerSelectorId };
@@ -159,6 +160,15 @@ export function onSelect(offerSelectorId, type, offer, options, promoOverride) {
     ostRoot.dispatchEvent(
         new CustomEvent(EVENT_OST_SELECT, {
             detail: attributes,
+            bubbles: true,
+        }),
+    );
+}
+
+export function onOfferSelect(offerSelectorId, type, offer) {
+    ostRoot.dispatchEvent(
+        new CustomEvent(EVENT_OST_OFFER_SELECT, {
+            detail: { offerSelectorId, offer },
             bubbles: true,
         }),
     );

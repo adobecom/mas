@@ -38,14 +38,15 @@ export default class StudioPage {
         this.editorBadge = page.locator('#card-badge input');
         this.editorIconURL = page.locator('#icon input');
         this.editorBackgroundImage = page.locator('#background-image input');
-        this.editorPrices = page.locator('sp-field-group#prices #editor');
+        this.editorPrices = page.locator('sp-field-group#prices');
         this.regularPrice = page.locator(
             'span[is="inline-price"][data-template="price"]',
         );
         this.strikethroughPrice = page.locator(
             'span[is="inline-price"][data-template="strikethrough"]',
         );
-        this.editorFooter = page.locator('sp-field-group#ctas #editor');
+        this.editorFooter = page.locator('sp-field-group#ctas');
+        this.editorCTA = page.locator('sp-field-group#ctas a');
         this.editorDescription = page.locator(
             'sp-field-group#description div[contenteditable="true"]',
         );
@@ -62,6 +63,11 @@ export default class StudioPage {
         this.saveCard = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="save"]',
         );
+        // RTE panel toolbar
+        this.linkEdit = page.locator('#linkEditorButton');
+        // Edit Link Panel
+        this.linkText = page.locator('#linkText input');
+        this.linkSave = page.locator('#saveButton');
     }
 
     async getCard(id, cardType, cloned) {

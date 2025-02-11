@@ -103,5 +103,29 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-suggested',
         },
+        {
+            tcid: '8',
+            name: '@studio-suggested-edit-cta-ost',
+            path: '/studio.html',
+            data: {
+                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                ctaText: 'Buy now',
+                newCtaText: 'Save now',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-suggested',
+        },
+        {
+            tcid: '9',
+            name: '@studio-suggested-edit-cta-link',
+            path: '/studio.html',
+            data: {
+                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                ctaText: 'Buy now',
+                newCtaText: 'Buy now 2',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-suggested',
+        },
     ],
 };

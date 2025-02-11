@@ -44,9 +44,15 @@ export default class OSTPage {
         this.workflowMenu = page
             .locator('button:near(label:text("Workflow"))')
             .first();
+        this.ctaTextMenu = page
+            .locator('button:near(label:text("Cta text"))')
+            .first();
         this.promoField = page.locator(
             '//input[contains(@class, "spectrum-Textfield-input")]',
         );
+        this.checkoutLinkUse = page
+            .locator('button:near(h4:text("Checkout URL"))')
+            .first();
         this.cancelPromo = page
             .locator('button:right-of(span:text("Promotion:"))')
             .first();

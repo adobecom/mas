@@ -41,6 +41,7 @@ class AEM {
 
     async getCsrfToken() {
         const response = await fetch(this.csrfTokenUrl, {
+            credentials: 'include',
             headers: this.headers,
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
@@ -107,6 +108,7 @@ class AEM {
                 `${this.cfSearchUrl}?${searchParams}`,
                 {
                     headers: this.headers,
+                    credentials: 'include',
                     signal: abortController?.signal,
                 },
             );
@@ -152,6 +154,7 @@ class AEM {
             `${baseUrl}/adobe/sites/cf/fragments/${id}`,
             {
                 headers,
+                credentials: 'include',
                 signal: abortController?.signal,
             },
         );
@@ -172,6 +175,7 @@ class AEM {
         const headers = this.#author ? this.headers : {};
         const response = await fetch(`${this.cfFragmentsUrl}?path=${path}`, {
             headers,
+            credentials: 'include',
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });

@@ -32,6 +32,7 @@ class AEM {
             Authorization: `Bearer ${sessionStorage.getItem('masAccessToken') ?? window.adobeid?.authorize?.()}`,
             pragma: 'no-cache',
             'cache-control': 'no-cache',
+            credentials: 'include',
         };
     }
 
@@ -64,7 +65,7 @@ class AEM {
      * @returns A generator function that fetches all the matching data using a cursor that is returned by the search API
      */
     async *searchFragment(
-        { path, query = '', tags = [], sort },
+        { path, query = '', tags = [], sort, status },
         limit,
         abortController,
     ) {
@@ -91,6 +92,10 @@ class AEM {
 
         if (limit) {
             params.limit = limit;
+        }
+
+        if (status) {
+            params.status = status;
         }
 
         let cursor;

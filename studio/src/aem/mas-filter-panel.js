@@ -30,7 +30,7 @@ class MasFilterPanel extends LitElement {
     #updateFilterHandler(property) {
         return function (event) {
             if (!event.detail) return;
-            Store.filters.update((prev) => ({
+            Store.filters.set((prev) => ({
                 ...prev,
                 [property]: event.detail.value,
             }));

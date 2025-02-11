@@ -121,7 +121,7 @@ class MasToolbar extends LitElement {
     }
 
     updateQuery(value) {
-        Store.search.update((prev) => ({ ...prev, query: value }));
+        Store.search.set((prev) => ({ ...prev, query: value }));
     }
 
     get searchAndFilterControls() {

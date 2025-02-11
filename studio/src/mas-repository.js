@@ -116,7 +116,7 @@ export class MasRepository extends LitElement {
                 !folders.includes(this.search.value.path) &&
                 !this.search.value.query
             )
-                Store.search.update((prev) => ({
+                Store.search.set((prev) => ({
                     ...prev,
                     path: folders.at(0),
                 }));
@@ -302,7 +302,7 @@ export class MasRepository extends LitElement {
             Fragment.cache.add(newFragment);
 
             const newFragmentStore = new FragmentStore(newFragment);
-            Store.fragments.list.data.update((prev) => [
+            Store.fragments.list.data.set((prev) => [
                 ...prev,
                 newFragmentStore,
             ]);
@@ -361,7 +361,7 @@ export class MasRepository extends LitElement {
             const fragment = this.inEdit.get();
             await this.#aem.sites.cf.fragments.delete(fragment);
 
-            Store.fragments.list.data.update((prev) => {
+            Store.fragments.list.data.set((prev) => {
                 var result = [...prev];
                 const index = result.indexOf(fragment);
                 result.splice(index, 1);

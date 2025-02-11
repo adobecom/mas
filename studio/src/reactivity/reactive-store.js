@@ -19,41 +19,42 @@ export class ReactiveStore {
         return this.value;
     }
 
-    set(value) {
-        // If primitive and equal, no need to update; 'notify' can be used instead if needed
-        if (this.value !== Object(this.value) && this.value === value) return;
-        this.value = this.validate(value);
-        this.notify();
-    }
-
     /**
-     * @param {(value: any) => any} fn
+     * Store setter by value or an update function
+     * @param {any | (value: any) => any} value
      */
-    update(fn) {
-        this.value = this.validate(fn(this.value));
-        this.notify();
+    set(value) {
+        let newValue = value;
+        if (typeof value === 'function') newValue = value(this.value);
+        newValue = this.validate(newValue);
+        // If primitive and equal, no need to update; 'notify' can be used instead if needed
+        if (this.value !== Object(this.value) && this.value === newValue)
+            return;
+        const oldValue = structuredClone(this.value);
+        this.value = newValue;
+        this.notify(oldValue);
     }
 
     /**
-     * @param {(value: any) => void} fn
+     * @param {(value: any, oldValue: any) => void} fn
      */
     subscribe(fn) {
         if (this.#subscribers.includes(fn)) return;
         this.#subscribers.push(fn);
-        fn(this.value);
+        fn(this.value, this.value);
     }
 
     /**
-     * @param {(value: any) => void} fn
+     * @param {(value: any, oldValue: any) => void} fn
      */
     unsubscribe(fn) {
         const indexOfFn = this.#subscribers.indexOf(fn);
         if (indexOfFn !== -1) this.#subscribers.splice(indexOfFn, 1);
     }
 
-    notify() {
+    notify(oldValue) {
         for (const subscriber of this.#subscribers) {
-            subscriber(this.value);
+            subscriber(this.value, oldValue);
         }
     }
 
@@ -61,6 +62,8 @@ export class ReactiveStore {
         if (this.validator) return this.validator(value);
         return value;
     }
+
+    // #region Meta
 
     hasMeta(key) {
         return Object.hasOwn(this.#meta, key);
@@ -77,6 +80,8 @@ export class ReactiveStore {
     removeMeta(key) {
         delete this.#meta[key];
     }
+
+    // #endregion
 
     /**
      * @param {any} value

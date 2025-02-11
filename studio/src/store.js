@@ -191,3 +191,16 @@ export function unlinkStoreFromHash(store) {
 }
 
 // #endregion
+
+// #region Behaviors
+
+// When the query param is populated or changes, switch to the 'content' page.
+Store.search.subscribe((value, oldValue) => {
+    if (
+        (!oldValue.query && value.query) ||
+        (Boolean(value.query) && value.query !== oldValue.query)
+    )
+        Store.page.set('content');
+});
+
+// #endregion

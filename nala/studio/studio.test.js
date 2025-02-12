@@ -96,7 +96,7 @@ test.describe('M@S Studio feature test suite', () => {
             await studio.searchInput.fill(data.cardid);
             await page.keyboard.press('Enter');
             await page.waitForTimeout(2000);
-            expect(
+            await expect(
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
             const searchResult = await studio.renderView.locator('merch-card');

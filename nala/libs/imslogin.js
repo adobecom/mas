@@ -16,7 +16,7 @@ async function fillOutSignInForm(props, page) {
     await expect(await page.locator('text=Reset your password')).toBeVisible({ timeout: 45000 }); // Timeout accounting for how long IMS Login page takes to switch form
   }).toPass({
     intervals: [1_000],
-    timeout: 10_000,
+    timeout: 20_000,
   });
 
   heading = await page.locator('.spectrum-Heading1', { hasText: 'Enter your password' }).first().innerText();

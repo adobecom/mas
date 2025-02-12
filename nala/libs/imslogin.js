@@ -13,7 +13,7 @@ async function fillOutSignInForm(props, page) {
   await expect(async () => {
     await page.locator('#EmailPage-EmailField').fill(process.env.IMS_EMAIL);
     await page.locator('[data-id=EmailPage-ContinueButton]').click();
-    await expect(page.locator('text=Reset your password')).toBeVisible({ timeout: 45000 }); // Timeout accounting for how long IMS Login page takes to switch form
+    await expect(await page.locator('text=Reset your password')).toBeVisible({ timeout: 45000 }); // Timeout accounting for how long IMS Login page takes to switch form
   }).toPass({
     intervals: [1_000],
     timeout: 10_000,

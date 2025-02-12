@@ -2,8 +2,8 @@
 This project is a library of web components providing merchandising content to various surfaces.
 
 ## Environments
-- Preview: https://main--mas--adobecom.hlx.page/
-- Live: https://main--mas--adobecom.hlx.live/
+- Preview: https://main--mas--adobecom.aem.page/
+- Live: https://main--mas--adobecom.aem.live/
 
 ## Installation
 

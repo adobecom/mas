@@ -415,17 +415,35 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorDescription),
             ).toContainText(data.description);
+            // edit price
+            await (await studio.editorPanel.locator(studio.editorDescription).locator(studio.regularPrice)).dblclick();
+            await expect(await ost.price).toBeVisible();
+            await expect(await ost.priceUse).toBeVisible();
+            await expect(await ost.oldPriceCheckbox).toBeVisible();
+            await ost.oldPriceCheckbox.click();
+            await ost.priceUse.click();
+            // edit CTA
+            await studio.editorCTA.click();
+            await studio.editorPanel
+                .locator(studio.editorFooter)
+                .locator(studio.linkEdit)
+                .click();
+            await expect(await studio.linkText).toBeVisible();
+            await expect(await studio.linkSave).toBeVisible();
+            await expect(await studio.linkText).toHaveValue(data.ctaText);
+            await studio.linkText.fill(data.newCtaText);
+            await studio.linkSave.click();
+            // edit badge
             await studio.editorPanel
                 .locator(studio.editorBadge)
                 .fill(data.newBadge);
+            // edit size
             await studio.editorPanel.locator(studio.editorSize).click();
             await page.getByRole('option', { name: 'normal' }).click();
             await studio.editorPanel
                 .locator(studio.editorIconURL)
                 .fill(data.newIconURL);
-            await studio.editorPanel
-                .locator(studio.editorDescription)
-                .fill(data.newDescription);
+            //save card
             await studio.saveCard.click();
             await expect(studio.toastPositive).toHaveText(
                 'Fragment successfully saved.',
@@ -440,32 +458,37 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorIconURL),
             ).toHaveValue(data.newIconURL);
-            expect(
-                await studio.editorPanel
-                    .locator(studio.editorDescription)
-                    .innerText(),
-            ).toBe(data.newDescription);
+            await expect(
+                await studio.editorPanel.locator(studio.editorDescription),
+            ).toContainText(data.price);
+            await expect(
+                await studio.editorPanel.locator(studio.editorDescription),
+            ).not.toContainText(data.strikethroughPrice);
+            await expect(
+                await studio.editorPanel.locator(studio.editorFooter),
+            ).toContainText(data.newCtaText);
         });
 
         await test.step('step-6: Search for the cloned card and verify changes then delete the card', async () => {
-            const clonedCard = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.clonedCardID}`;
-            await page.goto(clonedCard);
-            await page.waitForLoadState('domcontentloaded');
+            const clonedCard = await studio.getCard(data.clonedCardID, 'slice');
             await expect(
                 await studio.getCard(data.clonedCardID, 'slice'),
             ).toBeVisible();
             await expect(
                 await studio.getCard(data.clonedCardID, 'slice-wide'),
             ).not.toBeVisible();
-
-            await expect(await slice.cardBadge).toHaveText(data.newBadge);
-            await expect(await slice.cardDescription).toHaveText(
-                data.newDescription,
-            );
-            await expect(await slice.cardIcon).toHaveAttribute(
+            await expect(await clonedCard.locator(slice.cardBadge)).toHaveText(data.newBadge);
+            await expect(await clonedCard.locator(slice.cardIcon)).toHaveAttribute(
                 'src',
                 data.newIconURL,
             );
+            await expect(
+                await clonedCard.locator(slice.cardDescription)).toContainText(data.price);
+            await expect(
+                await clonedCard.locator(slice.cardDescription)).not.toContainText(data.strikethroughPrice);
+            await expect(await clonedCard.locator(slice.cardCTA)).toContainText(data.newCtaText);
+
+            //delete the card
             await studio.deleteCard.click();
             await expect(await studio.confirmationDialog).toBeVisible();
             await studio.confirmationDialog
@@ -520,11 +543,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 await studio.editorPanel.locator(studio.editorDescription),
             ).not.toContainText(data.newStrikethroughPrice);
 
-            await (
-                await studio.editorPanel
-                    .locator(studio.editorDescription)
-                    .locator(studio.regularPrice)
-            ).dblclick();
+            await (await studio.editorPanel.locator(studio.editorDescription).locator(studio.regularPrice)).dblclick();
             await expect(await ost.price).toBeVisible();
             await expect(await ost.priceUse).toBeVisible();
             await expect(await ost.unitCheckbox).toBeVisible();
@@ -591,16 +610,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await ost.ctaTextMenu).toBeVisible();
             await ost.ctaTextMenu.click();
 
-            await page
-                .locator('div[role="option"]', {
-                    hasText: `${data.newCtaText}`,
-                })
-                .waitFor({ state: 'visible', timeout: 10000 });
-            await page
-                .locator('div[role="option"]', {
-                    hasText: `${data.newCtaText}`,
-                })
-                .click();
+            await expect(page.locator('div[role="option"]', {hasText: `${data.newCtaText}`})).toBeVisible();
+            await page.locator('div[role="option"]', {hasText: `${data.newCtaText}`,}).click();
             await ost.checkoutLinkUse.click();
         });
 

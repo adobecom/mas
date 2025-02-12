@@ -376,18 +376,43 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
             ).toHaveValue(data.title);
+            // edit price
+            await (
+                await studio.editorPanel.locator(studio.regularPrice)
+            ).dblclick();
+            await expect(await ost.price).toBeVisible();
+            await expect(await ost.priceUse).toBeVisible();
+            await expect(await ost.oldPriceCheckbox).toBeVisible();
+            await ost.oldPriceCheckbox.click();
+            await ost.priceUse.click();
+            // edit CTA
+            await studio.editorCTA.click();
+            await studio.editorPanel
+                .locator(studio.editorFooter)
+                .locator(studio.linkEdit)
+                .click();
+            await expect(await studio.linkText).toBeVisible();
+            await expect(await studio.linkSave).toBeVisible();
+            await expect(await studio.linkText).toHaveValue(data.ctaText);
+            await studio.linkText.fill(data.newCtaText);
+            await studio.linkSave.click();
+            // edit title
             await studio.editorPanel
                 .locator(studio.editorTitle)
                 .fill(data.newTitle);
+            // edit eyebrow
             await studio.editorPanel
                 .locator(studio.editorSubtitle)
                 .fill(data.newSubtitle);
+            // edit mnemonic URL
             await studio.editorPanel
                 .locator(studio.editorIconURL)
                 .fill(data.newIconURL);
+            // edit descritpion
             await studio.editorPanel
                 .locator(studio.editorDescription)
                 .fill(data.newDescription);
+            // save card
             await studio.saveCard.click();
             await expect(studio.toastPositive).toHaveText(
                 'Fragment successfully saved.',
@@ -410,26 +435,41 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                     .locator(studio.editorDescription)
                     .innerText(),
             ).toBe(data.newDescription);
+            await expect(
+                await studio.editorPanel.locator(studio.editorPrices),
+            ).toContainText(data.price);
+            await expect(
+                await studio.editorPanel.locator(studio.editorPrices),
+            ).not.toContainText(data.strikethroughPrice);
+            await expect(
+                await studio.editorPanel.locator(studio.editorFooter),
+            ).toContainText(data.newCtaText);
         });
 
         await test.step('step-6: Search for the cloned card and verify changes then delete the card', async () => {
-            const clonedCard = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.clonedCardID}`;
-            await page.goto(clonedCard);
-            await page.waitForLoadState('domcontentloaded');
-            await expect(
-                await studio.getCard(data.clonedCardID, 'suggested'),
-            ).toBeVisible();
-            await expect(await suggested.cardTitle).toHaveText(data.newTitle);
-            await expect(await suggested.cardEyebrow).toHaveText(
+            const clonedCard = await studio.getCard(data.clonedCardID, 'suggested');
+            await expect(await clonedCard.locator(suggested.cardTitle)).toHaveText(data.newTitle);
+            await expect(await clonedCard.locator(suggested.cardEyebrow)).toHaveText(
                 data.newSubtitle,
             );
-            await expect(await suggested.cardDescription).toHaveText(
+            await expect(await clonedCard.locator(suggested.cardDescription)).toHaveText(
                 data.newDescription,
             );
-            await expect(await suggested.cardIcon).toHaveAttribute(
+            await expect(await clonedCard.locator(suggested.cardIcon)).toHaveAttribute(
                 'src',
                 data.newIconURL,
             );
+            await expect(await clonedCard.locator(suggested.cardPrice)).toContainText(
+                data.price,
+            );
+            await expect(await clonedCard.locator(suggested.cardPrice)).not.toContainText(
+                data.strikethroughPrice,
+            );
+            await expect(await clonedCard.locator(suggested.cardCTA)).toContainText(
+                data.newCtaText,
+            );
+
+            // delete card
             await studio.deleteCard.click();
             await expect(await studio.confirmationDialog).toBeVisible();
             await studio.confirmationDialog
@@ -551,16 +591,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await ost.ctaTextMenu).toBeVisible();
             await ost.ctaTextMenu.click();
 
-            await page
-                .locator('div[role="option"]', {
-                    hasText: `${data.newCtaText}`,
-                })
-                .waitFor({ state: 'visible', timeout: 10000 });
-            await page
-                .locator('div[role="option"]', {
-                    hasText: `${data.newCtaText}`,
-                })
-                .click();
+            await expect(page.locator('div[role="option"]', {hasText: `${data.newCtaText}`})).toBeVisible();
+            await page.locator('div[role="option"]', {hasText: `${data.newCtaText}`,}).click();
             await ost.checkoutLinkUse.click();
         });
 

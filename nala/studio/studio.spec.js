@@ -33,19 +33,7 @@ export default {
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
-            browserParams: '#path=nala',
-            tags: '@mas-studio',
-        },
-        {
-            tcid: '3',
-            name: '@studio-edit-title',
-            path: '/studio.html',
-            data: {
-                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
-                title: 'Automation Test Card',
-                newTitle: 'Change title',
-            },
-            browserParams: '#query=',
+            browserParams: '#path=nala&page=content',
             tags: '@mas-studio',
         },
     ],

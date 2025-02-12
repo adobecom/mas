@@ -18,5 +18,18 @@
             "title": "CCD",
             "path": "/content/dam/mas/ccd"
         }
-    ]
+    ],
+    "properties": {
+        "metadataSchema": "System Default",
+        "postProcessWF": "System Default",
+        "processingProfile": "System Default",
+        "name": "mas",
+        "cq:conf": "/conf/mas",
+        "sourcing": "false",
+        "srn:paging": {
+            "total": 7,
+            "offset": 0,
+            "limit": 1000
+        }
+    }
 }

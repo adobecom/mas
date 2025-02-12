@@ -1,7 +1,13 @@
 import { html, css, LitElement } from 'lit';
-import Store from '../store.js';
+import { LOCALES } from '../constants.js';
 
 class MasLocalePicker extends LitElement {
+    static get properties() {
+        return {
+            value: { type: String, reflect: true },
+        };
+    }
+
     static styles = css`
         sp-picker {
             width: 200px;
@@ -18,7 +24,7 @@ class MasLocalePicker extends LitElement {
                 @change="${this.#handleChange}"
                 value="${this.value}"
             >
-                ${Store.locale.data.map(
+                ${LOCALES.map(
                     (locale) => html`
                         <sp-menu-item value="${locale.code}">
                             <span class="flag">${locale.flag}</span>
@@ -30,15 +36,10 @@ class MasLocalePicker extends LitElement {
         `;
     }
 
-    get value() {
-        return Store.locale.current.get();
-    }
-
     #handleChange(event) {
-        Store.locale.current.set(event.target.value);
         this.dispatchEvent(
             new CustomEvent('change', {
-                detail: { value: this.value },
+                detail: { value: event.target.value },
             }),
         );
     }

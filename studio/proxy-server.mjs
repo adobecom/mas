@@ -104,7 +104,7 @@ function requestHandler(req, res) {
                 curlCommand += ` --data '${escapedBodyData}'`;
             }
 
-            console.info(curlCommand);
+            // console.info(curlCommand);
 
             // Now proceed to make the proxy request
 

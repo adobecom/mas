@@ -87,7 +87,7 @@ export default {
                 price: 'US$17.24/mo',
                 strikethroughPrice: 'US$34.49/mo',
                 ctaText: 'Buy now',
-                newCtaText: 'Buy now 2',               
+                newCtaText: 'Buy now 2',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice',

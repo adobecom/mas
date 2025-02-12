@@ -390,9 +390,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Clone card and open editor', async () => {
             await studio.cloneCard.click();
-            await expect(studio.toastPositive).toHaveText(
+            await expect(await studio.toastPositive).toHaveText(
                 'Fragment successfully copied.',
-                { timeout: 10000 },
             );
             let clonedCard = await studio.getCard(
                 data.cardid,
@@ -416,7 +415,11 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 await studio.editorPanel.locator(studio.editorDescription),
             ).toContainText(data.description);
             // edit price
-            await (await studio.editorPanel.locator(studio.editorDescription).locator(studio.regularPrice)).dblclick();
+            await (
+                await studio.editorPanel
+                    .locator(studio.editorDescription)
+                    .locator(studio.regularPrice)
+            ).dblclick();
             await expect(await ost.price).toBeVisible();
             await expect(await ost.priceUse).toBeVisible();
             await expect(await ost.oldPriceCheckbox).toBeVisible();
@@ -447,7 +450,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await studio.saveCard.click();
             await expect(studio.toastPositive).toHaveText(
                 'Fragment successfully saved.',
-                { timeout: 10000 },
             );
         });
 
@@ -477,16 +479,21 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(
                 await studio.getCard(data.clonedCardID, 'slice-wide'),
             ).not.toBeVisible();
-            await expect(await clonedCard.locator(slice.cardBadge)).toHaveText(data.newBadge);
-            await expect(await clonedCard.locator(slice.cardIcon)).toHaveAttribute(
-                'src',
-                data.newIconURL,
+            await expect(await clonedCard.locator(slice.cardBadge)).toHaveText(
+                data.newBadge,
             );
             await expect(
-                await clonedCard.locator(slice.cardDescription)).toContainText(data.price);
+                await clonedCard.locator(slice.cardIcon),
+            ).toHaveAttribute('src', data.newIconURL);
             await expect(
-                await clonedCard.locator(slice.cardDescription)).not.toContainText(data.strikethroughPrice);
-            await expect(await clonedCard.locator(slice.cardCTA)).toContainText(data.newCtaText);
+                await clonedCard.locator(slice.cardDescription),
+            ).toContainText(data.price);
+            await expect(
+                await clonedCard.locator(slice.cardDescription),
+            ).not.toContainText(data.strikethroughPrice);
+            await expect(await clonedCard.locator(slice.cardCTA)).toContainText(
+                data.newCtaText,
+            );
 
             //delete the card
             await studio.deleteCard.click();
@@ -494,9 +501,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await studio.confirmationDialog
                 .locator(studio.deleteDialog)
                 .click();
-            await expect(studio.toastPositive).toHaveText(
+            await expect(await studio.toastPositive).toHaveText(
                 'Fragment successfully deleted.',
-                { timeout: 10000 },
             );
             await expect(
                 await studio.getCard(data.clonedCardID, 'slice'),
@@ -543,7 +549,11 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 await studio.editorPanel.locator(studio.editorDescription),
             ).not.toContainText(data.newStrikethroughPrice);
 
-            await (await studio.editorPanel.locator(studio.editorDescription).locator(studio.regularPrice)).dblclick();
+            await (
+                await studio.editorPanel
+                    .locator(studio.editorDescription)
+                    .locator(studio.regularPrice)
+            ).dblclick();
             await expect(await ost.price).toBeVisible();
             await expect(await ost.priceUse).toBeVisible();
             await expect(await ost.unitCheckbox).toBeVisible();
@@ -610,8 +620,16 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await ost.ctaTextMenu).toBeVisible();
             await ost.ctaTextMenu.click();
 
-            await expect(page.locator('div[role="option"]', {hasText: `${data.newCtaText}`})).toBeVisible();
-            await page.locator('div[role="option"]', {hasText: `${data.newCtaText}`,}).click();
+            await expect(
+                page.locator('div[role="option"]', {
+                    hasText: `${data.newCtaText}`,
+                }),
+            ).toBeVisible();
+            await page
+                .locator('div[role="option"]', {
+                    hasText: `${data.newCtaText}`,
+                })
+                .click();
             await ost.checkoutLinkUse.click();
         });
 

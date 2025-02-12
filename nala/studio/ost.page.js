@@ -31,7 +31,9 @@ export default class OSTPage {
         this.taxInlcusivityCheckbox = page.locator(
             '//input[@value="forceTaxExclusive"]',
         );
-        this.oldPriceCheckbox = page.locator('//input[@value="displayOldPrice"]');
+        this.oldPriceCheckbox = page.locator(
+            '//input[@value="displayOldPrice"]',
+        );
         this.priceUse = page.locator('button:near(h4:text("Price"))').first();
         this.priceOpticalUse = page
             .locator('button:near(:text("Optical price"))')

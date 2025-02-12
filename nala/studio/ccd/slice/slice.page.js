@@ -5,9 +5,6 @@ export default class CCDSlicePage {
         this.cardIcon = page.locator('merch-icon');
         this.cardBadge = page.locator('.ccd-slice-badge');
         this.cardImage = page.locator('div[slot="image"] img');
-        // this.cardDescription = page
-        //     .locator('div[slot="body-s"] p > strong')
-        //     .first();
         this.cardDescription = page.locator('div[slot="body-s"]');
         this.cardLegalLink = page.locator('div[slot="body-s"] p > a');
         this.cardCTA = page.locator('div[slot="footer"] > button');

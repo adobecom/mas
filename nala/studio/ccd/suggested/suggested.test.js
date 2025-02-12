@@ -116,7 +116,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-3: Edit title field', async () => {
-            expect(
+            await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
             ).toBeVisible();
             await expect(
@@ -351,9 +351,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-3: Clone card and open editor', async () => {
             await studio.cloneCard.click();
-            await expect(studio.toastPositive).toHaveText(
+            await expect(await studio.toastPositive).toHaveText(
                 'Fragment successfully copied.',
-                { timeout: 10000 },
             );
             let clonedCard = await studio.getCard(
                 data.cardid,
@@ -370,7 +369,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-4: Edit fields and save card', async () => {
-            expect(
+            await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
             ).toBeVisible();
             await expect(
@@ -414,9 +413,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 .fill(data.newDescription);
             // save card
             await studio.saveCard.click();
-            await expect(studio.toastPositive).toHaveText(
+            await expect(await studio.toastPositive).toHaveText(
                 'Fragment successfully saved.',
-                { timeout: 10000 },
             );
         });
 
@@ -447,27 +445,31 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-6: Search for the cloned card and verify changes then delete the card', async () => {
-            const clonedCard = await studio.getCard(data.clonedCardID, 'suggested');
-            await expect(await clonedCard.locator(suggested.cardTitle)).toHaveText(data.newTitle);
-            await expect(await clonedCard.locator(suggested.cardEyebrow)).toHaveText(
-                data.newSubtitle,
+            const clonedCard = await studio.getCard(
+                data.clonedCardID,
+                'suggested',
             );
-            await expect(await clonedCard.locator(suggested.cardDescription)).toHaveText(
-                data.newDescription,
-            );
-            await expect(await clonedCard.locator(suggested.cardIcon)).toHaveAttribute(
-                'src',
-                data.newIconURL,
-            );
-            await expect(await clonedCard.locator(suggested.cardPrice)).toContainText(
-                data.price,
-            );
-            await expect(await clonedCard.locator(suggested.cardPrice)).not.toContainText(
-                data.strikethroughPrice,
-            );
-            await expect(await clonedCard.locator(suggested.cardCTA)).toContainText(
-                data.newCtaText,
-            );
+            await expect(
+                await clonedCard.locator(suggested.cardTitle),
+            ).toHaveText(data.newTitle);
+            await expect(
+                await clonedCard.locator(suggested.cardEyebrow),
+            ).toHaveText(data.newSubtitle);
+            await expect(
+                await clonedCard.locator(suggested.cardDescription),
+            ).toHaveText(data.newDescription);
+            await expect(
+                await clonedCard.locator(suggested.cardIcon),
+            ).toHaveAttribute('src', data.newIconURL);
+            await expect(
+                await clonedCard.locator(suggested.cardPrice),
+            ).toContainText(data.price);
+            await expect(
+                await clonedCard.locator(suggested.cardPrice),
+            ).not.toContainText(data.strikethroughPrice);
+            await expect(
+                await clonedCard.locator(suggested.cardCTA),
+            ).toContainText(data.newCtaText);
 
             // delete card
             await studio.deleteCard.click();
@@ -475,9 +477,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await studio.confirmationDialog
                 .locator(studio.deleteDialog)
                 .click();
-            await expect(studio.toastPositive).toHaveText(
+            await expect(await studio.toastPositive).toHaveText(
                 'Fragment successfully deleted.',
-                { timeout: 10000 },
             );
             await expect(
                 await studio.getCard(data.clonedCardID, 'suggested'),
@@ -591,8 +592,16 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await ost.ctaTextMenu).toBeVisible();
             await ost.ctaTextMenu.click();
 
-            await expect(page.locator('div[role="option"]', {hasText: `${data.newCtaText}`})).toBeVisible();
-            await page.locator('div[role="option"]', {hasText: `${data.newCtaText}`,}).click();
+            await expect(
+                page.locator('div[role="option"]', {
+                    hasText: `${data.newCtaText}`,
+                }),
+            ).toBeVisible();
+            await page
+                .locator('div[role="option"]', {
+                    hasText: `${data.newCtaText}`,
+                })
+                .click();
             await ost.checkoutLinkUse.click();
         });
 

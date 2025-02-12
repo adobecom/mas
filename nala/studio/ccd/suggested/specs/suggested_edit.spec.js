@@ -75,26 +75,6 @@ export default {
         },
         {
             tcid: '6',
-            name: '@studio-suggested-clone-edit-save-delete',
-            path: '/studio.html',
-            data: {
-                cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
-                title: 'Field Edit & Save',
-                newTitle: 'Cloned Field Edit',
-                newSubtitle: 'New Subtitle',
-                newIconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
-                newDescription: 'New Test Description',
-                price: 'US$17.24/mo',
-                strikethroughPrice: 'US$34.49/mo',
-                ctaText: 'Buy now',
-                newCtaText: 'Buy now 2',
-            },
-            browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-suggested',
-        },
-        {
-            tcid: '7',
             name: '@studio-suggested-edit-price',
             path: '/studio.html',
             data: {
@@ -108,7 +88,7 @@ export default {
             tags: '@mas-studio @ccd @ccd-suggested',
         },
         {
-            tcid: '8',
+            tcid: '7',
             name: '@studio-suggested-edit-cta-ost',
             path: '/studio.html',
             data: {
@@ -120,7 +100,7 @@ export default {
             tags: '@mas-studio @ccd @ccd-suggested',
         },
         {
-            tcid: '9',
+            tcid: '8',
             name: '@studio-suggested-edit-cta-link',
             path: '/studio.html',
             data: {

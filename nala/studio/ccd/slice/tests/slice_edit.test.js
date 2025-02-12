@@ -1,15 +1,15 @@
 import { expect, test } from '@playwright/test';
-import StudioPage from '../../studio.page.js';
-import CCDSuggestedSpec from './suggested.spec.js';
-import CCDSuggestedPage from './suggested.page.js';
-import OSTPage from '../../ost.page.js';
-import ims from '../../../libs/imslogin.js';
+import StudioPage from '../../../studio.page.js';
+import CCDSliceSpec from '../specs/slice_edit.spec.js';
+import CCDSlicePage from '../slice.page.js';
+import OSTPage from '../../../ost.page.js';
+import ims from '../../../../libs/imslogin.js';
 
-const { features } = CCDSuggestedSpec;
+const { features } = CCDSliceSpec;
 const miloLibs = process.env.MILO_LIBS || '';
 
 let studio;
-let suggested;
+let slice;
 let ost;
 
 test.beforeEach(async ({ page, browserName, baseURL }) => {
@@ -20,7 +20,7 @@ test.beforeEach(async ({ page, browserName, baseURL }) => {
         });
     }
     studio = new StudioPage(page);
-    suggested = new CCDSuggestedPage(page);
+    slice = new CCDSlicePage(page);
     ost = new OSTPage(page);
     features[0].url = `${baseURL}/studio.html`;
     await page.goto(features[0].url);
@@ -33,8 +33,8 @@ test.beforeEach(async ({ page, browserName, baseURL }) => {
     await page.waitForLoadState('domcontentloaded');
 });
 
-test.describe('M@S Studio CCD Suggested card test suite', () => {
-    // @studio-suggested-editor - Validate editor fields for suggested card in mas studio
+test.describe('M@S Studio CCD Slice card test suite', () => {
+    // @studio-slice-editor - Validate editor fields for slice card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({
         page,
         baseURL,
@@ -50,9 +50,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'suggested'),
+                await studio.getCard(data.cardid, 'slice-wide'),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
             await expect(await studio.editorPanel).toBeVisible();
         });
 
@@ -62,16 +62,16 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorVariant),
-            ).toHaveAttribute('default-value', 'ccd-suggested');
+            ).toHaveAttribute('default-value', 'ccd-slice');
             await expect(
                 await studio.editorPanel.locator(studio.editorSize),
-            ).not.toBeVisible();
+            ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
-            ).toBeVisible();
+            ).not.toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorSubtitle),
-            ).toBeVisible();
+            ).not.toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorBadge),
             ).toBeVisible();
@@ -86,14 +86,14 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorPrices),
-            ).toBeVisible();
+            ).not.toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorFooter),
             ).toBeVisible();
         });
     });
 
-    // @studio-suggested-edit-title - Validate edit title for suggested card in mas studio
+    // @studio-slice-edit-size - Validate edit size for slice card in mas studio
     test(`${features[1].name},${features[1].tags}`, async ({
         page,
         baseURL,
@@ -109,36 +109,44 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'suggested'),
+                await studio.getCard(data.cardid, 'slice-wide'),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
             await expect(await studio.editorPanel).toBeVisible();
         });
 
-        await test.step('step-3: Edit title field', async () => {
+        await test.step('step-3: Edit size field', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
+                await studio.editorPanel.locator(studio.editorSize),
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveValue(data.title);
-            await studio.editorPanel
-                .locator(studio.editorTitle)
-                .fill(data.newTitle);
+                await studio.editorPanel.locator(studio.editorSize),
+            ).toHaveAttribute('value', 'wide');
+            await studio.editorPanel.locator(studio.editorSize).click();
+            await page.getByRole('option', { name: 'normal' }).click();
+            await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Validate edited title field in Editor panel', async () => {
+        await test.step('step-4: Validate new size of the card', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveValue(data.newTitle);
+                await studio.getCard(data.cardid, 'slice'),
+            ).not.toHaveAttribute('size', 'wide');
         });
 
-        await test.step('step-5: Validate edited title field on the card', async () => {
-            await expect(await suggested.cardTitle).toHaveText(data.newTitle);
+        await test.step('step-5: Edit size field back', async () => {
+            await studio.editorPanel.locator(studio.editorSize).click();
+            await page.getByRole('option', { name: 'wide' }).click();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-6: Validate new size of the card', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'slice-wide'),
+            ).toBeVisible();
         });
     });
 
-    // @studio-suggested-edit-eyebrow - Validate edit eyebrow field for suggested card in mas studio
+    // @studio-slice-edit-badge - Validate edit badge field for slice card in mas studio
     test(`${features[2].name},${features[2].tags}`, async ({
         page,
         baseURL,
@@ -154,38 +162,51 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'suggested'),
+                await studio.getCard(data.cardid, 'slice-wide'),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
             await expect(await studio.editorPanel).toBeVisible();
         });
 
-        await test.step('step-3: Edit eyebrow field', async () => {
+        await test.step('step-3: Remove badge field', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorSubtitle),
+                await studio.editorPanel.locator(studio.editorBadge),
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorSubtitle),
-            ).toHaveValue(data.subtitle);
-            await studio.editorPanel
-                .locator(studio.editorSubtitle)
-                .fill(data.newSubtitle);
+                await studio.editorPanel.locator(studio.editorBadge),
+            ).toHaveValue(data.badge);
+            await studio.editorPanel.locator(studio.editorBadge).fill('');
         });
 
-        await test.step('step-4: Validate edited eyebrow/subtitle field in Editor panel', async () => {
+        await test.step('step-4: Validate edited badge field in Editor panel', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorSubtitle),
-            ).toHaveValue(data.newSubtitle);
+                await studio.editorPanel.locator(studio.editorBadge),
+            ).toHaveValue('');
         });
 
-        await test.step('step-5: Validate edited eyebrow field on the card', async () => {
-            await expect(await suggested.cardEyebrow).toHaveText(
-                data.newSubtitle,
-            );
+        await test.step('step-5: Validate badge is removed from the card', async () => {
+            await expect(await slice.cardBadge).not.toBeVisible();
+        });
+
+        await test.step('step-6: Enter new value in the badge field', async () => {
+            await studio.editorPanel
+                .locator(studio.editorBadge)
+                .fill(data.newBadge);
+        });
+
+        await test.step('step-4: Validate edited badge field in Editor panel', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorBadge),
+            ).toHaveValue(data.newBadge);
+        });
+
+        await test.step('step-5: Validate badge new badge on the card', async () => {
+            await expect(await slice.cardBadge).toBeVisible();
+            await expect(await slice.cardBadge).toHaveText(data.newBadge);
         });
     });
 
-    // @studio-suggested-edit-description - Validate edit description field for suggested card in mas studio
+    // @studio-slice-edit-description - Validate edit description field for slice card in mas studio
     test(`${features[3].name},${features[3].tags}`, async ({
         page,
         baseURL,
@@ -201,9 +222,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'suggested'),
+                await studio.getCard(data.cardid, 'slice-wide'),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
             await expect(await studio.editorPanel).toBeVisible();
         });
 
@@ -226,13 +247,13 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-5: Validate edited background src on the card', async () => {
-            await expect(await suggested.cardDescription).toHaveText(
+            await expect(await slice.cardDescription).toHaveText(
                 data.newDescription,
             );
         });
     });
 
-    // @studio-suggested-edit-mnemonic - Validate edit mnemonic URL field for suggested card in mas studio
+    // @studio-slice-edit-mnemonic - Validate edit mnemonic URL field for slice card in mas studio
     test(`${features[4].name},${features[4].tags}`, async ({
         page,
         baseURL,
@@ -248,9 +269,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'suggested'),
+                await studio.getCard(data.cardid, 'slice-wide'),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
             await expect(await studio.editorPanel).toBeVisible();
         });
 
@@ -273,14 +294,14 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-5: Validate edited mnemonic src on the card', async () => {
-            await expect(await suggested.cardIcon).toHaveAttribute(
+            await expect(await slice.cardIcon).toHaveAttribute(
                 'src',
                 data.newIconURL,
             );
         });
     });
 
-    // @studio-suggested-edit-background - Validate edit eyebrow field for suggested card in mas studio
+    // @studio-slice-edit-image - Validate edit background image field for slice card in mas studio
     test(`${features[5].name},${features[5].tags}`, async ({
         page,
         baseURL,
@@ -296,38 +317,56 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'suggested'),
+                await studio.getCard(data.cardid, 'slice-wide'),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
             await expect(await studio.editorPanel).toBeVisible();
         });
 
-        await test.step('step-3: Edit background URL field', async () => {
+        await test.step('step-3: Remove background URL field', async () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorBackgroundImage),
             ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorBackgroundImage),
-            ).toHaveValue('');
+            ).toHaveValue(data.backgroundURL);
             await studio.editorPanel
                 .locator(studio.editorBackgroundImage)
-                .fill(data.newBackgroundURL);
+                .fill('');
         });
 
         await test.step('step-4: Validate edited background image url field in Editor panel', async () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorBackgroundImage),
+            ).toHaveValue('');
+        });
+
+        await test.step('step-5: Validate image is removed from the card', async () => {
+            await expect(await slice.cardImage).not.toBeVisible();
+        });
+
+        await test.step('step-6: Enter new value in the background URL field', async () => {
+            await studio.editorPanel
+                .locator(studio.editorBackgroundImage)
+                .fill(data.newBackgroundURL);
+        });
+
+        await test.step('step-7: Validate edited background image url field in Editor panel', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorBackgroundImage),
             ).toHaveValue(data.newBackgroundURL);
         });
 
-        await test.step('step-5: Validate edited background image url on the card', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).toHaveAttribute('background-image', data.newBackgroundURL);
+        await test.step('step-8: Validate new image on the card', async () => {
+            await expect(await slice.cardImage).toBeVisible();
+            await expect(await slice.cardImage).toHaveAttribute(
+                'src',
+                data.newBackgroundURL,
+            );
         });
     });
 
-    // @studio-suggested-clone-edit-save-delete - Clone Field & Edit card, edit, save then delete suggested card
+    // @studio-slice-edit-price - Validate edit price field for slice card in mas studio
     test(`${features[6].name},${features[6].tags}`, async ({
         page,
         baseURL,
@@ -343,150 +382,63 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'suggested'),
+                await studio.getCard(data.cardid, 'slice-wide'),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
             await expect(await studio.editorPanel).toBeVisible();
         });
 
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard.click();
-            await expect(await studio.toastPositive).toHaveText(
-                'Fragment successfully copied.',
-            );
-            let clonedCard = await studio.getCard(
-                data.cardid,
-                'suggested',
-                'cloned',
-            );
-            let clonedCardID = await clonedCard
-                .locator('aem-fragment')
-                .getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
-            await expect(await clonedCard).toBeVisible();
-            await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
-        });
-
-        await test.step('step-4: Edit fields and save card', async () => {
+        await test.step('step-3: Edit price field', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
+                await studio.editorPanel.locator(studio.editorDescription),
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveValue(data.title);
-            // edit price
+                await studio.editorPanel.locator(studio.editorDescription),
+            ).toContainText(data.price);
+            await expect(
+                await studio.editorPanel.locator(studio.editorDescription),
+            ).not.toContainText(data.newPrice);
+            await expect(
+                await studio.editorPanel.locator(studio.editorDescription),
+            ).toContainText(data.strikethroughPrice);
+            await expect(
+                await studio.editorPanel.locator(studio.editorDescription),
+            ).not.toContainText(data.newStrikethroughPrice);
+
             await (
-                await studio.editorPanel.locator(studio.regularPrice)
+                await studio.editorPanel
+                    .locator(studio.editorDescription)
+                    .locator(studio.regularPrice)
             ).dblclick();
             await expect(await ost.price).toBeVisible();
             await expect(await ost.priceUse).toBeVisible();
-            await expect(await ost.oldPriceCheckbox).toBeVisible();
-            await ost.oldPriceCheckbox.click();
+            await expect(await ost.unitCheckbox).toBeVisible();
+            await ost.unitCheckbox.click();
             await ost.priceUse.click();
-            // edit CTA
-            await studio.editorCTA.click();
-            await studio.editorPanel
-                .locator(studio.editorFooter)
-                .locator(studio.linkEdit)
-                .click();
-            await expect(await studio.linkText).toBeVisible();
-            await expect(await studio.linkSave).toBeVisible();
-            await expect(await studio.linkText).toHaveValue(data.ctaText);
-            await studio.linkText.fill(data.newCtaText);
-            await studio.linkSave.click();
-            // edit title
-            await studio.editorPanel
-                .locator(studio.editorTitle)
-                .fill(data.newTitle);
-            // edit eyebrow
-            await studio.editorPanel
-                .locator(studio.editorSubtitle)
-                .fill(data.newSubtitle);
-            // edit mnemonic URL
-            await studio.editorPanel
-                .locator(studio.editorIconURL)
-                .fill(data.newIconURL);
-            // edit descritpion
-            await studio.editorPanel
-                .locator(studio.editorDescription)
-                .fill(data.newDescription);
-            // save card
-            await studio.saveCard.click();
-            await expect(await studio.toastPositive).toHaveText(
-                'Fragment successfully saved.',
-            );
         });
 
-        await test.step('step-5: Validate edited fields in Editor panel', async () => {
+        await test.step('step-4: Validate edited price in Editor panel', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveValue(data.newTitle);
+                await studio.editorPanel.locator(studio.editorDescription),
+            ).toContainText(data.newPrice);
             await expect(
-                await studio.editorPanel.locator(studio.editorSubtitle),
-            ).toHaveValue(data.newSubtitle);
-            await expect(
-                await studio.editorPanel.locator(studio.editorIconURL),
-            ).toHaveValue(data.newIconURL);
-            expect(
-                await studio.editorPanel
-                    .locator(studio.editorDescription)
-                    .innerText(),
-            ).toBe(data.newDescription);
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).toContainText(data.price);
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).not.toContainText(data.strikethroughPrice);
-            await expect(
-                await studio.editorPanel.locator(studio.editorFooter),
-            ).toContainText(data.newCtaText);
+                await studio.editorPanel.locator(studio.editorDescription),
+            ).toContainText(data.newStrikethroughPrice);
         });
 
-        await test.step('step-6: Search for the cloned card and verify changes then delete the card', async () => {
-            const clonedCard = await studio.getCard(
-                data.clonedCardID,
-                'suggested',
-            );
+        await test.step('step-5: Validate edited price field on the card', async () => {
             await expect(
-                await clonedCard.locator(suggested.cardTitle),
-            ).toHaveText(data.newTitle);
+                await slice.cardDescription.locator(slice.cardPrice),
+            ).toContainText(data.newPrice);
             await expect(
-                await clonedCard.locator(suggested.cardEyebrow),
-            ).toHaveText(data.newSubtitle);
-            await expect(
-                await clonedCard.locator(suggested.cardDescription),
-            ).toHaveText(data.newDescription);
-            await expect(
-                await clonedCard.locator(suggested.cardIcon),
-            ).toHaveAttribute('src', data.newIconURL);
-            await expect(
-                await clonedCard.locator(suggested.cardPrice),
-            ).toContainText(data.price);
-            await expect(
-                await clonedCard.locator(suggested.cardPrice),
-            ).not.toContainText(data.strikethroughPrice);
-            await expect(
-                await clonedCard.locator(suggested.cardCTA),
-            ).toContainText(data.newCtaText);
-
-            // delete card
-            await studio.deleteCard.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.confirmationDialog
-                .locator(studio.deleteDialog)
-                .click();
-            await expect(await studio.toastPositive).toHaveText(
-                'Fragment successfully deleted.',
-            );
-            await expect(
-                await studio.getCard(data.clonedCardID, 'suggested'),
-            ).not.toBeVisible();
+                await slice.cardDescription.locator(
+                    slice.cardPriceStrikethrough,
+                ),
+            ).toContainText(data.newStrikethroughPrice);
         });
     });
 
-    // @studio-suggested-edit-price - Validate edit price field for suggested card in mas studio
+    // @studio-slice-edit-cta-ost - Validate edit CTA for slice card in mas studio
     test(`${features[7].name},${features[7].tags}`, async ({
         page,
         baseURL,
@@ -502,77 +454,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'suggested'),
+                await studio.getCard(data.cardid, 'slice-wide'),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
-        });
-
-        await test.step('step-3: Edit price field', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).toContainText(data.price);
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).not.toContainText(data.newPrice);
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).toContainText(data.strikethroughPrice);
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).not.toContainText(data.newStrikethroughPrice);
-
-            await (
-                await studio.editorPanel.locator(studio.regularPrice)
-            ).dblclick();
-            await expect(await ost.price).toBeVisible();
-            await expect(await ost.priceUse).toBeVisible();
-            await expect(await ost.unitCheckbox).toBeVisible();
-            await ost.unitCheckbox.click();
-            await ost.priceUse.click();
-        });
-
-        await test.step('step-4: Validate edited price in Editor panel', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).toContainText(data.newPrice);
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).toContainText(data.newStrikethroughPrice);
-        });
-
-        await test.step('step-5: Validate edited price field on the card', async () => {
-            await expect(await suggested.cardPrice).toContainText(
-                data.newPrice,
-            );
-            await expect(await suggested.cardPrice).toContainText(
-                data.newStrikethroughPrice,
-            );
-        });
-    });
-
-    // @studio-suggested-edit-cta-ost - Validate edit CTA for suggested card in mas studio
-    test(`${features[8].name},${features[8].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
-        const { data } = features[8];
-        const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
-
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
             await expect(await studio.editorPanel).toBeVisible();
         });
 
@@ -612,19 +496,17 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-5: Validate edited price field on the card', async () => {
-            await expect(await suggested.cardCTA).toContainText(
-                data.newCtaText,
-            );
+            await expect(await slice.cardCTA).toContainText(data.newCtaText);
         });
     });
 
-    // @studio-suggested-edit-cta-link - Validate edit CTA link for suggested card in mas studio
-    test(`${features[9].name},${features[9].tags}`, async ({
+    // @studio-slice-edit-cta-link - Validate edit CTA link for slice card in mas studio
+    test(`${features[8].name},${features[8].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[9];
-        const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}${data.cardid}`;
+        const { data } = features[8];
+        const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -634,9 +516,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'suggested'),
+                await studio.getCard(data.cardid, 'slice-wide'),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
             await expect(await studio.editorPanel).toBeVisible();
         });
 
@@ -669,9 +551,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-5: Validate edited price field on the card', async () => {
-            await expect(await suggested.cardCTA).toContainText(
-                data.newCtaText,
-            );
+            await expect(await slice.cardCTA).toContainText(data.newCtaText);
         });
     });
 });

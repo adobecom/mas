@@ -5,6 +5,13 @@ import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import { OPERATIONS } from './constants.js';
+import Events from './events.js';
+import { VARIANTS } from './editors/variant-picker.js';
+
+const MODEL_WEB_COMPONENT_MAPPING = {
+    Card: 'merch-card',
+    'Card Collection': 'merch-card-collection',
+};
 
 export default class EditorPanel extends LitElement {
     static properties = {
@@ -147,12 +154,64 @@ export default class EditorPanel extends LitElement {
         );
     }
 
+    getFragmentPropsToUse() {
+        const props = {
+            cardTitle: this.fragment?.getField('cardTitle')?.values[0],
+            variantCode: this.fragment?.getField('variant')?.values[0],
+        };
+        VARIANTS.forEach((variant) => {
+            if (variant.value === props.variantCode) {
+                props.variantLabel = variant.label;
+                props.surface = variant.surface;
+            }
+        });
+        return props;
+    }
+
+    showNegativeAlert() {
+        Events.toast.emit({
+            variant: 'negative',
+            content: 'Failed to copy code to clipboard',
+        });
+    }
+
+    generateCodeToUse() {
+        const props = this.getFragmentPropsToUse();
+        const webComponentName =
+            MODEL_WEB_COMPONENT_MAPPING[this.fragment?.model?.name];
+        if (!webComponentName) {
+            this.showNegativeAlert();
+            return [];
+        }
+
+        const code = `<${webComponentName}><aem-fragment fragment="${this.fragment?.id}" title="${props.cardTitle}"></aem-fragment></${webComponentName}>`;
+        const richText = `
+                <a href="https://mas.adobe.com/studio.html#path=${props.surface}&fragment=${this.fragment?.id}">
+                    ${webComponentName}: ${props.surface.toUpperCase()} / ${props.variantLabel} / ${props.cardTitle}
+                </a>
+            `;
+        return [code, richText];
+    }
+
     async copyToUse() {
-        // @TODO make it generic.
-        const code = `<merch-card><aem-fragment fragment="${this.fragment?.id}"></aem-fragment></merch-card>`;
+        const [code, richText] = this.generateCodeToUse();
+        if (!code || !richText) return;
+
         try {
-            await navigator.clipboard.writeText(code);
-        } catch (e) {}
+            await navigator.clipboard.write([
+                /* global ClipboardItem */
+                new ClipboardItem({
+                    'text/plain': new Blob([code], { type: 'text/plain' }),
+                    'text/html': new Blob([richText], { type: 'text/html' }),
+                }),
+            ]);
+            Events.toast.emit({
+                variant: 'positive',
+                content: 'Code copied to clipboard',
+            });
+        } catch (e) {
+            this.showNegativeAlert();
+        }
     }
 
     #updateFragmentInternal(event) {

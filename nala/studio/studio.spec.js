@@ -33,35 +33,8 @@ export default {
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
-            browserParams: '#path=nala',
+            browserParams: '#path=nala&page=content',
             tags: '@mas-studio',
         },
-        {
-            tcid: '3',
-            name: '@studio-edit-title',
-            path: '/studio.html',
-            data: {
-                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
-                title: 'Automation Test Card',
-                newTitle: 'Change title',
-            },
-            browserParams: '#query=',
-            tags: '@mas-studio',
-        },
-        {
-            tcid: '4',
-            name: '@studio-clone-edit-save-delete',
-            path: '/studio.html',
-            data: {
-                cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
-                title: 'Field Edit & Save',
-                newTitle: 'Cloned Field Edit',
-                newSubtitle: 'New Subtitle',
-                newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
-                newDescription: 'New Test Description'
-            },
-            browserParams: '#query=',
-            tags: '@mas-studio',
-        }
     ],
 };

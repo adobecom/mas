@@ -1,4 +1,6 @@
 import { html, css, LitElement } from 'lit';
+import Store from '../store.js';
+import StoreController from '../reactivity/store-controller.js';
 
 class MasFilterPanel extends LitElement {
     static styles = css`
@@ -22,6 +24,18 @@ class MasFilterPanel extends LitElement {
             color: var(--spectrum-gray-600);
         }
     `;
+
+    filters = new StoreController(this, Store.filters);
+
+    #updateFilterHandler(property) {
+        return function (event) {
+            if (!event.detail) return;
+            Store.filters.set((prev) => ({
+                ...prev,
+                [property]: event.detail.value,
+            }));
+        };
+    }
 
     render() {
         return html`
@@ -63,7 +77,10 @@ class MasFilterPanel extends LitElement {
                     <sp-menu-item>Gov</sp-menu-item>
                 </sp-picker>
 
-                <mas-locale-picker></mas-locale-picker>
+                <mas-locale-picker
+                    value=${this.filters.value.locale}
+                    @change=${this.#updateFilterHandler('locale')}
+                ></mas-locale-picker>
             </div>
         `;
     }

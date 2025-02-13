@@ -35,14 +35,13 @@ class MasRecentlyUpdated extends LitElement {
             <div id="recently-updated-container" ?loading=${this.loading.value}>
                 ${this.loadingIndicator}
                 ${this.fragments.value.map((fragmentStore) => {
-                    return html` ${variantValues.includes(
-                        fragmentStore.value.variant,
-                    )
-                        ? html`<mas-fragment
-                              .store=${fragmentStore}
-                              view="render"
-                          ></mas-fragment>`
-                        : html``}`;
+                    if (!variantValues.includes(fragmentStore.value.variant))
+                        return html``;
+
+                    return html`<mas-fragment
+                        .store=${fragmentStore}
+                        view="render"
+                    ></mas-fragment>`;
                 })}
             </div>`;
     }

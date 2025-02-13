@@ -222,7 +222,12 @@ class MerchCardEditor extends LitElement {
             </sp-field-group>
             <sp-field-group>
                 <sp-field-label for="osi-field">OSI</sp-field-label>
-                <osi-field id="osi-field" data-field="osi-field"></osi-field>
+                <osi-field
+                    id="osi-field"
+                    data-field="osi"
+                    .value=${form.osi.values[0]}
+                    @input="${this.updateFragment}"
+                ></osi-field>
             </sp-field-group>
             <aem-tag-picker-field
                 label="Tags"

@@ -5,7 +5,13 @@ import { openOfferSelectorTool, closeOfferSelectorTool } from './ost.js';
 let osiFieldSource;
 
 class OsiField extends LitElement {
+    static styles = css`
+        :host {
+            --mod-textfield-width: 100%;
+        }
+    `;
     static properties = {
+        value: { type: String },
         selectedOffer: { type: String },
         showOfferSelector: { type: String },
     };
@@ -43,9 +49,16 @@ class OsiField extends LitElement {
         );
     }
 
+    updated(changedProperties) {
+        if (changedProperties.has('value')) {
+            this.selectedOffer = this.value || '';
+        }
+    }
+
     #handleOstEvent({ detail: { offerSelectorId, offer } }) {
         if (osiFieldSource !== this) return;
-        this.selectedOffer = offerSelectorId;
+        this.selectedOffer = offerSelectorId || '';
+        this.value = offerSelectorId || '';
         this.showOfferSelector = false;
         closeOfferSelectorTool();
     }
@@ -91,8 +104,13 @@ class OsiField extends LitElement {
                     aria-label="RTE toolbar actions"
                 >
                     ${this.#offerSelectorToolButton}
+                    <sp-textfield
+                        id="os-field"
+                        .value=${this.selectedOffer}
+                        placeholder="Select an offer"
+                        quiet
+                    ></sp-textfield>
                 </sp-action-group>
-                <p>Selected Offer: <strong>${this.selectedOffer}</strong></p>
             </div>
         `;
     }

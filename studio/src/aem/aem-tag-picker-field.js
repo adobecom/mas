@@ -103,7 +103,6 @@ class AemTagPickerField extends LitElement {
 
     _onOstSelect = ({ detail: { offer } }) => {
         const { offer_type, planType, market_segments } = offer;
-        this.value = '';
         const extractedOffer = {
             offer_type,
             planType,
@@ -123,9 +122,7 @@ class AemTagPickerField extends LitElement {
             },
         );
         newTagPaths.forEach((tagPath) => {
-            if (!this.value.includes(tagPath)) {
-                this.value = [...this.value, tagPath];
-            }
+            this.value = [...this.value, tagPath];
         });
     };
 

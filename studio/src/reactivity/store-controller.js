@@ -8,7 +8,6 @@ export default class StoreController {
     value;
 
     /**
-     *
      * @param {LitElement} host
      * @param {ReactiveStore} store
      */

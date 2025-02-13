@@ -106,7 +106,7 @@ export class MasFolderPicker extends LitElement {
 
     handleSelection(event) {
         const value = event.target.value;
-        Store.search.update((prev) => ({ ...prev, path: value }));
+        Store.search.set((prev) => ({ ...prev, path: value }));
         this.closeDropdown();
     }
 

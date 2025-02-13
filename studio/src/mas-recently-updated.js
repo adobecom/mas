@@ -2,6 +2,7 @@ import { html, LitElement, nothing } from 'lit';
 import Store from './store.js';
 import StoreController from './reactivity/store-controller.js';
 import { VARIANTS } from './editors/variant-picker.js';
+
 class MasRecentlyUpdated extends LitElement {
     static get properties() {
         return {

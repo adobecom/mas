@@ -66,11 +66,7 @@ class OsiField extends LitElement {
     #handleEscKey(event) {
         if (!this.showOfferSelector) return;
         if (event.key === 'Escape') {
-            event.stopPropagation(); // Stop propagation here
-            if (this.showLinkEditor) {
-                this.showLinkEditor = false;
-                this.requestUpdate();
-            }
+            event.stopPropagation();
             closeOfferSelectorTool();
         }
     }

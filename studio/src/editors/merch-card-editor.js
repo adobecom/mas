@@ -9,6 +9,8 @@ const MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 
 const merchCardCustomElementPromise = customElements.whenDefined('merch-card');
 
+const QUANTITY_MODEL = 'quantitySelect';
+
 class MerchCardEditor extends LitElement {
     static properties = {
         fragment: { type: Object, attribute: false },
@@ -58,6 +60,72 @@ class MerchCardEditor extends LitElement {
         );
     }
 
+    get quantityValue() {
+        return this.fragment?.fields.find((f) => f.name === QUANTITY_MODEL)?.values[0] ?? '';
+    }
+
+    getQuantityAttribute(name) {
+        if (!this.quantitySelectorDisplayed) return undefined;
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(this.quantityValue, 'text/html');
+        const element = doc.querySelector('merch-quantity-select');
+        return element?.getAttribute(name);
+    }
+
+    get quantityTitle() {
+        return this.getQuantityAttribute('title') ?? '';
+    }
+
+    get quantityStart() {
+        return this.getQuantityAttribute('min') ?? 1;
+    }
+
+    get quantityStep() {
+        return this.getQuantityAttribute('step') ?? 1;
+    }
+
+    get quantitySelectorDisplayed() {
+        return !!this.quantityValue.trim();
+    }
+
+    createQsElement(min, step, title) {
+        const el = document.createElement('merch-quantity-select');
+        el.setAttribute('title', title);
+        el.setAttribute('min', min);
+        el.setAttribute('max', '10');
+        el.setAttribute('step', step);
+        return el;
+    }
+
+    #updateQuantityValues(event) {
+        const vals = [this.quantityStart, this.quantityStep, this.quantityTitle];
+        if (event.target.dataset.field === 'startQuantity') {
+            vals[0] = event.target.value;
+        } else if (event.target.dataset.field === 'stepQuantity') {
+            vals[1] = event.target.value;
+        } else if (event.target.dataset.field === 'titleQuantity') {
+            vals[2] = event.target.value;
+        }
+
+        const html = this.createQsElement(vals[0], vals[1], vals[2]).outerHTML;
+        this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
+    }
+
+    #showQuantityFields = (e) => {
+        this.showQuantityFields(e.target.checked);
+
+        const html = e.target.checked ? this.createQsElement(this.quantityStart, this.quantityStep, this.quantityTitle).outerHTML : '';
+        const fragment = this.fragmentStore.get();
+        fragment.updateField(QUANTITY_MODEL, [html]);
+        this.fragmentStore.set(fragment);
+    }
+
+    showQuantityFields(show) {
+        const element = this.querySelector('#quantitySelector');
+        if (element) element.style.display = show ? 'block' : 'none';
+    }
+
     updated() {
         this.toggleFields();
     }
@@ -80,6 +148,7 @@ class MerchCardEditor extends LitElement {
         });
         this.wide = variant.size?.includes('wide');
         this.superWide = variant.size?.includes('super-wide');
+        this.showQuantityFields(this.quantitySelectorDisplayed);
     }
 
     render() {
@@ -240,6 +309,44 @@ class MerchCardEditor extends LitElement {
                     ?disabled=${this.disabled}
                     >Stock Checkbox</sp-checkbox
                 >
+            </sp-field-group>
+            <sp-field-group class="toggle" id="quantitySelect">
+                <sp-checkbox
+                    size="m"
+                    value="${this.quantitySelectorDisplayed}"
+                    .checked="${this.quantitySelectorDisplayed}"
+                    @change="${this.#showQuantityFields}"
+                    ?disabled=${this.disabled}
+                    >Show Quantity selector</sp-checkbox
+                >
+                <sp-field-group id="quantitySelector">
+                    <sp-field-label for="title-quantity">Quantity selector title</sp-field-label>
+                    <sp-textfield
+                        id="title-quantity"
+                        data-field="titleQuantity"
+                        value="${this.quantityTitle}"
+                        @input="${this.#updateQuantityValues}"
+                        ?disabled=${this.disabled}
+                        ></sp-textfield>                
+                    <sp-field-label for="start-quantity">Start quantity</sp-field-label>
+                    <sp-textfield
+                        id="start-quantity"
+                        data-field="startQuantity"
+                        pattern="[0-9]*"
+                        value="${this.quantityStart}"
+                        @input="${this.#updateQuantityValues}"
+                        ?disabled=${this.disabled}
+                        ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield>
+                    <sp-field-label for="step-quantity">Step</sp-field-label>
+                    <sp-textfield
+                        id="step-quantity"
+                        data-field="stepQuantity"
+                        pattern="[0-9]*"
+                        value="${this.quantityStep}"
+                        @input="${this.#updateQuantityValues}"
+                        ?disabled=${this.disabled}
+                        ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield>
+                </sp-field-group>
             </sp-field-group>
             <sp-field-group class="toggle" id="ctas">
                 <sp-field-label for="ctas">Footer</sp-field-label>

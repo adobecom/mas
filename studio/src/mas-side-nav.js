@@ -76,7 +76,7 @@ class MasSideNav extends LitElement {
                 <sp-sidenav-item
                     label="Home"
                     value="home"
-                    @click="${navigateToPage('splash')}"
+                    @click="${navigateToPage('welcome')}"
                     selected
                 >
                     <sp-icon-home slot="icon"></sp-icon-home>

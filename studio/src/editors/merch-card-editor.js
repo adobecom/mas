@@ -230,15 +230,17 @@ class MerchCardEditor extends LitElement {
                     >${unsafeHTML(form.callout?.values[0])}</rte-field
                 >
             </sp-field-group>
-            <sp-checkbox
-                size="m"
-                data-field="showStockCheckbox"
-                value="${form.showStockCheckbox?.values[0]}"
-                .checked="${form.showStockCheckbox?.values[0]}"
-                @change="${this.updateFragment}"
-                ?disabled=${this.disabled}
-                >Stock Checkbox</sp-checkbox
-            >
+            <sp-field-group class="toggle" id="stockOffer">
+                <sp-checkbox
+                    size="m"
+                    data-field="showStockCheckbox"
+                    value="${form.showStockCheckbox?.values[0]}"
+                    .checked="${form.showStockCheckbox?.values[0]}"
+                    @change="${this.updateFragment}"
+                    ?disabled=${this.disabled}
+                    >Stock Checkbox</sp-checkbox
+                >
+            </sp-field-group>
             <sp-field-group class="toggle" id="ctas">
                 <sp-field-label for="ctas">Footer</sp-field-label>
                 <rte-field

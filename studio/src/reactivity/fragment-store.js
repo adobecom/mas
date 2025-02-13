@@ -13,11 +13,6 @@ export class FragmentStore extends ReactiveStore {
         this.notify();
     }
 
-    update(fn) {
-        super.update(fn);
-        this.refreshAemFragment();
-    }
-
     updateField(name, value) {
         this.value.updateField(name, value);
         this.notify();

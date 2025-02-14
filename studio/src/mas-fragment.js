@@ -1,12 +1,11 @@
 import { LitElement, html, nothing } from 'lit';
 import StoreController from './reactivity/store-controller.js';
-import Store from './store.js';
 import './mas-fragment-render.js';
 import './mas-fragment-table.js';
-import { reactiveStore } from './reactivity/reactive-store.js';
-import { editFragment } from './editor-panel.js';
+import { ReactiveStore } from './reactivity/reactive-store.js';
+import Store, { editFragment } from './store.js';
 
-const tooltipTimeout = reactiveStore(null);
+const tooltipTimeout = new ReactiveStore(null);
 
 class MasFragment extends LitElement {
     static properties = {

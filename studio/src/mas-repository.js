@@ -4,10 +4,9 @@ import Store from './store.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
-import { getInEditFragment } from './store.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
-import { editFragment } from './editor-panel.js';
 import { looseEquals, UserFriendlyError } from './utils.js';
+import { OPERATIONS } from './constants.js';
 
 const ROOT = '/content/dam/mas';
 
@@ -29,6 +28,9 @@ export class MasRepository extends LitElement {
         baseUrl: { type: String, attribute: 'base-url' },
     };
 
+    inEdit = Store.fragments.inEdit;
+    operation = Store.operation;
+
     constructor() {
         super();
         this.#abortControllers = { search: null, recentlyUpdated: null };
@@ -46,10 +48,8 @@ export class MasRepository extends LitElement {
 
     filters = new StoreController(this, Store.filters);
     search = new StoreController(this, Store.search);
-    currentPage = new StoreController(this, Store.currentPage);
+    page = new StoreController(this, Store.page);
     foldersLoaded = new StoreController(this, Store.folders.loaded);
-    localeController = new StoreController(this, Store.locale.current);
-
     recentlyUpdatedLimit = new StoreController(
         this,
         Store.fragments.recentlyUpdated.limit,
@@ -71,9 +71,13 @@ export class MasRepository extends LitElement {
      * @param {string} defaultMessage - Generic toast message (can be overriden by the error's message)
      */
     processError(error, defaultMessage) {
+        if (error.name === 'AbortError') return;
         let message = defaultMessage;
         if (error instanceof UserFriendlyError) message = error.message;
-        console.error(`Failed to save fragment: ${error.message}`);
+        console.error(
+            `${defaultMessage ? `${defaultMessage}: ` : ''}${error.message}`,
+            error.stack,
+        );
         Events.toast.emit({
             variant: 'negative',
             content: message,
@@ -85,10 +89,14 @@ export class MasRepository extends LitElement {
         if (!this.foldersLoaded.value) return;
         /**
          * Automatically fetch data when search/filters update.
-         * Both load methods have page guards (ex. fragments won't be searched on the 'splash' page)
+         * Both load methods have page guards (ex. fragments won't be searched on the 'welcome' page)
          */
-        this.searchFragments();
-        this.loadRecentlyUpdatedFragments();
+        if (this.page.value === 'content') {
+            this.searchFragments();
+        }
+        if (this.page.value === 'welcome') {
+            this.loadRecentlyUpdatedFragments();
+        }
     }
 
     async loadFolders() {
@@ -104,8 +112,11 @@ export class MasRepository extends LitElement {
             Store.folders.loaded.set(true);
             Store.folders.data.set(folders);
 
-            if (!folders.includes(this.search.value.path))
-                Store.search.update((prev) => ({
+            if (
+                !folders.includes(this.search.value.path) &&
+                !this.search.value.query
+            )
+                Store.search.set((prev) => ({
                     ...prev,
                     path: folders.at(0),
                 }));
@@ -117,7 +128,7 @@ export class MasRepository extends LitElement {
     }
 
     async searchFragments() {
-        if (this.currentPage.value !== 'content') return;
+        if (this.page.value !== 'content') return;
 
         Store.fragments.list.loading.set(true);
 
@@ -134,9 +145,10 @@ export class MasRepository extends LitElement {
             dataStore.removeMeta('query');
         }
 
+        const damPath = getDamPath(path);
         const localSearch = {
             ...this.search.value,
-            path: getDamPath(path) + Store.locale.path,
+            path: `${damPath}/${this.filters.value.locale}`,
         };
         const fragments = [];
 
@@ -150,10 +162,7 @@ export class MasRepository extends LitElement {
                     localSearch.query,
                     this.#abortControllers.search,
                 );
-                if (
-                    fragmentData &&
-                    fragmentData.path.indexOf(localSearch.path) == 0
-                ) {
+                if (fragmentData && fragmentData.path.indexOf(damPath) == 0) {
                     const fragment = new Fragment(fragmentData);
                     fragments.push(fragment);
                     dataStore.set([new FragmentStore(fragment)]);
@@ -182,7 +191,6 @@ export class MasRepository extends LitElement {
 
             await this.addToCache(fragments);
         } catch (error) {
-            if (error.name === 'AbortError') return;
             this.processError(error, 'Could not load fragments.');
         }
 
@@ -190,7 +198,7 @@ export class MasRepository extends LitElement {
     }
 
     async loadRecentlyUpdatedFragments() {
-        if (this.currentPage.value !== 'splash') return;
+        if (this.page.value !== 'welcome') return;
         if (this.#abortControllers.recentlyUpdated)
             this.#abortControllers.recentlyUpdated.abort();
         this.#abortControllers.recentlyUpdated = new AbortController();
@@ -198,7 +206,7 @@ export class MasRepository extends LitElement {
         Store.fragments.recentlyUpdated.loading.set(true);
 
         const dataStore = Store.fragments.recentlyUpdated.data;
-        const path = this.search.value.path + Store.locale.path;
+        const path = `${this.search.value.path}/${this.filters.value.locale}`;
 
         if (!looseEquals(dataStore.getMeta('path'), path)) {
             dataStore.set([]);
@@ -215,6 +223,7 @@ export class MasRepository extends LitElement {
                 this.recentlyUpdatedLimit.value,
                 this.#abortControllers.recentlyUpdated,
             );
+
             const result = await cursor.next();
             const fragments = [];
             dataStore.set(
@@ -259,22 +268,22 @@ export class MasRepository extends LitElement {
             variant: 'info',
             content: 'Saving fragment...',
         });
-
+        this.operation.set(OPERATIONS.SAVE);
         try {
-            const fragmentStore = Store.fragments.inEdit.get();
-            const fragment = fragmentStore.get();
-            let updatedFragment =
-                await this.#aem.sites.cf.fragments.save(fragment);
+            let updatedFragment = await this.#aem.sites.cf.fragments.save(
+                this.inEdit.get(),
+            );
             if (!updatedFragment) throw new Error('Invalid fragment.');
-            fragmentStore.refreshFrom(updatedFragment);
+            this.inEdit.refreshFrom(updatedFragment);
 
             Events.toast.emit({
                 variant: 'positive',
                 content: 'Fragment successfully saved.',
             });
-
+            this.operation.set();
             return true;
         } catch (error) {
+            this.operation.set();
             this.processError(error, 'Failed to save fragment.');
         }
         return false;
@@ -285,27 +294,29 @@ export class MasRepository extends LitElement {
      */
     async copyFragment() {
         try {
-            const fragment = getInEditFragment();
-
-            const result = await this.#aem.sites.cf.fragments.copy(fragment);
+            this.operation.set(OPERATIONS.CLONE);
+            const result = await this.#aem.sites.cf.fragments.copy(
+                this.inEdit.get(),
+            );
             const newFragment = new Fragment(result);
             Fragment.cache.add(newFragment);
 
             const newFragmentStore = new FragmentStore(newFragment);
-            Store.fragments.list.data.update((prev) => [
+            Store.fragments.list.data.set((prev) => [
                 ...prev,
                 newFragmentStore,
             ]);
-            editFragment(newFragmentStore);
+            this.inEdit.set(newFragment);
 
+            this.operation.set();
             Events.fragmentAdded.emit(newFragment.id);
             Events.toast.emit({
                 variant: 'positive',
                 content: 'Fragment successfully copied.',
             });
-
             return true;
         } catch (error) {
+            this.operation.set();
             this.processError(error, 'Failed to copy fragment.');
         }
         return false;
@@ -316,9 +327,10 @@ export class MasRepository extends LitElement {
      */
     async publishFragment() {
         try {
-            const fragment = getInEditFragment();
-            await this.#aem.sites.cf.fragments.publish(fragment);
+            this.operation.set(OPERATIONS.PUBLISH);
+            await this.#aem.sites.cf.fragments.publish(this.inEdit.get());
 
+            this.operation.set();
             Events.toast.emit({
                 variant: 'positive',
                 content: 'Fragment successfully published.',
@@ -326,6 +338,7 @@ export class MasRepository extends LitElement {
 
             return true;
         } catch (error) {
+            this.operation.set();
             this.processError(error, 'Failed to publish fragment.');
         }
         return false;
@@ -344,24 +357,25 @@ export class MasRepository extends LitElement {
      */
     async deleteFragment() {
         try {
-            const fragment = getInEditFragment();
+            this.operation.set(OPERATIONS.DELETE);
+            const fragment = this.inEdit.get();
             await this.#aem.sites.cf.fragments.delete(fragment);
 
-            Store.fragments.list.data.update((prev) => {
+            Store.fragments.list.data.set((prev) => {
                 var result = [...prev];
                 const index = result.indexOf(fragment);
                 result.splice(index, 1);
                 return result;
             });
-            Store.fragments.inEdit.set(null);
-
+            this.inEdit.set(null);
+            this.operation.set();
             Events.toast.emit({
                 variant: 'positive',
                 content: 'Fragment successfully deleted.',
             });
-
             return true;
         } catch (error) {
+            this.operation.set();
             this.processError(error, 'Failed to delete fragment.');
         }
         return false;
@@ -372,9 +386,11 @@ export class MasRepository extends LitElement {
      * @param {FragmentStore} store
      */
     async refreshFragment(store) {
+        this.inEdit.setLoading(true);
         const id = store.get().id;
         const latest = await this.#aem.sites.cf.fragments.getById(id);
         store.refreshFrom(latest);
+        this.inEdit.setLoading(false);
     }
 
     render() {

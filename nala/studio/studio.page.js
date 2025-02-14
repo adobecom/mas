@@ -14,7 +14,15 @@ export default class StudioPage {
         this.topFolder = page.locator('sp-picker[label="TopFolder"] > button');
         this.renderView = page.locator('#render');
         this.quickActions = page.locator('.quick-actions');
-        this.editorPanel = page.locator('editor-panel');
+        this.editorPanel = page.locator('editor-panel > #editor');
+        this.confirmationDialog = page.locator(
+            'sp-dialog[variant="confirmation"]',
+        );
+        this.cancelDialog = page.locator('sp-button:has-text("Cancel")');
+        this.deleteDialog = page.locator('sp-button:has-text("Delete")');
+        this.toastPositive = page.locator(
+            'mas-toast >> sp-toast[variant="positive"]',
+        );
         this.suggestedCard = page.locator(
             'merch-card[variant="ccd-suggested"]',
         );
@@ -22,46 +30,47 @@ export default class StudioPage {
         this.sliceCardWide = page.locator(
             'merch-card[variant="ccd-slice"][size="wide"]',
         );
-        this.price = page.locator('span[data-template="price"]');
-        this.priceStrikethrough = page.locator(
-            'span[data-template="strikethrough"]',
-        );
-        this.cardIcon = page.locator('merch-icon');
-        this.cardBadge = page.locator('.ccd-slice-badge');
         // Editor panel fields
-        this.editorTitle = page.locator('#card-title');
-        // suggested cards
-        this.suggestedCard = page.locator(
-            'merch-card[variant="ccd-suggested"]',
+        this.editorVariant = page.locator('#card-variant');
+        this.editorSize = page.locator('#card-size');
+        this.editorTitle = page.locator('#card-title input');
+        this.editorSubtitle = page.locator('#card-subtitle input');
+        this.editorBadge = page.locator('#card-badge input');
+        this.editorIconURL = page.locator('#icon input');
+        this.editorBackgroundImage = page.locator('#background-image input');
+        this.editorPrices = page.locator('sp-field-group#prices');
+        this.regularPrice = page.locator(
+            'span[is="inline-price"][data-template="price"]',
         );
-        this.suggestedCardTitle = this.page.locator('h3[slot="heading-xs"]');
-        this.suggestedCardEyebrow = page.locator('h4[slot="detail-s"]');
-        this.suggestedCardDescription = page
-            .locator('div[slot="body-xs"] p')
-            .first();
-        this.suggestedCardLegalLink = page.locator('div[slot="body-xs"] p > a');
-        this.suggestedCardPrice = page.locator('p[slot="price"]');
-        this.suggestedCardCTA = page.locator('div[slot="cta"] > sp-button');
-        this.suggestedCardCTALink = page.locator(
-            'div[slot="cta"] a[is="checkout-link"]',
+        this.strikethroughPrice = page.locator(
+            'span[is="inline-price"][data-template="strikethrough"]',
         );
-        // slice cards
-        this.sliceCard = page.locator('merch-card[variant="ccd-slice"]');
-        this.sliceCardWide = page.locator(
-            'merch-card[variant="ccd-slice"][size="wide"]',
+        this.editorFooter = page.locator('sp-field-group#ctas');
+        this.editorCTA = page.locator('sp-field-group#ctas a');
+        this.editorDescription = page.locator(
+            'sp-field-group#description div[contenteditable="true"]',
         );
-        this.sliceCardImage = page.locator('div[slot="image"] img');
-        this.sliceCardDescription = page
-            .locator('div[slot="body-s"] p > strong')
-            .first();
-        this.sliceCardLegalLink = page.locator('div[slot="body-s"] p > a');
-        this.sliceCardCTA = page.locator('div[slot="footer"] > sp-button');
-        this.sliceCardCTALink = page.locator(
-            'div[slot="footer"] a[is="checkout-link"]',
+        // Editor panel toolbar
+        this.cloneCard = page.locator(
+            'div[id="editor-toolbar"] >> sp-action-button[value="clone"]',
         );
+        this.closeEditor = page.locator(
+            'div[id="editor-toolbar"] >> sp-action-button[value="close"]',
+        );
+        this.deleteCard = page.locator(
+            'div[id="editor-toolbar"] >> sp-action-button[value="delete"]',
+        );
+        this.saveCard = page.locator(
+            'div[id="editor-toolbar"] >> sp-action-button[value="save"]',
+        );
+        // RTE panel toolbar
+        this.linkEdit = page.locator('#linkEditorButton');
+        // Edit Link Panel
+        this.linkText = page.locator('#linkText input');
+        this.linkSave = page.locator('#saveButton');
     }
 
-    async getCard(id, cardType) {
+    async getCard(id, cardType, cloned) {
         const cardVariant = {
             suggested: this.suggestedCard,
             slice: this.sliceCard,
@@ -71,6 +80,12 @@ export default class StudioPage {
         const card = cardVariant[cardType];
         if (!card) {
             throw new Error(`Invalid card type: ${cardType}`);
+        }
+
+        if (cloned) {
+            return card.filter({
+                has: this.page.locator(`aem-fragment:not([fragment="${id}"])`),
+            });
         }
 
         return card.filter({

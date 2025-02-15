@@ -14,15 +14,13 @@ class MerchCardEditor extends LitElement {
         fragment: { type: Object, attribute: false },
         fragmentStore: { type: Object, attribute: false },
         updateFragment: { type: Function },
-        wide: { type: Boolean, state: true },
-        superWide: { type: Boolean, state: true },
+        availableSizes: { type: Array, state: true },
     };
 
     constructor() {
         super();
         this.updateFragment = null;
-        this.wide = false;
-        this.superWide = false;
+        this.availableSizes = ['normal'];
     }
 
     createRenderRoot() {
@@ -58,8 +56,12 @@ class MerchCardEditor extends LitElement {
         );
     }
 
-    updated() {
-        this.toggleFields();
+    updated(changedProperties) {
+        super.updated(changedProperties);
+        if (changedProperties.has('fragment')) {
+            this.#updateAvailableSizes();
+            this.toggleFields();
+        }
     }
 
     async toggleFields() {
@@ -78,8 +80,6 @@ class MerchCardEditor extends LitElement {
             const field = this.querySelector(`sp-field-group.toggle#${key}`);
             if (field) field.style.display = 'block';
         });
-        this.wide = variant.size?.includes('wide');
-        this.superWide = variant.size?.includes('super-wide');
     }
 
     render() {
@@ -109,15 +109,13 @@ class MerchCardEditor extends LitElement {
                     data-default-value="normal"
                     @change="${this.updateFragment}"
                 >
-                    <sp-menu-item value="normal">Normal</sp-menu-item>
-                    ${this.wide
-                        ? html` <sp-menu-item value="wide">Wide</sp-menu-item> `
-                        : nothing}
-                    ${this.superWide
-                        ? html`<sp-menu-item value="super-wide"
-                              >Super wide</sp-menu-item
-                          >`
-                        : nothing}
+                    ${(this.availableSizes || []).map(
+                        (size) => html`
+                            <sp-menu-item value="${size}"
+                                >${this.#formatSizeName(size)}</sp-menu-item
+                            >
+                        `,
+                    )}
                 </sp-picker>
             </sp-field-group>
             <sp-field-group class="toggle" id="title">
@@ -190,6 +188,7 @@ class MerchCardEditor extends LitElement {
                 <rte-field
                     id="prices"
                     inline
+                    link
                     data-field="prices"
                     default-link-style="primary-outline"
                     @change="${this.updateFragment}"
@@ -231,6 +230,7 @@ class MerchCardEditor extends LitElement {
 
     #handleVariantChange(e) {
         this.updateFragment(e);
+        this.#updateAvailableSizes();
         this.toggleFields();
     }
 
@@ -254,6 +254,22 @@ class MerchCardEditor extends LitElement {
         fragment.updateField('mnemonicAlt', mnemonicAlt);
         fragment.updateField('mnemonicLink', mnemonicLink);
         this.fragmentStore.set(fragment);
+    }
+
+    #formatSizeName(size) {
+        return size
+            .split('-')
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    }
+
+    async #updateAvailableSizes() {
+        if (!this.fragment) return;
+        const merchCardCustomElement = await merchCardCustomElementPromise;
+        const variant = merchCardCustomElement?.getFragmentMapping(
+            this.fragment.variant,
+        );
+        this.availableSizes = ['normal', ...(variant?.size || ['normal'])];
     }
 }
 

@@ -28,3 +28,4 @@ config.json
 MerchAtScale-*.json
 .env*
 .aio
+.cursor

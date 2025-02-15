@@ -4,6 +4,7 @@ import '../fields/multifield.js';
 import '../fields/mnemonic-field.js';
 import '../aem/aem-tag-picker-field.js';
 import './variant-picker.js';
+import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 
 const MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 
@@ -15,12 +16,16 @@ class MerchCardEditor extends LitElement {
         fragmentStore: { type: Object, attribute: false },
         updateFragment: { type: Function },
         availableSizes: { type: Array, state: true },
+        availableColors: { type: Array, state: true },
+        availableBorderColors: { type: Array, state: true },
     };
 
     constructor() {
         super();
         this.updateFragment = null;
-        this.availableSizes = ['normal'];
+        this.availableSizes = [];
+        this.availableColors = [];
+        this.availableBorderColors = [];
     }
 
     createRenderRoot() {
@@ -60,6 +65,7 @@ class MerchCardEditor extends LitElement {
         super.updated(changedProperties);
         if (changedProperties.has('fragment')) {
             this.#updateAvailableSizes();
+            this.#updateAvailableColors();
             this.toggleFields();
         }
     }
@@ -80,6 +86,17 @@ class MerchCardEditor extends LitElement {
             const field = this.querySelector(`sp-field-group.toggle#${key}`);
             if (field) field.style.display = 'block';
         });
+        if (variant.borderColor) {
+            const borderField = this.querySelector(
+                'sp-field-group.toggle#border-color',
+            );
+            if (borderField) borderField.style.display = 'block';
+            this.availableBorderColors =
+                variant.allowedBorderColors || SPECTRUM_COLORS;
+        } else {
+            this.availableBorderColors = [];
+        }
+        this.availableColors = variant?.allowedColors || [];
     }
 
     render() {
@@ -161,6 +178,13 @@ class MerchCardEditor extends LitElement {
                     </template>
                 </mas-multifield>
             </sp-field-group>
+            ${this.#renderColorPicker(
+                'border-color',
+                'Border Color',
+                this.availableBorderColors,
+                form.borderColor?.values[0],
+                'borderColor',
+            )}
             <sp-field-group class="toggle" id="backgroundImage">
                 <sp-field-label for="background-image"
                     >Background Image</sp-field-label
@@ -265,6 +289,7 @@ class MerchCardEditor extends LitElement {
     #handleVariantChange(e) {
         this.updateFragment(e);
         this.#updateAvailableSizes();
+        this.#updateAvailableColors();
         this.toggleFields();
     }
 
@@ -304,6 +329,77 @@ class MerchCardEditor extends LitElement {
             this.fragment.variant,
         );
         this.availableSizes = ['normal', ...(variant?.size || ['normal'])];
+    }
+
+    async #updateAvailableColors() {
+        if (!this.fragment) return;
+        const merchCardCustomElement = await merchCardCustomElementPromise;
+        const variant = merchCardCustomElement?.getFragmentMapping(
+            this.fragment.variant,
+        );
+        this.availableColors = variant?.allowedColors || [];
+    }
+
+    #formatColorName(color, isBorder = false) {
+        return color
+            .replace(/(spectrum|global|color|-)/gi, ' ')
+            .replace(/\b\w/g, (l) => l.toUpperCase())
+            .replace(/\s+/g, ' ')
+            .trim()
+            .replace(/^/, isBorder ? 'Border ' : '');
+    }
+
+    #renderColorPicker(id, label, colors, selectedValue, dataField) {
+        const hasNoneOption = dataField === 'borderColor';
+        const options = hasNoneOption ? ['', ...colors] : colors;
+        const defaultValue = hasNoneOption ? '' : colors[0] || '';
+
+        return html`
+            <sp-field-group class="toggle" id="${id}">
+                <sp-field-label for="${id}">${label}</sp-field-label>
+                <sp-picker
+                    id="${id}"
+                    data-field="${dataField}"
+                    value="${selectedValue ?? defaultValue}"
+                    data-default-value="${defaultValue}"
+                    @change="${this.updateFragment}"
+                >
+                    ${options.map(
+                        (color) => html`
+                            <sp-menu-item value="${color}">
+                                <div
+                                    style="
+                                display: flex;
+                                align-items: center;
+                                gap: 8px;
+                            "
+                                >
+                                    ${color
+                                        ? html`
+                                              <div
+                                                  style="
+                                        width: 16px;
+                                        height: 16px;
+                                        background: var(--${color});
+                                        border: 1px solid var(--spectrum-global-color-gray-300);
+                                        border-radius: 3px;
+                                    "
+                                              ></div>
+                                              <span
+                                                  >${this.#formatColorName(
+                                                      color,
+                                                      id === 'border-color',
+                                                  )}</span
+                                              >
+                                          `
+                                        : html` <span>None</span> `}
+                                </div>
+                            </sp-menu-item>
+                        `,
+                    )}
+                </sp-picker>
+            </sp-field-group>
+        `;
     }
 }
 

@@ -4,6 +4,7 @@ import { html, LitElement } from 'lit';
 export const VARIANTS = [
     { label: 'All', value: 'all', surface: 'all' },
     { label: 'Catalog', value: 'catalog', surface: 'acom' },
+    { label: 'Plans', value: 'plans', surface: 'acom' },
     { label: 'Slice', value: 'ccd-slice', surface: 'ccd' },
     { label: 'Special offers', value: 'special-offers', surface: 'acom' },
     { label: 'Suggested', value: 'ccd-suggested', surface: 'ccd' },

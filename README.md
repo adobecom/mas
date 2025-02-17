@@ -59,4 +59,4 @@ If you want to debug GH action script run sh `nala/utils/pr.run.sh`
 documented in .github/README.md
 
 #### Troubleshooting
-Please reach out to us in `#tacocat-friends` for any questions.
+Please reach out to us in `#merch-at-scale` for any questions.

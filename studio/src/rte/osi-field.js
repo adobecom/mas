@@ -13,14 +13,13 @@ class OsiField extends LitElement {
     static properties = {
         id: { type: String, attribute: true },
         value: { type: String },
-        selectedOffer: { type: String },
         showOfferSelector: { type: String },
     };
 
     #boundHandlers;
     constructor() {
         super();
-        this.selectedOffer = '';
+        this.value = '';
         this.showOfferSelector = false;
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
@@ -50,18 +49,22 @@ class OsiField extends LitElement {
         );
     }
 
-    updated(changedProperties) {
-        if (changedProperties.has('value')) {
-            this.selectedOffer = this.value || '';
-        }
-    }
-
     #handleOstEvent({ detail: { offerSelectorId, offer } }) {
         if (osiFieldSource !== this) return;
-        this.selectedOffer = offerSelectorId || '';
         this.value = offerSelectorId || '';
         this.showOfferSelector = false;
+        this.dispatchEvent(
+            new CustomEvent('change', {
+                bubbles: true,
+                composed: true,
+            }),
+        );
         closeOfferSelectorTool();
+    }
+
+    #handleTextfieldInput(event) {
+        const newValue = event.target.value;
+        this.value = newValue;
     }
 
     #handleEscKey(event) {
@@ -103,8 +106,9 @@ class OsiField extends LitElement {
                     ${this.#offerSelectorToolButton}
                     <sp-textfield
                         id=${this.id}
-                        .value=${this.selectedOffer}
+                        value=${this.value}
                         placeholder="Select an offer"
+                        @input=${this.#handleTextfieldInput}
                         quiet
                     ></sp-textfield>
                 </sp-action-group>

@@ -197,14 +197,16 @@ class RteField extends LitElement {
                 }
                 
                 .ProseMirror .icon-button {
-                    height: auto;
-                    padding: 0;
-                    border: 0;
-                    min-inline-size: 18px;
+                    position: relative;
+                    top: 3px;
                 }
                 
-                .ProseMirror .icon-button:hover {
-                    background-color: transparent;
+                .ProseMirror .icon-button:before {
+                    display: inline-block;
+                    content: '';
+                    width: 18px;
+                    height: 18px;
+                    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 0 18 18" width="18"><defs><style> .fill { fill: %23464646; } </style></defs><title>S Info 18 N</title><rect id="Canvas" fill="%23ff13dc" opacity="0" width="18" height="18" /><path class="fill" d="M9,1a8,8,0,1,0,8,8A8,8,0,0,0,9,1ZM8.85,3.15a1.359,1.359,0,0,1,1.43109,1.28286q.00352.06452.00091.12914A1.332,1.332,0,0,1,8.85,5.9935a1.3525,1.3525,0,0,1-1.432-1.432A1.3585,1.3585,0,0,1,8.72033,3.14907Q8.78516,3.14643,8.85,3.15ZM11,13.5a.5.5,0,0,1-.5.5h-3a.5.5,0,0,1-.5-.5v-1a.5.5,0,0,1,.5-.5H8V9H7.5A.5.5,0,0,1,7,8.5v-1A.5.5,0,0,1,7.5,7h2a.5.5,0,0,1,.5.5V12h.5a.5.5,0,0,1,.5.5Z" /></svg>')
                 }
 
                 .price.price-strikethrough {
@@ -321,6 +323,7 @@ class RteField extends LitElement {
                 inline: true,
                 attrs: {
                     class: { default: null },
+                    title: { default: null },
                 },
                 parseDOM: [
                     {
@@ -433,25 +436,14 @@ class RteField extends LitElement {
     }
 
     #createIconElement(node) {
-        const tooltipText = node.content.content[0]?.text.trim();
+        const tooltipText = node.content.content[0]?.text.trim() || node.attrs.title;
 
-        const icon = document.createElement('sp-icon-info');
-        icon.setAttribute('slot', 'icon');
-        const button = document.createElement('sp-action-button');
-        button.setAttribute('quiet', '');
-        button.setAttribute('icon-only', '');
-        button.setAttribute('class', 'icon-button');
-        button.append(icon);
-
+        const icon = document.createElement('span');
+        icon.setAttribute('class', 'icon-button');
         if (tooltipText) {
-            const tooltip = document.createElement('sp-tooltip');
-            tooltip.setAttribute('placement', 'top');
-            tooltip.setAttribute('self-managed', '');
-            tooltip.textContent = tooltipText;
-            button.append(tooltip);
+            icon.setAttribute('title', tooltipText);
         }
-
-        return button;
+        return icon;
     }
 
     #createInlinePriceElement(node) {
@@ -770,11 +762,7 @@ class RteField extends LitElement {
     }
 
     #updateLength() {
-        let tooltipLength = 0;
-        this.editorView.dom.querySelectorAll('sp-tooltip').forEach((tooltip) => {
-            tooltipLength += tooltip.innerText.length;
-        });
-        this.length = this.editorView.dom.innerText.length - tooltipLength;
+        this.length = this.editorView.dom.innerText.length;
     }
 
     async openLinkEditor() {

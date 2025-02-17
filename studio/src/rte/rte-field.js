@@ -624,7 +624,11 @@ class RteField extends LitElement {
 
         const content = state.schema.text(text || selection.node.textContent);
         if (selection.node?.type.name === 'link') {
-            const mergedAttributes = { ...selection.node.attrs, ...linkAttrs };
+            const mergedAttributes = {
+                ...selection.node.attrs,
+                ...linkAttrs,
+                class: `${selection.node.attrs.class} ${linkAttrs.class}`.trim(),
+            };
             const updatedNode = linkNodeType.create(mergedAttributes, content);
             tr = tr.replaceWith(selection.from, selection.to, updatedNode);
         } else {
@@ -716,6 +720,7 @@ class RteField extends LitElement {
         const attributes = {
             class: `upt-link${selectionClasses ? ` ${selectionClasses}` : ''}`,
             href: '#',
+            'data-analytics-id': 'see-terms',
         };
 
         const content = state.schema.text('{{see-terms}}');

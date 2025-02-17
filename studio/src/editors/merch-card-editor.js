@@ -195,6 +195,17 @@ class MerchCardEditor extends LitElement {
                     >${unsafeHTML(form.prices.values[0])}</rte-field
                 >
             </sp-field-group>
+            <sp-field-group id="promoCode">
+                <sp-field-label for="promo-code">Promo Code</sp-field-label>
+                <sp-textfield
+                    placeholder="Enter promo code"
+                    id="promo-code"
+                    data-field="promoCode"
+                    value="${form.promoCode?.values[0]}"
+                    @input="${this.updateFragment}"
+                    ?disabled=${this.disabled}
+                ></sp-textfield>
+            </sp-field-group>
             <sp-field-group class="toggle" id="promoText">
                 <sp-field-label for="promo-text">Promo Text</sp-field-label>
                 <sp-textfield

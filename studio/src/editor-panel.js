@@ -220,10 +220,10 @@ export default class EditorPanel extends LitElement {
         this.inEdit.updateFieldInternal(fieldName, value);
     }
 
-    updateFragment(event) {
-        const fieldName = event.target.dataset.field;
-        let value = event.target.value || event.detail?.value;
-        value = event.target.multiline ? value?.split(',') : [value ?? ''];
+    updateFragment({ target, detail }) {
+        const fieldName = target.dataset.field;
+        let value = target.value || detail?.value || target.checked;
+        value = target.multiline ? value?.split(',') : [value ?? ''];
         this.inEdit.updateField(fieldName, value);
     }
 

@@ -11,6 +11,7 @@ class OsiField extends LitElement {
         }
     `;
     static properties = {
+        id: { type: String, attribute: true },
         value: { type: String },
         selectedOffer: { type: String },
         showOfferSelector: { type: String },
@@ -101,7 +102,7 @@ class OsiField extends LitElement {
                 >
                     ${this.#offerSelectorToolButton}
                     <sp-textfield
-                        id="os-field"
+                        id=${this.id}
                         .value=${this.selectedOffer}
                         placeholder="Select an offer"
                         quiet

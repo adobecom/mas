@@ -111,9 +111,23 @@ class AemTagPickerField extends LitElement {
                     ? market_segments[0]
                     : market_segments,
         };
+
         const convertCamelToSnake = (str) => {
             return str.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
         };
+
+        const categoriesToUpdate = [
+            'offer_type',
+            'plan_type',
+            'market_segments',
+        ];
+
+        const existingTags = this.value.filter((tagPath) => {
+            return !categoriesToUpdate.some((category) =>
+                tagPath.includes(`/content/cq:tags/mas/${category}/`),
+            );
+        });
+
         const newTagPaths = Object.entries(extractedOffer).map(
             ([key, value]) => {
                 const formattedKey = convertCamelToSnake(key);
@@ -121,9 +135,8 @@ class AemTagPickerField extends LitElement {
                 return `/content/cq:tags/mas/${formattedKey}/${formattedValue}`;
             },
         );
-        newTagPaths.forEach((tagPath) => {
-            this.value = [...this.value, tagPath];
-        });
+
+        this.value = [...existingTags, ...newTagPaths];
     };
 
     connectedCallback() {

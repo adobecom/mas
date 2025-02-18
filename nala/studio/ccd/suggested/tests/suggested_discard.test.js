@@ -3,7 +3,6 @@ import StudioPage from '../../../studio.page.js';
 import CCDSuggestedSpec from '../specs/suggested_discard.spec.js';
 import CCDSuggestedPage from '../suggested.page.js';
 import OSTPage from '../../../ost.page.js';
-import ims from '../../../../libs/imslogin.js';
 
 const { features } = CCDSuggestedSpec;
 const miloLibs = process.env.MILO_LIBS || '';

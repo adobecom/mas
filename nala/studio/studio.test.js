@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import StudioSpec from './studio.spec.js';
 import StudioPage from './studio.page.js';
-import ims from '../libs/imslogin.js';
 
 const { features } = StudioSpec;
 const miloLibs = process.env.MILO_LIBS || '';

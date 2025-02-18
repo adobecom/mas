@@ -3,7 +3,6 @@ import StudioPage from '../../../studio.page.js';
 import CCDSliceSpec from '../specs/slice_discard.spec.js';
 import CCDSlicePage from '../slice.page.js';
 import OSTPage from '../../../ost.page.js';
-import ims from '../../../../libs/imslogin.js';
 
 const { features } = CCDSliceSpec;
 const miloLibs = process.env.MILO_LIBS || '';

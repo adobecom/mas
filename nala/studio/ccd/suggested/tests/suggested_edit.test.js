@@ -12,7 +12,7 @@ let studio;
 let suggested;
 let ost;
 
-test.beforeEach(async ({ page, browserName, baseURL }) => {
+test.beforeEach(async ({ page, browserName }) => {
     test.slow();
     if (browserName === 'chromium') {
         await page.setExtraHTTPHeaders({

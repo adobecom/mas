@@ -8,7 +8,7 @@ const miloLibs = process.env.MILO_LIBS || '';
 
 let studio;
 
-test.beforeEach(async ({ page, browserName, baseURL }) => {
+test.beforeEach(async ({ page, browserName }) => {
     test.slow();
     if (browserName === 'chromium') {
         await page.setExtraHTTPHeaders({

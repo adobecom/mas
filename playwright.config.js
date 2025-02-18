@@ -18,7 +18,7 @@ const config = {
          * Maximum time expect() should wait for the condition to be met.
          * For example in `await expect(locator).toHaveText();`
          */
-        timeout: 20000,
+        timeout: 10000,
     },
     testMatch: '**/*.test.js',
     /* Run tests in files in parallel */
@@ -53,7 +53,12 @@ const config = {
     /* Configure projects for major browsers */
     projects: [
         // Setup project
-        { name: 'setup', testMatch: /.*\.setup\.cjs/ },
+        {   name: 'setup', 
+            use: {
+                ...devices['Desktop Chrome'],
+            },
+            testMatch: /.*\.setup\.cjs/, 
+        },
 
         {
             name: 'mas-live-chromium',

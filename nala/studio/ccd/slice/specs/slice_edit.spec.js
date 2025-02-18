@@ -9,7 +9,7 @@ export default {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
             tcid: '1',
@@ -19,7 +19,7 @@ export default {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
             tcid: '2',
@@ -31,7 +31,7 @@ export default {
                 newBadge: 'Change badge',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
             tcid: '3',
@@ -43,7 +43,7 @@ export default {
                 newDescription: 'New Test Description',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
             tcid: '4',
@@ -57,7 +57,7 @@ export default {
                     'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
             tcid: '5',
@@ -71,7 +71,7 @@ export default {
                     'https://milo.adobe.com/assets/img/commerce/media_158c1c22b1322dd28d7912d30fb27f29aa79f79b1.png',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
             tcid: '6',
@@ -85,7 +85,7 @@ export default {
                 newStrikethroughPrice: 'US$34.49/moper license',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
             tcid: '7',
@@ -97,7 +97,7 @@ export default {
                 newCtaText: 'Save now',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
             tcid: '8',
@@ -109,7 +109,7 @@ export default {
                 newCtaText: 'Buy now 2',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
     ],
 };

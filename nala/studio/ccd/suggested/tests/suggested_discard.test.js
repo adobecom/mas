@@ -22,15 +22,6 @@ test.beforeEach(async ({ page, browserName, baseURL }) => {
     studio = new StudioPage(page);
     suggested = new CCDSuggestedPage(page);
     ost = new OSTPage(page);
-    features[0].url = `${baseURL}/studio.html`;
-    await page.goto(features[0].url);
-    await page.waitForURL('**/auth.services.adobe.com/en_US/index.html**/');
-    await ims.fillOutSignInForm(features[0], page);
-    await expect(async () => {
-        const response = await page.request.get(features[0].url);
-        expect(response.status()).toBe(200);
-    }).toPass();
-    await page.waitForLoadState('domcontentloaded');
 });
 
 test.describe('M@S Studio CCD Suggested card test suite', () => {
@@ -136,9 +127,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            await expect(await suggested.cardEyebrow).toHaveText(
-                data.subtitle,
-            );
+            await expect(await suggested.cardEyebrow).toHaveText(data.subtitle);
         });
     });
 
@@ -386,9 +375,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
-            await expect(await suggested.cardPrice).toContainText(
-                data.price,
-            );
+            await expect(await suggested.cardPrice).toContainText(data.price);
             await expect(await suggested.cardPrice).toContainText(
                 data.strikethroughPrice,
             );
@@ -398,7 +385,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await suggested.cardPrice).not.toContainText(
                 data.newStrikethroughPrice,
             );
-        });        
+        });
     });
 
     // @studio-suggested-discard-cta-ost - Validate edit CTA for suggested card in mas studio
@@ -468,9 +455,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            await expect(await suggested.cardCTA).toContainText(
-                data.ctaText,
-            );
+            await expect(await suggested.cardCTA).toContainText(data.ctaText);
         });
     });
 
@@ -534,9 +519,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            await expect(await suggested.cardCTA).toContainText(
-                data.ctaText,
-            );
+            await expect(await suggested.cardCTA).toContainText(data.ctaText);
         });
     });
 });

@@ -18,7 +18,7 @@ export default {
                 newCtaText: 'Buy now 2',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
         },
     ],
 };

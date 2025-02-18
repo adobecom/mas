@@ -52,13 +52,21 @@ const config = {
 
     /* Configure projects for major browsers */
     projects: [
+        // Setup project
+        { name: 'setup', testMatch: /.*\.setup\.cjs/ },
+
         {
             name: 'mas-live-chromium',
-            use: { ...devices['Desktop Chrome'] },
+            use: {
+                ...devices['Desktop Chrome'],
+                // Use prepared auth state.
+                storageState: './test-results/user.json',
+            },
             bypassCSP: true,
             launchOptions: {
                 args: ['--disable-web-security', '--disable-gpu'],
             },
+            dependencies: ['setup'],
         },
     ],
 };

@@ -19,7 +19,7 @@ export default {
                 newCtaText: 'Buy now 2',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-suggested',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
         },
     ],
 };

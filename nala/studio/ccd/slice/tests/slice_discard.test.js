@@ -22,15 +22,6 @@ test.beforeEach(async ({ page, browserName, baseURL }) => {
     studio = new StudioPage(page);
     slice = new CCDSlicePage(page);
     ost = new OSTPage(page);
-    features[0].url = `${baseURL}/studio.html`;
-    await page.goto(features[0].url);
-    await page.waitForURL('**/auth.services.adobe.com/en_US/index.html**/');
-    await ims.fillOutSignInForm(features[0], page);
-    await expect(async () => {
-        const response = await page.request.get(features[0].url);
-        expect(response.status()).toBe(200);
-    }).toPass();
-    await page.waitForLoadState('domcontentloaded');
 });
 
 test.describe('M@S Studio CCD Slice card test suite', () => {

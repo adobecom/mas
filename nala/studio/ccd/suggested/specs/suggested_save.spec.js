@@ -21,5 +21,16 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
         },
+
+        {
+            tcid: '1',
+            name: '@studio-suggested-remove-correct-fragment',
+            path: '/studio.html',
+            data: {
+                cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
+        },
     ],
 };

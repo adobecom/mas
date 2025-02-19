@@ -182,4 +182,99 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             ).not.toBeVisible();
         });
     });
+
+    // @studio-suggested-remove-correct-fragment - Clone card then delete, verify the correct card is removed from screen
+    test(`${features[1].name},${features[0].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[0];
+        const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Clone card and open editor', async () => {
+            await studio.cloneCard.click();
+            await expect(await studio.toastPositive).toHaveText(
+                'Fragment successfully copied.',
+            );
+            let clonedCard = await studio.getCard(
+                data.cardid,
+                'suggested',
+                'cloned',
+            );
+            let clonedCardID = await clonedCard
+                .locator('aem-fragment')
+                .getAttribute('fragment');
+            data.clonedCardID = await clonedCardID;
+            await expect(await clonedCard).toBeVisible();
+            await clonedCard.dblclick();
+            await page.waitForTimeout(2000);
+            await studio.cloneCard.click();
+            await expect(await studio.toastPositive).toHaveText(
+                'Fragment successfully copied.',
+            );
+
+            let clonedCardTwo = await studio.getCard(
+                data.cardid,
+                'suggested',
+                'cloned',
+                data.clonedCardID,
+            );
+
+            await expect(clonedCardTwo).toBeVisible();
+
+            let clonedCardTwoID = await clonedCardTwo
+                .locator('aem-fragment')
+                .getAttribute('fragment');
+            data.clonedCardTwoID = clonedCardTwoID;
+        });
+
+        await test.step('step-4: Delete cloned cards', async () => {
+            const clonedCard = await studio.getCard(
+                data.clonedCardID,
+                'suggested',
+            );
+
+            const clonedCardTwo = await studio.getCard(
+                data.clonedCardTwoID,
+                'suggested',
+            );
+
+            await clonedCard.dblclick();
+
+            await studio.deleteCard.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.confirmationDialog
+                .locator(studio.deleteDialog)
+                .click();
+            await expect(await studio.toastPositive).toHaveText(
+                'Fragment successfully deleted.',
+            );
+            await expect(clonedCard).not.toBeVisible();
+
+            await clonedCardTwo.dblclick();
+            await studio.deleteCard.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.confirmationDialog
+                .locator(studio.deleteDialog)
+                .click();
+            await expect(await studio.toastPositive).toHaveText(
+                'Fragment successfully deleted.',
+            );
+            await expect(clonedCardTwo).not.toBeVisible();
+        });
+    });
 });

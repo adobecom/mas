@@ -148,20 +148,12 @@ class AemTagPickerField extends LitElement {
         super.connectedCallback();
         this.#aem = new AEM(this.bucket, this.baseUrl);
         this.loadTags();
-        document.addEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelect, {
-            capture: true,
-        });
+        document.addEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelect);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        document.removeEventListener(
-            EVENT_OST_OFFER_SELECT,
-            this._onOstSelect,
-            {
-                capture: true,
-            },
-        );
+        document.removeEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelect);
     }
 
     get #tagsRoot() {

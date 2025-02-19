@@ -254,7 +254,7 @@ class MerchCardEditor extends LitElement {
                 >
             </sp-field-group>
             <sp-field-group>
-                <sp-field-label for="osi">OSI</sp-field-label>
+                <sp-field-label for="osi">OSI Search</sp-field-label>
                 <osi-field
                     id="osi"
                     data-field="osi"

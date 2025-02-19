@@ -77,7 +77,6 @@ class OsiField extends LitElement {
 
     get #offerSelectorToolButton() {
         return html`
-            <sp-divider size="s" horizontal></sp-divider>
             <sp-action-button
                 emphasized
                 id="offerSelectorToolButtonOSI"

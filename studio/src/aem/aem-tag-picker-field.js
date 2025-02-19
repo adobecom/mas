@@ -102,41 +102,46 @@ class AemTagPickerField extends LitElement {
     }
 
     _onOstSelect = ({ detail: { offer } }) => {
-        const { offer_type, planType, market_segments } = offer;
+        if (!offer) return;
         const extractedOffer = {
-            offer_type,
-            planType,
+            offer_type: offer.offer_type,
+            planType: offer.planType,
             market_segments:
-                Array.isArray(market_segments) && market_segments.length > 0
-                    ? market_segments[0]
-                    : market_segments,
+                Array.isArray(offer.market_segments) &&
+                offer.market_segments.length > 0
+                    ? offer.market_segments[0]
+                    : offer.market_segments,
         };
 
         const convertCamelToSnake = (str) => {
+            if (typeof str !== 'string') return '';
             return str.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
         };
 
-        const categoriesToUpdate = [
+        const categoriesToUpdate = new Set([
             'offer_type',
             'plan_type',
             'market_segments',
-        ];
+        ]);
 
         const existingTags = this.value.filter((tagPath) => {
-            return !categoriesToUpdate.some((category) =>
-                tagPath.includes(`/content/cq:tags/mas/${category}/`),
-            );
+            for (const category of categoriesToUpdate) {
+                if (tagPath.includes(`/content/cq:tags/mas/${category}/`)) {
+                    return false; // Exclude this tagPath if it contains any of the categories
+                }
+            }
+            return true;
         });
 
-        const newTagPaths = Object.entries(extractedOffer).map(
-            ([key, value]) => {
+        const newTagPaths = Object.entries(extractedOffer)
+            .filter(([_, value]) => value != null) // Filter out null/undefined values
+            .map(([key, value]) => {
                 const formattedKey = convertCamelToSnake(key);
-                const formattedValue = value.toLowerCase();
+                const formattedValue = String(value).toLowerCase();
                 return `/content/cq:tags/mas/${formattedKey}/${formattedValue}`;
-            },
-        );
+            });
 
-        this.value = [...existingTags, ...newTagPaths];
+        this.value = [...existingTags, ...newTagPaths].filter(Boolean);
     };
 
     connectedCallback() {

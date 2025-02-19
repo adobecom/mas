@@ -64,14 +64,14 @@ class MasFilterPanel extends LitElement {
         };
         // Update the store with all tags except this type, then add new ones
         const tags = getTagsFromPicker(picker);
-        Store.search.update((prev) => {
+        Store.search.set((prev) => {
             const existingTags = filterOutTagType(prev.tags ?? [], picker.top);
             return { ...prev, tags: [...existingTags, ...tags] };
         });
     }
 
     #handleRefresh() {
-        Store.search.update((prev) => ({ ...prev, tags: [] }));
+        Store.search.set((prev) => ({ ...prev, tags: [] }));
         this.tagsByType = { ...EMPTY_TAGS };
         this.shadowRoot
             .querySelectorAll('aem-tag-picker-field')
@@ -95,7 +95,7 @@ class MasFilterPanel extends LitElement {
         // Update picker value to match
         picker.value = picker.value.filter((p) => p !== value.path);
         // Update store
-        Store.search.update((prev) => {
+        Store.search.set((prev) => {
             const tagId = `mas:${value.top}/${value.path.split('/').pop()}`;
             const existingTags = prev.tags.filter((tag) => tag !== tagId);
             return { ...prev, tags: existingTags };
@@ -134,6 +134,11 @@ class MasFilterPanel extends LitElement {
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
+                <mas-locale-picker
+                    value=${Store.filters.value.locale}
+                    @change=${this.#updateFilterHandler('locale')}
+                ></mas-locale-picker>
+
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
                     top="market_segments"
@@ -168,11 +173,6 @@ class MasFilterPanel extends LitElement {
                     >Reset Filters
                     <sp-icon-refresh slot="icon"></sp-icon-refresh>
                 </sp-action-button>
-
-                <mas-locale-picker
-                    value=${this.filters.value.locale}
-                    @change=${this.#updateFilterHandler('locale')}
-                ></mas-locale-picker>
             </div>
             <sp-tags>
                 ${repeat(

@@ -1,14 +1,13 @@
 import { expect, test } from '@playwright/test';
 import StudioSpec from './studio.spec.js';
 import StudioPage from './studio.page.js';
-import ims from '../libs/imslogin.js';
 
 const { features } = StudioSpec;
 const miloLibs = process.env.MILO_LIBS || '';
 
 let studio;
 
-test.beforeEach(async ({ page, browserName, baseURL }) => {
+test.beforeEach(async ({ page, browserName }) => {
     test.slow();
     if (browserName === 'chromium') {
         await page.setExtraHTTPHeaders({
@@ -16,15 +15,6 @@ test.beforeEach(async ({ page, browserName, baseURL }) => {
         });
     }
     studio = new StudioPage(page);
-    features[0].url = `${baseURL}/studio.html`;
-    await page.goto(features[0].url);
-    await page.waitForURL('**/auth.services.adobe.com/en_US/index.html**/');
-    await ims.fillOutSignInForm(features[0], page);
-    await expect(async () => {
-        const response = await page.request.get(features[0].url);
-        expect(response.status()).toBe(200);
-    }).toPass();
-    await page.waitForLoadState('domcontentloaded');
 });
 
 test.describe('M@S Studio feature test suite', () => {

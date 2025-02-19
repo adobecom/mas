@@ -183,7 +183,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-clone-edit-save-delete - Clone card then delete, verify the correct card is removed from screen
+    // @studio-suggested-remove-correct-fragment - Clone card then delete, verify the correct card is removed from screen
     test(`${features[1].name},${features[0].tags}`, async ({
         page,
         baseURL,

@@ -2,6 +2,7 @@ import { html, css, LitElement } from 'lit';
 import Store from '../store.js';
 import { repeat } from 'lit/directives/repeat.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
+import { LOCALES } from '../constants.js';
 
 class MasLocalePicker extends LitElement {
     static properties = {
@@ -43,7 +44,7 @@ class MasLocalePicker extends LitElement {
 
     render() {
         // Filter the locales by name based on the current search string.
-        const filteredLocales = Store.locale.data.filter(
+        const filteredLocales = LOCALES.filter(
             (locale) =>
                 locale.code.toLowerCase().includes(this.search.toLowerCase()) ||
                 locale.name.toLowerCase().includes(this.search.toLowerCase()),

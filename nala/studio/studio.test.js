@@ -84,13 +84,6 @@ test.describe('M@S Studio feature test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        // remove this step once MWPW-165149 is fixed
-        await test.step('step-1a: Go to MAS Studio content test page', async () => {
-            await expect(await studio.gotoContent).toBeVisible();
-            await studio.gotoContent.click();
-            await page.waitForLoadState('domcontentloaded');
-        });
-
         await test.step('step-2: Validate search field rendered', async () => {
             await expect(await studio.searchInput).toBeVisible();
             await expect(await studio.searchIcon).toBeVisible();
@@ -103,7 +96,7 @@ test.describe('M@S Studio feature test suite', () => {
             await studio.searchInput.fill(data.cardid);
             await page.keyboard.press('Enter');
             await page.waitForTimeout(2000);
-            expect(
+            await expect(
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
             const searchResult = await studio.renderView.locator('merch-card');

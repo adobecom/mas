@@ -102,6 +102,16 @@ class MasFilterPanel extends LitElement {
         });
     }
 
+    #updateFilterHandler(property) {
+        return function (event) {
+            if (!event.detail) return;
+            Store.filters.set((prev) => ({
+                ...prev,
+                [property]: event.detail.value,
+            }));
+        };
+    }
+
     render() {
         return html`
             <div id="filters">
@@ -123,8 +133,6 @@ class MasFilterPanel extends LitElement {
                     selection="checkbox"
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
-
-                <mas-locale-picker></mas-locale-picker>
 
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
@@ -160,6 +168,11 @@ class MasFilterPanel extends LitElement {
                     >Reset Filters
                     <sp-icon-refresh slot="icon"></sp-icon-refresh>
                 </sp-action-button>
+
+                <mas-locale-picker
+                    value=${this.filters.value.locale}
+                    @change=${this.#updateFilterHandler('locale')}
+                ></mas-locale-picker>
             </div>
             <sp-tags>
                 ${repeat(

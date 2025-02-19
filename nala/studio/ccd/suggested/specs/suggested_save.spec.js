@@ -5,7 +5,6 @@ export default {
             tcid: '0',
             name: '@studio-suggested-clone-edit-save-delete',
             path: '/studio.html',
-            contentPath: '/studio.html#path=nala&page=content',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
                 title: 'Field Edit & Save',
@@ -18,6 +17,17 @@ export default {
                 strikethroughPrice: 'US$34.49/mo',
                 ctaText: 'Buy now',
                 newCtaText: 'Buy now 2',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
+        },
+
+        {
+            tcid: '1',
+            name: '@studio-suggested-clone-twice-delete',
+            path: '/studio.html',
+            data: {
+                cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',

@@ -71,7 +71,7 @@ export default class StudioPage {
         this.linkSave = page.locator('#saveButton');
     }
 
-    async getCard(id, cardType, cloned, clonedAgain) {
+    async getCard(id, cardType, cloned, secondID) {
         const cardVariant = {
             suggested: this.suggestedCard,
             slice: this.sliceCard,
@@ -85,8 +85,8 @@ export default class StudioPage {
 
         if (cloned) {
             let baseSelector = `aem-fragment:not([fragment="${id}"])`;
-            const selector = clonedAgain
-                ? `${baseSelector}:not([fragment="${clonedAgain}"])`
+            const selector = secondID
+                ? `${baseSelector}:not([fragment="${secondID}"])`
                 : baseSelector;
             return card.filter({
                 has: this.page.locator(selector),

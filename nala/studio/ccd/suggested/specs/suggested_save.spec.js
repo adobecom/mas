@@ -24,7 +24,7 @@ export default {
 
         {
             tcid: '1',
-            name: '@studio-suggested-clone-twice-delete',
+            name: '@studio-suggested-remove-correct-fragment',
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',

@@ -9,7 +9,6 @@ class MasTopNav extends LitElement {
         const profiles = {};
         profiles.ims = await window.adobeIMS.getProfile();
         profiles.io = await ioResp.json();
-        console.log(profiles, this.aemEnv);
         const { displayName, email } = profiles.ims;
         const { user } = profiles.io;
         const { avatar } = user;
@@ -39,12 +38,14 @@ class MasTopNav extends LitElement {
         const profileButton = profileEl.querySelector('.profile-button');
         const profileBody = profileEl.querySelector('.profile-body');
         const signOutLink = profileEl.querySelector('.signout-link');
-        
+        const studioContentEl = document.querySelector('.studio-content');
+
         profileButton.addEventListener('click', () => { profileBody.classList.toggle('show'); });
         signOutLink.addEventListener('click', (e) => {
             e.preventDefault();
             window.adobeIMS.signOut();
         });
+        studioContentEl.addEventListener('click', () => { profileBody.classList.remove('show'); });
         
 
         return profileEl;

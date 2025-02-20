@@ -31,6 +31,7 @@ export default class StudioPage {
         this.sliceCardWide = page.locator(
             'merch-card[variant="ccd-slice"][size="wide"]',
         );
+        this.emptyCard = page.locator('merch-card[variant="invalid-variant"]');
         // Editor panel fields
         this.editorVariant = page.locator('#card-variant');
         this.editorSize = page.locator('#card-size');
@@ -76,6 +77,7 @@ export default class StudioPage {
             suggested: this.suggestedCard,
             slice: this.sliceCard,
             'slice-wide': this.sliceCardWide,
+            empty: this.emptyCard,
         };
 
         const card = cardVariant[cardType];

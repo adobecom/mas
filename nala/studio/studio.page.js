@@ -20,6 +20,7 @@ export default class StudioPage {
         );
         this.cancelDialog = page.locator('sp-button:has-text("Cancel")');
         this.deleteDialog = page.locator('sp-button:has-text("Delete")');
+        this.discardDialog = page.locator('sp-button:has-text("Discard")');
         this.toastPositive = page.locator(
             'mas-toast >> sp-toast[variant="positive"]',
         );
@@ -70,7 +71,7 @@ export default class StudioPage {
         this.linkSave = page.locator('#saveButton');
     }
 
-    async getCard(id, cardType, cloned) {
+    async getCard(id, cardType, cloned, secondID) {
         const cardVariant = {
             suggested: this.suggestedCard,
             slice: this.sliceCard,
@@ -83,8 +84,12 @@ export default class StudioPage {
         }
 
         if (cloned) {
+            let baseSelector = `aem-fragment:not([fragment="${id}"])`;
+            const selector = secondID
+                ? `${baseSelector}:not([fragment="${secondID}"])`
+                : baseSelector;
             return card.filter({
-                has: this.page.locator(`aem-fragment:not([fragment="${id}"])`),
+                has: this.page.locator(selector),
             });
         }
 

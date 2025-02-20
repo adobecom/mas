@@ -64,10 +64,6 @@ class MasTopNav extends LitElement {
         return EnvColorCode[this.aemEnv];
     }
 
-    get profile() {
-        return this.profileBuilder();
-    }
-
     static get styles() {
         return css`
             :host {

@@ -11,7 +11,7 @@ export default class StudioPage {
         this.searchInput = page.locator('sp-search  input');
         this.searchIcon = page.locator('sp-search sp-icon-magnify');
         this.filter = page.locator('sp-action-button[label="Filter"]');
-        this.topFolder = page.locator('sp-picker[label="TopFolder"] > button');
+        this.folderPicker = page.locator('mas-folder-picker sp-action-menu');
         this.renderView = page.locator('#render');
         this.quickActions = page.locator('.quick-actions');
         this.editorPanel = page.locator('editor-panel > #editor');

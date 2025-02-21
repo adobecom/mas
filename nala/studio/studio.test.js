@@ -57,6 +57,8 @@ test.describe('M@S Studio feature test suite', () => {
 
             const cards = await studio.renderView.locator('merch-card');
             expect(await cards.count()).toBe(1);
+            await expect(page).toHaveURL(`${testPage}&page=content&path=nala`);
+            expect(await studio.folderPicker).toHaveAttribute('value', 'nala');
         });
     });
 

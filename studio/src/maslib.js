@@ -4,7 +4,7 @@ const getMiloLibs = () => {
     const milolibs = searchParams?.get(PARAM_MILO_LIBS);
     if (!milolibs) return 'https://www.adobe.com';
     if ('local' === milolibs) return 'http://localhost:6456';
-    return `https://${milolibs}.hlx.page`;
+    return `https://${milolibs}.aem.page`;
 };
 const miloLibs = getMiloLibs();
 

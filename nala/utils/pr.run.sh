@@ -33,7 +33,6 @@ toRepoName=${repoParts[1]}
 prRepo=${prRepo:-$toRepoName}
 prOrg=${prOrg:-$toRepoOrg}
 
-# TODO ADD HLX5 SUPPORT
 PR_BRANCH_LIVE_URL_GH="https://$FEATURE_BRANCH--$prRepo--$prOrg.aem.live"
 
 # set pr branch url as env

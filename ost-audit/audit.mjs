@@ -217,7 +217,7 @@ const fetchDocument = (url) => {
     return fetch(url);
 };
 
-const getLiveUrl = (url) => url.replaceAll('.hlx.page', '.hlx.live');
+const getLiveUrl = (url) => url.replaceAll('.aem.page', '.aem.live');
 
 async function getFragmentsFromManifest(url) {
     const fragments = [];

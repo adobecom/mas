@@ -21,7 +21,7 @@ const Store = {
     operation: new ReactiveStore(), // current operation in progress, editor or content navigation batch operations
     editor: {
         get hasChanges() {
-            return Store.fragments.inEdit.get()?.hasChanges || false;
+            return Store.fragments.inEdit.get()?.get()?.hasChanges || false;
         },
     },
     folders: {
@@ -96,7 +96,7 @@ export function navigateToPage(value) {
             !Store.editor.hasChanges ||
             (await editorPanel().promptDiscardChanges());
         if (confirmed) {
-            Store.fragments.inEdit.set();
+            Store.fragments.inEdit.set(null);
             Store.page.set(value);
         }
     };

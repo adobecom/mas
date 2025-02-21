@@ -146,14 +146,6 @@ export default class EditorPanel extends LitElement {
         e.stopPropagation();
     }
 
-    openFragmentInOdin() {
-        const parent = this.fragment?.path.split('/').slice(0, -1).join('/');
-        window.open(
-            `https://experience.adobe.com/?repo=author-p22655-${this.bucket}.adobeaemcloud.com#/@odin02/aem/cf/admin${parent}?appId=aem-cf-admin&q=${this.fragment?.fragmentName}`,
-            '_blank',
-        );
-    }
-
     getFragmentPropsToUse() {
         const props = {
             cardTitle: this.fragment?.getField('cardTitle')?.values[0],
@@ -425,16 +417,6 @@ export default class EditorPanel extends LitElement {
                         >
                     </sp-action-button>
                     <sp-action-button
-                        label="Open in Odin"
-                        value="open"
-                        @click="${this.openFragmentInOdin}"
-                    >
-                        <sp-icon-open-in slot="icon"></sp-icon-open-in>
-                        <sp-tooltip self-managed placement="bottom"
-                            >Open in Odin</sp-tooltip
-                        >
-                    </sp-action-button>
-                    <sp-action-button
                         label="Use"
                         value="use"
                         @click="${this.copyToUse}"
@@ -612,7 +594,6 @@ export default class EditorPanel extends LitElement {
         return html`
             <div id="editor">
                 ${this.fragmentEditorToolbar}
-                <p>${this.fragment.path}</p>
                 ${this.showEditor
                     ? html` <merch-card-editor
                           .fragment=${this.fragment}

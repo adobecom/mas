@@ -57,6 +57,8 @@ test.describe('M@S Studio feature test suite', () => {
 
             const cards = await studio.renderView.locator('merch-card');
             expect(await cards.count()).toBe(1);
+            await expect(page).toHaveURL(`${testPage}&page=content&path=nala`);
+            expect(await studio.folderPicker).toHaveAttribute('value', 'nala');
         });
     });
 
@@ -91,6 +93,29 @@ test.describe('M@S Studio feature test suite', () => {
             ).toBeVisible();
             const searchResult = await studio.renderView.locator('merch-card');
             expect(await searchResult.count()).toBe(1);
+        });
+    });
+
+    // @studio-empty-card - Validate empty/broken cards are not previewed
+    test(`${features[3].name},${features[3].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[3];
+        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Validate empty card is not displayed', async () => {
+            await expect(await studio.renderView).toBeVisible();
+            const emptyCard = await studio.getCard(data.cardid, 'empty');
+            await expect(
+                await studio.getCard(data.cardid, 'empty'),
+            ).not.toBeVisible();
         });
     });
 });

@@ -18,6 +18,7 @@ import throttle from '../utils/throttle.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
+const CUSTOM_ELEMENT_UPT_LINK = 'upt-link';
 
 // Function to check if a node is a checkout link
 const isNodeCheckoutLink = (node) => {
@@ -80,6 +81,7 @@ class RteField extends LitElement {
         hasFocus: { type: Boolean, attribute: 'focused', reflect: true },
         inline: { type: Boolean, attribute: 'inline' },
         link: { type: Boolean, attribute: 'link' },
+        uptLink: { type: Boolean, attribute: 'upt-link' },
         isLinkSelected: { type: Boolean, state: true },
         priceSelected: { type: Boolean, state: true },
         readOnly: { type: Boolean, attribute: 'readonly' },
@@ -225,11 +227,13 @@ class RteField extends LitElement {
         this.showLinkEditor = false;
         this.inline = false;
         this.link = false;
+        this.uptLink = false;
         this.maxLength = 70;
         this.length = 0;
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
             ostEvent: this.#handleOstEvent.bind(this),
+            addUptLink: this.#addUptLink.bind(this),
             linkSave: this.#handleLinkSave.bind(this),
             focusout: this.#handleFocusout.bind(this),
             focus: this.#handleFocus.bind(this),
@@ -298,7 +302,7 @@ class RteField extends LitElement {
             toDOM: this.#createInlinePriceElement.bind(this),
         });
 
-        if (this.link) {
+        if (this.link || this.uptLink) {
             nodes = nodes.addToStart('link', {
                 group: 'inline',
                 content: 'text*',
@@ -620,7 +624,11 @@ class RteField extends LitElement {
 
         const content = state.schema.text(text || selection.node.textContent);
         if (selection.node?.type.name === 'link') {
-            const mergedAttributes = { ...selection.node.attrs, ...linkAttrs };
+            const mergedAttributes = {
+                ...selection.node.attrs,
+                ...linkAttrs,
+                class: `${selection.node.attrs.class} ${linkAttrs.class}`.trim(),
+            };
             const updatedNode = linkNodeType.create(mergedAttributes, content);
             tr = tr.replaceWith(selection.from, selection.to, updatedNode);
         } else {
@@ -700,6 +708,33 @@ class RteField extends LitElement {
 
     #updateLength() {
         this.length = this.editorView.dom.innerText.length;
+    }
+
+    #addUptLink() {
+        const { state, dispatch } = this.editorView;
+        const { selection } = state;
+
+        const nodeType = state.schema.nodes.link;
+
+        const selectionClasses = selection.node?.attrs.class;
+        const attributes = {
+            class: `upt-link${selectionClasses ? ` ${selectionClasses}` : ''}`,
+            href: '#',
+            'data-analytics-id': 'see-terms',
+        };
+
+        const content = state.schema.text('{{see-terms}}');
+
+        const node = nodeType.create(
+            attributes,
+            content,
+            selection.node?.marks,
+        );
+        const tr = selection.empty
+            ? state.tr.insert(selection.from, node)
+            : state.tr.replaceWith(selection.from, selection.to, node);
+
+        dispatch(tr);
     }
 
     async openLinkEditor() {
@@ -819,6 +854,7 @@ class RteField extends LitElement {
             <sp-action-group quiet size="m" aria-label="RTE toolbar actions">
                 ${this.#formatButtons} ${this.#linkEditorButton}
                 ${this.#unlinkEditorButton} ${this.#offerSelectorToolButton}
+                ${this.#uptLinkButton}
             </sp-action-group>
             <div id="editor"></div>
             <p id="counter">
@@ -846,6 +882,17 @@ class RteField extends LitElement {
 
     get offerSelectorToolButtonElement() {
         return this.shadowRoot.querySelector('#offerSelectorToolButton');
+    }
+
+    get #uptLinkButton() {
+        if (!this.uptLink) return;
+        return html`<sp-action-button
+            id="uptLinkButton"
+            title="Add Universal Promo Terms Link"
+            @click=${this.#boundHandlers.addUptLink}
+        >
+            <sp-icon-link-page slot="icon"></sp-icon-link-page>
+        </sp-action-button>`;
     }
 
     get #formatButtons() {

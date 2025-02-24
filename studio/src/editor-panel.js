@@ -5,6 +5,13 @@ import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import { OPERATIONS } from './constants.js';
+import Events from './events.js';
+import { VARIANTS } from './editors/variant-picker.js';
+
+const MODEL_WEB_COMPONENT_MAPPING = {
+    Card: 'merch-card',
+    'Card Collection': 'merch-card-collection',
+};
 
 export default class EditorPanel extends LitElement {
     static properties = {
@@ -139,20 +146,64 @@ export default class EditorPanel extends LitElement {
         e.stopPropagation();
     }
 
-    openFragmentInOdin() {
-        const parent = this.fragment?.path.split('/').slice(0, -1).join('/');
-        window.open(
-            `https://experience.adobe.com/?repo=author-p22655-${this.bucket}.adobeaemcloud.com#/@odin02/aem/cf/admin${parent}?appId=aem-cf-admin&q=${this.fragment?.fragmentName}`,
-            '_blank',
-        );
+    getFragmentPropsToUse() {
+        const props = {
+            cardTitle: this.fragment?.getField('cardTitle')?.values[0],
+            variantCode: this.fragment?.getField('variant')?.values[0],
+        };
+        VARIANTS.forEach((variant) => {
+            if (variant.value === props.variantCode) {
+                props.variantLabel = variant.label;
+                props.surface = variant.surface;
+            }
+        });
+        return props;
+    }
+
+    showNegativeAlert() {
+        Events.toast.emit({
+            variant: 'negative',
+            content: 'Failed to copy code to clipboard',
+        });
+    }
+
+    generateCodeToUse() {
+        const props = this.getFragmentPropsToUse();
+        const webComponentName =
+            MODEL_WEB_COMPONENT_MAPPING[this.fragment?.model?.name];
+        if (!webComponentName) {
+            this.showNegativeAlert();
+            return [];
+        }
+
+        const code = `<${webComponentName}><aem-fragment fragment="${this.fragment?.id}" title="${props.cardTitle}"></aem-fragment></${webComponentName}>`;
+        const richText = `
+                <a href="https://mas.adobe.com/studio.html#path=${props.surface}&fragment=${this.fragment?.id}">
+                    ${webComponentName}: ${props.surface.toUpperCase()} / ${props.variantLabel} / ${props.cardTitle}
+                </a>
+            `;
+        return [code, richText];
     }
 
     async copyToUse() {
-        // @TODO make it generic.
-        const code = `<merch-card><aem-fragment fragment="${this.fragment?.id}"></aem-fragment></merch-card>`;
+        const [code, richText] = this.generateCodeToUse();
+        if (!code || !richText) return;
+
         try {
-            await navigator.clipboard.writeText(code);
-        } catch (e) {}
+            await navigator.clipboard.write([
+                /* global ClipboardItem */
+                new ClipboardItem({
+                    'text/plain': new Blob([code], { type: 'text/plain' }),
+                    'text/html': new Blob([richText], { type: 'text/html' }),
+                }),
+            ]);
+            Events.toast.emit({
+                variant: 'positive',
+                content: 'Code copied to clipboard',
+            });
+        } catch (e) {
+            this.showNegativeAlert();
+        }
     }
 
     #updateFragmentInternal(event) {
@@ -161,10 +212,10 @@ export default class EditorPanel extends LitElement {
         this.inEdit.updateFieldInternal(fieldName, value);
     }
 
-    updateFragment(event) {
-        const fieldName = event.target.dataset.field;
-        let value = event.target.value || event.detail?.value;
-        value = event.target.multiline ? value?.split(',') : [value ?? ''];
+    updateFragment({ target, detail }) {
+        const fieldName = target.dataset.field;
+        let value = target.value || detail?.value || target.checked;
+        value = target.multiline ? value?.split(',') : [value ?? ''];
         this.inEdit.updateField(fieldName, value);
     }
 
@@ -254,6 +305,11 @@ export default class EditorPanel extends LitElement {
         }
         this.inEdit.set();
         return true;
+    }
+
+    #handleLocReady() {
+        const value = !this.fragment.getField('locReady').values[0];
+        this.inEdit.updateField('locReady', [value]);
     }
 
     get fragmentEditorToolbar() {
@@ -358,16 +414,6 @@ export default class EditorPanel extends LitElement {
                         ></sp-icon-publish-remove>
                         <sp-tooltip self-managed placement="bottom"
                             >Unpublish</sp-tooltip
-                        >
-                    </sp-action-button>
-                    <sp-action-button
-                        label="Open in Odin"
-                        value="open"
-                        @click="${this.openFragmentInOdin}"
-                    >
-                        <sp-icon-open-in slot="icon"></sp-icon-open-in>
-                        <sp-tooltip self-managed placement="bottom"
-                            >Open in Odin</sp-tooltip
                         >
                     </sp-action-button>
                     <sp-action-button
@@ -522,7 +568,17 @@ export default class EditorPanel extends LitElement {
                           multiline
                           value="${this.fragment.description}"
                           @input=${this.#updateFragmentInternal}
-                      ></sp-textfield>
+                      >
+                      </sp-textfield>
+                      <sp-field-label for="fragment-locready"
+                          >Send to translation?</sp-field-label
+                      >
+                      <sp-switch
+                          ?checked="${this.fragment.getField('locReady')
+                              ?.values[0]}"
+                          @click="${this.#handleLocReady}"
+                      >
+                      </sp-switch>
                   `
                 : nothing}
         `;
@@ -538,7 +594,6 @@ export default class EditorPanel extends LitElement {
         return html`
             <div id="editor">
                 ${this.fragmentEditorToolbar}
-                <p>${this.fragment.path}</p>
                 ${this.showEditor
                     ? html` <merch-card-editor
                           .fragment=${this.fragment}

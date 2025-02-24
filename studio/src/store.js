@@ -1,88 +1,80 @@
-import MasFilters from './entities/filters.js';
-import MasSearch from './entities/search.js';
-import { reactiveStore } from './reactivity/reactive-store.js';
-import { WCS_ENV_PROD } from './constants.js';
+import { WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
+import { ReactiveStore } from './reactivity/reactive-store.js';
+import {
+    getHashParam,
+    getHashParams,
+    looseEquals,
+    setHashParams,
+} from './utils.js';
 
-const params = Object.fromEntries(
-    new URLSearchParams(window.location.hash.slice(1)),
-);
-const initialSearch = MasSearch.fromHash();
-const initialFilters = MasFilters.fromHash();
+const hasQuery = Boolean(getHashParam('query'));
 
 const Store = {
     fragments: {
         list: {
-            loading: reactiveStore(true),
-            data: reactiveStore([]),
+            loading: new ReactiveStore(true),
+            data: new ReactiveStore([]),
         },
         recentlyUpdated: {
-            loading: reactiveStore(true),
-            data: reactiveStore([]),
-            limit: reactiveStore(6),
+            loading: new ReactiveStore(true),
+            data: new ReactiveStore([]),
+            limit: new ReactiveStore(6),
         },
         inEdit: new FragmentStore(null),
     },
-    operation: reactiveStore(), // current operation in progress, editor or content navigation batch operations
+    operation: new ReactiveStore(), // current operation in progress, editor or content navigation batch operations
     editor: {
         get hasChanges() {
             return Store.fragments.inEdit.get()?.hasChanges || false;
         },
     },
     folders: {
-        loaded: reactiveStore(false),
-        data: reactiveStore([]),
+        loaded: new ReactiveStore(false),
+        data: new ReactiveStore([]),
     },
-    locale: {
-        current: reactiveStore('en_US'),
-        get path() {
-            return '/' + Store.locale.current.get();
-        },
-        data: [
-            { code: 'pt_BR', flag: '🇧🇷', name: 'Brazil' },
-            { code: 'fr_CA', flag: '🇨🇦', name: 'Canada' },
-            { code: 'zh_CN', flag: '🇨🇳', name: 'China' },
-            { code: 'cs_CZ', flag: '🇨🇿', name: 'Czech Republic' },
-            { code: 'da_DK', flag: '🇩🇰', name: 'Denmark' },
-            { code: 'fi_FI', flag: '🇫🇮', name: 'Finland' },
-            { code: 'fr_FR', flag: '🇫🇷', name: 'France' },
-            { code: 'de_DE', flag: '🇩🇪', name: 'Germany' },
-            { code: 'hu_HU', flag: '🇭🇺', name: 'Hungary' },
-            { code: 'id_ID', flag: '🇮🇩', name: 'Indonesia' },
-            { code: 'it_IT', flag: '🇮🇹', name: 'Italy' },
-            { code: 'ja_JP', flag: '🇯🇵', name: 'Japan' },
-            { code: 'es_MX', flag: '🇲🇽', name: 'Mexico' },
-            { code: 'nl_NL', flag: '🇳🇱', name: 'Netherlands' },
-            { code: 'nb_NO', flag: '🇳🇴', name: 'Norway' },
-            { code: 'pl_PL', flag: '🇵🇱', name: 'Poland' },
-            { code: 'ru_RU', flag: '🇷🇺', name: 'Russia' },
-            { code: 'ko_KR', flag: '🇰🇷', name: 'South Korea' },
-            { code: 'es_ES', flag: '🇪🇸', name: 'Spain' },
-            { code: 'sv_SE', flag: '🇸🇪', name: 'Sweden' },
-            { code: 'th_TH', flag: '🇹🇭', name: 'Thailand' },
-            { code: 'tr_TR', flag: '🇹🇷', name: 'Türkiye' },
-            { code: 'uk_UA', flag: '🇺🇦', name: 'Ukraine' },
-            { code: 'en_US', flag: '🇺🇸', name: 'United States' },
-            { code: 'vi_VN', flag: '🇻🇳', name: 'Vietnam' },
-            { code: 'zh_TW', flag: '🇹🇼', name: 'Taiwan' },
-        ],
-    },
-    search: reactiveStore(initialSearch),
-    filters: reactiveStore(initialFilters),
-    renderMode: reactiveStore(
+    search: new ReactiveStore({}),
+    filters: new ReactiveStore({ locale: 'en_US', tags: [] }, filtersValidator),
+    renderMode: new ReactiveStore(
         localStorage.getItem('mas-render-mode') || 'render',
     ), // 'render' | 'table'
-    selecting: reactiveStore(false),
-    selection: reactiveStore([]),
-    currentPage: reactiveStore(initialSearch.query ? 'content' : 'splash'), // 'splash' | 'content'
-    commerceEnv: reactiveStore(params['commerce.env'] ?? WCS_ENV_PROD),
-    user: reactiveStore(),
-    profile: reactiveStore(),
+    selecting: new ReactiveStore(false),
+    selection: new ReactiveStore([]),
+    page: new ReactiveStore(hasQuery ? 'content' : 'welcome', pageValidator), // 'welcome' | 'content'
+    commerceEnv: new ReactiveStore(WCS_ENV_PROD, commerceEnvValidator), // 'stage' | 'prod'
+    user: new ReactiveStore(),
+    profile: new ReactiveStore(),
 };
 
 export default Store;
 
-/** Utils */
+/**
+ * @param {object} value
+ * @returns {object}
+ */
+function filtersValidator(value) {
+    if (!value) return { locale: 'en_US' }; // eventually we can have a constant, initialFilters
+    if (!value.locale) value.locale = 'en_US';
+    return value;
+}
+
+/**
+ * @param {string} value
+ * @returns {string}
+ */
+function pageValidator(value) {
+    if (value === 'content') return value;
+    return 'welcome';
+}
+
+/**
+ * @param {string} value
+ * @returns {string}
+ */
+function commerceEnvValidator(value) {
+    if (value === WCS_ENV_STAGE) return value;
+    return WCS_ENV_PROD;
+}
 
 const editorPanel = () => document.querySelector('editor-panel');
 
@@ -106,9 +98,126 @@ export function navigateToPage(value) {
             (await editorPanel().promptDiscardChanges());
         if (confirmed) {
             Store.fragments.inEdit.set();
-            Store.currentPage.set(value);
+            Store.page.set(value);
         }
     };
 }
+
+/**
+ * Links a given store to the hash; Only primitive values and object values with primitive properties are supported
+ * @param {ReactiveStore} store
+ * @param {string | string[]} params
+ * @param {any} defaultValue - The default value that will not be shown in the hash; for object values, pass an
+ *                             object containing the default values for as many properties as needed
+ */
+export function linkStoreToHash(store, params, defaultValue) {
+    if (store.hasMeta('hashLink')) {
+        console.error('Cannot link to hash a store that is already linked.');
+        return;
+    }
+
+    const isPrimitive = !Array.isArray(params);
+
+    function syncFromHash() {
+        const value = store.get();
+        const defaultValues = isPrimitive
+            ? { [params]: defaultValue }
+            : defaultValue || {};
+
+        if (isPrimitive) {
+            const hashValue = getHashParam(params);
+            if (hashValue && hashValue !== value) {
+                store.set(hashValue);
+            }
+        } else {
+            let hasChanges = false;
+            const hashValue = {};
+            for (const param of params) {
+                const paramValue = getHashParam(param);
+                // Handle array values by splitting on commas if the default value is an array
+                hashValue[param] = Array.isArray(defaultValues[param])
+                    ? paramValue
+                        ? paramValue.split(',')
+                        : []
+                    : paramValue;
+
+                if (!looseEquals(hashValue[param], value[param])) {
+                    if (
+                        (!hashValue[param] ||
+                            looseEquals(
+                                hashValue[param],
+                                defaultValues[param],
+                            )) &&
+                        defaultValues[param] &&
+                        looseEquals(value[param], defaultValues[param])
+                    )
+                        hashValue[param] = defaultValues[param];
+                    else hasChanges = true;
+                }
+            }
+            if (hasChanges) store.set((prev) => ({ ...prev, ...hashValue }));
+        }
+    }
+
+    function syncToHash(value) {
+        const normalizedValue = isPrimitive
+            ? { [params]: value }
+            : structuredClone(value); // TODO pass clones from stores to these functions, instead of the underlying value
+        const hashParams = getHashParams();
+
+        const defaultValues = isPrimitive
+            ? { [params]: defaultValue }
+            : defaultValue;
+
+        for (const prop in defaultValues) {
+            const propValue = normalizedValue[prop];
+            // Join arrays with commas before comparing with default value
+            const normalizedPropValue = Array.isArray(propValue)
+                ? propValue.join(',')
+                : propValue;
+            const normalizedDefaultValue = Array.isArray(defaultValues[prop])
+                ? defaultValues[prop].join(',')
+                : defaultValues[prop];
+
+            if (normalizedPropValue === normalizedDefaultValue) {
+                hashParams.delete(prop);
+                delete normalizedValue[prop];
+            } else if (Array.isArray(propValue)) {
+                // Ensure arrays are joined with commas when setting in URL
+                normalizedValue[prop] = propValue.join(',');
+            }
+        }
+        setHashParams(hashParams, normalizedValue);
+        window.location.hash = hashParams.toString();
+    }
+
+    // Initialize
+    syncFromHash();
+
+    // Subscribe
+    window.addEventListener('hashchange', syncFromHash);
+    store.subscribe(syncToHash);
+    store.setMeta('hashLink', { from: syncFromHash, to: syncToHash });
+}
+
+/**
+ * @param {ReactiveStore} store
+ */
+export function unlinkStoreFromHash(store) {
+    const hashLink = store.getMeta('hashLink');
+    if (!hashLink) return;
+    window.removeEventListener('hashchange', hashLink.from);
+    store.unsubscribe(hashLink.to);
+    store.removeMeta('hashLink');
+}
+
+// When the query param is populated or changes, switch to the 'content' page.
+Store.search.subscribe((value, oldValue) => {
+    if (
+        (!oldValue.query && value.query) ||
+        (Boolean(value.query) && value.query !== oldValue.query)
+    )
+        Store.page.set('content');
+});
 
 Store.profile.set(await adobeIMS.getProfile());

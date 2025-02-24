@@ -1,14 +1,13 @@
 import { expect, test } from '@playwright/test';
 import StudioSpec from './studio.spec.js';
 import StudioPage from './studio.page.js';
-import ims from '../libs/imslogin.js';
 
 const { features } = StudioSpec;
 const miloLibs = process.env.MILO_LIBS || '';
 
 let studio;
 
-test.beforeEach(async ({ page, browserName, baseURL }) => {
+test.beforeEach(async ({ page, browserName }) => {
     test.slow();
     if (browserName === 'chromium') {
         await page.setExtraHTTPHeaders({
@@ -16,15 +15,6 @@ test.beforeEach(async ({ page, browserName, baseURL }) => {
         });
     }
     studio = new StudioPage(page);
-    features[0].url = `${baseURL}/studio.html`;
-    await page.goto(features[0].url);
-    await page.waitForURL('**/auth.services.adobe.com/en_US/index.html**/');
-    await ims.fillOutSignInForm(features[0], page);
-    await expect(async () => {
-        const response = await page.request.get(features[0].url);
-        expect(response.status()).toBe(200);
-    }).toPass();
-    await page.waitForLoadState('domcontentloaded');
 });
 
 test.describe('M@S Studio feature test suite', () => {
@@ -67,6 +57,8 @@ test.describe('M@S Studio feature test suite', () => {
 
             const cards = await studio.renderView.locator('merch-card');
             expect(await cards.count()).toBe(1);
+            await expect(page).toHaveURL(`${testPage}&page=content&path=nala`);
+            expect(await studio.folderPicker).toHaveAttribute('value', 'nala');
         });
     });
 
@@ -84,13 +76,6 @@ test.describe('M@S Studio feature test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        // remove this step once MWPW-165149 is fixed
-        await test.step('step-1a: Go to MAS Studio content test page', async () => {
-            await expect(await studio.gotoContent).toBeVisible();
-            await studio.gotoContent.click();
-            await page.waitForLoadState('domcontentloaded');
-        });
-
         await test.step('step-2: Validate search field rendered', async () => {
             await expect(await studio.searchInput).toBeVisible();
             await expect(await studio.searchIcon).toBeVisible();
@@ -103,11 +88,34 @@ test.describe('M@S Studio feature test suite', () => {
             await studio.searchInput.fill(data.cardid);
             await page.keyboard.press('Enter');
             await page.waitForTimeout(2000);
-            expect(
+            await expect(
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
             const searchResult = await studio.renderView.locator('merch-card');
             expect(await searchResult.count()).toBe(1);
+        });
+    });
+
+    // @studio-empty-card - Validate empty/broken cards are not previewed
+    test(`${features[3].name},${features[3].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[3];
+        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Validate empty card is not displayed', async () => {
+            await expect(await studio.renderView).toBeVisible();
+            const emptyCard = await studio.getCard(data.cardid, 'empty');
+            await expect(
+                await studio.getCard(data.cardid, 'empty'),
+            ).not.toBeVisible();
         });
     });
 });

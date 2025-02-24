@@ -40,10 +40,26 @@
             import '../../src/aem/aem-user-picker.js';
             import { mockFetch } from '../utils.js';
 
+            async function clickTagClearButton(filterPanel, tagKey) {
+                const tag = filterPanel.shadowRoot.querySelector(
+                    `sp-tag[key="${tagKey}"]`,
+                );
+                const clearButton =
+                    tag.shadowRoot.querySelector('sp-clear-button');
+                clearButton.click();
+                await delay(50);
+            }
+
             runTests(async () => {
                 mockFetch();
 
                 describe('mas-filter-panel custom element', async () => {
+                    beforeEach(async function () {
+                        Store.filters.set({
+                            tags: [],
+                        });
+                    });
+
                     it('Should initialize with empty tag values', async function () {
                         const filterPanel = initElementFromTemplate(
                             'filterPanel1',
@@ -72,7 +88,6 @@
                             );
                         expect(offerTypePicker).to.not.be.null;
 
-                        // Simulate tag selection
                         await offerTypePicker.toggleTag(
                             '/content/cq:tags/mas/offer_type/base',
                         );
@@ -98,7 +113,7 @@
                         await statusPicker.toggleTag(
                             '/content/cq:tags/mas/status/draft',
                         );
-                        const storeState = await Store.search.get();
+                        const storeState = await Store.filters.get();
                         expect(storeState.tags).to.include('mas:status/draft');
                     });
 
@@ -177,7 +192,7 @@
                             '/content/cq:tags/mas/status/documentation',
                         ); // select new
 
-                        const storeState = await Store.search.get();
+                        const storeState = await Store.filters.get();
                         expect(storeState.tags).to.include(
                             'mas:offer_type/base',
                         );
@@ -225,20 +240,7 @@
                         expect(tagLabels).to.include('BASE');
                         expect(tagLabels).to.include('DRAFT');
 
-                        // Find and click delete on the draft tag
-                        const draftTag = filterPanel.shadowRoot.querySelector(
-                            `sp-tag[key="${draftPath}"]`,
-                        );
-                        expect(draftTag, 'Draft tag should be rendered').to.not
-                            .be.null;
-                        const clearButton =
-                            draftTag.shadowRoot.querySelector(
-                                'sp-clear-button',
-                            );
-                        expect(clearButton, 'Clear button should be rendered')
-                            .to.not.be.null;
-                        clearButton.click();
-                        await delay(50);
+                        await clickTagClearButton(filterPanel, draftPath);
 
                         await filterPanel.updateComplete;
 
@@ -259,6 +261,53 @@
                         expect(tagLabels).to.include('DOCUMENTATION');
                         expect(tagLabels).to.include('BASE');
                         expect(tagLabels).to.not.include('DRAFT');
+                    });
+
+                    it('Should initialize filters from search state', async function () {
+                        // Set initial search state
+                        Store.filters.set({
+                            tags: ['mas:status/draft', 'mas:offer_type/base'],
+                        });
+
+                        const filterPanel = initElementFromTemplate(
+                            'filterPanel1',
+                            this.test.title,
+                        );
+                        await filterPanel.updateComplete;
+
+                        // Verify tags were initialized correctly
+                        expect(filterPanel.tagsByType.status).to.have.lengthOf(
+                            1,
+                        );
+                        expect(
+                            filterPanel.tagsByType.offer_type,
+                        ).to.have.lengthOf(1);
+
+                        const statusTag = filterPanel.tagsByType.status[0];
+                        expect(statusTag.path).to.equal(
+                            '/content/cq:tags/mas/status/draft',
+                        );
+                        expect(statusTag.title).to.equal('DRAFT');
+                        expect(statusTag.top).to.equal('status');
+
+                        const offerTypeTag =
+                            filterPanel.tagsByType.offer_type[0];
+                        expect(offerTypeTag.path).to.equal(
+                            '/content/cq:tags/mas/offer_type/base',
+                        );
+                        expect(offerTypeTag.title).to.equal('BASE');
+                        expect(offerTypeTag.top).to.equal('offer_type');
+
+                        await filterPanel.updateComplete;
+
+                        // Verify tags are rendered
+                        const tags =
+                            filterPanel.shadowRoot.querySelectorAll('sp-tag');
+                        const tagLabels = Array.from(tags).map((tag) =>
+                            tag.textContent.trim(),
+                        );
+                        expect(tagLabels).to.include('DRAFT');
+                        expect(tagLabels).to.include('BASE');
                     });
                 });
             });

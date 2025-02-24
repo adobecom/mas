@@ -8,7 +8,7 @@ export default class CCDSuggestedPage {
         this.cardDescription = page.locator('div[slot="body-xs"] p').first();
         this.cardLegalLink = page.locator('div[slot="body-xs"] p > a');
         this.cardPrice = page.locator('p[slot="price"]');
-        this.cardCTA = page.locator('div[slot="cta"] > sp-button');
+        this.cardCTA = page.locator('div[slot="cta"] > button');
         this.cardCTALink = page.locator(
             'div[slot="cta"] a[is="checkout-link"]',
         );

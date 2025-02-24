@@ -223,8 +223,6 @@ class AemTagPickerField extends LitElement {
             this.hierarchicalTags = this.buildHierarchy(allTags);
         }
 
-        // In checkbox mode, tempValue = current value
-        this.tempValue = [...this.tempValue];
         this.ready = true;
     }
 
@@ -335,11 +333,7 @@ class AemTagPickerField extends LitElement {
     // Keep the internal state & notify on changes
     updated(changedProperties) {
         if (changedProperties.has('value')) {
-            // Keep tempValue in sync if outside changes the main value
             this.tempValue = [...this.value];
-            if (changedProperties.get('value') !== undefined) {
-                this.#notifyChange();
-            }
         }
         this.#updateMargin();
     }
@@ -402,8 +396,8 @@ class AemTagPickerField extends LitElement {
 
     async applySelection() {
         this.value = [...this.tempValue];
+        this.tempValue = [];
         this.overlayTrigger.open = false;
-        await this.updateComplete;
         this.#notifyChange();
     }
 

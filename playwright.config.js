@@ -12,13 +12,13 @@ const config = {
     outputDir: './test-results',
     globalSetup: './nala/utils/global.setup.js',
     /* Maximum time one test can run for. */
-    timeout: 30 * 1000,
+    timeout: 45 * 1000,
     expect: {
         /**
          * Maximum time expect() should wait for the condition to be met.
          * For example in `await expect(locator).toHaveText();`
          */
-        timeout: 5000,
+        timeout: 10000,
     },
     testMatch: '**/*.test.js',
     /* Run tests in files in parallel */
@@ -52,13 +52,26 @@ const config = {
 
     /* Configure projects for major browsers */
     projects: [
+        // Setup project
+        {   name: 'setup', 
+            use: {
+                ...devices['Desktop Chrome'],
+            },
+            testMatch: /.*\.setup\.cjs/, 
+        },
+
         {
             name: 'mas-live-chromium',
-            use: { ...devices['Desktop Chrome'] },
+            use: {
+                ...devices['Desktop Chrome'],
+                // Use prepared auth state.
+                storageState: './test-results/user.json',
+            },
             bypassCSP: true,
             launchOptions: {
                 args: ['--disable-web-security', '--disable-gpu'],
             },
+            dependencies: ['setup'],
         },
     ],
 };

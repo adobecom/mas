@@ -24,7 +24,7 @@ export default {
                 linkUrl: '',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @nopr', // remove @nopr tag once MWPW-165152 is fixed
+            tags: '@mas-studio',
         },
         {
             tcid: '2',
@@ -33,7 +33,17 @@ export default {
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
-            browserParams: '#path=nala',
+            browserParams: '#path=nala&page=content',
+            tags: '@mas-studio',
+        },
+        {
+            tcid: '3',
+            name: '@studio-empty-card',
+            path: '/studio.html',
+            data: {
+                cardid: '0bf35134-e5e4-4664-88d9-4b78203bf625',
+            },
+            browserParams: '#path=nala&page=content',
             tags: '@mas-studio',
         },
     ],

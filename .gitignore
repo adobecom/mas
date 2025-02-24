@@ -1,4 +1,3 @@
-.hlx/*
 logs/*
 helix-importer-ui
 .DS_Store
@@ -28,3 +27,4 @@ config.json
 MerchAtScale-*.json
 .env*
 .aio
+.cursor

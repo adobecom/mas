@@ -1,9 +1,21 @@
 /* eslint-disable import/no-import-module-exports */
-import { expect } from '@playwright/test';
+import { test as setup, expect  } from '@playwright/test';
+import path from 'path';
 
-async function fillOutSignInForm(props, page) {
+const authFile = path.join(__dirname, '../../test-results/user.json');
+
+setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
+  if (browserName === 'chromium') {
+    await page.setExtraHTTPHeaders({
+        'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
+    });
+  }
+
   expect(process.env.IMS_EMAIL, 'ERROR: No environment variable for email provided for IMS Test.').toBeTruthy();
   expect(process.env.IMS_PASS, 'ERROR: No environment variable for password provided for IMS Test.').toBeTruthy();
+
+  await page.goto(`${baseURL}/studio.html`);
+  await page.waitForURL('**/auth.services.adobe.com/en_US/index.html**/');
 
   await expect(page).toHaveTitle(/Adobe ID/);
   let heading = await page.locator('.spectrum-Heading1').first().innerText();
@@ -24,8 +36,17 @@ async function fillOutSignInForm(props, page) {
   await page.locator('#PasswordPage-PasswordField').fill(process.env.IMS_PASS);
   await page.locator('[data-id=PasswordPage-ContinueButton]').click();
   await page.locator('div.ActionList-Item:nth-child(1)').click();
-  await page.waitForURL(`${props.url}#`);
-  await expect(page).toHaveURL(`${props.url}#`);
-}
+  await page.waitForURL(`${baseURL}/studio.html#`);
+  await expect(page).toHaveURL(`${baseURL}/studio.html#`);
 
-export default { fillOutSignInForm };
+  await expect(async () => {
+    const response = await page.request.get(`${baseURL}/studio.html`);
+    expect(response.status()).toBe(200);
+  }).toPass();
+  await page.waitForLoadState('domcontentloaded');
+
+  // End of authentication steps.
+
+  await page.context().storageState({ path: authFile });
+});
+

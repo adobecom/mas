@@ -6,8 +6,12 @@ import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { looseEquals, UserFriendlyError } from './utils.js';
-import { OPERATIONS } from './constants.js';
 import ReactiveController from './reactivity/reactive-controller.js';
+import {
+    OPERATIONS,
+    STATUS_PUBLISHED,
+    TAG_STATUS_PUBLISHED,
+} from './constants.js';
 
 const ROOT = '/content/dam/mas';
 
@@ -49,9 +53,8 @@ export class MasRepository extends LitElement {
 
     filters = new StoreController(this, Store.filters);
     search = new StoreController(this, Store.search);
-    currentPage = new StoreController(this, Store.currentPage);
+    page = new StoreController(this, Store.page);
     foldersLoaded = new StoreController(this, Store.folders.loaded);
-    localeController = new StoreController(this, Store.locale.current);
     reactiveController = new ReactiveController(this, [Store.user]);
 
     recentlyUpdatedLimit = new StoreController(
@@ -75,9 +78,13 @@ export class MasRepository extends LitElement {
      * @param {string} defaultMessage - Generic toast message (can be overriden by the error's message)
      */
     processError(error, defaultMessage) {
+        if (error.name === 'AbortError') return;
         let message = defaultMessage;
         if (error instanceof UserFriendlyError) message = error.message;
-        console.error(`Failed to save fragment: ${error.message}`, error.stack);
+        console.error(
+            `${defaultMessage ? `${defaultMessage}: ` : ''}${error.message}`,
+            error.stack,
+        );
         Events.toast.emit({
             variant: 'negative',
             content: message,
@@ -89,12 +96,12 @@ export class MasRepository extends LitElement {
         if (!this.foldersLoaded.value) return;
         /**
          * Automatically fetch data when search/filters update.
-         * Both load methods have page guards (ex. fragments won't be searched on the 'splash' page)
+         * Both load methods have page guards (ex. fragments won't be searched on the 'welcome' page)
          */
-        if (this.currentPage.value === 'content') {
+        if (this.page.value === 'content') {
             this.searchFragments();
         }
-        if (this.currentPage.value === 'splash') {
+        if (this.page.value === 'welcome') {
             this.loadRecentlyUpdatedFragments();
         }
     }
@@ -112,8 +119,11 @@ export class MasRepository extends LitElement {
             Store.folders.loaded.set(true);
             Store.folders.data.set(folders);
 
-            if (!folders.includes(this.search.value.path))
-                Store.search.update((prev) => ({
+            if (
+                !folders.includes(this.search.value.path) &&
+                !this.search.value.query
+            )
+                Store.search.set((prev) => ({
                     ...prev,
                     path: folders.at(0),
                 }));
@@ -125,14 +135,14 @@ export class MasRepository extends LitElement {
     }
 
     async searchFragments() {
-        if (this.currentPage.value !== 'content') return;
+        if (this.page.value !== 'content') return;
 
         Store.fragments.list.loading.set(true);
 
         const dataStore = Store.fragments.list.data;
         const path = this.search.value.path;
         const query = this.search.value.query;
-        const tags = this.search.value.tags;
+        const tags = [...(this.filters.value.tags ?? [])];
 
         if (
             !looseEquals(dataStore.getMeta('path'), path) ||
@@ -143,11 +153,20 @@ export class MasRepository extends LitElement {
             dataStore.removeMeta('query');
         }
 
+        const damPath = getDamPath(path);
         const localSearch = {
             ...this.search.value,
-            path: getDamPath(path) + Store.locale.path,
+            path: `${damPath}/${this.filters.value.locale}`,
             tags,
         };
+
+        // Remove published status from tags and set it as a status filter
+        const publishedTagIndex = tags.indexOf(TAG_STATUS_PUBLISHED);
+        if (publishedTagIndex > -1) {
+            tags.splice(publishedTagIndex, 1);
+            localSearch.status = STATUS_PUBLISHED;
+        }
+
         const fragments = [];
 
         try {
@@ -160,13 +179,25 @@ export class MasRepository extends LitElement {
                     localSearch.query,
                     this.#abortControllers.search,
                 );
-                if (
-                    fragmentData &&
-                    fragmentData.path.indexOf(localSearch.path) == 0
-                ) {
+                if (fragmentData && fragmentData.path.indexOf(damPath) == 0) {
                     const fragment = new Fragment(fragmentData);
                     fragments.push(fragment);
                     dataStore.set([new FragmentStore(fragment)]);
+
+                    // Folder selection
+                    const folderPath = fragmentData.path.substring(
+                        fragmentData.path.indexOf(damPath) + damPath.length + 1,
+                    );
+                    const folderName = folderPath.substring(
+                        0,
+                        folderPath.indexOf('/'),
+                    );
+                    if (Store.folders.data.get().includes(folderName)) {
+                        Store.search.set((prev) => ({
+                            ...prev,
+                            path: folderName,
+                        }));
+                    }
                 }
             } else {
                 const cursor = await this.#aem.sites.cf.fragments.search(
@@ -193,12 +224,12 @@ export class MasRepository extends LitElement {
 
             dataStore.setMeta('path', path);
             dataStore.setMeta('query', query);
+            dataStore.setMeta('tags', tags);
 
             this.#abortControllers.search = null;
 
             await this.addToCache(fragments);
         } catch (error) {
-            if (error.name === 'AbortError') return;
             this.processError(error, 'Could not load fragments.');
         }
 
@@ -206,7 +237,7 @@ export class MasRepository extends LitElement {
     }
 
     async loadRecentlyUpdatedFragments() {
-        if (this.currentPage.value !== 'splash') return;
+        if (this.page.value !== 'welcome') return;
         if (this.#abortControllers.recentlyUpdated)
             this.#abortControllers.recentlyUpdated.abort();
         this.#abortControllers.recentlyUpdated = new AbortController();
@@ -214,7 +245,7 @@ export class MasRepository extends LitElement {
         Store.fragments.recentlyUpdated.loading.set(true);
 
         const dataStore = Store.fragments.recentlyUpdated.data;
-        const path = this.search.value.path + Store.locale.path;
+        const path = `${this.search.value.path}/${this.filters.value.locale}`;
 
         if (!looseEquals(dataStore.getMeta('path'), path)) {
             dataStore.set([]);
@@ -230,6 +261,7 @@ export class MasRepository extends LitElement {
                 this.recentlyUpdatedLimit.value,
                 this.#abortControllers.recentlyUpdated,
             );
+
             const result = await cursor.next();
             const fragments = [];
             dataStore.set(
@@ -308,7 +340,7 @@ export class MasRepository extends LitElement {
             Fragment.cache.add(newFragment);
 
             const newFragmentStore = new FragmentStore(newFragment);
-            Store.fragments.list.data.update((prev) => [
+            Store.fragments.list.data.set((prev) => [
                 ...prev,
                 newFragmentStore,
             ]);
@@ -367,9 +399,11 @@ export class MasRepository extends LitElement {
             const fragment = this.inEdit.get();
             await this.#aem.sites.cf.fragments.delete(fragment);
 
-            Store.fragments.list.data.update((prev) => {
+            Store.fragments.list.data.set((prev) => {
                 var result = [...prev];
-                const index = result.indexOf(fragment);
+                const index = result.findIndex(
+                    (fragmentStore) => fragmentStore.value.id === fragment.id,
+                );
                 result.splice(index, 1);
                 return result;
             });

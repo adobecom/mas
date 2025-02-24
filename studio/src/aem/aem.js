@@ -64,7 +64,7 @@ class AEM {
      * @returns A generator function that fetches all the matching data using a cursor that is returned by the search API
      */
     async *searchFragment(
-        { path, query = '', tags = [], sort },
+        { path, query = '', tags = [], sort, status },
         limit,
         abortController,
     ) {
@@ -84,6 +84,9 @@ class AEM {
         }
         if (tags.length > 0) {
             filter.tags = tags;
+        }
+        if (status) {
+            filter.status = [status];
         }
         const params = {
             query: JSON.stringify(searchQuery),

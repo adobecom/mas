@@ -6,7 +6,11 @@ import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { looseEquals, UserFriendlyError } from './utils.js';
-import { OPERATIONS } from './constants.js';
+import {
+    OPERATIONS,
+    STATUS_PUBLISHED,
+    TAG_STATUS_PUBLISHED,
+} from './constants.js';
 
 const ROOT = '/content/dam/mas';
 
@@ -135,7 +139,7 @@ export class MasRepository extends LitElement {
         const dataStore = Store.fragments.list.data;
         const path = this.search.value.path;
         const query = this.search.value.query;
-        const tags = this.search.value.tags;
+        const tags = [...(this.filters.value.tags ?? [])];
 
         if (
             !looseEquals(dataStore.getMeta('path'), path) ||
@@ -150,7 +154,16 @@ export class MasRepository extends LitElement {
         const localSearch = {
             ...this.search.value,
             path: `${damPath}/${this.filters.value.locale}`,
+            tags,
         };
+
+        // Remove published status from tags and set it as a status filter
+        const publishedTagIndex = tags.indexOf(TAG_STATUS_PUBLISHED);
+        if (publishedTagIndex > -1) {
+            tags.splice(publishedTagIndex, 1);
+            localSearch.status = STATUS_PUBLISHED;
+        }
+
         const fragments = [];
 
         try {
@@ -187,6 +200,7 @@ export class MasRepository extends LitElement {
 
             dataStore.setMeta('path', path);
             dataStore.setMeta('query', query);
+            dataStore.setMeta('tags', tags);
 
             this.#abortControllers.search = null;
 

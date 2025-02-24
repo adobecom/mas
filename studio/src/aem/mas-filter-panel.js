@@ -1,18 +1,13 @@
-import { html, css, LitElement } from 'lit';
+import { html, css, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
 
-// Helper function to get tags from picker value
-function getTagsFromPicker(picker) {
-    return picker
-        .getAttribute('value')
-        .split(',')
-        .filter((tag) => tag);
+function pathToTagId(path) {
+    return `mas:${path.replace('/content/cq:tags/mas/', '')}`;
 }
 
-// Helper function to filter out tags of a specific type
-function filterOutTagType(tags, tagType) {
-    return tags.filter((tag) => !tag.startsWith(`mas:${tagType}`));
+function pathsToTagIds(paths) {
+    return paths.map(({ path }) => pathToTagId(path)).join(',');
 }
 
 const EMPTY_TAGS = {
@@ -49,11 +44,51 @@ class MasFilterPanel extends LitElement {
 
     constructor() {
         super();
-        this.tagsByType = { ...EMPTY_TAGS };
+        this.tagsByType = {
+            ...EMPTY_TAGS,
+        };
+    }
+
+    firstUpdated() {
+        this.#initializeTagFilters();
+    }
+
+    #initializeTagFilters() {
+        const filters = Store.filters.get();
+        if (!filters.tags?.length) return;
+        this.tagsByType = filters.tags.reduce(
+            (acc, tag) => {
+                // Handle 'mas:type/value' format
+                const [type, value] = tag.replace('mas:', '').split('/', 2);
+                const fullPath = `/content/cq:tags/mas/${type}/${value}`;
+                return {
+                    ...acc,
+                    [type]: [
+                        ...(acc[type] || []),
+                        {
+                            path: fullPath,
+                            title: value.toUpperCase(),
+                            top: type,
+                        },
+                    ],
+                };
+            },
+            { ...EMPTY_TAGS },
+        );
+    }
+
+    #updateFiltersParams() {
+        Store.filters.set((prev) => ({
+            ...prev,
+            tags: Object.values(this.tagsByType ?? EMPTY_TAGS)
+                .flat()
+                .map((tag) => pathToTagId(tag.path)),
+        }));
     }
 
     #handleTagChange(e) {
         const picker = e.target;
+
         // Update the tags for this specific type, adding top value to each tag
         this.tagsByType = {
             ...this.tagsByType,
@@ -62,12 +97,8 @@ class MasFilterPanel extends LitElement {
                 top: picker.top,
             })),
         };
-        // Update the store with all tags except this type, then add new ones
-        const tags = getTagsFromPicker(picker);
-        Store.search.set((prev) => {
-            const existingTags = filterOutTagType(prev.tags ?? [], picker.top);
-            return { ...prev, tags: [...existingTags, ...tags] };
-        });
+
+        this.#updateFiltersParams();
     }
 
     #handleRefresh() {
@@ -80,11 +111,8 @@ class MasFilterPanel extends LitElement {
             });
     }
 
-    #handleTagDelete(e) {
+    async #handleTagDelete(e) {
         const value = e.target.value;
-        const picker = this.shadowRoot.querySelector(
-            `aem-tag-picker-field[top="${value.top}"]`,
-        );
         // Update tagsByType to remove only the specific tag
         this.tagsByType = {
             ...this.tagsByType,
@@ -92,24 +120,7 @@ class MasFilterPanel extends LitElement {
                 (tag) => tag.path !== value.path,
             ),
         };
-        // Update picker value to match
-        picker.value = picker.value.filter((p) => p !== value.path);
-        // Update store
-        Store.search.set((prev) => {
-            const tagId = `mas:${value.top}/${value.path.split('/').pop()}`;
-            const existingTags = prev.tags.filter((tag) => tag !== tagId);
-            return { ...prev, tags: existingTags };
-        });
-    }
-
-    #updateFilterHandler(property) {
-        return function (event) {
-            if (!event.detail) return;
-            Store.filters.set((prev) => ({
-                ...prev,
-                [property]: event.detail.value,
-            }));
-        };
+        this.#updateFiltersParams();
     }
 
     render() {
@@ -122,6 +133,7 @@ class MasFilterPanel extends LitElement {
                     label="Offer Type"
                     multiple
                     selection="checkbox"
+                    value=${pathsToTagIds(this.tagsByType.offer_type)}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
@@ -131,13 +143,11 @@ class MasFilterPanel extends LitElement {
                     label="Plan Type"
                     multiple
                     selection="checkbox"
+                    value=${pathsToTagIds(this.tagsByType.plan_type)}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
-                <mas-locale-picker
-                    value=${Store.filters.value.locale}
-                    @change=${this.#updateFilterHandler('locale')}
-                ></mas-locale-picker>
+                <mas-locale-picker></mas-locale-picker>
 
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
@@ -145,6 +155,7 @@ class MasFilterPanel extends LitElement {
                     label="Market Segments"
                     multiple
                     selection="checkbox"
+                    value=${pathsToTagIds(this.tagsByType.market_segments)}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
@@ -154,6 +165,7 @@ class MasFilterPanel extends LitElement {
                     multiple
                     label="Customer Segment"
                     selection="checkbox"
+                    value=${pathsToTagIds(this.tagsByType.customer_segment)}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
@@ -163,6 +175,7 @@ class MasFilterPanel extends LitElement {
                     label="Status"
                     multiple
                     selection="checkbox"
+                    value=${pathsToTagIds(this.tagsByType.status)}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 

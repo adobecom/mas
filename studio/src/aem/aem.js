@@ -85,16 +85,15 @@ class AEM {
         if (tags.length > 0) {
             filter.tags = tags;
         }
+        if (status) {
+            filter.status = [status];
+        }
         const params = {
             query: JSON.stringify(searchQuery),
         };
 
         if (limit) {
             params.limit = limit;
-        }
-
-        if (status) {
-            params.status = status;
         }
 
         let cursor;

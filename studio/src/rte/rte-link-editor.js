@@ -171,6 +171,14 @@ export class RteLinkEditor extends LitElement {
                     >Accent</sp-button
                 >
                 <sp-button
+                    @click=${() => (this.variant = 'primary')}
+                    class=${classMap({
+                        selected: this.variant === 'primary',
+                    })}
+                    variant="primary"
+                    >Primary</sp-button
+                >
+                <sp-button
                     @click=${() => (this.variant = 'primary-outline')}
                     class=${classMap({
                         selected: this.variant === 'primary-outline',

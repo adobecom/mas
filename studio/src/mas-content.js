@@ -1,5 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
+import { VARIANTS } from './editors/variant-picker.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import './mas-fragment.js';
@@ -43,16 +44,19 @@ class MasContent extends LitElement {
     }
 
     get renderView() {
+        const variantValues = VARIANTS.map((v) => v.value);
         return html`
             <div id="render">
                 ${repeat(
                     this.fragments.value,
                     (fragmentStore) => fragmentStore.get().path,
-                    (fragmentStore) =>
-                        html`<mas-fragment
+                    (fragmentStore) => {
+                        // Hide the card if the variant isn't one of VARIANTS that is pre-defined.
+                        if (!variantValues.includes(fragmentStore.value.variant)) return html``;
+                        return html`<mas-fragment
                             .store=${fragmentStore}
                             view="render"
-                        ></mas-fragment>`,
+                        ></mas-fragment>`},
                 )}
             </div>
         `;

@@ -2,8 +2,8 @@
 This project is a library of web components providing merchandising content to various surfaces.
 
 ## Environments
-- Preview: https://main--mas--adobecom.hlx.page/
-- Live: https://main--mas--adobecom.hlx.live/
+- Preview: https://main--mas--adobecom.aem.page/
+- Live: https://main--mas--adobecom.aem.live/
 
 ## Installation
 
@@ -59,4 +59,4 @@ If you want to debug GH action script run sh `nala/utils/pr.run.sh`
 documented in .github/README.md
 
 #### Troubleshooting
-Please reach out to us in `#tacocat-friends` for any questions.
+Please reach out to us in `#merch-at-scale` for any questions.

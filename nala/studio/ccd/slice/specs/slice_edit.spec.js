@@ -9,7 +9,7 @@ export default {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
             tcid: '1',
@@ -19,7 +19,7 @@ export default {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
             tcid: '2',
@@ -31,7 +31,7 @@ export default {
                 newBadge: 'Change badge',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
             tcid: '3',
@@ -43,7 +43,7 @@ export default {
                 newDescription: 'New Test Description',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
             tcid: '4',
@@ -57,7 +57,7 @@ export default {
                     'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
             tcid: '5',
@@ -71,29 +71,10 @@ export default {
                     'https://milo.adobe.com/assets/img/commerce/media_158c1c22b1322dd28d7912d30fb27f29aa79f79b1.png',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
             tcid: '6',
-            name: '@studio-slice-clone-edit-save-delete',
-            path: '/studio.html',
-            data: {
-                cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
-                description: 'Field Edit & Save',
-                newDescription: 'Cloned Field Edit',
-                newBadge: 'New Badge',
-                newIconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
-                price: 'US$17.24/mo',
-                strikethroughPrice: 'US$34.49/mo',
-                ctaText: 'Buy now',
-                newCtaText: 'Buy now 2',
-            },
-            browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
-        },
-        {
-            tcid: '7',
             name: '@studio-slice-edit-price',
             path: '/studio.html',
             data: {
@@ -104,10 +85,10 @@ export default {
                 newStrikethroughPrice: 'US$34.49/moper license',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
-            tcid: '8',
+            tcid: '7',
             name: '@studio-slice-edit-cta-ost',
             path: '/studio.html',
             data: {
@@ -116,10 +97,10 @@ export default {
                 newCtaText: 'Save now',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
-            tcid: '9',
+            tcid: '8',
             name: '@studio-slice-edit-cta-link',
             path: '/studio.html',
             data: {
@@ -128,7 +109,7 @@ export default {
                 newCtaText: 'Buy now 2',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
     ],
 };

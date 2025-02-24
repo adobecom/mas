@@ -180,6 +180,21 @@ export class MasRepository extends LitElement {
                     const fragment = new Fragment(fragmentData);
                     fragments.push(fragment);
                     dataStore.set([new FragmentStore(fragment)]);
+
+                    // Folder selection
+                    const folderPath = fragmentData.path.substring(
+                        fragmentData.path.indexOf(damPath) + damPath.length + 1,
+                    );
+                    const folderName = folderPath.substring(
+                        0,
+                        folderPath.indexOf('/'),
+                    );
+                    if (Store.folders.data.get().includes(folderName)) {
+                        Store.search.set((prev) => ({
+                            ...prev,
+                            path: folderName,
+                        }));
+                    }
                 }
             } else {
                 const cursor = await this.#aem.sites.cf.fragments.search(
@@ -377,7 +392,9 @@ export class MasRepository extends LitElement {
 
             Store.fragments.list.data.set((prev) => {
                 var result = [...prev];
-                const index = result.indexOf(fragment);
+                const index = result.findIndex(
+                    (fragmentStore) => fragmentStore.value.id === fragment.id,
+                );
                 result.splice(index, 1);
                 return result;
             });

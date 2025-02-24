@@ -11,7 +11,7 @@ export default class StudioPage {
         this.searchInput = page.locator('sp-search  input');
         this.searchIcon = page.locator('sp-search sp-icon-magnify');
         this.filter = page.locator('sp-action-button[label="Filter"]');
-        this.topFolder = page.locator('sp-picker[label="TopFolder"] > button');
+        this.folderPicker = page.locator('mas-folder-picker sp-action-menu');
         this.renderView = page.locator('#render');
         this.quickActions = page.locator('.quick-actions');
         this.editorPanel = page.locator('editor-panel > #editor');
@@ -20,6 +20,7 @@ export default class StudioPage {
         );
         this.cancelDialog = page.locator('sp-button:has-text("Cancel")');
         this.deleteDialog = page.locator('sp-button:has-text("Delete")');
+        this.discardDialog = page.locator('sp-button:has-text("Discard")');
         this.toastPositive = page.locator(
             'mas-toast >> sp-toast[variant="positive"]',
         );
@@ -30,6 +31,7 @@ export default class StudioPage {
         this.sliceCardWide = page.locator(
             'merch-card[variant="ccd-slice"][size="wide"]',
         );
+        this.emptyCard = page.locator('merch-card[variant="invalid-variant"]');
         // Editor panel fields
         this.editorVariant = page.locator('#card-variant');
         this.editorSize = page.locator('#card-size');
@@ -70,11 +72,12 @@ export default class StudioPage {
         this.linkSave = page.locator('#saveButton');
     }
 
-    async getCard(id, cardType, cloned) {
+    async getCard(id, cardType, cloned, secondID) {
         const cardVariant = {
             suggested: this.suggestedCard,
             slice: this.sliceCard,
             'slice-wide': this.sliceCardWide,
+            empty: this.emptyCard,
         };
 
         const card = cardVariant[cardType];
@@ -83,8 +86,12 @@ export default class StudioPage {
         }
 
         if (cloned) {
+            let baseSelector = `aem-fragment:not([fragment="${id}"])`;
+            const selector = secondID
+                ? `${baseSelector}:not([fragment="${secondID}"])`
+                : baseSelector;
             return card.filter({
-                has: this.page.locator(`aem-fragment:not([fragment="${id}"])`),
+                has: this.page.locator(selector),
             });
         }
 

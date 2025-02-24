@@ -3,17 +3,7 @@ export default {
     features: [
         {
             tcid: '0',
-            name: '@studio-suggested-editor',
-            path: '/studio.html',
-            data: {
-                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
-            },
-            browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-suggested',
-        },
-        {
-            tcid: '1',
-            name: '@studio-suggested-edit-title',
+            name: '@studio-suggested-discard-title',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -21,11 +11,11 @@ export default {
                 newTitle: 'Change title',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-suggested',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
-            tcid: '2',
-            name: '@studio-suggested-edit-eyebrow',
+            tcid: '1',
+            name: '@studio-suggested-discard-eyebrow',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -33,11 +23,11 @@ export default {
                 newSubtitle: 'Change subtitle',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-suggested',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
-            tcid: '3',
-            name: '@studio-suggested-edit-description',
+            tcid: '2',
+            name: '@studio-suggested-discard-description',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -45,11 +35,11 @@ export default {
                 newDescription: 'New Test Description',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-suggested',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
-            tcid: '4',
-            name: '@studio-suggested-edit-mnemonic',
+            tcid: '3',
+            name: '@studio-suggested-discard-mnemonic',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -59,43 +49,23 @@ export default {
                     'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-suggested',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
-            tcid: '5',
-            name: '@studio-suggested-edit-background',
+            tcid: '4',
+            name: '@studio-suggested-discard-background',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
                 newBackgroundURL:
-                    'https://main--milo--adobecom.hlx.page/assets/img/commerce/media_1d63dab9ee1edbf371d6f0548516c9e12b3ea3ff4.png',
+                    'https://main--milo--adobecom.aem.page/assets/img/commerce/media_1d63dab9ee1edbf371d6f0548516c9e12b3ea3ff4.png',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-suggested',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
-            tcid: '6',
-            name: '@studio-suggested-clone-edit-save-delete',
-            path: '/studio.html',
-            data: {
-                cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
-                title: 'Field Edit & Save',
-                newTitle: 'Cloned Field Edit',
-                newSubtitle: 'New Subtitle',
-                newIconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
-                newDescription: 'New Test Description',
-                price: 'US$17.24/mo',
-                strikethroughPrice: 'US$34.49/mo',
-                ctaText: 'Buy now',
-                newCtaText: 'Buy now 2',
-            },
-            browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-suggested',
-        },
-        {
-            tcid: '7',
-            name: '@studio-suggested-edit-price',
+            tcid: '5',
+            name: '@studio-suggested-discard-price',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -105,11 +75,11 @@ export default {
                 newStrikethroughPrice: 'US$34.49/moper license',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-suggested',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
-            tcid: '8',
-            name: '@studio-suggested-edit-cta-ost',
+            tcid: '6',
+            name: '@studio-suggested-discard-cta-ost',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -117,11 +87,11 @@ export default {
                 newCtaText: 'Save now',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-suggested',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
-            tcid: '9',
-            name: '@studio-suggested-edit-cta-link',
+            tcid: '7',
+            name: '@studio-suggested-discard-cta-link',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -129,7 +99,7 @@ export default {
                 newCtaText: 'Buy now 2',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-suggested',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
     ],
 };

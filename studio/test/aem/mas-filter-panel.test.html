@@ -109,7 +109,7 @@
                         await statusPicker.toggleTag(
                             '/content/cq:tags/mas/status/draft',
                         );
-                        const storeState = await Store.search.get();
+                        const storeState = await Store.filters.get();
                         expect(storeState.tags).to.include('mas:status/draft');
                     });
 
@@ -188,7 +188,7 @@
                             '/content/cq:tags/mas/status/documentation',
                         ); // select new
 
-                        const storeState = await Store.search.get();
+                        const storeState = await Store.filters.get();
                         expect(storeState.tags).to.include(
                             'mas:offer_type/base',
                         );

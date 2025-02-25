@@ -187,7 +187,7 @@ class MasFilterPanel extends LitElement {
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
-                <aem-user-picker label="Created by"></aem-user-picker>
+                <mas-user-picker label="Created by"></mas-user-picker>
 
                 <sp-action-button
                     quiet

@@ -115,11 +115,6 @@ class AemTagPickerField extends LitElement {
             flex: 1;
         }
 
-        sp-action-button {
-            display: flex;
-            flex-direction: row-reverse;
-        }
-
         sp-popover.checkbox-popover {
             min-width: 248px;
             border-radius: 10px;
@@ -477,7 +472,7 @@ class AemTagPickerField extends LitElement {
                 placement="bottom"
                 @sp-closed=${this.#handleCheckoxMenuClose}
             >
-                <sp-action-button slot="trigger" quiet>
+                <sp-action-button slot="trigger" dir="rtl" quiet>
                     ${this.triggerLabel} ${selectCount}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>

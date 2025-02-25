@@ -3,7 +3,7 @@ import Store from '../store.js';
 import { repeat } from 'lit/directives/repeat.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 
-class AemUserPicker extends LitElement {
+class MasUserPicker extends LitElement {
     static properties = {
         search: { type: String },
         users: { type: Array },
@@ -131,7 +131,7 @@ class AemUserPicker extends LitElement {
     render() {
         return html`
             <overlay-trigger placement="bottom">
-                <sp-action-button slot="trigger" quiet>
+                <sp-action-button slot="trigger" dir="rtl" quiet>
                     ${this.label}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
@@ -218,4 +218,4 @@ class AemUserPicker extends LitElement {
     }
 }
 
-customElements.define('aem-user-picker', AemUserPicker);
+customElements.define('mas-user-picker', MasUserPicker);

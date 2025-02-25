@@ -54,7 +54,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 await studio.editorPanel.locator(studio.editorSize),
             ).toHaveAttribute('value', 'wide');
             await studio.editorPanel.locator(studio.editorSize).click();
-            await page.getByRole('option', { name: 'normal' }).click();
+            await page.getByRole('option', { name: 'default' }).click();
             await page.waitForTimeout(2000);
             await expect(
                 await studio.getCard(data.cardid, 'slice'),

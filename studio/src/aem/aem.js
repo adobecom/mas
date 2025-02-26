@@ -8,8 +8,39 @@ const defaultSearchOptions = {
     sort: [{ on: 'created', order: 'ASC' }],
 };
 
-const filterByTags = (tags) => (item) =>
-    tags.every((tag) => item.tags.some((t) => t.id === tag));
+const filterByTags = (tags) => (item) => {
+    if (!tags.length) return true;
+    if (!item.tags || !item.tags.length) return false;
+    // Group tags by their root namespace
+    const tagsByRoot = {};
+    for (const tag of tags) {
+        const rootNamespace = tag.split('/')[0];
+        if (!tagsByRoot[rootNamespace]) {
+            tagsByRoot[rootNamespace] = [];
+        }
+        tagsByRoot[rootNamespace].push(tag);
+    }
+
+    // For each root namespace:
+    // - Apply OR logic within the same root (at least one tag from this root must match)
+    // - Apply AND logic between different roots (must have at least one match from each root)
+    for (const rootTags of Object.values(tagsByRoot)) {
+        // Check if at least one tag from this root matches (OR logic)
+        let hasMatchFromThisRoot = false;
+        for (const tag of rootTags) {
+            if (item.tags.some((itemTag) => itemTag.id === tag)) {
+                hasMatchFromThisRoot = true;
+                break;
+            }
+        }
+        // If no match from this root, return false (AND logic between roots)
+        if (!hasMatchFromThisRoot) {
+            return false;
+        }
+    }
+    // All root namespaces have at least one matching tag
+    return true;
+};
 
 class AEM {
     #author;
@@ -64,7 +95,7 @@ class AEM {
      * @returns A generator function that fetches all the matching data using a cursor that is returned by the search API
      */
     async *searchFragment(
-        { path, query = '', tags = [], sort },
+        { path, query = '', tags = [], sort, status },
         limit,
         abortController,
     ) {
@@ -84,6 +115,9 @@ class AEM {
         }
         if (tags.length > 0) {
             filter.tags = tags;
+        }
+        if (status) {
+            filter.status = [status];
         }
         const params = {
             query: JSON.stringify(searchQuery),

@@ -128,8 +128,8 @@ export default class EditorPanel extends LitElement {
             const newPosition = x > window.innerWidth / 2 ? 'left' : 'right';
             this.updatePosition(newPosition);
         }
-        this.inEdit.set(store.value);
         await this.repository.refreshFragment(store);
+        this.inEdit.set(store.value);
     }
 
     handleKeyDown(event) {

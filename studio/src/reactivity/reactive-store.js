@@ -83,6 +83,10 @@ export class ReactiveStore {
 
     // #endregion
 
+    toString() {
+        return this.value;
+    }
+
     /**
      * @param {any} value
      * @returns {boolean}

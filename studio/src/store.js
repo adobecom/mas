@@ -40,7 +40,7 @@ const Store = {
     ), // 'render' | 'table'
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
-    page: new ReactiveStore(hasQuery ? 'content' : 'welcome', pageValidator), // 'welcome' | 'content'
+    page: new ReactiveStore(hasQuery ? 'content' : 'welcome', pageValidator), // 'welcome' | 'content' | 'placeholders'
     commerceEnv: new ReactiveStore(WCS_ENV_PROD, commerceEnvValidator), // 'stage' | 'prod'
 };
 
@@ -61,8 +61,10 @@ function filtersValidator(value) {
  * @returns {string}
  */
 function pageValidator(value) {
-    if (value === 'content') return value;
-    return 'welcome';
+    // List of valid pages
+    const validPages = ['welcome', 'content', 'placeholders'];
+    // Return the value if it's a valid page, otherwise return 'welcome'
+    return validPages.includes(value) ? value : 'welcome';
 }
 
 /**
@@ -97,6 +99,10 @@ export function navigateToPage(value) {
         if (confirmed) {
             Store.fragments.inEdit.set();
             Store.page.set(value);
+            // Update URL to reflect the page change
+            const url = new URL(window.location);
+            url.searchParams.set('page', value);
+            window.history.pushState({}, '', url);
         }
     };
 }
@@ -217,3 +223,17 @@ Store.search.subscribe((value, oldValue) => {
     )
         Store.page.set('content');
 });
+
+// Sync page changes with URL
+Store.page.subscribe((value) => {
+    // Update URL when page changes
+    const url = new URL(window.location);
+    if (value === 'welcome') {
+        url.searchParams.delete('page');
+    } else {
+        url.searchParams.set('page', value);
+    }
+    window.history.pushState({}, '', url);
+});
+
+// #endregion

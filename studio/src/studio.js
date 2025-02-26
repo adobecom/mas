@@ -11,6 +11,8 @@ import './mas-repository.js';
 import './mas-toast.js';
 import './mas-splash-screen.js';
 import './filters/locale-picker.js';
+import './mas-placeholders.js';
+import './mas-recently-updated.js';
 import StoreController from './reactivity/store-controller.js';
 import Store, { linkStoreToHash } from './store.js';
 import { WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
@@ -51,10 +53,23 @@ class MasStudio extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        // Set the page based on URL parameter when component connects
+        this.updatePageFromUrl();
+        // Listen for URL changes
+        window.addEventListener('popstate', this.updatePageFromUrl.bind(this));
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        window.removeEventListener('popstate', this.updatePageFromUrl.bind(this));
+    }
+
+    updatePageFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const pageParam = params.get('page');
+        if (pageParam) {
+            Store.page.set(pageParam);
+        }
     }
 
     createRenderRoot() {
@@ -76,11 +91,28 @@ class MasStudio extends LitElement {
         </div> `;
     }
 
+    get placeholders() {
+        if (this.page.value !== 'placeholders') return nothing;
+        return html`<div id="placeholders-container">
+            <mas-placeholders></mas-placeholders>
+        </div>`;
+    }
+
     get splashScreen() {
+        // Only show splash screen on welcome page
         if (this.page.value !== 'welcome') return nothing;
         return html`<mas-splash-screen
             base-url=${this.baseUrl}
         ></mas-splash-screen>`;
+    }
+
+    get recentlyUpdated() {
+        // Don't show recently updated on placeholders or welcome pages
+        if (this.page.value === 'placeholders' || this.page.value === 'welcome') {
+            return nothing;
+        }
+        
+        return html`<mas-recently-updated></mas-recently-updated>`;
     }
 
     render() {
@@ -98,7 +130,8 @@ class MasStudio extends LitElement {
             <div class="studio-content">
                 <mas-side-nav></mas-side-nav>
                 <div class="main-container">
-                    ${this.splashScreen} ${this.content}
+                    ${this.splashScreen}${this.content}${this.placeholders}
+                    ${this.recentlyUpdated}
                 </div>
             </div>
             <editor-panel></editor-panel>

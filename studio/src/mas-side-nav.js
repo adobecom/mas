@@ -1,5 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { navigateToPage } from './store.js';
+import StoreController from './reactivity/store-controller.js';
+import Store from './store.js';
 
 class MasSideNav extends LitElement {
     static styles = css`
@@ -67,6 +69,9 @@ class MasSideNav extends LitElement {
         }
     `;
 
+    // Connect to the page store to track the current page
+    currentPage = new StoreController(this, Store.page);
+
     render() {
         return html`<side-nav>
             <div class="dropdown-container">
@@ -77,7 +82,7 @@ class MasSideNav extends LitElement {
                     label="Home"
                     value="home"
                     @click="${navigateToPage('welcome')}"
-                    selected
+                    ?selected=${this.currentPage.value === 'welcome'}
                 >
                     <sp-icon-home slot="icon"></sp-icon-home>
                 </sp-sidenav-item>
@@ -91,6 +96,15 @@ class MasSideNav extends LitElement {
                         slot="icon"
                     ></sp-icon-graph-bar-vertical>
                 </sp-sidenav-item>
+                <sp-sidenav-item
+                    label="Placeholders"
+                    value="placeholders"
+                    @click="${navigateToPage('placeholders')}"
+                    ?selected=${this.currentPage.value === 'placeholders'}
+                >
+                    <sp-icon-text slot="icon"></sp-icon-text>
+                </sp-sidenav-item>
+                
                 <sp-sidenav-item
                     class="side-nav-support"
                     label="Support"

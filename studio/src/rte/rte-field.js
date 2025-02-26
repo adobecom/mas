@@ -80,6 +80,7 @@ class RteField extends LitElement {
     static properties = {
         hasFocus: { type: Boolean, attribute: 'focused', reflect: true },
         inline: { type: Boolean, attribute: 'inline' },
+        multiline: { type: Boolean },
         link: { type: Boolean, attribute: 'link' },
         uptLink: { type: Boolean, attribute: 'upt-link' },
         isLinkSelected: { type: Boolean, state: true },
@@ -355,7 +356,7 @@ class RteField extends LitElement {
                 },
             });
 
-        if (this.inline) {
+        if (!this.multiline) {
             nodes = nodes.update('doc', { content: 'inline*' });
         }
 
@@ -366,7 +367,7 @@ class RteField extends LitElement {
 
     #createEditorState() {
         let doc;
-        if (this.inline) {
+        if (!this.multiline) {
             doc = this.#editorSchema.node('doc', null, []);
         } else {
             doc = this.#editorSchema.node('doc', null, [
@@ -385,6 +386,7 @@ class RteField extends LitElement {
                 'Mod-z': undo,
                 'Mod-y': redo,
                 'Shift-Mod-z': redo,
+                Enter: this.multiline ? null : () => false,
             }),
             keymap(baseKeymap),
         ];

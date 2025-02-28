@@ -10,7 +10,8 @@ const miloLibs = process.env.MILO_LIBS || '';
 let studio;
 let slice;
 let ost;
-const COMMERCE_LINK_REGEX = /https:\/\/commerce\.adobe\.com\/store\/email\?items%5B0%5D%5Bid%5D=([A-F0-9]{32}&apc=UMRM2MUSPr501YOC&cli=adobe_com&ctx=fp&co=US&lang=en)/i;
+const COMMERCE_LINK_REGEX =
+    /https:\/\/commerce\.adobe\.com\/store\/email\?items%5B0%5D%5Bid%5D=([A-F0-9]{32}&apc=UMRM2MUSPr501YOC&cli=adobe_com&ctx=fp&co=US&lang=en)/i;
 
 test.beforeEach(async ({ page, browserName }) => {
     test.slow();
@@ -489,9 +490,17 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-5: Validate edited CTA on the card', async () => {
             await expect(await slice.cardCTA).toContainText(data.newCtaText);
-            await expect(await slice.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
-            await expect(await slice.cardCTA).toHaveAttribute('is', "checkout-button");
-            await expect((await slice.cardCTA).evaluate((el) => el.href)).resolves.toMatch(COMMERCE_LINK_REGEX);
+            await expect(await slice.cardCTA).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(await slice.cardCTA).toHaveAttribute(
+                'is',
+                'checkout-button',
+            );
+            await expect(
+                (await slice.cardCTA).evaluate((el) => el.href),
+            ).resolves.toMatch(COMMERCE_LINK_REGEX);
         });
     });
 
@@ -574,7 +583,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Edit promo field', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorDescription).locator(studio.regularPrice),
+                await studio.editorPanel
+                    .locator(studio.editorDescription)
+                    .locator(studio.regularPrice),
             ).toHaveAttribute('data-promotion-code', data.promo);
             await expect(
                 await slice.cardDescription.locator(slice.cardPriceSlot),
@@ -597,7 +608,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-4: Validate promo change in Editor panel', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorDescription).locator(studio.regularPrice),
+                await studio.editorPanel
+                    .locator(studio.editorDescription)
+                    .locator(studio.regularPrice),
             ).toHaveAttribute('data-promotion-code', data.newPromo);
         });
 
@@ -618,13 +631,15 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
             await ost.promoField.fill('');
             await expect(await ost.promoLabel).toContainText('no promo');
-            await expect( await ost.promoField).toHaveValue('');
+            await expect(await ost.promoField).toHaveValue('');
             await ost.priceUse.click();
         });
 
         await test.step('step-7: Validate promo removed in Editor panel', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorDescription).locator(studio.regularPrice),
+                await studio.editorPanel
+                    .locator(studio.editorDescription)
+                    .locator(studio.regularPrice),
             ).not.toHaveAttribute('data-promotion-code');
         });
 
@@ -661,8 +676,13 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorCTA),
             ).toHaveAttribute('data-promotion-code', data.promo);
-            await expect(await slice.cardCTA).toHaveAttribute('data-promotion-code', data.promo);
-            await expect((await slice.cardCTA).evaluate((el) => el.href)).resolves.toMatch(COMMERCE_LINK_REGEX);
+            await expect(await slice.cardCTA).toHaveAttribute(
+                'data-promotion-code',
+                data.promo,
+            );
+            await expect(
+                (await slice.cardCTA).evaluate((el) => el.href),
+            ).resolves.toMatch(COMMERCE_LINK_REGEX);
 
             await (
                 await studio.editorPanel.locator(studio.editorCTA)
@@ -675,7 +695,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
             await ost.promoField.fill(data.newPromo);
             expect(await ost.promoLabel).toContainText(data.newPromo);
-            await expect( await ost.promoField).toHaveValue(data.newPromo);
+            await expect(await ost.promoField).toHaveValue(data.newPromo);
             await ost.checkoutLinkUse.click();
         });
 
@@ -686,9 +706,18 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-5: Validate edited CTA promo on the card', async () => {
-            await expect(await slice.cardCTA).toHaveAttribute('data-promotion-code', data.newPromo);
-            await expect(await slice.cardCTA).toHaveAttribute('data-href', /apc=/);
-            await expect(await slice.cardCTA).toHaveAttribute('data-href', new RegExp(`${data.newPromo}`));
+            await expect(await slice.cardCTA).toHaveAttribute(
+                'data-promotion-code',
+                data.newPromo,
+            );
+            await expect(await slice.cardCTA).toHaveAttribute(
+                'data-href',
+                /apc=/,
+            );
+            await expect(await slice.cardCTA).toHaveAttribute(
+                'data-href',
+                new RegExp(`${data.newPromo}`),
+            );
         });
 
         await test.step('step-6: Remove promo', async () => {
@@ -701,7 +730,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
             await ost.promoField.fill('');
             expect(await ost.promoLabel).toContainText('no promo');
-            await expect( await ost.promoField).toHaveValue('');
+            await expect(await ost.promoField).toHaveValue('');
             await ost.checkoutLinkUse.click();
         });
 
@@ -713,8 +742,13 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         // });
 
         await test.step('step-8: Validate CTA promo removed from the card', async () => {
-            await expect(await slice.cardCTA).not.toHaveAttribute('data-promotion-code');
-            await expect(slice.cardCTA).not.toHaveAttribute('data-href', /apc=/);
+            await expect(await slice.cardCTA).not.toHaveAttribute(
+                'data-promotion-code',
+            );
+            await expect(slice.cardCTA).not.toHaveAttribute(
+                'data-href',
+                /apc=/,
+            );
         });
     });
 });

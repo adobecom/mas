@@ -10,7 +10,8 @@ const miloLibs = process.env.MILO_LIBS || '';
 let studio;
 let suggested;
 let ost;
-const COMMERCE_LINK_REGEX = /https:\/\/commerce\.adobe\.com\/store\/email\?items%5B0%5D%5Bid%5D=([A-F0-9]{32}&apc=UMRM2MUSPr501YOC&cli=adobe_com&ctx=fp&co=US&lang=en)/i;
+const COMMERCE_LINK_REGEX =
+    /https:\/\/commerce\.adobe\.com\/store\/email\?items%5B0%5D%5Bid%5D=([A-F0-9]{32}&apc=UMRM2MUSPr501YOC&cli=adobe_com&ctx=fp&co=US&lang=en)/i;
 
 test.beforeEach(async ({ page, browserName }) => {
     test.slow();
@@ -448,9 +449,17 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await suggested.cardCTA).toContainText(
                 data.newCtaText,
             );
-            await expect(await suggested.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
-            await expect(await suggested.cardCTA).toHaveAttribute('is', "checkout-button");
-            await expect((await suggested.cardCTA).evaluate((el) => el.href)).resolves.toMatch(COMMERCE_LINK_REGEX);
+            await expect(await suggested.cardCTA).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(await suggested.cardCTA).toHaveAttribute(
+                'is',
+                'checkout-button',
+            );
+            await expect(
+                (await suggested.cardCTA).evaluate((el) => el.href),
+            ).resolves.toMatch(COMMERCE_LINK_REGEX);
         });
     });
 
@@ -537,7 +546,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(
                 await studio.editorPanel.locator(studio.regularPrice),
             ).toHaveAttribute('data-promotion-code', data.promo);
-            await expect(await suggested.cardPrice.locator(studio.regularPrice)).toHaveAttribute('data-promotion-code', data.promo);
+            await expect(
+                await suggested.cardPrice.locator(studio.regularPrice),
+            ).toHaveAttribute('data-promotion-code', data.promo);
             await (
                 await studio.editorPanel.locator(studio.regularPrice)
             ).dblclick();
@@ -560,7 +571,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-5: Validate edited price promo on the card', async () => {
-            await expect(await suggested.cardPrice.locator(studio.regularPrice)).toHaveAttribute('data-promotion-code', data.newPromo);
+            await expect(
+                await suggested.cardPrice.locator(studio.regularPrice),
+            ).toHaveAttribute('data-promotion-code', data.newPromo);
         });
 
         await test.step('step-6: Remove promo', async () => {
@@ -572,7 +585,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
             await ost.promoField.fill('');
             await expect(await ost.promoLabel).toContainText('no promo');
-            await expect( await ost.promoField).toHaveValue('');
+            await expect(await ost.promoField).toHaveValue('');
             await ost.priceUse.click();
         });
 
@@ -583,7 +596,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-8: Validate price promo removed from the card', async () => {
-            await expect(await await suggested.cardPrice).not.toHaveAttribute('data-promotion-code');
+            await expect(await await suggested.cardPrice).not.toHaveAttribute(
+                'data-promotion-code',
+            );
         });
     });
 
@@ -613,8 +628,13 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorCTA),
             ).toHaveAttribute('data-promotion-code', data.promo);
-            await expect(await suggested.cardCTA).toHaveAttribute('data-promotion-code', data.promo);
-            await expect((await suggested.cardCTA).evaluate((el) => el.href)).resolves.toMatch(COMMERCE_LINK_REGEX);
+            await expect(await suggested.cardCTA).toHaveAttribute(
+                'data-promotion-code',
+                data.promo,
+            );
+            await expect(
+                (await suggested.cardCTA).evaluate((el) => el.href),
+            ).resolves.toMatch(COMMERCE_LINK_REGEX);
 
             await (
                 await studio.editorPanel.locator(studio.editorCTA)
@@ -627,7 +647,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
             await ost.promoField.fill(data.newPromo);
             expect(await ost.promoLabel).toContainText(data.newPromo);
-            await expect( await ost.promoField).toHaveValue(data.newPromo);
+            await expect(await ost.promoField).toHaveValue(data.newPromo);
             await ost.checkoutLinkUse.click();
         });
 
@@ -638,9 +658,18 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-5: Validate edited CTA promo on the card', async () => {
-            await expect(await suggested.cardCTA).toHaveAttribute('data-promotion-code', data.newPromo);
-            await expect(await suggested.cardCTA).toHaveAttribute('data-href', /apc=/);
-            await expect(await suggested.cardCTA).toHaveAttribute('data-href', new RegExp(`${data.newPromo}`));
+            await expect(await suggested.cardCTA).toHaveAttribute(
+                'data-promotion-code',
+                data.newPromo,
+            );
+            await expect(await suggested.cardCTA).toHaveAttribute(
+                'data-href',
+                /apc=/,
+            );
+            await expect(await suggested.cardCTA).toHaveAttribute(
+                'data-href',
+                new RegExp(`${data.newPromo}`),
+            );
         });
 
         await test.step('step-6: Remove promo', async () => {
@@ -653,7 +682,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
             await ost.promoField.fill('');
             expect(await ost.promoLabel).toContainText('no promo');
-            await expect( await ost.promoField).toHaveValue('');
+            await expect(await ost.promoField).toHaveValue('');
             await ost.checkoutLinkUse.click();
         });
 
@@ -665,8 +694,13 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         // });
 
         await test.step('step-8: Validate CTA promo removed from the card', async () => {
-            await expect(await suggested.cardCTA).not.toHaveAttribute('data-promotion-code');
-            await expect(suggested.cardCTA).not.toHaveAttribute('data-href', /apc=/);
+            await expect(await suggested.cardCTA).not.toHaveAttribute(
+                'data-promotion-code',
+            );
+            await expect(suggested.cardCTA).not.toHaveAttribute(
+                'data-href',
+                /apc=/,
+            );
         });
     });
 });

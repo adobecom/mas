@@ -135,16 +135,19 @@ test.describe('M@S Studio feature test suite', () => {
         await test.step('step-2: Go to content', async () => {
             await expect(await studio.quickActions).toBeVisible();
             await expect(await studio.gotoContent).toBeVisible();
-            await expect(await studio.folderPicker).toHaveAttribute('value', 'acom');
+            await expect(await studio.folderPicker).toHaveAttribute(
+                'value',
+                'acom',
+            );
             await studio.gotoContent.click();
         });
 
-        await test.step('step-3: Validate page view', async() => {
+        await test.step('step-3: Validate page view', async () => {
             await expect(await studio.renderView).toBeVisible();
             const cards = await studio.renderView.locator('merch-card');
             expect(await cards.count()).toBeGreaterThan(1);
             await expect(page).toHaveURL(`${testPage}#path=acom&page=content`);
             expect(await studio.folderPicker).toHaveAttribute('value', 'acom');
-        })
+        });
     });
 });

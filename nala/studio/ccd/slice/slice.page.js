@@ -8,9 +8,6 @@ export default class CCDSlicePage {
         this.cardDescription = page.locator('div[slot="body-s"]');
         this.cardLegalLink = page.locator('div[slot="body-s"] p > a');
         this.cardCTA = page.locator('div[slot="footer"] > button');
-        this.cardCTALink = page.locator(
-            'div[slot="footer"] a[is="checkout-link"]',
-        );
         this.cardPrice = page
             .locator('span[data-template="price"] > .price')
             .first();

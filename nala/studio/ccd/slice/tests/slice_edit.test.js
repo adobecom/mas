@@ -10,6 +10,7 @@ const miloLibs = process.env.MILO_LIBS || '';
 let studio;
 let slice;
 let ost;
+const COMMERCE_LINK_REGEX = /https:\/\/commerce\.adobe\.com\/store\/email\?items%5B0%5D%5Bid%5D=([A-F0-9]{32}&cli=adobe_com&ctx=fp&co=US&lang=en)/i;
 
 test.beforeEach(async ({ page, browserName }) => {
     test.slow();
@@ -487,6 +488,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-5: Validate edited price field on the card', async () => {
             await expect(await slice.cardCTA).toContainText(data.newCtaText);
+            await expect(await slice.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
+            await expect(await suggested.cardCTA).toHaveAttribute('is', "checkout-button");
+            await expect((await suggested.cardCTA).evaluate((el) => el.href)).resolves.toMatch(COMMERCE_LINK_REGEX);
         });
     });
 

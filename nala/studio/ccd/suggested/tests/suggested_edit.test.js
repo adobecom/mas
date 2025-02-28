@@ -10,6 +10,7 @@ const miloLibs = process.env.MILO_LIBS || '';
 let studio;
 let suggested;
 let ost;
+const COMMERCE_LINK_REGEX = /https:\/\/commerce\.adobe\.com\/store\/email\?items%5B0%5D%5Bid%5D=([A-F0-9]{32}&cli=adobe_com&ctx=fp&co=US&lang=en)/i;
 
 test.beforeEach(async ({ page, browserName }) => {
     test.slow();
@@ -446,6 +447,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await suggested.cardCTA).toContainText(
                 data.newCtaText,
             );
+            await expect(await suggested.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
+            await expect(await suggested.cardCTA).toHaveAttribute('is', "checkout-button");
+            await expect((await suggested.cardCTA).evaluate((el) => el.href)).resolves.toMatch(COMMERCE_LINK_REGEX);
         });
     });
 

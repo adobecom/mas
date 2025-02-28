@@ -112,5 +112,29 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
+        {
+            tcid: '9',
+            name: '@studio-slice-edit-price-promo',
+            path: '/studio.html',
+            data: {
+                cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+                promo: 'UMRM2MUSPr501YOC',
+                newPromo: 'testpromo',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
+        },
+        {
+            tcid: '10',
+            name: '@studio-slice-edit-cta-promo',
+            path: '/studio.html',
+            data: {
+                cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+                promo: 'UMRM2MUSPr501YOC',
+                newPromo: 'testpromo',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
+        },
     ],
 };

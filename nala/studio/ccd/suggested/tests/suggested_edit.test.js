@@ -10,7 +10,7 @@ const miloLibs = process.env.MILO_LIBS || '';
 let studio;
 let suggested;
 let ost;
-const COMMERCE_LINK_REGEX = /https:\/\/commerce\.adobe\.com\/store\/email\?items%5B0%5D%5Bid%5D=([A-F0-9]{32}&cli=adobe_com&ctx=fp&co=US&lang=en)/i;
+const COMMERCE_LINK_REGEX = /https:\/\/commerce\.adobe\.com\/store\/email\?items%5B0%5D%5Bid%5D=([A-F0-9]{32}&apc=UMRM2MUSPr501YOC&cli=adobe_com&ctx=fp&co=US&lang=en)/i;
 
 test.beforeEach(async ({ page, browserName }) => {
     test.slow();
@@ -507,6 +507,165 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await suggested.cardCTA).toContainText(
                 data.newCtaText,
             );
+        });
+    });
+
+    // @studio-suggested-edit-price-promo - Validate edit price promo for suggested card in mas studio
+    test(`${features[9].name},${features[9].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[9];
+        const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit promo field', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.regularPrice),
+            ).toHaveAttribute('data-promotion-code', data.promo);
+            await expect(await suggested.cardPrice.locator(studio.regularPrice)).toHaveAttribute('data-promotion-code', data.promo);
+            await (
+                await studio.editorPanel.locator(studio.regularPrice)
+            ).dblclick();
+
+            await expect(await ost.promoField).toBeVisible();
+            await expect(await ost.promoLabel).toBeVisible();
+            await expect(await ost.promoLabel).toContainText(data.promo);
+            await expect(await ost.promoField).toHaveValue(data.promo);
+
+            await ost.promoField.fill(data.newPromo);
+            await expect(await ost.promoLabel).toContainText(data.newPromo);
+            await expect(await ost.promoField).toHaveValue(data.newPromo);
+            await ost.priceUse.click();
+        });
+
+        await test.step('step-4: Validate promo change in Editor panel', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.regularPrice),
+            ).toHaveAttribute('data-promotion-code', data.newPromo);
+        });
+
+        await test.step('step-5: Validate edited price promo on the card', async () => {
+            await expect(await suggested.cardPrice.locator(studio.regularPrice)).toHaveAttribute('data-promotion-code', data.newPromo);
+        });
+
+        await test.step('step-6: Remove promo', async () => {
+            await (
+                await studio.editorPanel.locator(studio.regularPrice)
+            ).dblclick();
+            await expect(await ost.promoField).toBeVisible();
+            await expect(await ost.promoLabel).toBeVisible();
+
+            await ost.promoField.fill('');
+            await expect(await ost.promoLabel).toContainText('no promo');
+            await expect( await ost.promoField).toHaveValue('');
+            await ost.priceUse.click();
+        });
+
+        await test.step('step-7: Validate promo removed in Editor panel', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.regularPrice),
+            ).not.toHaveAttribute('data-promotion-code');
+        });
+
+        await test.step('step-8: Validate price promo removed from the card', async () => {
+            await expect(await await suggested.cardPrice).not.toHaveAttribute('data-promotion-code');
+        });
+    });
+
+    // @studio-suggested-edit-cta-promo - Validate edit cta promo for suggested card in mas studio
+    test(`${features[10].name},${features[10].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[10];
+        const testPage = `${baseURL}${features[10].path}${miloLibs}${features[10].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA promo field', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorCTA),
+            ).toHaveAttribute('data-promotion-code', data.promo);
+            await expect(await suggested.cardCTA).toHaveAttribute('data-promotion-code', data.promo);
+            await expect((await suggested.cardCTA).evaluate((el) => el.href)).resolves.toMatch(COMMERCE_LINK_REGEX);
+
+            await (
+                await studio.editorPanel.locator(studio.editorCTA)
+            ).dblclick();
+            await expect(await ost.checkoutTab).toBeVisible();
+            await expect(await ost.promoField).toBeVisible();
+            await expect(await ost.promoLabel).toBeVisible();
+            await expect(await ost.promoLabel).toContainText(data.promo);
+            await expect(await ost.promoField).toHaveValue(data.promo);
+
+            await ost.promoField.fill(data.newPromo);
+            expect(await ost.promoLabel).toContainText(data.newPromo);
+            await expect( await ost.promoField).toHaveValue(data.newPromo);
+            await ost.checkoutLinkUse.click();
+        });
+
+        await test.step('step-4: Validate edited CTA promo in Editor panel', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorCTA),
+            ).toHaveAttribute('data-promotion-code', data.newPromo);
+        });
+
+        await test.step('step-5: Validate edited CTA promo on the card', async () => {
+            await expect(await suggested.cardCTA).toHaveAttribute('data-promotion-code', data.newPromo);
+            await expect(await suggested.cardCTA).toHaveAttribute('data-href', /apc=/);
+            await expect(await suggested.cardCTA).toHaveAttribute('data-href', new RegExp(`${data.newPromo}`));
+        });
+
+        await test.step('step-6: Remove promo', async () => {
+            await (
+                await studio.editorPanel.locator(studio.editorCTA)
+            ).dblclick();
+            await expect(await ost.checkoutTab).toBeVisible();
+            await expect(await ost.promoField).toBeVisible();
+            await expect(await ost.promoLabel).toBeVisible();
+
+            await ost.promoField.fill('');
+            expect(await ost.promoLabel).toContainText('no promo');
+            await expect( await ost.promoField).toHaveValue('');
+            await ost.checkoutLinkUse.click();
+        });
+
+        // uncomment once MWPW-169011 is fixed
+        // await test.step('step-7: Validate promo removed in Editor panel', async () => {
+        //     await expect(
+        //         await studio.editorPanel.locator(studio.editorCTA),
+        //     ).not.toHaveAttribute('data-promotion-code');
+        // });
+
+        await test.step('step-8: Validate CTA promo removed from the card', async () => {
+            await expect(await suggested.cardCTA).not.toHaveAttribute('data-promotion-code');
+            await expect(suggested.cardCTA).not.toHaveAttribute('data-href', /apc=/);
         });
     });
 });

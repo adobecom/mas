@@ -1,6 +1,7 @@
 export default class CCDSuggestedPage {
     constructor(page) {
         this.page = page;
+        
         this.priceStrikethrough = page.locator('.price-strikethrough');
         this.cardIcon = page.locator('merch-icon');
         this.cardTitle = this.page.locator('h3[slot="heading-xs"]');

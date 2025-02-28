@@ -635,7 +635,7 @@ class RteField extends LitElement {
             if (linkAttrs.class) {
                 let persistedClasses = '';
                 for (const persistedClass of persistedSelectionClasses) {
-                    if (classValue.includes(persistedClass)) {
+                    if (classValue?.includes(persistedClass)) {
                         persistedClasses += `${persistedClass} `;
                     }
                 }

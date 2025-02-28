@@ -7,10 +7,10 @@ export default {
             path: '/studio.html',
             data: {
                 singleCardID: '3b1fb0f1-b74e-4e8f-81ad-1744012b1935',
-                doubleCardID: '8cf16da3-a95d-4186-8a74-e0a2386631a6'
+                doubleCardID: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
             },
             browserParams: '#path=nala&page=content',
-            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-css',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-css @ccd-css',
         },
         {
             tcid: '1',
@@ -18,10 +18,10 @@ export default {
             path: '/studio.html',
             data: {
                 singleCardID: '3b1fb0f1-b74e-4e8f-81ad-1744012b1935',
-                doubleCardID: '8cf16da3-a95d-4186-8a74-e0a2386631a6'
+                doubleCardID: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
             },
             browserParams: '#path=nala&page=content',
-            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-css',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-css @ccd-css',
         },
         {
             tcid: '2',
@@ -29,10 +29,10 @@ export default {
             path: '/studio.html',
             data: {
                 singleCardID: '3b1fb0f1-b74e-4e8f-81ad-1744012b1935',
-                doubleCardID: '8cf16da3-a95d-4186-8a74-e0a2386631a6'
+                doubleCardID: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
             },
             browserParams: '#path=nala&page=content',
-            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-css',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-css @ccd-css',
         },
         {
             tcid: '3',
@@ -40,10 +40,10 @@ export default {
             path: '/studio.html',
             data: {
                 singleCardID: '3b1fb0f1-b74e-4e8f-81ad-1744012b1935',
-                doubleCardID: '8cf16da3-a95d-4186-8a74-e0a2386631a6'
+                doubleCardID: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
             },
             browserParams: '#path=nala&page=content',
-            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-css',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-css @ccd-css',
         },
         {
             tcid: '4',
@@ -51,10 +51,10 @@ export default {
             path: '/studio.html',
             data: {
                 singleCardID: '3b1fb0f1-b74e-4e8f-81ad-1744012b1935',
-                doubleCardID: '8cf16da3-a95d-4186-8a74-e0a2386631a6'
+                doubleCardID: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
             },
             browserParams: '#path=nala&page=content',
-            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-css',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-css @ccd-css',
         },
         {
             tcid: '5',
@@ -62,10 +62,10 @@ export default {
             path: '/studio.html',
             data: {
                 singleCardID: '3b1fb0f1-b74e-4e8f-81ad-1744012b1935',
-                doubleCardID: '8cf16da3-a95d-4186-8a74-e0a2386631a6'
+                doubleCardID: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
             },
             browserParams: '#path=nala&page=content',
-            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-css',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-css @ccd-css',
         },
         {
             tcid: '6',
@@ -73,10 +73,10 @@ export default {
             path: '/studio.html',
             data: {
                 singleCardID: '3b1fb0f1-b74e-4e8f-81ad-1744012b1935',
-                doubleCardID: '8cf16da3-a95d-4186-8a74-e0a2386631a6'
+                doubleCardID: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
             },
             browserParams: '#path=nala&page=content',
-            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-css',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-css @ccd-css',
         },
         {
             tcid: '7',
@@ -84,10 +84,10 @@ export default {
             path: '/studio.html',
             data: {
                 singleCardID: '3b1fb0f1-b74e-4e8f-81ad-1744012b1935',
-                doubleCardID: '8cf16da3-a95d-4186-8a74-e0a2386631a6'
+                doubleCardID: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
             },
             browserParams: '#path=nala&page=content',
-            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-css',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-css @ccd-css',
         },
         {
             tcid: '8',
@@ -95,10 +95,10 @@ export default {
             path: '/studio.html',
             data: {
                 singleCardID: '3b1fb0f1-b74e-4e8f-81ad-1744012b1935',
-                doubleCardID: '8cf16da3-a95d-4186-8a74-e0a2386631a6'
+                doubleCardID: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
             },
             browserParams: '#path=nala&page=content',
-            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-css',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-css @ccd-css',
         },
     ],
 };

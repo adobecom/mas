@@ -21,12 +21,14 @@ export default class CCDSlicePage {
         // Slice card properties:
         this.cssProp = {
             singleSize: {
-                width: '322px',
-                height: '154px',
+                'min-width': '290px',
+                'max-width': '322px',
+                'max-height': '154px',
             },
             doubleSize: {
-                width: '600px',
-                height: '154px',
+                'min-width': '290px',
+                'max-width': '600px',
+                'max-height': '154px',
             },
             card: {
                 'background-color': 'rgb(248, 248, 248)',
@@ -43,7 +45,6 @@ export default class CCDSlicePage {
                 'background-color': 'rgb(248, 217, 4)',
                 'font-size': '12px',
                 'font-weight': '400',
-                // 'height': '24px', // page does not match figma
             },
             description: {
                 color: 'rgb(34, 34, 34)',

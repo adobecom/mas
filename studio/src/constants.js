@@ -76,3 +76,14 @@ export const OPERATIONS = {
     CLONE: 'clone',
     UNPUBLISH: 'unpublish',
 };
+
+export const LOCALE_DEFAULT = 'en_US';
+
+export const STATUS_PUBLISHED = 'PUBLISHED';
+
+export const TAG_STATUS_PUBLISHED = 'mas:status/published';
+export const TAG_STATUS_PUBLISHED_PATH =
+    '/content/cq:tags/mas/status/published';
+export const TAG_STATUS_DRAFT = 'mas:status/draft';
+export const TAG_STATUS_DRAFT_PATH = '/content/cq:tags/mas/status/draft';
+

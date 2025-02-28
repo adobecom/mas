@@ -1,7 +1,12 @@
 import { WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
-import { getHashParam, getHashParams, setHashParams } from './utils.js';
+import {
+    getHashParam,
+    getHashParams,
+    looseEquals,
+    setHashParams,
+} from './utils.js';
 
 const hasQuery = Boolean(getHashParam('query'));
 
@@ -29,7 +34,7 @@ const Store = {
         data: new ReactiveStore([]),
     },
     search: new ReactiveStore({}),
-    filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
+    filters: new ReactiveStore({ locale: 'en_US', tags: [] }, filtersValidator),
     renderMode: new ReactiveStore(
         localStorage.getItem('mas-render-mode') || 'render',
     ), // 'render' | 'table'
@@ -40,8 +45,6 @@ const Store = {
 };
 
 export default Store;
-
-// #region Validators
 
 /**
  * @param {object} value
@@ -71,10 +74,6 @@ function commerceEnvValidator(value) {
     return WCS_ENV_PROD;
 }
 
-// #endregion
-
-// #region Utils
-
 const editorPanel = () => document.querySelector('editor-panel');
 
 export function toggleSelection(id) {
@@ -101,10 +100,6 @@ export function navigateToPage(value) {
         }
     };
 }
-
-// #endregion
-
-// #region Hash link
 
 /**
  * Links a given store to the hash; Only primitive values and object values with primitive properties are supported
@@ -136,20 +131,32 @@ export function linkStoreToHash(store, params, defaultValue) {
             let hasChanges = false;
             const hashValue = {};
             for (const param of params) {
-                hashValue[param] = getHashParam(param);
-                if (hashValue[param] !== value[param]) {
+                const paramValue = getHashParam(param);
+                // Handle array values by splitting on commas if the default value is an array
+                hashValue[param] = Array.isArray(defaultValues[param])
+                    ? paramValue
+                        ? paramValue.split(',')
+                        : []
+                    : paramValue;
+
+                if (!looseEquals(hashValue[param], value[param])) {
                     if (
-                        !hashValue[param] &&
+                        (!hashValue[param] ||
+                            looseEquals(
+                                hashValue[param],
+                                defaultValues[param],
+                            )) &&
                         defaultValues[param] &&
-                        value[param] === defaultValues[param]
+                        looseEquals(value[param], defaultValues[param])
                     )
                         hashValue[param] = defaultValues[param];
                     else hasChanges = true;
                 }
             }
-            if (hasChanges) store.set(hashValue);
+            if (hasChanges) store.set((prev) => ({ ...prev, ...hashValue }));
         }
     }
+
     function syncToHash(value) {
         const normalizedValue = isPrimitive
             ? { [params]: value }
@@ -161,9 +168,21 @@ export function linkStoreToHash(store, params, defaultValue) {
             : defaultValue;
 
         for (const prop in defaultValues) {
-            if (normalizedValue[prop] === defaultValues[prop]) {
+            const propValue = normalizedValue[prop];
+            // Join arrays with commas before comparing with default value
+            const normalizedPropValue = Array.isArray(propValue)
+                ? propValue.join(',')
+                : propValue;
+            const normalizedDefaultValue = Array.isArray(defaultValues[prop])
+                ? defaultValues[prop].join(',')
+                : defaultValues[prop];
+
+            if (normalizedPropValue === normalizedDefaultValue) {
                 hashParams.delete(prop);
                 delete normalizedValue[prop];
+            } else if (Array.isArray(propValue)) {
+                // Ensure arrays are joined with commas when setting in URL
+                normalizedValue[prop] = propValue.join(',');
             }
         }
         setHashParams(hashParams, normalizedValue);
@@ -190,10 +209,6 @@ export function unlinkStoreFromHash(store) {
     store.removeMeta('hashLink');
 }
 
-// #endregion
-
-// #region Behaviors
-
 // When the query param is populated or changes, switch to the 'content' page.
 Store.search.subscribe((value, oldValue) => {
     if (
@@ -202,5 +217,3 @@ Store.search.subscribe((value, oldValue) => {
     )
         Store.page.set('content');
 });
-
-// #endregion

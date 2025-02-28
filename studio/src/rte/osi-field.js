@@ -5,11 +5,6 @@ import { openOfferSelectorTool, closeOfferSelectorTool } from './ost.js';
 let osiFieldSource;
 
 class OsiField extends LitElement {
-    static styles = css`
-        :host {
-            --mod-textfield-width: 100%;
-        }
-    `;
     static properties = {
         id: { type: String, attribute: true },
         value: { type: String },
@@ -62,11 +57,6 @@ class OsiField extends LitElement {
         closeOfferSelectorTool();
     }
 
-    #handleTextfieldInput(event) {
-        const newValue = event.target.value;
-        this.value = newValue;
-    }
-
     #handleEscKey(event) {
         if (!this.showOfferSelector) return;
         if (event.key === 'Escape') {
@@ -78,7 +68,6 @@ class OsiField extends LitElement {
     get #offerSelectorToolButton() {
         return html`
             <sp-action-button
-                emphasized
                 id="offerSelectorToolButtonOSI"
                 @click=${this.handleOpenOfferSelector}
                 title="Offer Selector Tool"
@@ -100,17 +89,13 @@ class OsiField extends LitElement {
                 <sp-action-group
                     quiet
                     size="m"
-                    aria-label="RTE toolbar actions"
+                    aria-label="OSI field toolbar actions"
                 >
                     ${this.#offerSelectorToolButton}
-                    <sp-textfield
-                        id=${this.id}
-                        value=${this.value}
-                        placeholder="Select an offer"
-                        @input=${this.#handleTextfieldInput}
-                        quiet
-                    ></sp-textfield>
                 </sp-action-group>
+                <p id=${this.id}>
+                    Selected Offer: <strong>${this.value}</strong>
+                </p>
             </div>
         `;
     }

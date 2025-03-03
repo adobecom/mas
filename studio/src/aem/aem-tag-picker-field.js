@@ -201,6 +201,7 @@ class AemTagPickerField extends LitElement {
             });
 
         this.value = [...existingTags, ...newTagPaths].filter(Boolean);
+        this.#notifyChange();
     };
 
     connectedCallback() {

@@ -10,8 +10,6 @@ const miloLibs = process.env.MILO_LIBS || '';
 let studio;
 let slice;
 let ost;
-const COMMERCE_LINK_REGEX =
-    /https:\/\/commerce\.adobe\.com\/store\/email\?items%5B0%5D%5Bid%5D=([A-F0-9]{32}&apc=UMRM2MUSPr501YOC&cli=adobe_com&ctx=fp&co=US&lang=en)/i;
 
 test.beforeEach(async ({ page, browserName }) => {
     test.slow();
@@ -498,9 +496,19 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'is',
                 'checkout-button',
             );
-            await expect(
-                (await slice.cardCTA).evaluate((el) => el.href),
-            ).resolves.toMatch(COMMERCE_LINK_REGEX);
+
+            const CTAhref = await slice.cardCTA.getAttribute('data-href');
+            let workflowStep = decodeURI(CTAhref).split('?')[0];
+            let searchParams = new URLSearchParams(
+                decodeURI(CTAhref).split('?')[1],
+            );
+
+            expect(workflowStep).toContain(data.ucv3);
+            expect(searchParams.get('co')).toBe(data.country);
+            expect(searchParams.get('ctx')).toBe(data.ctx);
+            expect(searchParams.get('lang')).toBe(data.lang);
+            expect(searchParams.get('cli')).toBe(data.client);
+            expect(searchParams.get('apc')).toBe(data.promo);
         });
     });
 
@@ -680,9 +688,19 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'data-promotion-code',
                 data.promo,
             );
-            await expect(
-                (await slice.cardCTA).evaluate((el) => el.href),
-            ).resolves.toMatch(COMMERCE_LINK_REGEX);
+
+            const CTAhref = await slice.cardCTA.getAttribute('data-href');
+            let workflowStep = decodeURI(CTAhref).split('?')[0];
+            let searchParams = new URLSearchParams(
+                decodeURI(CTAhref).split('?')[1],
+            );
+
+            expect(workflowStep).toContain(data.ucv3);
+            expect(searchParams.get('co')).toBe(data.country);
+            expect(searchParams.get('ctx')).toBe(data.ctx);
+            expect(searchParams.get('lang')).toBe(data.lang);
+            expect(searchParams.get('cli')).toBe(data.client);
+            expect(searchParams.get('apc')).toBe(data.promo);
 
             await (
                 await studio.editorPanel.locator(studio.editorCTA)
@@ -706,17 +724,34 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-5: Validate edited CTA promo on the card', async () => {
-            await expect(await slice.cardCTA).toHaveAttribute(
+            const newCTA = await slice.cardCTA;
+            await expect(newCTA).toHaveAttribute(
                 'data-promotion-code',
                 data.newPromo,
             );
-            await expect(await slice.cardCTA).toHaveAttribute(
+            await expect(newCTA).toHaveAttribute(
                 'data-href',
-                /apc=/,
+                new RegExp(`${data.ucv3}`),
             );
-            await expect(await slice.cardCTA).toHaveAttribute(
+            await expect(newCTA).toHaveAttribute(
                 'data-href',
-                new RegExp(`${data.newPromo}`),
+                new RegExp(`co=${data.country}`),
+            );
+            await expect(newCTA).toHaveAttribute(
+                'data-href',
+                new RegExp(`ctx=${data.ctx}`),
+            );
+            await expect(newCTA).toHaveAttribute(
+                'data-href',
+                new RegExp(`lang=${data.lang}`),
+            );
+            await expect(newCTA).toHaveAttribute(
+                'data-href',
+                new RegExp(`cli=${data.client}`),
+            );
+            await expect(newCTA).toHaveAttribute(
+                'data-href',
+                new RegExp(`apc=${data.newPromo}`),
             );
         });
 

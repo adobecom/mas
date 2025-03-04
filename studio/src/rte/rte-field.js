@@ -559,7 +559,7 @@ class RteField extends LitElement {
                 // skip change event during initialization
                 const isFirstChange = this.value === null;
                 if (value !== this.value) {
-                    this.value = value;
+                    this.value = value === '<p></p>' ? '' : value;
                     if (isFirstChange) return;
                     this.dispatchEvent(
                         new CustomEvent('change', {

@@ -42,7 +42,6 @@ class MasStudio extends LitElement {
         this.bucket = 'e59433';
     }
 
-    // we need to completely remove&add element to the dom
     toggleCommerce(env) {
         const service = this.querySelector('mas-commerce-service');
         const newService = service.cloneNode(true);
@@ -53,15 +52,16 @@ class MasStudio extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        // Set the page based on URL parameter when component connects
         this.updatePageFromUrl();
-        // Listen for URL changes
         window.addEventListener('popstate', this.updatePageFromUrl.bind(this));
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        window.removeEventListener('popstate', this.updatePageFromUrl.bind(this));
+        window.removeEventListener(
+            'popstate',
+            this.updatePageFromUrl.bind(this),
+        );
     }
 
     updatePageFromUrl() {
@@ -93,13 +93,10 @@ class MasStudio extends LitElement {
 
     get placeholders() {
         if (this.page.value !== 'placeholders') return nothing;
-        return html`<div id="placeholders-container">
-            <mas-placeholders></mas-placeholders>
-        </div>`;
+        return html` <mas-placeholders></mas-placeholders> `;
     }
 
     get splashScreen() {
-        // Only show splash screen on welcome page
         if (this.page.value !== 'welcome') return nothing;
         return html`<mas-splash-screen
             base-url=${this.baseUrl}
@@ -107,11 +104,12 @@ class MasStudio extends LitElement {
     }
 
     get recentlyUpdated() {
-        // Don't show recently updated on placeholders or welcome pages
-        if (this.page.value === 'placeholders' || this.page.value === 'welcome') {
+        if (
+            this.page.value === 'placeholders' ||
+            this.page.value === 'welcome'
+        ) {
             return nothing;
         }
-        
         return html`<mas-recently-updated></mas-recently-updated>`;
     }
 

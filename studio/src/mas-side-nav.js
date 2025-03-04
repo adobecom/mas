@@ -86,25 +86,22 @@ class MasSideNav extends LitElement {
                 >
                     <sp-icon-home slot="icon"></sp-icon-home>
                 </sp-sidenav-item>
-
-                <sp-sidenav-item label="Promotions" value="promotions">
-                    <sp-icon-promote slot="icon"></sp-icon-promote>
-                </sp-sidenav-item>
-
-                <sp-sidenav-item label="Reporting" value="reporting">
-                    <sp-icon-graph-bar-vertical
-                        slot="icon"
-                    ></sp-icon-graph-bar-vertical>
-                </sp-sidenav-item>
                 <sp-sidenav-item
                     label="Placeholders"
                     value="placeholders"
                     @click="${navigateToPage('placeholders')}"
                     ?selected=${this.currentPage.value === 'placeholders'}
                 >
-                    <sp-icon-text slot="icon"></sp-icon-text>
+                    <sp-icon-cclibrary slot="icon"></sp-icon-cclibrary>
                 </sp-sidenav-item>
-                
+                <sp-sidenav-item label="Promotions" value="promotions">
+                    <sp-icon-promote slot="icon"></sp-icon-promote>
+                </sp-sidenav-item>
+                <sp-sidenav-item label="Reporting" value="reporting">
+                    <sp-icon-graph-bar-vertical
+                        slot="icon"
+                    ></sp-icon-graph-bar-vertical>
+                </sp-sidenav-item>
                 <sp-sidenav-item
                     class="side-nav-support"
                     label="Support"

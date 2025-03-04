@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+const { fetch } = require('./common.js');
 const { odinReferences } = require('./paths.js');
 
 function isCollection(body) {
@@ -47,24 +47,20 @@ async function collection(context) {
     const { id } = body;
     if (isCollection(body)) {
         const referencesPath = odinReferences(id, true);
-        try {
-            const response = await fetch(referencesPath);
-            if (response.status === 200) {
-                const root = await response.json();
-                const { references } = root;
-                const { cards, categories } = parseReferences(
-                    Object.keys(references),
-                    references,
-                );
-                body.fields = { ...body.fields, cards, categories };
-                return {
-                    ...context,
-                    status: 200,
-                    body,
-                };
-            }
-        } catch (e) {
-            console.error(`error fetching ${referencesPath}`, e);
+        const response = await fetch(referencesPath, context);
+        if (response.status === 200) {
+            const root = await response.json();
+            const { references } = root;
+            const { cards, categories } = parseReferences(
+                Object.keys(references),
+                references,
+            );
+            body.fields = { ...body.fields, cards, categories };
+            return {
+                ...context,
+                status: 200,
+                body,
+            };
         }
         return {
             status: 500,

@@ -37,6 +37,8 @@ const getResponse = async (description, cta) => {
     mockDictionary();
     return await replace({
         status: 200,
+        transformer: 'replace',
+        requestId: 'mas-replace-ut',
         surface: 'drafts',
         locale: 'fr_FR',
         body: odinResponse(description, cta),
@@ -54,6 +56,8 @@ const expectedResponse = (description) => ({
             cta: 'Buy now',
         },
     },
+    transformer: 'replace',
+    requestId: 'mas-replace-ut',
     locale: 'fr_FR',
     surface: 'drafts',
 });

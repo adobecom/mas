@@ -476,6 +476,12 @@
             "title": "DRAFT"
         },
         {
+            "path": "/content/cq:tags/mas/status/published",
+            "excerpt": "",
+            "name": "published",
+            "title": "PUBLISHED"
+        },
+        {
             "path": "/content/cq:tags/mas/term",
             "excerpt": "",
             "name": "term",

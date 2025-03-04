@@ -36,5 +36,21 @@ export default {
             browserParams: '#path=nala&page=content',
             tags: '@mas-studio',
         },
+        {
+            tcid: '3',
+            name: '@studio-empty-card',
+            path: '/studio.html',
+            data: {
+                cardid: '0bf35134-e5e4-4664-88d9-4b78203bf625',
+            },
+            browserParams: '#path=nala&page=content',
+            tags: '@mas-studio',
+        },
+        {
+            tcid: '4',
+            name: '@studio-goto-content',
+            path: '/studio.html',
+            tags: '@mas-studio',
+        },
     ],
 };

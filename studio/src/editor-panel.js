@@ -128,8 +128,8 @@ export default class EditorPanel extends LitElement {
             const newPosition = x > window.innerWidth / 2 ? 'left' : 'right';
             this.updatePosition(newPosition);
         }
-        this.inEdit.set(store.value);
         await this.repository.refreshFragment(store);
+        this.inEdit.set(store.value);
     }
 
     handleKeyDown(event) {
@@ -144,14 +144,6 @@ export default class EditorPanel extends LitElement {
     handleClose(e) {
         if (e.target === this) return;
         e.stopPropagation();
-    }
-
-    openFragmentInOdin() {
-        const parent = this.fragment?.path.split('/').slice(0, -1).join('/');
-        window.open(
-            `https://experience.adobe.com/?repo=author-p22655-${this.bucket}.adobeaemcloud.com#/@odin02/aem/cf/admin${parent}?appId=aem-cf-admin&q=${this.fragment?.fragmentName}`,
-            '_blank',
-        );
     }
 
     getFragmentPropsToUse() {
@@ -315,6 +307,11 @@ export default class EditorPanel extends LitElement {
         return true;
     }
 
+    #handleLocReady() {
+        const value = !this.fragment.getField('locReady').values[0];
+        this.inEdit.updateField('locReady', [value]);
+    }
+
     get fragmentEditorToolbar() {
         return html`
             <div id="editor-toolbar">
@@ -417,16 +414,6 @@ export default class EditorPanel extends LitElement {
                         ></sp-icon-publish-remove>
                         <sp-tooltip self-managed placement="bottom"
                             >Unpublish</sp-tooltip
-                        >
-                    </sp-action-button>
-                    <sp-action-button
-                        label="Open in Odin"
-                        value="open"
-                        @click="${this.openFragmentInOdin}"
-                    >
-                        <sp-icon-open-in slot="icon"></sp-icon-open-in>
-                        <sp-tooltip self-managed placement="bottom"
-                            >Open in Odin</sp-tooltip
                         >
                     </sp-action-button>
                     <sp-action-button
@@ -581,7 +568,17 @@ export default class EditorPanel extends LitElement {
                           multiline
                           value="${this.fragment.description}"
                           @input=${this.#updateFragmentInternal}
-                      ></sp-textfield>
+                      >
+                      </sp-textfield>
+                      <sp-field-label for="fragment-locready"
+                          >Send to translation?</sp-field-label
+                      >
+                      <sp-switch
+                          ?checked="${this.fragment.getField('locReady')
+                              ?.values[0]}"
+                          @click="${this.#handleLocReady}"
+                      >
+                      </sp-switch>
                   `
                 : nothing}
         `;
@@ -597,7 +594,6 @@ export default class EditorPanel extends LitElement {
         return html`
             <div id="editor">
                 ${this.fragmentEditorToolbar}
-                <p>${this.fragment.path}</p>
                 ${this.showEditor
                     ? html` <merch-card-editor
                           .fragment=${this.fragment}

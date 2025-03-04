@@ -57,6 +57,8 @@ test.describe('M@S Studio feature test suite', () => {
 
             const cards = await studio.renderView.locator('merch-card');
             expect(await cards.count()).toBe(1);
+            await expect(page).toHaveURL(`${testPage}&page=content&path=nala`);
+            expect(await studio.folderPicker).toHaveAttribute('value', 'nala');
         });
     });
 
@@ -91,6 +93,61 @@ test.describe('M@S Studio feature test suite', () => {
             ).toBeVisible();
             const searchResult = await studio.renderView.locator('merch-card');
             expect(await searchResult.count()).toBe(1);
+        });
+    });
+
+    // @studio-empty-card - Validate empty/broken cards are not previewed
+    test(`${features[3].name},${features[3].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[3];
+        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Validate empty card is not displayed', async () => {
+            await expect(await studio.renderView).toBeVisible();
+            const emptyCard = await studio.getCard(data.cardid, 'empty');
+            await expect(
+                await studio.getCard(data.cardid, 'empty'),
+            ).not.toBeVisible();
+        });
+    });
+
+    // @studio-goto-content - Validate Go to Content
+    test(`${features[4].name},${features[4].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const testPage = `${baseURL}${features[4].path}${miloLibs}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Go to content', async () => {
+            await expect(await studio.quickActions).toBeVisible();
+            await expect(await studio.gotoContent).toBeVisible();
+            await expect(await studio.folderPicker).toHaveAttribute(
+                'value',
+                'acom',
+            );
+            await studio.gotoContent.click();
+        });
+
+        await test.step('step-3: Validate page view', async () => {
+            await expect(await studio.renderView).toBeVisible();
+            const cards = await studio.renderView.locator('merch-card');
+            expect(await cards.count()).toBeGreaterThan(1);
+            await expect(page).toHaveURL(`${testPage}#path=acom&page=content`);
+            expect(await studio.folderPicker).toHaveAttribute('value', 'acom');
         });
     });
 });

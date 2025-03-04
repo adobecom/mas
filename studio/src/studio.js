@@ -23,7 +23,10 @@ const BUCKET_TO_ENV = {
 };
 
 linkStoreToHash(Store.search, ['path', 'query']);
-linkStoreToHash(Store.filters, ['locale'], { locale: 'en_US' });
+linkStoreToHash(Store.filters, ['locale', 'tags'], {
+    locale: 'en_US',
+    tags: [],
+});
 linkStoreToHash(Store.page, 'page', 'welcome');
 linkStoreToHash(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
 

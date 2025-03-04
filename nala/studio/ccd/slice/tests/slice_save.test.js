@@ -100,7 +100,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 .fill(data.newBadge);
             // edit size
             await studio.editorPanel.locator(studio.editorSize).click();
-            await page.getByRole('option', { name: 'normal' }).click();
+            await page.getByRole('option', { name: 'default' }).click();
             await studio.editorPanel
                 .locator(studio.editorIconURL)
                 .fill(data.newIconURL);

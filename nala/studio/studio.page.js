@@ -11,7 +11,7 @@ export default class StudioPage {
         this.searchInput = page.locator('sp-search  input');
         this.searchIcon = page.locator('sp-search sp-icon-magnify');
         this.filter = page.locator('sp-action-button[label="Filter"]');
-        this.topFolder = page.locator('sp-picker[label="TopFolder"] > button');
+        this.folderPicker = page.locator('mas-folder-picker sp-action-menu');
         this.renderView = page.locator('#render');
         this.quickActions = page.locator('.quick-actions');
         this.editorPanel = page.locator('editor-panel > #editor');
@@ -30,6 +30,13 @@ export default class StudioPage {
         this.sliceCard = page.locator('merch-card[variant="ccd-slice"]');
         this.sliceCardWide = page.locator(
             'merch-card[variant="ccd-slice"][size="wide"]',
+        );
+        this.emptyCard = page.locator('merch-card[variant="invalid-variant"]');
+        this.ahTryBuyWidgetCard = page.locator(
+            'merch-card[variant="ah-try-buy-widget"]',
+        );
+        this.ahTryBuyWidgetTripleCard = page.locator(
+            'merch-card[variant="ah-try-buy-widget"][size="triple"]',
         );
         // Editor panel fields
         this.editorVariant = page.locator('#card-variant');
@@ -51,6 +58,8 @@ export default class StudioPage {
         this.editorDescription = page.locator(
             'sp-field-group#description div[contenteditable="true"]',
         );
+        this.editorBorderColor = page.locator('sp-picker#border-color');
+        this.editorBackgroundColor = page.locator('sp-picker#backgroundColor');
         // Editor panel toolbar
         this.cloneCard = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="clone"]',
@@ -71,11 +80,14 @@ export default class StudioPage {
         this.linkSave = page.locator('#saveButton');
     }
 
-    async getCard(id, cardType, cloned) {
+    async getCard(id, cardType, cloned, secondID) {
         const cardVariant = {
             suggested: this.suggestedCard,
             slice: this.sliceCard,
             'slice-wide': this.sliceCardWide,
+            ahtrybuywidget: this.ahTryBuyWidgetCard,
+            'ahtrybuywidget-triple': this.ahTryBuyWidgetTripleCard,
+            empty: this.emptyCard,
         };
 
         const card = cardVariant[cardType];
@@ -84,8 +96,12 @@ export default class StudioPage {
         }
 
         if (cloned) {
+            let baseSelector = `aem-fragment:not([fragment="${id}"])`;
+            const selector = secondID
+                ? `${baseSelector}:not([fragment="${secondID}"])`
+                : baseSelector;
             return card.filter({
-                has: this.page.locator(`aem-fragment:not([fragment="${id}"])`),
+                has: this.page.locator(selector),
             });
         }
 

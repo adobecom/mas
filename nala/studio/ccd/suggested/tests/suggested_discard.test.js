@@ -424,6 +424,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await ost.workflowMenu).toBeVisible();
             await expect(await ost.ctaTextMenu).toBeVisible();
             await expect(await ost.checkoutLinkUse).toBeVisible();
+            await expect(await ost.checkoutLink).toBeEnabled();
             await ost.ctaTextMenu.click();
 
             await expect(

@@ -24,7 +24,7 @@ test.beforeEach(async ({ page, browserName }) => {
 });
 
 test.describe('M@S Studio CCD Suggested card test suite', () => {
-    // @studio-suggested-editor - Validate editor fields for suggested card in mas studio
+    // @studio-suggested-variant-change-to-slice - Validate card variant change from suggested to slice
     test(`${features[0].name},${features[0].tags}`, async ({
         page,
         baseURL,
@@ -46,22 +46,31 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.editorPanel).toBeVisible();
         });
 
-        await test.step('step-3: Validate fields rendering', async () => {
+        await test.step('step-3: Edit card variant', async () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorVariant),
             ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorVariant),
             ).toHaveAttribute('default-value', 'ccd-suggested');
+            await studio.editorPanel.locator(studio.editorVariant).locator('sp-picker').first().click();
+            await page.getByRole('option', { name: 'slice' }).click();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-4: Validate editor fields rendering after variant change', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toHaveAttribute('default-value', 'ccd-slice');
             await expect(
                 await studio.editorPanel.locator(studio.editorSize),
-            ).not.toBeVisible();
+            ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
-            ).toBeVisible();
+            ).not.toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorSubtitle),
-            ).toBeVisible();
+            ).not.toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorBadge),
             ).toBeVisible();
@@ -76,10 +85,21 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorPrices),
-            ).toBeVisible();
+            ).not.toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorFooter),
             ).toBeVisible();
+        });
+
+        await test.step('step-5: Validate card variant change', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'slice'),
+            ).toBeVisible();
+            await expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).not.toBeVisible();
+            await expect(await suggested.cardTitle).not.toBeVisible();
+            await expect(await suggested.cardEyebrow).not.toBeVisible();
         });
     });
 

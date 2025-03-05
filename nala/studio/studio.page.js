@@ -60,6 +60,9 @@ export default class StudioPage {
         );
         this.editorBorderColor = page.locator('sp-picker#border-color');
         this.editorBackgroundColor = page.locator('sp-picker#backgroundColor');
+        this.editorOSI = page.locator('osi-field#osi');
+        this.editorOSIButton = page.locator('#offerSelectorToolButtonOSI');
+        this.editorTags = page.locator('aem-tag-picker-field[label="Tags"]');
         // Editor panel toolbar
         this.cloneCard = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="clone"]',

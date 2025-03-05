@@ -101,5 +101,22 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
         },
+        {
+            tcid: '8',
+            name: '@studio-slice-discard-change-osi',
+            path: '/studio.html',
+            data: {
+                cardid: '3b1fb0f1-b74e-4e8f-81ad-1744012b1935',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                productCodeTag: 'product_code/phsp',
+                offerTypeTag: 'offer_type/base',
+                marketSegmentsTag: 'market_segments/com',
+                planTypeTag: 'plan_type/abm',
+                newosi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
+                newPlanTypeTag: 'plan_type/m2m',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
+        },
     ],
 };

@@ -216,7 +216,11 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorVariant),
             ).toHaveAttribute('default-value', 'ccd-slice');
-            await studio.editorPanel.locator(studio.editorVariant).locator('sp-picker').first().click();
+            await studio.editorPanel
+                .locator(studio.editorVariant)
+                .locator('sp-picker')
+                .first()
+                .click();
             await page.getByRole('option', { name: 'suggested' }).click();
             await page.waitForTimeout(2000);
             // save card

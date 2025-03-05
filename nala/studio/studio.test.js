@@ -268,5 +268,4 @@ test.describe('M@S Studio feature test suite', () => {
             ).toBeVisible();
         });
     });
-
 });

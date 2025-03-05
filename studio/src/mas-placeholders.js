@@ -3,12 +3,131 @@ import { repeat } from 'lit/directives/repeat.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import Events from './events.js';
-import { MOCK_PLACEHOLDERS } from './data/mock-placeholders.js';
-import { styles } from './styles/mas-placeholders.css.js';
+
+// Mock data for placeholders
+const MOCK_PLACEHOLDERS = [
+    {
+        key: '30-days-free',
+        value: 'Essai gratuit pendant 30 jours',
+        locale: 'Canada_French',
+        state: 'Default',
+        status: 'Published',
+        updatedBy: 'Nicholas',
+        updatedAt: '23 Feb, 2024 at 13:00',
+    },
+    {
+        key: 'acrobat',
+        value: 'Acrobat',
+        locale: 'Canada_French',
+        state: 'Default',
+        status: 'Published',
+        updatedBy: 'Nicholas',
+        updatedAt: '23 Feb, 2024 at 13:00',
+    },
+    {
+        key: 'acrobat-export-pdf',
+        value: 'Acrobat Document PDF',
+        locale: 'Canada_French',
+        state: 'Customized',
+        status: 'Yet to Publish',
+        updatedBy: 'Nicholas',
+        updatedAt: '23 Feb, 2024 at 13:00',
+    },
+    {
+        key: 'acrobat-pdf-pack',
+        value: 'Acrobat PDF Ensemble',
+        locale: 'Canada_French',
+        state: 'Default',
+        status: 'Published',
+        updatedBy: 'Nicholas',
+        updatedAt: '23 Feb, 2024 at 13:00',
+    },
+    {
+        key: 'acrobat-pro',
+        value: 'Acrobat Pro',
+        locale: 'Canada_French',
+        state: 'Default',
+        status: 'Published',
+        updatedBy: 'Nicholas',
+        updatedAt: '23 Feb, 2024 at 13:00',
+    },
+    {
+        key: 'acrobat-pro-2020',
+        value: 'Acrobat Pro 2020',
+        locale: 'Canada_French',
+        state: 'Default',
+        status: 'Published',
+        updatedBy: 'Nicholas',
+        updatedAt: '23 Feb, 2024 at 13:00',
+    },
+    {
+        key: 'acrobat-reader',
+        value: 'Acrobat Reader',
+        locale: 'Canada_French',
+        state: 'Default',
+        status: 'Published',
+        updatedBy: 'Nicholas',
+        updatedAt: '23 Feb, 2024 at 13:00',
+    },
+    {
+        key: 'acrobat-sign',
+        value: 'Acrobat Sign',
+        locale: 'Canada_French',
+        state: 'Default',
+        status: 'Published',
+        updatedBy: 'Nicholas',
+        updatedAt: '23 Feb, 2024 at 13:00',
+    },
+    {
+        key: 'acrobat-standard',
+        value: 'Acrobat Standard',
+        locale: 'Canada_French',
+        state: 'Default',
+        status: 'Published',
+        updatedBy: 'Nicholas',
+        updatedAt: '23 Feb, 2024 at 13:00',
+    },
+    {
+        key: 'acrobat-standard-2020',
+        value: 'Acrobat Standard 2020',
+        locale: 'Canada_French',
+        state: 'Default',
+        status: 'Published',
+        updatedBy: 'Nicholas',
+        updatedAt: '23 Feb, 2024 at 13:00',
+    },
+    {
+        key: 'add',
+        value: 'Ajouter',
+        locale: 'Canada_French',
+        state: 'Default',
+        status: 'Published',
+        updatedBy: 'Nicholas',
+        updatedAt: '23 Feb, 2024 at 13:00',
+    },
+    {
+        key: 'add-to-cart',
+        value: 'Ajouter au panier',
+        locale: 'Canada_French',
+        state: 'Default',
+        status: 'Published',
+        updatedBy: 'Nicholas',
+        updatedAt: '23 Feb, 2024 at 13:00',
+    },
+    {
+        key: 'adobe-acrobat',
+        value: 'Adobe Acrobat',
+        locale: 'Canada_French',
+        state: 'Default',
+        status: 'Published',
+        updatedBy: 'Nicholas',
+        updatedAt: '23 Feb, 2024 at 13:00',
+    },
+];
 
 class MasPlaceholders extends LitElement {
-    static get styles() {
-        return styles;
+    createRenderRoot() {
+        return this;
     }
 
     constructor() {
@@ -29,7 +148,7 @@ class MasPlaceholders extends LitElement {
             key: '',
             value: '',
             locale: 'USA_English',
-            localeConfig: 'region-specific',
+            localeConfig: 'region-specific'
         };
 
         // Define default column widths
@@ -46,8 +165,7 @@ class MasPlaceholders extends LitElement {
 
         // Bind methods
         this.handleClickOutside = this.handleClickOutside.bind(this);
-        this.handleCreateModalClickOutside =
-            this.handleCreateModalClickOutside.bind(this);
+        this.handleCreateModalClickOutside = this.handleCreateModalClickOutside.bind(this);
     }
 
     // In a real implementation, these would be connected to the Store
@@ -72,10 +190,7 @@ class MasPlaceholders extends LitElement {
 
         // Remove click outside listener
         document.removeEventListener('click', this.handleClickOutside);
-        document.removeEventListener(
-            'click',
-            this.handleCreateModalClickOutside,
-        );
+        document.removeEventListener('click', this.handleCreateModalClickOutside);
     }
 
     handleClickOutside(event) {
@@ -92,11 +207,20 @@ class MasPlaceholders extends LitElement {
     handleCreateModalClickOutside(event) {
         if (
             this.showCreateModal &&
-            !event.target.closest('.create-placeholder-modal') &&
+            !event.target.closest('.create-modal-content') &&
             !event.target.closest('.create-button')
         ) {
+            // Don't close if clicking on the modal overlay itself
+            if (event.target.closest('.create-modal-overlay')) {
+                return;
+            }
             this.closeCreateModal();
         }
+    }
+
+    closeCreateModal() {
+        this.showCreateModal = false;
+        this.requestUpdate();
     }
 
     handleSearch(e) {
@@ -116,7 +240,7 @@ class MasPlaceholders extends LitElement {
             key: '',
             value: '',
             locale: 'USA_English',
-            localeConfig: 'region-specific', // Default to region specific
+            localeConfig: 'region-specific' // Default to region specific
         };
         this.requestUpdate();
     }
@@ -324,10 +448,9 @@ class MasPlaceholders extends LitElement {
 
         if (this.editingPlaceholder === key) {
             return html`
-                <sp-table-cell
-                    class="action-cell"
-                    style="text-align: right; width: ${this.columnWidths
-                        .action};"
+                <sp-table-cell 
+                    class="action-cell" 
+                    style="text-align: right; width: ${this.columnWidths.action};"
                 >
                     <div class="action-buttons">
                         <button
@@ -350,8 +473,8 @@ class MasPlaceholders extends LitElement {
         }
 
         return html`
-            <sp-table-cell
-                class="action-cell"
+            <sp-table-cell 
+                class="action-cell" 
                 style="text-align: right; width: ${this.columnWidths.action};"
             >
                 <div class="action-buttons">
@@ -378,10 +501,7 @@ class MasPlaceholders extends LitElement {
     renderKeyCell(placeholder) {
         if (this.editingPlaceholder === placeholder.key) {
             return html`
-                <sp-table-cell
-                    class="editing-cell"
-                    style="width: ${this.columnWidths.key};"
-                >
+                <sp-table-cell class="editing-cell" style="width: ${this.columnWidths.key};">
                     <div class="edit-field-container">
                         <sp-textfield
                             value=${this.editedKey}
@@ -400,10 +520,7 @@ class MasPlaceholders extends LitElement {
     renderValueCell(placeholder) {
         if (this.editingPlaceholder === placeholder.key) {
             return html`
-                <sp-table-cell
-                    class="editing-cell"
-                    style="width: ${this.columnWidths.value};"
-                >
+                <sp-table-cell class="editing-cell" style="width: ${this.columnWidths.value};">
                     <div class="edit-field-container">
                         <sp-textfield
                             value=${this.editedValue}
@@ -540,11 +657,6 @@ class MasPlaceholders extends LitElement {
         ></sp-progress-circle>`;
     }
 
-    closeCreateModal() {
-        this.showCreateModal = false;
-        this.requestUpdate();
-    }
-
     handleNewPlaceholderKeyChange(e) {
         this.newPlaceholder.key = e.target.value;
         this.requestUpdate();
@@ -560,8 +672,8 @@ class MasPlaceholders extends LitElement {
         this.requestUpdate();
     }
 
-    handleNewPlaceholderLocaleConfigChange(value) {
-        this.newPlaceholder.localeConfig = value;
+    handleLocaleConfigChange(config) {
+        this.newPlaceholder.localeConfig = config;
         this.requestUpdate();
     }
 
@@ -571,20 +683,18 @@ class MasPlaceholders extends LitElement {
             console.error('Key cannot be empty');
             return;
         }
+
         if (!this.newPlaceholder.value.trim()) {
             console.error('Value cannot be empty');
             return;
         }
 
-        // Create new placeholder
+        // Create a new placeholder
         const newPlaceholder = {
             key: this.newPlaceholder.key,
             value: this.newPlaceholder.value,
             locale: this.newPlaceholder.locale,
-            state:
-                this.newPlaceholder.localeConfig === 'region-specific'
-                    ? 'Default'
-                    : 'Customized',
+            state: 'Default',
             status: 'Yet to Publish',
             updatedBy: 'Current User',
             updatedAt: new Date().toLocaleString('en-US', {
@@ -599,182 +709,106 @@ class MasPlaceholders extends LitElement {
         // Add to placeholders array
         this.placeholders = [newPlaceholder, ...this.placeholders];
 
-        // Close modal
+        // Close the modal
         this.closeCreateModal();
     }
 
-    renderCreatePlaceholderModal() {
+    renderCreateModal() {
         if (!this.showCreateModal) return nothing;
 
         return html`
-            <div class="modal-overlay">
-                <div class="create-placeholder-modal">
-                    <h2>Create Placeholder</h2>
-
-                    <div class="modal-form">
-                        <div class="form-group">
-                            <label for="placeholder-key"
-                                >Enter Key
-                                <span class="required">*</span></label
-                            >
-                            <sp-textfield
-                                id="placeholder-key"
-                                value=${this.newPlaceholder.key}
-                                @input=${this.handleNewPlaceholderKeyChange}
-                                placeholder="Key"
-                            ></sp-textfield>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="placeholder-locale"
-                                >Choose Locale
-                                <span class="required">*</span></label
-                            >
-                            <sp-picker
-                                id="placeholder-locale"
-                                value=${this.newPlaceholder.locale}
-                                @change=${this.handleNewPlaceholderLocaleChange}
-                            >
-                                <sp-menu-item value="USA_English"
-                                    >USA_English</sp-menu-item
+            <div class="create-modal-overlay">
+                <div class="create-modal">
+                    <div class="create-modal-content">
+                        <h2 class="create-modal-title">Create Placeholder</h2>
+                        
+                        <div class="create-modal-form">
+                            <div class="form-group">
+                                <label for="placeholder-key">Enter Key <span class="required">*</span></label>
+                                <sp-textfield
+                                    id="placeholder-key"
+                                    placeholder="Key"
+                                    value=${this.newPlaceholder.key}
+                                    @input=${this.handleNewPlaceholderKeyChange}
+                                ></sp-textfield>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="placeholder-locale">Choose Locale <span class="required">*</span></label>
+                                <sp-picker
+                                    id="placeholder-locale"
+                                    value=${this.newPlaceholder.locale}
+                                    @change=${this.handleNewPlaceholderLocaleChange}
                                 >
-                                <sp-menu-item value="Canada_French"
-                                    >Canada_French</sp-menu-item
-                                >
-                                <sp-menu-item value="UK_English"
-                                    >UK_English</sp-menu-item
-                                >
-                            </sp-picker>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="placeholder-value"
-                                >Enter Value
-                                <span class="required">*</span></label
-                            >
-                            <sp-textfield
-                                id="placeholder-value"
-                                value=${this.newPlaceholder.value}
-                                @input=${this.handleNewPlaceholderValueChange}
-                                placeholder="Value"
-                            ></sp-textfield>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Locale Configuration</label>
-                            <div class="locale-config-options">
-                                <div
-                                    class="locale-config-option ${this
-                                        .newPlaceholder.localeConfig ===
-                                    'region-specific'
-                                        ? 'selected'
-                                        : ''}"
-                                >
-                                    <div
-                                        class="radio-container"
-                                        @click=${() =>
-                                            this.handleNewPlaceholderLocaleConfigChange(
-                                                'region-specific',
-                                            )}
-                                    >
-                                        <div
-                                            class="radio-button ${this
-                                                .newPlaceholder.localeConfig ===
-                                            'region-specific'
-                                                ? 'selected'
-                                                : ''}"
-                                        >
-                                            <div class="radio-inner"></div>
+                                    <sp-menu-item value="USA_English">USA_English</sp-menu-item>
+                                    <sp-menu-item value="Canada_French">Canada_French</sp-menu-item>
+                                    <sp-menu-item value="UK_English">UK_English</sp-menu-item>
+                                </sp-picker>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="placeholder-value">Enter Value <span class="required">*</span></label>
+                                <sp-textfield
+                                    id="placeholder-value"
+                                    placeholder="Value"
+                                    value=${this.newPlaceholder.value}
+                                    @input=${this.handleNewPlaceholderValueChange}
+                                ></sp-textfield>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Locale Configuration</label>
+                                <div class="locale-config-options">
+                                    <div class="locale-config-option ${this.newPlaceholder.localeConfig === 'region-specific' ? 'selected' : ''}">
+                                        <sp-radio
+                                            checked=${this.newPlaceholder.localeConfig === 'region-specific'}
+                                            @change=${() => this.handleLocaleConfigChange('region-specific')}
+                                        ></sp-radio>
+                                        <div class="locale-config-content">
+                                            <h3>Create Region Specific</h3>
+                                            <p>Placeholder created only for chosen locale</p>
                                         </div>
                                     </div>
-                                    <div class="option-content">
-                                        <h3>Create Region Specific</h3>
-                                        <p>
-                                            Placeholder created only for chosen
-                                            locale
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div
-                                    class="locale-config-option ${this
-                                        .newPlaceholder.localeConfig ===
-                                    'global'
-                                        ? 'selected'
-                                        : ''}"
-                                >
-                                    <div
-                                        class="radio-container"
-                                        @click=${() =>
-                                            this.handleNewPlaceholderLocaleConfigChange(
-                                                'global',
-                                            )}
-                                    >
-                                        <div
-                                            class="radio-button ${this
-                                                .newPlaceholder.localeConfig ===
-                                            'global'
-                                                ? 'selected'
-                                                : ''}"
-                                        >
-                                            <div class="radio-inner"></div>
+                                    
+                                    <div class="locale-config-option ${this.newPlaceholder.localeConfig === 'across-globe' ? 'selected' : ''}">
+                                        <sp-radio
+                                            checked=${this.newPlaceholder.localeConfig === 'across-globe'}
+                                            @change=${() => this.handleLocaleConfigChange('across-globe')}
+                                        ></sp-radio>
+                                        <div class="locale-config-content">
+                                            <h3>Create Across Globe</h3>
+                                            <p>Placeholder created for all the available list of locale</p>
                                         </div>
                                     </div>
-                                    <div class="option-content">
-                                        <h3>Create Across Globe</h3>
-                                        <p>
-                                            Placeholder created for all the
-                                            available list of locale
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div
-                                    class="locale-config-option ${this
-                                        .newPlaceholder.localeConfig ===
-                                    'custom'
-                                        ? 'selected'
-                                        : ''}"
-                                >
-                                    <div
-                                        class="radio-container"
-                                        @click=${() =>
-                                            this.handleNewPlaceholderLocaleConfigChange(
-                                                'custom',
-                                            )}
-                                    >
-                                        <div
-                                            class="radio-button ${this
-                                                .newPlaceholder.localeConfig ===
-                                            'custom'
-                                                ? 'selected'
-                                                : ''}"
-                                        >
-                                            <div class="radio-inner"></div>
+                                    
+                                    <div class="locale-config-option ${this.newPlaceholder.localeConfig === 'custom' ? 'selected' : ''}">
+                                        <sp-radio
+                                            checked=${this.newPlaceholder.localeConfig === 'custom'}
+                                            @change=${() => this.handleLocaleConfigChange('custom')}
+                                        ></sp-radio>
+                                        <div class="locale-config-content">
+                                            <h3>Create Custom</h3>
+                                            <p>Placeholder created all the</p>
                                         </div>
-                                    </div>
-                                    <div class="option-content">
-                                        <h3>Create Custom</h3>
-                                        <p>Placeholder created all the</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="modal-actions">
-                        <sp-button
-                            variant="secondary"
-                            @click=${this.closeCreateModal}
-                        >
-                            Cancel
-                        </sp-button>
-                        <sp-button
-                            variant="accent"
-                            @click=${this.createPlaceholder}
-                        >
-                            Create
-                        </sp-button>
+                        
+                        <div class="create-modal-actions">
+                            <sp-button
+                                variant="secondary"
+                                @click=${this.closeCreateModal}
+                            >
+                                Cancel
+                            </sp-button>
+                            <sp-button
+                                variant="accent"
+                                @click=${this.createPlaceholder}
+                            >
+                                Create
+                            </sp-button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -841,11 +875,385 @@ class MasPlaceholders extends LitElement {
                 <div class="placeholders-content">
                     ${this.renderPlaceholdersTable()} ${this.loadingIndicator}
                 </div>
-
-                ${this.renderCreatePlaceholderModal()}
+                
+                ${this.renderCreateModal()}
             </div>
         `;
     }
 }
 
 customElements.define('mas-placeholders', MasPlaceholders);
+
+// Add styles
+const style = document.createElement('style');
+style.textContent = `
+    #placeholders-container {
+        height: 100%;
+        border-radius: 8px;
+        padding: 24px;
+        background-color: var(--spectrum-white);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-sizing: border-box;
+        position: relative;
+    }
+    
+    .breadcrumbs-container {
+        margin-bottom: 16px;
+    }
+    
+    .breadcrumbs {
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+        color: var(--spectrum-global-color-gray-700);
+    }
+    
+    .breadcrumb-link {
+        color: var(--spectrum-global-color-gray-700);
+        text-decoration: none;
+    }
+    
+    .breadcrumb-link:hover {
+        text-decoration: underline;
+    }
+    
+    .breadcrumb-chevron {
+        margin: 0 8px;
+        width: 16px;
+        height: 16px;
+        color: var(--spectrum-global-color-gray-500);
+    }
+    
+    .breadcrumb-current {
+        font-weight: 400;
+        color: var(--spectrum-global-color-gray-900);
+    }
+    
+    .placeholders-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+    
+    .placeholders-title h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+    }
+    
+    .search-filters-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+    
+    .filters-container {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    
+    .placeholders-content {
+        flex: 1;
+        position: relative;
+        overflow: auto;
+    }
+    
+    sp-progress-circle {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+    
+    .placeholders-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .placeholders-table sp-table-head {
+        background-color: var(--spectrum-global-color-gray-100);
+    }
+    
+    .placeholders-table sp-table-head-cell {
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+    }
+    
+    .placeholders-table sp-table-head-cell sp-icon-chevron-down,
+    .placeholders-table sp-table-head-cell sp-icon-chevron-up {
+        margin-left: 4px;
+    }
+    
+    /* Remove default sort arrows */
+    .placeholders-table sp-table-head-cell[sortable]::after {
+        display: none !important;
+    }
+    
+    sp-search {
+        width: 300px;
+    }
+    
+    .create-button {
+        margin-left: auto;
+    }
+    
+    /* Action column styles */
+    .action-cell {
+        position: relative;
+        box-sizing: border-box;
+        width: var(--action-column-width, auto);
+    }
+    
+    .action-buttons {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: flex-end;
+        width: 100%;
+    }
+    
+    .action-button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        flex: 0 0 auto;
+    }
+    
+    /* Ensure consistent button sizes */
+    .action-button sp-icon-edit,
+    .action-button sp-icon-more,
+    .action-button sp-icon-checkmark,
+    .action-button sp-icon-close {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .action-button:hover {
+        background-color: var(--spectrum-global-color-gray-200);
+    }
+    
+    .save-button {
+        color: var(--spectrum-semantic-positive-color-default);
+    }
+    
+    .cancel-button {
+        color: var(--spectrum-semantic-negative-color-default);
+    }
+    
+    /* Dropdown menu styles */
+    .dropdown-menu {
+        position: absolute;
+        right: 0;
+        top: 100%;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+        min-width: 200px;
+        padding: 8px 0;
+    }
+    
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        padding: 8px 16px;
+        cursor: pointer;
+        gap: 8px;
+    }
+    
+    .dropdown-item:hover {
+        background-color: var(--spectrum-global-color-gray-100);
+    }
+    
+    .dropdown-item span {
+        flex: 1;
+    }
+    
+    /* Edit mode styles */
+    .editing-cell {
+        padding: 0 !important;
+        box-sizing: border-box;
+        vertical-align: middle;
+    }
+    
+    .edit-field-container {
+        padding: 8px;
+        box-sizing: border-box;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+    }
+    
+    .edit-field-container sp-textfield {
+        width: 100%;
+        --spectrum-textfield-height: 32px;
+        --spectrum-textfield-padding-top: 0;
+        --spectrum-textfield-padding-bottom: 0;
+        margin: 0;
+    }
+    
+    /* Make sure table cells have consistent padding */
+    .placeholders-table sp-table-cell {
+        padding: 8px;
+        box-sizing: border-box;
+        vertical-align: middle;
+        height: 48px; /* Fixed height for all cells */
+    }
+    
+    /* Ensure table rows have consistent height */
+    .placeholders-table sp-table-row {
+        height: 48px;
+        min-height: 48px;
+        box-sizing: border-box;
+    }
+    
+    /* Ensure the validation error doesn't break alignment */
+    .validation-error {
+        position: absolute;
+        bottom: -16px;
+        left: 8px;
+        color: var(--spectrum-semantic-negative-color-default);
+        font-size: 12px;
+        background-color: white;
+        z-index: 1;
+    }
+    
+    /* Table column alignment */
+    .placeholders-table sp-table-head-cell[style*="text-align: right"] {
+        justify-content: flex-end;
+    }
+    
+    .placeholders-table sp-table-cell[style*="text-align: right"] {
+        text-align: right;
+    }
+    
+    /* Status badge alignment in right-aligned cells */
+    sp-table-cell[style*="text-align: right"] sp-badge {
+        float: right;
+    }
+    
+    /* Action buttons alignment */
+    sp-table-cell.action-cell[style*="text-align: right"] .action-buttons {
+        justify-content: flex-end;
+    }
+    
+    /* Create Modal Styles */
+    .create-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+    
+    .create-modal {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        width: 600px;
+        max-width: 90vw;
+        max-height: 90vh;
+        overflow: auto;
+    }
+    
+    .create-modal-content {
+        padding: 24px;
+    }
+    
+    .create-modal-title {
+        font-size: 20px;
+        font-weight: 600;
+        margin: 0 0 24px 0;
+    }
+    
+    .create-modal-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .form-group label {
+        font-size: 14px;
+        font-weight: 500;
+    }
+    
+    .required {
+        color: var(--spectrum-semantic-negative-color-default);
+    }
+    
+    .locale-config-options {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .locale-config-option {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid var(--spectrum-global-color-gray-200);
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    
+    .locale-config-option.selected {
+        border-color: var(--spectrum-global-color-blue-500);
+        background-color: var(--spectrum-global-color-blue-50);
+    }
+    
+    .locale-config-content {
+        flex: 1;
+    }
+    
+    .locale-config-content h3 {
+        font-size: 14px;
+        font-weight: 600;
+        margin: 0 0 4px 0;
+    }
+    
+    .locale-config-content p {
+        font-size: 12px;
+        color: var(--spectrum-global-color-gray-700);
+        margin: 0;
+    }
+    
+    .create-modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 24px;
+    }
+    
+    /* Ensure form elements take full width */
+    .form-group sp-textfield,
+    .form-group sp-picker {
+        width: 100%;
+    }
+`;
+document.head.appendChild(style);

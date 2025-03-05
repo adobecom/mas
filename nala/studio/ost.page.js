@@ -52,6 +52,9 @@ export default class OSTPage {
         this.promoField = page.locator(
             '//input[contains(@class, "spectrum-Textfield-input")]',
         );
+        this.promoLabel = page.locator(
+            '//span[contains(@class, "spectrum-Badge-label")]',
+        );
         this.checkoutLinkUse = page
             .locator('button:near(h4:text("Checkout URL"))')
             .first();

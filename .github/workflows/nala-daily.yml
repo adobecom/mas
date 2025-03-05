@@ -1,0 +1,46 @@
+name: Nala Daily Run
+
+on:
+  schedule:
+    - cron: "0 15 * * *"
+  workflow_dispatch:
+
+jobs:
+  platform_matrix:
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20.x]
+    name: Running Daily Nala tests
+    runs-on: ubuntu-latest
+    env:
+      WORKFLOW_NAME: 'Nala Daily Run'
+      DAILY_RUN: 'true'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Set execute permission for dailyrun.sh
+        run: chmod +x ./nala/utils/dailyrun.sh
+
+      - name: Run Daily Nala tests with dailyrun.sh
+        run: ./nala/utils/dailyrun.sh
+        env:
+          GITHUB_ACTION_PATH: ${{ github.workspace }}
+          IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
+          IMS_PASS: ${{ secrets.IMS_PASS }}
+      - name: Persist JSON Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nala-results
+          path: nala-results.json
+          retention-days: 30

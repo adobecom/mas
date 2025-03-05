@@ -2,6 +2,7 @@ import { html } from 'lit';
 import {
     CHECKOUT_CTA_TEXTS,
     EVENT_OST_SELECT,
+    EVENT_OST_OFFER_SELECT,
     WCS_LANDSCAPE_PUBLISHED,
     WCS_LANDSCAPE_DRAFT,
 } from '../constants.js';
@@ -126,7 +127,13 @@ const OST_VALUE_MAPPING = {
     false: false,
 };
 
-export function onSelect(offerSelectorId, type, offer, options, promoOverride) {
+export function onPlaceholderSelect(
+    offerSelectorId,
+    type,
+    offer,
+    options,
+    promoOverride,
+) {
     const changes = getObjectDifference(options, OST_OPTION_DEFAULTS);
 
     const attributes = { 'data-wcs-osi': offerSelectorId };
@@ -164,6 +171,15 @@ export function onSelect(offerSelectorId, type, offer, options, promoOverride) {
     );
 }
 
+export function onOfferSelect(offerSelectorId, type, offer) {
+    ostRoot.dispatchEvent(
+        new CustomEvent(EVENT_OST_OFFER_SELECT, {
+            detail: { offerSelectorId, offer },
+            bubbles: true,
+        }),
+    );
+}
+
 export function getOffferSelectorTool() {
     return html`
         <sp-overlay id="ostDialog" type="modal">
@@ -174,69 +190,77 @@ export function getOffferSelectorTool() {
     `;
 }
 
-export function openOfferSelectorTool(offerElement) {
-    const landscape =
-        Store.commerceEnv?.value == 'stage'
-            ? WCS_LANDSCAPE_DRAFT
-            : WCS_LANDSCAPE_PUBLISHED;
-    if (!ostRoot) {
-        ostRoot = document.createElement('div');
-        document.body.appendChild(ostRoot);
-    }
-    let searchOfferSelectorId;
-    const aosAccessToken =
-        localStorage.getItem('masAccessToken') ?? window.adobeid.authorize();
-    const searchParameters = new URLSearchParams();
-
-    const defaultPlaceholderOptions = {
-        ...ostDefaults.defaultPlaceholderOptions,
-    };
-    const offerSelectorPlaceholderOptions = {};
-    if (offerElement) {
-        searchParameters.append(
-            'type',
-            offerElement.isInlinePrice ? 'price' : 'checkout',
-        );
-        if (!offerElement.isInlinePrice) {
-            searchParameters.append('text', offerElement.innerText);
+export function openOfferSelectorTool(triggerElement, offerElement) {
+    try {
+        const landscape =
+            Store.commerceEnv?.value == 'stage'
+                ? WCS_LANDSCAPE_DRAFT
+                : WCS_LANDSCAPE_PUBLISHED;
+        if (!ostRoot) {
+            ostRoot = document.createElement('div');
+            document.body.appendChild(ostRoot);
         }
-        searchOfferSelectorId = offerElement.getAttribute('data-wcs-osi');
+        let searchOfferSelectorId;
+        const aosAccessToken =
+            localStorage.getItem('masAccessToken') ??
+            window.adobeid.authorize();
+        const searchParameters = new URLSearchParams();
 
-        // Set search parameters
-        offerElement.getAttributeNames().forEach((key) => {
-            const newKey = OST_OPTION_ATTRIBUTE_MAPPING_REVERSE[key];
-            if (newKey) {
-                let newValue = offerElement.getAttribute(key);
-                newValue = OST_VALUE_MAPPING[newValue] ?? newValue;
-                offerSelectorPlaceholderOptions[newKey] = newValue;
+        const defaultPlaceholderOptions = {
+            ...ostDefaults.defaultPlaceholderOptions,
+        };
+        const offerSelectorPlaceholderOptions = {};
+        if (offerElement) {
+            searchParameters.append(
+                'type',
+                offerElement.isInlinePrice ? 'price' : 'checkout',
+            );
+            if (!offerElement.isInlinePrice) {
+                searchParameters.append('text', offerElement.innerText);
             }
-        });
+            searchOfferSelectorId = offerElement.getAttribute('data-wcs-osi');
 
-        [
-            'promotionCode', // contextual promo code (e.g. set on card/)
-            'storedPromoOverride', // promo code set directly on price/CTA
-            'checkoutType',
-            'workflowStep',
-            'country',
-        ].forEach((key) => {
-            const value = offerSelectorPlaceholderOptions[key];
-            if (value) searchParameters.append(key, value);
+            // Set search parameters
+            offerElement.getAttributeNames().forEach((key) => {
+                const newKey = OST_OPTION_ATTRIBUTE_MAPPING_REVERSE[key];
+                if (newKey) {
+                    let newValue = offerElement.getAttribute(key);
+                    newValue = OST_VALUE_MAPPING[newValue] ?? newValue;
+                    offerSelectorPlaceholderOptions[newKey] = newValue;
+                }
+            });
+
+            [
+                'promotionCode', // contextual promo code (e.g. set on card/)
+                'storedPromoOverride', // promo code set directly on price/CTA
+                'checkoutType',
+                'workflowStep',
+                'country',
+            ].forEach((key) => {
+                const value = offerSelectorPlaceholderOptions[key];
+                if (value) searchParameters.append(key, value);
+            });
+        }
+        ostRoot.style.display = 'block';
+        closeFunction = window.ost.openOfferSelectorTool({
+            ...ostDefaults,
+            rootElement: ostRoot,
+            zIndex: 20,
+            aosAccessToken,
+            landscape,
+            searchParameters,
+            searchOfferSelectorId,
+            defaultPlaceholderOptions,
+            offerSelectorPlaceholderOptions,
+            dialog: true,
+            onSelect:
+                triggerElement.tagName === 'OSI-FIELD'
+                    ? onOfferSelect
+                    : onPlaceholderSelect,
         });
+    } catch (error) {
+        console.error('Error opening offer selector tool:', error);
     }
-    ostRoot.style.display = 'block';
-    closeFunction = window.ost.openOfferSelectorTool({
-        ...ostDefaults,
-        rootElement: ostRoot,
-        zIndex: 20,
-        aosAccessToken,
-        landscape,
-        searchParameters,
-        searchOfferSelectorId,
-        defaultPlaceholderOptions,
-        offerSelectorPlaceholderOptions,
-        dialog: true,
-        onSelect,
-    });
 }
 
 export function closeOfferSelectorTool() {

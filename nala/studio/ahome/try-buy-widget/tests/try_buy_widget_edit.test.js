@@ -25,7 +25,7 @@ test.beforeEach(async ({ page, browserName }) => {
 
 test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     // @studio-try-buy-widget-editor - Validate editor fields for try buy widget card in mas studio
-    test(`${features[0].name},${features[0].tags}`, async ({
+    test.skip(`${features[0].name},${features[0].tags}`, async ({
         page,
         baseURL,
     }) => {

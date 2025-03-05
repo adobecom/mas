@@ -63,6 +63,7 @@ class AEM {
             Authorization: `Bearer ${sessionStorage.getItem('masAccessToken') ?? window.adobeid?.authorize?.()}`,
             pragma: 'no-cache',
             'cache-control': 'no-cache',
+            'x-aem-affinity-type': 'api',
         };
     }
 

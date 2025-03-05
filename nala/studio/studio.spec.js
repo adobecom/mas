@@ -46,5 +46,11 @@ export default {
             browserParams: '#path=nala&page=content',
             tags: '@mas-studio',
         },
+        {
+            tcid: '4',
+            name: '@studio-goto-content',
+            path: '/studio.html',
+            tags: '@mas-studio',
+        },
     ],
 };

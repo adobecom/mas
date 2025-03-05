@@ -25,8 +25,13 @@ async function getGitHubPRBranchLiveUrl() {
   const prFromOrg = process.env.prOrg;
   const prFromRepoName = process.env.prRepo;
   
-  const prBranchLiveUrl = `https://${prBranch}--${prFromRepoName}--${prFromOrg}.aem.live`;
-
+  let prBranchLiveUrl;
+  if (process.env.WORKFLOW_NAME === 'Nala Daily Run') {
+    prBranchLiveUrl = `https://${prBranch}--${toRepoName}--${toRepoOrg}.aem.live`;
+  } else {
+    prBranchLiveUrl = `https://${prBranch}--${prFromRepoName}--${prFromOrg}.aem.live`;
+  }
+  
   try {
     if (await isBranchURLValid(prBranchLiveUrl)) {
       process.env.PR_BRANCH_LIVE_URL = prBranchLiveUrl;

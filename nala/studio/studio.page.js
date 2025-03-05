@@ -98,6 +98,7 @@ export default class StudioPage {
             'ahtrybuywidget-triple': this.ahTryBuyWidgetTripleCard,
             'ahtrybuywidget-single': this.ahTryBuyWidgetSingleCard,
             'ahtrybuywidget-double': this.ahTryBuyWidgetDoubleCard,
+
             empty: this.emptyCard,
         };
 

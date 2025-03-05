@@ -14,6 +14,7 @@ import './filters/locale-picker.js';
 import StoreController from './reactivity/store-controller.js';
 import Store, { linkStoreToHash } from './store.js';
 import { WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
+import 'https://prod.adobeccstatic.com/unav/1.4/UniversalNav.js';
 
 const BUCKET_TO_ENV = {
     e155390: 'qa',

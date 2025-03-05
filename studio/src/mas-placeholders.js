@@ -3,6 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import Events from './events.js';
+import './filters/mas-placeholders-filters.js';
 
 // Mock data for placeholders
 const MOCK_PLACEHOLDERS = [
@@ -148,7 +149,11 @@ class MasPlaceholders extends LitElement {
             key: '',
             value: '',
             locale: 'USA_English',
-            localeConfig: 'region-specific'
+            localeConfig: 'region-specific',
+        };
+        this.appliedFilters = {
+            locale: [],
+            key: [],
         };
 
         // Define default column widths
@@ -165,7 +170,9 @@ class MasPlaceholders extends LitElement {
 
         // Bind methods
         this.handleClickOutside = this.handleClickOutside.bind(this);
-        this.handleCreateModalClickOutside = this.handleCreateModalClickOutside.bind(this);
+        this.handleCreateModalClickOutside =
+            this.handleCreateModalClickOutside.bind(this);
+        this.handleFiltersApplied = this.handleFiltersApplied.bind(this);
     }
 
     // In a real implementation, these would be connected to the Store
@@ -182,6 +189,9 @@ class MasPlaceholders extends LitElement {
         // Add click outside listener for dropdown menus
         document.addEventListener('click', this.handleClickOutside);
         document.addEventListener('click', this.handleCreateModalClickOutside);
+
+        // Listen for filters applied event
+        this.addEventListener('filters-applied', this.handleFiltersApplied);
     }
 
     disconnectedCallback() {
@@ -190,7 +200,13 @@ class MasPlaceholders extends LitElement {
 
         // Remove click outside listener
         document.removeEventListener('click', this.handleClickOutside);
-        document.removeEventListener('click', this.handleCreateModalClickOutside);
+        document.removeEventListener(
+            'click',
+            this.handleCreateModalClickOutside,
+        );
+
+        // Remove filters applied listener
+        this.removeEventListener('filters-applied', this.handleFiltersApplied);
     }
 
     handleClickOutside(event) {
@@ -240,7 +256,7 @@ class MasPlaceholders extends LitElement {
             key: '',
             value: '',
             locale: 'USA_English',
-            localeConfig: 'region-specific' // Default to region specific
+            localeConfig: 'region-specific', // Default to region specific
         };
         this.requestUpdate();
     }
@@ -367,20 +383,49 @@ class MasPlaceholders extends LitElement {
         this.editedValue = e.target.value;
     }
 
+    handleFiltersApplied(event) {
+        this.appliedFilters = event.detail.filters;
+        this.requestUpdate();
+    }
+
+    openFiltersModal() {
+        const filtersModal = this.querySelector('mas-placeholders-filters');
+        if (filtersModal) {
+            filtersModal.open();
+        }
+    }
+
     getFilteredPlaceholders() {
-        if (!this.searchQuery) {
-            return this.getSortedPlaceholders(this.placeholders);
+        let filtered = this.placeholders;
+
+        // Apply search filter
+        if (this.searchQuery) {
+            filtered = filtered.filter(
+                (placeholder) =>
+                    placeholder.key
+                        .toLowerCase()
+                        .includes(this.searchQuery.toLowerCase()) ||
+                    placeholder.value
+                        .toLowerCase()
+                        .includes(this.searchQuery.toLowerCase()),
+            );
         }
 
-        const filtered = this.placeholders.filter(
-            (placeholder) =>
-                placeholder.key
-                    .toLowerCase()
-                    .includes(this.searchQuery.toLowerCase()) ||
-                placeholder.value
-                    .toLowerCase()
-                    .includes(this.searchQuery.toLowerCase()),
-        );
+        // Apply locale filters
+        if (this.appliedFilters.locale.length > 0) {
+            filtered = filtered.filter((placeholder) =>
+                this.appliedFilters.locale.includes(placeholder.locale),
+            );
+        }
+
+        // Apply key filters
+        if (this.appliedFilters.key.length > 0) {
+            filtered = filtered.filter((placeholder) =>
+                this.appliedFilters.key.some((key) =>
+                    placeholder.key.includes(key),
+                ),
+            );
+        }
 
         return this.getSortedPlaceholders(filtered);
     }
@@ -448,9 +493,10 @@ class MasPlaceholders extends LitElement {
 
         if (this.editingPlaceholder === key) {
             return html`
-                <sp-table-cell 
-                    class="action-cell" 
-                    style="text-align: right; width: ${this.columnWidths.action};"
+                <sp-table-cell
+                    class="action-cell"
+                    style="text-align: right; width: ${this.columnWidths
+                        .action};"
                 >
                     <div class="action-buttons">
                         <button
@@ -473,8 +519,8 @@ class MasPlaceholders extends LitElement {
         }
 
         return html`
-            <sp-table-cell 
-                class="action-cell" 
+            <sp-table-cell
+                class="action-cell"
                 style="text-align: right; width: ${this.columnWidths.action};"
             >
                 <div class="action-buttons">
@@ -501,7 +547,10 @@ class MasPlaceholders extends LitElement {
     renderKeyCell(placeholder) {
         if (this.editingPlaceholder === placeholder.key) {
             return html`
-                <sp-table-cell class="editing-cell" style="width: ${this.columnWidths.key};">
+                <sp-table-cell
+                    class="editing-cell"
+                    style="width: ${this.columnWidths.key};"
+                >
                     <div class="edit-field-container">
                         <sp-textfield
                             value=${this.editedKey}
@@ -520,7 +569,10 @@ class MasPlaceholders extends LitElement {
     renderValueCell(placeholder) {
         if (this.editingPlaceholder === placeholder.key) {
             return html`
-                <sp-table-cell class="editing-cell" style="width: ${this.columnWidths.value};">
+                <sp-table-cell
+                    class="editing-cell"
+                    style="width: ${this.columnWidths.value};"
+                >
                     <div class="edit-field-container">
                         <sp-textfield
                             value=${this.editedValue}
@@ -721,10 +773,13 @@ class MasPlaceholders extends LitElement {
                 <div class="create-modal">
                     <div class="create-modal-content">
                         <h2 class="create-modal-title">Create Placeholder</h2>
-                        
+
                         <div class="create-modal-form">
                             <div class="form-group">
-                                <label for="placeholder-key">Enter Key <span class="required">*</span></label>
+                                <label for="placeholder-key"
+                                    >Enter Key
+                                    <span class="required">*</span></label
+                                >
                                 <sp-textfield
                                     id="placeholder-key"
                                     placeholder="Key"
@@ -732,59 +787,111 @@ class MasPlaceholders extends LitElement {
                                     @input=${this.handleNewPlaceholderKeyChange}
                                 ></sp-textfield>
                             </div>
-                            
+
                             <div class="form-group">
-                                <label for="placeholder-locale">Choose Locale <span class="required">*</span></label>
+                                <label for="placeholder-locale"
+                                    >Choose Locale
+                                    <span class="required">*</span></label
+                                >
                                 <sp-picker
                                     id="placeholder-locale"
                                     value=${this.newPlaceholder.locale}
-                                    @change=${this.handleNewPlaceholderLocaleChange}
+                                    @change=${this
+                                        .handleNewPlaceholderLocaleChange}
                                 >
-                                    <sp-menu-item value="USA_English">USA_English</sp-menu-item>
-                                    <sp-menu-item value="Canada_French">Canada_French</sp-menu-item>
-                                    <sp-menu-item value="UK_English">UK_English</sp-menu-item>
+                                    <sp-menu-item value="USA_English"
+                                        >USA_English</sp-menu-item
+                                    >
+                                    <sp-menu-item value="Canada_French"
+                                        >Canada_French</sp-menu-item
+                                    >
+                                    <sp-menu-item value="UK_English"
+                                        >UK_English</sp-menu-item
+                                    >
                                 </sp-picker>
                             </div>
-                            
+
                             <div class="form-group">
-                                <label for="placeholder-value">Enter Value <span class="required">*</span></label>
+                                <label for="placeholder-value"
+                                    >Enter Value
+                                    <span class="required">*</span></label
+                                >
                                 <sp-textfield
                                     id="placeholder-value"
                                     placeholder="Value"
                                     value=${this.newPlaceholder.value}
-                                    @input=${this.handleNewPlaceholderValueChange}
+                                    @input=${this
+                                        .handleNewPlaceholderValueChange}
                                 ></sp-textfield>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label>Locale Configuration</label>
                                 <div class="locale-config-options">
-                                    <div class="locale-config-option ${this.newPlaceholder.localeConfig === 'region-specific' ? 'selected' : ''}">
+                                    <div
+                                        class="locale-config-option ${this
+                                            .newPlaceholder.localeConfig ===
+                                        'region-specific'
+                                            ? 'selected'
+                                            : ''}"
+                                    >
                                         <sp-radio
-                                            checked=${this.newPlaceholder.localeConfig === 'region-specific'}
-                                            @change=${() => this.handleLocaleConfigChange('region-specific')}
+                                            checked=${this.newPlaceholder
+                                                .localeConfig ===
+                                            'region-specific'}
+                                            @change=${() =>
+                                                this.handleLocaleConfigChange(
+                                                    'region-specific',
+                                                )}
                                         ></sp-radio>
                                         <div class="locale-config-content">
                                             <h3>Create Region Specific</h3>
-                                            <p>Placeholder created only for chosen locale</p>
+                                            <p>
+                                                Placeholder created only for
+                                                chosen locale
+                                            </p>
                                         </div>
                                     </div>
-                                    
-                                    <div class="locale-config-option ${this.newPlaceholder.localeConfig === 'across-globe' ? 'selected' : ''}">
+
+                                    <div
+                                        class="locale-config-option ${this
+                                            .newPlaceholder.localeConfig ===
+                                        'across-globe'
+                                            ? 'selected'
+                                            : ''}"
+                                    >
                                         <sp-radio
-                                            checked=${this.newPlaceholder.localeConfig === 'across-globe'}
-                                            @change=${() => this.handleLocaleConfigChange('across-globe')}
+                                            checked=${this.newPlaceholder
+                                                .localeConfig ===
+                                            'across-globe'}
+                                            @change=${() =>
+                                                this.handleLocaleConfigChange(
+                                                    'across-globe',
+                                                )}
                                         ></sp-radio>
                                         <div class="locale-config-content">
                                             <h3>Create Across Globe</h3>
-                                            <p>Placeholder created for all the available list of locale</p>
+                                            <p>
+                                                Placeholder created for all the
+                                                available list of locale
+                                            </p>
                                         </div>
                                     </div>
-                                    
-                                    <div class="locale-config-option ${this.newPlaceholder.localeConfig === 'custom' ? 'selected' : ''}">
+
+                                    <div
+                                        class="locale-config-option ${this
+                                            .newPlaceholder.localeConfig ===
+                                        'custom'
+                                            ? 'selected'
+                                            : ''}"
+                                    >
                                         <sp-radio
-                                            checked=${this.newPlaceholder.localeConfig === 'custom'}
-                                            @change=${() => this.handleLocaleConfigChange('custom')}
+                                            checked=${this.newPlaceholder
+                                                .localeConfig === 'custom'}
+                                            @change=${() =>
+                                                this.handleLocaleConfigChange(
+                                                    'custom',
+                                                )}
                                         ></sp-radio>
                                         <div class="locale-config-content">
                                             <h3>Create Custom</h3>
@@ -794,7 +901,7 @@ class MasPlaceholders extends LitElement {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="create-modal-actions">
                             <sp-button
                                 variant="secondary"
@@ -864,6 +971,15 @@ class MasPlaceholders extends LitElement {
 
                         <sp-button
                             variant="secondary"
+                            class="filter-button"
+                            @click=${this.openFiltersModal}
+                        >
+                            <sp-icon-filter slot="icon"></sp-icon-filter>
+                            Filter
+                        </sp-button>
+
+                        <sp-button
+                            variant="secondary"
                             @click=${this.handleExport}
                         >
                             <sp-icon-export slot="icon"></sp-icon-export>
@@ -875,8 +991,9 @@ class MasPlaceholders extends LitElement {
                 <div class="placeholders-content">
                     ${this.renderPlaceholdersTable()} ${this.loadingIndicator}
                 </div>
-                
+
                 ${this.renderCreateModal()}
+                <mas-placeholders-filters></mas-placeholders-filters>
             </div>
         `;
     }

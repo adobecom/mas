@@ -12,6 +12,12 @@ function logError(message, context) {
     console.error(`${logPrefix(context, 'error')} ${message}`);
 }
 
+async function getErrorContext(response) {
+    return {
+        status: response.status,
+        message: await getErrorMessage(response),
+    };
+}
 async function getErrorMessage(response) {
     let message = 'nok';
     try {
@@ -45,6 +51,7 @@ async function internalFetch(path, context) {
 
 module.exports = {
     fetch: internalFetch,
+    getErrorContext,
     log,
     logError,
 };

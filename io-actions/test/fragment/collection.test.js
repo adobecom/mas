@@ -81,4 +81,115 @@ describe('collection transform', () => {
             { label: 'Photo', cards: ['aec092ef-d5b5-4271-8b6f-4bbd535fcc56'] },
         ]);
     });
+
+    describe('parseReferences', () => {
+        const parseReferences =
+            require('../../src/fragment/collection').parseReferences;
+
+        it('should handle empty references', () => {
+            const result = parseReferences([], {});
+            expect(result).to.deep.equal({ cards: {}, categories: [] });
+        });
+
+        it('should handle card references', () => {
+            const references = {
+                card1: {
+                    value: {
+                        fields: {
+                            variant: 'card',
+                            title: 'Test Card',
+                        },
+                    },
+                },
+            };
+            const result = parseReferences(['card1'], references);
+            expect(result.cards).to.have.property('card1');
+            expect(result.categories).to.be.empty;
+        });
+
+        it('should handle category references with cards', () => {
+            const references = {
+                cat1: {
+                    value: {
+                        fields: {
+                            label: 'Test Category',
+                            cards: ['card1', 'card2'],
+                        },
+                    },
+                },
+            };
+            const result = parseReferences(['cat1'], references);
+            expect(result.categories).to.deep.equal([
+                { label: 'Test Category', cards: ['card1', 'card2'] },
+            ]);
+            expect(result.cards).to.be.empty;
+        });
+
+        it('should handle nested categories', () => {
+            const references = {
+                cat1: {
+                    value: {
+                        fields: {
+                            label: 'Parent Category',
+                            categories: ['subcat1'],
+                        },
+                    },
+                },
+                subcat1: {
+                    value: {
+                        fields: {
+                            label: 'Sub Category',
+                            cards: ['card1'],
+                        },
+                    },
+                },
+            };
+            const result = parseReferences(['cat1'], references);
+            expect(result.categories).to.deep.equal([
+                {
+                    label: 'Parent Category',
+                    categories: [{ label: 'Sub Category', cards: ['card1'] }],
+                },
+            ]);
+            expect(result.cards).to.be.empty;
+        });
+
+        it('should handle mixed references (cards and categories)', () => {
+            const references = {
+                card1: {
+                    value: {
+                        fields: {
+                            variant: 'card',
+                            title: 'Test Card',
+                        },
+                    },
+                },
+                cat1: {
+                    value: {
+                        fields: {
+                            label: 'Test Category',
+                            cards: ['card2'],
+                        },
+                    },
+                },
+            };
+            const result = parseReferences(['card1', 'cat1'], references);
+            expect(result.cards).to.have.property('card1');
+            expect(result.categories).to.deep.equal([
+                { label: 'Test Category', cards: ['card2'] },
+            ]);
+        });
+
+        it('should handle references with missing fields', () => {
+            const references = {
+                ref1: {
+                    value: {
+                        fields: {},
+                    },
+                },
+            };
+            const result = parseReferences(['ref1'], references);
+            expect(result).to.deep.equal({ cards: {}, categories: [] });
+        });
+    });
 });

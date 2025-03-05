@@ -21,12 +21,6 @@ async function translate(context) {
         };
     }
     const { surface, parsedLocale, fragmentPath } = match.groups;
-    if (!surface || !parsedLocale || !fragmentPath) {
-        return {
-            status: 400,
-            message: 'source path is either not here or invalid',
-        };
-    }
     if (locale && parsedLocale !== locale) {
         const translatedPath = odinPath(surface, locale, fragmentPath);
         const response = await fetch(translatedPath, context);

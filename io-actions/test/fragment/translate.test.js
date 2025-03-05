@@ -66,14 +66,76 @@ describe('translate corner cases', () => {
     });
 
     it('bad path should return 400', async () => {
+        expect(
+            await translate({
+                status: 200,
+                body: { path: 'something/rather/wrong' },
+                locale: 'fr_FR',
+            }),
+        ).to.deep.equal({
+            status: 400,
+            message: 'source path is either not here or invalid',
+        });
+        expect(
+            await translate({
+                status: 200,
+                body: { path: 'content/dam/mas/a/b/' },
+                locale: 'fr_FR',
+            }),
+        ).to.deep.equal({
+            status: 400,
+            message: 'source path is either not here or invalid',
+        });
+    });
+
+    it('missing path components should return 400', async () => {
         const result = await translate({
             ...FAKE_CONTEXT,
-            body: { path: 'something/rather/wrong' },
+            status: 200,
+            body: { path: '/content/dam/mas/drafts/someFragment' }, // Missing locale
             locale: 'fr_FR',
         });
         expect(result).to.deep.equal({
             status: 400,
             message: 'source path is either not here or invalid',
+        });
+    });
+
+    it('should return 404 when translation fetch fails', async () => {
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments')
+            .query({ path: '/content/dam/mas/drafts/fr_FR/someFragment' })
+            .reply(404, {
+                message: 'Not found',
+            });
+
+        const result = await translate({
+            ...FAKE_CONTEXT,
+            body: { path: '/content/dam/mas/drafts/en_US/someFragment' },
+            locale: 'fr_FR',
+        });
+        expect(result).to.deep.equal({
+            status: 404,
+            message: 'no translation found',
+        });
+    });
+
+    it('should return 404 when translation has no items', async () => {
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments')
+            .query({ path: '/content/dam/mas/drafts/fr_FR/someFragment' })
+            .reply(200, {
+                items: [],
+            });
+
+        const result = await translate({
+            ...FAKE_CONTEXT,
+            body: { path: '/content/dam/mas/drafts/en_US/someFragment' },
+            locale: 'fr_FR',
+        });
+        expect(result).to.deep.equal({
+            status: 404,
+            message: 'no translation found',
         });
     });
 

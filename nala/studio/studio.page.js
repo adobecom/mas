@@ -38,6 +38,12 @@ export default class StudioPage {
         this.ahTryBuyWidgetTripleCard = page.locator(
             'merch-card[variant="ah-try-buy-widget"][size="triple"]',
         );
+        this.ahTryBuyWidgetSingleCard = page.locator(
+            'merch-card[variant="ah-try-buy-widget"][size="single"]',
+        );
+        this.ahTryBuyWidgetDoubleCard = page.locator(
+            'merch-card[variant="ah-try-buy-widget"][size="double"]',
+        );
         // Editor panel fields
         this.editorVariant = page.locator('#card-variant');
         this.editorSize = page.locator('#card-size');
@@ -60,6 +66,9 @@ export default class StudioPage {
         );
         this.editorBorderColor = page.locator('sp-picker#border-color');
         this.editorBackgroundColor = page.locator('sp-picker#backgroundColor');
+        this.editorCTAClassSecondary = page.locator(
+            'sp-field-group#ctas a.secondary',
+        );
         // Editor panel toolbar
         this.cloneCard = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="clone"]',
@@ -87,6 +96,8 @@ export default class StudioPage {
             'slice-wide': this.sliceCardWide,
             ahtrybuywidget: this.ahTryBuyWidgetCard,
             'ahtrybuywidget-triple': this.ahTryBuyWidgetTripleCard,
+            'ahtrybuywidget-single': this.ahTryBuyWidgetSingleCard,
+            'ahtrybuywidget-double': this.ahTryBuyWidgetDoubleCard,
             empty: this.emptyCard,
         };
 

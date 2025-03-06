@@ -1,27 +1,21 @@
-const fetch = require('node-fetch');
+const { fetch } = require('./common.js');
 const { odinId } = require('./paths.js');
-async function fetchFragment({ id, locale }) {
+async function fetchFragment(context) {
+    const { id } = context;
     if (id) {
-        try {
-            const response = await fetch(odinId(id));
-            if (response.status == 200) {
-                const body = await response.json();
-                return {
-                    status: 200,
-                    body,
-                    locale,
-                };
-            }
+        const path = odinId(id);
+        const response = await fetch(path, context);
+        if (response.status == 200) {
+            const body = await response.json();
             return {
-                status: 404,
-                message: 'requested fragment not found',
-            };
-        } catch (e) {
-            return {
-                status: 500,
-                message: `error parsing response ${e}`,
+                ...context,
+                body,
             };
         }
+        return {
+            status: 404,
+            message: 'requested fragment not found',
+        };
     }
     return {
         status: 400,

@@ -24,6 +24,7 @@ class MerchCardEditor extends LitElement {
         availableColors: { type: Array, state: true },
         availableBorderColors: { type: Array, state: true },
         availableBackgroundColors: { type: Array, state: true },
+        quantitySelectorValues: { type: String, state: true },
     };
 
     constructor() {
@@ -35,6 +36,7 @@ class MerchCardEditor extends LitElement {
         this.availableColors = [];
         this.availableBorderColors = [];
         this.availableBackgroundColors = [];
+        this.quantitySelectorValues = '';
     }
 
     createRenderRoot() {
@@ -71,11 +73,15 @@ class MerchCardEditor extends LitElement {
     }
 
     get quantityValue() {
-        return this.fragment?.fields.find((f) => f.name === QUANTITY_MODEL)?.values[0] ?? '';
+        return this.fragmentQuantityValue || this.quantitySelectorValues || '';
+    }
+
+    get fragmentQuantityValue() {
+        return this.fragment?.fields.find((f) => f.name === QUANTITY_MODEL)?.values[0] || '';
     }
 
     getQuantityAttribute(name) {
-        if (!this.quantitySelectorDisplayed) return undefined;
+        if (!this.quantityValue) return undefined;
 
         const parser = new DOMParser();
         const doc = parser.parseFromString(this.quantityValue, 'text/html');
@@ -96,7 +102,7 @@ class MerchCardEditor extends LitElement {
     }
 
     get quantitySelectorDisplayed() {
-        return !!this.quantityValue.trim();
+        return !!this.fragmentQuantityValue.trim();
     }
 
     createQsElement(min, step, title) {
@@ -120,12 +126,19 @@ class MerchCardEditor extends LitElement {
 
         const html = this.createQsElement(vals[0], vals[1], vals[2]).outerHTML;
         this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
+        this.quantitySelectorValues = html;
     }
 
     #showQuantityFields = (e) => {
         this.showQuantityFields(e.target.checked);
 
-        const html = e.target.checked ? this.createQsElement(this.quantityStart, this.quantityStep, this.quantityTitle).outerHTML : '';
+        let html = '';
+        if (e.target.checked) {
+            html = this.createQsElement(this.quantityStart, this.quantityStep, this.quantityTitle).outerHTML;
+        } else {
+            const qsValues = this.fragmentStore.get().getField(QUANTITY_MODEL)?.values;
+            this.quantitySelectorValues = qsValues?.length ? qsValues[0] : '';
+        }
         const fragment = this.fragmentStore.get();
         fragment.updateField(QUANTITY_MODEL, [html]);
         this.fragmentStore.set(fragment);

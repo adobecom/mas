@@ -40,10 +40,10 @@ export class RteIconEditor extends LitElement {
     get #editor() {
         return html`<sp-dialog close=${this.#handleClose}>
             <h2 slot="heading">Insert Info Icon</h2>
-            <sp-field-label for="tooltip">Enter the tooltip text</sp-field-label>
+            <sp-field-label for="tooltip">Tooltip</sp-field-label>
             <sp-textfield
                 id="tooltip"
-                placeholder="Tooltip text"
+                placeholder="Enter the tooltip text"
                 .value=${this.tooltip}
                 @input=${(e) => (this.tooltip = e.target.value)}
                 ></sp-textfield>            

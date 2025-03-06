@@ -8,6 +8,7 @@ libs/*.d.ts
 .idea
 coverage
 node_modules
+.nyc_output
 dist
 stats.json
 web-components/screenshots/Chrome/failed/*

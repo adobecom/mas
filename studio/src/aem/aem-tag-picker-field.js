@@ -1,6 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { AEM } from './aem.js';
+import { EVENT_OST_OFFER_SELECT } from '../constants.js';
 
 const AEM_TAG_PATTERN = /^[a-zA-Z][a-zA-Z0-9]*:/;
 const namespaces = {};
@@ -154,11 +155,61 @@ class AemTagPickerField extends LitElement {
         this.searchQuery = '';
     }
 
+    _onOstSelect = ({ detail: { offer } }) => {
+        if (!offer) return;
+        const extractedOffer = {
+            offer_type: offer.offer_type,
+            planType: offer.planType,
+            market_segments:
+                Array.isArray(offer.market_segments) &&
+                offer.market_segments.length > 0
+                    ? offer.market_segments[0]
+                    : offer.market_segments,
+        };
+
+        const convertCamelToSnake = (str) => {
+            if (typeof str !== 'string') return '';
+            return str.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+        };
+
+        const categoriesToUpdate = new Set([
+            'offer_type',
+            'plan_type',
+            'market_segments',
+        ]);
+
+        const existingTags = this.value.filter((tagPath) => {
+            for (const category of categoriesToUpdate) {
+                if (tagPath.includes(`/content/cq:tags/mas/${category}/`)) {
+                    return false; // Exclude this tagPath if it contains any of the categories
+                }
+            }
+            return true;
+        });
+
+        const newTagPaths = Object.entries(extractedOffer)
+            .filter(([_, value]) => value != null) // Filter out null/undefined values
+            .map(([key, value]) => {
+                const formattedKey = convertCamelToSnake(key);
+                const formattedValue = String(value).toLowerCase();
+                return `/content/cq:tags/mas/${formattedKey}/${formattedValue}`;
+            });
+
+        this.value = [...existingTags, ...newTagPaths].filter(Boolean);
+        this.#notifyChange();
+    };
+
     connectedCallback() {
         super.connectedCallback();
         this.multiple = this.multiple ?? this.selection === SELECTION_CHECKBOX;
         this.#aem = new AEM(this.bucket, this.baseUrl);
         this.loadTags();
+        document.addEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelect);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        document.removeEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelect);
     }
 
     get #tagsRoot() {

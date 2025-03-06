@@ -37,7 +37,12 @@
             import { delay, initElementFromTemplate } from '../utils.js';
 
             runTests(async () => {
-                mockFetch();
+                let fetchPromise;
+                const originalFetch = window.fetch;
+                window.fetch = async () => {
+                    fetchPromise = originalFetch('/test/mocks/tags.json');
+                    return fetchPromise;
+                };
 
                 describe('aem-tag-picker-field custom element: tag-picker', async () => {
                     it('Serializes to value attribute', async function () {

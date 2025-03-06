@@ -1,20 +1,17 @@
-const fetch = require('node-fetch');
 const { odinReferences, odinPath } = require('./paths.js');
+const { fetch, log, logError } = require('./common.js');
 const DICTIONARY_ID_PATH = 'dictionary/index';
 const PH_REGEXP = /{{(\s*([\w\-]+)\s*)}}/gi;
 
-async function getDictionaryId({ surface, locale }) {
-    try {
-        const dictionaryPath = odinPath(surface, locale, DICTIONARY_ID_PATH);
-        const response = await fetch(dictionaryPath);
-        if (response.status == 200) {
-            const { items } = await response.json();
-            if (items?.length == 1) {
-                return items[0].id;
-            }
+async function getDictionaryId(context) {
+    const { surface, locale } = context;
+    const dictionaryPath = odinPath(surface, locale, DICTIONARY_ID_PATH);
+    const response = await fetch(dictionaryPath, context);
+    if (response.status == 200) {
+        const { items } = await response.json();
+        if (items?.length == 1) {
+            return items[0].id;
         }
-    } catch (e) {
-        console.error(e);
     }
     return null;
 }
@@ -26,28 +23,23 @@ function extractValue(ref) {
 }
 
 async function getDictionary(context) {
-    try {
-        const id = await getDictionaryId(context);
-        if (!id) {
-            return null;
-        }
-        const response = await fetch(odinReferences(id));
-
-        if (response.status == 200) {
-            const raw = await response.json();
-            const dictionary = {};
-            Object.keys(raw.references).forEach((id) => {
-                const ref = raw.references[id]?.value?.fields;
-                if (ref?.key) {
-                    //we just test truthy keys as we can have empty placeholders
-                    //(treated different from absent ones)
-                    dictionary[ref.key] = extractValue(ref);
-                }
-            });
-            return dictionary;
-        }
-    } catch (e) {
-        console.error(e);
+    const id = await getDictionaryId(context);
+    if (!id) {
+        return null;
+    }
+    const response = await fetch(odinReferences(id), context);
+    if (response.status == 200) {
+        const raw = await response.json();
+        const dictionary = {};
+        Object.keys(raw.references).forEach((id) => {
+            const ref = raw.references[id]?.value?.fields;
+            if (ref?.key) {
+                //we just test truthy keys as we can have empty placeholders
+                //(treated different from absent ones)
+                dictionary[ref.key] = extractValue(ref);
+            }
+        });
+        return dictionary;
     }
     return null;
 }
@@ -91,10 +83,12 @@ async function replace(context) {
             try {
                 body.fields = JSON.parse(fieldsString);
             } catch (e) {
-                console.error('Failed to parse fieldsString:', e);
+                logError(`Failed to parse fieldsString: ${e.message}`, context);
                 body.fields = {};
             }
         }
+    } else {
+        log('no placeholders found in fragment content', context);
     }
     return {
         ...context,

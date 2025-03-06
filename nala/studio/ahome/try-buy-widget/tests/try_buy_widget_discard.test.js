@@ -105,4 +105,69 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             );
         });
     });
+
+    // @studio-try-buy-widget-discard-variant-change - Validate variant change for AHome try-buy-widget card in mas studio
+    test.skip(`${features[1].name},${features[1].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[1];
+        const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
+            ).toBeVisible();
+            await (
+                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
+            ).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Change variant', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toHaveAttribute('default-value', 'ah-try-buy-widget');
+            await studio.editorPanel
+                .locator(studio.editorVariant)
+                .locator('sp-picker')
+                .first()
+                .click();
+            await page.getByRole('option', { name: 'slice' }).click();
+            await page.waitForTimeout(2000);
+            await expect(
+                await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
+            ).not.toBeVisible();
+            await expect(
+                await studio.getCard(data.cardid, 'slice'),
+            ).toBeVisible();
+        });
+
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+            await studio.editorPanel.locator(studio.closeEditor).click();
+            await expect(
+                await studio.editorPanel.locator(studio.confirmationDialog),
+            ).toBeVisible();
+            await studio.editorPanel.locator(studio.discardDialog).click();
+            await expect(await studio.editorPanel).not.toBeVisible();
+        });
+
+        await test.step('step-5: Verify there is no changes of the card', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
+            ).toBeVisible();
+            await expect(
+                await studio.getCard(data.cardid, 'slice'),
+            ).not.toBeVisible();
+        });
+    });
 });

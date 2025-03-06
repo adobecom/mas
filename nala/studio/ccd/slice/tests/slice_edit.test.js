@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import StudioPage from '../../../studio.page.js';
 import CCDSliceSpec from '../specs/slice_edit.spec.js';
 import CCDSlicePage from '../slice.page.js';
+import AHTryBuyWidgetPage from '../../../ahome/try-buy-widget/try-buy-widget.page.js';
 import OSTPage from '../../../ost.page.js';
 
 const { features } = CCDSliceSpec;
@@ -10,6 +11,7 @@ const miloLibs = process.env.MILO_LIBS || '';
 let studio;
 let slice;
 let ost;
+let trybuywidget;
 
 test.beforeEach(async ({ page, browserName }) => {
     test.slow();
@@ -20,6 +22,7 @@ test.beforeEach(async ({ page, browserName }) => {
     }
     studio = new StudioPage(page);
     slice = new CCDSlicePage(page);
+    trybuywidget = new AHTryBuyWidgetPage(page);
     ost = new OSTPage(page);
 });
 

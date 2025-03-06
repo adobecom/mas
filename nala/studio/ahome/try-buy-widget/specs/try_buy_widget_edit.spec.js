@@ -115,5 +115,25 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit @nopr',
         },
+        {
+            tcid: '9',
+            name: '@studio-try-buy-widget-change-to-slice',
+            path: '/studio.html',
+            data: {
+                cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit @nopr',
+        },
+        {
+            tcid: '10',
+            name: '@studio-try-buy-widget-change-to-suggested',
+            path: '/studio.html',
+            data: {
+                cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit @nopr',
+        },
     ],
 };

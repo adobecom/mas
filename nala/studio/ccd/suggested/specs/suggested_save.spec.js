@@ -33,7 +33,17 @@ export default {
         },
         {
             tcid: '2',
-            name: '@studio-suggested-save-variant-change',
+            name: '@studio-suggested-save-variant-change-to-slice',
+            path: '/studio.html',
+            data: {
+                cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
+        },
+        {
+            tcid: '3',
+            name: '@studio-suggested-save-variant-change-to-trybuywidget',
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',

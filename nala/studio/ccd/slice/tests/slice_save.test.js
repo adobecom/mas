@@ -168,13 +168,197 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-save-change-osi - Validate saving change osi
+    // @studio-slice-save-variant-change-to-suggested - Validate saving card after variant change to ccd suggested
     test(`${features[1].name},${features[1].tags}`, async ({
         page,
         baseURL,
     }) => {
         const { data } = features[1];
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'slice-wide'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Clone card and open editor', async () => {
+            await studio.cloneCard.click();
+            await expect(await studio.toastPositive).toHaveText(
+                'Fragment successfully copied.',
+            );
+            let clonedCard = await studio.getCard(
+                data.cardid,
+                'slice-wide',
+                'cloned',
+            );
+            let clonedCardID = await clonedCard
+                .locator('aem-fragment')
+                .getAttribute('fragment');
+            data.clonedCardID = await clonedCardID;
+            await expect(await clonedCard).toBeVisible();
+            await clonedCard.dblclick();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-4: Change variant and save card', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toHaveAttribute('default-value', 'ccd-slice');
+            await studio.editorPanel
+                .locator(studio.editorVariant)
+                .locator('sp-picker')
+                .first()
+                .click();
+            await page.getByRole('option', { name: 'suggested' }).click();
+            await page.waitForTimeout(2000);
+            // save card
+            await studio.saveCard.click();
+            await expect(await studio.toastPositive).toHaveText(
+                'Fragment successfully saved.',
+            );
+        });
+
+        await test.step('step-5: Validate variant change', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toHaveAttribute('default-value', 'ccd-suggested');
+            await expect(
+                await studio.getCard(data.clonedCardID, 'slice-wide'),
+            ).not.toBeVisible();
+            await expect(
+                await studio.getCard(data.clonedCardID, 'suggested'),
+            ).toBeVisible();
+        });
+
+        await test.step('step-6: Delete the card', async () => {
+            await studio.deleteCard.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.confirmationDialog
+                .locator(studio.deleteDialog)
+                .click();
+            await expect(await studio.toastPositive).toHaveText(
+                'Fragment successfully deleted.',
+            );
+            await expect(
+                await studio.getCard(data.clonedCardID, 'suggested'),
+            ).not.toBeVisible();
+            await expect(
+                await studio.getCard(data.clonedCardID, 'slice-wide'),
+            ).not.toBeVisible();
+        });
+    });
+
+    // @studio-slice-save-variant-change-to-trybuywidget - Validate saving card after variant change to AHome try-buy-widget
+    test(`${features[2].name},${features[2].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[2];
+        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'slice-wide'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Clone card and open editor', async () => {
+            await studio.cloneCard.click();
+            await expect(await studio.toastPositive).toHaveText(
+                'Fragment successfully copied.',
+            );
+            let clonedCard = await studio.getCard(
+                data.cardid,
+                'slice-wide',
+                'cloned',
+            );
+            let clonedCardID = await clonedCard
+                .locator('aem-fragment')
+                .getAttribute('fragment');
+            data.clonedCardID = await clonedCardID;
+            await expect(await clonedCard).toBeVisible();
+            await clonedCard.dblclick();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-4: Change variant and save card', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toHaveAttribute('default-value', 'ccd-slice');
+            await studio.editorPanel
+                .locator(studio.editorVariant)
+                .locator('sp-picker')
+                .first()
+                .click();
+            await page.getByRole('option', { name: 'try buy widget' }).click();
+            await page.waitForTimeout(2000);
+            // save card
+            await studio.saveCard.click();
+            await expect(await studio.toastPositive).toHaveText(
+                'Fragment successfully saved.',
+            );
+        });
+
+        await test.step('step-5: Validate variant change', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toHaveAttribute('default-value', 'ah-try-buy-widget');
+            await expect(
+                await studio.getCard(data.clonedCardID, 'slice-wide'),
+            ).not.toBeVisible();
+            await expect(
+                await studio.getCard(data.clonedCardID, 'ahtrybuywidget'),
+            ).toBeVisible();
+        });
+
+        await test.step('step-6: Delete the card', async () => {
+            await studio.deleteCard.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.confirmationDialog
+                .locator(studio.deleteDialog)
+                .click();
+            await expect(await studio.toastPositive).toHaveText(
+                'Fragment successfully deleted.',
+            );
+            await expect(
+                await studio.getCard(data.clonedCardID, 'slice-wide'),
+            ).not.toBeVisible();
+            await expect(
+                await studio.getCard(data.clonedCardID, 'ahtrybuywidget'),
+            ).not.toBeVisible();
+        });
+    });
+
+    // @studio-slice-save-change-osi - Validate saving change osi
+    test(`${features[3].name},${features[3].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[3];
+        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {

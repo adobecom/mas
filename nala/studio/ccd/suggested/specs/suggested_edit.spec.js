@@ -3,7 +3,7 @@ export default {
     features: [
         {
             tcid: '0',
-            name: '@studio-suggested-editor',
+            name: '@studio-suggested-variant-change-to-slice',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -149,6 +149,16 @@ export default {
         },
         {
             tcid: '11',
+            name: '@studio-suggested-variant-change-to-trybuywidget',
+            path: '/studio.html',
+            data: {
+                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
+        },
+        {
+            tcid: '12',
             name: '@studio-suggested-add-osi',
             path: '/studio.html',
             data: {
@@ -163,7 +173,7 @@ export default {
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
         },
         {
-            tcid: '12',
+            tcid: '13',
             name: '@studio-suggested-change-osi',
             path: '/studio.html',
             data: {

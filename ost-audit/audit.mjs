@@ -1,6 +1,10 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
 
+const AUDIT_TARGET = {
+    'ost': 'ost',
+    'modal': 'modal',
+};
 const BUFFER_SIZE = 100;
 const EXCERPT_SIZE = 30;
 const HREF_REGEXP = 'href="(?<url>[^"]+)"';
@@ -202,6 +206,7 @@ const WCS_KEYS = [
 const retries = new Set();
 const fetched = new Set();
 const isRelative = (url) => url[0] == '/';
+let auditTarget = AUDIT_TARGET.OST;
 let isDebug = false;
 
 const getUrlParts = (url) => {
@@ -239,7 +244,7 @@ async function getFragmentsFromManifest(url) {
     return fragments;
 }
 
-async function getPersonnalizationFragments(pageContent) {
+async function getPersonalizationFragments(pageContent) {
     const persoRegexp = new RegExp(PERSO_REGEXP, 'g').exec(pageContent);
     if (!persoRegexp) {
         return null;
@@ -430,7 +435,7 @@ async function auditPage(ctx, url) {
                 ostUsages,
             ),
         );
-        const persoFragments = await getPersonnalizationFragments(content);
+        const persoFragments = await getPersonalizationFragments(content);
         result.fragment ??= [];
         let fragments = result.fragment
             .map(({ patternMatch }) => patternMatch.input)
@@ -463,6 +468,7 @@ const FILE_ARG = '-f';
 const MF_ARG = '-m';
 const SEARCH_ARG = '-s';
 const DEBUG_ARG = '-d';
+const TARGET_ARG = '-t';
 let defaultBufferSize = BUFFER_SIZE;
 let file = '/tmp/audit.csv';
 
@@ -499,6 +505,14 @@ async function main() {
                 searchStrings = searchItems
                     .split('\n')
                     .map((s) => s.trim().toLowerCase());
+                break;
+            }
+            case TARGET_ARG: {
+                const target = args.splice(0, 1)[0];
+                if (Object.values(AUDIT_TARGET).includes(target)) {
+                    auditTarget = AUDIT_TARGET[target];
+                }
+                console.log(`audit target: ${auditTarget}`);
                 break;
             }
             case DEBUG_ARG: {

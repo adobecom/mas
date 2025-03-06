@@ -1,6 +1,7 @@
 import { html, css, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
+import ReactiveController from '../reactivity/reactive-controller.js';
 
 function pathToTagId(path) {
     return `mas:${path.replace('/content/cq:tags/mas/', '')}`;
@@ -41,6 +42,8 @@ class MasFilterPanel extends LitElement {
             flex-wrap: wrap;
         }
     `;
+
+    storeController = new ReactiveController(this, [Store.user]);
 
     constructor() {
         super();
@@ -103,6 +106,7 @@ class MasFilterPanel extends LitElement {
 
     #handleRefresh() {
         Store.search.set((prev) => ({ ...prev, tags: [] }));
+        Store.user.set(null);
         this.tagsByType = { ...EMPTY_TAGS };
         this.shadowRoot
             .querySelectorAll('aem-tag-picker-field')
@@ -121,6 +125,10 @@ class MasFilterPanel extends LitElement {
             ),
         };
         this.#updateFiltersParams();
+    }
+
+    #handleUserDelete() {
+        Store.user.set(null);
     }
 
     render() {
@@ -179,6 +187,8 @@ class MasFilterPanel extends LitElement {
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
+                <mas-user-picker label="Created by"></mas-user-picker>
+
                 <sp-action-button
                     quiet
                     @click=${this.#handleRefresh}
@@ -204,6 +214,18 @@ class MasFilterPanel extends LitElement {
                         >
                     `,
                 )}
+                ${Store.user.get()
+                    ? html`
+                          <sp-tag
+                              size="s"
+                              deletable
+                              @delete=${this.#handleUserDelete}
+                              >${Store.user.get().firstName}
+                              ${Store.user.get().lastName}
+                              <sp-icon-user slot="icon" size="s"></sp-icon-user>
+                          </sp-tag>
+                      `
+                    : nothing}
             </sp-tags>
         `;
     }

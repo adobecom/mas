@@ -5,6 +5,8 @@ const nock = require('nock');
 
 const collectionContext = {
     status: 200,
+    transformer: 'collection',
+    requestId: 'mas-collection-ut',
     body: {
         path: '/content/dam/mas/nala/ccd/collections/test',
         id: 'test',

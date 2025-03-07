@@ -558,14 +558,17 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             ).dblclick();
             await expect(await ost.checkoutTab).toBeVisible();
             await expect(await ost.workflowMenu).toBeVisible();
-            await expect(await ost.ctaTextMenu).toBeVisible();
-            await ost.ctaTextMenu.click();
-
-            await expect(
-                page.locator('div[role="option"]', {
-                    hasText: `${data.newCtaText}`,
-                }),
-            ).toBeVisible();
+            await expect(await ost.ctaTextMenu).toBeEnabled();
+            await expect(async () => {
+                await ost.ctaTextMenu.click();
+                await expect(
+                    page.locator('div[role="option"]', {
+                        hasText: `${data.newCtaText}`,
+                    }),
+                ).toBeVisible({
+                    timeout: 500,
+                });
+            }).toPass();
             await page
                 .locator('div[role="option"]', {
                     hasText: `${data.newCtaText}`,

@@ -10,6 +10,7 @@ const miloLibs = process.env.MILO_LIBS || '';
 let studio;
 let trybuywidget;
 let ost;
+let clonedCardID;
 
 test.beforeEach(async ({ page, browserName }) => {
     test.slow();
@@ -21,6 +22,27 @@ test.beforeEach(async ({ page, browserName }) => {
     studio = new StudioPage(page);
     trybuywidget = new AHTryBuyWidgetPage(page);
     ost = new OSTPage(page);
+    clonedCardID = '';
+});
+
+test.afterEach(async ({ page }) => {
+    let cardToClean = page.locator('merch-card').filter({
+        has: page.locator(`aem-fragment[fragment="${clonedCardID}"]`),
+    });
+
+    if (await studio.editorPanel.isVisible()) {
+        await studio.editorPanel.locator(studio.closeEditor).click();
+        await expect(await studio.editorPanel).not.toBeVisible();
+    }
+
+    if (await cardToClean.isVisible()) {
+        await cardToClean.dblclick();
+        await expect(await studio.editorPanel).toBeVisible();
+        await studio.deleteCard();
+        await expect(cardToClean).not.toBeVisible();
+    }
+
+    await page.close();
 });
 
 test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
@@ -49,16 +71,13 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard.click();
-            await expect(await studio.toastPositive).toHaveText(
-                'Fragment successfully copied.',
-            );
+            await studio.cloneCard();
             let clonedCard = await studio.getCard(
                 data.cardid,
                 'ahtrybuywidget-double',
                 'cloned',
             );
-            let clonedCardID = await clonedCard
+            clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
             data.clonedCardID = await clonedCardID;
@@ -71,10 +90,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await studio.editorPanel.locator(studio.editorSize).click();
             await page.getByRole('option', { name: 'triple' }).click();
             //save card
-            await studio.saveCard.click();
-            await expect(studio.toastPositive).toHaveText(
-                'Fragment successfully saved.',
-            );
+            await studio.saveCard();
         });
 
         await test.step('step-4: Validate edited field in Editor panel', async () => {
@@ -103,14 +119,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             );
 
             //delete the card
-            await studio.deleteCard.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.confirmationDialog
-                .locator(studio.deleteDialog)
-                .click();
-            await expect(await studio.toastPositive).toHaveText(
-                'Fragment successfully deleted.',
-            );
+            await studio.deleteCard();
             await expect(
                 await studio.getCard(
                     data.clonedCardID,
@@ -145,16 +154,13 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard.click();
-            await expect(await studio.toastPositive).toHaveText(
-                'Fragment successfully copied.',
-            );
+            await studio.cloneCard();
             let clonedCard = await studio.getCard(
                 data.cardid,
                 'ahtrybuywidget',
                 'cloned',
             );
-            let clonedCardID = await clonedCard
+            clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
             data.clonedCardID = await clonedCardID;
@@ -178,10 +184,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await page.getByRole('option', { name: 'slice' }).click();
             await page.waitForTimeout(2000);
             // save card
-            await studio.saveCard.click();
-            await expect(await studio.toastPositive).toHaveText(
-                'Fragment successfully saved.',
-            );
+            await studio.saveCard();
         });
 
         await test.step('step-5: Validate variant change', async () => {
@@ -197,14 +200,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-6: Delete the card', async () => {
-            await studio.deleteCard.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.confirmationDialog
-                .locator(studio.deleteDialog)
-                .click();
-            await expect(await studio.toastPositive).toHaveText(
-                'Fragment successfully deleted.',
-            );
+            await studio.deleteCard();
             await expect(
                 await studio.getCard(data.clonedCardID, 'ahtrybuywidget'),
             ).not.toBeVisible();
@@ -239,16 +235,13 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard.click();
-            await expect(await studio.toastPositive).toHaveText(
-                'Fragment successfully copied.',
-            );
+            await studio.cloneCard();
             let clonedCard = await studio.getCard(
                 data.cardid,
                 'ahtrybuywidget',
                 'cloned',
             );
-            let clonedCardID = await clonedCard
+            clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
             data.clonedCardID = await clonedCardID;
@@ -272,10 +265,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await page.getByRole('option', { name: 'suggested' }).click();
             await page.waitForTimeout(2000);
             // save card
-            await studio.saveCard.click();
-            await expect(await studio.toastPositive).toHaveText(
-                'Fragment successfully saved.',
-            );
+            await studio.saveCard();
         });
 
         await test.step('step-5: Validate variant change', async () => {
@@ -291,14 +281,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-6: Delete the card', async () => {
-            await studio.deleteCard.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.confirmationDialog
-                .locator(studio.deleteDialog)
-                .click();
-            await expect(await studio.toastPositive).toHaveText(
-                'Fragment successfully deleted.',
-            );
+            await studio.deleteCard();
             await expect(
                 await studio.getCard(data.clonedCardID, 'suggested'),
             ).not.toBeVisible();

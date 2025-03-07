@@ -55,7 +55,7 @@ export default {
                 newPlanTypeTag: 'plan_type/m2m',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
         },
     ],
 };

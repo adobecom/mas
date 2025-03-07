@@ -1,3 +1,5 @@
+import { expect } from '@playwright/test';
+
 export default class StudioPage {
     constructor(page) {
         this.page = page;
@@ -73,16 +75,16 @@ export default class StudioPage {
             'sp-field-group#ctas a.secondary',
         );
         // Editor panel toolbar
-        this.cloneCard = page.locator(
+        this.cloneCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="clone"]',
         );
         this.closeEditor = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="close"]',
         );
-        this.deleteCard = page.locator(
+        this.deleteCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="delete"]',
         );
-        this.saveCard = page.locator(
+        this.saveCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="save"]',
         );
         // RTE panel toolbar
@@ -123,5 +125,30 @@ export default class StudioPage {
         return card.filter({
             has: this.page.locator(`aem-fragment[fragment="${id}"]`),
         });
+    }
+
+    async cloneCard() {
+        await this.cloneCardButton.click();
+        await expect(await this.toastPositive).toHaveText(
+            'Fragment successfully copied.',
+        );
+    }
+
+    async saveCard() {
+        await this.saveCardButton.click();
+        await expect(await this.toastPositive).toHaveText(
+            'Fragment successfully saved.',
+        );
+    }
+
+    async deleteCard() {
+        await this.deleteCardButton.click();
+        await expect(await this.confirmationDialog).toBeVisible();
+        await this.confirmationDialog
+            .locator(this.deleteDialog)
+            .click();
+        await expect(await this.toastPositive).toHaveText(
+            'Fragment successfully deleted.',
+        );
     }
 }

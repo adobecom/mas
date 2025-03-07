@@ -159,11 +159,11 @@ class MasPlaceholders extends LitElement {
 
         // Define default column widths
         this.columnWidths = {
-            key: '25%',
-            value: '25%',
+            key: '20%',
+            value: '30%',
             locale: '10%',
-            state: '10%',
-            status: '10%',
+            state: '5%',
+            status: '5%',
             updatedBy: '10%',
             updatedAt: '10%',
             action: '10%',
@@ -320,7 +320,9 @@ class MasPlaceholders extends LitElement {
                 ...this.placeholders[index],
                 key: this.editedKey,
                 value: this.editedValue,
-                status: this.draftStatus ? 'Draft' : this.placeholders[index].status,
+                status: this.draftStatus
+                    ? 'Draft'
+                    : this.placeholders[index].status,
                 updatedAt: new Date().toLocaleString('en-US', {
                     day: '2-digit',
                     month: 'short',
@@ -459,7 +461,9 @@ class MasPlaceholders extends LitElement {
                 >Yet to Publish</sp-badge
             >`;
         } else if (status === 'Draft') {
-            return html`<sp-badge quiet style="background-color: var(--spectrum-blue-800); color: white;"
+            return html`<sp-badge
+                quiet
+                style="background-color: var(--spectrum-blue-800); color: white;"
                 >Draft</sp-badge
             >`;
         }
@@ -481,8 +485,31 @@ class MasPlaceholders extends LitElement {
     renderDropdownMenu(key) {
         if (this.activeDropdown !== key) return nothing;
 
+        // Find the placeholder with this key to check its status
+        const placeholder = this.placeholders.find((p) => p.key === key);
+        const isPublished = placeholder && placeholder.status === 'Published';
+
         return html`
             <div class="dropdown-menu">
+                ${!isPublished
+                    ? html`
+                          <div
+                              class="dropdown-item"
+                              @click=${() => this.handlePublish(key)}
+                          >
+                              <sp-icon-publish-check></sp-icon-publish-check>
+                              <span>Publish</span>
+                          </div>
+                      `
+                    : html`
+                          <div
+                              class="dropdown-item"
+                              @click=${() => this.handleUnpublish(key)}
+                          >
+                              <sp-icon-publish-remove></sp-icon-publish-remove>
+                              <span>Unpublish</span>
+                          </div>
+                      `}
                 <div
                     class="dropdown-item"
                     @click=${() => this.handleLocaleConfig(key)}
@@ -560,14 +587,13 @@ class MasPlaceholders extends LitElement {
     renderKeyCell(placeholder) {
         if (this.editingPlaceholder === placeholder.key) {
             return html`
-                <sp-table-cell
-                    class="editing-cell"
-                    style="width: ${this.columnWidths.key};"
-                >
+                <sp-table-cell class="editing-cell" style="width: ${this.columnWidths.key};">
                     <div class="edit-field-container">
-                        <sp-textfield
+                        <sp-textfield 
                             value=${this.editedKey}
                             @input=${this.handleKeyChange}
+                            @click=${(e) => e.stopPropagation()}
+                            @mousedown=${(e) => e.stopPropagation()}
                         ></sp-textfield>
                     </div>
                 </sp-table-cell>
@@ -582,20 +608,14 @@ class MasPlaceholders extends LitElement {
     renderValueCell(placeholder) {
         if (this.editingPlaceholder === placeholder.key) {
             return html`
-                <sp-table-cell
-                    class="editing-cell"
-                    style="width: ${this.columnWidths.value};"
-                >
+                <sp-table-cell class="editing-cell" style="width: ${this.columnWidths.value};">
                     <div class="edit-field-container">
                         <sp-textfield
                             value=${this.editedValue}
                             @input=${this.handleValueChange}
+                            @click=${(e) => e.stopPropagation()}
+                            @mousedown=${(e) => e.stopPropagation()}
                         ></sp-textfield>
-                        ${!this.editedValue.trim()
-                            ? html`<div class="validation-error">
-                                  Values cannot be empty
-                              </div>`
-                            : nothing}
                     </div>
                 </sp-table-cell>
             `;
@@ -609,14 +629,19 @@ class MasPlaceholders extends LitElement {
     renderStatusCell(placeholder) {
         if (this.editingPlaceholder === placeholder.key && this.draftStatus) {
             return html`
-                <sp-table-cell style="text-align: right; width: ${this.columnWidths.status};">
+                <sp-table-cell
+                    style="text-align: right; width: ${this.columnWidths
+                        .status};"
+                >
                     ${this.getStatusBadge('Draft')}
                 </sp-table-cell>
             `;
         }
-        
+
         return html`
-            <sp-table-cell style="text-align: right; width: ${this.columnWidths.status};">
+            <sp-table-cell
+                style="text-align: right; width: ${this.columnWidths.status};"
+            >
                 ${this.getStatusBadge(placeholder.status)}
             </sp-table-cell>
         `;
@@ -630,6 +655,7 @@ class MasPlaceholders extends LitElement {
                 emphasized
                 scroller
                 selects="multiple"
+                selectable-with="cell"
                 selected=${JSON.stringify(this.selectedPlaceholders)}
                 @change=${this.updateTableSelection}
                 class="placeholders-table"
@@ -950,34 +976,28 @@ class MasPlaceholders extends LitElement {
     render() {
         return html`
             <div id="placeholders-container">
-                <div class="breadcrumbs-container">
-                    ${this.renderBreadcrumbs()}
-                </div>
-
                 <div class="placeholders-header">
-                    <div class="placeholders-title">
-                        <h2>Total Placeholders ${this.placeholders.length}</h2>
-                    </div>
-                    <div class="placeholders-actions">
-                        <sp-button
-                            variant="accent"
-                            @click=${this.handleAddPlaceholder}
-                            class="create-button"
-                        >
-                            <sp-icon-add slot="icon"></sp-icon-add>
-                            Create New Placeholder
-                        </sp-button>
-                    </div>
+                    ${this.renderBreadcrumbs()}
+                    <sp-button
+                        variant="accent"
+                        @click=${this.handleAddPlaceholder}
+                        class="create-button"
+                    >
+                        <sp-icon-add slot="icon"></sp-icon-add>
+                        Create New Placeholder
+                    </sp-button>
                 </div>
 
                 <div class="search-filters-container">
-                    <sp-search
-                        placeholder="Search by name, offer ID, locale"
-                        @input=${this.handleSearch}
-                        value=${this.searchQuery}
-                    ></sp-search>
-
+                    <div class="placeholders-title">
+                        <h2>Total Placeholders ${this.placeholders.length}</h2>
+                    </div>
                     <div class="filters-container">
+                        <sp-search
+                            placeholder="Search by name, offer ID, locale"
+                            @input=${this.handleSearch}
+                            value=${this.searchQuery}
+                        ></sp-search>
                         <sp-picker
                             label="Locale"
                             value=${this.selectedLocale}
@@ -1021,6 +1041,64 @@ class MasPlaceholders extends LitElement {
                 <mas-placeholders-filters></mas-placeholders-filters>
             </div>
         `;
+    }
+
+    handlePublish(key) {
+        console.log(`Publishing placeholder: ${key}`);
+        // Find and update the placeholder status
+        const index = this.placeholders.findIndex((p) => p.key === key);
+        if (index !== -1) {
+            // Create a new object to trigger reactivity
+            const updatedPlaceholder = {
+                ...this.placeholders[index],
+                status: 'Published',
+                updatedAt: new Date().toLocaleString('en-US', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                }),
+            };
+
+            // Update the array
+            this.placeholders = [
+                ...this.placeholders.slice(0, index),
+                updatedPlaceholder,
+                ...this.placeholders.slice(index + 1),
+            ];
+        }
+        this.activeDropdown = null;
+        this.requestUpdate();
+    }
+
+    handleUnpublish(key) {
+        console.log(`Unpublishing placeholder: ${key}`);
+        // Find and update the placeholder status
+        const index = this.placeholders.findIndex((p) => p.key === key);
+        if (index !== -1) {
+            // Create a new object to trigger reactivity
+            const updatedPlaceholder = {
+                ...this.placeholders[index],
+                status: 'Yet to Publish',
+                updatedAt: new Date().toLocaleString('en-US', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                }),
+            };
+
+            // Update the array
+            this.placeholders = [
+                ...this.placeholders.slice(0, index),
+                updatedPlaceholder,
+                ...this.placeholders.slice(index + 1),
+            ];
+        }
+        this.activeDropdown = null;
+        this.requestUpdate();
     }
 }
 
@@ -1078,18 +1156,26 @@ style.textContent = `
         margin-bottom: 16px;
     }
     
-    .placeholders-title h2 {
-        margin: 0;
-        font-size: 18px;
-        font-weight: 600;
-    }
-    
     .search-filters-container {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 16px;
+        gap: 14px;
     }
+
+    .placeholders-title {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+    }
+    
+    .placeholders-title h2 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 500;
+    }
+    
     
     .filters-container {
         display: flex;
@@ -1100,7 +1186,6 @@ style.textContent = `
     .placeholders-content {
         flex: 1;
         position: relative;
-        overflow: auto;
     }
     
     sp-progress-circle {
@@ -1116,12 +1201,19 @@ style.textContent = `
         border-spacing: 0;
         border-radius: 8px;
         overflow: hidden;
+        border: 1px solid var(--spectrum-gray-200);
     }
     
     .placeholders-table sp-table-head {
         background-color: var(--spectrum-global-color-gray-100);
+        border-bottom: 1px solid var(--spectrum-gray-200);
     }
-    
+
+    .placeholders-table sp-table-body {
+        border-radius: 0;
+        border: none;
+    }
+
     .placeholders-table sp-table-head-cell {
         font-weight: 600;
         cursor: pointer;
@@ -1140,7 +1232,7 @@ style.textContent = `
     }
     
     sp-search {
-        width: 300px;
+        width: 248px;
     }
     
     .create-button {
@@ -1396,6 +1488,51 @@ style.textContent = `
     .form-group sp-textfield,
     .form-group sp-picker {
         width: 100%;
+    }
+
+    /* Disable pointer events for entire row */
+    .placeholders-table sp-table-row {
+        pointer-events: none;
+    }
+    
+    /* Enable pointer events for checkbox cells and action elements */
+    .placeholders-table sp-table-checkbox-cell,
+    .placeholders-table .action-cell *,
+    .editing-cell sp-textfield {
+        pointer-events: auto;
+    }
+
+    /* Style for checkbox cells */
+    .placeholders-table sp-table-checkbox-cell {
+        cursor: pointer;
+        width: 40px;
+        min-width: 40px;
+    }
+
+    .placeholders-table sp-table-head-cell,
+    .placeholders-table sp-table-cell {
+        box-sizing: border-box;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* Column size enforcement */
+    .placeholders-table sp-table-head-cell:nth-child(4),
+    .placeholders-table sp-table-cell:nth-child(4) {
+        min-width: 60px;
+        max-width: 60px;  /* State column */
+    }
+    
+    .placeholders-table sp-table-head-cell:nth-child(5),
+    .placeholders-table sp-table-cell:nth-child(5) {
+        min-width: 80px;
+        max-width: 80px;  /* Status column */
+    }
+    
+    .placeholders-table sp-table-head-cell:last-child,
+    .placeholders-table sp-table-cell:last-child {
+        min-width: 100px;
+        max-width: 100px;  /* Action column (last child) */
     }
 `;
 document.head.appendChild(style);

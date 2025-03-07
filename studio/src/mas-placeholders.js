@@ -143,6 +143,7 @@ class MasPlaceholders extends LitElement {
         this.editingPlaceholder = null;
         this.editedKey = '';
         this.editedValue = '';
+        this.draftStatus = false;
         this.activeDropdown = null;
         this.showCreateModal = false;
         this.newPlaceholder = {
@@ -295,6 +296,7 @@ class MasPlaceholders extends LitElement {
         this.editingPlaceholder = placeholder.key;
         this.editedKey = placeholder.key;
         this.editedValue = placeholder.value;
+        this.draftStatus = false;
         this.requestUpdate();
     }
 
@@ -318,6 +320,7 @@ class MasPlaceholders extends LitElement {
                 ...this.placeholders[index],
                 key: this.editedKey,
                 value: this.editedValue,
+                status: this.draftStatus ? 'Draft' : this.placeholders[index].status,
                 updatedAt: new Date().toLocaleString('en-US', {
                     day: '2-digit',
                     month: 'short',
@@ -338,6 +341,7 @@ class MasPlaceholders extends LitElement {
             this.editingPlaceholder = null;
             this.editedKey = '';
             this.editedValue = '';
+            this.draftStatus = false;
             this.requestUpdate();
         }
     }
@@ -346,6 +350,7 @@ class MasPlaceholders extends LitElement {
         this.editingPlaceholder = null;
         this.editedKey = '';
         this.editedValue = '';
+        this.draftStatus = false;
         this.requestUpdate();
     }
 
@@ -377,10 +382,14 @@ class MasPlaceholders extends LitElement {
 
     handleKeyChange(e) {
         this.editedKey = e.target.value;
+        this.draftStatus = true;
+        this.requestUpdate();
     }
 
     handleValueChange(e) {
         this.editedValue = e.target.value;
+        this.draftStatus = true;
+        this.requestUpdate();
     }
 
     handleFiltersApplied(event) {
@@ -448,6 +457,10 @@ class MasPlaceholders extends LitElement {
         } else if (status === 'Yet to Publish') {
             return html`<sp-badge quiet variant="neutral"
                 >Yet to Publish</sp-badge
+            >`;
+        } else if (status === 'Draft') {
+            return html`<sp-badge quiet style="background-color: var(--spectrum-blue-800); color: white;"
+                >Draft</sp-badge
             >`;
         }
         return html`<sp-badge quiet>${status}</sp-badge>`;
@@ -593,6 +606,22 @@ class MasPlaceholders extends LitElement {
         >`;
     }
 
+    renderStatusCell(placeholder) {
+        if (this.editingPlaceholder === placeholder.key && this.draftStatus) {
+            return html`
+                <sp-table-cell style="text-align: right; width: ${this.columnWidths.status};">
+                    ${this.getStatusBadge('Draft')}
+                </sp-table-cell>
+            `;
+        }
+        
+        return html`
+            <sp-table-cell style="text-align: right; width: ${this.columnWidths.status};">
+                ${this.getStatusBadge(placeholder.status)}
+            </sp-table-cell>
+        `;
+    }
+
     renderPlaceholdersTable() {
         const filteredPlaceholders = this.getFilteredPlaceholders();
 
@@ -681,11 +710,7 @@ class MasPlaceholders extends LitElement {
                                 <sp-table-cell style="text-align: right;"
                                     >${placeholder.state}</sp-table-cell
                                 >
-                                <sp-table-cell style="text-align: right;"
-                                    >${this.getStatusBadge(
-                                        placeholder.status,
-                                    )}</sp-table-cell
-                                >
+                                ${this.renderStatusCell(placeholder)}
                                 <sp-table-cell style="text-align: right;"
                                     >${placeholder.updatedBy}</sp-table-cell
                                 >

@@ -369,7 +369,7 @@ class MasPlaceholders extends LitElement {
     }
 
     handleLocaleConfig(key) {
-        console.log(`Configure locale for: ${key}`);
+        console.log(`Revert to default: ${key}`);
         this.activeDropdown = null;
         this.requestUpdate();
     }
@@ -515,8 +515,8 @@ class MasPlaceholders extends LitElement {
                     class="dropdown-item"
                     @click=${() => this.handleLocaleConfig(key)}
                 >
-                    <sp-icon-settings></sp-icon-settings>
-                    <span>Locale Configure</span>
+                    <sp-icon-undo></sp-icon-undo>
+                    <span>Revert to Default</span>
                 </div>
                 <div
                     class="dropdown-item"
@@ -1307,7 +1307,7 @@ style.textContent = `
         border-radius: 8px;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         z-index: 100;
-        min-width: 200px;
+        min-width: 150px;
         padding: 8px 0;
     }
     
@@ -1317,6 +1317,7 @@ style.textContent = `
         padding: 8px 16px;
         cursor: pointer;
         gap: 8px;
+        justify-self: flex-start;
     }
     
     .dropdown-item:hover {
@@ -1527,7 +1528,6 @@ style.textContent = `
     .placeholders-table sp-table-head-cell,
     .placeholders-table sp-table-cell {
         box-sizing: border-box;
-        overflow: hidden;
         text-overflow: ellipsis;
     }
     

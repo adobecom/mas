@@ -453,21 +453,22 @@ class MasPlaceholders extends LitElement {
 
     getStatusBadge(status) {
         if (status === 'Published') {
-            return html`<sp-badge quiet variant="positive"
+            return html`<sp-badge size="s" quiet variant="positive"
                 >Published</sp-badge
             >`;
         } else if (status === 'Yet to Publish') {
-            return html`<sp-badge quiet variant="neutral"
+            return html`<sp-badge size="s" quiet variant="neutral"
                 >Yet to Publish</sp-badge
             >`;
         } else if (status === 'Draft') {
             return html`<sp-badge
+                size="s"
                 quiet
                 style="background-color: var(--spectrum-blue-800); color: white;"
                 >Draft</sp-badge
             >`;
         }
-        return html`<sp-badge quiet>${status}</sp-badge>`;
+        return html`<sp-badge size="s" quiet>${status}</sp-badge>`;
     }
 
     renderBreadcrumbs() {
@@ -587,9 +588,12 @@ class MasPlaceholders extends LitElement {
     renderKeyCell(placeholder) {
         if (this.editingPlaceholder === placeholder.key) {
             return html`
-                <sp-table-cell class="editing-cell" style="width: ${this.columnWidths.key};">
+                <sp-table-cell
+                    class="editing-cell"
+                    style="width: ${this.columnWidths.key};"
+                >
                     <div class="edit-field-container">
-                        <sp-textfield 
+                        <sp-textfield
                             value=${this.editedKey}
                             @input=${this.handleKeyChange}
                             @click=${(e) => e.stopPropagation()}
@@ -608,7 +612,10 @@ class MasPlaceholders extends LitElement {
     renderValueCell(placeholder) {
         if (this.editingPlaceholder === placeholder.key) {
             return html`
-                <sp-table-cell class="editing-cell" style="width: ${this.columnWidths.value};">
+                <sp-table-cell
+                    class="editing-cell"
+                    style="width: ${this.columnWidths.value};"
+                >
                     <div class="edit-field-container">
                         <sp-textfield
                             value=${this.editedValue}
@@ -994,6 +1001,7 @@ class MasPlaceholders extends LitElement {
                     </div>
                     <div class="filters-container">
                         <sp-search
+                            size="m"
                             placeholder="Search by name, offer ID, locale"
                             @input=${this.handleSearch}
                             value=${this.searchQuery}
@@ -1153,7 +1161,7 @@ style.textContent = `
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 16px;
+        margin-bottom: 24px;
     }
     
     .search-filters-container {
@@ -1179,7 +1187,7 @@ style.textContent = `
     
     .filters-container {
         display: flex;
-        gap: 8px;
+        gap: 14px;
         align-items: center;
     }
     
@@ -1219,6 +1227,9 @@ style.textContent = `
         cursor: pointer;
         display: flex;
         align-items: center;
+        color: var(--spectrum-gray-700);
+        font-size: 12px;
+        font-weight: 700;
     }
     
     .placeholders-table sp-table-head-cell sp-icon-chevron-down,
@@ -1345,7 +1356,11 @@ style.textContent = `
         padding: 8px;
         box-sizing: border-box;
         vertical-align: middle;
-        height: 48px; /* Fixed height for all cells */
+        height: 48px;
+        color: var(--spectrum-gray-700);
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 26px;
     }
     
     /* Ensure table rows have consistent height */
@@ -1517,22 +1532,39 @@ style.textContent = `
     }
     
     /* Column size enforcement */
+    .placeholders-table sp-table-head-cell:nth-child(2),
+    .placeholders-table sp-table-cell:nth-child(2) {
+        min-width: 250px;
+        max-width: 250px;
+    }
+
+    .placeholders-table sp-table-head-cell:nth-child(3),
+    .placeholders-table sp-table-cell:nth-child(3) {
+        min-width: 370px;
+        max-width: 370px;
+    }
+
     .placeholders-table sp-table-head-cell:nth-child(4),
     .placeholders-table sp-table-cell:nth-child(4) {
-        min-width: 60px;
-        max-width: 60px;  /* State column */
+        min-width: 110px;
+        max-width: 110px;
     }
     
     .placeholders-table sp-table-head-cell:nth-child(5),
     .placeholders-table sp-table-cell:nth-child(5) {
-        min-width: 80px;
-        max-width: 80px;  /* Status column */
+        min-width: 110px;
+        max-width: 110px;
+
+    .placeholders-table sp-table-head-cell:nth-child(6),
+    .placeholders-table sp-table-cell:nth-child(6) {
+        min-width: 150px;
+        max-width: 150px; 
     }
     
     .placeholders-table sp-table-head-cell:last-child,
     .placeholders-table sp-table-cell:last-child {
         min-width: 100px;
-        max-width: 100px;  /* Action column (last child) */
+        max-width: 100px;
     }
 `;
 document.head.appendChild(style);

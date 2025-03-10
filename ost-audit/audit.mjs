@@ -1,11 +1,15 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
 
+const AUDIT_TARGET = {
+    ost: 'ost',
+    modal: 'modal',
+};
 const BUFFER_SIZE = 100;
 const EXCERPT_SIZE = 30;
-const HREF_REGEXP = 'href="(?<url>[^"]+)"';
 const LOC_REGEXP = '<loc>(?<url>[^<]+)</loc>';
 const PERSO_REGEXP = '<meta name="personalization" content="(?<urls>[^"]+)">';
+const HREF_REGEXP = 'href="(?<url>[^"]+)"';
 const LINK_REGEXP = '<a[^>]*' + HREF_REGEXP + '[^>]*>[^<]*</a>';
 const PARAMETER_REGEXP = '(?<left>\\w+)=(?<right>[^&]+)';
 const DOMAIN_REGEXP = '^https://[^/]+';
@@ -201,8 +205,14 @@ const WCS_KEYS = [
 ];
 const retries = new Set();
 const fetched = new Set();
-const isRelative = (url) => url[0] == '/';
+let auditTarget = AUDIT_TARGET.OST;
+let defaultBufferSize = BUFFER_SIZE;
 let isDebug = false;
+
+const convertRelativeToAbsoluteUrl = (url) => {
+    if (url[0] == '/') return `https://www.adobe.com${url}`;
+    return url;
+};
 
 const getUrlParts = (url) => {
     const domain = new RegExp(DOMAIN_REGEXP).exec(url)[0];
@@ -239,7 +249,7 @@ async function getFragmentsFromManifest(url) {
     return fragments;
 }
 
-async function getPersonnalizationFragments(pageContent) {
+async function getPersonalizationFragments(pageContent) {
     const persoRegexp = new RegExp(PERSO_REGEXP, 'g').exec(pageContent);
     if (!persoRegexp) {
         return null;
@@ -376,38 +386,46 @@ async function extractUrlsFromSiteMap(sitemapUrl) {
     return Array.from(listedUrls);
 }
 
+const rewriteUrlLocale = (localeRewrite, url) => {
+    if (!localeRewrite || !url) return url;
+    if (url.indexOf(`/${localeRewrite}/`) < 0) {
+        const { domain, uri } = getUrlParts(url);
+        return `${domain}/${localeRewrite}/${uri.substring(1)}`;
+    }
+    return url;
+};
+
+const findIframes = () => {
+    // 1. Find all iframes with src containing 'mini-plans' and 'modals-content-rich', save the page, the element and the iframe src
+    // 2. Find all <a> with href that contains '/fragments/, load each fragment and do first step on it
+    // @TODO: Find all <a is="checkout-link" data-modal="true">Here may be any text or HTML</a> - when clicking they should open a modal with an iframe
+};
+
 const ostUsages = [];
-let searchFile;
 const searchMatches = [];
 const keys = new Set();
+let searchFile;
 
-async function auditPage(ctx, url) {
+async function auditPage(ctx, pageUrl) {
     try {
-        if (isRelative(url)) {
-            url = `https://www.adobe.com${url}`;
-        }
-        if (ctx.localeRewrite) {
-            const localeToken = '/' + ctx.localeRewrite + '/';
-            if (url.indexOf(localeToken) < 0) {
-                const { domain, uri } = getUrlParts(url);
-                url = domain + localeToken + uri.substring(1);
-            }
-        }
-        if (fetched.has(url)) {
-            //already fetched & parsed
-            return;
-        }
+        const { localeRewrite, origin } = ctx;
+        let url = convertRelativeToAbsoluteUrl(pageUrl);
+        url = rewriteUrlLocale(localeRewrite, url);
+
+        // already fetched & parsed
+        if (fetched.has(url)) return;
         fetched.add(url);
+
         const response = await fetchDocument(url);
         if (!response.ok) {
             console.log(
-                `Error (${ctx.origin}): response status for ${response.url} is ${response.status}`,
+                `Error (${origin}): response status for ${response.url} is ${response.status}`,
             );
             return;
         } else if (isDebug) {
             console.log(`Success: response status for ${url} is 200`);
         }
-        if (url === ctx.origin) {
+        if (url === origin) {
             const { uri } = getUrlParts(url);
             const firstToken = uri.substring(1).split('/')[0];
             ctx.localeRewrite =
@@ -430,7 +448,7 @@ async function auditPage(ctx, url) {
                 ostUsages,
             ),
         );
-        const persoFragments = await getPersonnalizationFragments(content);
+        const persoFragments = await getPersonalizationFragments(content);
         result.fragment ??= [];
         let fragments = result.fragment
             .map(({ patternMatch }) => patternMatch.input)
@@ -458,20 +476,80 @@ async function auditPage(ctx, url) {
     }
 }
 
-const BUFFER_ARG = '-b';
-const FILE_ARG = '-f';
-const MF_ARG = '-m';
-const SEARCH_ARG = '-s';
-const DEBUG_ARG = '-d';
-let defaultBufferSize = BUFFER_SIZE;
-let file = '/tmp/audit.csv';
+const writeOstUsagesToFile = () => {
+    //rendering of collected ostUsages objects together with all collected keys as a CSV
+    let headers = Array.from(keys);
+    headers.unshift('fragment');
+    headers.unshift('origin');
+    headers.push('postExcerpt');
+    headers = headers.concat(WCS_KEYS.map(prefixWcsKey));
+    fs.writeFileSync(
+        file,
+        `${headers.join(',')}\n${ostUsages
+            .map((o) => {
+                if (mapWcs[o.osi]) {
+                    o = { ...o, ...mapWcs[o.osi] };
+                }
+                return headers.map((k) => o?.[k] || '').join(',');
+            })
+            .join('\n')}`,
+    );
+    if (searchMatches.length > 0) {
+        fs.writeFileSync(searchFile + '.matches', searchMatches.join('\n'));
+    }
+};
 
-async function main() {
-    const startTime = Date.now();
-    if (process.argv.length < 3) {
+const collectOsiData = async () => {
+    console.log(`collected ${ostUsages.length} entries`);
+    //collecting related OSI commerce data
+    let osisToFetch = Object.keys(mapWcs);
+    while (osisToFetch.length > 0) {
+        console.log(`${osisToFetch.length} osis remaining...`);
+        const buffer = osisToFetch.slice(0, defaultBufferSize);
+        osisToFetch =
+            osisToFetch.length >= defaultBufferSize
+                ? osisToFetch.slice(defaultBufferSize)
+                : [];
+        await Promise.allSettled(
+            buffer.map((osi) => setCommerceData(osi, mapWcs[osi].locale)),
+        );
+    }
+};
+
+const processUrlBatchesWithRetries = async ({ urlsToFetch, searchStrings }) => {
+    while (urlsToFetch.length > 0) {
+        console.log(`${urlsToFetch.length} remaining...`);
+        //next buffer
+        // we remove retries that are being run atm
+        const bufferSize =
+            defaultBufferSize > retries.size
+                ? defaultBufferSize - retries.size
+                : 1;
+        const buffer = urlsToFetch.slice(0, bufferSize);
+        //remaining urls once buffer will be done
+        urlsToFetch =
+            urlsToFetch.length >= bufferSize
+                ? urlsToFetch.slice(bufferSize)
+                : [];
+        //buffer process
+        await Promise.allSettled(
+            buffer.map((url) => auditPage({ origin: url, searchStrings }, url)),
+        );
+    }
+};
+
+const processArgs = async () => {
+    const BUFFER_ARG = '-b';
+    const FILE_ARG = '-f';
+    const MF_ARG = '-m';
+    const SEARCH_ARG = '-s';
+    const DEBUG_ARG = '-d';
+    const TARGET_ARG = '-t';
+    let file = '/tmp/audit.csv';
+    let args = process.argv.slice(2);
+    if (!args.length) {
         console.log('you should provide at least one URL to audit');
     }
-    let args = process.argv.slice(2);
     let searchStrings;
     let urlsToFetch = [];
     while (args.length > 0) {
@@ -501,6 +579,14 @@ async function main() {
                     .map((s) => s.trim().toLowerCase());
                 break;
             }
+            case TARGET_ARG: {
+                const target = args.splice(0, 1)[0];
+                if (Object.values(AUDIT_TARGET).includes(target)) {
+                    auditTarget = AUDIT_TARGET[target];
+                }
+                console.log(`audit target: ${auditTarget}`);
+                break;
+            }
             case DEBUG_ARG: {
                 isDebug = true;
                 break;
@@ -520,59 +606,22 @@ async function main() {
             }
         }
     }
-    while (urlsToFetch.length > 0) {
-        console.log(`${urlsToFetch.length} remaining...`);
-        //next buffer
-        // we remove retries that are being run atm
-        const bufferSize =
-            defaultBufferSize > retries.size
-                ? defaultBufferSize - retries.size
-                : 1;
-        const buffer = urlsToFetch.slice(0, bufferSize);
-        //remaining urls once buffer will be done
-        urlsToFetch =
-            urlsToFetch.length >= bufferSize
-                ? urlsToFetch.slice(bufferSize)
-                : [];
-        //buffer process
-        await Promise.allSettled(
-            buffer.map((url) => auditPage({ origin: url, searchStrings }, url)),
-        );
-    }
-    console.log(`collected ${ostUsages.length} entries`);
-    //collecting related OSI commerce data
-    let osisToFetch = Object.keys(mapWcs);
-    while (osisToFetch.length > 0) {
-        console.log(`${osisToFetch.length} osis remaining...`);
-        const buffer = osisToFetch.slice(0, defaultBufferSize);
-        osisToFetch =
-            osisToFetch.length >= defaultBufferSize
-                ? osisToFetch.slice(defaultBufferSize)
-                : [];
-        await Promise.allSettled(
-            buffer.map((osi) => setCommerceData(osi, mapWcs[osi].locale)),
-        );
-    }
+    return { searchStrings, urlsToFetch };
+};
 
-    //rendering of collected ostUsages objects together with all collected keys as a CSV
-    let headers = Array.from(keys);
-    headers.unshift('fragment');
-    headers.unshift('origin');
-    headers.push('postExcerpt');
-    headers = headers.concat(WCS_KEYS.map(prefixWcsKey));
-    fs.writeFileSync(
-        file,
-        `${headers.join(',')}\n${ostUsages
-            .map((o) => {
-                if (mapWcs[o.osi]) {
-                    o = { ...o, ...mapWcs[o.osi] };
-                }
-                return headers.map((k) => o?.[k] || '').join(',');
-            })
-            .join('\n')}`,
-    );
-    if (searchMatches.length > 0) {
-        fs.writeFileSync(searchFile + '.matches', searchMatches.join('\n'));
+async function main() {
+    const startTime = Date.now();
+    let { urlsToFetch, searchStrings } = await processArgs();
+    await processUrlBatchesWithRetries({ urlsToFetch, searchStrings });
+    switch (auditTarget) {
+        case AUDIT_TARGET.modal:
+            break;
+        case AUDIT_TARGET.ost:
+            await collectOsiData();
+            await writeOstUsagesToFile();
+            break;
+        default:
+            break;
     }
     console.log(`finished in ${(Date.now() - startTime) / 1000}s`);
 }

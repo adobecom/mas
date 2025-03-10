@@ -56,6 +56,8 @@ class LinkNodeView {
         for (const [key, value] of Object.entries(node.attrs)) {
             if (value !== null) {
                 this.dom.setAttribute(key, value);
+            } else {
+                this.dom.removeAttribute(key);
             }
         }
 

@@ -7,6 +7,9 @@ const ODIN_RESPONSE = {
     id: '0ef2a804-e788-4959-abb8-b4d96a18b0ef',
     fields: { variant: 'ccd-slice' },
 };
+
+const MASIO_RESPONSE = ODIN_RESPONSE;
+
 const WCS_RESPONSE = {
     resolvedOffers: [
         {
@@ -142,6 +145,29 @@ describe('health-check', () => {
                     reason: '503 Service Unavailable',
                     status: 'fail',
                 },
+            },
+        });
+    });
+
+    it('return 500 if any fetch error', async () => {
+        nock('https://odincdn').get('/testurl').replyWithError('fetch error');
+        nock('https://odinorigin').get('/testurl').reply(200, ODIN_RESPONSE);
+        nock('https://wcscdn').get('/testurl').reply(200, WCS_RESPONSE);
+        nock('https://wcsorigin').get('/testurl').reply(200, WCS_RESPONSE);
+
+        const response = await action.main(PARAMS);
+        expect(response).to.deep.equal({
+            statusCode: 500,
+            body: {
+                status: 'error',
+                odinCDN: {
+                    url: 'https://odincdn/testurl',
+                    reason: 'request to https://odincdn/testurl failed, reason: fetch error',
+                    status: 'fail',
+                },
+                odinOrigin: 'ok',
+                wcsCDN: 'ok',
+                wcsOrigin: 'ok',
             },
         });
     });

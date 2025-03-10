@@ -128,6 +128,7 @@ export default class StudioPage {
     }
 
     async cloneCard() {
+        await expect(await this.cloneCardButton).toBeEnabled();
         await this.cloneCardButton.click();
         await expect(await this.toastPositive).toHaveText(
             'Fragment successfully copied.',
@@ -135,6 +136,7 @@ export default class StudioPage {
     }
 
     async saveCard() {
+        await expect(await this.saveCardButton).toBeEnabled();
         await this.saveCardButton.click();
         await expect(await this.toastPositive).toHaveText(
             'Fragment successfully saved.',
@@ -142,6 +144,7 @@ export default class StudioPage {
     }
 
     async deleteCard() {
+        await expect(await this.deleteCardButton).toBeEnabled();
         await this.deleteCardButton.click();
         await expect(await this.confirmationDialog).toBeVisible();
         await this.confirmationDialog

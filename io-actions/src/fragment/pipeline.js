@@ -34,6 +34,7 @@ async function main(params) {
     } else {
         returnValue.message = context.message;
     }
+    log('ending request pipeline', context);
     return returnValue;
 }
 

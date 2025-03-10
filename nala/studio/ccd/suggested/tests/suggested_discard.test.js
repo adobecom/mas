@@ -423,6 +423,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await ost.checkoutTab).toBeVisible();
             await expect(await ost.workflowMenu).toBeVisible();
             await expect(await ost.ctaTextMenu).toBeVisible();
+            await expect(await ost.checkoutLinkUse).toBeVisible();
+            await expect(await ost.checkoutLink).toBeEnabled();
             await ost.ctaTextMenu.click();
 
             await expect(
@@ -519,6 +521,69 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(await suggested.cardCTA).toContainText(data.ctaText);
+        });
+    });
+
+    // @studio-suggested-discard-variant-change - Validate variant change for suggested card in mas studio
+    test(`${features[8].name},${features[8].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[8];
+        const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Change variant', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toHaveAttribute('default-value', 'ccd-suggested');
+            await studio.editorPanel
+                .locator(studio.editorVariant)
+                .locator('sp-picker')
+                .first()
+                .click();
+            await page.getByRole('option', { name: 'slice' }).click();
+            await page.waitForTimeout(2000);
+            await expect(
+                await studio.getCard(data.cardid, 'slice'),
+            ).toBeVisible();
+            await expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).not.toBeVisible();
+        });
+
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+            await studio.editorPanel.locator(studio.closeEditor).click();
+            await expect(
+                await studio.editorPanel.locator(studio.confirmationDialog),
+            ).toBeVisible();
+            await studio.editorPanel.locator(studio.discardDialog).click();
+            await expect(await studio.editorPanel).not.toBeVisible();
+        });
+
+        await test.step('step-5: Verify there is no changes of the card', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'slice'),
+            ).not.toBeVisible();
+            await expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).toBeVisible();
         });
     });
 });

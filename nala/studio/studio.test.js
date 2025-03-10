@@ -118,4 +118,154 @@ test.describe('M@S Studio feature test suite', () => {
             ).not.toBeVisible();
         });
     });
+
+    // @studio-goto-content - Validate Go to Content
+    test(`${features[4].name},${features[4].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const testPage = `${baseURL}${features[4].path}${miloLibs}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Go to content', async () => {
+            await expect(await studio.quickActions).toBeVisible();
+            await expect(await studio.gotoContent).toBeVisible();
+            await expect(await studio.folderPicker).toHaveAttribute(
+                'value',
+                'acom',
+            );
+            await studio.gotoContent.click();
+        });
+
+        await test.step('step-3: Validate page view', async () => {
+            await expect(await studio.renderView).toBeVisible();
+            const cards = await studio.renderView.locator('merch-card');
+            expect(await cards.count()).toBeGreaterThan(1);
+            await expect(page).toHaveURL(`${testPage}#path=acom&page=content`);
+            expect(await studio.folderPicker).toHaveAttribute('value', 'acom');
+        });
+    });
+
+    // @studio-ccd-suggested-editor - Validate editor fields for CCD suggested card in mas studio
+    test(`${features[5].name},${features[5].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[5];
+        const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Validate fields rendering', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toHaveAttribute('default-value', 'ccd-suggested');
+            await expect(
+                await studio.editorPanel.locator(studio.editorSize),
+            ).not.toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorTitle),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorSubtitle),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorBadge),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorDescription),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorIconURL),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorBackgroundImage),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorPrices),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorFooter),
+            ).toBeVisible();
+        });
+    });
+
+    // @studio-ccd-slice-editor - Validate editor fields for slice card in mas studio
+    test(`${features[6].name},${features[6].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[6];
+        const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'slice-wide'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Validate fields rendering', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toHaveAttribute('default-value', 'ccd-slice');
+            await expect(
+                await studio.editorPanel.locator(studio.editorSize),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorTitle),
+            ).not.toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorSubtitle),
+            ).not.toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorBadge),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorDescription),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorIconURL),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorBackgroundImage),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorPrices),
+            ).not.toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorFooter),
+            ).toBeVisible();
+        });
+    });
 });

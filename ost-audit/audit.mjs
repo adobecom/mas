@@ -14,8 +14,15 @@ const LINK_REGEXP = '<a[^>]*' + HREF_REGEXP + '[^>]*>[^<]*</a>';
 const PARAMETER_REGEXP = '(?<left>\\w+)=(?<right>[^&]+)';
 const DOMAIN_REGEXP = '^https://[^/]+';
 const HREF_REGEXPS = {
-    fragment: '/fragments/',
-    ost: 'https://milo.adobe.com/tools/ost?(?<parameters>.+)',
+    [AUDIT_TARGET.ost]: {
+        fragment: '/fragments/',
+        ost: 'https://milo.adobe.com/tools/ost?(?<parameters>.+)',
+    },
+    [AUDIT_TARGET.modal]: {
+        fragment: '/fragments/',
+        miniPlans: '/mini-plans/',
+        crm: '/modals-content-rich/',
+    },
 };
 const LOCALES = [
     'au',
@@ -274,7 +281,7 @@ const extractLinks = (pageContent) => {
         const postExcerpt = pageContent
             .substring(indexEnd, indexEnd + EXCERPT_SIZE)
             .replaceAll(/[,\n\s]+/g, '');
-        Object.entries(HREF_REGEXPS).forEach(([type, pattern]) => {
+        Object.entries(HREF_REGEXPS[auditTarget]).forEach(([type, pattern]) => {
             const patternMatch = new RegExp(pattern).exec(url);
             if (patternMatch) {
                 result[type] ??= [];

@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import StudioPage from '../../../studio.page.js';
 import CCDSuggestedSpec from '../specs/suggested_edit.spec.js';
 import CCDSuggestedPage from '../suggested.page.js';
+import AHTryBuyWidgetPage from '../../../ahome/try-buy-widget/try-buy-widget.page.js';
 import OSTPage from '../../../ost.page.js';
 
 const { features } = CCDSuggestedSpec;
@@ -10,6 +11,7 @@ const miloLibs = process.env.MILO_LIBS || '';
 let studio;
 let suggested;
 let ost;
+let trybuywidget;
 
 test.beforeEach(async ({ page, browserName }) => {
     test.slow();
@@ -20,11 +22,12 @@ test.beforeEach(async ({ page, browserName }) => {
     }
     studio = new StudioPage(page);
     suggested = new CCDSuggestedPage(page);
+    trybuywidget = new AHTryBuyWidgetPage(page);
     ost = new OSTPage(page);
 });
 
 test.describe('M@S Studio CCD Suggested card test suite', () => {
-    // @studio-suggested-editor - Validate editor fields for suggested card in mas studio
+    // @studio-suggested-variant-change-to-slice - Validate card variant change from suggested to slice
     test(`${features[0].name},${features[0].tags}`, async ({
         page,
         baseURL,
@@ -46,22 +49,35 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.editorPanel).toBeVisible();
         });
 
-        await test.step('step-3: Validate fields rendering', async () => {
+        await test.step('step-3: Edit card variant', async () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorVariant),
             ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorVariant),
             ).toHaveAttribute('default-value', 'ccd-suggested');
+            await studio.editorPanel
+                .locator(studio.editorVariant)
+                .locator('sp-picker')
+                .first()
+                .click();
+            await page.getByRole('option', { name: 'slice' }).click();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-4: Validate editor fields rendering after variant change', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toHaveAttribute('default-value', 'ccd-slice');
             await expect(
                 await studio.editorPanel.locator(studio.editorSize),
-            ).not.toBeVisible();
+            ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
-            ).toBeVisible();
+            ).not.toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorSubtitle),
-            ).toBeVisible();
+            ).not.toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorBadge),
             ).toBeVisible();
@@ -76,10 +92,21 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorPrices),
-            ).toBeVisible();
+            ).not.toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorFooter),
             ).toBeVisible();
+        });
+
+        await test.step('step-5: Validate card variant change', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'slice'),
+            ).toBeVisible();
+            await expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).not.toBeVisible();
+            await expect(await suggested.cardTitle).not.toBeVisible();
+            await expect(await suggested.cardEyebrow).not.toBeVisible();
         });
     });
 
@@ -737,6 +764,105 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 'data-href',
                 /apc=/,
             );
+        });
+    });
+
+    // @studio-suggested-variant-change-to-trybuywidget - Validate card variant change from suggested to AHome try-buy-widget
+    test(`${features[11].name},${features[11].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[11];
+        const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit card variant', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toHaveAttribute('default-value', 'ccd-suggested');
+            await studio.editorPanel
+                .locator(studio.editorVariant)
+                .locator('sp-picker')
+                .first()
+                .click();
+            await page.getByRole('option', { name: 'try buy widget' }).click();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-4: Validate editor fields rendering after variant change', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toHaveAttribute('default-value', 'ah-try-buy-widget');
+
+            // *** uncomment once MWPW-164093 (AHome PR) is merged to main ***
+
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorSize),
+            // ).toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorTitle),
+            // ).toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorSubtitle),
+            // ).not.toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorBadge),
+            // ).not.toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorDescription),
+            // ).toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorIconURL),
+            // ).toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorBorderColor),
+            // ).toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorBackgroundColor),
+            // ).toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorBackgroundImage),
+            // ).toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorPrices),
+            // ).toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorFooter),
+            // ).toBeVisible();
+        });
+
+        await test.step('step-5: Validate card variant change', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'ahtrybuywidget'),
+            ).toBeVisible();
+            await expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).not.toBeVisible();
+            await expect(await suggested.cardEyebrow).not.toBeVisible();
+
+            // *** uncomment once MWPW-164093 (AHome PR) is merged to main ***
+
+            // await expect(await trybuywidget.cardTitle).toBeVisible();
+            // await expect(await trybuywidget.cardDescription).toBeVisible();
+            // await expect(await trybuywidget.cardPrice).toBeVisible();
+            // await expect(await trybuywidget.cardCTA).toBeVisible();
+            // await expect(await trybuywidget.cardIcon).toBeVisible();
         });
     });
 });

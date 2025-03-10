@@ -20,5 +20,25 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
         },
+        {
+            tcid: '1',
+            name: '@studio-slice-save-variant-change-to-suggested',
+            path: '/studio.html',
+            data: {
+                cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
+        },
+        {
+            tcid: '2',
+            name: '@studio-slice-save-variant-change-to-trybuywidget',
+            path: '/studio.html',
+            data: {
+                cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
+        },
     ],
 };

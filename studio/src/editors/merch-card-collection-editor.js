@@ -1,10 +1,11 @@
-import { html, LitElement, nothing, css } from 'lit';
+import { html, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import '../fields/multifield.js';
 import '../fields/mnemonic-field.js';
 import '../swc.js';
 import { Fragment } from '../aem/fragment.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
+import { styles } from './merch-card-collection-editor.css.js';
 
 const MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
 
@@ -22,164 +23,7 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     static get styles() {
-        return css`
-            :host {
-                display: flex;
-                flex-direction: column;
-                gap: 16px;
-            }
-
-            /* Collection title styles */
-            .collection-title {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                margin-bottom: 16px;
-                font-weight: bold;
-                flex-grow: 1;
-                margin-right: 8px;
-            }
-
-            .collection-title img {
-                width: 24px;
-                height: 24px;
-            }
-
-            /* Collection header styles */
-            .collection-header {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                padding: 8px 12px;
-                border-radius: 4px;
-                cursor: pointer;
-                position: relative;
-                width: 100%;
-                box-sizing: border-box;
-                justify-content: flex-start;
-            }
-
-            .collection-header .collection-title {
-                margin-bottom: 0;
-            }
-
-            /* Collection icon styles */
-            .collection-icon {
-                width: 24px;
-                height: 24px;
-                object-fit: contain;
-            }
-
-            /* Card icon styles */
-            .card-icon {
-                width: 24px;
-                height: 24px;
-            }
-
-            /* Collection wrapper styles */
-            .collection-wrapper {
-                border: 1px solid #e0e0e0;
-                border-radius: 4px;
-                margin-bottom: 8px;
-                overflow: hidden;
-                width: 100%;
-                box-sizing: border-box;
-                display: flex;
-                flex-direction: column;
-            }
-
-            .collection-wrapper.expanded {
-                background-color: #f9f9f9;
-            }
-
-            .collection-wrapper.dragging {
-                opacity: 0.5;
-            }
-
-            .collection-wrapper.dragover {
-                outline: 2px dashed var(--spectrum-global-color-blue-400);
-            }
-
-            /* Collection content styles */
-            .collection-content {
-                padding: 12px;
-                width: 100%;
-                box-sizing: border-box;
-            }
-
-            /* Expand icon styles */
-            .expand-icon {
-                transition: transform 0.2s ease;
-            }
-
-            .expand-icon.expanded {
-                transform: rotate(90deg);
-            }
-
-            /* Merch card list styles */
-            .merch-card-list {
-                list-style: none;
-                padding: 0;
-                margin: 0;
-                width: 100%;
-                display: flex;
-                flex-wrap: wrap;
-                gap: 16px;
-            }
-
-            /* Merch card item styles */
-            .merch-card-item {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                padding: 8px;
-                border: 1px solid #e0e0e0;
-                border-radius: 4px;
-                margin-bottom: 8px;
-                padding-inline-end: 100px;
-                position: relative;
-            }
-
-            .merch-card-item.dragging {
-                opacity: 0.5;
-            }
-
-            .merch-card-item.dragover {
-                outline: 2px dashed var(--spectrum-global-color-blue-400);
-            }
-
-            /* Drag handle styles */
-            sp-icon-drag-handle {
-                visibility: hidden;
-                position: absolute;
-                right: 8px;
-                cursor: grab;
-                color: #666;
-            }
-
-            /* Position drag handle for cards */
-            .merch-card-item sp-icon-drag-handle {
-                top: 50%;
-                transform: translateY(-50%);
-            }
-
-            /* Position drag handle for collections */
-            .collection-wrapper sp-icon-drag-handle {
-                top: 8px;
-            }
-
-            /* Show drag handle on hover */
-            .merch-card-item:hover sp-icon-drag-handle,
-            .collection-wrapper:hover sp-icon-drag-handle {
-                visibility: visible;
-            }
-
-            /* Disable drag handle when collection is expanded */
-            .collection-wrapper.expanded sp-icon-drag-handle {
-                opacity: 0.3;
-                pointer-events: none;
-            }
-        `;
+        return [styles];
     }
 
     constructor() {
@@ -215,11 +59,22 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     toggleCollectionExpanded(collectionId) {
-        // Toggle the expanded state for this collection
+        // If this collection is already expanded, just toggle it off
         const currentState =
             this.expandedCollections.get(collectionId) || false;
 
-        this.expandedCollections.set(collectionId, !currentState);
+        if (currentState) {
+            // If it's already expanded, just collapse it
+            this.expandedCollections.set(collectionId, false);
+        } else {
+            // If it's not expanded, collapse all other collections first
+            // and then expand this one
+            this.expandedCollections.forEach((_, key) => {
+                this.expandedCollections.set(key, false);
+            });
+            // Now expand this collection
+            this.expandedCollections.set(collectionId, true);
+        }
 
         // Force a re-render
         this.requestUpdate();
@@ -230,6 +85,7 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     get #collection() {
+        // For subcollections, render a minimal header
         if (this.subCollections) {
             return nothing;
         }
@@ -245,6 +101,7 @@ class MerchCardCollectionEditor extends LitElement {
         // Get the collection ID from the fragment value
         const collectionId = this.fragment.value.id || '';
 
+        // For main collections, render the full header
         return html`<h2 class="collection-title" id="${collectionId}">
             <img src="${iconField?.values?.[0] || ''}" alt="" />
             ${titleField?.values?.[0] || ''}
@@ -253,13 +110,21 @@ class MerchCardCollectionEditor extends LitElement {
 
     // Handle drag start
     dragStart(e, index, type) {
+        console.log(
+            `dragStart: index=${index}, type=${type}, target=`,
+            e.currentTarget,
+        );
         // Store the dragging information
         this.draggingIndex = index;
         this.draggingType = type;
 
-        // Set data transfer properties
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', index);
+        // Set data transfer properties if available
+        if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', index);
+            // Add the type to help with drop validation
+            e.dataTransfer.setData('application/type', type);
+        }
 
         // Add visual indication
         e.currentTarget.classList.add('dragging');
@@ -294,6 +159,7 @@ class MerchCardCollectionEditor extends LitElement {
 
     // Handle drag leave
     dragLeave(e) {
+        console.log('dragLeave', e.currentTarget);
         e.currentTarget.classList.remove('dragover');
     }
 
@@ -312,8 +178,21 @@ class MerchCardCollectionEditor extends LitElement {
             this.draggingElement = null;
         }
 
+        // Try to get the type from dataTransfer if draggingType is not set
+        if (!this.draggingType && e.dataTransfer) {
+            this.draggingType = e.dataTransfer.getData('application/type');
+            console.log(
+                `Retrieved type from dataTransfer: ${this.draggingType}`,
+            );
+        }
+
         // Only process if we're dropping on a different item of the same type
         if (this.draggingType !== type || this.draggingIndex === index) {
+            console.log('Drop canceled: same index or different type');
+            console.log(`draggingType: ${this.draggingType}, type: ${type}`);
+            console.log(
+                `draggingIndex: ${this.draggingIndex}, index: ${index}`,
+            );
             return false;
         }
 
@@ -325,6 +204,7 @@ class MerchCardCollectionEditor extends LitElement {
             (field) => field.name === fieldName,
         );
         if (!field || !field.values) {
+            console.error(`Field ${fieldName} not found or has no values`);
             return false;
         }
 
@@ -333,6 +213,14 @@ class MerchCardCollectionEditor extends LitElement {
 
         // Get the item being dragged
         const draggedItem = values[this.draggingIndex];
+        if (!draggedItem) {
+            console.error(
+                `Item at index ${this.draggingIndex} not found in ${fieldName}`,
+            );
+            return false;
+        }
+
+        console.log(`Dragged item: ${draggedItem}`);
 
         // Remove the item from its original position
         values.splice(this.draggingIndex, 1);
@@ -340,10 +228,20 @@ class MerchCardCollectionEditor extends LitElement {
         // Insert the item at the new position
         values.splice(index, 0, draggedItem);
 
+        console.log(
+            `Reordering ${fieldName}: moved item from ${this.draggingIndex} to ${index}`,
+        );
+
         // Update the field values directly for immediate visual feedback
         field.values = values;
 
-        this.fragment.updateField(fieldName, values);
+        // Update the fragment
+        try {
+            this.fragment.updateField(fieldName, values);
+            console.log(`Successfully updated fragment field ${fieldName}`);
+        } catch (error) {
+            console.error(`Error updating fragment field ${fieldName}:`, error);
+        }
 
         // Dispatch a change event to notify parent components
         this.dispatchEvent(
@@ -369,6 +267,7 @@ class MerchCardCollectionEditor extends LitElement {
 
     // Handle drag end
     dragEnd(e) {
+        console.log('dragEnd', e.currentTarget);
         // Remove visual indication
         if (this.draggingElement) {
             this.draggingElement.classList.remove('dragging');
@@ -380,6 +279,73 @@ class MerchCardCollectionEditor extends LitElement {
         // Reset drag state
         this.draggingIndex = -1;
         this.draggingType = '';
+    }
+
+    // Handle nested drag events
+    handleNestedDragEvent(e) {
+        console.log('Received nested drag event:', e.type, e.detail);
+        // For drag events, we need to handle them differently than custom events
+        if (e.type.startsWith('drag') && e.type !== 'fragment-changed') {
+            // For drag events, we need to handle the original event directly
+            // instead of creating a new custom event
+
+            // Update our local drag state
+            if (e.detail && e.detail.draggingIndex !== undefined) {
+                this.draggingIndex = e.detail.draggingIndex;
+                this.draggingType = e.detail.draggingType;
+                this.draggingElement = e.detail.draggingElement;
+            }
+
+            // For dragstart events, we need to dispatch a real DragEvent to the parent
+            // but we can't create a real DragEvent with dataTransfer, so we'll just
+            // update our local state and let the parent handle it
+            this.requestUpdate();
+            return;
+        }
+
+        // For non-drag events, forward them to the parent component
+        this.dispatchEvent(
+            new CustomEvent(e.type, {
+                bubbles: true,
+                composed: true,
+                detail: e.detail,
+            }),
+        );
+
+        // If it's a fragment-changed event, update our local state
+        if (e.type === 'fragment-changed') {
+            this.requestUpdate();
+        }
+    }
+
+    // Add a method to handle direct drag events on collection items
+    handleCollectionDrag(e, index, type) {
+        // For dragover events, we need to prevent default to allow drop
+        if (e.type === 'dragover') {
+            e.preventDefault();
+        }
+
+        // For drop events, we need to prevent default and stop propagation
+        if (e.type === 'drop') {
+            e.preventDefault();
+        }
+
+        // Handle the drag event directly
+        if (e.type === 'dragstart') {
+            this.dragStart(e, index, type);
+        } else if (e.type === 'dragover') {
+            this.dragOver(e, index, type);
+        } else if (e.type === 'dragleave') {
+            this.dragLeave(e);
+        } else if (e.type === 'drop') {
+            this.drop(e, index, type);
+        } else if (e.type === 'dragend') {
+            this.dragEnd(e);
+        }
+
+        // Stop propagation after handling the event
+        // This prevents the event from bubbling up to parent elements
+        e.stopPropagation();
     }
 
     get #cards() {
@@ -413,12 +379,35 @@ class MerchCardCollectionEditor extends LitElement {
                                     class="merch-card-item"
                                     draggable="true"
                                     @dragstart=${(e) =>
-                                        this.dragStart(e, index, 'card')}
+                                        this.handleCollectionDrag(
+                                            e,
+                                            index,
+                                            'card',
+                                        )}
                                     @dragover=${(e) =>
-                                        this.dragOver(e, index, 'card')}
-                                    @dragleave=${this.dragLeave}
-                                    @drop=${(e) => this.drop(e, index, 'card')}
-                                    @dragend=${this.dragEnd}
+                                        this.handleCollectionDrag(
+                                            e,
+                                            index,
+                                            'card',
+                                        )}
+                                    @dragleave=${(e) =>
+                                        this.handleCollectionDrag(
+                                            e,
+                                            null,
+                                            null,
+                                        )}
+                                    @drop=${(e) =>
+                                        this.handleCollectionDrag(
+                                            e,
+                                            index,
+                                            'card',
+                                        )}
+                                    @dragend=${(e) =>
+                                        this.handleCollectionDrag(
+                                            e,
+                                            null,
+                                            null,
+                                        )}
                                 >
                                     <img
                                         src="${iconSrc}"
@@ -477,21 +466,30 @@ class MerchCardCollectionEditor extends LitElement {
                                 class="collection-wrapper ${isExpanded
                                     ? 'expanded'
                                     : 'collapsed'}"
-                                draggable="${!isExpanded}"
+                                draggable="true"
                                 id="${collectionId}"
-                                @dragstart=${(e) => {
-                                    if (!isExpanded) {
-                                        this.dragStart(e, index, 'collection');
-                                    } else {
-                                        e.preventDefault();
-                                    }
-                                }}
+                                @dragstart=${(e) =>
+                                    this.handleCollectionDrag(
+                                        e,
+                                        index,
+                                        'collection',
+                                    )}
                                 @dragover=${(e) =>
-                                    this.dragOver(e, index, 'collection')}
-                                @dragleave=${this.dragLeave}
+                                    this.handleCollectionDrag(
+                                        e,
+                                        index,
+                                        'collection',
+                                    )}
+                                @dragleave=${(e) =>
+                                    this.handleCollectionDrag(e, null, null)}
                                 @drop=${(e) =>
-                                    this.drop(e, index, 'collection')}
-                                @dragend=${this.dragEnd}
+                                    this.handleCollectionDrag(
+                                        e,
+                                        index,
+                                        'collection',
+                                    )}
+                                @dragend=${(e) =>
+                                    this.handleCollectionDrag(e, null, null)}
                             >
                                 <div
                                     class="collection-header"
@@ -527,6 +525,13 @@ class MerchCardCollectionEditor extends LitElement {
                                                   .fragmentReferencesMap}
                                               .fragment=${collectionRef}
                                               .subCollections=${true}
+                                              .draggingIndex=${this
+                                                  .draggingIndex}
+                                              .draggingType=${this.draggingType}
+                                              .draggingElement=${this
+                                                  .draggingElement}
+                                              @fragment-changed=${this
+                                                  .handleNestedDragEvent}
                                           ></merch-card-collection-editor>
                                       </div>`
                                     : nothing}

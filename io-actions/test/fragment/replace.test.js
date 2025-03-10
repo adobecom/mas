@@ -64,7 +64,7 @@ const expectedResponse = (description) => ({
 
 describe('replace', () => {
     it('returns 200 & no placeholders', async () => {
-        const response = await getResponse('foo');
+        const response = await getResponse('foo', 'Buy now');
         expect(response).to.deep.equal(expectedResponse('foo'));
     });
     it('returns 200 & replaced entries keys with text', async () => {
@@ -104,6 +104,96 @@ describe('replace', () => {
         expect(response).to.deep.equal(
             expectedResponse('look! <p>i am <strong>rich</strong></p>'),
         );
+    });
+    describe('corner cases', () => {
+        beforeEach(() => {
+            nock.cleanAll();
+        });
+
+        const FAKE_CONTEXT = {
+            status: 200,
+            surface: 'drafts',
+            locale: 'fr_FR',
+            body: odinResponse('{{description}}', 'Buy now'),
+        };
+        const EXPECTED = {
+            body: {
+                fields: {
+                    cta: 'Buy now',
+                    description: '{{description}}',
+                    variant: 'ccd-slice',
+                },
+                id: 'test',
+                path: '/content/dam/mas/nala/ccd/slice-cc-allapps31211',
+            },
+            locale: 'fr_FR',
+            status: 200,
+            surface: 'drafts',
+        };
+
+        it('manages gracefully fetch failure to find dictionary', async () => {
+            nock('https://odin.adobe.com')
+                .get('/adobe/sites/fragments')
+                .query({
+                    path: '/content/dam/mas/drafts/fr_FR/dictionary/index',
+                })
+                .replyWithError('fetch error');
+            const context = await replace(FAKE_CONTEXT);
+            expect(context).to.deep.equal(EXPECTED);
+        });
+
+        it('manages gracefully non 2xx to find dictionary', async () => {
+            nock('https://odin.adobe.com')
+                .get('/adobe/sites/fragments')
+                .query({
+                    path: '/content/dam/mas/drafts/fr_FR/dictionary/index',
+                })
+                .reply(404, 'not found');
+            const context = await replace(FAKE_CONTEXT);
+            expect(context).to.deep.equal(EXPECTED);
+        });
+
+        it('manages gracefully fetch no dictionary index', async () => {
+            nock('https://odin.adobe.com')
+                .get('/adobe/sites/fragments')
+                .query({
+                    path: '/content/dam/mas/drafts/fr_FR/dictionary/index',
+                })
+                .reply(200, { items: [] });
+            const context = await replace(FAKE_CONTEXT);
+            expect(context).to.deep.equal(EXPECTED);
+        });
+
+        it('manages gracefully failure to find entries', async () => {
+            nock('https://odin.adobe.com')
+                .get('/adobe/sites/fragments')
+                .query({
+                    path: '/content/dam/mas/drafts/fr_FR/dictionary/index',
+                })
+                .reply(200, DICTIONARY_CF_RESPONSE);
+            nock('https://odin.adobe.com')
+                .get(
+                    '/adobe/sites/fragments/fr_FR_dictionary/variations/master/references',
+                )
+                .replyWithError('fetch error');
+            const context = await replace(FAKE_CONTEXT);
+            expect(context).to.deep.equal(EXPECTED);
+        });
+        it('manages gracefully non 2xx to find entries', async () => {
+            nock('https://odin.adobe.com')
+                .get('/adobe/sites/fragments')
+                .query({
+                    path: '/content/dam/mas/drafts/fr_FR/dictionary/index',
+                })
+                .reply(200, DICTIONARY_CF_RESPONSE);
+            nock('https://odin.adobe.com')
+                .get(
+                    '/adobe/sites/fragments/fr_FR_dictionary/variations/master/references',
+                )
+                .reply(500, 'server error');
+            const context = await replace(FAKE_CONTEXT);
+            expect(context).to.deep.equal(EXPECTED);
+        });
     });
 });
 

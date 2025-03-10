@@ -9,7 +9,7 @@ async function getDictionaryId(context) {
     const response = await fetch(dictionaryPath, context);
     if (response.status == 200) {
         const { items } = await response.json();
-        if (items?.length == 1) {
+        if (items?.length > 0) {
             return items[0].id;
         }
     }
@@ -83,8 +83,8 @@ async function replace(context) {
             try {
                 body.fields = JSON.parse(fieldsString);
             } catch (e) {
-                logError(`Failed to parse fieldsString: ${e.message}`, context);
-                body.fields = {};
+                /* istanbul ignore next */
+                logError(`[replace] ${e.message}`, context);
             }
         }
     } else {

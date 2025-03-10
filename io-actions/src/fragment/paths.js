@@ -3,7 +3,7 @@ const MAS_ROOT = '/content/dam/mas';
 const FRAGMENT_URL_PREFIX = 'https://odin.adobe.com/adobe/sites/fragments';
 
 const PATH_TOKENS =
-    /\/content\/dam\/mas\/(?<surface>[\w]+)\/(?<parsedLocale>[\w_]+)\/(?<fragmentPath>.*)/;
+    /\/content\/dam\/mas\/(?<surface>[\w]+)\/(?<parsedLocale>[\w_]+)\/(?<fragmentPath>.+)/;
 
 /**
  * builds a full fetchable path to the fragment

@@ -24,7 +24,7 @@ test.beforeEach(async ({ page, browserName }) => {
 });
 
 test.describe('M@S Studio CCD Slice card test suite', () => {
-    // @studio-slice-editor - Validate editor fields for slice card in mas studio
+    // @studio-slice-variant-change-to-suggested - Validate card variant change from slice to suggested
     test(`${features[0].name},${features[0].tags}`, async ({
         page,
         baseURL,
@@ -46,22 +46,35 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.editorPanel).toBeVisible();
         });
 
-        await test.step('step-3: Validate fields rendering', async () => {
+        await test.step('step-3: Edit card variant', async () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorVariant),
             ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorVariant),
             ).toHaveAttribute('default-value', 'ccd-slice');
+            await studio.editorPanel
+                .locator(studio.editorVariant)
+                .locator('sp-picker')
+                .first()
+                .click();
+            await page.getByRole('option', { name: 'suggested' }).click();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-4: Validate editor fields rendering after variant change', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toHaveAttribute('default-value', 'ccd-suggested');
             await expect(
                 await studio.editorPanel.locator(studio.editorSize),
-            ).toBeVisible();
+            ).not.toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorTitle),
-            ).not.toBeVisible();
+            ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorSubtitle),
-            ).not.toBeVisible();
+            ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorBadge),
             ).toBeVisible();
@@ -76,9 +89,18 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorPrices),
-            ).not.toBeVisible();
+            ).toBeVisible();
             await expect(
                 await studio.editorPanel.locator(studio.editorFooter),
+            ).toBeVisible();
+        });
+
+        await test.step('step-5: Validate card variant change', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'slice-wide'),
+            ).not.toBeVisible();
+            await expect(
+                await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
         });
     });
@@ -465,6 +487,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await ost.workflowMenu).toBeVisible();
             await expect(await ost.ctaTextMenu).toBeVisible();
             await expect(await ost.checkoutLinkUse).toBeVisible();
+            await expect(await ost.checkoutLink).toBeEnabled();
             await ost.ctaTextMenu.click();
 
             await expect(
@@ -784,6 +807,104 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'data-href',
                 /apc=/,
             );
+        });
+    });
+
+    // @studio-slice-variant-change-to-trybuywidget - Validate card variant change from slice to AHome try-buy-widget
+    test(`${features[11].name},${features[11].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[11];
+        const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'slice-wide'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit card variant', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toHaveAttribute('default-value', 'ccd-slice');
+            await studio.editorPanel
+                .locator(studio.editorVariant)
+                .locator('sp-picker')
+                .first()
+                .click();
+            await page.getByRole('option', { name: 'try buy widget' }).click();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-4: Validate editor fields rendering after variant change', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toHaveAttribute('default-value', 'ah-try-buy-widget');
+
+            // *** uncomment once MWPW-164093 (AHome PR) is merged to main ***
+
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorSize),
+            // ).toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorTitle),
+            // ).toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorSubtitle),
+            // ).not.toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorBadge),
+            // ).not.toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorDescription),
+            // ).toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorIconURL),
+            // ).toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorBorderColor),
+            // ).toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorBackgroundColor),
+            // ).toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorBackgroundImage),
+            // ).toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorPrices),
+            // ).toBeVisible();
+            // await expect(
+            //     await studio.editorPanel.locator(studio.editorFooter),
+            // ).toBeVisible();
+        });
+
+        await test.step('step-5: Validate card variant change', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'ahtrybuywidget'),
+            ).toBeVisible();
+            await expect(
+                await studio.getCard(data.cardid, 'slice-wide'),
+            ).not.toBeVisible();
+
+            // *** uncomment once MWPW-164093 (AHome PR) is merged to main ***
+
+            // await expect(await trybuywidget.cardTitle).toBeVisible();
+            // await expect(await trybuywidget.cardDescription).toBeVisible();
+            // await expect(await trybuywidget.cardPrice).toBeVisible();
+            // await expect(await trybuywidget.cardCTA).toBeVisible();
+            // await expect(await trybuywidget.cardIcon).toBeVisible();
         });
     });
 });

@@ -1,4 +1,4 @@
-const { fetch } = require('./common.js');
+const { fetch, getErrorContext } = require('./common.js');
 const { odinId } = require('./paths.js');
 async function fetchFragment(context) {
     const { id } = context;
@@ -12,10 +12,7 @@ async function fetchFragment(context) {
                 body,
             };
         }
-        return {
-            status: 404,
-            message: 'requested fragment not found',
-        };
+        return getErrorContext(response);
     }
     return {
         status: 400,

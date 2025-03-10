@@ -1,0 +1,468 @@
+{
+    "items": [
+      {
+        "path": "/content/dam/mas/sandbox/fr_FR/dictionary/view-account",
+        "title": "View account",
+        "description": "",
+        "id": "494d3689-9d23-4354-8f26-a2268dfe01b0",
+        "fields": [
+          {
+            "name": "key",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": [
+              "view-account"
+            ]
+          },
+          {
+            "name": "value",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": [
+              "View account"
+            ]
+          },
+          {
+            "name": "richTextValue",
+            "type": "long-text",
+            "multiple": false,
+            "locked": false,
+            "mimeType": "text/html",
+            "values": []
+          },
+          {
+            "name": "locReady",
+            "type": "boolean",
+            "multiple": false,
+            "locked": false,
+            "values": [true]
+          }
+        ],
+        "variations": [],
+        "tags": [],
+        "references": [],
+        "model": {
+          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+          "name": "Dictionnary Entry",
+          "title": "Dictionnary Entry"
+        },
+        "validationStatus": [],
+        "fieldTags": [],
+        "etag": "\"2aa75ef03a016f196bf53cb0ed934b55\""
+      },
+      {
+        "path": "/content/dam/mas/sandbox/fr_FR/dictionary/empty",
+        "title": "Empty",
+        "description": "",
+        "id": "494d3689-9d23-4354-8f26-a2268dfe01b0",
+        "fields": [
+          {
+            "name": "key",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": [
+              "empty"
+            ]
+          },
+          {
+            "name": "value",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": [
+              " "
+            ]
+          },
+          {
+            "name": "richTextValue",
+            "type": "long-text",
+            "multiple": false,
+            "locked": false,
+            "mimeType": "text/html",
+            "values": []
+          },
+          {
+            "name": "locReady",
+            "type": "boolean",
+            "multiple": false,
+            "locked": false,
+            "values": [true]
+          }
+        ],
+        "variations": [],
+        "tags": [],
+        "references": [],
+        "model": {
+          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+          "name": "Dictionnary Entry",
+          "title": "Dictionnary Entry"
+        },
+        "validationStatus": [],
+        "fieldTags": [],
+        "etag": "\"2aa75ef03a016f196bf53cb0ed934b55\""
+      },
+      {
+        "path": "/content/dam/mas/sandbox/fr_FR/dictionary/nest",
+        "title": "Nest",
+        "description": "",
+        "id": "494d3689-9d23-4354-8f26-a2268dfe01b0",
+        "fields": [
+          {
+            "name": "key",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": [
+              "nest"
+            ]
+          },
+          {
+            "name": "value",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": [
+              "{{nested}} is in the nest"
+            ]
+          },
+          {
+            "name": "richTextValue",
+            "type": "long-text",
+            "multiple": false,
+            "locked": false,
+            "mimeType": "text/html",
+            "values": []
+          },
+          {
+            "name": "locReady",
+            "type": "boolean",
+            "multiple": false,
+            "locked": false,
+            "values": [true]
+          }
+        ],
+        "variations": [],
+        "tags": [],
+        "references": [],
+        "model": {
+          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+          "name": "Dictionnary Entry",
+          "title": "Dictionnary Entry"
+        },
+        "validationStatus": [],
+        "fieldTags": [],
+        "etag": "\"2aa75ef03a016f196bf53cb0ed934b55\""
+      },
+      {
+        "path": "/content/dam/mas/sandbox/fr_FR/dictionary/yin",
+        "title": "Yin",
+        "description": "",
+        "id": "494d3689-9d23-4354-8f26-a2268dfe01b0",
+        "fields": [
+          {
+            "name": "key",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": [
+              "yin"
+            ]
+          },
+          {
+            "name": "value",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": [
+              "yin and {{yang}}"
+            ]
+          },
+          {
+            "name": "richTextValue",
+            "type": "long-text",
+            "multiple": false,
+            "locked": false,
+            "mimeType": "text/html",
+            "values": []
+          },
+          {
+            "name": "locReady",
+            "type": "boolean",
+            "multiple": false,
+            "locked": false,
+            "values": [true]
+          }
+        ],
+        "variations": [],
+        "tags": [],
+        "references": [],
+        "model": {
+          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+          "name": "Dictionnary Entry",
+          "title": "Dictionnary Entry"
+        },
+        "validationStatus": [],
+        "fieldTags": [],
+        "etag": "\"2aa75ef03a016f196bf53cb0ed934b55\""
+      },
+      {
+        "path": "/content/dam/mas/sandbox/fr_FR/dictionary/yang",
+        "title": "Yang",
+        "description": "",
+        "id": "494d3689-9d23-4354-8f26-a2268dfe01b0",
+        "fields": [
+          {
+            "name": "key",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": [
+              "yang"
+            ]
+          },
+          {
+            "name": "value",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": [
+              "{{yin}} and yang"
+            ]
+          },
+          {
+            "name": "richTextValue",
+            "type": "long-text",
+            "multiple": false,
+            "locked": false,
+            "mimeType": "text/html",
+            "values": []
+          },
+          {
+            "name": "locReady",
+            "type": "boolean",
+            "multiple": false,
+            "locked": false,
+            "values": [true]
+          }
+        ],
+        "variations": [],
+        "tags": [],
+        "references": [],
+        "model": {
+          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+          "name": "Dictionnary Entry",
+          "title": "Dictionnary Entry"
+        },
+        "validationStatus": [],
+        "fieldTags": [],
+        "etag": "\"2aa75ef03a016f196bf53cb0ed934b55\""
+      },
+      {
+        "path": "/content/dam/mas/sandbox/fr_FR/dictionary/index",
+        "title": "index",
+        "description": "",
+        "id": "5671735d-3eac-4543-bd3d-aa8636ae2e65",
+        "status": "PUBLISHED",
+        "fields": [
+          {
+            "name": "entries",
+            "type": "content-fragment",
+            "multiple": true,
+            "locked": false,
+            "values": [
+              "/content/dam/mas/sandbox/fr_FR/dictionary/view-account",
+              "/content/dam/mas/sandbox/fr_FR/dictionary/buy-now",
+              "/content/dam/mas/sandbox/fr_FR/dictionary/cai-default"
+            ]
+          },
+          {
+            "name": "locReady",
+            "type": "boolean",
+            "multiple": false,
+            "locked": false,
+            "values": [true]
+          }
+        ],
+        "variations": [],
+        "tags": [],
+        "references": [],
+        "model": {
+          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk",
+          "path": "/conf/mas/settings/dam/cfm/models/dictionary",
+          "name": "Dictionary",
+          "title": "Dictionary"
+        },
+        "validationStatus": [],
+        "fieldTags": [],
+        "etag": "\"56293b59835a914e55d23414319e3642\""
+      },
+      {
+        "path": "/content/dam/mas/sandbox/fr_FR/dictionary/richtext",
+        "title": "Rich-text",
+        "description": "",
+        "id": "494d3689-9d23-4354-8f26-a2268dfe01b0",
+        "fields": [
+          {
+            "name": "key",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": [
+              "rich-text"
+            ]
+          },
+          {
+            "name": "value",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": [
+              ""
+            ]
+          },
+          {
+            "name": "richTextValue",
+            "type": "long-text",
+            "multiple": false,
+            "locked": false,
+            "mimeType": "text/html",
+            "values": ["<p>i am <strong>rich</strong></p>"]
+          },
+          {
+            "name": "locReady",
+            "type": "boolean",
+            "multiple": false,
+            "locked": false,
+            "values": [true]
+          }
+        ],
+        "variations": [],
+        "tags": [],
+        "references": [],
+        "model": {
+          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+          "name": "Dictionnary Entry",
+          "title": "Dictionnary Entry"
+        },
+        "validationStatus": [],
+        "fieldTags": [],
+        "etag": "\"2aa75ef03a016f196bf53cb0ed934b55\""
+      },
+      {
+        "path": "/content/dam/mas/sandbox/fr_FR/dictionary/cai-default",
+        "title": "cai-default",
+        "description": "",
+        "id": "82ee567a-cc12-4028-8cd2-1fdd1fad43db",
+        "status": "PUBLISHED",
+        "fields": [
+          {
+            "name": "key",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": [
+              "cai-default"
+            ]
+          },
+          {
+            "name": "value",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": [
+              "An AI tool was not used in creating this image"
+            ]
+          },
+          {
+            "name": "richTextValue",
+            "type": "long-text",
+            "multiple": false,
+            "locked": false,
+            "mimeType": "text/html",
+            "values": []
+          },
+          {
+            "name": "locReady",
+            "type": "boolean",
+            "multiple": false,
+            "locked": false,
+            "values": [true]
+          }
+        ],
+        "variations": [],
+        "tags": [],
+        "references": [],
+        "model": {
+          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+          "name": "Dictionnary Entry",
+          "title": "Dictionnary Entry"
+        },
+        "validationStatus": [],
+        "fieldTags": [],
+        "etag": "\"ec9ff78bafe2b4f744ea84fd03b8a431\""
+      },
+      {
+        "path": "/content/dam/mas/sandbox/fr_FR/dictionary/buy-now",
+        "title": "buy now",
+        "description": "",
+        "id": "c29f6338-26b8-44c4-aeae-374df10c08ce",
+        "fields": [
+          {
+            "name": "key",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": [
+              "buy-now"
+            ]
+          },
+          {
+            "name": "value",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+          },
+          {
+            "name": "richTextValue",
+            "type": "long-text",
+            "multiple": false,
+            "locked": false,
+            "mimeType": "text/html",
+            "values": [
+              "\u003Cp\u003E\u003Ci\u003EAchetez\u003C/i\u003E\u003C/p\u003E\n"
+            ]
+          },
+          {
+            "name": "locReady",
+            "type": "boolean",
+            "multiple": false,
+            "locked": false,
+            "values": [true]
+          }
+        ],
+        "variations": [],
+        "tags": [],
+        "references": [],
+        "model": {
+          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+          "name": "Dictionnary Entry",
+          "title": "Dictionnary Entry"
+        },
+        "validationStatus": [],
+        "fieldTags": [],
+        "etag": "\"bedac93bb1ee31aea74036a6f9cffbe3\""
+      }
+    ]
+  }

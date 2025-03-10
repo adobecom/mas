@@ -675,6 +675,14 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'value',
                 new RegExp(`${data.newPlanTypeTag}`),
             );
+            await expect(await studio.editorTags).not.toHaveAttribute(
+                'value',
+                new RegExp(`${data.newOfferTypeTag}`),
+            );
+            await expect(await studio.editorTags).not.toHaveAttribute(
+                'value',
+                new RegExp(`${data.newMarketSegmentsTag}`),
+            );
         });
     });
 });

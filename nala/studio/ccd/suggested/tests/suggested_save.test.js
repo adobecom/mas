@@ -465,11 +465,11 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             );
             await expect(await studio.editorTags).toHaveAttribute(
                 'value',
-                new RegExp(`${data.offerTypeTag}`),
+                new RegExp(`${data.newOfferTypeTag}`),
             );
             await expect(await studio.editorTags).toHaveAttribute(
                 'value',
-                new RegExp(`${data.marketSegmentsTag}`),
+                new RegExp(`${data.newMarketSegmentsTag}`),
             );
             await expect(await studio.editorTags).toHaveAttribute(
                 'value',
@@ -478,6 +478,14 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.editorTags).not.toHaveAttribute(
                 'value',
                 new RegExp(`${data.planTypeTag}`),
+            );
+            await expect(await studio.editorTags).not.toHaveAttribute(
+                'value',
+                new RegExp(`${data.offerTypeTag}`),
+            );
+            await expect(await studio.editorTags).not.toHaveAttribute(
+                'value',
+                new RegExp(`${data.marketSegmentsTag}`),
             );
         });
     });

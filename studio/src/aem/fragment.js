@@ -23,6 +23,7 @@ export class Fragment {
         modified,
         fields,
         tags,
+        references,
     }) {
         this.id = id;
         this.model = model;
@@ -35,6 +36,7 @@ export class Fragment {
         this.modified = modified;
         this.tags = tags;
         this.fields = fields;
+        this.references = references;
         this.tags = tags || [];
         this.initialValue = structuredClone(this);
     }

@@ -24,7 +24,7 @@ test.beforeEach(async ({ page, browserName }) => {
 });
 
 test.describe('M@S Studio CCD Slice card test suite', () => {
-    // @studio-slice-discard-size - Validate edit size for slice card in mas studio
+    // @studio-slice-discard-size - Validate discard edit size for slice card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({
         page,
         baseURL,
@@ -77,7 +77,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-badge - Validate edit badge field for slice card in mas studio
+    // @studio-slice-discard-badge - Validate discard edit badge field for slice card in mas studio
     test(`${features[1].name},${features[1].tags}`, async ({
         page,
         baseURL,
@@ -123,7 +123,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-description - Validate edit description field for slice card in mas studio
+    // @studio-slice-discard-description - Validate discard edit description field for slice card in mas studio
     test(`${features[2].name},${features[2].tags}`, async ({
         page,
         baseURL,
@@ -179,7 +179,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-mnemonic - Validate edit mnemonic URL field for slice card in mas studio
+    // @studio-slice-discard-mnemonic - Validate discard edit mnemonic URL field for slice card in mas studio
     test(`${features[3].name},${features[3].tags}`, async ({
         page,
         baseURL,
@@ -237,7 +237,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-image - Validate edit background image field for slice card in mas studio
+    // @studio-slice-discard-image - Validate discard edit background image field for slice card in mas studio
     test(`${features[4].name},${features[4].tags}`, async ({
         page,
         baseURL,
@@ -290,7 +290,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-price - Validate edit price field for slice card in mas studio
+    // @studio-slice-discard-price - Validate discard edit price field for slice card in mas studio
     test(`${features[5].name},${features[5].tags}`, async ({
         page,
         baseURL,
@@ -390,7 +390,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-cta-ost - Validate edit CTA for slice card in mas studio
+    // @studio-slice-discard-cta-ost - Validate discard edit CTA for slice card in mas studio
     test(`${features[6].name},${features[6].tags}`, async ({
         page,
         baseURL,
@@ -425,16 +425,18 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             ).dblclick();
             await expect(await ost.checkoutTab).toBeVisible();
             await expect(await ost.workflowMenu).toBeVisible();
-            await expect(await ost.ctaTextMenu).toBeVisible();
+            await expect(await ost.ctaTextMenu).toBeEnabled();
             await expect(await ost.checkoutLinkUse).toBeVisible();
-            await expect(await ost.checkoutLink).toBeEnabled();
-            await ost.ctaTextMenu.click();
-
-            await expect(
-                page.locator('div[role="option"]', {
-                    hasText: `${data.newCtaText}`,
-                }),
-            ).toBeVisible();
+            await expect(async () => {
+                await ost.ctaTextMenu.click();
+                await expect(
+                    page.locator('div[role="option"]', {
+                        hasText: `${data.newCtaText}`,
+                    }),
+                ).toBeVisible({
+                    timeout: 500,
+                });
+            }).toPass();
             await page
                 .locator('div[role="option"]', {
                     hasText: `${data.newCtaText}`,
@@ -461,7 +463,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-cta-link - Validate edit CTA link for slice card in mas studio
+    // @studio-slice-discard-cta-link - Validate discard edit CTA link for slice card in mas studio
     test(`${features[7].name},${features[7].tags}`, async ({
         page,
         baseURL,
@@ -583,6 +585,116 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(
                 await studio.getCard(data.cardid, 'suggested'),
             ).not.toBeVisible();
+        });
+    });
+
+    // @studio-slice-discard-change-osi - Validate changing OSI for slice card in mas studio
+    test(`${features[9].name},${features[9].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[9];
+        const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'slice'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'slice')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Change OSI in OST', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorOSI),
+            ).toBeVisible();
+            await expect(await studio.editorOSI).toContainText(data.osi);
+            await expect(await studio.editorTags).toBeVisible();
+            await expect(await studio.editorTags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.productCodeTag}`),
+            );
+            await expect(await studio.editorTags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.offerTypeTag}`),
+            );
+            await expect(await studio.editorTags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.marketSegmentsTag}`),
+            );
+            await expect(await studio.editorTags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.planTypeTag}`),
+            );
+            await (await studio.editorOSIButton).click();
+            await expect(await ost.searchField).toBeVisible();
+            await ost.searchField.fill(data.newosi);
+            await (await ost.nextButton).click();
+            await expect(await ost.priceUse).toBeVisible();
+            await ost.priceUse.click();
+            await expect(await studio.editorOSI).toContainText(data.newosi);
+            await expect(await studio.editorTags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.newPlanTypeTag}`),
+            );
+            await expect(await studio.editorTags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.newOfferTypeTag}`),
+            );
+            await expect(await studio.editorTags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.newMarketSegmentsTag}`),
+            );
+        });
+
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+            await studio.editorPanel.locator(studio.closeEditor).click();
+            await expect(
+                await studio.editorPanel.locator(studio.confirmationDialog),
+            ).toBeVisible();
+            await studio.editorPanel.locator(studio.discardDialog).click();
+            await expect(await studio.editorPanel).not.toBeVisible();
+        });
+
+        await test.step('step-4: Open the editor and validate there are no changes', async () => {
+            await (await studio.getCard(data.cardid, 'slice')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await studio.editorOSI).toContainText(data.osi);
+            await expect(await studio.editorOSI).not.toContainText(data.newosi);
+            await expect(await studio.editorTags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.productCodeTag}`),
+            );
+            await expect(await studio.editorTags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.offerTypeTag}`),
+            );
+            await expect(await studio.editorTags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.marketSegmentsTag}`),
+            );
+            await expect(await studio.editorTags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.planTypeTag}`),
+            );
+            await expect(await studio.editorTags).not.toHaveAttribute(
+                'value',
+                new RegExp(`${data.newPlanTypeTag}`),
+            );
+            await expect(await studio.editorTags).not.toHaveAttribute(
+                'value',
+                new RegExp(`${data.newOfferTypeTag}`),
+            );
+            await expect(await studio.editorTags).not.toHaveAttribute(
+                'value',
+                new RegExp(`${data.newMarketSegmentsTag}`),
+            );
         });
     });
 });

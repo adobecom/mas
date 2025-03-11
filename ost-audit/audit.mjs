@@ -20,8 +20,7 @@ const HREF_REGEXPS = {
     },
     [AUDIT_TARGET.modal]: {
         fragment: '/fragments/',
-        miniPlans: '/mini-plans/',
-        crm: '/modals-content-rich/',
+        iframes: '(/mini-plans/|/modals-content-rich/)',
     },
 };
 const LOCALES = [
@@ -212,6 +211,8 @@ const WCS_KEYS = [
 ];
 const retries = new Set();
 const fetched = new Set();
+const foundUsages = [];
+let file = '/tmp/audit.csv';
 let auditTarget = AUDIT_TARGET.OST;
 let defaultBufferSize = BUFFER_SIZE;
 let isDebug = false;
@@ -221,7 +222,7 @@ const convertRelativeToAbsoluteUrl = (url) => {
     return url;
 };
 
-const getUrlParts = (url) => {
+const getUriAndDomain = (url) => {
     const domain = new RegExp(DOMAIN_REGEXP).exec(url)[0];
     return {
         domain,
@@ -258,9 +259,7 @@ async function getFragmentsFromManifest(url) {
 
 async function getPersonalizationFragments(pageContent) {
     const persoRegexp = new RegExp(PERSO_REGEXP, 'g').exec(pageContent);
-    if (!persoRegexp) {
-        return null;
-    }
+    if (!persoRegexp) return null;
     const fragments = new Set();
     const { urls } = persoRegexp.groups;
     const urlArr = urls.replace('\s', '').split(',');
@@ -396,16 +395,10 @@ async function extractUrlsFromSiteMap(sitemapUrl) {
 const rewriteUrlLocale = (localeRewrite, url) => {
     if (!localeRewrite || !url) return url;
     if (url.indexOf(`/${localeRewrite}/`) < 0) {
-        const { domain, uri } = getUrlParts(url);
+        const { domain, uri } = getUriAndDomain(url);
         return `${domain}/${localeRewrite}/${uri.substring(1)}`;
     }
     return url;
-};
-
-const findIframes = () => {
-    // 1. Find all iframes with src containing 'mini-plans' and 'modals-content-rich', save the page, the element and the iframe src
-    // 2. Find all <a> with href that contains '/fragments/, load each fragment and do first step on it
-    // @TODO: Find all <a is="checkout-link" data-modal="true">Here may be any text or HTML</a> - when clicking they should open a modal with an iframe
 };
 
 const ostUsages = [];
@@ -433,7 +426,7 @@ async function auditPage(ctx, pageUrl) {
             console.log(`Success: response status for ${url} is 200`);
         }
         if (url === origin) {
-            const { uri } = getUrlParts(url);
+            const { uri } = getUriAndDomain(url);
             const firstToken = uri.substring(1).split('/')[0];
             ctx.localeRewrite =
                 LOCALES.indexOf(firstToken) >= 0 ? firstToken : null;
@@ -454,6 +447,14 @@ async function auditPage(ctx, pageUrl) {
                 postExcerpt,
                 ostUsages,
             ),
+        );
+        result?.iframes?.forEach(({ patternMatch, postExcerpt }) =>
+            foundUsages.push({
+                ...ctx,
+                pageUrl,
+                url: patternMatch.input,
+                postExcerpt,
+            }),
         );
         const persoFragments = await getPersonalizationFragments(content);
         result.fragment ??= [];
@@ -482,6 +483,15 @@ async function auditPage(ctx, pageUrl) {
         await auditPage(ctx, url);
     }
 }
+
+const writeIframeUsagesToFile = () => {
+    console.log(`collected ${foundUsages.length} entries`);
+    let headers = ['page URL', 'fragment URL', 'iFrame URL'];
+    fs.writeFileSync(
+        file,
+        `${headers.join(',')}\n${foundUsages.map(({origin, pageUrl, url}) => `${origin},${pageUrl},${url},${postExcerpt}`).join('\n')}`
+    );
+};
 
 const writeOstUsagesToFile = () => {
     //rendering of collected ostUsages objects together with all collected keys as a CSV
@@ -552,7 +562,6 @@ const processArgs = async () => {
     const SEARCH_ARG = '-s';
     const DEBUG_ARG = '-d';
     const TARGET_ARG = '-t';
-    let file = '/tmp/audit.csv';
     let args = process.argv.slice(2);
     if (!args.length) {
         console.log('you should provide at least one URL to audit');
@@ -622,6 +631,7 @@ async function main() {
     await processUrlBatchesWithRetries({ urlsToFetch, searchStrings });
     switch (auditTarget) {
         case AUDIT_TARGET.modal:
+            await writeIframeUsagesToFile();
             break;
         case AUDIT_TARGET.ost:
             await collectOsiData();

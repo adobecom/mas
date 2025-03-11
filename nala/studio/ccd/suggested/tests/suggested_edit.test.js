@@ -899,6 +899,19 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 'value',
                 new RegExp(`${data.productCodeTag}`),
             );
+            await expect(await studio.editorOSI).not.toContainText(data.osi);
+            await expect(await studio.editorTags).not.toHaveAttribute(
+                'value',
+                new RegExp(`${data.planTypeTag}`),
+            );
+            await expect(await studio.editorTags).not.toHaveAttribute(
+                'value',
+                new RegExp(`${data.offerTypeTag}`),
+            );
+            await expect(await studio.editorTags).not.toHaveAttribute(
+                'value',
+                new RegExp(`${data.marketSegmentsTag}`),
+            );
 
             await (await studio.editorOSIButton).click();
             await expect(await ost.searchField).toBeVisible();

@@ -639,6 +639,18 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await ost.priceUse).toBeVisible();
             await ost.priceUse.click();
             await expect(await studio.editorOSI).toContainText(data.newosi);
+            await expect(await studio.editorTags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.newPlanTypeTag}`),
+            );
+            await expect(await studio.editorTags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.newOfferTypeTag}`),
+            );
+            await expect(await studio.editorTags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.newMarketSegmentsTag}`),
+            );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {

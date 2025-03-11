@@ -40,7 +40,7 @@ export default {
                 newMarketSegmentsTag: 'market_segments/edu',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-try-buy-widget @ccd-try-buy-widget-discard',
+            tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-discard',
         },
     ],
 };

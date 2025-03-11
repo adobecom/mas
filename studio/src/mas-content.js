@@ -44,19 +44,16 @@ class MasContent extends LitElement {
     }
 
     get renderView() {
-        const variantValues = VARIANTS.map((v) => v.value);
         return html`
             <div id="render">
                 ${repeat(
                     this.fragments.value,
                     (fragmentStore) => fragmentStore.get().path,
-                    (fragmentStore) => {
-                        // Hide the card if the variant isn't one of VARIANTS that is pre-defined.
-                        if (!variantValues.includes(fragmentStore.value.variant)) return html``;
-                        return html`<mas-fragment
+                    (fragmentStore) =>
+                        html`<mas-fragment
                             .store=${fragmentStore}
                             view="render"
-                        ></mas-fragment>`},
+                        ></mas-fragment>`,
                 )}
             </div>
         `;

@@ -1,6 +1,5 @@
 import { html, LitElement, nothing } from 'lit';
 import './editor-panel.js';
-import './editors/merch-card-editor.js';
 import './rte/rte-field.js';
 import './rte/rte-link-editor.js';
 import './mas-top-nav.js';

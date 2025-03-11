@@ -69,6 +69,7 @@ export const LOCALES = [
 ];
 
 export const OPERATIONS = {
+    CREATE: 'create',
     DELETE: 'delete',
     DISCARD: 'discard',
     PUBLISH: 'publish',
@@ -87,3 +88,20 @@ export const TAG_STATUS_PUBLISHED_PATH =
 export const TAG_STATUS_DRAFT = 'mas:status/draft';
 export const TAG_STATUS_DRAFT_PATH = '/content/cq:tags/mas/status/draft';
 
+export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
+export const COLLECTION_MODEL_PATH =
+    '/conf/mas/settings/dam/cfm/models/collection';
+
+export const FIELD_MODEL_MAPPING = {
+    [CARD_MODEL_PATH]: 'cards',
+    [COLLECTION_MODEL_PATH]: 'collections',
+};
+
+export const TAG_STUDIO_CONTENT_TYPE = 'mas:studio/content-type';
+
+export const TAG_MODEL_ID_MAPPING = {
+    'mas:studio/content-type/merch-card-collection':
+        'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
+    'mas:studio/content-type/merch-card':
+        'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
+};

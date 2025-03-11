@@ -86,7 +86,7 @@ export function toggleSelection(id) {
 }
 
 export function editFragment(store, x) {
-    editorPanel().editFragment(store, x);
+    editorPanel()?.editFragment(store, x);
 }
 
 export function navigateToPage(value) {

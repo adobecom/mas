@@ -4,6 +4,7 @@ import './mas-fragment-render.js';
 import './mas-fragment-table.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
 import Store, { editFragment } from './store.js';
+import { styles } from './mas-fragment.css.js';
 
 const tooltipTimeout = new ReactiveStore(null);
 
@@ -12,6 +13,8 @@ class MasFragment extends LitElement {
         store: { type: Object, attribute: false },
         view: { type: String, attribute: true }, // 'render' | 'table'
     };
+
+    static styles = [styles];
 
     createRenderRoot() {
         return this;

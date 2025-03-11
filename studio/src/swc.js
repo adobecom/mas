@@ -28,6 +28,7 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-code.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-copy.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-delete-outline.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-deselect.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-document-fragment.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-drag-handle.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-duplicate.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-edit.js';
@@ -39,6 +40,7 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-graph-bar-vertical
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-help-outline.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-help.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-home.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-info-outline.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-label.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-labels.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-link-out-light.js';

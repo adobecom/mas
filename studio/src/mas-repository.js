@@ -10,6 +10,8 @@ import {
     OPERATIONS,
     STATUS_PUBLISHED,
     TAG_STATUS_PUBLISHED,
+    TAG_STUDIO_CONTENT_TYPE,
+    TAG_MODEL_ID_MAPPING,
 } from './constants.js';
 
 const ROOT = '/content/dam/mas';
@@ -131,6 +133,12 @@ export class MasRepository extends LitElement {
         }
     }
 
+    get parentPath() {
+        return `${getDamPath(this.search.value.path)}/${
+            this.filters.value.locale
+        }`;
+    }
+
     async searchFragments() {
         if (this.page.value !== 'content') return;
 
@@ -139,7 +147,15 @@ export class MasRepository extends LitElement {
         const dataStore = Store.fragments.list.data;
         const path = this.search.value.path;
         const query = this.search.value.query;
-        const tags = [...(this.filters.value.tags ?? [])];
+        let tags = [...(this.filters.value.tags ?? [])];
+
+        // Extract content type tags from the tags array
+        const modelIds = tags
+            .filter((tag) => tag.startsWith(TAG_STUDIO_CONTENT_TYPE))
+            .map((tag) => TAG_MODEL_ID_MAPPING[tag]);
+
+        // Remove content type tags from the original tags array
+        tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE));
 
         if (
             !looseEquals(dataStore.getMeta('path'), path) ||
@@ -153,6 +169,7 @@ export class MasRepository extends LitElement {
         const damPath = getDamPath(path);
         const localSearch = {
             ...this.search.value,
+            modelIds,
             path: `${damPath}/${this.filters.value.locale}`,
             tags,
         };
@@ -276,6 +293,35 @@ export class MasRepository extends LitElement {
         }
 
         Store.fragments.recentlyUpdated.loading.set(false);
+    }
+
+    async createFragment(fragmentData) {
+        try {
+            Events.toast.emit({
+                variant: 'info',
+                content: 'Creating fragment...',
+            });
+            this.operation.set(OPERATIONS.CREATE);
+
+            const result = await this.#aem.sites.cf.fragments.create({
+                ...fragmentData,
+                parentPath: this.parentPath,
+            });
+            const latest = await this.#aem.sites.cf.fragments.getById(
+                result.id,
+            );
+
+            Events.toast.emit({
+                variant: 'positive',
+                content: 'Fragment successfully created.',
+            });
+            this.operation.set();
+            return latest;
+        } catch (error) {
+            this.operation.set();
+            this.processError(error, 'Failed to create fragment.');
+            throw new UserFriendlyError('Failed to create fragment.');
+        }
     }
 
     async addToCache(fragments) {

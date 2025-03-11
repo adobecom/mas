@@ -1,24 +1,20 @@
 import { html, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import '../fields/multifield.js';
-import '../fields/mnemonic-field.js';
-import '../swc.js';
 import { Fragment } from '../aem/fragment.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { styles } from './merch-card-collection-editor.css.js';
-
-const MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
+import { FIELD_MODEL_MAPPING, COLLECTION_MODEL_PATH } from '../constants.js';
+import { editFragment } from '../store.js';
 
 class MerchCardCollectionEditor extends LitElement {
     static get properties() {
         return {
-            fragment: { type: Object, attribute: false },
+            draggingFieldName: { type: String, state: true },
             draggingIndex: { type: Number, state: true },
-            draggingType: { type: String, state: true },
+            fragment: { type: Object, attribute: false },
             fragmentReferencesMap: { type: Object, attribute: false },
-            draggingElement: { type: Object, state: true },
-            expandedCollections: { type: Object, state: true },
-            subCollections: { type: Boolean },
+            updateFragment: { type: Function },
+            hideCards: { type: Boolean, state: true },
         };
     }
 
@@ -28,14 +24,28 @@ class MerchCardCollectionEditor extends LitElement {
 
     constructor() {
         super();
-        this.fragment = null;
-        this.cards = [];
-        this.collections = [];
+        this.draggingFieldName = null;
         this.draggingIndex = -1;
-        this.draggingType = '';
-        this.draggingElement = null;
+        this.fragment = null;
         this.fragmentReferencesMap = null;
-        this.expandedCollections = new Map();
+        this.updateFragment = null;
+        this.hideCards = false;
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        // Add event listeners to the host element
+        this.addEventListener('dragover', this.handleDragOver);
+        this.addEventListener('dragleave', this.handleDragLeave);
+        this.addEventListener('drop', this.handleDrop);
+    }
+
+    disconnectedCallback() {
+        // Remove event listeners when component is disconnected
+        this.removeEventListener('dragover', this.handleDragOver);
+        this.removeEventListener('dragleave', this.handleDragLeave);
+        this.removeEventListener('drop', this.handleDrop);
+        super.disconnectedCallback();
     }
 
     update(changedProperties) {
@@ -46,509 +56,548 @@ class MerchCardCollectionEditor extends LitElement {
         super.update(changedProperties);
     }
 
-    initFragmentReferencesMap() {
-        if (this.fragmentReferencesMap) return;
+    async initFragmentReferencesMap() {
         if (!this.fragment) return;
 
-        this.fragmentReferencesMap = new Map(
-            this.fragment.value.references.map((ref) => [
+        // Create a new map or clear the existing one
+        this.fragmentReferencesMap = new Map();
+
+        // Get all references from the fragment
+        const references = this.fragment.value.references || [];
+
+        // Create a FragmentStore for each reference
+        for (const ref of references) {
+            this.fragmentReferencesMap.set(
                 ref.path,
                 new FragmentStore(new Fragment(ref)),
-            ]),
-        );
-    }
-
-    toggleCollectionExpanded(collectionId) {
-        // If this collection is already expanded, just toggle it off
-        const currentState =
-            this.expandedCollections.get(collectionId) || false;
-
-        if (currentState) {
-            // If it's already expanded, just collapse it
-            this.expandedCollections.set(collectionId, false);
-        } else {
-            // If it's not expanded, collapse all other collections first
-            // and then expand this one
-            this.expandedCollections.forEach((_, key) => {
-                this.expandedCollections.set(key, false);
-            });
-            // Now expand this collection
-            this.expandedCollections.set(collectionId, true);
+            );
         }
 
-        // Force a re-render
+        // Request an update to reflect changes
         this.requestUpdate();
     }
 
-    isCollectionExpanded(collectionId) {
-        return this.expandedCollections.get(collectionId) || false;
+    editFragment(item) {
+        const fragmentStore = this.fragmentReferencesMap.get(item);
+        if (!fragmentStore) return;
+        editFragment(fragmentStore);
     }
 
-    get #collection() {
-        // For subcollections, render a minimal header
-        if (this.subCollections) {
-            return nothing;
-        }
-
-        // Get the collection data from the fragment
-        const titleField = this.fragment.value.fields.find(
-            (field) => field.name === 'title',
+    get label() {
+        return (
+            this.fragment?.value?.fields?.find((f) => f.name === 'label')
+                ?.values?.[0] || ''
         );
-        const iconField = this.fragment.value.fields.find(
-            (field) => field.name === 'icon',
+    }
+
+    get icon() {
+        return (
+            this.fragment?.value?.fields?.find((f) => f.name === 'icon')
+                ?.values?.[0] || ''
         );
-
-        // Get the collection ID from the fragment value
-        const collectionId = this.fragment.value.id || '';
-
-        // For main collections, render the full header
-        return html`<h2 class="collection-title" id="${collectionId}">
-            <img src="${iconField?.values?.[0] || ''}" alt="" />
-            ${titleField?.values?.[0] || ''}
-        </h2>`;
     }
 
-    // Handle drag start
-    dragStart(e, index, type) {
-        console.log(
-            `dragStart: index=${index}, type=${type}, target=`,
-            e.currentTarget,
-        );
-        // Store the dragging information
-        this.draggingIndex = index;
-        this.draggingType = type;
-
-        // Set data transfer properties if available
-        if (e.dataTransfer) {
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', index);
-            // Add the type to help with drop validation
-            e.dataTransfer.setData('application/type', type);
-        }
-
-        // Add visual indication
-        e.currentTarget.classList.add('dragging');
-
-        // Store the dragging element for reliable reference
-        this.draggingElement = e.currentTarget;
-
-        // Remove dragging class from all other elements of the same type
-        this.shadowRoot
-            .querySelectorAll(
-                type === 'card' ? '.merch-card-item' : '.collection-wrapper',
-            )
-            .forEach((item) => {
-                if (item !== e.currentTarget) {
-                    item.classList.remove('dragging');
-                }
-            });
+    get #cardsHeader() {
+        return html`
+            <div class="section-header">
+                <h2>Cards</h2>
+                <div class="hide-cards-control">
+                    <sp-field-label for="hide-cards">hide</sp-field-label>
+                    <sp-switch
+                        id="hide-cards"
+                        .selected=${this.hideCards}
+                        @change=${this.handleHideCardsChange}
+                    ></sp-switch>
+                </div>
+            </div>
+        `;
     }
 
-    // Handle drag over
-    dragOver(e, index, type) {
-        // Prevent default to allow drop
-        e.preventDefault();
-
-        // Only show drop indication if it's the same type and different index
-        if (this.draggingType === type && this.draggingIndex !== index) {
-            e.currentTarget.classList.add('dragover');
-        }
-
-        return false;
-    }
-
-    // Handle drag leave
-    dragLeave(e) {
-        console.log('dragLeave', e.currentTarget);
-        e.currentTarget.classList.remove('dragover');
-    }
-
-    // Handle drop
-    drop(e, index, type) {
-        // Prevent default browser behavior
-        e.preventDefault();
-        e.stopPropagation();
-
-        // Remove visual indication
-        e.currentTarget.classList.remove('dragover');
-
-        // Remove dragging class from the dragged element
-        if (this.draggingElement) {
-            this.draggingElement.classList.remove('dragging');
-            this.draggingElement = null;
-        }
-
-        // Try to get the type from dataTransfer if draggingType is not set
-        if (!this.draggingType && e.dataTransfer) {
-            this.draggingType = e.dataTransfer.getData('application/type');
-            console.log(
-                `Retrieved type from dataTransfer: ${this.draggingType}`,
-            );
-        }
-
-        // Only process if we're dropping on a different item of the same type
-        if (this.draggingType !== type || this.draggingIndex === index) {
-            console.log('Drop canceled: same index or different type');
-            console.log(`draggingType: ${this.draggingType}, type: ${type}`);
-            console.log(
-                `draggingIndex: ${this.draggingIndex}, index: ${index}`,
-            );
-            return false;
-        }
-
-        // Get the field name based on type
-        const fieldName = type === 'card' ? 'cards' : 'collections';
-
-        // Find the field in the fragment
-        const field = this.fragment.value.fields.find(
-            (field) => field.name === fieldName,
-        );
-        if (!field || !field.values) {
-            console.error(`Field ${fieldName} not found or has no values`);
-            return false;
-        }
-
-        // Create a copy of the values array
-        const values = [...field.values];
-
-        // Get the item being dragged
-        const draggedItem = values[this.draggingIndex];
-        if (!draggedItem) {
-            console.error(
-                `Item at index ${this.draggingIndex} not found in ${fieldName}`,
-            );
-            return false;
-        }
-
-        console.log(`Dragged item: ${draggedItem}`);
-
-        // Remove the item from its original position
-        values.splice(this.draggingIndex, 1);
-
-        // Insert the item at the new position
-        values.splice(index, 0, draggedItem);
-
-        console.log(
-            `Reordering ${fieldName}: moved item from ${this.draggingIndex} to ${index}`,
-        );
-
-        // Update the field values directly for immediate visual feedback
-        field.values = values;
-
-        // Update the fragment
-        try {
-            this.fragment.updateField(fieldName, values);
-            console.log(`Successfully updated fragment field ${fieldName}`);
-        } catch (error) {
-            console.error(`Error updating fragment field ${fieldName}:`, error);
-        }
-
-        // Dispatch a change event to notify parent components
-        this.dispatchEvent(
-            new CustomEvent('fragment-changed', {
-                bubbles: true,
-                composed: true,
-                detail: {
-                    fieldName,
-                    values,
-                },
-            }),
-        );
-
-        // Reset drag state
-        this.draggingIndex = -1;
-        this.draggingType = '';
-
-        // Force a re-render
-        this.requestUpdate();
-
-        return false;
-    }
-
-    // Handle drag end
-    dragEnd(e) {
-        console.log('dragEnd', e.currentTarget);
-        // Remove visual indication
-        if (this.draggingElement) {
-            this.draggingElement.classList.remove('dragging');
-            this.draggingElement = null;
-        } else {
-            e.currentTarget.classList.remove('dragging');
-        }
-
-        // Reset drag state
-        this.draggingIndex = -1;
-        this.draggingType = '';
-    }
-
-    // Handle nested drag events
-    handleNestedDragEvent(e) {
-        console.log('Received nested drag event:', e.type, e.detail);
-        // For drag events, we need to handle them differently than custom events
-        if (e.type.startsWith('drag') && e.type !== 'fragment-changed') {
-            // For drag events, we need to handle the original event directly
-            // instead of creating a new custom event
-
-            // Update our local drag state
-            if (e.detail && e.detail.draggingIndex !== undefined) {
-                this.draggingIndex = e.detail.draggingIndex;
-                this.draggingType = e.detail.draggingType;
-                this.draggingElement = e.detail.draggingElement;
-            }
-
-            // For dragstart events, we need to dispatch a real DragEvent to the parent
-            // but we can't create a real DragEvent with dataTransfer, so we'll just
-            // update our local state and let the parent handle it
-            this.requestUpdate();
-            return;
-        }
-
-        // For non-drag events, forward them to the parent component
-        this.dispatchEvent(
-            new CustomEvent(e.type, {
-                bubbles: true,
-                composed: true,
-                detail: e.detail,
-            }),
-        );
-
-        // If it's a fragment-changed event, update our local state
-        if (e.type === 'fragment-changed') {
-            this.requestUpdate();
-        }
-    }
-
-    // Add a method to handle direct drag events on collection items
-    handleCollectionDrag(e, index, type) {
-        // For dragover events, we need to prevent default to allow drop
-        if (e.type === 'dragover') {
-            e.preventDefault();
-        }
-
-        // For drop events, we need to prevent default and stop propagation
-        if (e.type === 'drop') {
-            e.preventDefault();
-        }
-
-        // Handle the drag event directly
-        if (e.type === 'dragstart') {
-            this.dragStart(e, index, type);
-        } else if (e.type === 'dragover') {
-            this.dragOver(e, index, type);
-        } else if (e.type === 'dragleave') {
-            this.dragLeave(e);
-        } else if (e.type === 'drop') {
-            this.drop(e, index, type);
-        } else if (e.type === 'dragend') {
-            this.dragEnd(e);
-        }
-
-        // Stop propagation after handling the event
-        // This prevents the event from bubbling up to parent elements
-        e.stopPropagation();
-    }
-
+    /** returns only if there are cards to render */
     get #cards() {
+        if (!this.fragment) return nothing;
+
         const cardsField = this.fragment.value.fields.find(
             (field) => field.name === 'cards',
         );
 
         if (!cardsField?.values?.length) return nothing;
 
-        return html` <ul class="merch-card-list">
-            ${repeat(
-                cardsField.values,
-                (cardPath, index) => cardPath || index,
-                (cardPath, index) => {
-                    // If it's a path, look up the reference
-                    if (typeof cardPath === 'string') {
-                        const cardRef =
-                            this.fragmentReferencesMap.get(cardPath);
-                        if (cardRef) {
-                            const titleField = cardRef.value.fields.find(
-                                (field) => field.name === 'title',
-                            );
-                            const iconField = cardRef.value.fields.find(
-                                (field) => field.name === 'icon',
-                            );
-                            const iconSrc =
-                                iconField?.values?.[0] ||
-                                '/test/mocks/img/icon.svg';
-                            return html`
-                                <li
-                                    class="merch-card-item"
-                                    draggable="true"
-                                    @dragstart=${(e) =>
-                                        this.handleCollectionDrag(
-                                            e,
-                                            index,
-                                            'card',
-                                        )}
-                                    @dragover=${(e) =>
-                                        this.handleCollectionDrag(
-                                            e,
-                                            index,
-                                            'card',
-                                        )}
-                                    @dragleave=${(e) =>
-                                        this.handleCollectionDrag(
-                                            e,
-                                            null,
-                                            null,
-                                        )}
-                                    @drop=${(e) =>
-                                        this.handleCollectionDrag(
-                                            e,
-                                            index,
-                                            'card',
-                                        )}
-                                    @dragend=${(e) =>
-                                        this.handleCollectionDrag(
-                                            e,
-                                            null,
-                                            null,
-                                        )}
-                                >
-                                    <img
-                                        src="${iconSrc}"
-                                        alt=""
-                                        class="card-icon"
-                                    />
-                                    ${titleField?.values?.[0] || ''}
-                                    <sp-icon-drag-handle
-                                        class="drag-handle"
-                                        label="Order"
-                                    ></sp-icon-drag-handle>
-                                </li>
-                            `;
-                        }
-                    }
-                },
-            )}
-        </ul>`;
+        return html`
+            ${this.#cardsHeader}
+            <div class="${this.hideCards ? 'hidden' : ''}">
+                ${this.getItems(cardsField)}
+            </div>
+        `;
     }
 
     get #collections() {
+        if (!this.fragment) return nothing;
+
         const collectionsField = this.fragment.value.fields.find(
             (field) => field.name === 'collections',
         );
 
         if (!collectionsField?.values?.length) return nothing;
 
-        return html` <ul class="merch-card-list">
-            ${repeat(
-                collectionsField.values,
-                (collectionPath, index) => collectionPath || index,
-                (collectionPath, index) => {
-                    // If it's a path, look up the reference
-                    if (typeof collectionPath === 'string') {
-                        const collectionRef =
-                            this.fragmentReferencesMap.get(collectionPath);
+        return html`
+            <div data-field-name="collections">
+                <div class="section-header">
+                    <h2>Categories</h2>
+                </div>
+                ${this.getItems(collectionsField)}
+            </div>
+        `;
+    }
 
-                        // Get collection ID, title and icon
-                        const collectionId =
-                            collectionRef.value?.id || `collection-${index}`;
-                        const titleField = collectionRef.value.fields?.find(
-                            (field) => field.name === 'title',
-                        );
-                        const iconField = collectionRef.value.fields?.find(
-                            (field) => field.name === 'icon',
-                        );
-                        const title =
-                            titleField?.values?.[0] || 'Untitled Collection';
-                        const iconSrc = iconField?.values?.[0] || '';
+    getItems(field) {
+        return html`
+            <div class="items-container">
+                ${repeat(
+                    field.values,
+                    (item) => item, // Use the item path as the key
+                    (item, index) => {
+                        // Get the fragment reference for this item
+                        const fragmentStore =
+                            this.fragmentReferencesMap.get(item);
+                        if (!fragmentStore) return nothing;
 
-                        const isExpanded =
-                            this.isCollectionExpanded(collectionId);
+                        const fragment = fragmentStore.get();
+                        if (!fragment) return nothing;
+
+                        // Get the label and icon from the fragment based on its type
+                        let label;
+                        let iconPaths = [];
+
+                        if (fragment.model?.path === COLLECTION_MODEL_PATH) {
+                            // For collections
+                            label = fragment.fields?.find(
+                                (field) => field.name === 'label',
+                            )?.values?.[0];
+
+                            const iconPath =
+                                fragment.fields?.find(
+                                    (field) => field.name === 'icon',
+                                )?.values?.[0] || '';
+
+                            if (iconPath) {
+                                iconPaths = [iconPath];
+                            }
+                        } else {
+                            // For cards
+                            label = fragment.fields?.find(
+                                (field) => field.name === 'cardTitle',
+                            )?.values?.[0];
+
+                            // Get all icons from mnemonicIcon array
+                            iconPaths =
+                                fragment.fields?.find(
+                                    (field) => field.name === 'mnemonicIcon',
+                                )?.values || [];
+                        }
 
                         return html`
                             <div
-                                class="collection-wrapper ${isExpanded
-                                    ? 'expanded'
-                                    : 'collapsed'}"
+                                class="item-wrapper"
                                 draggable="true"
-                                id="${collectionId}"
-                                @dragstart=${(e) =>
-                                    this.handleCollectionDrag(
-                                        e,
-                                        index,
-                                        'collection',
-                                    )}
-                                @dragover=${(e) =>
-                                    this.handleCollectionDrag(
-                                        e,
-                                        index,
-                                        'collection',
-                                    )}
-                                @dragleave=${(e) =>
-                                    this.handleCollectionDrag(e, null, null)}
-                                @drop=${(e) =>
-                                    this.handleCollectionDrag(
-                                        e,
-                                        index,
-                                        'collection',
-                                    )}
-                                @dragend=${(e) =>
-                                    this.handleCollectionDrag(e, null, null)}
+                                @dragstart="${(e) =>
+                                    this.#dragStart(e, index, fragment.model)}"
+                                @dragover="${(e) =>
+                                    this.#dragOver(e, index, fragment.model)}"
+                                @dragleave="${this.#dragLeave}"
+                                @drop="${(e) =>
+                                    this.#drop(e, index, fragment.model)}"
+                                @dragend="${this.#dragEnd}"
                             >
-                                <div
-                                    class="collection-header"
-                                    @click=${() =>
-                                        this.toggleCollectionExpanded(
-                                            collectionId,
-                                        )}
-                                >
-                                    <sp-icon-chevron-right
-                                        class="expand-icon ${isExpanded
-                                            ? 'expanded'
-                                            : ''}"
-                                    ></sp-icon-chevron-right>
-                                    ${iconSrc
-                                        ? html`<img
-                                              src="${iconSrc}"
-                                              alt=""
-                                              class="collection-icon"
-                                          />`
+                                <div class="item-content">
+                                    ${iconPaths.length > 0
+                                        ? html`
+                                              <div class="item-icons">
+                                                  ${iconPaths.map(
+                                                      (iconPath) => html`
+                                                          <img
+                                                              src="${iconPath}"
+                                                              alt="${label} icon"
+                                                              class="item-icon"
+                                                          />
+                                                      `,
+                                                  )}
+                                              </div>
+                                          `
                                         : nothing}
-                                    <span class="collection-title">
-                                        ${title}
-                                    </span>
+                                    <div class="item-label">${label}</div>
+                                </div>
+                                <div class="item-actions">
+                                    <sp-action-button
+                                        quiet
+                                        variant="secondary"
+                                        @click="${() => this.removeItem(item)}"
+                                    >
+                                        <sp-icon-close
+                                            slot="icon"
+                                            label="Remove item"
+                                        ></sp-icon-close>
+                                    </sp-action-button>
+                                    ${fragment.model?.path ===
+                                    COLLECTION_MODEL_PATH
+                                        ? html`
+                                              <sp-action-button
+                                                  quiet
+                                                  variant="secondary"
+                                                  @click="${() =>
+                                                      this.editFragment(item)}"
+                                              >
+                                                  <sp-icon-edit
+                                                      slot="icon"
+                                                      label="Edit item"
+                                                  ></sp-icon-edit>
+                                              </sp-action-button>
+                                          `
+                                        : nothing}
                                     <sp-icon-drag-handle
-                                        class="drag-handle"
                                         label="Order"
                                     ></sp-icon-drag-handle>
                                 </div>
-                                ${isExpanded
-                                    ? html`<div class="collection-content">
-                                          <merch-card-collection-editor
-                                              .fragmentReferencesMap=${this
-                                                  .fragmentReferencesMap}
-                                              .fragment=${collectionRef}
-                                              .subCollections=${true}
-                                              .draggingIndex=${this
-                                                  .draggingIndex}
-                                              .draggingType=${this.draggingType}
-                                              .draggingElement=${this
-                                                  .draggingElement}
-                                              @fragment-changed=${this
-                                                  .handleNestedDragEvent}
-                                          ></merch-card-collection-editor>
-                                      </div>`
-                                    : nothing}
                             </div>
                         `;
-                    }
-                },
-            )}
-        </ul>`;
+                    },
+                )}
+            </div>
+        `;
+    }
+
+    // Handle drag start
+    #dragStart(e, index, model) {
+        this.draggingIndex = index;
+
+        this.draggingFieldName = FIELD_MODEL_MAPPING[model.path];
+
+        e.dataTransfer.effectAllowed = 'move';
+        e.target.classList.add('dragging');
+    }
+
+    // Handle drag over
+    #dragOver(e, index, model) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Only allow drag over if the model paths match (card to card, collection to collection)
+        if (
+            this.draggingIndex !== index &&
+            this.draggingFieldName === FIELD_MODEL_MAPPING[model.path]
+        ) {
+            e.target.classList.add('dragover');
+        }
+    }
+
+    // Handle drag leave
+    #dragLeave(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        // Make sure we're only removing the class from the current target
+        // and not from child elements
+        if (e.currentTarget === e.target) {
+            e.currentTarget.classList.remove('dragover');
+        }
+    }
+
+    // Handle drop
+    #drop(e, index, model) {
+        e.preventDefault();
+        if (!this.fragment) return;
+
+        // Prevent dropping cards into collections and vice versa
+        if (this.draggingFieldName !== FIELD_MODEL_MAPPING[model.path]) {
+            console.warn('Cannot drop items between different sections');
+            return;
+        }
+
+        const currentFieldName = FIELD_MODEL_MAPPING[model.path];
+
+        // Get the values from the current field
+        const field = this.fragment.value.fields.find(
+            (field) => field.name === currentFieldName,
+        );
+
+        if (!field?.values?.length) {
+            console.error(`Field ${currentFieldName} has no values`);
+            return;
+        }
+
+        // Get the dragged item path
+        const draggedPath = field.values[this.draggingIndex];
+        if (!draggedPath) {
+            console.error(`No item found at index ${this.draggingIndex}`);
+            return;
+        }
+
+        // Create a copy of the values array
+        const newValues = [...field.values];
+
+        // Remove the dragging item from its original position
+        newValues.splice(this.draggingIndex, 1);
+
+        // Insert the dragging item into the new position
+        newValues.splice(index, 0, draggedPath);
+
+        this.updateFragment({
+            target: {
+                multiline: true,
+                dataset: { field: currentFieldName },
+            },
+            values: newValues,
+        });
+
+        // Remove dragover class from all elements
+        if (this.shadowRoot) {
+            this.shadowRoot.querySelectorAll('.dragover').forEach((element) => {
+                element.classList.remove('dragover');
+            });
+        }
+
+        // Reset drag state
+        this.draggingIndex = -1;
+        this.draggingFieldName = null;
+
+        // Request an update to reflect changes
+        this.requestUpdate();
+    }
+
+    // Handle drag end
+    #dragEnd(e) {
+        e.target.classList.remove('dragging');
+        this.draggingIndex = -1;
+        this.draggingFieldName = null;
+    }
+
+    // Method to remove an item
+    removeItem(path) {
+        if (!this.fragment) return;
+
+        // Get the fragment reference for this path
+        const fragmentStore = this.fragmentReferencesMap.get(path);
+        if (!fragmentStore) return;
+
+        const fragment = fragmentStore.get();
+        if (!fragment) return;
+
+        // Determine if this is a card or collection based on the model path
+        const fieldName = FIELD_MODEL_MAPPING[fragment.model?.path];
+        if (!fieldName) return;
+
+        const field = this.fragment.value.fields.find(
+            (field) => field.name === fieldName,
+        );
+
+        if (!field?.values?.length) return;
+
+        // Create a copy of the values array
+        const newValues = [...field.values];
+
+        // Find the index of the path in the values array
+        const index = newValues.indexOf(path);
+        if (index === -1) return;
+
+        // Remove the item at the specified index
+        newValues.splice(index, 1);
+
+        this.updateFragment({
+            target: {
+                multiline: true,
+                dataset: { field: fieldName },
+            },
+            values: newValues,
+        });
+
+        // Request an update to reflect changes
+        this.requestUpdate();
+    }
+
+    handleHideCardsChange(event) {
+        this.hideCards = event.target.checked;
+    }
+
+    get form() {
+        return html`
+            <div class="form-container">
+                <div class="form-row">
+                    <sp-field-label for="label">label</sp-field-label>
+                    <sp-textfield
+                        id="label"
+                        data-field="label"
+                        .value=${this.label}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="icon">Icon</sp-field-label>
+                    <sp-textfield
+                        id="icon"
+                        data-field="icon"
+                        .value=${this.icon}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
+            </div>
+        `;
+    }
+
+    get #tip() {
+        if (this.#cards !== nothing || this.#collections !== nothing)
+            return nothing;
+        return html`
+            <div class="tip">
+                <sp-icon-info-outline></sp-icon-info-outline>
+                <div>
+                    Drag and drop cards or collections to add to this
+                    collection.
+                </div>
+            </div>
+        `;
+    }
+
+    handleDragOver(event) {
+        // Prevent default to allow drop
+        event.preventDefault();
+
+        // Check if we can accept this type of fragment
+        const isAcceptable = this.canAcceptDraggedFragment(event);
+
+        if (isAcceptable) {
+            event.dataTransfer.dropEffect = 'copy';
+            this.classList.add('dragover');
+        } else {
+            event.dataTransfer.dropEffect = 'none';
+        }
+    }
+
+    handleDragLeave(event) {
+        // Only remove the class if we're leaving the host element
+        // and not just moving between its children
+        if (
+            event.currentTarget === this &&
+            !this.contains(event.relatedTarget)
+        ) {
+            this.classList.remove('dragover');
+        }
+    }
+
+    canAcceptDraggedFragment(event) {
+        try {
+            // During dragover, getData might not be available in some browsers
+            // We'll try to get the data, but if it fails, we'll use a more permissive approach
+            let fragmentData;
+            try {
+                const data = event.dataTransfer.getData('application/json');
+                if (data) {
+                    fragmentData = JSON.parse(data);
+                }
+            } catch (e) {
+                // During dragover, getData might throw an error in some browsers
+                // We'll continue with a null fragmentData
+            }
+
+            // If we couldn't get the data (common during dragover), check if the dataTransfer has the right type
+            if (!fragmentData) {
+                // Check if the dataTransfer contains application/json type
+                return Array.from(event.dataTransfer.types).includes(
+                    'application/json',
+                );
+            }
+
+            // Check if the model path is one we can accept
+            return FIELD_MODEL_MAPPING[fragmentData.model.path] !== undefined;
+        } catch (e) {
+            console.error('Error in canAcceptDraggedFragment:', e);
+            // During dragover, we'll be more permissive
+            // Allow the drop for now, we'll validate on actual drop
+            return true;
+        }
+    }
+
+    async handleDrop(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        this.classList.remove('dragover');
+
+        const data = event.dataTransfer.getData('application/json');
+        if (!data) {
+            console.warn('No data received in drop event');
+            return;
+        }
+
+        const fragmentData = JSON.parse(data);
+        console.log('Dropped fragment data:', fragmentData);
+
+        // Determine the appropriate field based on the model path
+        const fieldName = FIELD_MODEL_MAPPING[fragmentData.model.path];
+
+        if (!fieldName) {
+            console.warn(
+                `No field mapping found for model path: ${fragmentData.model.path}`,
+            );
+            return;
+        }
+
+        // Ensure we have a fragment to work with
+        if (!this.fragment || !this.fragment.value) {
+            console.error('No fragment available to update');
+            return;
+        }
+
+        // Get the current field values
+        const field = this.fragment.value.fields.find(
+            (field) => field.name === fieldName,
+        );
+
+        // Check if the drop target is a specific section
+        const dropTarget = event.target.closest('[data-field-name]');
+        if (dropTarget) {
+            const targetFieldName = dropTarget.getAttribute('data-field-name');
+            // If dropping onto a specific section, ensure the model type matches
+            if (targetFieldName !== fieldName) {
+                console.warn(
+                    `Cannot drop ${fieldName} into ${targetFieldName} section`,
+                );
+                return;
+            }
+        }
+
+        this.updateFragment({
+            target: {
+                multiline: true,
+                dataset: { field: fieldName },
+            },
+            values: [...new Set([...field.values, fragmentData.path])],
+        });
+
+        // Check if the reference already exists
+        const existingReference = this.fragment.value.references?.find(
+            (ref) => ref.path === fragmentData.path,
+        );
+
+        if (!existingReference) {
+            // Add the new reference
+            this.fragment.value.references = [
+                ...this.fragment.value.references,
+                fragmentData,
+            ];
+
+            // Create a FragmentStore for the new reference
+            this.fragmentReferencesMap.set(
+                fragmentData.path,
+                new FragmentStore(new Fragment(fragmentData)),
+            );
+        }
+        this.requestUpdate();
     }
 
     render() {
-        if (!this.fragment || this.fragment.value.model?.path !== MODEL_PATH) {
-            return nothing;
-        }
-
-        return html` ${this.#collection} ${this.#cards} ${this.#collections} `;
+        return html`<div class="editor-container">
+            ${this.form}
+            <div data-field-name="cards-section">${this.#cards}</div>
+            ${this.#collections} ${this.#tip}
+        </div>`;
     }
 }
 

@@ -183,25 +183,20 @@ sp-status-light {
     --spectrum-statuslight-spacing-dot-to-label: 0;
 }
 
-.render-card {
+.render-fragment {
     display: flex;
     flex-direction: column;
     padding: 6px 3px 3px 3px;
     gap: 6px;
     border: 1px solid transparent;
-    border-radius: var(--consonant-merch-spacing-xs);
-}
-
-.render-card:has(merch-card[variant='ccd-slice']),
-.render-card:has(merch-card[variant='ccd-suggested']) {
     border-radius: 4px;
 }
 
-.render-card:hover {
+.render-fragment:hover {
     border-color: var(--ccd-gray-200-light, #e6e6e6);
 }
 
-.render-card-header {
+.render-fragment-header {
     display: flex;
     justify-content: space-between;
     padding-inline: 6px;
@@ -434,4 +429,24 @@ sp-underlay + sp-dialog {
     transform: translate(-50%, -50%);
     z-index: 1;
     background: var(--spectrum-gray-100);
+}
+
+.unknown-fragment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    gap: 8px;
+    width: 300px;
+    height: 200px;
+    border: 1px solid var(--spectrum-gray-200);
+    border-radius: 4px;
+}
+
+.model-name {
+    position: absolute;
+    color: var(--spectrum-gray-600);
+    bottom: 0;
+    right: 8px;
+    text-align: center;
 }

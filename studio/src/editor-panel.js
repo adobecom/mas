@@ -4,9 +4,16 @@ import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { OPERATIONS } from './constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    OPERATIONS,
+} from './constants.js';
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
+
+import './editors/merch-card-editor.js';
+import './editors/merch-card-collection-editor.js';
 
 const MODEL_WEB_COMPONENT_MAPPING = {
     Card: 'merch-card',
@@ -212,10 +219,13 @@ export default class EditorPanel extends LitElement {
         this.inEdit.updateFieldInternal(fieldName, value);
     }
 
-    updateFragment({ target, detail }) {
+    updateFragment({ target, detail, values }) {
         const fieldName = target.dataset.field;
-        let value = target.value || detail?.value || target.checked;
-        value = target.multiline ? value?.split(',') : [value ?? ''];
+        let value = values;
+        if (!value) {
+            value = target.value || detail?.value || target.checked;
+            value = target.multiline ? value?.split(',') : [value ?? ''];
+        }
         this.inEdit.updateField(fieldName, value);
     }
 
@@ -591,16 +601,28 @@ export default class EditorPanel extends LitElement {
                 indeterminate
                 size="l"
             ></sp-progress-circle>`;
+
+        let editor = nothing;
+        if (this.showEditor) {
+            switch (this.fragment.model.path) {
+                case CARD_MODEL_PATH:
+                    editor = html` <merch-card-editor
+                        .fragment=${this.fragment}
+                        .fragmentStore=${this.inEdit}
+                        .updateFragment=${this.updateFragment}
+                    ></merch-card-editor>`;
+                    break;
+                case COLLECTION_MODEL_PATH:
+                    editor = html` <merch-card-collection-editor
+                        .fragment=${this.inEdit}
+                        .updateFragment=${this.updateFragment}
+                    ></merch-card-collection-editor>`;
+                    break;
+            }
+        }
         return html`
             <div id="editor">
-                ${this.fragmentEditorToolbar}
-                ${this.showEditor
-                    ? html` <merch-card-editor
-                          .fragment=${this.fragment}
-                          .fragmentStore=${this.inEdit}
-                          .updateFragment=${this.updateFragment}
-                      ></merch-card-editor>`
-                    : nothing}
+                ${this.fragmentEditorToolbar} ${editor}
                 <sp-divider size="s"></sp-divider>
                 ${this.fragmentEditor} ${this.deleteConfirmationDialog}
                 ${this.discardConfirmationDialog}

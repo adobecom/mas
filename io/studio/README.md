@@ -12,14 +12,14 @@
 - ask a colleague for values:
     - for health-check action, 
     add ODIN_CDN_ENDPOINT,ODIN_ORIGIN_ENDPOINT,WCS_CDN_ENDPOINT,WCS_ORIGIN_ENDPOINT env vars to .env file
-    - for ost-products, add AOS_URL and AOS_API_KEY env vars to .env file
+    - for ost-products-write, add AOS_URL and AOS_API_KEY, OST_WRITE_API_KEY env vars to .env file
 - run `npm i`
 - run `aio where` and verify output is:
 ```
 aio where
 You are currently in:
 1. Org: Adobe Corp
-2. Project: MerchAtScale
+2. Project: MerchAtScaleStudio
 3. Workspace: your ldap
 ```
 

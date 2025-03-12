@@ -699,7 +699,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-discard-edit-cta-variant - Validate changing cta variant for suggested card in mas studio
+    // @studio-suggested-discard-edit-cta-variant - Validate changing CTA variant for suggested card in mas studio
     test(`${features[10].name},${features[10].tags}`, async ({
         page,
         baseURL,

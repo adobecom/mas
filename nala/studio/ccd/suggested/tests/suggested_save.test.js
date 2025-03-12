@@ -493,7 +493,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-save-edit-cta-variant - Validate saving change cta variant
+    // @studio-suggested-save-edit-cta-variant - Validate saving change CTA variant
     test(`${features[5].name},${features[5].tags}`, async ({
         page,
         baseURL,
@@ -532,7 +532,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit cta variant and save card', async () => {
+        await test.step('step-4: Edit CTA variant and save card', async () => {
             await expect(
                 await studio.editorPanel
                     .locator(studio.editorFooter)
@@ -562,7 +562,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate cta variant change', async () => {
+        await test.step('step-5: Validate CTA variant change', async () => {
             await expect(await studio.editorCTA).toHaveClass(data.newVariant);
             await expect(await studio.editorCTA).not.toHaveClass(data.variant);
             expect(

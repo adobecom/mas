@@ -1128,7 +1128,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await studio.linkSave.click();
         });
 
-        await test.step('step-4: Validate edited CTA Link in Editor panel', async () => {
+        await test.step('step-4: Validate edited CTA variant in Editor panel', async () => {
             await expect(await studio.editorCTA).toHaveClass(data.newVariant);
             await expect(await studio.editorCTA).not.toHaveClass(data.variant);
         });

@@ -382,7 +382,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-save-edit-cta-variant - Validate saving change cta variant
+    // @studio-try-buy-widget-save-edit-cta-variant - Validate saving change CTA variant
     test(`${features[4].name},${features[4].tags}`, async ({
         page,
         baseURL,

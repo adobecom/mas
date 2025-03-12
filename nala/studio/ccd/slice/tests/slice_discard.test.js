@@ -698,7 +698,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-edit-cta-variant - Validate changing cta variant for slice card in mas studio
+    // @studio-slice-discard-edit-cta-variant - Validate changing CTA variant for slice card in mas studio
     test(`${features[10].name},${features[10].tags}`, async ({
         page,
         baseURL,

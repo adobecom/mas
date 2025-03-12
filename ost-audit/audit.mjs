@@ -489,7 +489,7 @@ const writeIframeUsagesToFile = () => {
     let headers = ['page URL', 'fragment URL', 'iFrame URL'];
     fs.writeFileSync(
         file,
-        `${headers.join(',')}\n${foundUsages.map(({origin, pageUrl, url}) => `${origin},${pageUrl},${url},${postExcerpt}`).join('\n')}`
+        `${headers.join(',')}\n${foundUsages.map(({origin, pageUrl, url}) => `${origin},${pageUrl},${url}`).join('\n')}`
     );
 };
 

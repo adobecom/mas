@@ -37,6 +37,7 @@ export const EVENT_KEYUP = 'keyup';
 export const EVENT_FRAGMENT_CHANGE = 'fragment:change';
 
 export const EVENT_OST_SELECT = 'ost-select';
+export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
 
 export const LOCALES = [
     { code: 'pt_BR', flag: '🇧🇷', name: 'Brazil' },
@@ -103,3 +104,13 @@ export const ENVS = {
       pdfViewerClientId: '3c0a5ddf2cc04d3198d9e48efc390fa9',
     },
 };
+
+export const LOCALE_DEFAULT = 'en_US';
+
+export const STATUS_PUBLISHED = 'PUBLISHED';
+
+export const TAG_STATUS_PUBLISHED = 'mas:status/published';
+export const TAG_STATUS_PUBLISHED_PATH =
+    '/content/cq:tags/mas/status/published';
+export const TAG_STATUS_DRAFT = 'mas:status/draft';
+export const TAG_STATUS_DRAFT_PATH = '/content/cq:tags/mas/status/draft';

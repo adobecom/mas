@@ -3,16 +3,16 @@ import sinon from 'sinon';
 
 import { EVENT_OST_SELECT } from '../../src/constants.js';
 
-describe('onSelect', () => {
+describe('onPlaceholderSelect', () => {
     let dispatchEventStub;
     let ostRoot;
-    let onSelect;
+    let onPlaceholderSelect;
 
     before(async () => {
         ostRoot = document.createElement('div');
         ostRoot.id = 'ost';
         document.body.appendChild(ostRoot);
-        ({ onSelect } = await import('../../src/rte/ost.js'));
+        ({ onPlaceholderSelect } = await import('../../src/rte/ost.js'));
         dispatchEventStub = sinon.stub(ostRoot, 'dispatchEvent');
     });
 
@@ -29,7 +29,13 @@ describe('onSelect', () => {
         };
         const promoOverride = 'PROMO123';
 
-        onSelect(offerSelectorId, type, offer, options, promoOverride);
+        onPlaceholderSelect(
+            offerSelectorId,
+            type,
+            offer,
+            options,
+            promoOverride,
+        );
 
         const expectedAttributes = {
             'data-wcs-osi': offerSelectorId,
@@ -54,7 +60,13 @@ describe('onSelect', () => {
         };
         const promoOverride = null;
 
-        onSelect(offerSelectorId, type, offer, options, promoOverride);
+        onPlaceholderSelect(
+            offerSelectorId,
+            type,
+            offer,
+            options,
+            promoOverride,
+        );
 
         const expectedAttributes = {
             'data-wcs-osi': offerSelectorId,
@@ -77,7 +89,13 @@ describe('onSelect', () => {
         const options = {};
         const promoOverride = null;
 
-        onSelect(offerSelectorId, type, offer, options, promoOverride);
+        onPlaceholderSelect(
+            offerSelectorId,
+            type,
+            offer,
+            options,
+            promoOverride,
+        );
 
         const expectedAttributes = {
             'data-wcs-osi': offerSelectorId,

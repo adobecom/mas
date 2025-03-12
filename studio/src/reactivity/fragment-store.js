@@ -28,7 +28,6 @@ export class FragmentStore extends ReactiveStore {
     refreshFrom(value) {
         this.value.refreshFrom(value);
         this.notify();
-        this.refreshAemFragment();
     }
 
     discardChanges() {

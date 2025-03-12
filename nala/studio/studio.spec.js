@@ -13,15 +13,6 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
-                title: 'Automation Test Card',
-                eyebrow: 'DO NOT EDIT',
-                description: 'MAS repo validation card for Nala tests.',
-                price: 'US$22.99/mo',
-                strikethroughPrice: 'US$37.99/mo',
-                cta: 'Buy now',
-                offerid: '30404A88D89A328584307175B8B27616',
-                linkText: 'See terms',
-                linkUrl: '',
             },
             browserParams: '#query=',
             tags: '@mas-studio',
@@ -45,6 +36,32 @@ export default {
             },
             browserParams: '#path=nala&page=content',
             tags: '@mas-studio',
+        },
+        {
+            tcid: '4',
+            name: '@studio-goto-content',
+            path: '/studio.html',
+            tags: '@mas-studio',
+        },
+        {
+            tcid: '5',
+            name: '@studio-ccd-suggested-editor',
+            path: '/studio.html',
+            data: {
+                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-suggested',
+        },
+        {
+            tcid: '6',
+            name: '@studio-ccd-slice-editor',
+            path: '/studio.html',
+            data: {
+                cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice',
         },
     ],
 };

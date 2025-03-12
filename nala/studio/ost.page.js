@@ -34,7 +34,7 @@ export default class OSTPage {
         this.oldPriceCheckbox = page.locator(
             '//input[@value="displayOldPrice"]',
         );
-        this.priceUse = page.locator('button:near(h4:text("Price"))').first();
+        this.priceUse = page.locator('div[id*="tabpanel-price"] button').first();
         this.priceOpticalUse = page
             .locator('button:near(:text("Optical price"))')
             .first();
@@ -51,6 +51,9 @@ export default class OSTPage {
             .first();
         this.promoField = page.locator(
             '//input[contains(@class, "spectrum-Textfield-input")]',
+        );
+        this.promoLabel = page.locator(
+            '//span[contains(@class, "spectrum-Badge-label")]',
         );
         this.checkoutLinkUse = page
             .locator('button:near(h4:text("Checkout URL"))')

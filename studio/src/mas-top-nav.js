@@ -128,6 +128,7 @@ class MasTopNav extends LitElement {
                 padding: 20px 0;
                 border-radius: 10px;
                 box-shadow: 5px 5px 5px #cfcfcf;
+                z-index: 99;
             }
 
             .profile-body.show {

@@ -130,5 +130,17 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
+        {
+            tcid: '10',
+            name: '@studio-suggested-discard-edit-cta-variant',
+            path: '/studio.html',
+            data: {
+                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                variant: 'primary-outline',
+                newVariant: 'accent',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
+        },
     ],
 };

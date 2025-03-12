@@ -1103,7 +1103,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.editorPanel).toBeVisible();
         });
 
-        await test.step('step-3: Edit CTA link', async () => {
+        await test.step('step-3: Edit CTA variant', async () => {
             await expect(
                 await studio.editorPanel
                     .locator(studio.editorFooter)

@@ -5,10 +5,10 @@
 - install aio cli running `npm install -g @adobe/aio-cli`
 - Request access to I/O Runtime in Adobe Corp org (you can do that on #milo-dev)
 - navigate to Developer Console https://developer.adobe.com/console
-- in 'Merch at Scale' project, create a workspace with your ldap
-- in your workspace click on 'Download all' and copy the auth .json in root of this project
+- in 'Merch at Scale Studio' project, create a workspace with your ldap
+- in your workspace click on 'Download all' and copy the auth .json in root (/io/studio)
 - run `aio app use <filename>` 
-- this should populate the `.env` and the `.aio` file in the project root
+- this should populate the `.env` and the `.aio` file in the project root (/io/studio)
 - ask a colleague for values:
     - for health-check action, 
     add ODIN_CDN_ENDPOINT,ODIN_ORIGIN_ENDPOINT,WCS_CDN_ENDPOINT,WCS_ORIGIN_ENDPOINT env vars to .env file
@@ -35,8 +35,9 @@ You are currently in:
 - Run `aio app test` to run unit tests for ui and actions
 
 ## Deploy & Cleanup
+Do not deploy all actions at the same time - this increases risks, provide -a <action-name> to specify what you are deploying.
 
-- `aio app test && aio app deploy` to test, build and deploy all actions on Runtime and static files to CDN
+- `aio app test && aio app deploy -a ost-products-read` to test and deploy an action to Runtime and static files to CDN
 - `aio app undeploy` to undeploy the app
 
 If you need to force re-deploy:

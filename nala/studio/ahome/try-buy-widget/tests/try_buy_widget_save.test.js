@@ -291,7 +291,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-save-change-osi - Validate saving change osi
+    // @studio-try-buy-widget-save-edit-osi - Validate saving change osi
     test(`${features[3].name},${features[3].tags}`, async ({
         page,
         baseURL,
@@ -309,7 +309,9 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(
                 await studio.getCard(data.cardid, 'ahtrybuywidget'),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'ahtrybuywidget')).dblclick();
+            await (
+                await studio.getCard(data.cardid, 'ahtrybuywidget')
+            ).dblclick();
             await expect(await studio.editorPanel).toBeVisible();
         });
 

@@ -171,7 +171,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-discard-change-osi - Validate changing OSI for AH try-buy-widget card in mas studio
+    // @studio-try-buy-widget-discard-edit-osi - Validate changing OSI for AH try-buy-widget card in mas studio
     test(`${features[2].name},${features[2].tags}`, async ({
         page,
         baseURL,
@@ -189,7 +189,9 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(
                 await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'ahtrybuywidget-double')).dblclick();
+            await (
+                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
+            ).dblclick();
             await expect(await studio.editorPanel).toBeVisible();
         });
 
@@ -246,7 +248,9 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-4: Open the editor and validate there are no changes', async () => {
-            await (await studio.getCard(data.cardid, 'ahtrybuywidget-double')).dblclick();
+            await (
+                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
+            ).dblclick();
             await expect(await studio.editorPanel).toBeVisible();
             await expect(await studio.editorOSI).toContainText(data.osi);
             await expect(await studio.editorOSI).not.toContainText(data.newosi);

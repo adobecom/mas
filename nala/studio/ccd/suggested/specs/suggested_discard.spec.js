@@ -113,7 +113,7 @@ export default {
         },
         {
             tcid: '9',
-            name: '@studio-suggested-discard-change-osi',
+            name: '@studio-suggested-discard-edit-osi',
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',

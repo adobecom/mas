@@ -404,7 +404,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-save-change-osi - Validate saving change osi
+    // @studio-suggested-save-edit-osi - Validate saving change osi
     test(`${features[4].name},${features[4].tags}`, async ({
         page,
         baseURL,

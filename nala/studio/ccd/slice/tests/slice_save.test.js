@@ -41,7 +41,7 @@ test.afterEach(async ({ page }) => {
         await studio.deleteCard();
         await expect(cardToClean).not.toBeVisible();
     }
-    
+
     await page.close();
 });
 
@@ -315,7 +315,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-save-change-osi - Validate saving change osi
+    // @studio-slice-save-edit-osi - Validate saving change osi
     test(`${features[3].name},${features[3].tags}`, async ({
         page,
         baseURL,

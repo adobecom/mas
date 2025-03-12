@@ -589,7 +589,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-discard-change-osi - Validate changing OSI for suggested card in mas studio
+    // @studio-suggested-discard-edit-osi - Validate changing OSI for suggested card in mas studio
     test(`${features[9].name},${features[9].tags}`, async ({
         page,
         baseURL,

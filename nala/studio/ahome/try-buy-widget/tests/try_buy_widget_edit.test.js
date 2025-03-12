@@ -4,8 +4,8 @@ import AHTryBuyWidgetSpec from '../specs/try_buy_widget_edit.spec.js';
 import AHTryBuyWidgetPage from '../try-buy-widget.page.js';
 import CCDSlicePage from '../../../ccd/slice/slice.page.js';
 import CCDSuggestedPage from '../../../ccd/suggested/suggested.page.js';
-
 import OSTPage from '../../../ost.page.js';
+import WebUtil from '../../../../libs/webutil.js';
 
 const { features } = AHTryBuyWidgetSpec;
 const miloLibs = process.env.MILO_LIBS || '';
@@ -15,6 +15,7 @@ let slice;
 let suggested;
 let trybuywidget;
 let ost;
+let webUtil;
 
 test.beforeEach(async ({ page, browserName }) => {
     test.slow();
@@ -28,6 +29,7 @@ test.beforeEach(async ({ page, browserName }) => {
     suggested = new CCDSuggestedPage(page);
     trybuywidget = new AHTryBuyWidgetPage(page);
     ost = new OSTPage(page);
+    webUtil = new WebUtil(page);
 });
 
 test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
@@ -794,7 +796,9 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(
                 await studio.getCard(data.cardid, 'ahtrybuywidget-triple'),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'ahtrybuywidget-triple')).dblclick();
+            await (
+                await studio.getCard(data.cardid, 'ahtrybuywidget-triple')
+            ).dblclick();
             await expect(await studio.editorPanel).toBeVisible();
         });
 
@@ -853,7 +857,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-change-osi - Validate changing OSI for try-buy-widget card in mas studio
+    // @studio-try-buy-widget-edit-osi - Validate changing OSI for try-buy-widget card in mas studio
     test(`${features[12].name},${features[12].tags}`, async ({
         page,
         baseURL,
@@ -871,7 +875,9 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(
                 await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'ahtrybuywidget-double')).dblclick();
+            await (
+                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
+            ).dblclick();
             await expect(await studio.editorPanel).toBeVisible();
         });
 
@@ -938,6 +944,79 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 'value',
                 new RegExp(`${data.marketSegmentsTag}`),
             );
+        });
+    });
+
+    // @studio-try-buy-widget-edit-cta-variant - Validate edit CTA variant for try-buy-widget card in mas studio
+    test(`${features[13].name},${features[13].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[13];
+        const testPage = `${baseURL}${features[13].path}${miloLibs}${features[13].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'ahtrybuywidget-triple'),
+            ).toBeVisible();
+            await (
+                await studio.getCard(data.cardid, 'ahtrybuywidget-triple')
+            ).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA link', async () => {
+            await expect(
+                await studio.editorPanel
+                    .locator(studio.editorFooter)
+                    .locator(studio.linkEdit),
+            ).toBeVisible();
+            await expect(await studio.editorCTA.first()).toBeVisible();
+            await expect(await studio.editorCTA.first()).toHaveClass(
+                data.variant,
+            );
+            expect(
+                await webUtil.verifyCSS(
+                    await trybuywidget.cardCTA.first(),
+                    data.ctaCSS,
+                ),
+            ).toBeTruthy();
+            await studio.editorCTA.first().click();
+            await studio.editorPanel
+                .locator(studio.editorFooter)
+                .locator(studio.linkEdit)
+                .click();
+            await expect(await studio.linkVariant).toBeVisible();
+            await expect(await studio.linkSave).toBeVisible();
+            await expect(
+                await studio.getLinkVariant(data.newVariant),
+            ).toBeVisible();
+            await (await studio.getLinkVariant(data.newVariant)).click();
+            await studio.linkSave.click();
+        });
+
+        await test.step('step-4: Validate edited CTA Link in Editor panel', async () => {
+            await expect(await studio.editorCTA.first()).toHaveClass(
+                data.newVariant,
+            );
+            await expect(await studio.editorCTA.first()).not.toHaveClass(
+                data.variant,
+            );
+        });
+
+        await test.step('step-5: Validate edited CTA on the card', async () => {
+            expect(
+                await webUtil.verifyCSS(
+                    await trybuywidget.cardCTA.first(),
+                    data.newCtaCSS,
+                ),
+            ).toBeTruthy();
         });
     });
 });

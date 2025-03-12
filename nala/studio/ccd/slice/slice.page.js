@@ -71,9 +71,8 @@ export default class CCDSlicePage {
                 'text-decoration-line': 'line-through',
             },
             cta: {
-                //uncomment once MWPW-168870 is fixed
-                // 'background-color': 'rgb(2, 101, 220)',
-                // color: 'rgb(255, 255, 255)',
+                'background-color': 'rgb(2, 101, 220)',
+                color: 'rgb(255, 255, 255)',
                 'font-size': '12px',
                 'font-weight': '700',
             },

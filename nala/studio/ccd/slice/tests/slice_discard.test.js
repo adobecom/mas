@@ -588,7 +588,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-change-osi - Validate changing OSI for slice card in mas studio
+    // @studio-slice-discard-edit-osi - Validate changing OSI for slice card in mas studio
     test(`${features[9].name},${features[9].tags}`, async ({
         page,
         baseURL,

@@ -4,6 +4,7 @@ import CCDSliceSpec from '../specs/slice_edit.spec.js';
 import CCDSlicePage from '../slice.page.js';
 import AHTryBuyWidgetPage from '../../../ahome/try-buy-widget/try-buy-widget.page.js';
 import OSTPage from '../../../ost.page.js';
+import WebUtil from '../../../../libs/webutil.js';
 
 const { features } = CCDSliceSpec;
 const miloLibs = process.env.MILO_LIBS || '';
@@ -12,6 +13,7 @@ let studio;
 let slice;
 let ost;
 let trybuywidget;
+let webUtil;
 
 test.beforeEach(async ({ page, browserName }) => {
     test.slow();
@@ -24,6 +26,7 @@ test.beforeEach(async ({ page, browserName }) => {
     slice = new CCDSlicePage(page);
     trybuywidget = new AHTryBuyWidgetPage(page);
     ost = new OSTPage(page);
+    webUtil = new WebUtil(page);
 });
 
 test.describe('M@S Studio CCD Slice card test suite', () => {
@@ -990,7 +993,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-change-osi - Validate changing OSI for slice card in mas studio
+    // @studio-slice-edit-osi - Validate changing OSI for slice card in mas studio
     test(`${features[13].name},${features[13].tags}`, async ({
         page,
         baseURL,
@@ -1075,6 +1078,65 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'value',
                 new RegExp(`${data.marketSegmentsTag}`),
             );
+        });
+    });
+
+    // @studio-slice-edit-cta-variant - Validate edit CTA variant for slice card in mas studio
+    test(`${features[14].name},${features[14].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[14];
+        const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'slice-wide'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA link', async () => {
+            await expect(
+                await studio.editorPanel
+                    .locator(studio.editorFooter)
+                    .locator(studio.linkEdit),
+            ).toBeVisible();
+            await expect(await studio.editorCTA).toBeVisible();
+            await expect(await studio.editorCTA).toHaveClass(data.variant);
+            expect(
+                await webUtil.verifyCSS(await slice.cardCTA, data.ctaCSS),
+            ).toBeTruthy();
+            await studio.editorCTA.click();
+            await studio.editorPanel
+                .locator(studio.editorFooter)
+                .locator(studio.linkEdit)
+                .click();
+            await expect(await studio.linkVariant).toBeVisible();
+            await expect(await studio.linkSave).toBeVisible();
+            await expect(
+                await studio.getLinkVariant(data.newVariant),
+            ).toBeVisible();
+            await (await studio.getLinkVariant(data.newVariant)).click();
+            await studio.linkSave.click();
+        });
+
+        await test.step('step-4: Validate edited CTA Link in Editor panel', async () => {
+            await expect(await studio.editorCTA).toHaveClass(data.newVariant);
+            await expect(await studio.editorCTA).not.toHaveClass(data.variant);
+        });
+
+        await test.step('step-5: Validate edited CTA on the card', async () => {
+            expect(
+                await webUtil.verifyCSS(await slice.cardCTA, data.newCtaCSS),
+            ).toBeTruthy();
         });
     });
 });

@@ -42,7 +42,7 @@ export default {
         },
         {
             tcid: '3',
-            name: '@studio-slice-save-change-osi',
+            name: '@studio-slice-save-edit-osi',
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',

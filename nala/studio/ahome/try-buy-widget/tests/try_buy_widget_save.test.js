@@ -3,6 +3,7 @@ import StudioPage from '../../../studio.page.js';
 import AHTryBuyWidgetSpec from '../specs/try_buy_widget_save.spec.js';
 import AHTryBuyWidgetPage from '../try-buy-widget.page.js';
 import OSTPage from '../../../ost.page.js';
+import WebUtil from '../../../../libs/webutil.js';
 
 const { features } = AHTryBuyWidgetSpec;
 const miloLibs = process.env.MILO_LIBS || '';
@@ -11,6 +12,7 @@ let studio;
 let trybuywidget;
 let ost;
 let clonedCardID;
+let webUtil;
 
 test.beforeEach(async ({ page, browserName }) => {
     test.slow();
@@ -23,6 +25,7 @@ test.beforeEach(async ({ page, browserName }) => {
     trybuywidget = new AHTryBuyWidgetPage(page);
     ost = new OSTPage(page);
     clonedCardID = '';
+    webUtil = new WebUtil(page);
 });
 
 test.afterEach(async ({ page }) => {
@@ -376,6 +379,95 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 'value',
                 new RegExp(`${data.marketSegmentsTag}`),
             );
+        });
+    });
+
+    // @studio-try-buy-widget-save-edit-cta-variant - Validate saving change cta variant
+    test(`${features[4].name},${features[4].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[4];
+        const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+        let clonedCard;
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'ahtrybuywidget'),
+            ).toBeVisible();
+            await (
+                await studio.getCard(data.cardid, 'ahtrybuywidget')
+            ).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Clone card and open editor', async () => {
+            await studio.cloneCard();
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'ahtrybuywidget',
+                'cloned',
+            );
+            clonedCardID = await clonedCard
+                .locator('aem-fragment')
+                .getAttribute('fragment');
+            data.clonedCardID = await clonedCardID;
+            await expect(await clonedCard).toBeVisible();
+            await clonedCard.dblclick();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-4: Edta CTA variant and save card', async () => {
+            await expect(
+                await studio.editorPanel
+                    .locator(studio.editorFooter)
+                    .locator(studio.linkEdit),
+            ).toBeVisible();
+            await expect(await studio.editorCTA.first()).toBeVisible();
+            await expect(await studio.editorCTA.first()).toHaveClass(
+                data.variant,
+            );
+            expect(
+                await webUtil.verifyCSS(
+                    await trybuywidget.cardCTA.first(),
+                    data.ctaCSS,
+                ),
+            ).toBeTruthy();
+            await studio.editorCTA.first().click();
+            await studio.editorPanel
+                .locator(studio.editorFooter)
+                .locator(studio.linkEdit)
+                .click();
+            await expect(await studio.linkVariant).toBeVisible();
+            await expect(await studio.linkSave).toBeVisible();
+            await expect(
+                await studio.getLinkVariant(data.newVariant),
+            ).toBeVisible();
+            await (await studio.getLinkVariant(data.newVariant)).click();
+            await studio.linkSave.click();
+            // save card
+            await studio.saveCard();
+        });
+
+        await test.step('step-5: Validate CTA variant change', async () => {
+            await expect(await studio.editorCTA.first()).toHaveClass(
+                data.newVariant,
+            );
+            await expect(await studio.editorCTA.first()).not.toHaveClass(
+                data.variant,
+            );
+            expect(
+                await webUtil.verifyCSS(
+                    await clonedCard.locator(trybuywidget.cardCTA).first(),
+                    data.newCtaCSS,
+                ),
+            ).toBeTruthy();
         });
     });
 });

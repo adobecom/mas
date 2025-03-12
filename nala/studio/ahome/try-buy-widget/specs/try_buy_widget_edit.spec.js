@@ -187,7 +187,7 @@ export default {
                 },
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-try-buy-widget @ccd-try-buy-widget-edit',
+            tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
     ],
 };

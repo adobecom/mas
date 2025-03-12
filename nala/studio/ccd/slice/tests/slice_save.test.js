@@ -3,6 +3,7 @@ import StudioPage from '../../../studio.page.js';
 import CCDSliceSpec from '../specs/slice_save.spec.js';
 import CCDSlicePage from '../slice.page.js';
 import OSTPage from '../../../ost.page.js';
+import WebUtil from '../../../../libs/webutil.js';
 
 const { features } = CCDSliceSpec;
 const miloLibs = process.env.MILO_LIBS || '';
@@ -11,6 +12,7 @@ let studio;
 let slice;
 let ost;
 let clonedCardID;
+let webUtil;
 
 test.beforeEach(async ({ page, browserName }) => {
     test.slow();
@@ -23,6 +25,7 @@ test.beforeEach(async ({ page, browserName }) => {
     slice = new CCDSlicePage(page);
     ost = new OSTPage(page);
     clonedCardID = '';
+    webUtil = new WebUtil(page);
 });
 
 test.afterEach(async ({ page }) => {
@@ -398,6 +401,87 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'value',
                 new RegExp(`${data.marketSegmentsTag}`),
             );
+        });
+    });
+
+    // @studio-slice-save-edit-cta-variant - Validate saving change cta variant
+    test(`${features[4].name},${features[4].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[4];
+        const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+        let clonedCard;
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'slice-wide'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Clone card and open editor', async () => {
+            await studio.cloneCard();
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'slice-wide',
+                'cloned',
+            );
+            clonedCardID = await clonedCard
+                .locator('aem-fragment')
+                .getAttribute('fragment');
+            data.clonedCardID = await clonedCardID;
+            await expect(await clonedCard).toBeVisible();
+            await clonedCard.dblclick();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-4: Edit CTA variant and save card', async () => {
+            await expect(
+                await studio.editorPanel
+                    .locator(studio.editorFooter)
+                    .locator(studio.linkEdit),
+            ).toBeVisible();
+            await expect(await studio.editorCTA).toBeVisible();
+            await expect(await studio.editorCTA).toHaveClass(data.variant);
+            expect(
+                await webUtil.verifyCSS(
+                    await clonedCard.locator(slice.cardCTA),
+                    data.ctaCSS,
+                ),
+            ).toBeTruthy();
+            await studio.editorCTA.click();
+            await studio.editorPanel
+                .locator(studio.editorFooter)
+                .locator(studio.linkEdit)
+                .click();
+            await expect(await studio.linkVariant).toBeVisible();
+            await expect(await studio.linkSave).toBeVisible();
+            await expect(
+                await studio.getLinkVariant(data.newVariant),
+            ).toBeVisible();
+            await (await studio.getLinkVariant(data.newVariant)).click();
+            await studio.linkSave.click();
+            // save card
+            await studio.saveCard();
+        });
+
+        await test.step('step-5: Validate CTA variant change', async () => {
+            await expect(await studio.editorCTA).toHaveClass(data.newVariant);
+            await expect(await studio.editorCTA).not.toHaveClass(data.variant);
+            expect(
+                await webUtil.verifyCSS(
+                    await clonedCard.locator(slice.cardCTA),
+                    data.newCtaCSS,
+                ),
+            ).toBeTruthy();
         });
     });
 });

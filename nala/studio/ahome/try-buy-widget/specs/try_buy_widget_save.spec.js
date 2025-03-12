@@ -51,5 +51,25 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-save',
         },
+        {
+            tcid: '4',
+            name: '@studio-try-buy-widget-save-edit-cta-variant',
+            path: '/studio.html',
+            data: {
+                cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
+                variant: 'secondary',
+                ctaCSS: {
+                    'background-color': 'rgb(230, 230, 230)',
+                    color: 'rgb(34, 34, 34)',
+                },
+                newVariant: 'secondary-outline',
+                newCtaCSS: {
+                    'background-color': 'rgba(0, 0, 0, 0)',
+                    color: 'rgb(34, 34, 34)',
+                },
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-save',
+        },
     ],
 };

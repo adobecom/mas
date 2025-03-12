@@ -59,5 +59,24 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
         },
+        {
+            tcid: '4',
+            name: '@studio-slice-save-edit-cta-variant',
+            path: '/studio.html',
+            data: {
+                cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
+                variant: 'accent',
+                ctaCSS: {
+                    'background-color': 'rgb(2, 101, 220)',
+                    color: 'rgb(255, 255, 255)',
+                },
+                newVariant: 'primary-outline',
+                newCtaCSS: {
+                    color: 'rgb(34, 34, 34)',
+                },
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
+        },
     ],
 };

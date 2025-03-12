@@ -87,12 +87,21 @@
                     console.error('[M@S Studio] IMS error: ', error);
                 },
                 onReady() {
-                    if (adobeIMS.isSignedInUser()) {
-                        console.info('[M@S Studio] IMS is ready, signed in');
-                    } else {
-                        console.info('[M@S Studio] IMS is ready, signing in');
-                        adobeIMS.signIn();
-                    }
+                    adobeIMS
+                        .refreshToken()
+                        .then(() => {
+                            console.info(
+                                '[M@S Studio] IMS is ready, signed in',
+                            );
+                        })
+                        .catch((e) => {
+                            console.error(
+                                '[M@S Studio] failed to refresh IMS token: ',
+                                e,
+                            );
+                            console.info('[M@S Studio] Signing in');
+                            adobeIMS.signIn();
+                        });
                 },
             };
         </script>

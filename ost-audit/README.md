@@ -15,6 +15,8 @@ script that crawls through raw EDS html versions of page for OST links and spits
  for a full configured set of URLs and/or sitemap you can use -m parameter with a manifest composed of URLs/Sitemap separated by new lines character
  
  for faster execution, buffer size (number of parallel page being audited) can be increased but will impact your connection with parameter -b (you can move it lower to the default that is 100).
+
+ to seach for links that open commerce modals (CRM, D2P and TwP) add the `-t modal` to the command.
  
  so typical execution could be 
  `node audit.mjs -b 50 -f ~/Documents/audit.csv -m ./audit-manifest.txt`

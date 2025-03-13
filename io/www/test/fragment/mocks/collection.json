@@ -1,0 +1,144 @@
+{
+    "references": {
+        "fd2ba6b7-7510-4e41-b19d-b981ad4a1028": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/drafts/en_US/collections/plans-individual---all",
+                "name": "",
+                "title": "Plans Individual - All ",
+                "id": "fd2ba6b7-7510-4e41-b19d-b981ad4a1028",                
+                "fields": {
+                    "label": "All",
+                    "cards": [
+                        "7c87d1c4-d7fd-4370-b318-4cb2ebb4dd13",
+                        "aec092ef-d5b5-4271-8b6f-4bbd535fcc56"
+                    ],
+                    "locReady": true
+                }
+            }
+        },
+        "7c87d1c4-d7fd-4370-b318-4cb2ebb4dd13": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/drafts/en_US/nico/ccd-slice-wide-cc-all-app",
+                "name": "",
+                "title": "CCD Slice Wide CC All Apps",
+                "id": "7c87d1c4-d7fd-4370-b318-4cb2ebb4dd13",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
+                },
+                "fields": {
+                    "variant": "ccd-slice",
+                    "size": "wide",
+                    "mnemonicIcon": [
+                        "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/creative-cloud.svg"
+                    ],
+                    "mnemonicAlt": [],
+                    "mnemonicLink": [],
+                    "badge": { "mimeType": "text/html" },
+                    "backgroundImage": "https://main--milo--adobecom.aem.page/drafts/axel/media_144906e76fce812811940ce88ceded4f8d12098b5.png?width=2000&format=webply&optimize=medium",
+                    "cardTitle": "Slice CC All Apps sds",
+                    "subtitle": "blah",
+                    "prices": { "mimeType": "text/html" },
+                    "shortDescription": { "mimeType": "text/html" },
+                    "description": {
+                        "value": "<p><strong>i'm aon, with a price his is nicolas' card {{view-account}}</strong></p>",
+                        "mimeType": "text/html"
+                    },
+                    "ctas": {
+                        "value": "<a class=\"primary-outline\" data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"email\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\" target=\"_self\">{{buy-now}}</a>",
+                        "mimeType": "text/html"
+                    },
+                    "stockOffers": {},
+                    "tags": []
+                }
+            }
+        },
+        "aec092ef-d5b5-4271-8b6f-4bbd535fcc56": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/drafts/en_US/nico/ccd-slice-wide-cc-all-app1",
+                "name": "",
+                "title": "CCD Slice Wide CC All Apps",
+                "id": "aec092ef-d5b5-4271-8b6f-4bbd535fcc56",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
+                },
+                "fields": {
+                    "variant": "ccd-slice",
+                    "size": "wide",
+                    "mnemonicIcon": [
+                        "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/creative-cloud.svg"
+                    ],
+                    "mnemonicAlt": [],
+                    "mnemonicLink": [],
+                    "badge": { "mimeType": "text/html" },
+                    "backgroundImage": "https://main--milo--adobecom.aem.page/drafts/axel/media_144906e76fce812811940ce88ceded4f8d12098b5.png?width=2000&format=webply&optimize=medium",
+                    "cardTitle": "Slice CC All Apps sds",
+                    "subtitle": "blah",
+                    "prices": { "mimeType": "text/html" },
+                    "shortDescription": { "mimeType": "text/html" },
+                    "description": {
+                        "value": "<p><strong>i'm adding here a description, with a price <span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M\"></span>. Ha by the way, this is nicolas' card</strong></p>",
+                        "mimeType": "text/html"
+                    },
+                    "ctas": {
+                        "value": "<p><strong><a data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"email\" data-promotion-code=\"\" data-quantity=\"1\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\" is=\"\">Buy now</a></strong></p>",
+                        "mimeType": "text/html"
+                    },
+                    "stockOffers": {},
+                    "tags": []
+                }
+            }
+        },
+        "f1c7855d-ebe8-4785-8ea3-d96fbfb9af81": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/drafts/en_US/collections/photo",
+                "name": "",
+                "title": "Plans Individual - Photo",
+                "id": "f1c7855d-ebe8-4785-8ea3-d96fbfb9af81",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24tY2F0ZWdvcnk"
+                },
+                "fields": {
+                    "label": "Photo",
+                    "cards": ["aec092ef-d5b5-4271-8b6f-4bbd535fcc56"],
+                    "locReady": true
+                }
+            }
+        }
+    },
+    "referencesTree": [
+        {
+            "fieldName": "categories",
+            "identifier": "fd2ba6b7-7510-4e41-b19d-b981ad4a1028",
+            "referencesTree": [
+                {
+                    "fieldName": "cards",
+                    "identifier": "7c87d1c4-d7fd-4370-b318-4cb2ebb4dd13",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "cards",
+                    "identifier": "aec092ef-d5b5-4271-8b6f-4bbd535fcc56",
+                    "referencesTree": []
+                }
+            ]
+        },
+        {
+            "fieldName": "categories",
+            "identifier": "f1c7855d-ebe8-4785-8ea3-d96fbfb9af81",
+            "referencesTree": [
+                {
+                    "fieldName": "cards",
+                    "identifier": "aec092ef-d5b5-4271-8b6f-4bbd535fcc56",
+                    "referencesTree": []
+                }
+            ]
+        }
+    ]
+}

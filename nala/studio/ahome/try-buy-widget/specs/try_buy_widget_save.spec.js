@@ -3,7 +3,7 @@ export default {
     features: [
         {
             tcid: '0',
-            name: '@studio-try-buy-widget-edit-save',
+            name: '@studio-try-buy-widget-save-edit-size',
             path: '/studio.html',
             data: {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',

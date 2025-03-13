@@ -273,6 +273,26 @@ merch-card .overlay {
     height: 100%;
 }
 
+merch-card[variant='plans'][size='wide'] {
+    width: 575px;
+}
+
+merch-card[variant='plans'][size='super-wide'] {
+    width: 874px;
+}
+
+@media (min-width: 926px) and (max-width: 1235px) {
+    merch-card[variant='plans'][size='super-wide'] {
+        width: 575px;
+    }
+}
+
+@media (max-width: 925px) {
+    merch-card[variant='plans'][size='super-wide'] {
+        width: 276px;
+    }
+}
+
 mas-multifield,
 rte-field {
     margin-inline-end: 16px;

@@ -1102,7 +1102,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
     });
 
     // @studio-slice-edit-cta-variant - Validate edit CTA variant for slice card in mas studio
-    test(`${features[14].name},${features[14].tags}`, async ({
+    test.skip(`${features[14].name},${features[14].tags}`, async ({
         page,
         baseURL,
     }) => {

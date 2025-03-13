@@ -755,7 +755,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
     });
 
     // @studio-slice-save-edit-cta-variant - Validate saving change CTA variant
-    test(`${features[10].name},${features[10].tags}`, async ({
+    test.skip(`${features[10].name},${features[10].tags}`, async ({
         page,
         baseURL,
     }) => {

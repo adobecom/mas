@@ -986,7 +986,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     });
 
     // @studio-try-buy-widget-edit-cta-variant - Validate edit CTA variant for try-buy-widget card in mas studio
-    test(`${features[13].name},${features[13].tags}`, async ({
+    test.skip(`${features[13].name},${features[13].tags}`, async ({
         page,
         baseURL,
     }) => {

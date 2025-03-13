@@ -1,3 +1,5 @@
+import { expect } from '@playwright/test';
+
 export default class StudioPage {
     constructor(page) {
         this.page = page;
@@ -66,20 +68,23 @@ export default class StudioPage {
         );
         this.editorBorderColor = page.locator('sp-picker#border-color');
         this.editorBackgroundColor = page.locator('sp-picker#backgroundColor');
+        this.editorOSI = page.locator('osi-field#osi');
+        this.editorOSIButton = page.locator('#offerSelectorToolButtonOSI');
+        this.editorTags = page.locator('aem-tag-picker-field[label="Tags"]');
         this.editorCTAClassSecondary = page.locator(
             'sp-field-group#ctas a.secondary',
         );
         // Editor panel toolbar
-        this.cloneCard = page.locator(
+        this.cloneCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="clone"]',
         );
         this.closeEditor = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="close"]',
         );
-        this.deleteCard = page.locator(
+        this.deleteCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="delete"]',
         );
-        this.saveCard = page.locator(
+        this.saveCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="save"]',
         );
         // RTE panel toolbar
@@ -120,5 +125,33 @@ export default class StudioPage {
         return card.filter({
             has: this.page.locator(`aem-fragment[fragment="${id}"]`),
         });
+    }
+
+    async cloneCard() {
+        await expect(await this.cloneCardButton).toBeEnabled();
+        await this.cloneCardButton.click();
+        await expect(await this.toastPositive).toHaveText(
+            'Fragment successfully copied.',
+        );
+    }
+
+    async saveCard() {
+        await expect(await this.saveCardButton).toBeEnabled();
+        await this.saveCardButton.click();
+        await expect(await this.toastPositive).toHaveText(
+            'Fragment successfully saved.',
+        );
+    }
+
+    async deleteCard() {
+        await expect(await this.deleteCardButton).toBeEnabled();
+        await this.deleteCardButton.click();
+        await expect(await this.confirmationDialog).toBeVisible();
+        await this.confirmationDialog
+            .locator(this.deleteDialog)
+            .click();
+        await expect(await this.toastPositive).toHaveText(
+            'Fragment successfully deleted.',
+        );
     }
 }

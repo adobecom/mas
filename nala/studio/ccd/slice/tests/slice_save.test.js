@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import StudioPage from '../../../studio.page.js';
 import CCDSliceSpec from '../specs/slice_save.spec.js';
 import CCDSlicePage from '../slice.page.js';
+import CCDSuggestedPage from '../../suggested/suggested.page.js';
+import AHTryBuyWidgetPage from '../../../ahome/try-buy-widget/try-buy-widget.page.js';
 import OSTPage from '../../../ost.page.js';
 import WebUtil from '../../../../libs/webutil.js';
 
@@ -10,6 +12,8 @@ const miloLibs = process.env.MILO_LIBS || '';
 
 let studio;
 let slice;
+let suggested;
+let trybuywidget;
 let ost;
 let clonedCardID;
 let webUtil;
@@ -23,6 +27,8 @@ test.beforeEach(async ({ page, browserName }) => {
     }
     studio = new StudioPage(page);
     slice = new CCDSlicePage(page);
+    suggested = new CCDSuggestedPage(page);
+    trybuywidget = new AHTryBuyWidgetPage(page);
     ost = new OSTPage(page);
     clonedCardID = '';
     webUtil = new WebUtil(page);
@@ -246,6 +252,14 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(
                 await studio.getCard(data.clonedCardID, 'suggested'),
             ).toBeVisible();
+            await expect(await (await studio.getCard(data.clonedCardID, 'suggested')).locator(suggested.cardCTA)).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(await (await studio.getCard(data.clonedCardID, 'suggested')).locator(suggested.cardCTA)).toHaveAttribute(
+                'is',
+                'checkout-button',
+            );
         });
     });
 
@@ -315,6 +329,14 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(
                 await studio.getCard(data.clonedCardID, 'ahtrybuywidget'),
             ).toBeVisible();
+            await expect(await (await studio.getCard(data.clonedCardID, 'ahtrybuywidget')).locator(trybuywidget.cardCTA)).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(await (await studio.getCard(data.clonedCardID, 'ahtrybuywidget')).locator(trybuywidget.cardCTA)).toHaveAttribute(
+                'is',
+                'checkout-button',
+            );
         });
     });
 
@@ -482,6 +504,14 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                     data.newCtaCSS,
                 ),
             ).toBeTruthy();
+            await expect(await clonedCard.locator(slice.cardCTA)).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(await clonedCard.locator(slice.cardCTA)).toHaveAttribute(
+                'is',
+                'checkout-button',
+            );
         });
     });
 });

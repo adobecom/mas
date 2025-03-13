@@ -7,6 +7,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
@@ -112,6 +113,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 ctaText: 'Buy now',
                 newCtaText: 'Buy now 2',
             },
@@ -153,6 +155,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
@@ -197,6 +200,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 variant: 'accent',
                 ctaCSS: {
                     'background-color': 'rgb(2, 101, 220)',

@@ -37,6 +37,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
@@ -47,6 +48,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
@@ -76,6 +78,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 variant: 'primary-outline',
                 ctaCSS: {
                     color: 'rgb(34, 34, 34)',

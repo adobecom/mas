@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import StudioPage from '../../../studio.page.js';
 import CCDSuggestedSpec from '../specs/suggested_edit.spec.js';
 import CCDSuggestedPage from '../suggested.page.js';
+import CCDSlicePage from '../../slice/slice.page.js';
 import AHTryBuyWidgetPage from '../../../ahome/try-buy-widget/try-buy-widget.page.js';
 import OSTPage from '../../../ost.page.js';
 import WebUtil from '../../../../libs/webutil.js';
@@ -11,6 +12,7 @@ const miloLibs = process.env.MILO_LIBS || '';
 
 let studio;
 let suggested;
+let slice;
 let ost;
 let trybuywidget;
 let webUtil;
@@ -24,6 +26,7 @@ test.beforeEach(async ({ page, browserName }) => {
     }
     studio = new StudioPage(page);
     suggested = new CCDSuggestedPage(page);
+    slice = new CCDSlicePage(page);
     trybuywidget = new AHTryBuyWidgetPage(page);
     ost = new OSTPage(page);
     webUtil = new WebUtil(page);
@@ -110,6 +113,14 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             ).not.toBeVisible();
             await expect(await suggested.cardTitle).not.toBeVisible();
             await expect(await suggested.cardEyebrow).not.toBeVisible();
+            await expect(await slice.cardCTA).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(await slice.cardCTA).toHaveAttribute(
+                'is',
+                'checkout-button',
+            );
         });
     });
 
@@ -558,6 +569,14 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await suggested.cardCTA).toContainText(
                 data.newCtaText,
             );
+            await expect(await suggested.cardCTA).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(suggested.cardCTA).toHaveAttribute(
+                'is',
+                'checkout-button',
+            );
         });
     });
 
@@ -754,12 +773,11 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await ost.checkoutLinkUse.click();
         });
 
-        // uncomment once MWPW-169011 is fixed
-        // await test.step('step-7: Validate promo removed in Editor panel', async () => {
-        //     await expect(
-        //         await studio.editorPanel.locator(studio.editorCTA),
-        //     ).not.toHaveAttribute('data-promotion-code');
-        // });
+        await test.step('step-7: Validate promo removed in Editor panel', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorCTA),
+            ).not.toHaveAttribute('data-promotion-code');
+        });
 
         await test.step('step-8: Validate CTA promo removed from the card', async () => {
             await expect(await suggested.cardCTA).not.toHaveAttribute(
@@ -814,42 +832,39 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorVariant),
             ).toHaveAttribute('default-value', 'ah-try-buy-widget');
-
-            // *** uncomment once MWPW-164093 (AHome PR) is merged to main ***
-
-            // await expect(
-            //     await studio.editorPanel.locator(studio.editorSize),
-            // ).toBeVisible();
-            // await expect(
-            //     await studio.editorPanel.locator(studio.editorTitle),
-            // ).toBeVisible();
-            // await expect(
-            //     await studio.editorPanel.locator(studio.editorSubtitle),
-            // ).not.toBeVisible();
-            // await expect(
-            //     await studio.editorPanel.locator(studio.editorBadge),
-            // ).not.toBeVisible();
-            // await expect(
-            //     await studio.editorPanel.locator(studio.editorDescription),
-            // ).toBeVisible();
-            // await expect(
-            //     await studio.editorPanel.locator(studio.editorIconURL),
-            // ).toBeVisible();
-            // await expect(
-            //     await studio.editorPanel.locator(studio.editorBorderColor),
-            // ).toBeVisible();
-            // await expect(
-            //     await studio.editorPanel.locator(studio.editorBackgroundColor),
-            // ).toBeVisible();
-            // await expect(
-            //     await studio.editorPanel.locator(studio.editorBackgroundImage),
-            // ).toBeVisible();
-            // await expect(
-            //     await studio.editorPanel.locator(studio.editorPrices),
-            // ).toBeVisible();
-            // await expect(
-            //     await studio.editorPanel.locator(studio.editorFooter),
-            // ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorSize),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorTitle),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorSubtitle),
+            ).not.toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorBadge),
+            ).not.toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorDescription),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorIconURL),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorBorderColor),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorBackgroundColor),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorBackgroundImage),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorPrices),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorFooter),
+            ).toBeVisible();
         });
 
         await test.step('step-5: Validate card variant change', async () => {
@@ -860,14 +875,19 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 await studio.getCard(data.cardid, 'suggested'),
             ).not.toBeVisible();
             await expect(await suggested.cardEyebrow).not.toBeVisible();
-
-            // *** uncomment once MWPW-164093 (AHome PR) is merged to main ***
-
-            // await expect(await trybuywidget.cardTitle).toBeVisible();
-            // await expect(await trybuywidget.cardDescription).toBeVisible();
-            // await expect(await trybuywidget.cardPrice).toBeVisible();
-            // await expect(await trybuywidget.cardCTA).toBeVisible();
-            // await expect(await trybuywidget.cardIcon).toBeVisible();
+            await expect(await trybuywidget.cardTitle).toBeVisible();
+            await expect(await trybuywidget.cardDescription).toBeVisible();
+            await expect(await trybuywidget.cardPrice).toBeVisible();
+            await expect(await trybuywidget.cardIcon).toBeVisible();
+            await expect(await trybuywidget.cardCTA).toBeVisible();
+            await expect(await trybuywidget.cardCTA).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(await trybuywidget.cardCTA).toHaveAttribute(
+                'is',
+                'checkout-button',
+            );
         });
     });
 
@@ -1095,6 +1115,14 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                     data.newCtaCSS,
                 ),
             ).toBeTruthy();
+            await expect(await suggested.cardCTA).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(await suggested.cardCTA).toHaveAttribute(
+                'is',
+                'checkout-button',
+            );
         });
     });
 });

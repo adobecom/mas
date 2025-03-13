@@ -26,6 +26,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
@@ -36,6 +37,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
@@ -65,6 +67,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 variant: 'accent',
                 ctaCSS: {
                     'background-color': 'rgb(2, 101, 220)',

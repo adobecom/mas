@@ -547,7 +547,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await studio.editorPanel).toBeVisible();
         });
 
-        await test.step('step-3: Edit price field', async () => {
+        await test.step('step-3: Edit CTA field', async () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorFooter),
             ).toBeVisible();
@@ -589,6 +589,26 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await trybuywidget.cardCTASlot).toContainText(
                 data.newCtaText,
             );
+            await expect(await trybuywidget.cardCTA.first()).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(await trybuywidget.cardCTA.first()).toHaveAttribute(
+                'is',
+                'checkout-button',
+            );
+
+            const CTAhref = await trybuywidget.cardCTA.first().getAttribute('data-href');
+            let workflowStep = decodeURI(CTAhref).split('?')[0];
+            let searchParams = new URLSearchParams(
+                decodeURI(CTAhref).split('?')[1],
+            );
+
+            expect(workflowStep).toContain(data.ucv3);
+            expect(searchParams.get('co')).toBe(data.country);
+            expect(searchParams.get('ctx')).toBe(data.ctx);
+            expect(searchParams.get('lang')).toBe(data.lang);
+            expect(searchParams.get('cli')).toBe(data.client);
         });
     });
 
@@ -679,8 +699,16 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 await studio.getCard(data.cardid, 'ahtrybuywidget-triple'),
             ).not.toBeVisible();
             await expect(await slice.cardDescription).toBeVisible();
-            await expect(await slice.cardCTA.first()).toBeVisible();
             await expect(await slice.cardIcon).toBeVisible();
+            await expect(await slice.cardCTA.first()).toBeVisible();
+            await expect(await slice.cardCTA.first()).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(await slice.cardCTA.first()).toHaveAttribute(
+                'is',
+                'checkout-button',
+            );
         });
     });
 
@@ -773,8 +801,16 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await suggested.cardTitle).toBeVisible();
             await expect(await suggested.cardDescription).toBeVisible();
             await expect(await suggested.cardPrice).toBeVisible();
-            await expect(await suggested.cardCTA.first()).toBeVisible();
             await expect(await suggested.cardIcon).toBeVisible();
+            await expect(await suggested.cardCTA.first()).toBeVisible();
+            await expect(await suggested.cardCTA.first()).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(await suggested.cardCTA.first()).toHaveAttribute(
+                'is',
+                'checkout-button',
+            );
         });
     });
 
@@ -1017,6 +1053,14 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                     data.newCtaCSS,
                 ),
             ).toBeTruthy();
+            await expect(await trybuywidget.cardCTA.first()).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(await trybuywidget.cardCTA.first()).toHaveAttribute(
+                'is',
+                'checkout-button',
+            );
         });
     });
 });

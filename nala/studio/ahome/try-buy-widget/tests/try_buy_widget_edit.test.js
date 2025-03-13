@@ -598,7 +598,9 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 'checkout-button',
             );
 
-            const CTAhref = await trybuywidget.cardCTA.first().getAttribute('data-href');
+            const CTAhref = await trybuywidget.cardCTA
+                .first()
+                .getAttribute('data-href');
             let workflowStep = decodeURI(CTAhref).split('?')[0];
             let searchParams = new URLSearchParams(
                 decodeURI(CTAhref).split('?')[1],

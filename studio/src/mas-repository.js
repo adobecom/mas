@@ -305,6 +305,8 @@ export class MasRepository extends LitElement {
 
             const result = await this.#aem.sites.cf.fragments.create({
                 ...fragmentData,
+                description: '',
+                fields: [],
                 parentPath: this.parentPath,
             });
             const latest = await this.#aem.sites.cf.fragments.getById(
@@ -318,9 +320,7 @@ export class MasRepository extends LitElement {
             this.operation.set();
             return latest;
         } catch (error) {
-            this.operation.set();
             this.processError(error, 'Failed to create fragment.');
-            throw new UserFriendlyError('Failed to create fragment.');
         }
     }
 

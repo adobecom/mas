@@ -93,6 +93,17 @@
                             console.info(
                                 '[M@S Studio] IMS is ready, signed in',
                             );
+                            const studio = document.createElement('mas-studio');
+                            studio.setAttribute('base-url', baseUrl);
+                            bucket && studio.setAttribute('aem-bucket', bucket);
+                            params.get('commerce.env') &&
+                                studio.setAttribute(
+                                    'commerce-env',
+                                    params.get('commerce.env'),
+                                );
+                            document
+                                .querySelector('sp-theme')
+                                .appendChild(studio);
                         })
                         .catch((e) => {
                             console.error(
@@ -109,15 +120,7 @@
     </head>
     <body class="spectrum spectrum--medium spectrum--light">
         <main>
-            <sp-theme color="light" scale="medium">
-                <script>
-                    const studio = document.createElement('mas-studio');
-                    studio.setAttribute('base-url', baseUrl);
-                    bucket && studio.setAttribute('aem-bucket', bucket);
-                    params.get('commerce.env') && studio.setAttribute('commerce-env', params.get('commerce.env'));
-                    document.querySelector('sp-theme').appendChild(studio);
-                </script>
-            </sp-theme>
+            <sp-theme color="light" scale="medium"> </sp-theme>
         </main>
     </body>
 </html>

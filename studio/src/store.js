@@ -86,6 +86,11 @@ export function toggleSelection(id) {
 }
 
 export function editFragment(store, x) {
+    if (
+        !Store.fragments.list.data.get().some((fragment) => fragment === store)
+    ) {
+        Store.fragments.list.data.set((prev) => [...prev, store]);
+    }
     editorPanel()?.editFragment(store, x);
 }
 

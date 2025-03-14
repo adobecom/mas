@@ -363,7 +363,8 @@ class AEM {
      * @param {*} fragment sample fragment with mimimum req fields: { title: 'sample title', model: {id: '123'}}
      */
     async createFragment(fragment) {
-        const { title, name, modelId, parentPath } = fragment;
+        const { title, name, modelId, parentPath, description, fields } =
+            fragment;
         if (!parentPath || !title || !name || !modelId) {
             throw new Error(
                 `Missing data to create a fragment: ${parentPath}, ${title}, ${name}, ${modelId}`,
@@ -375,11 +376,22 @@ class AEM {
                 'Content-Type': 'application/json',
                 ...this.headers,
             },
-            body: JSON.stringify({ title, name, modelId, parentPath }),
+            body: JSON.stringify({
+                title,
+                name,
+                modelId,
+                parentPath,
+                description,
+                fields,
+            }),
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
         if (!response.ok) {
+            const { detail } = (await response.json()) ?? {};
+            if (detail) {
+                throw new UserFriendlyError(detail);
+            }
             throw new Error(
                 `Failed to create fragment: ${response.status} ${response.statusText}`,
             );

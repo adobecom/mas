@@ -140,24 +140,18 @@ class MasToolbar extends LitElement {
         Store.search.set((prev) => ({ ...prev, query: value }));
     }
 
-    selectContentType(event, type) {
-        // Stop propagation to prevent the document click handler from closing the menu
-        if (event) {
-            event.stopPropagation();
-        }
+    get popover() {
+        return this.shadowRoot.querySelector('sp-popover');
+    }
+
+    selectContentType(type) {
         this.selectedContentType = type;
+        this.popover.open = false;
         this.openCreateDialog();
     }
 
     openCreateDialog() {
         this.createDialogOpen = true;
-    }
-
-    handleCreateFragment(event) {
-        const fragmentData = event.detail;
-        console.log('Creating fragment:', fragmentData);
-        // TODO: Implement fragment creation logic
-        // This would typically involve a call to a repository service
     }
 
     get searchAndFilterControls() {
@@ -197,8 +191,7 @@ class MasToolbar extends LitElement {
                     ${contentTypes.map(
                         ({ value, label }) => html`
                             <sp-menu-item
-                                @click=${(e) =>
-                                    this.selectContentType(e, value)}
+                                @click=${() => this.selectContentType(value)}
                             >
                                 ${label}
                                 <sp-icon-add slot="icon"></sp-icon-add>
@@ -260,7 +253,6 @@ class MasToolbar extends LitElement {
             ${this.createDialogOpen
                 ? html`<mas-create-dialog
                       type=${this.selectedContentType}
-                      @create=${this.handleCreateFragment}
                       @close=${() => (this.createDialogOpen = false)}
                   ></mas-create-dialog>`
                 : nothing} `;

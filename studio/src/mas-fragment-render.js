@@ -8,6 +8,7 @@ import { styles } from './mas-fragment-render.css.js';
 class MasFragmentRender extends LitElement {
     static properties = {
         selected: { type: Boolean, attribute: true },
+        store: { type: Object, attribute: false },
     };
 
     static styles = [styles];
@@ -123,7 +124,6 @@ class MasFragmentRender extends LitElement {
     }
 
     render() {
-        console.log(this.fragment.value.model.path);
         return html`<div class="render-fragment">
             <div class="render-fragment-header">
                 <div class="render-fragment-actions"></div>

@@ -1,5 +1,8 @@
 import { LitElement, html, css } from 'lit';
 import { TAG_MODEL_ID_MAPPING } from './constants.js';
+import { FragmentStore } from './reactivity/fragment-store.js';
+import { editFragment } from './store.js';
+import { Fragment } from './aem/fragment.js';
 
 export class MasCreateDialog extends LitElement {
     static properties = {
@@ -125,9 +128,12 @@ export class MasCreateDialog extends LitElement {
             title: this.title,
             name: this.name || this.normalizeFragmentName(this.title),
         };
-
         const masRepository = document.querySelector('mas-repository');
         const response = await masRepository.createFragment(fragmentData);
+        if (!response) return;
+        const fragment = new FragmentStore(new Fragment(response));
+        editFragment(fragment, 1);
+        this.close();
     }
 
     handleUnderlayClose() {
@@ -143,7 +149,7 @@ export class MasCreateDialog extends LitElement {
     }
 
     get dialogTitle() {
-        const typeLabel = 
+        const typeLabel =
             this.type === 'merch-card' ? 'Merch Card' : 'Merch Card Collection';
         return `Create New ${typeLabel}`;
     }

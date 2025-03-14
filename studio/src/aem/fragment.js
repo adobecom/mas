@@ -50,7 +50,9 @@ export class Fragment {
 
     get statusVariant() {
         if (this.hasChanges) return 'modified';
-        return this.status === 'PUBLISHED' ? 'published' : 'draft';
+        if (this.status === 'PUBLISHED') return 'published';
+        if (this.tags.some((tag) => tag.id === 'mas:status/draft'))
+            return 'draft';
     }
 
     refreshFrom(fragmentData) {

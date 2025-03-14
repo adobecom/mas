@@ -139,6 +139,14 @@ export class MasRepository extends LitElement {
         }`;
     }
 
+    get fragmentStoreInEdit() {
+        return this.inEdit.get();
+    }
+
+    get fragmentInEdit() {
+        return this.fragmentStoreInEdit?.get();
+    }
+
     async searchFragments() {
         if (this.page.value !== 'content') return;
 
@@ -346,10 +354,10 @@ export class MasRepository extends LitElement {
         this.operation.set(OPERATIONS.SAVE);
         try {
             let updatedFragment = await this.#aem.sites.cf.fragments.save(
-                this.inEdit.get(),
+                this.fragmentInEdit,
             );
             if (!updatedFragment) throw new Error('Invalid fragment.');
-            this.inEdit.refreshFrom(updatedFragment);
+            this.fragmentStoreInEdit.refreshFrom(updatedFragment);
 
             Events.toast.emit({
                 variant: 'positive',
@@ -371,7 +379,7 @@ export class MasRepository extends LitElement {
         try {
             this.operation.set(OPERATIONS.CLONE);
             const result = await this.#aem.sites.cf.fragments.copy(
-                this.inEdit.get(),
+                this.fragmentInEdit,
             );
             const newFragment = new Fragment(result);
             Fragment.cache.add(newFragment);
@@ -381,7 +389,7 @@ export class MasRepository extends LitElement {
                 ...prev,
                 newFragmentStore,
             ]);
-            this.inEdit.set(newFragment);
+            this.inEdit.set(newFragmentStore);
 
             this.operation.set();
             Events.fragmentAdded.emit(newFragment.id);
@@ -403,7 +411,7 @@ export class MasRepository extends LitElement {
     async publishFragment() {
         try {
             this.operation.set(OPERATIONS.PUBLISH);
-            await this.#aem.sites.cf.fragments.publish(this.inEdit.get());
+            await this.#aem.sites.cf.fragments.publish(this.fragmentInEdit);
 
             this.operation.set();
             Events.toast.emit({
@@ -433,7 +441,7 @@ export class MasRepository extends LitElement {
     async deleteFragment() {
         try {
             this.operation.set(OPERATIONS.DELETE);
-            const fragment = this.inEdit.get();
+            const fragment = this.fragmentInEdit;
             await this.#aem.sites.cf.fragments.delete(fragment);
 
             Store.fragments.list.data.set((prev) => {
@@ -463,11 +471,11 @@ export class MasRepository extends LitElement {
      * @param {FragmentStore} store
      */
     async refreshFragment(store) {
-        this.inEdit.setLoading(true);
+        store.setLoading(true);
         const id = store.get().id;
         const latest = await this.#aem.sites.cf.fragments.getById(id);
         store.refreshFrom(latest);
-        this.inEdit.setLoading(false);
+        store.setLoading(false);
     }
 
     render() {

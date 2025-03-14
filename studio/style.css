@@ -222,7 +222,7 @@ merch-card button {
     pointer-events: none;
 }
 
-mas-fragment-render[selected] .render-card {
+mas-fragment-render[selected] .render-fragment {
     outline: 2px solid var(--spectrum-global-color-blue-600);
 }
 
@@ -248,11 +248,11 @@ merch-card sp-icon-remove {
     display: none;
 }
 
-merch-card.selected:hover sp-icon-remove {
+mas-fragment-render[selected]:hover sp-icon-remove {
     display: block;
 }
 
-merch-card:hover:not(.selected) sp-icon-add {
+mas-fragment-render:not([selected]):hover sp-icon-add {
     display: block;
 }
 

@@ -53,10 +53,7 @@ export default class EditorPanel extends LitElement {
     inEdit = Store.fragments.inEdit;
     operation = Store.operation;
 
-    reactiveController = new ReactiveController(this, [
-        this.inEdit,
-        this.operation,
-    ]);
+    reactiveController;
 
     #discardPromiseResolver;
 
@@ -101,7 +98,11 @@ export default class EditorPanel extends LitElement {
 
     /** @type {Fragment | null} */
     get fragment() {
-        return this.inEdit?.get();
+        return this.fragmentStore?.get();
+    }
+
+    get fragmentStore() {
+        return this.inEdit.get();
     }
 
     updatePosition(position) {
@@ -133,7 +134,12 @@ export default class EditorPanel extends LitElement {
             this.updatePosition(newPosition);
         }
         await this.repository.refreshFragment(store);
-        this.inEdit.set(store.value);
+        this.inEdit.set(store);
+        this.reactiveController = new ReactiveController(this, [
+            this.inEdit,
+            this.inEdit.get(),
+            this.operation,
+        ]);
     }
 
     handleKeyDown(event) {
@@ -213,7 +219,7 @@ export default class EditorPanel extends LitElement {
     #updateFragmentInternal(event) {
         const fieldName = event.target.dataset.field;
         let value = event.target.value;
-        this.inEdit.updateFieldInternal(fieldName, value);
+        this.fragmentStore.updateFieldInternal(fieldName, value);
     }
 
     updateFragment({ target, detail, values }) {
@@ -223,7 +229,7 @@ export default class EditorPanel extends LitElement {
             value = target.value || detail?.value || target.checked;
             value = target.multiline ? value?.split(',') : [value ?? ''];
         }
-        this.inEdit.updateField(fieldName, value);
+        this.fragmentStore.updateField(fieldName, value);
     }
 
     async deleteFragment() {
@@ -287,7 +293,7 @@ export default class EditorPanel extends LitElement {
         if (Store.editor.hasChanges) {
             const confirmed = await this.promptDiscardChanges();
             if (confirmed) {
-                this.inEdit.discardChanges();
+                this.fragmentStore.discardChanges();
                 this.showEditor = false;
                 await this.updateComplete;
                 this.showEditor = true;
@@ -308,7 +314,7 @@ export default class EditorPanel extends LitElement {
                 return false;
             }
             // The user confirmed – discard changes.
-            this.inEdit.discardChanges();
+            this.fragmentStore.discardChanges();
         }
         this.inEdit.set();
         return true;
@@ -316,7 +322,7 @@ export default class EditorPanel extends LitElement {
 
     #handleLocReady() {
         const value = !this.fragment.getField('locReady').values[0];
-        this.inEdit.updateField('locReady', [value]);
+        this.fragmentStore.updateField('locReady', [value]);
     }
 
     get fragmentEditorToolbar() {
@@ -593,7 +599,7 @@ export default class EditorPanel extends LitElement {
 
     render() {
         if (!this.fragment) return nothing;
-        if (this.inEdit.loading)
+        if (this.fragment.loading)
             return html`<sp-progress-circle
                 indeterminate
                 size="l"
@@ -604,14 +610,13 @@ export default class EditorPanel extends LitElement {
             switch (this.fragment.model.path) {
                 case CARD_MODEL_PATH:
                     editor = html` <merch-card-editor
-                        .fragment=${this.fragment}
-                        .fragmentStore=${this.inEdit}
+                        .fragmentStore=${this.fragmentStore}
                         .updateFragment=${this.updateFragment}
                     ></merch-card-editor>`;
                     break;
                 case COLLECTION_MODEL_PATH:
                     editor = html` <merch-card-collection-editor
-                        .fragment=${this.inEdit}
+                        .fragmentStore=${this.fragmentStore}
                         .updateFragment=${this.updateFragment}
                     ></merch-card-collection-editor>`;
                     break;

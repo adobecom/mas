@@ -15,7 +15,7 @@ class MerchCardCollectionEditor extends LitElement {
         return {
             draggingFieldName: { type: String, state: true },
             draggingIndex: { type: Number, state: true },
-            fragment: { type: Object, attribute: false },
+            fragmentStore: { type: Object, attribute: false },
             fragmentReferencesMap: { type: Object, attribute: false },
             updateFragment: { type: Function },
             hideCards: { type: Boolean, state: true },
@@ -33,7 +33,7 @@ class MerchCardCollectionEditor extends LitElement {
         super();
         this.draggingFieldName = null;
         this.draggingIndex = -1;
-        this.fragment = null;
+        this.fragmentStore = null;
         this.fragmentReferencesMap = null;
         this.updateFragment = null;
         this.hideCards = false;
@@ -62,20 +62,20 @@ class MerchCardCollectionEditor extends LitElement {
 
     update(changedProperties) {
         // Initialize fragment references map when fragment changes
-        if (changedProperties.has('fragment')) {
+        if (changedProperties.has('fragmentStore')) {
             this.initFragmentReferencesMap();
         }
         super.update(changedProperties);
     }
 
     async initFragmentReferencesMap() {
-        if (!this.fragment) return;
+        if (!this.fragmentStore) return;
 
         // Create a new map or clear the existing one
         this.fragmentReferencesMap = new Map();
 
         // Get all references from the fragment
-        const references = this.fragment.value.references || [];
+        const references = this.fragment.references || [];
 
         // Create a FragmentStore for each reference
         for (const ref of references) {
@@ -97,14 +97,14 @@ class MerchCardCollectionEditor extends LitElement {
 
     get label() {
         return (
-            this.fragment?.value?.fields?.find((f) => f.name === 'label')
+            this.fragment?.fields?.find((f) => f.name === 'label')
                 ?.values?.[0] || ''
         );
     }
 
     get icon() {
         return (
-            this.fragment?.value?.fields?.find((f) => f.name === 'icon')
+            this.fragment?.fields?.find((f) => f.name === 'icon')
                 ?.values?.[0] || ''
         );
     }
@@ -125,11 +125,15 @@ class MerchCardCollectionEditor extends LitElement {
         `;
     }
 
+    get fragment() {
+        return this.fragmentStore.get();
+    }
+
     /** returns only if there are cards to render */
     get #cards() {
         if (!this.fragment) return nothing;
 
-        const cardsField = this.fragment.value.fields.find(
+        const cardsField = this.fragment.fields.find(
             (field) => field.name === 'cards',
         );
 
@@ -146,7 +150,7 @@ class MerchCardCollectionEditor extends LitElement {
     get #collections() {
         if (!this.fragment) return nothing;
 
-        const collectionsField = this.fragment.value.fields.find(
+        const collectionsField = this.fragment.fields.find(
             (field) => field.name === 'collections',
         );
 
@@ -386,7 +390,7 @@ class MerchCardCollectionEditor extends LitElement {
                     }
 
                     // Get the current field values
-                    const field = this.fragment.value.fields.find(
+                    const field = this.fragment.fields.find(
                         (field) => field.name === fieldName,
                     );
 
@@ -408,15 +412,14 @@ class MerchCardCollectionEditor extends LitElement {
                     });
 
                     // Check if the reference already exists
-                    const existingReference =
-                        this.fragment.value.references?.find(
-                            (ref) => ref.path === fragmentData.path,
-                        );
+                    const existingReference = this.fragment.references?.find(
+                        (ref) => ref.path === fragmentData.path,
+                    );
 
                     if (!existingReference) {
                         // Add the new reference
-                        this.fragment.value.references = [
-                            ...(this.fragment.value.references || []),
+                        this.fragment.references = [
+                            ...(this.fragment.references || []),
                             fragmentData,
                         ];
 
@@ -448,7 +451,7 @@ class MerchCardCollectionEditor extends LitElement {
         const currentFieldName = FIELD_MODEL_MAPPING[model.path];
 
         // Get the values from the current field
-        const field = this.fragment.value.fields.find(
+        const field = this.fragment.fields.find(
             (field) => field.name === currentFieldName,
         );
 
@@ -538,7 +541,7 @@ class MerchCardCollectionEditor extends LitElement {
         const fieldName = FIELD_MODEL_MAPPING[fragment.model?.path];
         if (!fieldName) return;
 
-        const field = this.fragment.value.fields.find(
+        const field = this.fragment.fields.find(
             (field) => field.name === fieldName,
         );
 
@@ -697,7 +700,7 @@ class MerchCardCollectionEditor extends LitElement {
         }
 
         // Ensure we have a fragment to work with
-        if (!this.fragment || !this.fragment.value) {
+        if (!this.fragment) {
             console.error('No fragment available to update');
             // Remove any lingering dragover indicators
             this.#removeAllDragoverClasses();
@@ -705,7 +708,7 @@ class MerchCardCollectionEditor extends LitElement {
         }
 
         // Get the current field values
-        const field = this.fragment.value.fields.find(
+        const field = this.fragment.fields.find(
             (field) => field.name === fieldName,
         );
 
@@ -733,14 +736,14 @@ class MerchCardCollectionEditor extends LitElement {
         });
 
         // Check if the reference already exists
-        const existingReference = this.fragment.value.references?.find(
+        const existingReference = this.fragment.references?.find(
             (ref) => ref.path === fragmentData.path,
         );
 
         if (!existingReference) {
             // Add the new reference
-            this.fragment.value.references = [
-                ...this.fragment.value.references,
+            this.fragment.references = [
+                ...this.fragment.references,
                 fragmentData,
             ];
 

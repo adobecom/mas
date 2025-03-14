@@ -1,14 +1,14 @@
 import { LitElement, html, nothing } from 'lit';
-import StoreController from './reactivity/store-controller.js';
 import Store, { toggleSelection } from './store.js';
 import './mas-fragment-status.js';
 import { CARD_MODEL_PATH } from './constants.js';
 import { styles } from './mas-fragment-render.css.js';
+import ReactiveController from './reactivity/reactive-controller.js';
 
 class MasFragmentRender extends LitElement {
     static properties = {
         selected: { type: Boolean, attribute: true },
-        store: { type: Object, attribute: false },
+        fragmentStore: { type: Object, attribute: false },
     };
 
     static styles = [styles];
@@ -17,28 +17,52 @@ class MasFragmentRender extends LitElement {
         return this;
     }
 
+    #aemFragment;
+
     constructor() {
         super();
+        this.refreshFragment = this.refreshFragment.bind(this);
     }
 
-    selecting = new StoreController(this, Store.selecting);
+    updated() {
+        super.updated();
+        this.#aemFragment = this.querySelector('aem-fragment');
+    }
+
+    async refreshFragment(newFragment) {
+        if (!this.#aemFragment) return;
+        if (newFragment.hasChanges) {
+            this.#aemFragment.refresh(false);
+        }
+    }
 
     connectedCallback() {
         super.connectedCallback();
-        this.fragment = new StoreController(this, this.store);
+        new ReactiveController(this, [this.fragmentStore, Store.selecting]);
+        this.fragmentStore.subscribe(this.refreshFragment);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.fragmentStore.unsubscribe(this.refreshFragment);
     }
 
     select() {
-        toggleSelection(this.fragment.value.id);
+        toggleSelection(this.fragment.id);
+    }
+
+    get fragment() {
+        return this.fragmentStore.get();
     }
 
     handleDragStart(event) {
-        if (this.selecting.value) {
+        if (Store.selecting.get()) {
             event.preventDefault();
             return;
         }
 
-        const fragment = this.fragment.value;
+        const fragment = this.fragment;
+
         if (!fragment) {
             console.error('No fragment available for drag operation');
             event.preventDefault();
@@ -92,7 +116,7 @@ class MasFragmentRender extends LitElement {
     }
 
     get selectionOverlay() {
-        if (!this.selecting.value) return nothing;
+        if (!Store.selecting.value) return nothing;
         return html`<div class="overlay" @click="${this.select}">
             ${this.selected
                 ? html`<sp-icon-remove slot="icon"></sp-icon-remove>`
@@ -103,7 +127,7 @@ class MasFragmentRender extends LitElement {
     get merchCard() {
         return html`<merch-card slot="trigger">
             <aem-fragment
-                fragment="${this.fragment.value.id}"
+                fragment="${this.fragment.id}"
                 ims
                 author
             ></aem-fragment>
@@ -112,10 +136,10 @@ class MasFragmentRender extends LitElement {
     }
 
     get unknown() {
-        const label = this.fragment.value.fields.find(
+        const label = this.fragment.fields.find(
             (field) => field.name === 'label',
         )?.values[0];
-        const modelName = this.fragment.value.model.name;
+        const modelName = this.fragment.model.name;
         return html`<div class="unknown-fragment" slot="trigger">
             <sp-icon-document-fragment></sp-icon-document-fragment> ${label}
             ${this.selectionOverlay}
@@ -128,7 +152,7 @@ class MasFragmentRender extends LitElement {
             <div class="render-fragment-header">
                 <div class="render-fragment-actions"></div>
                 <mas-fragment-status
-                    variant=${this.fragment.value.statusVariant}
+                    variant=${this.fragment.statusVariant}
                 ></mas-fragment-status>
             </div>
             <div
@@ -138,7 +162,7 @@ class MasFragmentRender extends LitElement {
                 @dragend=${this.handleDragEnd}
             >
                 <overlay-trigger placement="top">
-                    ${this.fragment.value.model.path === CARD_MODEL_PATH
+                    ${this.fragment.model.path === CARD_MODEL_PATH
                         ? this.merchCard
                         : this.unknown}
 

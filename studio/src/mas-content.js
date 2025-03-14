@@ -1,6 +1,5 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { VARIANTS } from './editors/variant-picker.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import './mas-fragment.js';
@@ -47,11 +46,11 @@ class MasContent extends LitElement {
         return html`
             <div id="render">
                 ${repeat(
-                    this.fragments.value,
+                    this.fragments.value.filter(fragmentStore => fragmentStore.get() !== null),
                     (fragmentStore) => fragmentStore.get().path,
                     (fragmentStore) =>
                         html`<mas-fragment
-                            .store=${fragmentStore}
+                            .fragmentStore=${fragmentStore}
                             view="render"
                         ></mas-fragment>`,
                 )}
@@ -81,11 +80,11 @@ class MasContent extends LitElement {
             </sp-table-head>
             <sp-table-body>
                 ${repeat(
-                    this.fragments.value,
+                    this.fragments.value.filter(fragmentStore => fragmentStore.get() !== null),
                     (fragmentStore) => fragmentStore.get().path,
                     (fragmentStore) =>
                         html`<mas-fragment
-                            .store=${fragmentStore}
+                            .fragmentStore=${fragmentStore}
                             view="table"
                         ></mas-fragment>`,
                 )}

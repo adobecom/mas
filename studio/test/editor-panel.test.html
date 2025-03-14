@@ -76,6 +76,7 @@
                     let editorPanel;
                     beforeEach(async () => {
                         fragment = new Fragment(fragmentData);
+                        fragmentStore = new FragmentStore(fragment);
                         editorPanel = await fixture(
                             html`<editor-panel></editor-panel>
                                 <mas-repository
@@ -83,7 +84,7 @@
                                 ></mas-repository>`,
                             { parentNode: spTheme },
                         );
-                        Store.fragments.inEdit.set(fragment);
+                        Store.fragments.inEdit.set(fragmentStore);
                     });
 
                     it('implements "discard changes"', async () => {

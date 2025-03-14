@@ -10,7 +10,7 @@ const tooltipTimeout = new ReactiveStore(null);
 
 class MasFragment extends LitElement {
     static properties = {
-        store: { type: Object, attribute: false },
+        fragmentStore: { type: Object, attribute: false },
         view: { type: String, attribute: true }, // 'render' | 'table'
     };
 
@@ -46,17 +46,18 @@ class MasFragment extends LitElement {
         clearTimeout(tooltipTimeout.get());
         event.currentTarget.classList.remove('has-tooltip');
         // Handle edit
-        editFragment(this.store, event.clientX);
+        editFragment(this.fragmentStore, event.clientX);
     }
 
     get renderView() {
         if (this.view !== 'render') return nothing;
-        const fragment = this.store.get();
+        const fragment = this.fragmentStore?.get();
+        if (!fragment) return nothing;
         const selected = this.selection.value.includes(fragment.id);
         return html`<mas-fragment-render
             class="mas-fragment"
             data-id=${fragment.id}
-            .store=${this.store}
+            .fragmentStore=${this.fragmentStore}
             ?selected=${selected}
             @click=${this.handleClick}
             @mouseleave=${this.handleMouseLeave}
@@ -66,13 +67,13 @@ class MasFragment extends LitElement {
 
     get tableView() {
         if (this.view !== 'table') return nothing;
-        const fragment = this.store.get();
+        const fragment = this.fragmentStore.get();
         return html`<overlay-trigger placement="top"
             ><mas-fragment-table
                 class="mas-fragment"
                 data-id=${fragment.id}
                 slot="trigger"
-                .store=${this.store}
+                .fragmentStore=${this.fragmentStore}
                 @click=${this.handleClick}
                 @mouseleave=${this.handleMouseLeave}
                 @dblclick=${this.edit}

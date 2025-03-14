@@ -7,6 +7,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
@@ -112,6 +113,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 ctaText: 'Buy now',
                 newCtaText: 'Buy now 2',
             },
@@ -153,6 +155,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
@@ -174,7 +177,7 @@ export default {
         },
         {
             tcid: '13',
-            name: '@studio-suggested-change-osi',
+            name: '@studio-suggested-edit-osi',
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
@@ -187,6 +190,26 @@ export default {
                 newPlanTypeTag: 'plan_type/puf',
                 newOfferTypeTag: 'offer_type/trial',
                 newMarketSegmentsTag: 'market_segments/edu',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
+        },
+        {
+            tcid: '14',
+            name: '@studio-suggested-edit-cta-variant',
+            path: '/studio.html',
+            data: {
+                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                variant: 'primary-outline',
+                ctaCSS: {
+                    color: 'rgb(34, 34, 34)',
+                },
+                newVariant: 'accent',
+                newCtaCSS: {
+                    'background-color': 'rgb(2, 101, 220)',
+                    color: 'rgb(255, 255, 255)',
+                },
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',

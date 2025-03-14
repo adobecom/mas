@@ -113,7 +113,7 @@ export default {
         },
         {
             tcid: '9',
-            name: '@studio-suggested-discard-change-osi',
+            name: '@studio-suggested-discard-edit-osi',
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
@@ -126,6 +126,18 @@ export default {
                 newPlanTypeTag: 'plan_type/puf',
                 newOfferTypeTag: 'offer_type/trial',
                 newMarketSegmentsTag: 'market_segments/edu',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
+        },
+        {
+            tcid: '10',
+            name: '@studio-suggested-discard-edit-cta-variant',
+            path: '/studio.html',
+            data: {
+                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                variant: 'primary-outline',
+                newVariant: 'accent',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',

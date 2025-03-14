@@ -111,6 +111,12 @@ export default {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
                 ctaText: 'Free trial',
                 newCtaText: 'Save now',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                ucv3: 'commerce.adobe.com/store/email',
+                country: 'US',
+                ctx: 'fp',
+                lang: 'en',
+                client: 'adobe_com',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
@@ -121,6 +127,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
@@ -131,6 +138,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
@@ -152,7 +160,7 @@ export default {
         },
         {
             tcid: '12',
-            name: '@studio-try-buy-widget-change-osi',
+            name: '@studio-try-buy-widget-edit-osi',
             path: '/studio.html',
             data: {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
@@ -165,6 +173,27 @@ export default {
                 newPlanTypeTag: 'plan_type/puf',
                 newOfferTypeTag: 'offer_type/trial',
                 newMarketSegmentsTag: 'market_segments/edu',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
+        },
+        {
+            tcid: '13',
+            name: '@studio-try-buy-widget-edit-cta-variant',
+            path: '/studio.html',
+            data: {
+                cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
+                variant: 'secondary',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                ctaCSS: {
+                    'background-color': 'rgb(230, 230, 230)',
+                    color: 'rgb(34, 34, 34)',
+                },
+                newVariant: 'secondary-outline',
+                newCtaCSS: {
+                    'background-color': 'rgba(0, 0, 0, 0)',
+                    color: 'rgb(34, 34, 34)',
+                },
             },
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',

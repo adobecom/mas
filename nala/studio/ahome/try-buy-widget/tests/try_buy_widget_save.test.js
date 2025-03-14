@@ -2,15 +2,21 @@ import { expect, test } from '@playwright/test';
 import StudioPage from '../../../studio.page.js';
 import AHTryBuyWidgetSpec from '../specs/try_buy_widget_save.spec.js';
 import AHTryBuyWidgetPage from '../try-buy-widget.page.js';
+import CCDSlicePage from '../../../ccd/slice/slice.page.js';
+import CCDSuggestedPage from '../../../ccd/suggested/suggested.page.js';
 import OSTPage from '../../../ost.page.js';
+import WebUtil from '../../../../libs/webutil.js';
 
 const { features } = AHTryBuyWidgetSpec;
 const miloLibs = process.env.MILO_LIBS || '';
 
 let studio;
 let trybuywidget;
+let slice;
+let suggested;
 let ost;
 let clonedCardID;
+let webUtil;
 
 test.beforeEach(async ({ page, browserName }) => {
     test.slow();
@@ -21,8 +27,11 @@ test.beforeEach(async ({ page, browserName }) => {
     }
     studio = new StudioPage(page);
     trybuywidget = new AHTryBuyWidgetPage(page);
+    slice = new CCDSlicePage(page);
+    suggested = new CCDSuggestedPage(page);
     ost = new OSTPage(page);
     clonedCardID = '';
+    webUtil = new WebUtil(page);
 });
 
 test.afterEach(async ({ page }) => {
@@ -46,7 +55,7 @@ test.afterEach(async ({ page }) => {
 });
 
 test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
-    // @studio-try-buy-widget-edit-save - Validate editing and saving try buy widjet card in mas studio
+    // @studio-try-buy-widget-save-edit-size - Validate editing and saving try buy widjet card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({
         page,
         baseURL,
@@ -89,7 +98,6 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-4: Edit a field and save', async () => {
             await studio.editorPanel.locator(studio.editorSize).click();
             await page.getByRole('option', { name: 'triple' }).click();
-            //save card
             await studio.saveCard();
         });
 
@@ -107,25 +115,13 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 data.clonedCardID,
                 'ahtrybuywidget-triple',
             );
+            await expect(clonedCard).toBeVisible();
             await expect(
-                await studio.getCard(
-                    data.clonedCardID,
-                    'ahtrybuywidget-triple',
-                ),
+                await clonedCard.locator(trybuywidget.cardPrice),
             ).toBeVisible();
-            await expect(await trybuywidget.cardPrice).toBeVisible();
-            await expect(await trybuywidget.cardPrice).toContainText(
-                data.price,
-            );
-
-            //delete the card
-            await studio.deleteCard();
             await expect(
-                await studio.getCard(
-                    data.clonedCardID,
-                    'ahtrybuywidget-double',
-                ),
-            ).not.toBeVisible();
+                await clonedCard.locator(trybuywidget.cardPrice),
+            ).toContainText(data.price);
         });
     });
 
@@ -183,7 +179,6 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 .click();
             await page.getByRole('option', { name: 'slice' }).click();
             await page.waitForTimeout(2000);
-            // save card
             await studio.saveCard();
         });
 
@@ -197,16 +192,16 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(
                 await studio.getCard(data.clonedCardID, 'slice'),
             ).toBeVisible();
-        });
-
-        await test.step('step-6: Delete the card', async () => {
-            await studio.deleteCard();
             await expect(
-                await studio.getCard(data.clonedCardID, 'ahtrybuywidget'),
-            ).not.toBeVisible();
+                await (await studio.getCard(data.clonedCardID, 'slice'))
+                    .locator(slice.cardCTA)
+                    .first(),
+            ).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(
-                await studio.getCard(data.clonedCardID, 'slice'),
-            ).not.toBeVisible();
+                await (await studio.getCard(data.clonedCardID, 'slice'))
+                    .locator(slice.cardCTA)
+                    .first(),
+            ).toHaveAttribute('is', 'checkout-button');
         });
     });
 
@@ -264,7 +259,6 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 .click();
             await page.getByRole('option', { name: 'suggested' }).click();
             await page.waitForTimeout(2000);
-            // save card
             await studio.saveCard();
         });
 
@@ -278,20 +272,20 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(
                 await studio.getCard(data.clonedCardID, 'ahtrybuywidget'),
             ).not.toBeVisible();
-        });
-
-        await test.step('step-6: Delete the card', async () => {
-            await studio.deleteCard();
             await expect(
-                await studio.getCard(data.clonedCardID, 'suggested'),
-            ).not.toBeVisible();
+                await (await studio.getCard(data.clonedCardID, 'suggested'))
+                    .locator(suggested.cardCTA)
+                    .first(),
+            ).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(
-                await studio.getCard(data.clonedCardID, 'ahtrybuywidget'),
-            ).not.toBeVisible();
+                await (await studio.getCard(data.clonedCardID, 'suggested'))
+                    .locator(suggested.cardCTA)
+                    .first(),
+            ).toHaveAttribute('is', 'checkout-button');
         });
     });
 
-    // @studio-try-buy-widget-save-change-osi - Validate saving change osi
+    // @studio-try-buy-widget-save-edit-osi - Validate saving change osi
     test(`${features[3].name},${features[3].tags}`, async ({
         page,
         baseURL,
@@ -309,7 +303,9 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(
                 await studio.getCard(data.cardid, 'ahtrybuywidget'),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'ahtrybuywidget')).dblclick();
+            await (
+                await studio.getCard(data.cardid, 'ahtrybuywidget')
+            ).dblclick();
             await expect(await studio.editorPanel).toBeVisible();
         });
 
@@ -340,7 +336,6 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await (await ost.nextButton).click();
             await expect(await ost.priceUse).toBeVisible();
             await ost.priceUse.click();
-            // save card
             await studio.saveCard();
         });
 
@@ -374,6 +369,100 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 'value',
                 new RegExp(`${data.marketSegmentsTag}`),
             );
+        });
+    });
+
+    // @studio-try-buy-widget-save-edit-cta-variant - Validate saving change CTA variant
+    test.skip(`${features[4].name},${features[4].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[4];
+        const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+        let clonedCard;
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'ahtrybuywidget'),
+            ).toBeVisible();
+            await (
+                await studio.getCard(data.cardid, 'ahtrybuywidget')
+            ).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Clone card and open editor', async () => {
+            await studio.cloneCard();
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'ahtrybuywidget',
+                'cloned',
+            );
+            clonedCardID = await clonedCard
+                .locator('aem-fragment')
+                .getAttribute('fragment');
+            data.clonedCardID = await clonedCardID;
+            await expect(await clonedCard).toBeVisible();
+            await clonedCard.dblclick();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-4: Edit CTA variant and save card', async () => {
+            await expect(
+                await studio.editorPanel
+                    .locator(studio.editorFooter)
+                    .locator(studio.linkEdit),
+            ).toBeVisible();
+            await expect(await studio.editorCTA.first()).toBeVisible();
+            await expect(await studio.editorCTA.first()).toHaveClass(
+                data.variant,
+            );
+            expect(
+                await webUtil.verifyCSS(
+                    await trybuywidget.cardCTA.first(),
+                    data.ctaCSS,
+                ),
+            ).toBeTruthy();
+            await studio.editorCTA.first().click();
+            await studio.editorPanel
+                .locator(studio.editorFooter)
+                .locator(studio.linkEdit)
+                .click();
+            await expect(await studio.linkVariant).toBeVisible();
+            await expect(await studio.linkSave).toBeVisible();
+            await expect(
+                await studio.getLinkVariant(data.newVariant),
+            ).toBeVisible();
+            await (await studio.getLinkVariant(data.newVariant)).click();
+            await studio.linkSave.click();
+            await studio.saveCard();
+        });
+
+        await test.step('step-5: Validate CTA variant change', async () => {
+            await expect(await studio.editorCTA.first()).toHaveClass(
+                data.newVariant,
+            );
+            await expect(await studio.editorCTA.first()).not.toHaveClass(
+                data.variant,
+            );
+            expect(
+                await webUtil.verifyCSS(
+                    await clonedCard.locator(trybuywidget.cardCTA).first(),
+                    data.newCtaCSS,
+                ),
+            ).toBeTruthy();
+            await expect(
+                await clonedCard.locator(trybuywidget.cardCTA).first(),
+            ).toHaveAttribute('data-wcs-osi', data.osi);
+            await expect(
+                await clonedCard.locator(trybuywidget.cardCTA).first(),
+            ).toHaveAttribute('is', 'checkout-button');
         });
     });
 });

@@ -2,7 +2,6 @@ import { expect, test } from '@playwright/test';
 import StudioPage from '../../../studio.page.js';
 import CCDSliceSpec from '../specs/slice_css.spec.js';
 import CCDSlicePage from '../slice.page.js';
-import OSTPage from '../../../ost.page.js';
 import WebUtil from '../../../../libs/webutil.js';
 
 const { features } = CCDSliceSpec;
@@ -10,7 +9,6 @@ const miloLibs = process.env.MILO_LIBS || '';
 
 let studio;
 let slice;
-let ost;
 let webUtil;
 
 test.beforeEach(async ({ page, browserName }) => {
@@ -22,7 +20,6 @@ test.beforeEach(async ({ page, browserName }) => {
     }
     studio = new StudioPage(page);
     slice = new CCDSlicePage(page);
-    ost = new OSTPage(page);
     webUtil = new WebUtil(page);
 });
 
@@ -329,7 +326,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-css-cta-cta - Validate CTA CSS for slice cards
+    // @studio-slice-css-cta - Validate CTA CSS for slice cards
     test(`${features[7].name},${features[7].tags}`, async ({
         page,
         baseURL,

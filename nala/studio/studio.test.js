@@ -271,4 +271,29 @@ test.describe('M@S Studio feature test suite', () => {
             ).toBeVisible();
         });
     });
+
+    // @studio-card-dblclick-info - Validate message for double-click on the card in mas studio
+    test(`${features[7].name},${features[7].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[7];
+        const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Validate double-click message', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'suggested')).click();
+            await expect(page.locator('sp-tooltip')).toHaveText(
+                'Double click the card to start editing.',
+            );
+        });
+    });
 });

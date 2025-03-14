@@ -2,8 +2,6 @@
 
 import { expect, request } from '@playwright/test';
 
-// const { request } = require('@playwright/test');
-
 /**
  * A utility class for common web interactions.
  */

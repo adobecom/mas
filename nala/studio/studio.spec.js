@@ -63,5 +63,15 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice',
         },
+        {
+            tcid: '7',
+            name: '@studio-card-dblclick-info',
+            path: '/studio.html',
+            data: {
+                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-suggested',
+        },
     ],
 };

@@ -115,7 +115,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'data-wcs-osi',
                 data.osi,
             );
-            await expect(suggested.cardCTA).toHaveAttribute(
+            await expect(await suggested.cardCTA).toHaveAttribute(
                 'is',
                 'checkout-button',
             );
@@ -554,7 +554,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-edit-cta-link - Validate edit CTA link for slice card in mas studio
+    // @studio-slice-edit-cta-label - Validate edit CTA label for slice card in mas studio
     test(`${features[8].name},${features[8].tags}`, async ({
         page,
         baseURL,
@@ -576,7 +576,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.editorPanel).toBeVisible();
         });
 
-        await test.step('step-3: Edit CTA link', async () => {
+        await test.step('step-3: Edit CTA label', async () => {
             await expect(
                 await studio.editorPanel
                     .locator(studio.editorFooter)
@@ -598,7 +598,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await studio.linkSave.click();
         });
 
-        await test.step('step-4: Validate edited CTA Link in Editor panel', async () => {
+        await test.step('step-4: Validate edited CTA label in Editor panel', async () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorFooter),
             ).toContainText(data.newCtaText);
@@ -829,7 +829,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await slice.cardCTA).not.toHaveAttribute(
                 'data-promotion-code',
             );
-            await expect(slice.cardCTA).not.toHaveAttribute(
+            await expect(await slice.cardCTA).not.toHaveAttribute(
                 'data-href',
                 /apc=/,
             );
@@ -1165,6 +1165,60 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'is',
                 'checkout-button',
             );
+        });
+    });
+
+    // @studio-slice-edit-cta-checkout-params - Validate edit CTA checkout params for slice card in mas studio
+    test(`${features[15].name},${features[15].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[15];
+        const testPage = `${baseURL}${features[15].path}${miloLibs}${features[15].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'slice-wide'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA checkout params', async () => {
+            await expect(
+                await studio.editorPanel
+                    .locator(studio.editorFooter)
+                    .locator(studio.linkEdit),
+            ).toBeVisible();
+            await expect(await studio.editorCTA).toBeVisible();
+            await studio.editorCTA.click();
+            await studio.editorPanel
+                .locator(studio.editorFooter)
+                .locator(studio.linkEdit)
+                .click();
+            await expect(await studio.checkoutParameters).toBeVisible();
+            await expect(await studio.linkSave).toBeVisible();
+            await studio.checkoutParameters.fill(data.checkoutParams);
+            await studio.linkSave.click();
+        });
+
+        await test.step('step-4: Validate edited CTA on the card', async () => {
+            await expect(await slice.cardCTA).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(await slice.cardCTA).toHaveAttribute(
+                'is',
+                'checkout-button',
+            );
+            const CTAhref = await slice.cardCTA.getAttribute('data-href');
+            expect(await CTAhref).toContain(data.checkoutParams);
         });
     });
 });

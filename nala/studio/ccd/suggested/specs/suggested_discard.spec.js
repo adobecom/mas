@@ -91,7 +91,7 @@ export default {
         },
         {
             tcid: '7',
-            name: '@studio-suggested-discard-cta-link',
+            name: '@studio-suggested-discard-cta-label',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -138,6 +138,18 @@ export default {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
                 variant: 'primary-outline',
                 newVariant: 'accent',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
+        },
+        {
+            tcid: '11',
+            name: '@studio-suggested-discard-cta-checkout-params',
+            path: '/studio.html',
+            data: {
+                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                checkoutParams: 'mv=1&cs=individual&promoid=ABC123&mv2=2',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',

@@ -462,7 +462,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-discard-cta-link - Validate discard edit CTA link for suggested card in mas studio
+    // @studio-suggested-discard-cta-label - Validate discard edit CTA label for suggested card in mas studio
     test(`${features[7].name},${features[7].tags}`, async ({
         page,
         baseURL,
@@ -484,7 +484,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.editorPanel).toBeVisible();
         });
 
-        await test.step('step-3: Edit CTA link', async () => {
+        await test.step('step-3: Edit CTA label', async () => {
             await expect(
                 await studio.editorPanel
                     .locator(studio.editorFooter)
@@ -761,6 +761,64 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 data.newVariant,
             );
             await expect(await studio.editorCTA).toHaveClass(data.variant);
+        });
+    });
+
+    // @studio-suggested-discard-cta-checkout-params - Validate discard edit CTA checkout params for suggested card in mas studio
+    test(`${features[11].name},${features[11].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[11];
+        const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA checkout params', async () => {
+            await expect(
+                await studio.editorPanel
+                    .locator(studio.editorFooter)
+                    .locator(studio.linkEdit),
+            ).toBeVisible();
+            await expect(await studio.editorCTA).toBeVisible();
+            await studio.editorCTA.click();
+            await studio.editorPanel
+                .locator(studio.editorFooter)
+                .locator(studio.linkEdit)
+                .click();
+            await expect(await studio.checkoutParameters).toBeVisible();
+            await expect(await studio.linkSave).toBeVisible();
+            await studio.checkoutParameters.fill(data.checkoutParams);
+            await studio.linkSave.click();
+            const CTAhref = await suggested.cardCTA.getAttribute('data-href');
+            expect(await CTAhref).toContain(data.checkoutParams);
+        });
+
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+            await studio.editorPanel.locator(studio.closeEditor).click();
+            await expect(
+                await studio.editorPanel.locator(studio.confirmationDialog),
+            ).toBeVisible();
+            await studio.editorPanel.locator(studio.discardDialog).click();
+            await expect(await studio.editorPanel).not.toBeVisible();
+        });
+
+        await test.step('step-5: Verify there is no changes of the card', async () => {
+            const changedCTAhref =
+                await suggested.cardCTA.getAttribute('data-href');
+            expect(await changedCTAhref).not.toContain(data.checkoutParams);
         });
     });
 });

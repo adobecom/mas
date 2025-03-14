@@ -692,10 +692,21 @@ class RteField extends LitElement {
 
         const content = state.schema.text(text || selection.node.textContent);
         if (selection.node?.type.name === 'link') {
+            const persistedSelectionClasses = ['upt-link'];
+            let classValue = selection.node.attrs.class;
+            if (linkAttrs.class) {
+                let persistedClasses = '';
+                for (const persistedClass of persistedSelectionClasses) {
+                    if (classValue?.includes(persistedClass)) {
+                        persistedClasses += `${persistedClass} `;
+                    }
+                }
+                classValue = `${persistedClasses}${linkAttrs.class}`.trim();
+            }
             const mergedAttributes = {
                 ...selection.node.attrs,
                 ...linkAttrs,
-                class: `${selection.node.attrs.class} ${linkAttrs.class}`.trim(),
+                class: classValue,
             };
             const updatedNode = linkNodeType.create(mergedAttributes, content);
             tr = tr.replaceWith(selection.from, selection.to, updatedNode);

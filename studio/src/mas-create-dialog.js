@@ -97,7 +97,7 @@ export class MasCreateDialog extends LitElement {
 
     handleNameChange(value) {
         this.name = value;
-        this.nameModified = true;
+        this.nameModified = !!value;
     }
 
     handleNameFocus() {

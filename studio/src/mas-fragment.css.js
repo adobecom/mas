@@ -19,4 +19,4 @@ export const styles = css`
     .mas-fragment:hover {
         transform: translateY(-2px);
     }
-`; 
+`;

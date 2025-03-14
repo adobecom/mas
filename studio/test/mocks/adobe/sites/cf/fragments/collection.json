@@ -1,0 +1,730 @@
+{
+    "model": {
+        "path": "/conf/mas/settings/dam/cfm/models/collection",
+        "name": "Collection",
+        "title": "Collection"
+    },
+    "path": "/content/mas/collections/all",
+    "id": "collection.json",
+    "title": "All",
+    "fields": [
+        {
+            "type": "text",
+            "name": "label",
+            "multiple": false,
+            "values": ["All"]
+        },
+        {
+            "type": "text",
+            "name": "icon",
+            "multiple": false,
+            "values": ["/test/mocks/img/collection.svg"]
+        },
+        {
+            "type": "content-reference",
+            "name": "cards",
+            "multiple": true,
+            "values": [
+                "/content/mas/cards/photoshop",
+                "/content/mas/cards/illustrator",
+                "/content/mas/cards/premiere",
+                "/content/mas/cards/after-effects",
+                "/content/mas/cards/lightroom",
+                "/content/mas/cards/indesign",
+                "/content/mas/cards/xd",
+                "/content/mas/cards/dimension",
+                "/content/mas/cards/audition",
+                "/content/mas/cards/media-encoder",
+                "/content/mas/cards/dreamweaver",
+                "/content/mas/cards/animate",
+                "/content/mas/cards/acrobat",
+                "/content/mas/cards/bridge",
+                "/content/mas/cards/character-animator",
+                "/content/mas/cards/fresco"
+            ]
+        },
+        {
+            "type": "content-reference",
+            "name": "collections",
+            "multiple": true,
+            "values": [
+                "/content/mas/collections/photography",
+                "/content/mas/collections/design",
+                "/content/mas/collections/video",
+                "/content/mas/collections/web"
+            ]
+        }
+    ],
+    "references": [
+        {
+            "type": "fragment",
+            "name": "photoshop-card",
+            "fieldName": "cards",
+            "path": "/content/mas/cards/photoshop",
+            "id": "1",
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "cardTitle",
+                    "multiple": false,
+                    "values": ["Photoshop"]
+                },
+                {
+                    "type": "text",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/app.svg"]
+                }
+            ],
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card"
+            }
+        },
+        {
+            "type": "fragment",
+            "name": "illustrator-card",
+            "fieldName": "cards",
+            "path": "/content/mas/cards/illustrator",
+            "id": "2",
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "cardTitle",
+                    "multiple": false,
+                    "values": ["Illustrator"]
+                },
+                {
+                    "type": "text",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/app.svg"]
+                }
+            ],
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card"
+            }
+        },
+        {
+            "type": "fragment",
+            "name": "premiere-card",
+            "fieldName": "cards",
+            "path": "/content/mas/cards/premiere",
+            "id": "3",
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "cardTitle",
+                    "multiple": false,
+                    "values": ["Premiere Pro"]
+                },
+                {
+                    "type": "text",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/app.svg"]
+                }
+            ],
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card"
+            }
+        },
+        {
+            "type": "fragment",
+            "name": "after-effects-card",
+            "fieldName": "cards",
+            "path": "/content/mas/cards/after-effects",
+            "id": "4",
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "cardTitle",
+                    "multiple": false,
+                    "values": ["After Effects"]
+                },
+                {
+                    "type": "text",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/app.svg"]
+                }
+            ],
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card"
+            }
+        },
+        {
+            "type": "fragment",
+            "name": "lightroom-card",
+            "fieldName": "cards",
+            "path": "/content/mas/cards/lightroom",
+            "id": "5",
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "cardTitle",
+                    "multiple": false,
+                    "values": ["Lightroom"]
+                },
+                {
+                    "type": "text",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/app.svg"]
+                }
+            ],
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card"
+            }
+        },
+        {
+            "type": "fragment",
+            "name": "indesign-card",
+            "fieldName": "cards",
+            "path": "/content/mas/cards/indesign",
+            "id": "6",
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "cardTitle",
+                    "multiple": false,
+                    "values": ["InDesign"]
+                },
+                {
+                    "type": "text",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/app.svg"]
+                }
+            ],
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card"
+            }
+        },
+        {
+            "type": "fragment",
+            "name": "xd-card",
+            "fieldName": "cards",
+            "path": "/content/mas/cards/xd",
+            "id": "7",
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "cardTitle",
+                    "multiple": false,
+                    "values": ["XD"]
+                },
+                {
+                    "type": "text",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/app.svg"]
+                }
+            ],
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card"
+            }
+        },
+        {
+            "type": "fragment",
+            "name": "dimension-card",
+            "fieldName": "cards",
+            "path": "/content/mas/cards/dimension",
+            "id": "8",
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "cardTitle",
+                    "multiple": false,
+                    "values": ["Dimension"]
+                },
+                {
+                    "type": "text",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/app.svg"]
+                }
+            ],
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card"
+            }
+        },
+        {
+            "type": "fragment",
+            "name": "audition-card",
+            "fieldName": "cards",
+            "path": "/content/mas/cards/audition",
+            "id": "9",
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "cardTitle",
+                    "multiple": false,
+                    "values": ["Audition"]
+                },
+                {
+                    "type": "text",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/app.svg"]
+                }
+            ],
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card"
+            }
+        },
+        {
+            "type": "fragment",
+            "name": "media-encoder-card",
+            "fieldName": "cards",
+            "path": "/content/mas/cards/media-encoder",
+            "id": "10",
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "cardTitle",
+                    "multiple": false,
+                    "values": ["Media Encoder"]
+                },
+                {
+                    "type": "text",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/app.svg"]
+                }
+            ],
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card"
+            }
+        },
+        {
+            "type": "fragment",
+            "name": "dreamweaver-card",
+            "fieldName": "cards",
+            "path": "/content/mas/cards/dreamweaver",
+            "id": "11",
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "cardTitle",
+                    "multiple": false,
+                    "values": ["Dreamweaver"]
+                },
+                {
+                    "type": "text",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/app.svg"]
+                }
+            ],
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card"
+            }
+        },
+        {
+            "type": "fragment",
+            "name": "animate-card",
+            "fieldName": "cards",
+            "path": "/content/mas/cards/animate",
+            "id": "12",
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "cardTitle",
+                    "multiple": false,
+                    "values": ["Animate"]
+                },
+                {
+                    "type": "text",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/app.svg"]
+                }
+            ],
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card"
+            }
+        },
+        {
+            "type": "fragment",
+            "name": "acrobat-card",
+            "fieldName": "cards",
+            "path": "/content/mas/cards/acrobat",
+            "id": "13",
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "cardTitle",
+                    "multiple": false,
+                    "values": ["Acrobat"]
+                },
+                {
+                    "type": "text",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/app.svg"]
+                }
+            ],
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card"
+            }
+        },
+        {
+            "type": "fragment",
+            "name": "bridge-card",
+            "fieldName": "cards",
+            "path": "/content/mas/cards/bridge",
+            "id": "14",
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "cardTitle",
+                    "multiple": false,
+                    "values": ["Bridge"]
+                },
+                {
+                    "type": "text",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/app.svg"]
+                }
+            ],
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card"
+            }
+        },
+        {
+            "type": "fragment",
+            "name": "character-animator-card",
+            "fieldName": "cards",
+            "path": "/content/mas/cards/character-animator",
+            "id": "15",
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "cardTitle",
+                    "multiple": false,
+                    "values": ["Character Animator"]
+                },
+                {
+                    "type": "text",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/app.svg"]
+                }
+            ],
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card"
+            }
+        },
+        {
+            "type": "fragment",
+            "name": "fresco-card",
+            "fieldName": "cards",
+            "path": "/content/mas/cards/fresco",
+            "id": "16",
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "cardTitle",
+                    "multiple": false,
+                    "values": ["Fresco"]
+                },
+                {
+                    "type": "text",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/app.svg"]
+                }
+            ],
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card"
+            }
+        },
+        {
+            "type": "fragment",
+            "name": "photography-collection",
+            "fieldName": "collections",
+            "path": "/content/mas/collections/photography",
+            "id": "photo-collection-id",
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/collection",
+                "name": "Collection",
+                "title": "Collection"
+            },
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "label",
+                    "multiple": false,
+                    "values": ["Photography"]
+                },
+                {
+                    "type": "content-reference",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/collection.svg"]
+                },
+                {
+                    "type": "content-reference",
+                    "name": "cards",
+                    "multiple": true,
+                    "values": [
+                        "/content/mas/cards/photoshop",
+                        "/content/mas/cards/lightroom",
+                        "/content/mas/cards/bridge",
+                        "/content/mas/cards/acrobat",
+                        "/content/mas/cards/dimension"
+                    ]
+                },
+                {
+                    "type": "content-reference",
+                    "name": "collections",
+                    "multiple": true,
+                    "values": [
+                        "/content/mas/collections/photography/generative",
+                        "/content/mas/collections/photography/classic"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "fragment",
+            "name": "classic-collection",
+            "fieldName": "collections",
+            "path": "/content/mas/collections/photography/classic",
+            "id": "classic-collection-id",
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/collection",
+                "name": "Collection",
+                "title": "Collection"
+            },
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "label",
+                    "multiple": false,
+                    "values": ["Classic"]
+                },
+                {
+                    "type": "content-reference",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/collection.svg"]
+                },
+                {
+                    "type": "content-reference",
+                    "name": "cards",
+                    "multiple": true,
+                    "values": [
+                        "/content/mas/cards/photoshop",
+                        "/content/mas/cards/lightroom",
+                        "/content/mas/cards/bridge"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "fragment",
+            "name": "generative-collection",
+            "fieldName": "collections",
+            "path": "/content/mas/collections/photography/generative",
+            "id": "generative-collection-id",
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/collection",
+                "name": "Collection",
+                "title": "Collection"
+            },
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "label",
+                    "multiple": false,
+                    "values": ["Generative"]
+                },
+                {
+                    "type": "content-reference",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/collection.svg"]
+                },
+                {
+                    "type": "content-reference",
+                    "name": "cards",
+                    "multiple": true,
+                    "values": [
+                        "/content/mas/cards/photoshop",
+                        "/content/mas/cards/lightroom",
+                        "/content/mas/cards/firefly"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "fragment",
+            "name": "firefly-card",
+            "fieldName": "cards",
+            "path": "/content/mas/cards/firefly",
+            "id": "17",
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "cardTitle",
+                    "multiple": false,
+                    "values": ["Firefly"]
+                },
+                {
+                    "type": "text",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/app.svg"]
+                }
+            ]
+        },
+        {
+            "type": "fragment",
+            "name": "design-collection",
+            "fieldName": "collections",
+            "path": "/content/mas/collections/design",
+            "id": "design-collection-id",
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/collection",
+                "name": "Collection",
+                "title": "Collection"
+            },
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "label",
+                    "multiple": false,
+                    "values": ["Design"]
+                },
+                {
+                    "type": "content-reference",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/collection.svg"]
+                },
+                {
+                    "type": "content-reference",
+                    "name": "cards",
+                    "multiple": true,
+                    "values": [
+                        "/content/mas/cards/illustrator",
+                        "/content/mas/cards/indesign",
+                        "/content/mas/cards/xd",
+                        "/content/mas/cards/fresco",
+                        "/content/mas/cards/dimension"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "fragment",
+            "name": "video-collection",
+            "fieldName": "collections",
+            "path": "/content/mas/collections/video",
+            "id": "video-collection-id",
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/collection",
+                "name": "Collection",
+                "title": "Collection"
+            },
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "label",
+                    "multiple": false,
+                    "values": ["Video"]
+                },
+                {
+                    "type": "content-reference",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/collection.svg"]
+                },
+                {
+                    "type": "content-reference",
+                    "name": "cards",
+                    "multiple": true,
+                    "values": [
+                        "/content/mas/cards/premiere",
+                        "/content/mas/cards/after-effects",
+                        "/content/mas/cards/audition",
+                        "/content/mas/cards/media-encoder",
+                        "/content/mas/cards/character-animator"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "fragment",
+            "name": "web-collection",
+            "fieldName": "collections",
+            "path": "/content/mas/collections/web",
+            "id": "web-collection-id",
+            "model": {
+                "path": "/conf/mas/settings/dam/cfm/models/collection",
+                "name": "Collection",
+                "title": "Collection"
+            },
+            "fields": [
+                {
+                    "type": "text",
+                    "name": "label",
+                    "multiple": false,
+                    "values": ["Web"]
+                },
+                {
+                    "type": "content-reference",
+                    "name": "icon",
+                    "multiple": false,
+                    "values": ["/test/mocks/img/collection.svg"]
+                },
+                {
+                    "type": "content-reference",
+                    "name": "cards",
+                    "multiple": true,
+                    "values": [
+                        "/content/mas/cards/dreamweaver",
+                        "/content/mas/cards/xd",
+                        "/content/mas/cards/animate",
+                        "/content/mas/cards/photoshop",
+                        "/content/mas/cards/acrobat"
+                    ]
+                }
+            ]
+        }
+    ]
+}

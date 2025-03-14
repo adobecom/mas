@@ -3,7 +3,7 @@ import StoreController from './reactivity/store-controller.js';
 
 class MasFragmentTable extends LitElement {
     static properties = {
-        store: { type: Object, attribute: false },
+        fragmentStore: { type: Object, attribute: false },
         customRender: { type: Function, attribute: false },
     };
 
@@ -13,7 +13,7 @@ class MasFragmentTable extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.fragment = new StoreController(this, this.store);
+        this.fragment = new StoreController(this, this.fragmentStore);
     }
 
     render() {

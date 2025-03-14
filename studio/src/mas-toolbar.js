@@ -5,6 +5,7 @@ import { extractValue, preventDefault } from './utils.js';
 import './mas-folder-picker.js';
 import './aem/mas-filter-panel.js';
 import './mas-selection-panel.js';
+import './mas-create-dialog.js';
 
 const renderModes = [
     {
@@ -19,9 +20,22 @@ const renderModes = [
     },
 ];
 
+const contentTypes = [
+    {
+        value: 'merch-card',
+        label: 'Merch Card',
+    },
+    {
+        value: 'merch-card-collection',
+        label: 'Merch Card Collection',
+    },
+];
+
 class MasToolbar extends LitElement {
     static properties = {
-        _filtersShown: { state: true },
+        filtersShown: { state: true },
+        createDialogOpen: { state: true },
+        selectedContentType: { state: true },
     };
 
     static styles = css`
@@ -106,7 +120,9 @@ class MasToolbar extends LitElement {
 
     constructor() {
         super();
-        this._filtersShown = false;
+        this.filtersShown = false;
+        this.createDialogOpen = false;
+        this.selectedContentType = 'merch-card';
     }
 
     filters = new StoreController(this, Store.filters);
@@ -124,16 +140,30 @@ class MasToolbar extends LitElement {
         Store.search.set((prev) => ({ ...prev, query: value }));
     }
 
+    get popover() {
+        return this.shadowRoot.querySelector('sp-popover');
+    }
+
+    selectContentType(type) {
+        this.selectedContentType = type;
+        this.popover.open = false;
+        this.openCreateDialog();
+    }
+
+    openCreateDialog() {
+        this.createDialogOpen = true;
+    }
+
     get searchAndFilterControls() {
         return html`<div id="read">
             <sp-action-button
                 toggles
                 label="Filter"
-                @click=${() => (this._filtersShown = !this._filtersShown)}
-                ?quiet=${!this._filtersShown}
-                class="filters-button ${this._filtersShown ? 'shown' : ''}"
+                @click=${() => (this.filtersShown = !this.filtersShown)}
+                ?quiet=${!this.filtersShown}
+                class="filters-button ${this.filtersShown ? 'shown' : ''}"
             >
-                ${!this._filtersShown
+                ${!this.filtersShown
                     ? html`<sp-icon-filter-add
                           slot="icon"
                       ></sp-icon-filter-add>`
@@ -150,13 +180,33 @@ class MasToolbar extends LitElement {
         </div>`;
     }
 
+    get createButton() {
+        return html`<overlay-trigger id="trigger" placement="bottom" offset="6">
+            <sp-button variant="accent" slot="trigger">
+                <sp-icon-add slot="icon"></sp-icon-add>
+                Create
+            </sp-button>
+            <sp-popover slot="click-content" direction="bottom" tip>
+                <sp-menu>
+                    ${contentTypes.map(
+                        ({ value, label }) => html`
+                            <sp-menu-item
+                                @click=${() => this.selectContentType(value)}
+                            >
+                                ${label}
+                                <sp-icon-add slot="icon"></sp-icon-add>
+                            </sp-menu-item>
+                        `,
+                    )}
+                </sp-menu>
+            </sp-popover>
+        </overlay-trigger> `;
+    }
+
     get contentManagementControls() {
         if (this.selecting.value) return nothing;
         return html`<div id="write">
-            <sp-button variant="accent" disabled>
-                <sp-icon-add slot="icon"></sp-icon-add>
-                Create New Card
-            </sp-button>
+            ${this.createButton}
             <sp-button @click=${() => Store.selecting.set(true)}>
                 <sp-icon-selection-checked
                     slot="icon"
@@ -180,7 +230,7 @@ class MasToolbar extends LitElement {
     }
 
     get filtersPanel() {
-        if (!this._filtersShown) return nothing;
+        if (!this.filtersShown) return nothing;
         return html`<mas-filter-panel></mas-filter-panel>`;
     }
 
@@ -199,7 +249,13 @@ class MasToolbar extends LitElement {
                 </div>
                 ${this.filtersPanel}${this.searchResultsLabel}
             </div>
-            <mas-selection-panel></mas-selection-panel>`;
+            <mas-selection-panel></mas-selection-panel>
+            ${this.createDialogOpen
+                ? html`<mas-create-dialog
+                      type=${this.selectedContentType}
+                      @close=${() => (this.createDialogOpen = false)}
+                  ></mas-create-dialog>`
+                : nothing} `;
     }
 }
 

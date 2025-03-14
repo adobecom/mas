@@ -3,12 +3,12 @@ const { odinReferences } = require('./paths.js');
 
 function isCollection(body) {
     const { path, fields } = body;
-    return path.indexOf('/collections/') > 0 && fields?.categories;
+    return path.indexOf('/collections/') > 0 && fields?.collections;
 }
 
 function parseReferences(ids, references) {
     const cards = {};
-    const categories = [];
+    const collections = [];
 
     ids.forEach((id) => {
         const reference = references[id];
@@ -16,31 +16,31 @@ function parseReferences(ids, references) {
         if (fields?.variant) {
             //reference is a card
             cards[id] = reference.value;
-        } else if (fields?.cards || fields?.categories) {
-            //reference is a category
-            const { label, cards, categories: categoryReferences } = fields;
+        } else if (fields?.cards || fields?.collections) {
+            //reference is a collection
+            const { label, cards, collections: collectionReferences } = fields;
             if (cards?.length) {
-                //we consider categories with cards to be final
-                //(no subcategories)
-                categories.push({ label, cards });
+                //we consider collections with cards to be final
+                //(no subcollections)
+                collections.push({ label, cards });
             } else {
                 const subReferences = parseReferences(
-                    categoryReferences,
+                    collectionReferences,
                     references,
                 );
-                categories.push({
+                collections.push({
                     label,
-                    categories: subReferences.categories,
+                    collections: subReferences.collections,
                 });
             }
         }
     });
 
-    return { cards, categories };
+    return { cards, collections };
 }
 
 /**
- * attach categories to current collection fragment
+ * attach collections to current collection fragment
  */
 async function collection(context) {
     const { body } = context;
@@ -51,11 +51,11 @@ async function collection(context) {
         if (response.status === 200) {
             const root = await response.json();
             const { references } = root;
-            const { cards, categories } = parseReferences(
+            const { cards, collections } = parseReferences(
                 Object.keys(references),
                 references,
             );
-            body.fields = { ...body.fields, cards, categories };
+            body.fields = { ...body.fields, cards, collections };
             return {
                 ...context,
                 status: 200,

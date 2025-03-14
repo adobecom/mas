@@ -60,9 +60,7 @@
                         return originalFetch('/test/mocks/tags.json');
                     }
                     if (/mas.json/.test(pathname)) {
-                        return originalFetch(
-                            '/test/mocks/folders/default.json',
-                        );
+                        return originalFetch('/test/mocks/api/assets/mas.json');
                     }
                     if (/search/.test(pathname)) {
                         return originalFetch(
@@ -78,6 +76,7 @@
                     let editorPanel;
                     beforeEach(async () => {
                         fragment = new Fragment(fragmentData);
+                        fragmentStore = new FragmentStore(fragment);
                         editorPanel = await fixture(
                             html`<editor-panel></editor-panel>
                                 <mas-repository
@@ -85,7 +84,7 @@
                                 ></mas-repository>`,
                             { parentNode: spTheme },
                         );
-                        Store.fragments.inEdit.set(fragment);
+                        Store.fragments.inEdit.set(fragmentStore);
                     });
 
                     it('implements "discard changes"', async () => {
@@ -110,7 +109,8 @@
                         expect(discardButton.disabled).to.be.false;
                         discardButton.click();
                         await delay(100);
-                        const btnDiscard = document.querySelector('#btnDiscard');
+                        const btnDiscard =
+                            document.querySelector('#btnDiscard');
                         btnDiscard.click();
                         await delay(100);
                         expect(
@@ -122,13 +122,25 @@
                     it('implements "use"', async () => {
                         await editorPanel.updateComplete;
                         await editorPanel.refreshed;
-                        const titleField = () => document.getElementById('card-title');
+                        const titleField = () =>
+                            document.getElementById('card-title');
                         triggerInput(titleField(), 'test title');
                         await editorPanel.updateComplete;
-                        const clipboardContent = editorPanel.generateCodeToUse();
-                        expect(clipboardContent[0]).to.equal('<merch-card><aem-fragment fragment="fragment-cc-all-apps" title="test title"></aem-fragment></merch-card>');
-                        expect(clipboardContent[1].includes('https://mas.adobe.com/studio.html#path=ccd&fragment=fragment-cc-all-apps'));
-                        expect(clipboardContent[1].includes('merch-card: CCD / Slice / test title'));
+                        const clipboardContent =
+                            editorPanel.generateCodeToUse();
+                        expect(clipboardContent[0]).to.equal(
+                            '<merch-card><aem-fragment fragment="fragment-cc-all-apps" title="test title"></aem-fragment></merch-card>',
+                        );
+                        expect(
+                            clipboardContent[1].includes(
+                                'https://mas.adobe.com/studio.html#path=ccd&fragment=fragment-cc-all-apps',
+                            ),
+                        );
+                        expect(
+                            clipboardContent[1].includes(
+                                'merch-card: CCD / Slice / test title',
+                            ),
+                        );
                     });
                 });
             });

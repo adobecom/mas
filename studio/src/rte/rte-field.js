@@ -56,6 +56,8 @@ class LinkNodeView {
         for (const [key, value] of Object.entries(node.attrs)) {
             if (value !== null) {
                 this.dom.setAttribute(key, value);
+            } else {
+                this.dom.removeAttribute(key);
             }
         }
 
@@ -81,11 +83,13 @@ class RteField extends LitElement {
         hasFocus: { type: Boolean, attribute: 'focused', reflect: true },
         inline: { type: Boolean, attribute: 'inline' },
         link: { type: Boolean, attribute: 'link' },
+        icon: { type: Boolean, attribute: 'icon' },
         uptLink: { type: Boolean, attribute: 'upt-link' },
         isLinkSelected: { type: Boolean, state: true },
         priceSelected: { type: Boolean, state: true },
         readOnly: { type: Boolean, attribute: 'readonly' },
         showLinkEditor: { type: Boolean, state: true },
+        showIconEditor: { type: Boolean, state: true },
         defaultLinkStyle: { type: String, attribute: 'default-link-style' },
         maxLength: { type: Number, attribute: 'max-length' },
         length: { type: Number, state: true },
@@ -125,7 +129,7 @@ class RteField extends LitElement {
                     color: var(--spectrum-global-color-red-700);
                 }
 
-                rte-link-editor {
+                rte-link-editor, rte-icon-editor {
                     display: contents;
                 }
 
@@ -201,6 +205,19 @@ class RteField extends LitElement {
                     white-space: nowrap;
                     margin: 0 1px;
                 }
+                
+                .ProseMirror .icon-button {
+                    position: relative;
+                    top: 3px;
+                }
+                
+                .ProseMirror .icon-button:before {
+                    display: inline-block;
+                    content: '';
+                    width: 18px;
+                    height: 18px;
+                    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 0 18 18" width="18"><defs><style> .fill { fill: %23464646; } </style></defs><title>S Info 18 N</title><rect id="Canvas" fill="%23ff13dc" opacity="0" width="18" height="18" /><path class="fill" d="M9,1a8,8,0,1,0,8,8A8,8,0,0,0,9,1ZM8.85,3.15a1.359,1.359,0,0,1,1.43109,1.28286q.00352.06452.00091.12914A1.332,1.332,0,0,1,8.85,5.9935a1.3525,1.3525,0,0,1-1.432-1.432A1.3585,1.3585,0,0,1,8.72033,3.14907Q8.78516,3.14643,8.85,3.15ZM11,13.5a.5.5,0,0,1-.5.5h-3a.5.5,0,0,1-.5-.5v-1a.5.5,0,0,1,.5-.5H8V9H7.5A.5.5,0,0,1,7,8.5v-1A.5.5,0,0,1,7.5,7h2a.5.5,0,0,1,.5.5V12h.5a.5.5,0,0,1,.5.5Z" /></svg>')
+                }
 
                 .price.price-strikethrough {
                     text-decoration: line-through;
@@ -231,6 +248,7 @@ class RteField extends LitElement {
         this.isLinkSelected = false;
         this.priceSelected = false;
         this.showLinkEditor = false;
+        this.showIconEditor = false;
         this.inline = false;
         this.link = false;
         this.uptLink = false;
@@ -241,6 +259,7 @@ class RteField extends LitElement {
             ostEvent: this.#handleOstEvent.bind(this),
             addUptLink: this.#addUptLink.bind(this),
             linkSave: this.#handleLinkSave.bind(this),
+            iconSave: this.#handleIconSave.bind(this),
             focusout: this.#handleFocusout.bind(this),
             focus: this.#handleFocus.bind(this),
             doubleClickOn: this.#handleDoubleClickOn.bind(this),
@@ -307,6 +326,26 @@ class RteField extends LitElement {
             ],
             toDOM: this.#createInlinePriceElement.bind(this),
         });
+
+        if (this.icon) {
+            nodes = nodes.addToStart('icon', {
+                group: 'inline',
+                content: 'text*',
+                atom: true,
+                inline: true,
+                attrs: {
+                    class: { default: null },
+                    title: { default: null },
+                },
+                parseDOM: [
+                    {
+                        tag: '.icon-button',
+                        getAttrs: this.#collectDataAttributes,
+                    }
+                ],
+                toDOM: this.#createIconElement.bind(this),
+            });
+        }
 
         if (this.link || this.uptLink) {
             nodes = nodes.addToStart('link', {
@@ -406,6 +445,17 @@ class RteField extends LitElement {
             }
         }
         return attrs;
+    }
+
+    #createIconElement(node) {
+        const tooltipText = node.content.content[0]?.text.trim() || node.attrs.title;
+
+        const icon = document.createElement('span');
+        icon.setAttribute('class', 'icon-button');
+        if (tooltipText) {
+            icon.setAttribute('title', tooltipText);
+        }
+        return icon;
     }
 
     #createInlinePriceElement(node) {
@@ -511,7 +561,7 @@ class RteField extends LitElement {
                 // skip change event during initialization
                 const isFirstChange = this.value === null;
                 if (value !== this.value) {
-                    this.value = value;
+                    this.value = value === '<p></p>' ? '' : value;
                     if (isFirstChange) return;
                     this.dispatchEvent(
                         new CustomEvent('change', {
@@ -595,6 +645,18 @@ class RteField extends LitElement {
         };
     }
 
+    #handleIconSave(event) {
+        const { tooltip } = event.detail;
+        const { state, dispatch } = this.editorView;
+        const { selection } = state;
+
+        const node = state.schema.nodes.icon.create({}, state.schema.text(tooltip || ' '));
+        const tr = state.tr.insert(selection.from, node)
+        dispatch(tr);
+
+        this.showIconEditor = false;
+    }
+
     #handleLinkSave(event) {
         const { href, text, title, target, variant, analyticsId } =
             event.detail;
@@ -649,12 +711,15 @@ class RteField extends LitElement {
     }
 
     #handleEscKey(event) {
-        if (!this.showLinkEditor) return;
+        if (!this.showLinkEditor && !this.showIconEditor) return;
         // Handle ESC key at the RteField level
         if (event.key === 'Escape') {
             event.stopPropagation(); // Stop propagation here
             if (this.showLinkEditor) {
                 this.showLinkEditor = false;
+                this.requestUpdate();
+            } else if (this.showIconEditor) {
+                this.showIconEditor = false;
                 this.requestUpdate();
             }
             closeOfferSelectorTool();
@@ -748,6 +813,12 @@ class RteField extends LitElement {
         this.showLinkEditor = true;
         await this.updateComplete;
         Object.assign(this.linkEditorElement, { ...attrs, open: true });
+    }
+
+    async openIconEditor() {
+        this.showIconEditor = true;
+        await this.updateComplete;
+        Object.assign(this.iconEditorElement, { open: true });
     }
 
     handleOpenOfferSelector(event, element) {
@@ -850,8 +921,20 @@ class RteField extends LitElement {
         ></rte-link-editor>`;
     }
 
+    get iconEditor() {
+        if (!this.showIconEditor) return nothing;
+        return html`<rte-icon-editor
+            dialog
+            @save="${this.#boundHandlers.iconSave}"
+        ></rte-icon-editor>`;
+    }
+
     get linkEditorElement() {
         return this.shadowRoot.querySelector('rte-link-editor');
+    }
+
+    get iconEditorElement() {
+        return this.shadowRoot.querySelector('rte-icon-editor');
     }
 
     render() {
@@ -860,6 +943,7 @@ class RteField extends LitElement {
             <sp-action-group quiet size="m" aria-label="RTE toolbar actions">
                 ${this.#formatButtons} ${this.#linkEditorButton}
                 ${this.#unlinkEditorButton} ${this.#offerSelectorToolButton}
+                ${this.#iconsButton}
                 ${this.#uptLinkButton}
             </sp-action-group>
             <div id="editor"></div>
@@ -869,6 +953,21 @@ class RteField extends LitElement {
                 >/${this.maxLength}
             </p>
             ${this.linkEditor}
+            ${this.iconEditor}
+        `;
+    }
+
+    get #iconsButton() {
+        if (!this.icon) return nothing;
+        return html`
+            <sp-action-button
+                emphasized
+                id="addIconButton"
+                @click=${this.openIconEditor}
+                title="Add Icon"
+            >
+                <sp-icon-info slot="icon"></sp-icon-info>
+            </sp-action-button>
         `;
     }
 

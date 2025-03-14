@@ -1,11 +1,13 @@
 const { expect } = require('chai');
 const nock = require('nock');
+const { MockState } = require('./mocks/MockState.js');
 const translate = require('../../src/fragment/translate.js').translate;
 
 const FAKE_CONTEXT = {
     status: 200,
     transformer: 'translate',
     requestId: 'mas-translate-ut',
+    state: new MockState(),
 };
 
 describe('translate typical cases', () => {

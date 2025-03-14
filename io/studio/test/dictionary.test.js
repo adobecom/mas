@@ -20,7 +20,7 @@
 //     it('should return 401 if no token is provided', async function () {
 //         const result = await main({ __ow_headers: {}, id: 'test-fragment' });
 //         expect(result).to.deep.equal({
-//             statusCode: 401,
+//             status: 401,
 //             body: 'Unauthorized: Bearer token is missing or invalid',
 //         });
 //     });
@@ -30,7 +30,7 @@
 //             __ow_headers: { authorization: `Bearer ${MOCK_TOKEN}` },
 //         });
 //         expect(result).to.deep.equal({
-//             statusCode: 400,
+//             status: 400,
 //             body: 'Missing required parameter: id',
 //         });
 //     });
@@ -81,7 +81,7 @@
 //             locale: mockLocale,
 //         });
 
-//         expect(result.statusCode).to.equal(200);
+//         expect(result.status).to.equal(200);
 //         expect(result.body).to.deep.equal({ 'view-account': 'View Account' });
 //     });
 
@@ -110,7 +110,7 @@
 //             locale: mockLocale,
 //         });
 
-//         expect(result.statusCode).to.equal(404);
+//         expect(result.status).to.equal(404);
 //         expect(result.body).to.equal(
 //             'Dictionary not found or failed to retrieve entries',
 //         );

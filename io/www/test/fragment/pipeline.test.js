@@ -3,6 +3,7 @@ const nock = require('nock');
 const action = require('../../src/fragment/pipeline.js');
 const mockDictionary = require('./replace.test.js').mockDictionary;
 const COLLECTION_RESPONSE = require('./mocks/collection.json');
+const { MockState } = require('./mocks/MockState.js');
 
 function setupFragmentMocks({ id, path, fields = {} }) {
     // Mock the initial fragment fetch
@@ -13,25 +14,59 @@ function setupFragmentMocks({ id, path, fields = {} }) {
             some: 'body',
         });
 
+    const frenchObject = () => ({
+        id: 'test',
+        path: `/content/dam/mas/drafts/fr_FR/${path}`,
+        fields: {
+            description: 'test description',
+            ...fields,
+        },
+    });
     // Mock the fragment lookup
     nock('https://odin.adobe.com')
         .get('/adobe/sites/fragments')
         .query({
             path: `/content/dam/mas/drafts/fr_FR/${path}`,
         })
-        .reply(200, {
-            items: [
-                {
-                    id: 'test',
-                    path: `/content/dam/mas/drafts/fr_FR/${path}`,
-                    fields: {
-                        description: 'test description',
-                        ...fields,
-                    },
-                },
-            ],
-        });
+        .reply(200, { items: [frenchObject()] });
+    // Mock same fragment lookup, but with id
+    nock('https://odin.adobe.com')
+        .get('/adobe/sites/fragments/test')
+        .reply(200, frenchObject());
 }
+
+const EXPECTED_BODY = {
+    id: 'test',
+    path: '/content/dam/mas/drafts/fr_FR/someFragment',
+    fields: {
+        description: 'corps',
+        cta: 'Buy now',
+    },
+};
+//EXPECTED BODY SHA256 hash
+const EXPECTED_BODY_HASH =
+    '9f420496ba3f9deb54f8c9d230fefbc6a8d22d24cb4bf3441a50764ea4473e5d';
+
+const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
+
+const runOnFilledState = async (entry, headers) => {
+    setupFragmentMocks({
+        id: 'some-us-en-fragment',
+        path: 'someFragment',
+        fields: {
+            description: 'corps',
+            cta: '{{buy-now}}',
+        },
+    });
+    const state = new MockState();
+    state.put('req-some-us-en-fragment-fr_FR', entry);
+    return await action.main({
+        id: 'some-us-en-fragment',
+        state: state,
+        locale: 'fr_FR',
+        __ow_headers: headers,
+    });
+};
 
 describe('pipeline full use case', () => {
     beforeEach(() => {
@@ -48,22 +83,47 @@ describe('pipeline full use case', () => {
                 cta: '{{buy-now}}',
             },
         });
+        const state = new MockState();
         const result = await action.main({
             id: 'some-us-en-fragment',
+            state: state,
             locale: 'fr_FR',
         });
-        expect(result).to.deep.equal({
-            status: 200,
-            body: {
-                id: 'test',
-                path: '/content/dam/mas/drafts/fr_FR/someFragment',
-                fields: {
-                    description: 'corps',
-                    cta: 'Buy now',
-                },
-            },
+        expect(result.statusCode).to.equal(200);
+        expect(result.body).to.deep.equal(EXPECTED_BODY);
+        expect(result.headers).to.have.property('Last-Modified');
+        expect(result.headers).to.have.property('ETag');
+        expect(result.headers['ETag']).to.equal(EXPECTED_BODY_HASH);
+        expect(Object.keys(state.store).length).to.equal(1);
+        console.log(JSON.stringify(state.store));
+        expect(state.store).to.have.property('req-some-us-en-fragment-fr_FR');
+        const json = JSON.parse(state.store['req-some-us-en-fragment-fr_FR']);
+        delete json.lastModified; // removing the date to avoid flakiness
+        expect(json).to.deep.equal({
+            dictionaryId: 'fr_FR_dictionary',
+            translatedId: 'test',
+            hash: EXPECTED_BODY_HASH,
         });
     });
+
+    it('should detect already treated /content/dam/mas/drafts/fr_FR/someFragment if not changed', async () => {
+        const result = await runOnFilledState(
+            JSON.stringify({
+                dictionaryId: 'fr_FR_dictionary',
+                translatedId: 'test',
+                lastModified: RANDOM_OLD_DATE,
+                hash: EXPECTED_BODY_HASH,
+            }),
+            {
+                'if-modified-since': 'Tue, 21 Nov 2050 08:00:00 GMT',
+            },
+        );
+        expect(result.body).to.be.undefined;
+        expect(result.statusCode).to.equal(304);
+        expect(result.headers).to.have.property('Last-Modified');
+        expect(result.headers['Last-Modified']).to.equal(RANDOM_OLD_DATE);
+    });
+
     it('should return fully baked /content/dam/mas/drafts/fr_FR/collections/plans-individual', async () => {
         setupFragmentMocks({
             id: 'some-us-en-fragment',
@@ -80,9 +140,10 @@ describe('pipeline full use case', () => {
             .reply(200, COLLECTION_RESPONSE);
         const result = await action.main({
             id: 'some-us-en-fragment',
+            state: new MockState(),
             locale: 'fr_FR',
         });
-        expect(result.status).to.equal(200);
+        expect(result.statusCode).to.equal(200);
         expect(result.body).to.have.property('fields');
         expect(result.body.fields).to.have.property('cards');
         expect(result.body.fields).to.have.property('categories');
@@ -119,10 +180,12 @@ describe('pipeline corner cases', () => {
     });
 
     it('no arguments should return 400', async () => {
-        const result = await action.main({});
+        const result = await action.main({
+            state: new MockState(),
+        });
         expect(result).to.deep.equal({
             message: 'requested parameters are not present',
-            status: 400,
+            statusCode: 400,
         });
     });
 
@@ -133,11 +196,12 @@ describe('pipeline corner cases', () => {
 
         const result = await action.main({
             id: 'test-fragment',
+            state: new MockState(),
             locale: 'fr_FR',
         });
 
         expect(result).to.deep.equal({
-            status: 500,
+            statusCode: 500,
             message: 'nok',
         });
     });
@@ -151,11 +215,12 @@ describe('pipeline corner cases', () => {
 
         const result = await action.main({
             id: 'test-fragment',
+            state: new MockState(),
             locale: 'fr_FR',
         });
 
         expect(result).to.deep.equal({
-            status: 404,
+            statusCode: 404,
             message: 'nok',
         });
     });
@@ -177,12 +242,56 @@ describe('pipeline corner cases', () => {
 
         const result = await action.main({
             id: 'test-collection',
+            state: new MockState(),
             locale: 'fr_FR',
         });
 
         expect(result).to.deep.equal({
-            status: 500,
+            statusCode: 500,
             message: 'unable to fetch references',
         });
+    });
+
+    it('should manage ignore old if-modified', async () => {
+        const result = await runOnFilledState(
+            JSON.stringify({
+                dictionaryId: 'fr_FR_dictionary',
+                translatedId: 'test',
+                lastModified: 'Tue, 21 Nov 2024 08:00:00 GMT',
+                hash: EXPECTED_BODY_HASH,
+            }),
+            {
+                'if-modified-since': RANDOM_OLD_DATE,
+            },
+        );
+        expect(result.body).to.deep.equal(EXPECTED_BODY);
+        expect(result.statusCode).to.equal(200);
+    });
+
+    it('should manage same etag with no lastmodified', async () => {
+        const result = await runOnFilledState(
+            JSON.stringify({
+                dictionaryId: 'fr_FR_dictionary',
+                translatedId: 'test',
+                hash: EXPECTED_BODY_HASH,
+            }),
+            {
+                'if-modified-since': RANDOM_OLD_DATE,
+            },
+        );
+        expect(result.body).to.deep.equal(EXPECTED_BODY);
+        expect(result.statusCode).to.equal(200);
+    });
+
+    it('should manage bad cache entry', async () => {
+        const result = await runOnFilledState('undefined', {});
+        expect(result.body).to.deep.equal(EXPECTED_BODY);
+        expect(result.statusCode).to.equal(200);
+    });
+
+    it('should manage null cache entry', async () => {
+        const result = await runOnFilledState('null', {});
+        expect(result.body).to.deep.equal(EXPECTED_BODY);
+        expect(result.statusCode).to.equal(200);
     });
 });

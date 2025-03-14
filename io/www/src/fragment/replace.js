@@ -10,7 +10,9 @@ async function getDictionaryId(context) {
     if (response.status == 200) {
         const { items } = await response.json();
         if (items?.length > 0) {
-            return items[0].id;
+            const id = items[0].id;
+            context.dictionaryId = id;
+            return id;
         }
     }
     return null;
@@ -23,7 +25,7 @@ function extractValue(ref) {
 }
 
 async function getDictionary(context) {
-    const id = await getDictionaryId(context);
+    const id = context.dictionaryId || (await getDictionaryId(context));
     if (!id) {
         return null;
     }

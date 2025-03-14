@@ -8,8 +8,6 @@ const ODIN_RESPONSE = {
     fields: { variant: 'ccd-slice' },
 };
 
-const MASIO_RESPONSE = ODIN_RESPONSE;
-
 const WCS_RESPONSE = {
     resolvedOffers: [
         {

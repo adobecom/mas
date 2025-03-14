@@ -12,9 +12,6 @@ import {
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
 
-import './editors/merch-card-editor.js';
-import './editors/merch-card-collection-editor.js';
-
 const MODEL_WEB_COMPONENT_MAPPING = {
     Card: 'merch-card',
     'Card Collection': 'merch-card-collection',

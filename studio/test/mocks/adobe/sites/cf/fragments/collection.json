@@ -5,6 +5,7 @@
         "title": "Collection"
     },
     "path": "/content/mas/collections/all",
+    "id": "collection.json",
     "title": "All",
     "fields": [
         {

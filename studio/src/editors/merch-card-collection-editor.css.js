@@ -44,7 +44,7 @@ export const styles = css`
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 4px 12px;
+        padding: 6px 12px;
         border: 1px solid var(--spectrum-global-color-gray-200);
         border-radius: 4px;
         background-color: var(--spectrum-global-color-gray-50);
@@ -142,5 +142,57 @@ export const styles = css`
         transition: all 0.2s ease;
         border-radius: 4px;
         padding: 8px;
+    }
+
+    /* Preview Popover Styles */
+    .preview-popover {
+        position: fixed;
+        min-width: 320px;
+        background-color: var(--spectrum-global-color-gray-50);
+        border: 1px solid var(--spectrum-global-color-gray-200);
+        border-radius: 4px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 1000;
+        overflow: hidden;
+        animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    .preview-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        background-color: var(--spectrum-global-color-gray-100);
+        border-bottom: 1px solid var(--spectrum-global-color-gray-200);
+    }
+
+    .preview-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 500;
+    }
+
+    .preview-content {
+        padding: 16px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    sp-icon-preview {
+        display: none;
+        pointer-events: all;
+    }
+
+    .item-wrapper:hover sp-icon-preview {
+        display: block;
     }
 `;

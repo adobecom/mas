@@ -52,6 +52,7 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-more.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-new-item.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-offer.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-open-in.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-preview.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-promote.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-publish-check.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-publish-remove.js';

@@ -507,7 +507,7 @@ class MerchCardEditor extends LitElement {
         );
         this.availableBackgroundColors = {
             Default: undefined,
-            ...variant.allowedColors,
+            ...(variant.allowedColors ?? []),
         };
     }
 

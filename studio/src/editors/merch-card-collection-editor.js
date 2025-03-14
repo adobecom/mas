@@ -3,7 +3,11 @@ import { repeat } from 'lit/directives/repeat.js';
 import { Fragment } from '../aem/fragment.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { styles } from './merch-card-collection-editor.css.js';
-import { FIELD_MODEL_MAPPING, COLLECTION_MODEL_PATH } from '../constants.js';
+import {
+    FIELD_MODEL_MAPPING,
+    COLLECTION_MODEL_PATH,
+    CARD_MODEL_PATH,
+} from '../constants.js';
 import { editFragment } from '../store.js';
 
 class MerchCardCollectionEditor extends LitElement {
@@ -15,6 +19,9 @@ class MerchCardCollectionEditor extends LitElement {
             fragmentReferencesMap: { type: Object, attribute: false },
             updateFragment: { type: Function },
             hideCards: { type: Boolean, state: true },
+            previewItem: { type: String, state: true },
+            previewPosition: { type: Object, state: true },
+            previewElement: { type: Object, state: true },
         };
     }
 
@@ -30,6 +37,9 @@ class MerchCardCollectionEditor extends LitElement {
         this.fragmentReferencesMap = null;
         this.updateFragment = null;
         this.hideCards = false;
+        this.previewItem = null;
+        this.previewPosition = { top: 0, left: 0 };
+        this.previewElement = null;
     }
 
     connectedCallback() {
@@ -46,6 +56,8 @@ class MerchCardCollectionEditor extends LitElement {
         this.removeEventListener('dragleave', this.handleDragLeave);
         this.removeEventListener('drop', this.handleDrop);
         super.disconnectedCallback();
+        // Remove any preview element from the light DOM
+        this.hideItemPreview();
     }
 
     update(changedProperties) {
@@ -150,6 +162,54 @@ class MerchCardCollectionEditor extends LitElement {
         `;
     }
 
+    actions(fragment) {
+        return html`
+            <div class="item-actions">
+            <sp-action-button
+                            quiet
+                variant="secondary"
+                @click="${() => this.removeItem(fragment.path)}"
+            >
+                <sp-icon-close
+                    slot="icon"
+                    label="Remove item"
+                ></sp-icon-close>
+            </sp-action-button>
+            </sp-action-button>
+                              <sp-action-button
+                                  quiet
+                                  variant="secondary"
+                                  @click="${() => this.editFragment(fragment.path)}"
+                              >
+                                  <sp-icon-edit
+                                      slot="icon"
+                                      label="Edit item"
+                                  ></sp-icon-edit>
+                              </sp-action-button>
+                        ${
+                            fragment.model?.path === CARD_MODEL_PATH
+                                ? html`
+                                      <sp-icon-preview
+                                          slot="icon"
+                                          label="Preview item"
+                                          @mouseover="${(e) =>
+                                              this.showItemPreview(
+                                                  e,
+                                                  fragment,
+                                              )}"
+                                          @mouseout="${() =>
+                                              this.hideItemPreview()}"
+                                      ></sp-icon-preview>
+                                  `
+                                : nothing
+                        }
+                <sp-icon-drag-handle
+                    label="Order"
+                ></sp-icon-drag-handle>
+                </div>
+        `;
+    }
+
     getItems(field) {
         return html`
             <div class="items-container">
@@ -227,37 +287,7 @@ class MerchCardCollectionEditor extends LitElement {
                                         : nothing}
                                     <div class="item-label">${label}</div>
                                 </div>
-                                <div class="item-actions">
-                                    <sp-action-button
-                                        quiet
-                                        variant="secondary"
-                                        @click="${() => this.removeItem(item)}"
-                                    >
-                                        <sp-icon-close
-                                            slot="icon"
-                                            label="Remove item"
-                                        ></sp-icon-close>
-                                    </sp-action-button>
-                                    ${fragment.model?.path ===
-                                    COLLECTION_MODEL_PATH
-                                        ? html`
-                                              <sp-action-button
-                                                  quiet
-                                                  variant="secondary"
-                                                  @click="${() =>
-                                                      this.editFragment(item)}"
-                                              >
-                                                  <sp-icon-edit
-                                                      slot="icon"
-                                                      label="Edit item"
-                                                  ></sp-icon-edit>
-                                              </sp-action-button>
-                                          `
-                                        : nothing}
-                                    <sp-icon-drag-handle
-                                        label="Order"
-                                    ></sp-icon-drag-handle>
-                                </div>
+                                ${this.actions(fragment)}
                             </div>
                         `;
                     },
@@ -281,7 +311,28 @@ class MerchCardCollectionEditor extends LitElement {
         e.preventDefault();
         e.stopPropagation();
 
-        // Only allow drag over if the model paths match (card to card, collection to collection)
+        // Check if this is an external drag (draggingIndex is -1)
+        if (this.draggingIndex === -1) {
+            // For external drags, check if we can accept this type of fragment
+            try {
+                // Check if the dataTransfer contains application/json type
+                const hasJsonData = Array.from(e.dataTransfer.types).includes(
+                    'application/json',
+                );
+
+                if (hasJsonData) {
+                    e.dataTransfer.dropEffect = 'copy';
+                    e.target
+                        .closest('.item-wrapper')
+                        ?.classList.add('dragover');
+                }
+            } catch (error) {
+                console.error('Error in external dragOver:', error);
+            }
+            return;
+        }
+
+        // For internal drags, only allow drag over if the model paths match (card to card, collection to collection)
         if (
             this.draggingIndex !== index &&
             this.draggingFieldName === FIELD_MODEL_MAPPING[model.path]
@@ -294,9 +345,14 @@ class MerchCardCollectionEditor extends LitElement {
     #dragLeave(e) {
         e.preventDefault();
         e.stopPropagation();
-        // Make sure we're only removing the class from the current target
-        // and not from child elements
-        if (e.currentTarget === e.target) {
+
+        // Remove dragover class from the item wrapper
+        const itemWrapper = e.currentTarget.closest('.item-wrapper');
+        if (itemWrapper) {
+            itemWrapper.classList.remove('dragover');
+        } else if (e.currentTarget === e.target) {
+            // Make sure we're only removing the class from the current target
+            // and not from child elements
             e.currentTarget.classList.remove('dragover');
         }
     }
@@ -304,7 +360,84 @@ class MerchCardCollectionEditor extends LitElement {
     // Handle drop
     #drop(e, index, model) {
         e.preventDefault();
+        e.stopPropagation();
         if (!this.fragment) return;
+
+        // Check if this is an external drop (draggingIndex is -1 for external drops)
+        if (this.draggingIndex === -1) {
+            // This is an external drop, so handle it with the main handleDrop method
+            // We need to pass the correct field name based on the model path
+            const fieldName = FIELD_MODEL_MAPPING[model.path];
+
+            try {
+                const data = e.dataTransfer.getData('application/json');
+                if (data) {
+                    const fragmentData = JSON.parse(data);
+
+                    // Check if the model types match
+                    if (
+                        FIELD_MODEL_MAPPING[fragmentData.model.path] !==
+                        fieldName
+                    ) {
+                        console.warn(
+                            'Cannot drop items between different sections',
+                        );
+                        return;
+                    }
+
+                    // Get the current field values
+                    const field = this.fragment.value.fields.find(
+                        (field) => field.name === fieldName,
+                    );
+
+                    if (!field) {
+                        console.error(`Field ${fieldName} not found`);
+                        return;
+                    }
+
+                    // Add the new item at the specific index
+                    const newValues = [...(field.values || [])];
+                    newValues.splice(index, 0, fragmentData.path);
+
+                    this.updateFragment({
+                        target: {
+                            multiline: true,
+                            dataset: { field: fieldName },
+                        },
+                        values: [...new Set(newValues)], // Ensure no duplicates
+                    });
+
+                    // Check if the reference already exists
+                    const existingReference =
+                        this.fragment.value.references?.find(
+                            (ref) => ref.path === fragmentData.path,
+                        );
+
+                    if (!existingReference) {
+                        // Add the new reference
+                        this.fragment.value.references = [
+                            ...(this.fragment.value.references || []),
+                            fragmentData,
+                        ];
+
+                        // Create a FragmentStore for the new reference
+                        this.fragmentReferencesMap.set(
+                            fragmentData.path,
+                            new FragmentStore(new Fragment(fragmentData)),
+                        );
+                    }
+
+                    // Remove dragover class from all elements
+                    this.#removeAllDragoverClasses();
+
+                    this.requestUpdate();
+                }
+            } catch (error) {
+                console.error('Error handling external drop:', error);
+            }
+
+            return;
+        }
 
         // Prevent dropping cards into collections and vice versa
         if (this.draggingFieldName !== FIELD_MODEL_MAPPING[model.path]) {
@@ -349,11 +482,7 @@ class MerchCardCollectionEditor extends LitElement {
         });
 
         // Remove dragover class from all elements
-        if (this.shadowRoot) {
-            this.shadowRoot.querySelectorAll('.dragover').forEach((element) => {
-                element.classList.remove('dragover');
-            });
-        }
+        this.#removeAllDragoverClasses();
 
         // Reset drag state
         this.draggingIndex = -1;
@@ -363,9 +492,33 @@ class MerchCardCollectionEditor extends LitElement {
         this.requestUpdate();
     }
 
+    // Helper method to remove all dragover classes
+    #removeAllDragoverClasses() {
+        // Remove dragover class from all elements in shadow DOM
+        if (this.shadowRoot) {
+            this.shadowRoot.querySelectorAll('.dragover').forEach((element) => {
+                element.classList.remove('dragover');
+            });
+        }
+
+        // Remove dragover class from the host element
+        this.classList.remove('dragover');
+
+        // Find all item wrappers and remove dragover class
+        const itemWrappers = this.shadowRoot?.querySelectorAll('.item-wrapper');
+        if (itemWrappers) {
+            itemWrappers.forEach((wrapper) => {
+                wrapper.classList.remove('dragover');
+            });
+        }
+    }
+
     // Handle drag end
     #dragEnd(e) {
         e.target.classList.remove('dragging');
+        // Remove all dragover indicators
+        this.#removeAllDragoverClasses();
+        // Reset drag state
         this.draggingIndex = -1;
         this.draggingFieldName = null;
     }
@@ -523,6 +676,8 @@ class MerchCardCollectionEditor extends LitElement {
         const data = event.dataTransfer.getData('application/json');
         if (!data) {
             console.warn('No data received in drop event');
+            // Remove any lingering dragover indicators
+            this.#removeAllDragoverClasses();
             return;
         }
 
@@ -536,12 +691,16 @@ class MerchCardCollectionEditor extends LitElement {
             console.warn(
                 `No field mapping found for model path: ${fragmentData.model.path}`,
             );
+            // Remove any lingering dragover indicators
+            this.#removeAllDragoverClasses();
             return;
         }
 
         // Ensure we have a fragment to work with
         if (!this.fragment || !this.fragment.value) {
             console.error('No fragment available to update');
+            // Remove any lingering dragover indicators
+            this.#removeAllDragoverClasses();
             return;
         }
 
@@ -559,6 +718,8 @@ class MerchCardCollectionEditor extends LitElement {
                 console.warn(
                     `Cannot drop ${fieldName} into ${targetFieldName} section`,
                 );
+                // Remove any lingering dragover indicators
+                this.#removeAllDragoverClasses();
                 return;
             }
         }
@@ -589,7 +750,127 @@ class MerchCardCollectionEditor extends LitElement {
                 new FragmentStore(new Fragment(fragmentData)),
             );
         }
+
+        // Remove any lingering dragover indicators
+        this.#removeAllDragoverClasses();
+
         this.requestUpdate();
+    }
+
+    // Handle preview show
+    showItemPreview(event, fragment) {
+        event.stopPropagation();
+
+        // Get the position of the trigger element (icon that was hovered)
+        const triggerRect = event.target.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        // Get the editor panel element
+        const editorRect = this.getBoundingClientRect();
+
+        // Determine which side has more space (left or right of the editor)
+        const spaceOnRight = viewportWidth - editorRect.right;
+        const spaceOnLeft = editorRect.left;
+
+        const position = {
+            // Align with the top of the trigger for vertical positioning
+            top: triggerRect.top,
+            // Center the preview in the available space outside the editor
+            ...(spaceOnRight > spaceOnLeft
+                ? {
+                      left: editorRect.right + spaceOnRight / 2 - 150, // Assuming preview width ~300px
+                      right: undefined,
+                  }
+                : {
+                      right:
+                          viewportWidth -
+                          editorRect.left +
+                          spaceOnLeft / 2 -
+                          150,
+                      left: undefined,
+                  }),
+        };
+
+        // Store the fragment for reference
+        this.previewItem = fragment;
+        // Create and append the preview element to the document body (light DOM)
+        this.renderPreviewInLightDOM(position, fragment);
+    }
+
+    // Handle preview hide
+    hideItemPreview() {
+        // Remove the preview element from the light DOM
+        if (
+            this.previewElement &&
+            document.body.contains(this.previewElement)
+        ) {
+            document.body.removeChild(this.previewElement);
+            this.previewElement = null;
+        }
+    }
+
+    // Render the preview in the light DOM
+    renderPreviewInLightDOM(position, previewItem) {
+        // Remove any existing preview element
+        if (
+            this.previewElement &&
+            document.body.contains(this.previewElement)
+        ) {
+            document.body.removeChild(this.previewElement);
+        }
+        // Get the fragment reference for this item
+        const fragmentStore = this.fragmentReferencesMap.get(previewItem.path);
+        if (!fragmentStore) return;
+
+        const fragment = fragmentStore.get();
+        if (!fragment) return;
+
+        // Create a container for both backdrop and preview
+        const container = document.createElement('div');
+        container.className = 'preview-container';
+
+        // Create the backdrop element
+        const backdrop = document.createElement('div');
+        backdrop.className = 'preview-backdrop';
+
+        // Create the preview element
+        const previewElement = document.createElement('div');
+        previewElement.className = 'preview-popover';
+        previewElement.style.position = 'fixed';
+        previewElement.style.zIndex = '9999';
+
+        if (position.left !== undefined) {
+            previewElement.style.left = `${position.left}px`;
+        } else if (position.right !== undefined) {
+            previewElement.style.right = `${position.right}px`;
+        }
+
+        // Create the content container
+        const contentContainer = document.createElement('div');
+        contentContainer.className = 'preview-content';
+
+        // Create the merch-card element
+        const merchCard = document.createElement('merch-card');
+
+        // Create the aem-fragment element
+        const aemFragment = document.createElement('aem-fragment');
+        aemFragment.setAttribute('ims', '');
+        aemFragment.setAttribute('author', '');
+        aemFragment.setAttribute('fragment', previewItem.id);
+
+        // Assemble the elements
+        merchCard.appendChild(aemFragment);
+        contentContainer.appendChild(merchCard);
+        previewElement.appendChild(contentContainer);
+
+        // Add backdrop and preview to container
+        container.appendChild(backdrop);
+        container.appendChild(previewElement);
+
+        // Add to document body
+        document.body.appendChild(container);
+
+        // Store reference to the container element
+        this.previewElement = container;
     }
 
     render() {

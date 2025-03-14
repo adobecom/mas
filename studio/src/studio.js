@@ -11,6 +11,8 @@ import './mas-repository.js';
 import './mas-toast.js';
 import './mas-splash-screen.js';
 import './filters/locale-picker.js';
+import './editors/merch-card-editor.js';
+import './editors/merch-card-collection-editor.js';
 import StoreController from './reactivity/store-controller.js';
 import Store, { linkStoreToHash } from './store.js';
 import { WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';

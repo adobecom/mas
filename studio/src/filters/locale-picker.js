@@ -101,6 +101,16 @@ class MasLocalePicker extends LitElement {
     handleSelect(e) {
         const selectedValue = e.currentTarget.getAttribute('value');
         Store.filters.set((prev) => ({ ...prev, locale: selectedValue }));
+
+        // Dispatch custom event for the selected locale
+        this.dispatchEvent(
+            new CustomEvent('locale-changed', {
+                detail: { locale: selectedValue },
+                bubbles: true,
+                composed: true,
+            }),
+        );
+
         e.target.closest('overlay-trigger').open = false;
     }
 }

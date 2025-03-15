@@ -75,6 +75,7 @@ export const OPERATIONS = {
     SAVE: 'save',
     CLONE: 'clone',
     UNPUBLISH: 'unpublish',
+    CREATE: 'create'
 };
 
 export const EnvColorCode = {

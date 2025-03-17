@@ -226,6 +226,12 @@ merch-card button {
     pointer-events: none;
 }
 
+.mas-fragment.mask {
+    opacity: 0.5;
+    filter: grayscale(1) blur(1.5px);
+    transition: all 0.3s ease;
+}
+
 mas-fragment-render[selected] .render-card {
     outline: 2px solid var(--spectrum-global-color-blue-600);
 }

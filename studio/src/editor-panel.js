@@ -4,7 +4,7 @@ import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { OPERATIONS } from './constants.js';
+import { CARD_MODEL_PATH, OPERATIONS } from './constants.js';
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
 
@@ -112,6 +112,25 @@ export default class EditorPanel extends LitElement {
         this.setAttribute('position', position);
     }
 
+    needsMask(fragment) {
+        return fragment.model.path === CARD_MODEL_PATH;
+    }
+
+    maskOtherFragments(currentId) {
+        document.querySelectorAll('.mas-fragment').forEach((fragment) => {
+            if (fragment.dataset.id !== currentId) {
+                fragment.classList.add('mask');
+            }
+        });
+    }
+
+    unmaskOtherFragments() {
+        // Remove mask when editor closes
+        document.querySelectorAll('.mas-fragment.mask').forEach((fragment) => {
+            fragment.classList.remove('mask');
+        });
+    }
+
     /**
      * @param {FragmentStore} store
      * @param {number | undefined} x
@@ -129,6 +148,9 @@ export default class EditorPanel extends LitElement {
             this.updatePosition(newPosition);
         }
         await this.repository.refreshFragment(store);
+        if (this.needsMask(store.get(id))) {
+            this.maskOtherFragments(id);
+        }
         this.inEdit.set(store.value);
     }
 
@@ -303,6 +325,7 @@ export default class EditorPanel extends LitElement {
             // The user confirmed – discard changes.
             this.inEdit.discardChanges();
         }
+        this.unmaskOtherFragments();
         this.inEdit.set();
         return true;
     }

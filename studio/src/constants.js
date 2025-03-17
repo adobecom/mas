@@ -114,3 +114,5 @@ export const TAG_STATUS_PUBLISHED_PATH =
     '/content/cq:tags/mas/status/published';
 export const TAG_STATUS_DRAFT = 'mas:status/draft';
 export const TAG_STATUS_DRAFT_PATH = '/content/cq:tags/mas/status/draft';
+
+export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';

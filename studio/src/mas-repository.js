@@ -12,6 +12,7 @@ import {
     TAG_STATUS_PUBLISHED,
     TAG_STUDIO_CONTENT_TYPE,
     TAG_MODEL_ID_MAPPING,
+    EDITABLE_FRAGMENT_MODEL_IDS,
 } from './constants.js';
 
 const ROOT = '/content/dam/mas';
@@ -147,6 +148,16 @@ export class MasRepository extends LitElement {
         return this.fragmentStoreInEdit?.get();
     }
 
+    async preloadFragment(id) {
+        const fragment = await this.#aem.sites.cf.fragments.getById(id);
+        if (fragment) {
+            Store.fragments.list.data.set((prev) => {
+                if (prev.find((store) => store.value.id === id)) return prev;
+                return [...prev, new FragmentStore(fragment)];
+            });
+        }
+    }
+
     async searchFragments() {
         if (this.page.value !== 'content') return;
 
@@ -158,9 +169,11 @@ export class MasRepository extends LitElement {
         let tags = [...(this.filters.value.tags ?? [])];
 
         // Extract content type tags from the tags array
-        const modelIds = tags
+        let modelIds = tags
             .filter((tag) => tag.startsWith(TAG_STUDIO_CONTENT_TYPE))
             .map((tag) => TAG_MODEL_ID_MAPPING[tag]);
+
+        if (modelIds.length === 0) modelIds = EDITABLE_FRAGMENT_MODEL_IDS;
 
         // Remove content type tags from the original tags array
         tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE));

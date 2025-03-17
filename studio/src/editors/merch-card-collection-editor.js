@@ -793,9 +793,7 @@ class MerchCardCollectionEditor extends LitElement {
                   }),
         };
 
-        // Store the fragment for reference
         this.previewItem = fragment;
-        // Create and append the preview element to the document body (light DOM)
         this.renderPreviewInLightDOM(position, fragment);
     }
 
@@ -812,7 +810,7 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     // Render the preview in the light DOM
-    renderPreviewInLightDOM(position, previewItem) {
+    async renderPreviewInLightDOM(position, previewItem) {
         // Remove any existing preview element
         if (
             this.previewElement &&
@@ -827,53 +825,29 @@ class MerchCardCollectionEditor extends LitElement {
         const fragment = fragmentStore.get();
         if (!fragment) return;
 
-        // Create a container for both backdrop and preview
         const container = document.createElement('div');
-        container.className = 'preview-container';
-
-        // Create the backdrop element
-        const backdrop = document.createElement('div');
-        backdrop.className = 'preview-backdrop';
-
-        // Create the preview element
-        const previewElement = document.createElement('div');
-        previewElement.className = 'preview-popover';
-        previewElement.style.position = 'fixed';
-        previewElement.style.zIndex = '9999';
-
-        if (position.left !== undefined) {
-            previewElement.style.left = `${position.left}px`;
-        } else if (position.right !== undefined) {
-            previewElement.style.right = `${position.right}px`;
-        }
-
-        // Create the content container
-        const contentContainer = document.createElement('div');
-        contentContainer.className = 'preview-content';
-
-        // Create the merch-card element
-        const merchCard = document.createElement('merch-card');
-
-        // Create the aem-fragment element
-        const aemFragment = document.createElement('aem-fragment');
-        aemFragment.setAttribute('ims', '');
-        aemFragment.setAttribute('author', '');
-        aemFragment.setAttribute('fragment', previewItem.id);
-
-        // Assemble the elements
-        merchCard.appendChild(aemFragment);
-        contentContainer.appendChild(merchCard);
-        previewElement.appendChild(contentContainer);
-
-        // Add backdrop and preview to container
-        container.appendChild(backdrop);
-        container.appendChild(previewElement);
+        container.innerHTML = `
+            <div class="preview-container">
+                <div class="preview-backdrop"></div>
+                <div class="preview-popover" style="${position.left !== undefined ? `left: ${position.left}px` : `right: ${position.right}px`}">
+                    <div class="preview-content">
+                        <merch-card>
+                            <aem-fragment ims author fragment="${previewItem.id}"></aem-fragment>
+                        </merch-card>
+                        <sp-progress-circle class="preview" indeterminate size="l"></sp-progress-circle>
+                    </div>
+                </div>
+            </div>
+        `;
 
         // Add to document body
         document.body.appendChild(container);
 
         // Store reference to the container element
         this.previewElement = container;
+        await container.querySelector('aem-fragment').updateComplete;
+        await container.querySelector('merch-card').checkReady();
+        container.querySelector('sp-progress-circle').remove();
     }
 
     render() {

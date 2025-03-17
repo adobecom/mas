@@ -166,27 +166,6 @@ export const styles = css`
         }
     }
 
-    .preview-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px 16px;
-        background-color: var(--spectrum-global-color-gray-100);
-        border-bottom: 1px solid var(--spectrum-global-color-gray-200);
-    }
-
-    .preview-header h3 {
-        margin: 0;
-        font-size: 16px;
-        font-weight: 500;
-    }
-
-    .preview-content {
-        padding: 16px;
-        max-height: 400px;
-        overflow-y: auto;
-    }
-
     sp-icon-preview {
         display: none;
         pointer-events: all;

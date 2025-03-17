@@ -133,3 +133,5 @@ export const TAG_MODEL_ID_MAPPING = {
     'mas:studio/content-type/merch-card':
         'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
 };
+
+export const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);

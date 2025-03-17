@@ -1,7 +1,6 @@
 import { LitElement, html, css, nothing } from 'lit';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
-import { extractValue, preventDefault } from './utils.js';
 import './mas-folder-picker.js';
 import './aem/mas-filter-panel.js';
 import './mas-selection-panel.js';
@@ -154,6 +153,18 @@ class MasToolbar extends LitElement {
         this.createDialogOpen = true;
     }
 
+    handleSearchSubmit(ev) {
+        ev.preventDefault();
+        this.updateQuery(ev.target.value);
+    }
+
+    handleChange(ev) {
+        // only handle if value is empty to add address clear button
+        if (ev.target.value === '') {
+            this.updateQuery('');
+        }
+    }
+
     get searchAndFilterControls() {
         return html`<div id="read">
             <sp-action-button
@@ -172,8 +183,8 @@ class MasToolbar extends LitElement {
             >
             <sp-search
                 placeholder="Search"
-                @change="${extractValue(this.updateQuery)}"
-                @submit="${preventDefault(extractValue(this.updateQuery))}"
+                @submit="${this.handleSearchSubmit}"
+                @change=${this.handleChange}
                 value=${this.search.value.query}
                 size="m"
             ></sp-search>

@@ -1,6 +1,7 @@
 import { WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
 import {
+    deepCompare,
     getHashParam,
     getHashParams,
     looseEquals,
@@ -134,7 +135,6 @@ export function linkStoreToHash(store, params, defaultValue) {
                 store.set(hashValue);
             }
         } else {
-            let hasChanges = false;
             const hashValue = {};
             for (const param of params) {
                 const paramValue = getHashParam(param);
@@ -156,9 +156,10 @@ export function linkStoreToHash(store, params, defaultValue) {
                         looseEquals(value[param], defaultValues[param])
                     )
                         hashValue[param] = defaultValues[param];
-                    else hasChanges = true;
                 }
             }
+            const prev = store.get();
+            const hasChanges = !deepCompare(prev, hashValue);
             if (hasChanges) store.set((prev) => ({ ...prev, ...hashValue }));
         }
     }

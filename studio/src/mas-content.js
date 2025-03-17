@@ -46,7 +46,9 @@ class MasContent extends LitElement {
         return html`
             <div id="render">
                 ${repeat(
-                    this.fragments.value.filter(fragmentStore => fragmentStore.get() !== null),
+                    this.fragments.value.filter(
+                        (fragmentStore) => fragmentStore.get() !== null,
+                    ),
                     (fragmentStore) => fragmentStore.get().path,
                     (fragmentStore) =>
                         html`<mas-fragment
@@ -80,7 +82,9 @@ class MasContent extends LitElement {
             </sp-table-head>
             <sp-table-body>
                 ${repeat(
-                    this.fragments.value.filter(fragmentStore => fragmentStore.get() !== null),
+                    this.fragments.value.filter(
+                        (fragmentStore) => fragmentStore.get() !== null,
+                    ),
                     (fragmentStore) => fragmentStore.get().path,
                     (fragmentStore) =>
                         html`<mas-fragment

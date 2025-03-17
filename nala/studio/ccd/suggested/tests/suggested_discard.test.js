@@ -589,7 +589,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-discard-change-osi - Validate changing OSI for suggested card in mas studio
+    // @studio-suggested-discard-edit-osi - Validate changing OSI for suggested card in mas studio
     test(`${features[9].name},${features[9].tags}`, async ({
         page,
         baseURL,
@@ -696,6 +696,71 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 'value',
                 new RegExp(`${data.newMarketSegmentsTag}`),
             );
+        });
+    });
+
+    // @studio-suggested-discard-edit-cta-variant - Validate changing CTA variant for suggested card in mas studio
+    test(`${features[10].name},${features[10].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[10];
+        const testPage = `${baseURL}${features[10].path}${miloLibs}${features[10].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA variant', async () => {
+            await expect(
+                await studio.editorPanel
+                    .locator(studio.editorFooter)
+                    .locator(studio.linkEdit),
+            ).toBeVisible();
+            await expect(await studio.editorCTA).toBeVisible();
+            await expect(await studio.editorCTA).toHaveClass(data.variant);
+            await studio.editorCTA.click();
+            await studio.editorPanel
+                .locator(studio.editorFooter)
+                .locator(studio.linkEdit)
+                .click();
+            await expect(await studio.linkVariant).toBeVisible();
+            await expect(await studio.linkSave).toBeVisible();
+            await expect(
+                await studio.getLinkVariant(data.newVariant),
+            ).toBeVisible();
+            await (await studio.getLinkVariant(data.newVariant)).click();
+            await studio.linkSave.click();
+            await expect(await studio.editorCTA).toHaveClass(data.newVariant);
+        });
+
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+            await studio.editorPanel.locator(studio.closeEditor).click();
+            await expect(
+                await studio.editorPanel.locator(studio.confirmationDialog),
+            ).toBeVisible();
+            await studio.editorPanel.locator(studio.discardDialog).click();
+            await expect(await studio.editorPanel).not.toBeVisible();
+        });
+
+        await test.step('step-4: Open the editor and validate there are no changes', async () => {
+            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await studio.editorCTA).toBeVisible();
+            await expect(await studio.editorCTA).not.toHaveClass(
+                data.newVariant,
+            );
+            await expect(await studio.editorCTA).toHaveClass(data.variant);
         });
     });
 });

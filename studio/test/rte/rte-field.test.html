@@ -167,6 +167,24 @@
                         expect(a.innerText).to.equal('Adobe');
                         expect(a.title).to.equal('Adobe homepage');
                     });
+
+                    it('should preserve certain classes when changing variant (ex. upt-link)', async function () {
+                        rte = await createFromTemplate(
+                            'rte-upt',
+                            this.test.title,
+                        );
+                        rte.selectLink(1);
+                        await openLinkEditor(rte);
+                        rte.linkEditorElement.variant = 'primary-link';
+                        rte.linkEditorElement.requestUpdate();
+                        await rte.linkEditorElement.updateComplete;
+                        clickSave(rte);
+                        await delay(100);
+                        const a = firstLink();
+                        expect(a.classList.value).to.equal(
+                            'upt-link primary-link',
+                        );
+                    });
                 });
 
                 // Theses are not very stable in headless chrome. Enable them for localing.
@@ -296,6 +314,11 @@
                 >
             </rte-field>
         </template>
+        <template id="rte-upt">
+            <rte-field link upt-link
+                ><a class="upt-link" href="#" title="Terms link">See terms</a>
+            </rte-field>
+        </template>
         <template id="rte-all">
             <rte-field link inline>
                 <span is="inline-price" data-wcs-osi="abm"></span
@@ -335,7 +358,6 @@
                         data-promotion-code=""
                         data-quantity="1"
                         data-wcs-osi="Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ"
-                    
                         data-ims-country="DE"
                         >Get Offer</a
                     >&nbsp;
@@ -349,7 +371,6 @@
                             data-promotion-code=""
                             data-quantity="1"
                             data-wcs-osi="Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ"
-                        
                             >Buy now</a
                         ></strong
                     >
@@ -370,7 +391,6 @@
                 <p>
                     <a
                         is="checkout-link"
-                    
                         data-checkout-workflow="UCv3"
                         data-checkout-workflow-step="email"
                         data-promotion-code=""
@@ -383,15 +403,13 @@
         </template>
         <template id="rte-ost-extra">
             <rte-field link>
-                <a class="secondary-link" data-wcs-osi="abm"
-                    >Buy now</a
-                >
+                <a class="secondary-link" data-wcs-osi="abm">Buy now</a>
             </rte-field>
         </template>
         <template id="rte-maxlength">
-                <rte-field>
-                    this is a text that exceeds the 40 characters limit
-                </rte-field>
+            <rte-field>
+                this is a text that exceeds the 40 characters limit
+            </rte-field>
         </template>
         <template id="rte-dev">
             <div>

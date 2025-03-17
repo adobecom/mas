@@ -14,5 +14,6 @@ export default class TryBuyWidgetPage {
             'span[data-template="price"] > .price-strikethrough',
         );
         this.cardCTASlot = page.locator('div[slot="cta"]');
+        this.cardCTA = page.locator('div[slot="cta"] > button');
     }
 }

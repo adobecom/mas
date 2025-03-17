@@ -92,6 +92,26 @@ export default class StudioPage {
         // Edit Link Panel
         this.linkText = page.locator('#linkText input');
         this.linkSave = page.locator('#saveButton');
+        this.linkVariant = page.locator('#linkVariant');
+        this.accentVariant = page.locator('sp-button[variant="accent"]');
+        this.primaryVariant = page.locator(
+            'sp-button[variant="primary]:not([treatment="outline"]])',
+        );
+        this.primaryOutlineVariant = page.locator(
+            'sp-button[variant="primary"][treatment="outline"]',
+        );
+        this.secondaryVariant = page.locator(
+            'sp-button[variant="secondary]:not([treatment="outline"]])',
+        );
+        this.secondaryOutlineVariant = page.locator(
+            'sp-button[variant="secondary"][treatment="outline"]',
+        );
+        this.primaryLinkVariant = page.locator(
+            'sp-link:has-text("Primary link")',
+        );
+        this.secondaryLinkVariant = page.locator(
+            'sp-link[variant="secondary"]',
+        );
     }
 
     async getCard(id, cardType, cloned, secondID) {
@@ -147,11 +167,28 @@ export default class StudioPage {
         await expect(await this.deleteCardButton).toBeEnabled();
         await this.deleteCardButton.click();
         await expect(await this.confirmationDialog).toBeVisible();
-        await this.confirmationDialog
-            .locator(this.deleteDialog)
-            .click();
+        await this.confirmationDialog.locator(this.deleteDialog).click();
         await expect(await this.toastPositive).toHaveText(
             'Fragment successfully deleted.',
         );
+    }
+
+    async getLinkVariant(variant) {
+        const linkVariant = {
+            accent: this.accentVariant,
+            primary: this.primaryVariant,
+            'primary-outline': this.primaryOutlineVariant,
+            secondary: this.secondaryVariant,
+            'secondary-outline': this.secondaryOutlineVariant,
+            'primary-link': this.primaryLinkVariant,
+            'secondary-link': this.secondaryLinkVariant,
+        };
+
+        const link = linkVariant[variant];
+        if (!link) {
+            throw new Error(`Invalid link variant type: ${variant}`);
+        }
+
+        return this.linkVariant.locator(link);
     }
 }

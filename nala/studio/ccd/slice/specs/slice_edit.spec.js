@@ -7,6 +7,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
@@ -112,6 +113,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 ctaText: 'Buy now',
                 newCtaText: 'Buy now 2',
             },
@@ -153,6 +155,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
@@ -174,7 +177,7 @@ export default {
         },
         {
             tcid: '13',
-            name: '@studio-slice-change-osi',
+            name: '@studio-slice-edit-osi',
             path: '/studio.html',
             data: {
                 cardid: '3b1fb0f1-b74e-4e8f-81ad-1744012b1935',
@@ -187,6 +190,26 @@ export default {
                 newPlanTypeTag: 'plan_type/puf',
                 newOfferTypeTag: 'offer_type/trial',
                 newMarketSegmentsTag: 'market_segments/edu',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
+        },
+        {
+            tcid: '14',
+            name: '@studio-slice-edit-cta-variant',
+            path: '/studio.html',
+            data: {
+                cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                variant: 'accent',
+                ctaCSS: {
+                    'background-color': 'rgb(2, 101, 220)',
+                    color: 'rgb(255, 255, 255)',
+                },
+                newVariant: 'primary-outline',
+                newCtaCSS: {
+                    color: 'rgb(34, 34, 34)',
+                },
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',

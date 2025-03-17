@@ -13,38 +13,20 @@ class MasFragmentRender extends LitElement {
 
     static styles = [styles];
 
+    #reactiveControllers = new ReactiveController(this);
+
     createRenderRoot() {
         return this;
     }
 
-    #aemFragment;
-
-    constructor() {
-        super();
-        this.refreshFragment = this.refreshFragment.bind(this);
-    }
-
-    updated() {
-        super.updated();
-        this.#aemFragment = this.querySelector('aem-fragment');
-    }
-
-    async refreshFragment(newFragment) {
-        if (!this.#aemFragment) return;
-        if (newFragment.hasChanges) {
-            this.#aemFragment.refresh(false);
+    update(changedProperties) {
+        if (changedProperties.has('fragmentStore')) {
+            this.#reactiveControllers.updateStores([
+                this.fragmentStore,
+                Store.selecting,
+            ]);
         }
-    }
-
-    connectedCallback() {
-        super.connectedCallback();
-        new ReactiveController(this, [this.fragmentStore, Store.selecting]);
-        this.fragmentStore.subscribe(this.refreshFragment);
-    }
-
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        this.fragmentStore.unsubscribe(this.refreshFragment);
+        super.update(changedProperties);
     }
 
     select() {

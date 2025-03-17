@@ -7,6 +7,7 @@ import ReactiveController from './reactivity/reactive-controller.js';
 import {
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
+    EVENT_KEYDOWN,
     OPERATIONS,
 } from './constants.js';
 import Events from './events.js';
@@ -83,12 +84,12 @@ export default class EditorPanel extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        document.addEventListener('keydown', this.handleKeyDown);
+        document.addEventListener(EVENT_KEYDOWN, this.handleKeyDown);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        document.removeEventListener('keydown', this.handleKeyDown);
+        document.removeEventListener(EVENT_KEYDOWN, this.handleKeyDown);
     }
 
     /** @type {MasRepository} */
@@ -269,6 +270,7 @@ export default class EditorPanel extends LitElement {
     discardConfirmed() {
         this.showDiscardDialog = false;
         if (this.#discardPromiseResolver) {
+            this.fragmentStore.discardChanges();
             this.#discardPromiseResolver(true);
             this.#discardPromiseResolver = null;
         }
@@ -293,7 +295,6 @@ export default class EditorPanel extends LitElement {
         if (Store.editor.hasChanges) {
             const confirmed = await this.promptDiscardChanges();
             if (confirmed) {
-                this.fragmentStore.discardChanges();
                 this.showEditor = false;
                 await this.updateComplete;
                 this.showEditor = true;

@@ -5,7 +5,7 @@ export class FragmentStore extends ReactiveStore {
 
     set(value) {
         super.set(value);
-        this.notify();
+        this.refreshAemFragment();
     }
 
     setLoading(loading = false) {
@@ -16,11 +16,13 @@ export class FragmentStore extends ReactiveStore {
     updateField(name, value) {
         this.value.updateField(name, value);
         this.notify();
+        this.refreshAemFragment();
     }
 
     updateFieldInternal(name, value) {
         this.value.updateFieldInternal(name, value);
         this.notify();
+        this.refreshAemFragment();
     }
 
     refreshFrom(value) {
@@ -32,5 +34,13 @@ export class FragmentStore extends ReactiveStore {
         if (!this.value) return;
         this.value.discardChanges();
         this.notify();
+        this.refreshAemFragment();
+    }
+
+    refreshAemFragment() {
+        if (!this.value) return;
+        document
+            .querySelector(`aem-fragment[fragment="${this.value.id}"]`)
+            ?.refresh(false);
     }
 }

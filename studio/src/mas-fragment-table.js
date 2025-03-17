@@ -1,5 +1,5 @@
 import { LitElement, html } from 'lit';
-import StoreController from './reactivity/store-controller.js';
+import ReactiveController from './reactivity/reactive-controller.js';
 
 class MasFragmentTable extends LitElement {
     static properties = {
@@ -7,13 +7,17 @@ class MasFragmentTable extends LitElement {
         customRender: { type: Function, attribute: false },
     };
 
+    #reactiveControllers = new ReactiveController(this);
+
     createRenderRoot() {
         return this;
     }
 
-    connectedCallback() {
-        super.connectedCallback();
-        this.fragment = new StoreController(this, this.fragmentStore);
+    update(changedProperties) {
+        if (changedProperties.has('fragmentStore')) {
+            this.#reactiveControllers.updateStores([this.fragmentStore]);
+        }
+        super.update(changedProperties);
     }
 
     render() {

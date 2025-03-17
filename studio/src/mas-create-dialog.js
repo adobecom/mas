@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import { TAG_MODEL_ID_MAPPING } from './constants.js';
+import { EVENT_KEYDOWN, TAG_MODEL_ID_MAPPING } from './constants.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { editFragment } from './store.js';
 import { Fragment } from './aem/fragment.js';
@@ -13,33 +13,6 @@ export class MasCreateDialog extends LitElement {
     };
 
     static styles = css`
-        :host {
-            display: block;
-        }
-
-        sp-underlay + sp-dialog {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 1;
-            background: var(--spectrum-gray-100);
-        }
-
-        sp-dialog {
-            --spectrum-dialog-confirm-background-color: var(
-                --spectrum-global-color-gray-50
-            );
-            --spectrum-dialog-confirm-padding: var(
-                --spectrum-global-dimension-size-250
-            );
-        }
-
-        .dialog-content {
-            padding: var(--spectrum-global-dimension-size-200)
-                var(--spectrum-global-dimension-size-200) 0;
-        }
-
         .form-field {
             margin-bottom: var(--spectrum-global-dimension-size-400);
         }
@@ -67,8 +40,37 @@ export class MasCreateDialog extends LitElement {
         this.handleNameChange = this.handleNameChange.bind(this);
         this.handleNameFocus = this.handleNameFocus.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
-        this.handleUnderlayClose = this.handleUnderlayClose.bind(this);
         this.close = this.close.bind(this);
+        this.handleKeyDown = this.handleKeyDown.bind(this);
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        document.addEventListener(EVENT_KEYDOWN, this.handleKeyDown);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        document.removeEventListener(EVENT_KEYDOWN, this.handleKeyDown);
+    }
+
+    handleKeyDown(event) {
+        if (event.key === 'Escape' && this.dialog?.open) {
+            this.close();
+        }
+    }
+
+    get dialog() {
+        return this.shadowRoot.querySelector('sp-dialog-wrapper');
+    }
+
+    updated() {
+        this.open();
+    }
+
+    async open() {
+        await this.updateComplete;
+        this.dialog.open = true;
     }
 
     /**
@@ -136,10 +138,6 @@ export class MasCreateDialog extends LitElement {
         this.close();
     }
 
-    handleUnderlayClose() {
-        this.close();
-    }
-
     close() {
         // Reset form
         this.title = '';
@@ -156,9 +154,17 @@ export class MasCreateDialog extends LitElement {
 
     render() {
         return html`
-            <sp-underlay open @click=${this.handleUnderlayClose}></sp-underlay>
-            <sp-dialog size="m">
-                <h1 slot="heading">${this.dialogTitle}</h1>
+            <sp-dialog-wrapper
+                type="modal"
+                headline=${this.dialogTitle}
+                underlay
+                size="m"
+                confirm-label="Create"
+                cancel-label="Cancel"
+                @close=${this.close}
+                @confirm=${this.handleSubmit}
+                @cancel=${this.close}
+            >
                 <div class="dialog-content">
                     <form @submit=${this.handleSubmit}>
                         <div class="form-field">
@@ -191,22 +197,7 @@ export class MasCreateDialog extends LitElement {
                         </div>
                     </form>
                 </div>
-                <sp-button
-                    slot="button"
-                    variant="secondary"
-                    quiet
-                    @click=${this.close}
-                >
-                    Cancel
-                </sp-button>
-                <sp-button
-                    slot="button"
-                    variant="accent"
-                    @click=${this.handleSubmit}
-                >
-                    Create
-                </sp-button>
-            </sp-dialog>
+            </sp-dialog-wrapper>
         `;
     }
 }

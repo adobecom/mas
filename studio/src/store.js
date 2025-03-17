@@ -43,6 +43,8 @@ const Store = {
     commerceEnv: new ReactiveStore(WCS_ENV_PROD, commerceEnvValidator), // 'stage' | 'prod'
 };
 
+window.Store = Store; // TODO remove
+
 export default Store;
 
 /**

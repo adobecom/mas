@@ -61,6 +61,18 @@
         <link rel="stylesheet" href="./studio/style.css" />
         <link rel="stylesheet" href="https://use.typekit.net/hah7vzn.css" />
         <script>
+            function initMasStudio() {
+                console.info('[M@S Studio] IMS is ready, signed in');
+                const studio = document.createElement('mas-studio');
+                studio.setAttribute('base-url', baseUrl);
+                bucket && studio.setAttribute('aem-bucket', bucket);
+                params.get('commerce.env') &&
+                    studio.setAttribute(
+                        'commerce-env',
+                        params.get('commerce.env'),
+                    );
+                document.querySelector('sp-theme').appendChild(studio);
+            }
             window.adobeid = {
                 api_parameters: {
                     profile_filter:
@@ -88,23 +100,8 @@
                 },
                 onReady() {
                     adobeIMS
-                        .refreshToken()
-                        .then(() => {
-                            console.info(
-                                '[M@S Studio] IMS is ready, signed in',
-                            );
-                            const studio = document.createElement('mas-studio');
-                            studio.setAttribute('base-url', baseUrl);
-                            bucket && studio.setAttribute('aem-bucket', bucket);
-                            params.get('commerce.env') &&
-                                studio.setAttribute(
-                                    'commerce-env',
-                                    params.get('commerce.env'),
-                                );
-                            document
-                                .querySelector('sp-theme')
-                                .appendChild(studio);
-                        })
+                        .validateToken()
+                        .then(initMasStudio)
                         .catch((e) => {
                             console.error(
                                 '[M@S Studio] failed to refresh IMS token: ',

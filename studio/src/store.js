@@ -8,7 +8,11 @@ import {
     setHashParams,
 } from './utils.js';
 
+const originalUrl = window.location.href;
+const urlParams = new URLSearchParams(window.location.search);
+const pageFromUrl = urlParams.get('page');
 const hasQuery = Boolean(getHashParam('query'));
+const initialPage = pageFromUrl || (hasQuery ? 'content' : 'welcome');
 
 const Store = {
     fragments: {
@@ -40,8 +44,16 @@ const Store = {
     ), // 'render' | 'table'
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
-    page: new ReactiveStore(hasQuery ? 'content' : 'welcome', pageValidator), // 'welcome' | 'content'
+    page: new ReactiveStore(initialPage, pageValidator),
     commerceEnv: new ReactiveStore(WCS_ENV_PROD, commerceEnvValidator), // 'stage' | 'prod'
+    placeholders: {
+        list: {
+            data: new ReactiveStore([]),
+            loading: new ReactiveStore(false),
+        },
+        selected: new ReactiveStore(null),
+        editing: new ReactiveStore(null),
+    },
 };
 
 export default Store;
@@ -61,8 +73,8 @@ function filtersValidator(value) {
  * @returns {string}
  */
 function pageValidator(value) {
-    if (value === 'content') return value;
-    return 'welcome';
+    const validPages = ['welcome', 'content', 'placeholders'];
+    return validPages.includes(value) ? value : 'welcome';
 }
 
 /**
@@ -97,105 +109,94 @@ export function navigateToPage(value) {
         if (confirmed) {
             Store.fragments.inEdit.set();
             Store.page.set(value);
+            const url = new URL(window.location);
+            url.searchParams.set('page', value);
+            window.history.pushState({}, '', url.toString());
         }
     };
 }
 
 /**
- * Links a given store to the hash; Only primitive values and object values with primitive properties are supported
- * @param {ReactiveStore} store
- * @param {string | string[]} params
- * @param {any} defaultValue - The default value that will not be shown in the hash; for object values, pass an
- *                             object containing the default values for as many properties as needed
+ * Links a store to the URL hash
+ * @param {ReactiveStore} store - The store to link
+ * @param {string|string[]} keys - The key(s) to link
+ * @param {any} defaultValue - The default value to use if the key is not in the hash
  */
-export function linkStoreToHash(store, params, defaultValue) {
-    if (store.hasMeta('hashLink')) {
-        console.error('Cannot link to hash a store that is already linked.');
-        return;
+export function linkStoreToHash(store, keys, defaultValue) {
+    if (!store) return;
+    const keysArray = Array.isArray(keys) ? keys : [keys];
+
+    const hash = window.location.hash.slice(1);
+    const params = new URLSearchParams(hash);
+
+    let shouldUpdateStore = false;
+    const updates = {};
+
+    for (const key of keysArray) {
+        if (params.has(key)) {
+            let value = params.get(key);
+            try {
+                value = JSON.parse(value);
+            } catch (e) {
+                // Not JSON, use as is
+            }
+            updates[key] = value;
+            shouldUpdateStore = true;
+        } else if (defaultValue !== undefined) {
+            const defaultForKey = Array.isArray(defaultValue)
+                ? defaultValue
+                : typeof defaultValue === 'object' && defaultValue !== null
+                  ? defaultValue[key]
+                  : defaultValue;
+
+            if (defaultForKey !== undefined) {
+                updates[key] = defaultForKey;
+                shouldUpdateStore = true;
+            }
+        }
     }
 
-    const isPrimitive = !Array.isArray(params);
+    if (shouldUpdateStore) {
+        store.set((prev) => ({ ...prev, ...updates }));
+    }
 
-    function syncFromHash() {
-        const value = store.get();
-        const defaultValues = isPrimitive
-            ? { [params]: defaultValue }
-            : defaultValue || {};
+    store.subscribe((value) => {
+        const currentHash = window.location.hash.slice(1);
+        const currentParams = new URLSearchParams(currentHash);
+        let hasChanges = false;
 
-        if (isPrimitive) {
-            const hashValue = getHashParam(params);
-            if (hashValue && hashValue !== value) {
-                store.set(hashValue);
-            }
-        } else {
-            let hasChanges = false;
-            const hashValue = {};
-            for (const param of params) {
-                const paramValue = getHashParam(param);
-                // Handle array values by splitting on commas if the default value is an array
-                hashValue[param] = Array.isArray(defaultValues[param])
-                    ? paramValue
-                        ? paramValue.split(',')
-                        : []
-                    : paramValue;
-
-                if (!looseEquals(hashValue[param], value[param])) {
-                    if (
-                        (!hashValue[param] ||
-                            looseEquals(
-                                hashValue[param],
-                                defaultValues[param],
-                            )) &&
-                        defaultValues[param] &&
-                        looseEquals(value[param], defaultValues[param])
-                    )
-                        hashValue[param] = defaultValues[param];
-                    else hasChanges = true;
+        for (const key of keysArray) {
+            const storeValue = value[key];
+            if (storeValue === undefined) {
+                if (currentParams.has(key)) {
+                    currentParams.delete(key);
+                    hasChanges = true;
                 }
+                continue;
             }
-            if (hasChanges) store.set((prev) => ({ ...prev, ...hashValue }));
-        }
-    }
 
-    function syncToHash(value) {
-        const normalizedValue = isPrimitive
-            ? { [params]: value }
-            : structuredClone(value); // TODO pass clones from stores to these functions, instead of the underlying value
-        const hashParams = getHashParams();
+            const stringValue =
+                typeof storeValue === 'object'
+                    ? JSON.stringify(storeValue)
+                    : String(storeValue);
 
-        const defaultValues = isPrimitive
-            ? { [params]: defaultValue }
-            : defaultValue;
-
-        for (const prop in defaultValues) {
-            const propValue = normalizedValue[prop];
-            // Join arrays with commas before comparing with default value
-            const normalizedPropValue = Array.isArray(propValue)
-                ? propValue.join(',')
-                : propValue;
-            const normalizedDefaultValue = Array.isArray(defaultValues[prop])
-                ? defaultValues[prop].join(',')
-                : defaultValues[prop];
-
-            if (normalizedPropValue === normalizedDefaultValue) {
-                hashParams.delete(prop);
-                delete normalizedValue[prop];
-            } else if (Array.isArray(propValue)) {
-                // Ensure arrays are joined with commas when setting in URL
-                normalizedValue[prop] = propValue.join(',');
+            if (currentParams.get(key) !== stringValue) {
+                currentParams.set(key, stringValue);
+                hasChanges = true;
             }
         }
-        setHashParams(hashParams, normalizedValue);
-        window.location.hash = hashParams.toString();
-    }
 
-    // Initialize
-    syncFromHash();
-
-    // Subscribe
-    window.addEventListener('hashchange', syncFromHash);
-    store.subscribe(syncToHash);
-    store.setMeta('hashLink', { from: syncFromHash, to: syncToHash });
+        if (hasChanges) {
+            const newHash = currentParams.toString();
+            window.history.replaceState(
+                null,
+                '',
+                `${window.location.pathname}${window.location.search}${
+                    newHash ? '#' + newHash : ''
+                }`,
+            );
+        }
+    });
 }
 
 /**
@@ -209,11 +210,47 @@ export function unlinkStoreFromHash(store) {
     store.removeMeta('hashLink');
 }
 
-// When the query param is populated or changes, switch to the 'content' page.
 Store.search.subscribe((value, oldValue) => {
     if (
         (!oldValue.query && value.query) ||
         (Boolean(value.query) && value.query !== oldValue.query)
     )
         Store.page.set('content');
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        window.history.replaceState({}, '', originalUrl);
+        const url = new URL(window.location);
+        if (!url.searchParams.has('page')) {
+            url.searchParams.set('page', 'welcome');
+            window.history.replaceState({}, '', url.toString());
+        }
+    }, 100);
+});
+
+window.addEventListener('popstate', (event) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const pageFromUrl = urlParams.get('page');
+
+    if (pageFromUrl) {
+        Store.page.set(pageFromUrl);
+    } else {
+        Store.page.set('welcome');
+    }
+});
+
+Store.search.subscribe((value, oldValue) => {
+    if (value.path !== oldValue.path && Store.page.get() === 'placeholders') {
+        Store.placeholders.list.loading.set(true);
+    }
+});
+
+Store.page.subscribe((value, oldValue) => {
+    if (value === 'placeholders' && oldValue !== 'placeholders') {
+        const folderPath = Store.search.get()?.path;
+        if (folderPath) {
+            Store.placeholders.list.loading.set(true);
+        }
+    }
 });

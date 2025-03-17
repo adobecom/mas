@@ -376,7 +376,7 @@ class AEM {
                 'Content-Type': 'application/json',
                 ...this.headers,
             },
-            body: JSON.stringify({ title, modelId, fields }),
+            body: JSON.stringify({ title, modelId, parentPath, fields }),
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });

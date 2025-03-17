@@ -10,14 +10,13 @@ import {
     OPERATIONS,
     STATUS_PUBLISHED,
     TAG_STATUS_PUBLISHED,
+    ROOT_PATH,
 } from './constants.js';
 
-const ROOT = '/content/dam/mas';
-
 export function getDamPath(path) {
-    if (!path) return ROOT;
-    if (path.startsWith(ROOT)) return path;
-    return ROOT + '/' + path;
+    if (!path) return ROOT_PATH;
+    if (path.startsWith(ROOT_PATH)) return path;
+    return ROOT_PATH + '/' + path;
 }
 
 function isUUID(str) {
@@ -101,11 +100,14 @@ export class MasRepository extends LitElement {
         if (this.page.value === 'welcome') {
             this.loadRecentlyUpdatedFragments();
         }
+        if (this.page.value === 'placeholders') {
+            this.searchPlaceholders();
+        }
     }
 
     async loadFolders() {
         try {
-            const { children } = await this.#aem.folders.list(ROOT);
+            const { children } = await this.#aem.folders.list(ROOT_PATH);
             const ignore = window.localStorage.getItem('ignore_folders') || [
                 'images',
             ];
@@ -422,6 +424,402 @@ export class MasRepository extends LitElement {
         const latest = await this.#aem.sites.cf.fragments.getById(id);
         store.refreshFrom(latest);
         this.inEdit.setLoading(false);
+    }
+
+    /**
+     * Search for placeholder fragments in the dictionary
+     */
+    async searchPlaceholders() {
+        try {
+            const folderPath = this.search.value.path;
+            if (!folderPath) {
+                return;
+            }
+
+            Store.placeholders.list.loading.set(true);
+            const locale = this.filters.value.locale || 'en_US';
+            const fullPath = `/content/dam/mas/${folderPath}/${locale}/dictionary`;
+            const query = {
+                filter: {
+                    path: fullPath,
+                },
+                sort: [{ on: 'created', order: 'ASC' }],
+            };
+
+            const searchUrl = `${this.#aem.cfFragmentsUrl}/search?query=${encodeURIComponent(JSON.stringify(query))}&limit=50`;
+
+            const response = await fetch(searchUrl, {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    ...this.#aem.headers,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(
+                    `Network response was not ok: ${response.status} ${response.statusText}`,
+                );
+            }
+
+            const data = await response.json();
+
+            if (!data.items || data.items.length === 0) {
+                Store.placeholders.list.data.set([]);
+                return;
+            }
+
+            const placeholders = data.items
+                .filter((item) => !item.path.endsWith('/index'))
+                .map((fragment) => {
+                    if (!fragment || !fragment.fields) return null;
+
+                    const keyField = fragment.fields.find(
+                        (field) => field.name === 'key',
+                    );
+                    const valueField = fragment.fields.find(
+                        (field) => field.name === 'value',
+                    );
+                    const richTextValueField = fragment.fields.find(
+                        (field) => field.name === 'richTextValue',
+                    );
+                    const locReadyField = fragment.fields.find(
+                        (field) => field.name === 'locReady',
+                    );
+
+                    const key =
+                        keyField &&
+                        keyField.values &&
+                        keyField.values.length > 0
+                            ? keyField.values[0]
+                            : '';
+
+                    let value = '';
+                    if (
+                        richTextValueField &&
+                        richTextValueField.values &&
+                        richTextValueField.values.length > 0
+                    ) {
+                        value = richTextValueField.values[0].replace(
+                            /<[^>]*>/g,
+                            '',
+                        );
+                    } else if (
+                        valueField &&
+                        valueField.values &&
+                        valueField.values.length > 0
+                    ) {
+                        value = valueField.values[0];
+                    }
+
+                    const locReady =
+                        locReadyField &&
+                        locReadyField.values &&
+                        locReadyField.values.length > 0
+                            ? locReadyField.values[0]
+                            : false;
+
+                    return {
+                        id: fragment.id,
+                        key: key,
+                        value: value,
+                        locale: locale,
+                        status: fragment.status || 'Draft',
+                        state: locReady ? 'Ready' : 'Not Ready',
+                        updatedBy: fragment.modified?.by || 'Unknown',
+                        updatedAt: fragment.modified?.at
+                            ? new Date(fragment.modified.at).toLocaleString()
+                            : 'Unknown',
+                        path: fragment.path,
+                        _fragment: fragment,
+                    };
+                })
+                .filter(Boolean);
+
+            Store.placeholders.list.data.set(placeholders);
+        } catch (error) {
+            this.processError(error, 'Failed to search for placeholders');
+            Store.placeholders.list.data.set([]);
+        } finally {
+            Store.placeholders.list.loading.set(false);
+        }
+    }
+
+    /**
+     * Unpublish a dictionary/placeholder fragment using the AEM SDK
+     * @param {Object} fragment - The fragment to unpublish
+     * @returns {Promise<boolean>} Whether the operation was successful
+     */
+    async unpublishDictionaryFragment(fragment) {
+        try {
+            // Add info toast
+            Events.toast.emit({
+                variant: 'info',
+                content: 'Unpublishing placeholder...',
+            });
+
+            this.operation.set(OPERATIONS.UNPUBLISH);
+
+            try {
+                if (
+                    typeof this.#aem.sites.cf.fragments.unpublish === 'function'
+                ) {
+                    await this.#aem.sites.cf.fragments.unpublish(fragment);
+                } else {
+                    const endpoint = `${this.#aem.cfFragmentsUrl}/${fragment.id}/unpublish`;
+
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: this.#aem.headers,
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(
+                            `Unpublish failed: ${response.status} ${response.statusText}`,
+                        );
+                    }
+                }
+            } catch (error) {
+                console.debug(
+                    'First unpublish attempt failed, trying alternative approach',
+                );
+
+                const endpoint = `${this.#aem.cfFragmentsUrl}/${fragment.id}/unpublish`;
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: this.#aem.headers,
+                });
+
+                if (!response.ok) {
+                    throw error;
+                }
+            }
+
+            Events.toast.emit({
+                variant: 'positive',
+                content: 'Placeholder successfully unpublished.',
+            });
+
+            this.operation.set();
+
+            return true;
+        } catch (error) {
+            this.operation.set();
+            this.processError(error, 'Failed to unpublish placeholder.');
+            throw error;
+        }
+    }
+
+    /**
+     * Save a dictionary/placeholder fragment using the AEM SDK
+     * @param {Object} fragment - The fragment data
+     * @returns {Promise<Object>} The updated fragment
+     */
+    async saveDictionaryFragment(fragment) {
+        try {
+            // Add info toast
+            Events.toast.emit({
+                variant: 'info',
+                content: 'Saving placeholder...',
+            });
+
+            this.operation.set(OPERATIONS.SAVE);
+
+            const updatedFragment =
+                await this.#aem.sites.cf.fragments.save(fragment);
+
+            if (!updatedFragment) {
+                throw new Error('Invalid fragment data returned.');
+            }
+
+            Events.toast.emit({
+                variant: 'positive',
+                content: 'Placeholder successfully saved.',
+            });
+
+            this.operation.set();
+
+            return updatedFragment;
+        } catch (error) {
+            this.operation.set();
+            this.processError(error, 'Failed to save placeholder.');
+            throw error;
+        }
+    }
+
+    /**
+     * Publish a dictionary/placeholder fragment using the AEM SDK
+     * @param {Object} fragment - The fragment to publish
+     * @returns {Promise<boolean>} Whether the operation was successful
+     */
+    async publishDictionaryFragment(fragment) {
+        try {
+            Events.toast.emit({
+                variant: 'info',
+                content: 'Publishing placeholder...',
+            });
+
+            this.operation.set(OPERATIONS.PUBLISH);
+
+            await this.#aem.sites.cf.fragments.publish(fragment);
+
+            Events.toast.emit({
+                variant: 'positive',
+                content: 'Placeholder successfully published.',
+            });
+
+            this.operation.set();
+
+            return true;
+        } catch (error) {
+            this.operation.set();
+            this.processError(error, 'Failed to publish placeholder.');
+            throw error;
+        }
+    }
+
+    /**
+     * Delete a dictionary/placeholder fragment using the AEM SDK
+     * @param {Object} fragment - The fragment to delete
+     * @returns {Promise<boolean>} Whether the operation was successful
+     */
+    async deleteDictionaryFragment(fragment) {
+        try {
+            Events.toast.emit({
+                variant: 'info',
+                content: 'Deleting placeholder...',
+            });
+
+            this.operation.set(OPERATIONS.DELETE);
+
+            await this.#aem.sites.cf.fragments.delete(fragment);
+
+            Events.toast.emit({
+                variant: 'positive',
+                content: 'Placeholder successfully deleted.',
+            });
+
+            this.operation.set();
+
+            return true;
+        } catch (error) {
+            this.operation.set();
+            this.processError(error, 'Failed to delete placeholder.');
+            throw error;
+        }
+    }
+
+    /**
+     * Fetches a fragment by its path to get the latest version
+     * @param {string} path - Path to the fragment
+     * @returns {Promise<Object>} - The latest fragment data
+     */
+    async getFragmentByPath(path) {
+        try {
+            if (!path) {
+                throw new Error('Fragment path is required');
+            }
+
+            if (!this.#aem) {
+                await this.initializeAem();
+            }
+
+            const encodedPath = encodeURIComponent(path);
+            const response = await fetch(
+                `${this.#aem.cfFragmentsUrl}/api/assets/${encodedPath}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(this.#aem?.headers || {}),
+                    },
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    `Failed to fetch fragment: ${response.status} ${response.statusText}`,
+                );
+            }
+
+            const fragment = await response.json();
+            return fragment;
+        } catch (error) {
+            this.processError(error, 'Failed to fetch fragment:');
+            throw error;
+        }
+    }
+
+    /**
+     * Create a new dictionary/placeholder fragment
+     * @param {Object} fragmentData - The fragment data to create
+     * @returns {Promise<Object>} - The created fragment
+     */
+    async createDictionaryFragment(fragmentData) {
+        try {
+            Events.toast.emit({
+                variant: 'info',
+                content: 'Creating placeholder...',
+            });
+
+            this.operation.set(OPERATIONS.CREATE);
+
+            const { parentPath, name, modelId, title, description, data } =
+                fragmentData;
+
+            if (!parentPath) {
+                throw new Error(
+                    'Parent path is required for placeholder creation',
+                );
+            }
+
+            if (!modelId) {
+                throw new Error(
+                    `Missing required model ID for fragment creation`,
+                );
+            }
+
+            const fields = data
+                ? Object.entries(data).map(([fieldName, value]) => {
+                      let type = 'text';
+                      if (typeof value === 'boolean') type = 'boolean';
+                      if (typeof value === 'number') type = 'number';
+
+                      return {
+                          name: fieldName,
+                          type: type,
+                          values: Array.isArray(value) ? value : [value],
+                      };
+                  })
+                : [];
+
+            const fragmentObject = {
+                title: title || name,
+                model: { id: modelId },
+                fields: fields,
+            };
+
+            const result = await this.#aem.sites.cf.fragments.create(
+                fragmentObject,
+                parentPath,
+            );
+
+            const newFragment = new Fragment(result);
+
+            Events.toast.emit({
+                variant: 'positive',
+                content: 'Placeholder successfully created.',
+            });
+
+            this.operation.set();
+
+            return newFragment;
+        } catch (error) {
+            this.operation.set();
+            this.processError(error, 'Failed to create placeholder.');
+            throw error;
+        }
     }
 
     render() {

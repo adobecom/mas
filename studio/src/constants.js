@@ -75,6 +75,7 @@ export const OPERATIONS = {
     SAVE: 'save',
     CLONE: 'clone',
     UNPUBLISH: 'unpublish',
+    CREATE: 'create',
 };
 
 export const EnvColorCode = {
@@ -86,22 +87,22 @@ export const EnvColorCode = {
 
 export const ENVS = {
     stage: {
-      name: 'stage',
-      ims: 'stg1',
-      adobeIO: 'cc-collab-stage.adobe.io',
-      adminconsole: 'stage.adminconsole.adobe.com',
-      account: 'stage.account.adobe.com',
-      edgeConfigId: 'e065836d-be57-47ef-b8d1-999e1657e8fd',
-      pdfViewerClientId: 'a76f1668fd3244d98b3838e189900a5e',
+        name: 'stage',
+        ims: 'stg1',
+        adobeIO: 'cc-collab-stage.adobe.io',
+        adminconsole: 'stage.adminconsole.adobe.com',
+        account: 'stage.account.adobe.com',
+        edgeConfigId: 'e065836d-be57-47ef-b8d1-999e1657e8fd',
+        pdfViewerClientId: 'a76f1668fd3244d98b3838e189900a5e',
     },
     prod: {
-      name: 'prod',
-      ims: 'prod',
-      adobeIO: 'cc-collab.adobe.io',
-      adminconsole: 'adminconsole.adobe.com',
-      account: 'account.adobe.com',
-      edgeConfigId: '913eac4d-900b-45e8-9ee7-306216765cd2',
-      pdfViewerClientId: '3c0a5ddf2cc04d3198d9e48efc390fa9',
+        name: 'prod',
+        ims: 'prod',
+        adobeIO: 'cc-collab.adobe.io',
+        adminconsole: 'adminconsole.adobe.com',
+        account: 'account.adobe.com',
+        edgeConfigId: '913eac4d-900b-45e8-9ee7-306216765cd2',
+        pdfViewerClientId: '3c0a5ddf2cc04d3198d9e48efc390fa9',
     },
 };
 
@@ -114,3 +115,7 @@ export const TAG_STATUS_PUBLISHED_PATH =
     '/content/cq:tags/mas/status/published';
 export const TAG_STATUS_DRAFT = 'mas:status/draft';
 export const TAG_STATUS_DRAFT_PATH = '/content/cq:tags/mas/status/draft';
+
+export const ROOT_PATH = '/content/dam/mas';
+export const DICTIONARY_MODEL_ID =
+    'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';

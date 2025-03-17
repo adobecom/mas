@@ -232,6 +232,11 @@ merch-card button {
     transition: all 0.3s ease;
 }
 
+.mas-fragment.mask:hover {
+    opacity: 1;
+    filter: none;
+}
+
 mas-fragment-render[selected] .render-card {
     outline: 2px solid var(--spectrum-global-color-blue-600);
 }
@@ -252,6 +257,7 @@ mas-fragment-table:not(.has-tooltip) ~ sp-tooltip {
 merch-card:hover {
     background-color: var(--spectrum-background-base-color) !important;
 }
+
 
 merch-card sp-icon-add,
 merch-card sp-icon-remove {

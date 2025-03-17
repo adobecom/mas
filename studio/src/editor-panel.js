@@ -13,6 +13,7 @@ const MODEL_WEB_COMPONENT_MAPPING = {
     'Card Collection': 'merch-card-collection',
 };
 
+const MODELS_NEEDING_MASK = [CARD_MODEL_PATH];
 export default class EditorPanel extends LitElement {
     static properties = {
         source: { type: Object },
@@ -113,7 +114,7 @@ export default class EditorPanel extends LitElement {
     }
 
     needsMask(fragment) {
-        return fragment.model.path === CARD_MODEL_PATH;
+        return MODELS_NEEDING_MASK.includes(fragment.model.path);
     }
 
     maskOtherFragments(currentId) {

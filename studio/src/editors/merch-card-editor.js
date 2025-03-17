@@ -80,10 +80,7 @@ class MerchCardEditor extends LitElement {
     }
 
     get fragmentQuantityValue() {
-        return (
-            this.fragment?.fields.find((f) => f.name === QUANTITY_MODEL)
-                ?.values[0] || ''
-        );
+        return this.fragment?.fields.find((f) => f.name === QUANTITY_MODEL)?.values[0] || '';
     }
 
     getQuantityAttribute(name) {
@@ -121,11 +118,7 @@ class MerchCardEditor extends LitElement {
     }
 
     #updateQuantityValues(event) {
-        const vals = [
-            this.quantityStart,
-            this.quantityStep,
-            this.quantityTitle,
-        ];
+        const vals = [this.quantityStart, this.quantityStep, this.quantityTitle];
         if (event.target.dataset.field === 'startQuantity') {
             vals[0] = event.target.value;
         } else if (event.target.dataset.field === 'stepQuantity') {
@@ -144,21 +137,15 @@ class MerchCardEditor extends LitElement {
 
         let html = '';
         if (e.target.checked) {
-            html = this.createQsElement(
-                this.quantityStart,
-                this.quantityStep,
-                this.quantityTitle,
-            ).outerHTML;
+            html = this.createQsElement(this.quantityStart, this.quantityStep, this.quantityTitle).outerHTML;
         } else {
-            const qsValues = this.fragmentStore
-                .get()
-                .getField(QUANTITY_MODEL)?.values;
+            const qsValues = this.fragmentStore.get().getField(QUANTITY_MODEL)?.values;
             this.quantitySelectorValues = qsValues?.length ? qsValues[0] : '';
         }
         const fragment = this.fragmentStore.get();
         fragment.updateField(QUANTITY_MODEL, [html]);
         this.fragmentStore.set(fragment);
-    };
+    }
 
     showQuantityFields(show) {
         const element = this.querySelector('#quantitySelector');
@@ -400,19 +387,15 @@ class MerchCardEditor extends LitElement {
                     >Show Quantity selector</sp-checkbox
                 >
                 <sp-field-group id="quantitySelector">
-                    <sp-field-label for="title-quantity"
-                        >Quantity selector title</sp-field-label
-                    >
+                    <sp-field-label for="title-quantity">Quantity selector title</sp-field-label>
                     <sp-textfield
                         id="title-quantity"
                         data-field="titleQuantity"
                         value="${this.quantityTitle}"
                         @input="${this.#updateQuantityValues}"
                         ?disabled=${this.disabled}
-                    ></sp-textfield>
-                    <sp-field-label for="start-quantity"
-                        >Start quantity</sp-field-label
-                    >
+                        ></sp-textfield>                
+                    <sp-field-label for="start-quantity">Start quantity</sp-field-label>
                     <sp-textfield
                         id="start-quantity"
                         data-field="startQuantity"
@@ -420,10 +403,7 @@ class MerchCardEditor extends LitElement {
                         value="${this.quantityStart}"
                         @input="${this.#updateQuantityValues}"
                         ?disabled=${this.disabled}
-                        ><sp-help-text slot="negative-help-text"
-                            >Numeric values only</sp-help-text
-                        ></sp-textfield
-                    >
+                        ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield>
                     <sp-field-label for="step-quantity">Step</sp-field-label>
                     <sp-textfield
                         id="step-quantity"
@@ -432,10 +412,7 @@ class MerchCardEditor extends LitElement {
                         value="${this.quantityStep}"
                         @input="${this.#updateQuantityValues}"
                         ?disabled=${this.disabled}
-                        ><sp-help-text slot="negative-help-text"
-                            >Numeric values only</sp-help-text
-                        ></sp-textfield
-                    >
+                        ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield>
                 </sp-field-group>
             </sp-field-group>
             <sp-field-group class="toggle" id="ctas">

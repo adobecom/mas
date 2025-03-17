@@ -1057,7 +1057,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
     });
 
     // @studio-suggested-edit-cta-variant - Validate edit CTA variant for suggested card in mas studio
-    test.skip(`${features[14].name},${features[14].tags}`, async ({
+    test(`${features[14].name},${features[14].tags}`, async ({
         page,
         baseURL,
     }) => {

@@ -57,9 +57,7 @@ class MasFragmentRender extends LitElement {
                 id: fragment.id,
                 path: fragment.path,
                 model: fragment.model,
-                label:
-                    fragment.getField('label')?.values[0] ||
-                    fragment.getField('title')?.values[0],
+                label: fragment.getField('label')?.values[0],
                 references: fragment.references || [],
                 fields: fragment.fields || [],
             };
@@ -121,11 +119,10 @@ class MasFragmentRender extends LitElement {
         const label = this.fragment.fields.find(
             (field) => field.name === 'label',
         )?.values[0];
-        const modelName = this.fragment.model.name;
         return html`<div class="unknown-fragment" slot="trigger">
             <sp-icon-document-fragment></sp-icon-document-fragment> ${label}
             ${this.selectionOverlay}
-            <p class="model-name">${modelName}</p>
+            <p class="model-name">${this.fragment.title}</p>
         </div>`;
     }
 

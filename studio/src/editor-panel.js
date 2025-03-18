@@ -118,18 +118,18 @@ export default class EditorPanel extends LitElement {
     }
 
     maskOtherFragments(currentId) {
-        document.querySelectorAll('.mas-fragment').forEach((fragment) => {
-            if (fragment.dataset.id !== currentId) {
-                fragment.classList.add('mask');
-            }
-        });
+        document.querySelector('.main-container').classList.add('mask');
+        document
+            .querySelector(`[data-id=${currentId}]`)
+            ?.classList.add('editing-fragment');
     }
 
     unmaskOtherFragments() {
         // Remove mask when editor closes
-        document.querySelectorAll('.mas-fragment.mask').forEach((fragment) => {
-            fragment.classList.remove('mask');
-        });
+        document.querySelector('.mask').classList.remove('mask');
+        document
+            .querySelector('.editing-fragment')
+            ?.classList.remove('editing-fragment');
     }
 
     /**

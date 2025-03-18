@@ -226,13 +226,13 @@ merch-card button {
     pointer-events: none;
 }
 
-.mas-fragment.mask {
+.mask .mas-fragment:not(.editing-fragment) {
     opacity: 0.5;
     filter: grayscale(1) blur(1.5px);
     transition: all 0.3s ease;
 }
 
-.mas-fragment.mask:hover {
+.mask .mas-fragment:not(.editing-fragment):hover {
     opacity: 1;
     filter: none;
 }

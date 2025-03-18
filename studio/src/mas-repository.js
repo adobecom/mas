@@ -150,16 +150,6 @@ export class MasRepository extends LitElement {
         return this.fragmentStoreInEdit?.get();
     }
 
-    async preloadFragment(id) {
-        const fragment = await this.#aem.sites.cf.fragments.getById(id);
-        if (fragment) {
-            Store.fragments.list.data.set((prev) => {
-                if (prev.find((store) => store.value.id === id)) return prev;
-                return [...prev, new FragmentStore(fragment)];
-            });
-        }
-    }
-
     async searchFragments() {
         if (this.page.value !== 'content') return;
 

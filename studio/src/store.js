@@ -91,7 +91,11 @@ export function editFragment(store, x) {
     if (
         !Store.fragments.list.data.get().some((fragment) => fragment === store)
     ) {
-        Store.fragments.list.data.set((prev) => [...prev, store]);
+        Store.fragments.list.data.set((prev) => {
+            if (prev.find((fragment) => fragment.value.id === store.value.id))
+                return prev;
+            return [...prev, store];
+        });
     }
     editorPanel()?.editFragment(store, x);
 }

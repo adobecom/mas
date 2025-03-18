@@ -685,8 +685,6 @@ class MerchCardCollectionEditor extends LitElement {
         }
 
         const fragmentData = JSON.parse(data);
-        console.log('Dropped fragment data:', fragmentData);
-
         // Determine the appropriate field based on the model path
         const fieldName = FIELD_MODEL_MAPPING[fragmentData.model.path];
 

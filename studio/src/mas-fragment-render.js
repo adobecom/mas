@@ -75,13 +75,6 @@ class MasFragmentRender extends LitElement {
             event.currentTarget
                 .closest('.render-fragment')
                 .classList.add('dragging');
-
-            console.log(
-                'Started dragging fragment:',
-                dragData.path,
-                'with model path:',
-                dragData.modelPath,
-            );
         } catch (error) {
             console.error('Error setting drag data:', error);
             event.preventDefault();

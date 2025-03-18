@@ -227,7 +227,7 @@ mas-fragment-render[selected] .render-fragment {
 }
 
 sp-progress-circle {
-    position: absolute;
+    position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -501,7 +501,7 @@ sp-underlay + sp-dialog {
 }
 
 sp-progress-circle.preview {
-    position: absolute;
+    position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);

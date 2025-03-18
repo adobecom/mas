@@ -5,7 +5,7 @@ import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
-import { looseEquals, UserFriendlyError } from './utils.js';
+import { debounce, looseEquals, UserFriendlyError } from './utils.js';
 import {
     OPERATIONS,
     STATUS_PUBLISHED,
@@ -46,6 +46,7 @@ export class MasRepository extends LitElement {
         this.publishFragment = this.publishFragment.bind(this);
         this.unpublishFragment = this.unpublishFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
+        this.handleSearch = debounce(this.handleSearch.bind(this), 50);
     }
 
     /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
@@ -94,15 +95,16 @@ export class MasRepository extends LitElement {
     update() {
         super.update();
         if (!this.foldersLoaded.value) return;
-        /**
-         * Automatically fetch data when search/filters update.
-         * Both load methods have page guards (ex. fragments won't be searched on the 'welcome' page)
-         */
-        if (this.page.value === 'content') {
-            this.searchFragments();
-        }
-        if (this.page.value === 'welcome') {
-            this.loadRecentlyUpdatedFragments();
+        this.handleSearch();
+    }
+
+    handleSearch() {
+        switch (this.page.value) {
+            case 'content':
+                this.searchFragments();
+                break;
+            case 'welcome':
+                this.loadRecentlyUpdatedFragments();
         }
     }
 

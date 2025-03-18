@@ -79,10 +79,14 @@ class MerchCardCollectionEditor extends LitElement {
 
         // Create a FragmentStore for each reference
         for (const ref of references) {
-            this.fragmentReferencesMap.set(
-                ref.path,
-                new FragmentStore(new Fragment(ref)),
-            );
+            let fragmentStore = Store.fragments.list.data
+                .get()
+                .find((store) => store.value.id === ref.id);
+
+            if (!fragmentStore) {
+                fragmentStore = new FragmentStore(new Fragment(ref));
+            }
+            this.fragmentReferencesMap.set(ref.path, fragmentStore);
         }
 
         // Request an update to reflect changes

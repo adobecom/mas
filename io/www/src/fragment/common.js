@@ -29,13 +29,14 @@ async function getErrorMessage(response) {
 
 async function internalFetch(path, context) {
     try {
+        const start = Date.now();
         const response = await fetch(path, {
             headers: context.DEFAULT_HEADERS,
         });
         const success = response.status == 200;
         const message = success ? 'ok' : await getErrorMessage(response);
         log(
-            `fetch ${path} (${response?.status}) ${message}`,
+            `fetch ${path} (${response?.status}) ${message} in ${Date.now() - start}ms`,
             context,
             success ? 'info' : 'error',
         );
@@ -44,6 +45,7 @@ async function internalFetch(path, context) {
         logError(`[fetch] ${path} fetch error: ${e.message}`, context);
     }
     return {
+        ...context,
         status: 500,
         message: 'fetch error',
     };

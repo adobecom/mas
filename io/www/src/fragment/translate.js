@@ -30,6 +30,7 @@ async function translate(context) {
         const root = await response.json();
         if (root?.items?.length == 1) {
             translatedBody = root.items[0];
+            context.translatedId = translatedBody.id;
         } else {
             return NO_TRANSLATION_FOUND;
         }

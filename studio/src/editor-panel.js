@@ -314,8 +314,6 @@ export default class EditorPanel extends LitElement {
             if (!confirmed) {
                 return false;
             }
-            // The user confirmed – discard changes.
-            this.fragmentStore.discardChanges();
         }
         this.inEdit.set();
         return true;

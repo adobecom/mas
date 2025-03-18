@@ -58,6 +58,7 @@ const expectedResponse = (description) => ({
     },
     transformer: 'replace',
     requestId: 'mas-replace-ut',
+    dictionaryId: 'fr_FR_dictionary',
     locale: 'fr_FR',
     surface: 'drafts',
 });
@@ -65,7 +66,9 @@ const expectedResponse = (description) => ({
 describe('replace', () => {
     it('returns 200 & no placeholders', async () => {
         const response = await getResponse('foo', 'Buy now');
-        expect(response).to.deep.equal(expectedResponse('foo'));
+        const expected = expectedResponse('foo');
+        delete expected.dictionaryId;
+        expect(response).to.deep.equal(expected);
     });
     it('returns 200 & replaced entries keys with text', async () => {
         const response = await getResponse(
@@ -177,7 +180,8 @@ describe('replace', () => {
                 )
                 .replyWithError('fetch error');
             const context = await replace(FAKE_CONTEXT);
-            expect(context).to.deep.equal(EXPECTED);
+            const dictionaryId = 'fr_FR_dictionary';
+            expect(context).to.deep.equal({ ...EXPECTED, dictionaryId });
         });
         it('manages gracefully non 2xx to find entries', async () => {
             nock('https://odin.adobe.com')
@@ -192,7 +196,8 @@ describe('replace', () => {
                 )
                 .reply(500, 'server error');
             const context = await replace(FAKE_CONTEXT);
-            expect(context).to.deep.equal(EXPECTED);
+            const dictionaryId = 'fr_FR_dictionary';
+            expect(context).to.deep.equal({ ...EXPECTED, dictionaryId });
         });
     });
 });

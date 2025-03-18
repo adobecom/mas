@@ -825,7 +825,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
     });
 
     // @studio-suggested-save-edit-cta-variant - Validate saving change CTA variant
-    test.skip(`${features[11].name},${features[11].tags}`, async ({
+    test(`${features[11].name},${features[11].tags}`, async ({
         page,
         baseURL,
     }) => {

@@ -29,7 +29,7 @@ export class Fragment {
         this.model = model;
         this.etag = etag;
         this.path = path;
-        this.name = path.split('/').pop();
+        this.name = path?.split('/')?.pop();
         this.title = title;
         this.description = description;
         this.status = status;

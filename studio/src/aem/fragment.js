@@ -20,6 +20,7 @@ export class Fragment {
         title,
         description,
         status,
+        created,
         modified,
         fields,
         tags,
@@ -33,6 +34,7 @@ export class Fragment {
         this.title = title;
         this.description = description;
         this.status = status;
+        this.created = created;
         this.modified = modified;
         this.tags = tags;
         this.fields = fields;

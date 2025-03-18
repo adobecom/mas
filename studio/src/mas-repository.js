@@ -54,7 +54,7 @@ export class MasRepository extends LitElement {
     /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
     #abortControllers;
     /** @type {AEM} */
-    #aem;
+    aem;
 
     filters = new StoreController(this, Store.filters);
     search = new StoreController(this, Store.search);
@@ -71,7 +71,7 @@ export class MasRepository extends LitElement {
             throw new Error(
                 'Either the bucket or baseUrl attribute is required.',
             );
-        this.#aem = new AEM(this.bucket, this.baseUrl);
+        this.aem = new AEM(this.bucket, this.baseUrl);
         this.loadFolders();
         this.style.display = 'none';
     }
@@ -112,7 +112,7 @@ export class MasRepository extends LitElement {
 
     async loadFolders() {
         try {
-            const { children } = await this.#aem.folders.list(ROOT);
+            const { children } = await this.aem.folders.list(ROOT);
             const ignore = window.localStorage.getItem('ignore_folders') || [
                 'images',
             ];
@@ -204,7 +204,7 @@ export class MasRepository extends LitElement {
             this.#abortControllers.search = new AbortController();
 
             if (isUUID(this.search.value.query)) {
-                const fragmentData = await this.#aem.sites.cf.fragments.getById(
+                const fragmentData = await this.aem.sites.cf.fragments.getById(
                     localSearch.query,
                     this.#abortControllers.search,
                 );
@@ -229,7 +229,7 @@ export class MasRepository extends LitElement {
                     }
                 }
             } else {
-                const cursor = await this.#aem.sites.cf.fragments.search(
+                const cursor = await this.aem.sites.cf.fragments.search(
                     localSearch,
                     null,
                     this.#abortControllers.search,
@@ -276,7 +276,7 @@ export class MasRepository extends LitElement {
         }
 
         try {
-            const cursor = await this.#aem.sites.cf.fragments.search(
+            const cursor = await this.aem.sites.cf.fragments.search(
                 {
                     sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
                     path: `/content/dam/mas/${path}`,
@@ -318,13 +318,13 @@ export class MasRepository extends LitElement {
             });
             this.operation.set(OPERATIONS.CREATE);
 
-            const result = await this.#aem.sites.cf.fragments.create({
+            const result = await this.aem.sites.cf.fragments.create({
                 ...fragmentData,
                 description: '',
                 fields: [],
                 parentPath: this.parentPath,
             });
-            const latest = await this.#aem.sites.cf.fragments.getById(
+            const latest = await this.aem.sites.cf.fragments.getById(
                 result.id,
             );
 
@@ -364,7 +364,7 @@ export class MasRepository extends LitElement {
         });
         this.operation.set(OPERATIONS.SAVE);
         try {
-            let updatedFragment = await this.#aem.sites.cf.fragments.save(
+            let updatedFragment = await this.aem.sites.cf.fragments.save(
                 this.fragmentInEdit,
             );
             if (!updatedFragment) throw new Error('Invalid fragment.');
@@ -389,11 +389,11 @@ export class MasRepository extends LitElement {
     async copyFragment() {
         try {
             this.operation.set(OPERATIONS.CLONE);
-            const result = await this.#aem.sites.cf.fragments.copy(
+            const result = await this.aem.sites.cf.fragments.copy(
                 this.fragmentInEdit,
             );
             const newFragment = new Fragment(result);
-            Fragment.cache.add(newFragment);
+            fragmentCache.add(newFragment);
 
             const newFragmentStore = new FragmentStore(newFragment);
             Store.fragments.list.data.set((prev) => [
@@ -422,7 +422,7 @@ export class MasRepository extends LitElement {
     async publishFragment() {
         try {
             this.operation.set(OPERATIONS.PUBLISH);
-            await this.#aem.sites.cf.fragments.publish(this.fragmentInEdit);
+            await this.aem.sites.cf.fragments.publish(this.fragmentInEdit);
 
             this.operation.set();
             Events.toast.emit({
@@ -453,7 +453,7 @@ export class MasRepository extends LitElement {
         try {
             this.operation.set(OPERATIONS.DELETE);
             const fragment = this.fragmentInEdit;
-            await this.#aem.sites.cf.fragments.delete(fragment);
+            await this.aem.sites.cf.fragments.delete(fragment);
 
             Store.fragments.list.data.set((prev) => {
                 var result = [...prev];
@@ -485,7 +485,7 @@ export class MasRepository extends LitElement {
         this.addToCache([store.get()]);
         store.setLoading(true);
         const id = store.get().id;
-        const latest = await this.#aem.sites.cf.fragments.getById(id);
+        const latest = await this.aem.sites.cf.fragments.getById(id);
         store.refreshFrom(latest);
         store.setLoading(false);
     }

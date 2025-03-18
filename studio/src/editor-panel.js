@@ -118,7 +118,7 @@ export default class EditorPanel extends LitElement {
     }
 
     maskOtherFragments(currentId) {
-        document.querySelector('.main-container').classList.add('mask');
+        document.querySelector('.main-container')?.classList.add('mask');
         document
             .querySelector(`[data-id=${currentId}]`)
             ?.classList.add('editing-fragment');
@@ -126,7 +126,7 @@ export default class EditorPanel extends LitElement {
 
     unmaskOtherFragments() {
         // Remove mask when editor closes
-        document.querySelector('.mask').classList.remove('mask');
+        document.querySelector('.mask')?.classList.remove('mask');
         document
             .querySelector('.editing-fragment')
             ?.classList.remove('editing-fragment');

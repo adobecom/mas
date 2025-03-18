@@ -17,6 +17,8 @@ import {
 
 const ROOT = '/content/dam/mas';
 
+let fragmentCache;
+
 export function getDamPath(path) {
     if (!path) return ROOT;
     if (path.startsWith(ROOT)) return path;
@@ -338,12 +340,16 @@ export class MasRepository extends LitElement {
     }
 
     async addToCache(fragments) {
-        if (!Fragment.cache) {
+        if (!fragmentCache) {
             await customElements.whenDefined('aem-fragment').then(() => {
-                Fragment.cache = document.createElement('aem-fragment').cache;
+                fragmentCache = document.createElement('aem-fragment').cache;
             });
         }
-        Fragment.cache.add(...fragments);
+        if (!fragmentCache) return;
+        for (const fragment of fragments) {
+            if (fragmentCache.has(fragment)) continue;
+            fragmentCache.add(fragment);
+        }
     }
 
     /** Write */
@@ -476,6 +482,7 @@ export class MasRepository extends LitElement {
      * @param {FragmentStore} store
      */
     async refreshFragment(store) {
+        this.addToCache([store.get()]);
         store.setLoading(true);
         const id = store.get().id;
         const latest = await this.#aem.sites.cf.fragments.getById(id);

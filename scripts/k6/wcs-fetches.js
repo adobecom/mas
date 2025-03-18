@@ -17,17 +17,6 @@ const osis = new SharedArray('fragments', () => {
 
 const NB_USERS = __ENV.USERS || 10;
 
-export const RAMP = [
-    { duration: __ENV.DURATION || '10s', target: NB_USERS },
-    { duration: __ENV.DURATION * 2 || '20s', target: NB_USERS },
-    { duration: __ENV.DURATION || '10s', target: 0 },
-];
-
-export const STEP = [
-    { duration: '1s', target: NB_USERS },
-    { duration: __ENV.DURATION || '20s', target: NB_USERS },
-];
-
 export const options = {
     stages: __ENV.PROFILE === 'STEP' ? STEP : RAMP,
 };

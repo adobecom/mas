@@ -54,7 +54,7 @@ export default class EditorPanel extends LitElement {
     inEdit = Store.fragments.inEdit;
     operation = Store.operation;
 
-    reactiveController;
+    reactiveController = new ReactiveController(this);
 
     #discardPromiseResolver;
 
@@ -136,7 +136,7 @@ export default class EditorPanel extends LitElement {
         }
         await this.repository.refreshFragment(store);
         this.inEdit.set(store);
-        this.reactiveController = new ReactiveController(this, [
+        this.reactiveController.updateStores([
             this.inEdit,
             this.inEdit.get(),
             this.operation,

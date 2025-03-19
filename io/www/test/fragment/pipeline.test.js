@@ -184,7 +184,9 @@ describe('pipeline corner cases', () => {
             state: new MockState(),
         });
         expect(result).to.deep.equal({
-            message: 'requested parameters are not present',
+            body: {
+                message: 'requested parameters are not present',
+            },
             statusCode: 400,
         });
     });
@@ -202,7 +204,9 @@ describe('pipeline corner cases', () => {
 
         expect(result).to.deep.equal({
             statusCode: 500,
-            message: 'nok',
+            body: {
+                message: 'nok',
+            },
         });
     });
 
@@ -221,7 +225,9 @@ describe('pipeline corner cases', () => {
 
         expect(result).to.deep.equal({
             statusCode: 404,
-            message: 'nok',
+            body: {
+                message: 'nok',
+            }
         });
     });
 
@@ -248,7 +254,9 @@ describe('pipeline corner cases', () => {
 
         expect(result).to.deep.equal({
             statusCode: 500,
-            message: 'unable to fetch references',
+            body: {
+                message: 'unable to fetch references',
+            },
         });
     });
 

@@ -226,7 +226,7 @@ mas-fragment-render[selected] .render-fragment {
     outline: 2px solid var(--spectrum-global-color-blue-600);
 }
 
-sp-progress-circle {
+sp-progress-circle.fragments {
     position: fixed;
     top: 50%;
     left: 50%;

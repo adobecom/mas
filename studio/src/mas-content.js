@@ -99,6 +99,7 @@ class MasContent extends LitElement {
     get loadingIndicator() {
         if (!this.loading.value) return nothing;
         return html`<sp-progress-circle
+            class="fragments"
             indeterminate
             size="l"
         ></sp-progress-circle>`;

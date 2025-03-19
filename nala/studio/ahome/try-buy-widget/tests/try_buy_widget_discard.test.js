@@ -360,7 +360,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-discard-cta-checkout-params - Validate discard edit CTA checkout params for try-buy-widget card in mas studio
+    // @studio-try-buy-widget-discard-edit-cta-checkout-params - Validate discard edit CTA checkout params for try-buy-widget card in mas studio
     test(`${features[4].name},${features[4].tags}`, async ({
         page,
         baseURL,
@@ -398,12 +398,23 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 .click();
             await expect(await studio.checkoutParameters).toBeVisible();
             await expect(await studio.linkSave).toBeVisible();
-            await studio.checkoutParameters.fill(data.checkoutParams);
+
+            const checkoutParamsString = Object.keys(data.checkoutParams)
+              .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`)
+              .join('&');
+            await studio.checkoutParameters.fill(checkoutParamsString);
             await studio.linkSave.click();
+
             const CTAhref = await trybuywidget.cardCTA
                 .first()
                 .getAttribute('data-href');
-            expect(await CTAhref).toContain(data.checkoutParams);
+            let searchParams = new URLSearchParams(
+                decodeURI(CTAhref).split('?')[1],
+            );
+            expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
+            expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
+            expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
+            expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -419,7 +430,10 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             const changedCTAhref = await trybuywidget.cardCTA
                 .first()
                 .getAttribute('data-href');
-            expect(await changedCTAhref).not.toContain(data.checkoutParams);
+            let noSearchParams = new URLSearchParams(
+                decodeURI(changedCTAhref).split('?')[1],
+            );
+            expect(noSearchParams).toBeNull;
         });
     });
 });

@@ -516,7 +516,11 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 .click();
             await expect(await studio.checkoutParameters).toBeVisible();
             await expect(await studio.linkSave).toBeVisible();
-            await studio.checkoutParameters.fill(data.checkoutParams);
+
+            const checkoutParamsString = Object.keys(data.checkoutParams)
+              .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`)
+              .join('&');
+            await studio.checkoutParameters.fill(checkoutParamsString);
             await studio.linkSave.click();
             await studio.saveCard();
         });
@@ -532,7 +536,13 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 .locator(trybuywidget.cardCTA)
                 .first()
                 .getAttribute('data-href');
-            expect(await CTAhref).toContain(data.checkoutParams);
-        });
+                let searchParams = new URLSearchParams(
+                    decodeURI(CTAhref).split('?')[1],
+                );
+                expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
+                expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
+                expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
+                expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
+            });
     });
 });

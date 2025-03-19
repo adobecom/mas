@@ -6,7 +6,7 @@ const FRAGMENT_AUTHOR_URL_PREFIX =
     'https://author-p22655-e59433.adobeaemcloud.com/adobe/sites/cf/fragments';
 
 const PATH_TOKENS =
-    /\/content\/dam\/mas\/(?<surface>[\w]+)\/(?<parsedLocale>[\w_]+)\/(?<fragmentPath>.*)/;
+    /\/content\/dam\/mas\/(?<surface>[\w_-]+)\/(?<parsedLocale>[\w_-]+)\/(?<fragmentPath>.*)/;
 
 /**
  * builds a full fetchable path to the fragment

@@ -89,9 +89,29 @@ export const styles = css`
         object-fit: contain;
     }
 
+    .item-text {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .item-label, .item-subtext {
+        display: flex;
+        flex-direction: column;
+    }
+
     .item-title {
         font-size: 14px;
         font-weight: 500;
+    }
+
+    .item-label {
+        font-weight: 500;
+    }
+
+    .item-subtext {
+        font-size: 12px;
+        color: var(--spectrum-global-color-gray-700);
+        margin-top: 2px;
     }
 
     .item-actions {

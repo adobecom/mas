@@ -173,48 +173,36 @@ class MerchCardCollectionEditor extends LitElement {
     actions(fragment) {
         return html`
             <div class="item-actions">
-            <sp-action-button
-                            quiet
-                variant="secondary"
-                @click="${() => this.removeItem(fragment.path)}"
-            >
-                <sp-icon-close
-                    slot="icon"
-                    label="Remove item"
-                ></sp-icon-close>
-            </sp-action-button>
-            </sp-action-button>
-                              <sp-action-button
-                                  quiet
-                                  variant="secondary"
-                                  @click="${() => this.editFragment(fragment.path)}"
-                              >
-                                  <sp-icon-edit
-                                      slot="icon"
-                                      label="Edit item"
-                                  ></sp-icon-edit>
-                              </sp-action-button>
-                        ${
-                            fragment.model?.path === CARD_MODEL_PATH
-                                ? html`
-                                      <sp-icon-preview
-                                          slot="icon"
-                                          label="Preview item"
-                                          @mouseover="${(e) =>
-                                              this.showItemPreview(
-                                                  e,
-                                                  fragment,
-                                              )}"
-                                          @mouseout="${() =>
-                                              this.hideItemPreview()}"
-                                      ></sp-icon-preview>
-                                  `
-                                : nothing
-                        }
-                <sp-icon-drag-handle
-                    label="Order"
-                ></sp-icon-drag-handle>
-                </div>
+                <sp-action-button
+                    quiet
+                    variant="secondary"
+                    @click="${() => this.removeItem(fragment.path)}"
+                >
+                    <sp-icon-close
+                        slot="icon"
+                        label="Remove item"
+                    ></sp-icon-close>
+                </sp-action-button>
+                <sp-action-button
+                    quiet
+                    variant="secondary"
+                    @click="${() => this.editFragment(fragment.path)}"
+                >
+                    <sp-icon-edit slot="icon" label="Edit item"></sp-icon-edit>
+                </sp-action-button>
+                ${fragment.model?.path === CARD_MODEL_PATH
+                    ? html`
+                          <sp-icon-preview
+                              slot="icon"
+                              label="Preview item"
+                              @mouseover="${(e) =>
+                                  this.showItemPreview(e, fragment)}"
+                              @mouseout="${() => this.hideItemPreview()}"
+                          ></sp-icon-preview>
+                      `
+                    : nothing}
+                <sp-icon-drag-handle label="Order"></sp-icon-drag-handle>
+            </div>
         `;
     }
 
@@ -264,6 +252,8 @@ class MerchCardCollectionEditor extends LitElement {
                                 )?.values || [];
                         }
 
+                        iconPaths = iconPaths.slice(0, 2);
+
                         return html`
                             <div
                                 class="item-wrapper"
@@ -293,7 +283,12 @@ class MerchCardCollectionEditor extends LitElement {
                                               </div>
                                           `
                                         : nothing}
-                                    <div class="item-label">${label}</div>
+                                    <div class="item-text">
+                                        <div class="item-label">${label}</div>
+                                        <div class="item-subtext">
+                                            ${fragment.name}
+                                        </div>
+                                    </div>
                                 </div>
                                 ${this.actions(fragment)}
                             </div>

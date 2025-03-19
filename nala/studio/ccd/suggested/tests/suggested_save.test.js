@@ -100,7 +100,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 data.clonedCardID,
             );
 
-            await expect(clonedCardTwo).toBeVisible();
+            await expect(await clonedCardTwo).toBeVisible();
 
             let clonedCardTwoID = await clonedCardTwo
                 .locator('aem-fragment')
@@ -121,11 +121,11 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
             await clonedCard.dblclick();
             await studio.deleteCard();
-            await expect(clonedCard).not.toBeVisible();
+            await expect(await clonedCard).not.toBeVisible();
 
             await clonedCardTwo.dblclick();
             await studio.deleteCard();
-            await expect(clonedCardTwo).not.toBeVisible();
+            await expect(await clonedCardTwo).not.toBeVisible();
         });
     });
 

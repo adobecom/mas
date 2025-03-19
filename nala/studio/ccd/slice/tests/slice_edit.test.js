@@ -1206,8 +1206,11 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.linkSave).toBeVisible();
 
             const checkoutParamsString = Object.keys(data.checkoutParams)
-              .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`)
-              .join('&');
+                .map(
+                    (key) =>
+                        `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`,
+                )
+                .join('&');
             await studio.checkoutParameters.fill(checkoutParamsString);
             await studio.linkSave.click();
         });
@@ -1227,7 +1230,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             );
             expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
             expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
-            expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
+            expect(searchParams.get('promoid')).toBe(
+                data.checkoutParams.promoid,
+            );
             expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
         });
     });

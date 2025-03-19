@@ -801,8 +801,11 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.linkSave).toBeVisible();
 
             const checkoutParamsString = Object.keys(data.checkoutParams)
-              .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`)
-              .join('&');
+                .map(
+                    (key) =>
+                        `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`,
+                )
+                .join('&');
             await studio.checkoutParameters.fill(checkoutParamsString);
             await studio.linkSave.click();
 
@@ -812,7 +815,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             );
             expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
             expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
-            expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
+            expect(searchParams.get('promoid')).toBe(
+                data.checkoutParams.promoid,
+            );
             expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
         });
 
@@ -828,10 +833,10 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         await test.step('step-5: Verify there is no changes of the card', async () => {
             const changedCTAhref =
                 await slice.cardCTA.getAttribute('data-href');
-                let noSearchParams = new URLSearchParams(
-                    decodeURI(changedCTAhref).split('?')[1],
-                );
-                expect(noSearchParams).toBeNull;
-            });
+            let noSearchParams = new URLSearchParams(
+                decodeURI(changedCTAhref).split('?')[1],
+            );
+            expect(noSearchParams).toBeNull;
+        });
     });
 });

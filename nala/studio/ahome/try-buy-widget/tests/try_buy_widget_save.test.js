@@ -518,8 +518,11 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await studio.linkSave).toBeVisible();
 
             const checkoutParamsString = Object.keys(data.checkoutParams)
-              .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`)
-              .join('&');
+                .map(
+                    (key) =>
+                        `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`,
+                )
+                .join('&');
             await studio.checkoutParameters.fill(checkoutParamsString);
             await studio.linkSave.click();
             await studio.saveCard();
@@ -536,13 +539,15 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 .locator(trybuywidget.cardCTA)
                 .first()
                 .getAttribute('data-href');
-                let searchParams = new URLSearchParams(
-                    decodeURI(CTAhref).split('?')[1],
-                );
-                expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
-                expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
-                expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
-                expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
-            });
+            let searchParams = new URLSearchParams(
+                decodeURI(CTAhref).split('?')[1],
+            );
+            expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
+            expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
+            expect(searchParams.get('promoid')).toBe(
+                data.checkoutParams.promoid,
+            );
+            expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
+        });
     });
 });

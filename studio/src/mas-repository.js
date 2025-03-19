@@ -1,6 +1,6 @@
 import { LitElement, nothing } from 'lit';
 import StoreController from './reactivity/store-controller.js';
-import Store from './store.js';
+import Store, { editFragment } from './store.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
@@ -324,9 +324,7 @@ export class MasRepository extends LitElement {
                 fields: [],
                 parentPath: this.parentPath,
             });
-            const latest = await this.aem.sites.cf.fragments.getById(
-                result.id,
-            );
+            const latest = await this.aem.sites.cf.fragments.getById(result.id);
 
             Events.toast.emit({
                 variant: 'positive',
@@ -400,7 +398,7 @@ export class MasRepository extends LitElement {
                 ...prev,
                 newFragmentStore,
             ]);
-            this.inEdit.set(newFragmentStore);
+            editFragment(newFragmentStore);
 
             this.operation.set();
             Events.fragmentAdded.emit(newFragment.id);
@@ -463,7 +461,7 @@ export class MasRepository extends LitElement {
                 result.splice(index, 1);
                 return result;
             });
-            this.inEdit.set(null);
+            this.inEdit.set();
             this.operation.set();
             Events.toast.emit({
                 variant: 'positive',

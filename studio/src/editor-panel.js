@@ -138,7 +138,7 @@ export default class EditorPanel extends LitElement {
         this.inEdit.set(store);
         this.reactiveController.updateStores([
             this.inEdit,
-            this.inEdit.get(),
+            store,
             this.operation,
         ]);
     }

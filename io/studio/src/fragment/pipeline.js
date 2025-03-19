@@ -43,7 +43,7 @@ async function main(params) {
         context = await transformer(context);
     }
     returnValue = {
-        status: context.status,
+        statusCode: context.status,
     };
     if (context.status == 200) {
         returnValue.body = context.body;

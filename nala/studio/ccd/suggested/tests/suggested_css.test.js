@@ -2,7 +2,6 @@ import { expect, test } from '@playwright/test';
 import StudioPage from '../../../studio.page.js';
 import CCDSuggestedSpec from '../specs/suggested_css.spec.js';
 import CCDSuggestedPage from '../suggested.page.js';
-import OSTPage from '../../../ost.page.js';
 import WebUtil from '../../../../libs/webutil.js';
 
 const { features } = CCDSuggestedSpec;
@@ -10,7 +9,6 @@ const miloLibs = process.env.MILO_LIBS || '';
 
 let studio;
 let suggested;
-let ost;
 let webUtil;
 
 test.beforeEach(async ({ page, browserName }) => {
@@ -22,7 +20,6 @@ test.beforeEach(async ({ page, browserName }) => {
     }
     studio = new StudioPage(page);
     suggested = new CCDSuggestedPage(page);
-    ost = new OSTPage(page);
     webUtil = new WebUtil(page);
 });
 
@@ -208,7 +205,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-css-cta-cta - Validate CTA CSS for suggested cards
+    // @studio-suggested-css-cta - Validate CTA CSS for suggested cards
     test(`${features[7].name},${features[7].tags}`, async ({
         page,
         baseURL,

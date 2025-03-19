@@ -1,11 +1,13 @@
 const { expect } = require('chai');
 const nock = require('nock');
+const { MockState } = require('./mocks/MockState.js');
 const translate = require('../../src/fragment/translate.js').translate;
 
 const FAKE_CONTEXT = {
     status: 200,
     transformer: 'translate',
     requestId: 'mas-translate-ut',
+    state: new MockState(),
 };
 
 describe('translate typical cases', () => {
@@ -101,7 +103,7 @@ describe('translate corner cases', () => {
         });
     });
 
-    it('should return 404 when translation fetch fails', async () => {
+    it('should return 500 when translation fetch failed', async () => {
         nock('https://odin.adobe.com')
             .get('/adobe/sites/fragments')
             .query({ path: '/content/dam/mas/drafts/fr_FR/someFragment' })
@@ -115,8 +117,8 @@ describe('translate corner cases', () => {
             locale: 'fr_FR',
         });
         expect(result).to.deep.equal({
-            status: 404,
-            message: 'no translation found',
+            status: 500,
+            message: 'translation search failed',
         });
     });
 

@@ -3,36 +3,29 @@ export default {
     features: [
         {
             tcid: '0',
-            name: '@studio-slice-clone-edit-save-delete',
+            name: '@studio-slice-save-variant-change-to-suggested',
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
-                description: 'Field Edit & Save',
-                newDescription: 'Cloned Field Edit',
-                newBadge: 'New Badge',
-                newIconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
-                price: 'US$17.24/mo',
-                strikethroughPrice: 'US$34.49/mo',
-                ctaText: 'Buy now',
-                newCtaText: 'Buy now 2',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
         },
         {
             tcid: '1',
-            name: '@studio-slice-save-variant-change-to-suggested',
+            name: '@studio-slice-save-variant-change-to-trybuywidget',
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
         },
         {
             tcid: '2',
-            name: '@studio-slice-save-variant-change-to-trybuywidget',
+            name: '@studio-slice-save-edit-size',
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
@@ -42,7 +35,83 @@ export default {
         },
         {
             tcid: '3',
-            name: '@studio-slice-save-change-osi',
+            name: '@studio-slice-save-edit-description',
+            path: '/studio.html',
+            data: {
+                cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
+                description: 'Field Edit & Save',
+                newDescription: 'Cloned Field Edit',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
+        },
+        {
+            tcid: '4',
+            name: '@studio-slice-save-edit-badge',
+            path: '/studio.html',
+            data: {
+                cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
+                newBadge: 'New Badge',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
+        },
+        {
+            tcid: '5',
+            name: '@studio-slice-save-edit-mnemonic',
+            path: '/studio.html',
+            data: {
+                cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
+                iconURL:
+                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
+                newIconURL:
+                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
+        },
+        {
+            tcid: '6',
+            name: '@studio-slice-save-edit-image',
+            path: '/studio.html',
+            data: {
+                cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
+                backgroundURL:
+                    'https://milo.adobe.com/assets/img/commerce/media_10bef5ec21c22fd7fe201cb02735082df13bf4960.jpeg',
+                newBackgroundURL:
+                    'https://milo.adobe.com/assets/img/commerce/media_158c1c22b1322dd28d7912d30fb27f29aa79f79b1.png',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
+        },
+        {
+            tcid: '7',
+            name: '@studio-slice-save-edit-price',
+            path: '/studio.html',
+            data: {
+                cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
+                price: 'US$17.24/mo',
+                strikethroughPrice: 'US$34.49/mo',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
+        },
+        {
+            tcid: '8',
+            name: '@studio-slice-save-edit-cta',
+            path: '/studio.html',
+            data: {
+                cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
+                ctaText: 'Buy now',
+                newCtaText: 'Buy now 2',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
+        },
+
+        {
+            tcid: '9',
+            name: '@studio-slice-save-edit-osi',
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
@@ -55,6 +124,26 @@ export default {
                 newPlanTypeTag: 'plan_type/puf',
                 newOfferTypeTag: 'offer_type/trial',
                 newMarketSegmentsTag: 'market_segments/edu',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
+        },
+        {
+            tcid: '10',
+            name: '@studio-slice-save-edit-cta-variant',
+            path: '/studio.html',
+            data: {
+                cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                variant: 'accent',
+                ctaCSS: {
+                    'background-color': 'rgb(2, 101, 220)',
+                    color: 'rgb(255, 255, 255)',
+                },
+                newVariant: 'primary-outline',
+                newCtaCSS: {
+                    color: 'rgb(34, 34, 34)',
+                },
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',

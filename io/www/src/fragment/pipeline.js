@@ -59,7 +59,10 @@ async function main(params) {
     }
 
     for (const transformer of [fetchFragment, translate, collection, replace]) {
-        if (context.status != 200) break;
+        if (context.status != 200) {
+            logError(context.message, context);
+            break;
+        }
         context.transformer = transformer.name;
         context = await transformer(context);
     }
@@ -100,11 +103,13 @@ async function main(params) {
             'Last-Modified': lastModified.toUTCString(),
         };
     } else {
-        returnValue.message = context.message;
+        returnValue.body = {
+            message: context.message,
+        };
     }
     const endTime = Date.now();
     log(
-        `pipeline completed: ${context.id} ${context.locale} -> (${returnValue.statusCode}) in ${endTime - startTime}ms`,
+        `pipeline completed: ${context.id} ${context.locale} -> ${context.body?.id} (${returnValue.statusCode}) in ${endTime - startTime}ms`,
         {
             ...context,
             transformer: 'pipeline',

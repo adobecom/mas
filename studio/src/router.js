@@ -1,110 +1,41 @@
-import { PAGE_NAMES, WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
-import { FragmentStore } from './reactivity/fragment-store.js';
-import { ReactiveStore } from './reactivity/reactive-store.js';
+import Store from './store.js';
+import { PAGE_NAMES } from './constants.js';
+import { getHashParam } from './utils.js';
 
-// Store definition with default values - no URL parsing here
-const Store = {
-    fragments: {
-        list: {
-            loading: new ReactiveStore(true),
-            data: new ReactiveStore([]),
-        },
-        recentlyUpdated: {
-            loading: new ReactiveStore(true),
-            data: new ReactiveStore([]),
-            limit: new ReactiveStore(6),
-        },
-        inEdit: new FragmentStore(null),
-    },
-    operation: new ReactiveStore(),
-    editor: {
-        get hasChanges() {
-            return Store.fragments.inEdit.get()?.hasChanges || false;
-        },
-    },
-    folders: {
-        loaded: new ReactiveStore(false),
-        data: new ReactiveStore([]),
-    },
-    search: new ReactiveStore({}),
-    filters: new ReactiveStore({ locale: 'en_US', tags: [] }, filtersValidator),
-    renderMode: new ReactiveStore(
-        localStorage.getItem('mas-render-mode') || 'render',
-    ),
-    selecting: new ReactiveStore(false),
-    selection: new ReactiveStore([]),
-    page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
-    commerceEnv: new ReactiveStore(WCS_ENV_PROD, commerceEnvValidator),
-    placeholders: {
-        list: {
-            data: new ReactiveStore([]),
-            loading: new ReactiveStore(false),
-        },
-        selected: new ReactiveStore(null),
-        editing: new ReactiveStore(null),
-    },
-};
-
-export default Store;
+const originalUrl = window.location.href;
 
 /**
- * @param {object} value
- * @returns {object}
+ * Determines and returns the initial page based on URL parameters
+ * @returns {string} The page name to initialize with
  */
-function filtersValidator(value) {
-    if (!value) return { locale: 'en_US' };
-    if (!value.locale) value.locale = 'en_US';
-    return value;
+export function determineInitialPage() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const pageFromUrl = urlParams.get('page');
+    const hasQuery = Boolean(getHashParam('query'));
+    return pageFromUrl || (hasQuery ? PAGE_NAMES.CONTENT : PAGE_NAMES.WELCOME);
 }
 
 /**
- * @param {string} value
- * @returns {string}
+ * Initialize all store values based on URL parameters
+ * This is the central function for URL-based store initialization
  */
-function pageValidator(value) {
-    const validPages = [
-        PAGE_NAMES.WELCOME,
-        PAGE_NAMES.CONTENT,
-        PAGE_NAMES.PLACEHOLDERS,
-    ];
-    return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
+export function initializeStoreFromUrl() {
+    // Initialize page parameter
+    const initialPage = determineInitialPage();
+    Store.page.set(initialPage);
 }
 
 /**
- * @param {string} value
- * @returns {string}
+ * Navigation function to change the current page
+ * @param {string} value - The page to navigate to
+ * @returns {Function} A function that when called will navigate to the page
  */
-function commerceEnvValidator(value) {
-    if (value === WCS_ENV_STAGE) return value;
-    return WCS_ENV_PROD;
-}
-
-const editorPanel = () => document.querySelector('editor-panel');
-
-/**
- * Toggle selection of a fragment
- */
-export function toggleSelection(id) {
-    const selection = Store.selection.get();
-    if (selection.includes(id))
-        Store.selection.set(
-            selection.filter((selectedId) => selectedId !== id),
-        );
-    else Store.selection.set([...selection, id]);
-}
-
-/**
- * Edit a fragment in the editor panel
- */
-export function editFragment(store, x) {
-    editorPanel().editFragment(store, x);
-}
-
 export function navigateToPage(value) {
     return async () => {
+        const editorPanel = document.querySelector('editor-panel');
         const confirmed =
             !Store.editor.hasChanges ||
-            (await editorPanel().promptDiscardChanges());
+            (await editorPanel.promptDiscardChanges());
         if (confirmed) {
             Store.fragments.inEdit.set();
             Store.page.set(value);
@@ -145,8 +76,8 @@ export function linkStoreToHash(store, keys, defaultValue) {
             const defaultForKey = Array.isArray(defaultValue)
                 ? defaultValue
                 : typeof defaultValue === 'object' && defaultValue !== null
-                  ? defaultValue[key]
-                  : defaultValue;
+                ? defaultValue[key]
+                : defaultValue;
 
             if (defaultForKey !== undefined) {
                 updates[key] = defaultForKey;
@@ -199,6 +130,7 @@ export function linkStoreToHash(store, keys, defaultValue) {
 }
 
 /**
+ * Unlinks a store from the URL hash
  * @param {ReactiveStore} store
  */
 export function unlinkStoreFromHash(store) {
@@ -207,4 +139,65 @@ export function unlinkStoreFromHash(store) {
     window.removeEventListener('hashchange', hashLink.from);
     store.unsubscribe(hashLink.to);
     store.removeMeta('hashLink');
+}
+
+/**
+ * Initialize the router system
+ */
+export function initializeRouter() {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            window.history.replaceState({}, '', originalUrl);
+            const url = new URL(window.location);
+            if (!url.searchParams.has('page')) {
+                url.searchParams.set('page', PAGE_NAMES.WELCOME);
+                window.history.replaceState({}, '', url.toString());
+            }
+        }, 100);
+    });
+
+    window.addEventListener('popstate', (event) => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const pageFromUrl = urlParams.get('page');
+
+        if (pageFromUrl) {
+            Store.page.set(pageFromUrl);
+        } else {
+            Store.page.set(PAGE_NAMES.WELCOME);
+        }
+    });
+}
+
+/**
+ * Set up store subscriptions related to navigation
+ */
+export function setupNavigationSubscriptions() {
+    Store.search.subscribe((value, oldValue) => {
+        if (
+            (!oldValue.query && value.query) ||
+            (Boolean(value.query) && value.query !== oldValue.query)
+        )
+            Store.page.set(PAGE_NAMES.CONTENT);
+    });
+
+    Store.search.subscribe((value, oldValue) => {
+        if (
+            value.path !== oldValue.path &&
+            Store.page.get() === PAGE_NAMES.PLACEHOLDERS
+        ) {
+            Store.placeholders.list.loading.set(true);
+        }
+    });
+
+    Store.page.subscribe((value, oldValue) => {
+        if (
+            value === PAGE_NAMES.PLACEHOLDERS &&
+            oldValue !== PAGE_NAMES.PLACEHOLDERS
+        ) {
+            const folderPath = Store.search.get()?.path;
+            if (folderPath) {
+                Store.placeholders.list.loading.set(true);
+            }
+        }
+    });
 }

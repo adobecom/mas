@@ -11,6 +11,7 @@ import {
     STATUS_PUBLISHED,
     TAG_STATUS_PUBLISHED,
     ROOT_PATH,
+    PAGE_NAMES,
 } from './constants.js';
 
 export function getDamPath(path) {
@@ -94,13 +95,13 @@ export class MasRepository extends LitElement {
          * Automatically fetch data when search/filters update.
          * Both load methods have page guards (ex. fragments won't be searched on the 'welcome' page)
          */
-        if (this.page.value === 'content') {
+        if (this.page.value === PAGE_NAMES.CONTENT) {
             this.searchFragments();
         }
-        if (this.page.value === 'welcome') {
+        if (this.page.value === PAGE_NAMES.WELCOME) {
             this.loadRecentlyUpdatedFragments();
         }
-        if (this.page.value === 'placeholders') {
+        if (this.page.value === PAGE_NAMES.PLACEHOLDERS) {
             this.searchPlaceholders();
         }
     }
@@ -230,7 +231,7 @@ export class MasRepository extends LitElement {
     }
 
     async loadRecentlyUpdatedFragments() {
-        if (this.page.value !== 'welcome') return;
+        if (this.page.value !== PAGE_NAMES.WELCOME) return;
         if (this.#abortControllers.recentlyUpdated)
             this.#abortControllers.recentlyUpdated.abort();
         this.#abortControllers.recentlyUpdated = new AbortController();
@@ -532,7 +533,7 @@ export class MasRepository extends LitElement {
                             ? new Date(fragment.modified.at).toLocaleString()
                             : 'Unknown',
                         path: fragment.path,
-                        _fragment: fragment,
+                        fragment: fragment,
                     };
                 })
                 .filter(Boolean);

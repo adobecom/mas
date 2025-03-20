@@ -110,6 +110,12 @@ export const LOCALE_DEFAULT = 'en_US';
 
 export const STATUS_PUBLISHED = 'PUBLISHED';
 
+export const PAGE_NAMES = {
+    WELCOME: 'welcome',
+    PLACEHOLDERS: 'placeholders',
+    CONTENT: 'content',
+};
+
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
 export const TAG_STATUS_PUBLISHED_PATH =
     '/content/cq:tags/mas/status/published';

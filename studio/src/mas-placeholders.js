@@ -1,13 +1,12 @@
-import { LitElement, html, nothing, css } from 'lit';
+import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import StoreController from './reactivity/store-controller.js';
-import { ReactiveStore } from './reactivity/reactive-store.js';
+import styles from './mas-placeholders.css.js';
 import Store from './store.js';
 import Events from './events.js';
 import { MasRepository } from './mas-repository.js';
 import './mas-folder-picker.js';
 import './filters/locale-picker.js';
-import { ROOT_PATH, DICTIONARY_MODEL_ID } from './constants.js';
+import { ROOT_PATH, DICTIONARY_MODEL_ID, PAGE_NAMES } from './constants.js';
 
 export function getDictionaryPath(folderPath, locale) {
     if (!folderPath) {
@@ -23,340 +22,7 @@ export function getDictionaryPath(folderPath, locale) {
 }
 
 class MasPlaceholders extends LitElement {
-    static styles = css`
-        .placeholders-container {
-            height: 100%;
-            border-radius: 8px;
-            padding: 24px;
-            background-color: var(--spectrum-white);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            box-sizing: border-box;
-            position: relative;
-        }
-
-        .placeholders-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-        }
-
-        .search-filters-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-            gap: 14px;
-        }
-
-        .placeholders-title {
-            display: flex;
-            justify-content: flex-start;
-            align-items: center;
-        }
-
-        .placeholders-title h2 {
-            margin: 0;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .filters-container {
-            display: flex;
-            gap: 14px;
-            align-items: center;
-        }
-
-        .placeholders-content {
-            flex: 1;
-            position: relative;
-        }
-
-        .no-folder-message,
-        .loading-message {
-            padding: 24px;
-            text-align: center;
-            color: var(--spectrum-global-color-gray-700);
-            font-size: 16px;
-            background-color: var(--spectrum-global-color-gray-100);
-            border-radius: 4px;
-            margin-top: 16px;
-        }
-
-        .error-message {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 16px;
-            background-color: var(
-                --spectrum-semantic-negative-color-background
-            );
-            color: var(--spectrum-semantic-negative-color-text);
-            border-radius: 4px;
-            margin-bottom: 16px;
-        }
-
-        .error-message sp-icon-alert {
-            color: var(--spectrum-semantic-negative-color-icon);
-        }
-
-        sp-progress-circle {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        .placeholders-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            border-radius: 8px;
-            border: 1px solid var(--spectrum-gray-200);
-        }
-
-        .placeholders-table sp-table-head {
-            background-color: var(--spectrum-global-color-gray-100);
-            border-bottom: 1px solid var(--spectrum-gray-200);
-        }
-
-        .placeholders-table sp-table-head-cell:nth-child(2),
-        .placeholders-table sp-table-cell:nth-child(2) {
-            width: 200px;
-        }
-
-        .placeholders-table sp-table-head-cell:nth-child(3),
-        .placeholders-table sp-table-cell:nth-child(3) {
-            width: 400px;
-        }
-
-        .placeholders-table sp-table-head-cell:nth-child(4),
-        .placeholders-table sp-table-cell:nth-child(4) {
-            width: 120px;
-        }
-
-        .placeholders-table sp-table-head-cell:nth-child(5),
-        .placeholders-table sp-table-cell:nth-child(5) {
-            width: 150px;
-        }
-
-        .placeholders-table sp-table-head-cell:nth-child(6),
-        .placeholders-table sp-table-cell:nth-child(6) {
-            width: 200px;
-        }
-
-        .placeholders-table sp-table-head-cell:nth-child(7),
-        .placeholders-table sp-table-cell:nth-child(7) {
-            width: 200px;
-        }
-
-        .placeholders-table sp-table-head-cell {
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            color: var(--spectrum-gray-700);
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        .placeholders-table sp-table-head-cell:last-child,
-        .placeholders-table sp-table-cell:last-child {
-            max-width: 100px;
-            justify-content: flex-end;
-        }
-
-        .placeholders-table sp-table-cell {
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-        }
-
-        .placeholders-table sp-table-body {
-            overflow: visible;
-        }
-
-        /* Action column styles */
-        .action-cell {
-            position: relative;
-            box-sizing: border-box;
-        }
-
-        .action-buttons {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            justify-content: flex-end;
-            width: 100%;
-        }
-
-        .action-button {
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            flex: 0 0 auto;
-        }
-
-        .action-button:hover {
-            background-color: var(--spectrum-global-color-gray-200);
-        }
-
-        /* Dropdown menu styles */
-        .dropdown-menu {
-            position: absolute;
-            right: 0;
-            top: 100%;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            z-index: 100;
-            width: 160px;
-            padding: 8px 0;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .dropdown-item {
-            flex: 1;
-            align-items: center;
-            padding: 8px 16px;
-            cursor: pointer;
-            gap: 8px;
-            justify-self: flex-start;
-            display: flex;
-        }
-
-        .dropdown-item:hover {
-            background-color: var(--spectrum-global-color-gray-100);
-        }
-
-        .dropdown-item span {
-            flex: 1;
-            display: inline-flex;
-        }
-
-        /* Create Modal Styles */
-        .create-modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .create-modal {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-            width: 600px;
-            max-width: 90vw;
-            max-height: 90vh;
-            overflow: auto;
-        }
-
-        .create-modal-content {
-            padding: 24px;
-        }
-
-        .create-modal-title {
-            font-size: 20px;
-            font-weight: 600;
-            margin: 0 0 24px 0;
-        }
-
-        .create-modal-form {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .form-group label {
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .required {
-            color: var(--spectrum-semantic-negative-color-default);
-        }
-
-        .create-modal-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-            margin-top: 24px;
-        }
-
-        /* Column widths for the table */
-        .columnWidths {
-            --key-width: 20%;
-            --value-width: 35%;
-            --locale-width: 10%;
-            --status-width: 10%;
-            --updatedBy-width: 10%;
-            --updatedAt-width: 10%;
-            --action-width: 5%;
-        }
-
-        /* Editing styles */
-        .editing-cell {
-            padding: 0 !important;
-        }
-
-        .edit-field-container {
-            padding: 4px;
-        }
-
-        .edit-field-container sp-textfield {
-            width: 100%;
-        }
-
-        /* Breadcrumbs styles */
-        .breadcrumbs {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-        }
-
-        .breadcrumb-link {
-            color: var(--spectrum-global-color-blue-600);
-            text-decoration: none;
-        }
-
-        .breadcrumb-current {
-            color: var(--spectrum-global-color-gray-700);
-        }
-
-        .approve-button sp-icon-checkmark {
-            color: var(--spectrum-semantic-positive-color-default, green);
-        }
-
-        .reject-button sp-icon-close {
-            color: var(--spectrum-semantic-negative-color-default, red);
-        }
-    `;
+    static styles = styles;
 
     constructor() {
         super();
@@ -382,7 +48,6 @@ class MasPlaceholders extends LitElement {
             locale: [],
             key: [],
         };
-
         this.columnWidths = {
             key: '20%',
             value: '35%',
@@ -392,33 +57,13 @@ class MasPlaceholders extends LitElement {
             updatedAt: '10%',
             action: '5%',
         };
-
-        this.selectedFolder = new StoreController(
-            this,
-            Store.search || new ReactiveStore({}),
-        );
-        this.selectedLocale = new StoreController(
-            this,
-            Store.filters?.locale || new ReactiveStore('en_US'),
-        );
-        this.folderData = new StoreController(
-            this,
-            Store.folders?.data || new ReactiveStore([]),
-        );
-        this.foldersLoaded = new StoreController(
-            this,
-            Store.folders?.loaded || new ReactiveStore(false),
-        );
-
-        this.placeholdersData = new StoreController(
-            this,
-            Store.placeholders.list.data || new ReactiveStore([]),
-        );
-        this.placeholdersLoading = new StoreController(
-            this,
-            Store.placeholders.list.loading || new ReactiveStore(false),
-        );
-
+        this.selectedFolder = {};
+        this.selectedLocale = 'en_US';
+        this.folderData = [];
+        this.foldersLoaded = false;
+        this.placeholdersData = [];
+        this.placeholdersLoading = false;
+        this.subscriptions = [];
         this.handleClickOutside = this.handleClickOutside.bind(this);
         this.handleCreateModalClickOutside =
             this.handleCreateModalClickOutside.bind(this);
@@ -436,29 +81,76 @@ class MasPlaceholders extends LitElement {
         document.addEventListener('click', this.handleClickOutside);
         document.addEventListener('click', this.handleCreateModalClickOutside);
 
-        this.placeholdersData.store.subscribe((data) => {
-            this.placeholders = data;
-            this.requestUpdate();
-        });
+        if (Store.search) {
+            const searchSub = Store.search.subscribe((value) => {
+                this.selectedFolder = value;
+                this.requestUpdate();
+            });
+            this.subscriptions.push(searchSub);
+        }
 
-        this.placeholdersLoading.store.subscribe((loading) => {
-            this.loading = loading;
-            this.requestUpdate();
-        });
+        if (Store.filters) {
+            const localeSub = Store.filters.subscribe((value) => {
+                this.selectedLocale = value.locale || 'en_US';
+                this.requestUpdate();
+            });
+            this.subscriptions.push(localeSub);
+        }
 
-        this.selectedFolder.store.subscribe(this.handleFolderChange);
+        if (Store.folders?.data) {
+            const folderDataSub = Store.folders.data.subscribe((value) => {
+                this.folderData = value;
+                this.requestUpdate();
+            });
+            this.subscriptions.push(folderDataSub);
+        }
+
+        if (Store.folders?.loaded) {
+            const foldersLoadedSub = Store.folders.loaded.subscribe((value) => {
+                this.foldersLoaded = value;
+                this.requestUpdate();
+            });
+            this.subscriptions.push(foldersLoadedSub);
+        }
+
+        if (Store.placeholders?.list?.data) {
+            const placeholdersDataSub = Store.placeholders.list.data.subscribe(
+                (value) => {
+                    this.placeholdersData = value;
+                    this.placeholders = value;
+                    this.requestUpdate();
+                },
+            );
+            this.subscriptions.push(placeholdersDataSub);
+        }
+
+        if (Store.placeholders?.list?.loading) {
+            const placeholdersLoadingSub =
+                Store.placeholders.list.loading.subscribe((value) => {
+                    this.placeholdersLoading = value;
+                    this.loading = value;
+                    this.requestUpdate();
+                });
+            this.subscriptions.push(placeholdersLoadingSub);
+        }
+
+        if (Store.search) {
+            const folderChangeSub = Store.search.subscribe(
+                this.handleFolderChange,
+            );
+            this.subscriptions.push(folderChangeSub);
+        }
+
         const currentPage = Store.page.get();
-        if (currentPage !== 'placeholders') {
-            Store.page.set('placeholders');
+        if (currentPage !== PAGE_NAMES.PLACEHOLDERS) {
+            Store.page.set(PAGE_NAMES.PLACEHOLDERS);
         }
 
         const masRepository = this.repository;
         if (masRepository) {
-            if (this.selectedFolder.value?.path) {
+            if (this.selectedFolder?.path) {
                 Store.placeholders.list.loading.set(true);
-                setTimeout(() => {
-                    masRepository.searchPlaceholders();
-                }, 500);
+                masRepository.searchPlaceholders();
             } else {
                 this.error = 'Please select a folder to view placeholders';
             }
@@ -475,9 +167,12 @@ class MasPlaceholders extends LitElement {
             this.handleCreateModalClickOutside,
         );
 
-        this.selectedFolder.store.unsubscribe(this.handleFolderChange);
-        this.placeholdersData.store.unsubscribe();
-        this.placeholdersLoading.store.unsubscribe();
+        this.subscriptions.forEach((sub) => {
+            if (sub && typeof sub.unsubscribe === 'function') {
+                sub.unsubscribe();
+            }
+        });
+        this.subscriptions = [];
     }
 
     handleFolderChange(folderData) {
@@ -485,9 +180,7 @@ class MasPlaceholders extends LitElement {
             Store.placeholders.list.loading.set(true);
             const masRepository = this.repository;
             if (masRepository) {
-                setTimeout(() => {
-                    masRepository.searchPlaceholders();
-                }, 100);
+                masRepository.searchPlaceholders();
             } else {
                 this.error = 'Repository component not found';
             }
@@ -507,11 +200,9 @@ class MasPlaceholders extends LitElement {
             Store.placeholders.list.loading.set(true);
             this.loading = true;
 
-            const folderPath = this.selectedFolder.value?.path;
+            const folderPath = this.selectedFolder?.path;
             const locale =
-                this.newPlaceholder.locale ||
-                this.selectedLocale.value ||
-                'en_US';
+                this.newPlaceholder.locale || this.selectedLocale || 'en_US';
 
             if (!folderPath) {
                 Events.toast.emit({
@@ -573,11 +264,11 @@ class MasPlaceholders extends LitElement {
                 content: 'Placeholder successfully created.',
             });
 
-            setTimeout(() => {
-                if (repository) {
-                    repository.searchPlaceholders();
-                }
-            }, 500);
+            if (repository) {
+                await repository.searchPlaceholders();
+                this.selectedPlaceholders = [];
+                this.requestUpdate();
+            }
         } catch (error) {
             console.error('Failed to create placeholder:', error);
             Events.toast.emit({
@@ -598,7 +289,7 @@ class MasPlaceholders extends LitElement {
                 throw new Error('No placeholder is being edited');
             }
 
-            const placeholderIndex = this.placeholdersData.value.findIndex(
+            const placeholderIndex = this.placeholdersData.findIndex(
                 (p) => p.key === this.editingPlaceholder,
             );
 
@@ -608,106 +299,71 @@ class MasPlaceholders extends LitElement {
                 );
             }
 
-            const placeholder = this.placeholdersData.value[placeholderIndex];
+            const placeholder = this.placeholdersData[placeholderIndex];
 
             if (
                 placeholder.key === this.editedKey &&
                 placeholder.value === this.editedValue
             ) {
-                console.log('No changes detected, skipping save operation');
                 Events.toast.emit({
                     variant: 'info',
                     content: 'No changes to save',
                 });
-
-                this.editingPlaceholder = null;
-                this.editedKey = '';
-                this.editedValue = '';
-                this.draftStatus = false;
-
+                this.resetEditState();
                 return;
             }
 
-            const fragmentPath = placeholder._fragment?.path;
+            const fragmentPath = placeholder.fragment?.path;
             if (!fragmentPath) {
                 throw new Error('Fragment path is missing');
             }
 
-            let fragmentData = null;
-            try {
-                fragmentData =
-                    await this.repository.getFragmentByPath(fragmentPath);
-            } catch (fetchError) {
-                fragmentData = placeholder._fragment;
-            }
+            const fragmentData = await this.repository
+                .getFragmentByPath(fragmentPath)
+                .catch(() => placeholder.fragment);
 
             if (!fragmentData) {
                 throw new Error('Fragment data is missing');
             }
 
             const updatedFragment = { ...fragmentData };
+            const fieldsToUpdate = [
+                { name: 'key', value: this.editedKey },
+                { name: 'value', value: this.editedValue },
+                { name: 'locReady', value: true },
+            ];
 
-            const keyFieldIndex = updatedFragment.fields.findIndex(
-                (field) => field.name === 'key',
-            );
-            if (keyFieldIndex !== -1) {
-                updatedFragment.fields[keyFieldIndex].values = [this.editedKey];
-            } else {
-                updatedFragment.fields.push({
-                    name: 'key',
-                    values: [this.editedKey],
-                });
-            }
-
-            const valueFieldIndex = updatedFragment.fields.findIndex(
-                (field) => field.name === 'value',
-            );
-            if (valueFieldIndex !== -1) {
-                updatedFragment.fields[valueFieldIndex].values = [
-                    this.editedValue,
-                ];
-            } else {
-                updatedFragment.fields.push({
-                    name: 'value',
-                    values: [this.editedValue],
-                });
-            }
-
-            const locReadyFieldIndex = updatedFragment.fields.findIndex(
-                (field) => field.name === 'locReady',
-            );
-            if (locReadyFieldIndex !== -1) {
-                updatedFragment.fields[locReadyFieldIndex].values = [true];
-            } else {
-                updatedFragment.fields.push({
-                    name: 'locReady',
-                    values: [true],
-                });
-            }
+            fieldsToUpdate.forEach((field) => {
+                const fieldIndex = updatedFragment.fields.findIndex(
+                    (f) => f.name === field.name,
+                );
+                if (fieldIndex !== -1) {
+                    updatedFragment.fields[fieldIndex].values = [field.value];
+                } else {
+                    updatedFragment.fields.push({
+                        name: field.name,
+                        values: [field.value],
+                    });
+                }
+            });
 
             const savedFragment =
                 await this.repository.saveDictionaryFragment(updatedFragment);
-
             const updatedPlaceholder = {
                 ...placeholder,
                 key: this.editedKey,
                 value: this.editedValue,
                 status: savedFragment.status || 'Draft',
-                _fragment: savedFragment,
+                fragment: savedFragment,
             };
 
-            const updatedPlaceholders = [...this.placeholdersData.value];
+            const updatedPlaceholders = [...this.placeholdersData];
             updatedPlaceholders[placeholderIndex] = updatedPlaceholder;
+
             Store.placeholders.list.data.set(updatedPlaceholders);
-            // Force UI update with the new data
             this.placeholders = updatedPlaceholders;
             this.requestUpdate();
-
-            this.editingPlaceholder = null;
-            this.editedKey = '';
-            this.editedValue = '';
-            this.draftStatus = false;
-
+            this.resetEditState();
             Events.toast.emit({
                 variant: 'positive',
                 content: 'Placeholder successfully saved',
@@ -722,10 +378,17 @@ class MasPlaceholders extends LitElement {
         }
     }
 
+    resetEditState() {
+        this.editingPlaceholder = null;
+        this.editedKey = '';
+        this.editedValue = '';
+        this.draftStatus = false;
+    }
+
     async handlePublish(key) {
         try {
             Store.placeholders.list.loading.set(true);
-            const placeholderIndex = this.placeholdersData.value.findIndex(
+            const placeholderIndex = this.placeholdersData.findIndex(
                 (p) => p.key === key,
             );
 
@@ -733,39 +396,31 @@ class MasPlaceholders extends LitElement {
                 throw new Error(`Placeholder with key "${key}" not found`);
             }
 
-            const placeholder = this.placeholdersData.value[placeholderIndex];
+            const placeholder = this.placeholdersData[placeholderIndex];
 
-            if (!placeholder?._fragment) {
+            if (!placeholder?.fragment) {
                 throw new Error('Fragment data is missing or incomplete');
             }
-            const fragmentData = placeholder._fragment;
+
+            const fragmentData = placeholder.fragment;
 
             this.activeDropdown = null;
-
-            // Call repository to publish
             await this.repository.publishDictionaryFragment(fragmentData);
 
-            // Create a deep copy with updated status
             const updatedPlaceholder = {
                 ...placeholder,
-                status: 'Published', // Explicitly set to Published
-                _fragment: {
-                    ...placeholder._fragment,
-                    status: 'Published', // Update fragment status too
+                status: 'Published',
+                fragment: {
+                    ...placeholder.fragment,
+                    status: 'Published',
                 },
             };
 
-            // Update local store
-            const updatedPlaceholders = [...this.placeholdersData.value];
+            const updatedPlaceholders = [...this.placeholdersData];
             updatedPlaceholders[placeholderIndex] = updatedPlaceholder;
 
-            // Set both the store and local property
             Store.placeholders.list.data.set(updatedPlaceholders);
             this.placeholders = updatedPlaceholders;
-
-            // Force UI update
-            this.requestUpdate();
-
             Events.toast.emit({
                 variant: 'positive',
                 content: 'Placeholder successfully published.',
@@ -784,7 +439,7 @@ class MasPlaceholders extends LitElement {
         try {
             Store.placeholders.list.loading.set(true);
 
-            const placeholderIndex = this.placeholdersData.value.findIndex(
+            const placeholderIndex = this.placeholdersData.findIndex(
                 (p) => p.key === key,
             );
 
@@ -792,12 +447,12 @@ class MasPlaceholders extends LitElement {
                 throw new Error(`Placeholder with key "${key}" not found`);
             }
 
-            const placeholder = this.placeholdersData.value[placeholderIndex];
+            const placeholder = this.placeholdersData[placeholderIndex];
 
-            if (!placeholder?._fragment) {
+            if (!placeholder?.fragment) {
                 throw new Error('Fragment data is missing or incomplete');
             }
-            const fragmentData = placeholder._fragment;
+            const fragmentData = placeholder.fragment;
 
             this.activeDropdown = null;
 
@@ -808,15 +463,13 @@ class MasPlaceholders extends LitElement {
                 status: 'Draft',
             };
 
-            const updatedPlaceholders = [...this.placeholdersData.value];
+            const updatedPlaceholders = [...this.placeholdersData];
             updatedPlaceholders[placeholderIndex] = updatedPlaceholder;
             Store.placeholders.list.data.set(updatedPlaceholders);
 
-            setTimeout(() => {
-                if (this.repository.searchPlaceholders) {
-                    this.repository.searchPlaceholders();
-                }
-            }, 500);
+            if (this.repository.searchPlaceholders) {
+                this.repository.searchPlaceholders();
+            }
         } catch (error) {
             Events.toast.emit({
                 variant: 'negative',
@@ -838,8 +491,7 @@ class MasPlaceholders extends LitElement {
 
         try {
             Store.placeholders.list.loading.set(true);
-
-            const placeholderIndex = this.placeholdersData.value.findIndex(
+            const placeholderIndex = this.placeholdersData.findIndex(
                 (p) => p.key === key,
             );
 
@@ -847,27 +499,25 @@ class MasPlaceholders extends LitElement {
                 throw new Error(`Placeholder with key "${key}" not found`);
             }
 
-            const placeholder = this.placeholdersData.value[placeholderIndex];
+            const placeholder = this.placeholdersData[placeholderIndex];
 
-            if (!placeholder?._fragment) {
+            if (!placeholder?.fragment) {
                 throw new Error('Fragment data is missing or incomplete');
             }
-            const fragmentData = placeholder._fragment;
+            const fragmentData = placeholder.fragment;
 
             this.activeDropdown = null;
 
             await this.repository.deleteDictionaryFragment(fragmentData);
 
-            const updatedPlaceholders = this.placeholdersData.value.filter(
+            const updatedPlaceholders = this.placeholdersData.filter(
                 (p) => p.key !== key,
             );
             Store.placeholders.list.data.set(updatedPlaceholders);
 
-            setTimeout(() => {
-                if (this.repository.searchPlaceholders) {
-                    this.repository.searchPlaceholders();
-                }
-            }, 500);
+            if (this.repository.searchPlaceholders) {
+                this.repository.searchPlaceholders();
+            }
         } catch (error) {
             Events.toast.emit({
                 variant: 'negative',
@@ -911,6 +561,7 @@ class MasPlaceholders extends LitElement {
             }
             this.closeCreateModal();
         }
+        this.requestUpdate();
     }
 
     closeCreateModal() {
@@ -925,18 +576,15 @@ class MasPlaceholders extends LitElement {
 
     handleAddPlaceholder() {
         this.showCreateModal = true;
-
-        const currentLocale = this.selectedLocale.value || 'en_US';
-
+        const currentLocale = this.selectedLocale || 'en_US';
         this.newPlaceholder = {
             key: '',
             value: '',
             locale: currentLocale,
         };
 
-        this.requestUpdate();
-
         setTimeout(() => {
+            //needed for the modal to display
             if (!this.showCreateModal) {
                 this.showCreateModal = true;
                 this.requestUpdate();
@@ -944,15 +592,8 @@ class MasPlaceholders extends LitElement {
         }, 100);
     }
 
-    handleExport() {
-        // ToDo: Implement export functionality
-    }
-
     updateTableSelection(event) {
         this.selectedPlaceholders = Array.from(event.target.selectedSet);
-        this.requestUpdate();
-        // In a real implementation:
-        // Store.placeholders.selection.set(Array.from(event.target.selectedSet));
     }
 
     handleSort(field) {
@@ -1031,7 +672,6 @@ class MasPlaceholders extends LitElement {
             );
         }
 
-        // Apply key filters - with null check
         if (this.appliedFilters?.key?.length > 0) {
             filtered = filtered.filter((placeholder) =>
                 this.appliedFilters.key.some((key) =>
@@ -1267,15 +907,18 @@ class MasPlaceholders extends LitElement {
 
     handleLocaleChange(event) {
         const newLocale = event.detail.locale;
-        Store.filters.value.locale = newLocale;
-        this.selectedLocale.value = newLocale;
+
+        Store.filters.set((currentValue) => ({
+            ...currentValue,
+            locale: newLocale,
+        }));
+
+        this.selectedLocale = newLocale;
         Store.placeholders.list.loading.set(true);
 
         if (this.repository) {
             this.repository.searchPlaceholders();
         }
-
-        this.requestUpdate();
     }
 
     renderKeyCell(placeholder) {
@@ -1323,7 +966,6 @@ class MasPlaceholders extends LitElement {
     }
 
     renderActionCell(placeholder) {
-        // If currently editing this placeholder
         if (this.editingPlaceholder === placeholder.key) {
             return html`
                 <sp-table-cell class="action-cell">
@@ -1416,7 +1058,7 @@ class MasPlaceholders extends LitElement {
                     <div class="header-left">
                         <mas-locale-picker
                             @locale-changed=${this.handleLocaleChange}
-                            .value=${this.selectedLocale.value}
+                            .value=${this.selectedLocale}
                         ></mas-locale-picker>
                     </div>
                     <sp-button
@@ -1445,23 +1087,15 @@ class MasPlaceholders extends LitElement {
                             @input=${this.handleSearch}
                             value=${this.searchQuery}
                         ></sp-search>
-
-                        <sp-button
-                            variant="secondary"
-                            @click=${this.handleExport}
-                        >
-                            <sp-icon-export slot="icon"></sp-icon-export>
-                            Export
-                        </sp-button>
                     </div>
                 </div>
 
                 <div class="placeholders-content">
-                    ${!(this.foldersLoaded.value ?? false)
+                    ${!(this.foldersLoaded ?? false)
                         ? html`<div class="loading-message">
                               Loading folders...
                           </div>`
-                        : !this.selectedFolder.value?.path
+                        : !this.selectedFolder?.path
                           ? html`<div class="no-folder-message">
                                 Please select a folder to view placeholders
                             </div>`

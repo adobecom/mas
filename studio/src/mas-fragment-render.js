@@ -128,6 +128,8 @@ class MasFragmentRender extends LitElement {
                 draggable="true"
                 @dragstart=${this.handleDragStart}
                 @dragend=${this.handleDragEnd}
+                    aria-grabbed="${this.isDragging}"
+    aria-label="Draggable fragment ${this.fragment?.title || ''}"
             >
                 <overlay-trigger placement="top">
                     ${this.fragment.model.path === CARD_MODEL_PATH

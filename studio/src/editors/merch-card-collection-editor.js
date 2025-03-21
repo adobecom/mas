@@ -498,7 +498,17 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     // Helper method to remove all dragover classes
-    #removeAllDragoverClasses() {
+#removeAllDragoverClasses() {
+    // Remove from host element
+    this.classList.remove('dragover');
+    
+    // One query handles all elements with 'dragover' class
+    if (this.shadowRoot) {
+        this.shadowRoot.querySelectorAll('.dragover').forEach(element => 
+            element.classList.remove('dragover')
+        );
+    }
+}
         // Remove dragover class from all elements in shadow DOM
         if (this.shadowRoot) {
             this.shadowRoot.querySelectorAll('.dragover').forEach((element) => {

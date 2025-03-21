@@ -29,6 +29,10 @@ export const styles = css`
         gap: 8px;
     }
 
+    .cards-container {
+        display: contents;
+    }
+
     .hidden {
         display: none;
     }
@@ -146,7 +150,6 @@ export const styles = css`
     .editor-container {
         display: flex;
         flex-direction: column;
-        width: 100%;
         height: 100%;
         padding: 16px;
         border-radius: 4px;

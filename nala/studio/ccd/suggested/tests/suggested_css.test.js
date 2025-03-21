@@ -30,7 +30,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[0];
-        const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}`;
+        const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
         const suggestedCard = await studio.getCard(data.cardid, 'suggested');
         console.info('[Test Page]: ', testPage);
 
@@ -53,7 +53,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[1];
-        const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}`;
+        const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
         const suggestedCard = await studio.getCard(data.cardid, 'suggested');
         console.info('[Test Page]: ', testPage);
 
@@ -79,7 +79,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[2];
-        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}`;
+        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
         const suggestedCard = await studio.getCard(data.cardid, 'suggested');
         console.info('[Test Page]: ', testPage);
 
@@ -105,7 +105,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[3];
-        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}`;
+        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
         const suggestedCard = await studio.getCard(data.cardid, 'suggested');
         console.info('[Test Page]: ', testPage);
 
@@ -131,7 +131,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[4];
-        const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}`;
+        const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
         const suggestedCard = await studio.getCard(data.cardid, 'suggested');
         console.info('[Test Page]: ', testPage);
 
@@ -157,7 +157,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[5];
-        const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}`;
+        const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.cardid}`;
         const suggestedCard = await studio.getCard(data.cardid, 'suggested');
         console.info('[Test Page]: ', testPage);
 
@@ -183,7 +183,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[6];
-        const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}`;
+        const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.cardid}`;
         const suggestedCard = await studio.getCard(data.cardid, 'suggested');
         console.info('[Test Page]: ', testPage);
 
@@ -211,7 +211,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[7];
-        const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}`;
+        const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.cardid}`;
         const suggestedCard = await studio.getCard(data.cardid, 'suggested');
         console.info('[Test Page]: ', testPage);
 
@@ -237,7 +237,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[8];
-        const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}`;
+        const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.cardid}`;
         const suggestedCard = await studio.getCard(data.cardid, 'suggested');
         console.info('[Test Page]: ', testPage);
 

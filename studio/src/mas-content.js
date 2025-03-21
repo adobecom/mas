@@ -1,10 +1,13 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import StoreController from './reactivity/store-controller.js';
+import { VARIANTS } from './editors/variant-picker.js';
 import Store from './store.js';
 import './mas-fragment.js';
 import Events from './events.js';
+import { CARD_MODEL_PATH } from './constants.js';
 
+const variantValues = VARIANTS.map((v) => v.value);
 class MasContent extends LitElement {
     createRenderRoot() {
         return this;
@@ -46,10 +49,18 @@ class MasContent extends LitElement {
         return html`
             <div id="render">
                 ${repeat(
-                    this.fragments.value.filter(
-                        (fragmentStore) => fragmentStore.get() !== null,
-                    ),
-                    (fragmentStore) => fragmentStore.get().path,
+                    this.fragments.value.filter((fragmentStore) => {
+                        const value = fragmentStore.get();
+                        if (!value) return false;
+                        if (fragmentStore.new) return true;
+                        if (
+                            value.model.path === CARD_MODEL_PATH &&
+                            !variantValues.includes(fragmentStore.value.variant)
+                        )
+                            return false;
+                        return true;
+                    }),
+                    (fragmentStore) => fragmentStore.id,
                     (fragmentStore) =>
                         html`<mas-fragment
                             .fragmentStore=${fragmentStore}

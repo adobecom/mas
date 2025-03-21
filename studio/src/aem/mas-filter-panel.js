@@ -56,8 +56,8 @@ class MasFilterPanel extends LitElement {
 
     #initializeTagFilters() {
         const filters = Store.filters.get();
-        if (!filters.tags?.length) return;
-        this.tagsByType = filters.tags.reduce(
+        if (!filters.tags) return;
+        this.tagsByType = filters.tags.split(',').reduce(
             (acc, tag) => {
                 // Remove 'mas:' prefix
                 const tagPath = tag.replace('mas:', '');
@@ -123,7 +123,7 @@ class MasFilterPanel extends LitElement {
     }
 
     #handleRefresh() {
-        Store.search.set((prev) => ({ ...prev, tags: [] }));
+        Store.search.set((prev) => ({ ...prev, tags: '' }));
         this.tagsByType = { ...EMPTY_TAGS };
         this.shadowRoot
             .querySelectorAll('aem-tag-picker-field')

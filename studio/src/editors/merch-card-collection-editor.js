@@ -8,7 +8,8 @@ import {
     COLLECTION_MODEL_PATH,
     CARD_MODEL_PATH,
 } from '../constants.js';
-import { editFragment } from '../store.js';
+import Store, { editFragment } from '../store.js';
+import { getFromFragmentCache } from '../mas-repository.js';
 
 class MerchCardCollectionEditor extends LitElement {
     static get properties() {
@@ -16,7 +17,6 @@ class MerchCardCollectionEditor extends LitElement {
             draggingFieldName: { type: String, state: true },
             draggingIndex: { type: Number, state: true },
             fragmentStore: { type: Object, attribute: false },
-            fragmentReferencesMap: { type: Object, attribute: false },
             updateFragment: { type: Function },
             hideCards: { type: Boolean, state: true },
             previewItem: { type: String, state: true },
@@ -24,6 +24,8 @@ class MerchCardCollectionEditor extends LitElement {
             previewElement: { type: Object, state: true },
         };
     }
+
+    #fragmentReferencesMap;
 
     static get styles() {
         return [styles];
@@ -34,7 +36,6 @@ class MerchCardCollectionEditor extends LitElement {
         this.draggingFieldName = null;
         this.draggingIndex = -1;
         this.fragmentStore = null;
-        this.fragmentReferencesMap = null;
         this.updateFragment = null;
         this.hideCards = false;
         this.previewItem = null;
@@ -72,7 +73,7 @@ class MerchCardCollectionEditor extends LitElement {
         if (!this.fragmentStore) return;
 
         // Create a new map or clear the existing one
-        this.fragmentReferencesMap = new Map();
+        this.#fragmentReferencesMap = new Map();
 
         // Get all references from the fragment
         const references = this.fragment.references || [];
@@ -84,9 +85,11 @@ class MerchCardCollectionEditor extends LitElement {
                 .find((store) => store.value.id === ref.id);
 
             if (!fragmentStore) {
-                fragmentStore = new FragmentStore(new Fragment(ref));
+                const fragment = await getFromFragmentCache(ref.id);
+                if (!fragment) continue;
+                fragmentStore = new FragmentStore(fragment);
+                this.#fragmentReferencesMap.set(ref.path, fragmentStore);
             }
-            this.fragmentReferencesMap.set(ref.path, fragmentStore);
         }
 
         // Request an update to reflect changes
@@ -94,7 +97,7 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     editFragment(item) {
-        const fragmentStore = this.fragmentReferencesMap.get(item);
+        const fragmentStore = this.#fragmentReferencesMap.get(item);
         if (!fragmentStore) return;
         editFragment(fragmentStore);
     }
@@ -215,7 +218,7 @@ class MerchCardCollectionEditor extends LitElement {
                     (item, index) => {
                         // Get the fragment reference for this item
                         const fragmentStore =
-                            this.fragmentReferencesMap.get(item);
+                            this.#fragmentReferencesMap.get(item);
                         if (!fragmentStore) return nothing;
 
                         const fragment = fragmentStore.get();
@@ -268,6 +271,12 @@ class MerchCardCollectionEditor extends LitElement {
                                 @dragend="${this.#dragEnd}"
                             >
                                 <div class="item-content">
+                                    <div class="item-text">
+                                        <div class="item-label">${label}</div>
+                                        <div class="item-subtext">
+                                            ${fragment.name}
+                                        </div>
+                                    </div>
                                     ${iconPaths.length > 0
                                         ? html`
                                               <div class="item-icons">
@@ -283,12 +292,6 @@ class MerchCardCollectionEditor extends LitElement {
                                               </div>
                                           `
                                         : nothing}
-                                    <div class="item-text">
-                                        <div class="item-label">${label}</div>
-                                        <div class="item-subtext">
-                                            ${fragment.name}
-                                        </div>
-                                    </div>
                                 </div>
                                 ${this.actions(fragment)}
                             </div>
@@ -423,7 +426,7 @@ class MerchCardCollectionEditor extends LitElement {
                         ];
 
                         // Create a FragmentStore for the new reference
-                        this.fragmentReferencesMap.set(
+                        this.#fragmentReferencesMap.set(
                             fragmentData.path,
                             new FragmentStore(new Fragment(fragmentData)),
                         );
@@ -530,7 +533,7 @@ class MerchCardCollectionEditor extends LitElement {
         if (!this.fragment) return;
 
         // Get the fragment reference for this path
-        const fragmentStore = this.fragmentReferencesMap.get(path);
+        const fragmentStore = this.#fragmentReferencesMap.get(path);
         if (!fragmentStore) return;
 
         const fragment = fragmentStore.get();
@@ -745,7 +748,7 @@ class MerchCardCollectionEditor extends LitElement {
             ];
 
             // Create a FragmentStore for the new reference
-            this.fragmentReferencesMap.set(
+            this.#fragmentReferencesMap.set(
                 fragmentData.path,
                 new FragmentStore(new Fragment(fragmentData)),
             );
@@ -816,7 +819,7 @@ class MerchCardCollectionEditor extends LitElement {
             document.body.removeChild(this.previewElement);
         }
         // Get the fragment reference for this item
-        const fragmentStore = this.fragmentReferencesMap.get(previewItem.path);
+        const fragmentStore = this.#fragmentReferencesMap.get(previewItem.path);
         if (!fragmentStore) return;
 
         const fragment = fragmentStore.get();
@@ -829,7 +832,11 @@ class MerchCardCollectionEditor extends LitElement {
                 <div class="preview-popover" style="${position.left !== undefined ? `left: ${position.left}px` : `right: ${position.right}px`}">
                     <div class="preview-content">
                         <merch-card>
-                            <aem-fragment ims author fragment="${previewItem.id}"></aem-fragment>
+                            <aem-fragment
+                                author
+                                ims
+                                fragment="${previewItem.id}"
+                            ></aem-fragment>
                         </merch-card>
                         <sp-progress-circle class="preview" indeterminate size="l"></sp-progress-circle>
                     </div>

@@ -99,11 +99,7 @@ class MasFragmentRender extends LitElement {
 
     get merchCard() {
         return html`<merch-card slot="trigger">
-            <aem-fragment
-                fragment="${this.fragment.id}"
-                ims
-                author
-            ></aem-fragment>
+            <aem-fragment author fragment="${this.fragment.id}"></aem-fragment>
             ${this.selectionOverlay}
         </merch-card>`;
     }

@@ -131,10 +131,9 @@ export class MasCreateDialog extends LitElement {
             name: this.name || this.normalizeFragmentName(this.title),
         };
         const masRepository = document.querySelector('mas-repository');
-        const response = await masRepository.createFragment(fragmentData);
-        if (!response) return;
-        const fragment = new FragmentStore(new Fragment(response));
-        editFragment(fragment, 1);
+        const fragmentStore = await masRepository.createFragment(fragmentData);
+        fragmentStore.new = true;
+        editFragment(fragmentStore, 0);
         this.close();
     }
 

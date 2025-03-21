@@ -34,7 +34,7 @@ const Store = {
         data: new ReactiveStore([]),
     },
     search: new ReactiveStore({}),
-    filters: new ReactiveStore({ locale: 'en_US', tags: [] }, filtersValidator),
+    filters: new ReactiveStore({ locale: 'en_US', tags: '' }, filtersValidator),
     renderMode: new ReactiveStore(
         localStorage.getItem('mas-render-mode') || 'render',
     ), // 'render' | 'table'
@@ -87,7 +87,7 @@ export function toggleSelection(id) {
     else Store.selection.set([...selection, id]);
 }
 
-export function editFragment(store, x) {
+export function editFragment(store, x = 0) {
     if (!Store.fragments.list.data.get().includes(store)) {
         Store.fragments.list.data.set((prev) => [store, ...prev]);
     }

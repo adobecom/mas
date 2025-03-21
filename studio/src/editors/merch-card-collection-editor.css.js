@@ -45,6 +45,7 @@ export const styles = css`
         align-items: center;
         justify-content: space-between;
         padding: 6px 12px;
+        gap: 12px;
         border: 1px solid var(--spectrum-global-color-gray-200);
         border-radius: 4px;
         background-color: var(--spectrum-global-color-gray-50);
@@ -75,6 +76,7 @@ export const styles = css`
         display: flex;
         align-items: center;
         gap: 12px;
+        justify-content: space-between;
     }
 
     .item-icons {
@@ -94,7 +96,8 @@ export const styles = css`
         flex-direction: column;
     }
 
-    .item-label, .item-subtext {
+    .item-label,
+    .item-subtext {
         display: flex;
         flex-direction: column;
     }
@@ -118,6 +121,7 @@ export const styles = css`
         display: flex;
         align-items: center;
         gap: 8px;
+        width: 124px;
     }
 
     sp-icon-close {

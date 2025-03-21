@@ -130,7 +130,7 @@ export default class EditorPanel extends LitElement {
         // If there is an existing fragment and unsaved changes,
         // prompt to discard before switching.
         if (!wasEmpty && !(await this.closeEditor())) return;
-        if (x) {
+        if (Number.isInteger(x)) {
             const newPosition = x > window.innerWidth / 2 ? 'left' : 'right';
             this.updatePosition(newPosition);
         }

@@ -74,5 +74,22 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-save',
         },
+        {
+            tcid: '5',
+            name: '@studio-try-buy-widget-save-edit-cta-checkout-params',
+            path: '/studio.html',
+            data: {
+                cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
+                osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
+                checkoutParams: {
+                    mv: '1',
+                    cs: 'individual',
+                    promoid: 'ABC123',
+                    mv2: '2',
+                },
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-save',
+        },
     ],
 };

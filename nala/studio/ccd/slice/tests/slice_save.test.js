@@ -591,7 +591,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-save-edit-cta - Validate saving card after editing card cta
+    // @studio-slice-save-edit-cta-label - Validate saving card after editing card cta label
     test(`${features[8].name},${features[8].tags}`, async ({
         page,
         baseURL,
@@ -837,6 +837,88 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(
                 await clonedCard.locator(slice.cardCTA),
             ).toHaveAttribute('is', 'checkout-button');
+        });
+    });
+
+    // @studio-slice-save-edit-cta-checkout-params - Validate saving card after editing card cta checkout params
+    test(`${features[11].name},${features[11].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[11];
+        const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+        let clonedCard;
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'slice-wide'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Clone card and open editor', async () => {
+            await studio.cloneCard();
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'slice-wide',
+                'cloned',
+            );
+            clonedCardID = await clonedCard
+                .locator('aem-fragment')
+                .getAttribute('fragment');
+            data.clonedCardID = await clonedCardID;
+            await expect(await clonedCard).toBeVisible();
+            await clonedCard.dblclick();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-4: Edit checkout params and save card', async () => {
+            await expect(await studio.editorCTA).toBeVisible();
+            await studio.editorCTA.click();
+            await studio.editorPanel
+                .locator(studio.editorFooter)
+                .locator(studio.linkEdit)
+                .click();
+            await expect(await studio.checkoutParameters).toBeVisible();
+            await expect(await studio.linkSave).toBeVisible();
+
+            const checkoutParamsString = Object.keys(data.checkoutParams)
+                .map(
+                    (key) =>
+                        `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`,
+                )
+                .join('&');
+            await studio.checkoutParameters.fill(checkoutParamsString);
+            await studio.linkSave.click();
+            await studio.saveCard();
+        });
+
+        await test.step('step-5: Validate edited cta checkout params', async () => {
+            await expect(
+                await clonedCard.locator(slice.cardCTA),
+            ).toHaveAttribute('data-wcs-osi', data.osi);
+            await expect(
+                await clonedCard.locator(slice.cardCTA),
+            ).toHaveAttribute('is', 'checkout-button');
+            const CTAhref = await clonedCard
+                .locator(slice.cardCTA)
+                .getAttribute('data-href');
+            let searchParams = new URLSearchParams(
+                decodeURI(CTAhref).split('?')[1],
+            );
+            expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
+            expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
+            expect(searchParams.get('promoid')).toBe(
+                data.checkoutParams.promoid,
+            );
+            expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
         });
     });
 });

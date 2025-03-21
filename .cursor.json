@@ -1,39 +1,21 @@
 {
-  "formatOnSave": true,
-  "formatOnPaste": true,
-  "tabSize": 2,
-  "indentSize": 2,
-  "insertSpaces": true,
-  "detectIndentation": true,
-  "trimTrailingWhitespace": true,
-  "insertFinalNewline": true,
-  "autoClosingBrackets": true,
-  "autoIndent": true,
-  "rulers": [100],
-  "wordWrap": "off",
-  "wordWrapColumn": 100,
-  "files.exclude": {
-    "**/.git": true,
-    "**/.DS_Store": true,
-    "**/node_modules": true,
-    "**/dist": true
-  },
-  "search.exclude": {
-    "**/node_modules": true,
-    "**/dist": true
-  },
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "prettier.requireConfig": true,
-  "prettier.useEditorConfig": true,
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true,
-    "source.organizeImports": true
-  },
-  "eslint.validate": [
-    "javascript",
-    "javascriptreact",
-    "typescript",
-    "typescriptreact"
-  ],
-  "prettier.eslintIntegration": true
+    "files.exclude": {
+        "**/.git": true,
+        "**/.DS_Store": true,
+        "**/node_modules": true,
+        "**/dist": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/dist": true
+    },
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "prettier.requireConfig": true,
+    "prettier.useEditorConfig": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": true,
+        "source.organizeImports": true
+    },
+    "eslint.validate": ["javascript"],
+    "prettier.eslintIntegration": true
 }

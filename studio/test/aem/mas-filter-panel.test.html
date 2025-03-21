@@ -51,7 +51,7 @@
                 describe('mas-filter-panel custom element', async () => {
                     beforeEach(async function () {
                         Store.filters.set({
-                            tags: [],
+                            tags: '',
                         });
                     });
 
@@ -262,7 +262,7 @@
                     it('Should initialize filters from search state', async function () {
                         // Set initial search state
                         Store.filters.set({
-                            tags: ['mas:status/draft', 'mas:offer_type/base'],
+                            tags: 'mas:status/draft,mas:offer_type/base',
                         });
 
                         const filterPanel = initElementFromTemplate(

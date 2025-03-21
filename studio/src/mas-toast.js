@@ -6,6 +6,7 @@ class MasToast extends LitElement {
         :host {
             position: fixed;
             bottom: 10%;
+            z-index: 1000;
         }
     `;
 

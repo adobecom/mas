@@ -8,6 +8,10 @@ export class FragmentStore extends ReactiveStore {
         this.refreshAemFragment();
     }
 
+    get id() {
+        return this.value.id;
+    }
+
     setLoading(loading = false) {
         this.loading = loading;
         this.notify();

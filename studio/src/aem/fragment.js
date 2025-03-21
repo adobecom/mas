@@ -20,21 +20,25 @@ export class Fragment {
         title,
         description,
         status,
+        created,
         modified,
         fields,
         tags,
+        references,
     }) {
         this.id = id;
         this.model = model;
         this.etag = etag;
         this.path = path;
-        this.name = path.split('/').pop();
+        this.name = path?.split('/')?.pop();
         this.title = title;
         this.description = description;
         this.status = status;
+        this.created = created;
         this.modified = modified;
         this.tags = tags;
         this.fields = fields;
+        this.references = references;
         this.tags = tags || [];
         this.initialValue = structuredClone(this);
     }

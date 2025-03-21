@@ -4,7 +4,12 @@ import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { OPERATIONS } from './constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    EVENT_KEYDOWN,
+    OPERATIONS,
+} from './constants.js';
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
 
@@ -49,10 +54,7 @@ export default class EditorPanel extends LitElement {
     inEdit = Store.fragments.inEdit;
     operation = Store.operation;
 
-    reactiveController = new ReactiveController(this, [
-        this.inEdit,
-        this.operation,
-    ]);
+    reactiveController = new ReactiveController(this);
 
     #discardPromiseResolver;
 
@@ -82,12 +84,12 @@ export default class EditorPanel extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        document.addEventListener('keydown', this.handleKeyDown);
+        document.addEventListener(EVENT_KEYDOWN, this.handleKeyDown);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        document.removeEventListener('keydown', this.handleKeyDown);
+        document.removeEventListener(EVENT_KEYDOWN, this.handleKeyDown);
     }
 
     /** @type {MasRepository} */
@@ -97,7 +99,11 @@ export default class EditorPanel extends LitElement {
 
     /** @type {Fragment | null} */
     get fragment() {
-        return this.inEdit?.get();
+        return this.fragmentStore?.get();
+    }
+
+    get fragmentStore() {
+        return this.inEdit.get();
     }
 
     updatePosition(position) {
@@ -124,12 +130,17 @@ export default class EditorPanel extends LitElement {
         // If there is an existing fragment and unsaved changes,
         // prompt to discard before switching.
         if (!wasEmpty && !(await this.closeEditor())) return;
-        if (x) {
+        if (Number.isInteger(x)) {
             const newPosition = x > window.innerWidth / 2 ? 'left' : 'right';
             this.updatePosition(newPosition);
         }
         await this.repository.refreshFragment(store);
-        this.inEdit.set(store.value);
+        this.inEdit.set(store);
+        this.reactiveController.updateStores([
+            this.inEdit,
+            store,
+            this.operation,
+        ]);
     }
 
     handleKeyDown(event) {
@@ -209,14 +220,17 @@ export default class EditorPanel extends LitElement {
     #updateFragmentInternal(event) {
         const fieldName = event.target.dataset.field;
         let value = event.target.value;
-        this.inEdit.updateFieldInternal(fieldName, value);
+        this.fragmentStore.updateFieldInternal(fieldName, value);
     }
 
-    updateFragment({ target, detail }) {
+    updateFragment({ target, detail, values }) {
         const fieldName = target.dataset.field;
-        let value = target.value || detail?.value || target.checked;
-        value = target.multiline ? value?.split(',') : [value ?? ''];
-        this.inEdit.updateField(fieldName, value);
+        let value = values;
+        if (!value) {
+            value = target.value || detail?.value || target.checked;
+            value = target.multiline ? value?.split(',') : [value ?? ''];
+        }
+        this.fragmentStore.updateField(fieldName, value);
     }
 
     async deleteFragment() {
@@ -256,6 +270,7 @@ export default class EditorPanel extends LitElement {
     discardConfirmed() {
         this.showDiscardDialog = false;
         if (this.#discardPromiseResolver) {
+            this.fragmentStore.discardChanges();
             this.#discardPromiseResolver(true);
             this.#discardPromiseResolver = null;
         }
@@ -280,7 +295,6 @@ export default class EditorPanel extends LitElement {
         if (Store.editor.hasChanges) {
             const confirmed = await this.promptDiscardChanges();
             if (confirmed) {
-                this.inEdit.discardChanges();
                 this.showEditor = false;
                 await this.updateComplete;
                 this.showEditor = true;
@@ -300,8 +314,6 @@ export default class EditorPanel extends LitElement {
             if (!confirmed) {
                 return false;
             }
-            // The user confirmed – discard changes.
-            this.inEdit.discardChanges();
         }
         this.inEdit.set();
         return true;
@@ -309,7 +321,7 @@ export default class EditorPanel extends LitElement {
 
     #handleLocReady() {
         const value = !this.fragment.getField('locReady').values[0];
-        this.inEdit.updateField('locReady', [value]);
+        this.fragmentStore.updateField('locReady', [value]);
     }
 
     get fragmentEditorToolbar() {
@@ -586,21 +598,32 @@ export default class EditorPanel extends LitElement {
 
     render() {
         if (!this.fragment) return nothing;
-        if (this.inEdit.loading)
+        if (this.fragment.loading)
             return html`<sp-progress-circle
                 indeterminate
                 size="l"
             ></sp-progress-circle>`;
+
+        let editor = nothing;
+        if (this.showEditor) {
+            switch (this.fragment.model.path) {
+                case CARD_MODEL_PATH:
+                    editor = html` <merch-card-editor
+                        .fragmentStore=${this.fragmentStore}
+                        .updateFragment=${this.updateFragment}
+                    ></merch-card-editor>`;
+                    break;
+                case COLLECTION_MODEL_PATH:
+                    editor = html` <merch-card-collection-editor
+                        .fragmentStore=${this.fragmentStore}
+                        .updateFragment=${this.updateFragment}
+                    ></merch-card-collection-editor>`;
+                    break;
+            }
+        }
         return html`
             <div id="editor">
-                ${this.fragmentEditorToolbar}
-                ${this.showEditor
-                    ? html` <merch-card-editor
-                          .fragment=${this.fragment}
-                          .fragmentStore=${this.inEdit}
-                          .updateFragment=${this.updateFragment}
-                      ></merch-card-editor>`
-                    : nothing}
+                ${this.fragmentEditorToolbar} ${editor}
                 <sp-divider size="s"></sp-divider>
                 ${this.fragmentEditor} ${this.deleteConfirmationDialog}
                 ${this.discardConfirmationDialog}

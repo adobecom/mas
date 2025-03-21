@@ -108,3 +108,35 @@ export function debounce(fn, delay) {
 }
 
 export class UserFriendlyError extends Error {}
+
+/**
+ * Deeply compares two values for equality
+ * @param {any} left - First value to compare
+ * @param {any} right - Second value to compare
+ * @returns {boolean} - True if values are deeply equal
+ */
+export function deepCompare(left, right) {
+    // Handle null/undefined cases
+    if (left === null || left === undefined) return left === right;
+    if (right === null || right === undefined) return false;
+
+    // Handle primitive types
+    if (typeof left !== typeof right) return false;
+    if (typeof left !== 'object') return left === right;
+
+    // Handle arrays
+    if (Array.isArray(left) && Array.isArray(right)) {
+        if (left.length !== right.length) return false;
+        return left.every((item, index) => deepCompare(item, right[index]));
+    }
+
+    // Handle objects
+    if (Array.isArray(left) || Array.isArray(right)) return false;
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+    if (leftKeys.length !== rightKeys.length) return false;
+    return leftKeys.every((key) => {
+        if (!right.hasOwnProperty(key)) return false;
+        return deepCompare(left[key], right[key]);
+    });
+}

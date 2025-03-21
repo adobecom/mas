@@ -2,7 +2,7 @@
     "path": "/content/dam/mas/ccd-slice-cc-allapps",
     "title": "CCD Suggested CC All Apps",
     "description": "",
-    "id": "fragment-cc-all-apps",
+    "id": "cc-all-apps",
     "status": "DRAFT",
     "fields": [
         {

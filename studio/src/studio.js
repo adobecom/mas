@@ -12,9 +12,17 @@ import './mas-repository.js';
 import './mas-toast.js';
 import './mas-splash-screen.js';
 import './filters/locale-picker.js';
+import './mas-placeholders.js';
+import './mas-recently-updated.js';
 import StoreController from './reactivity/store-controller.js';
-import Store, { linkStoreToHash } from './store.js';
-import { WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
+import Store from './store.js';
+import {
+    linkStoreToHash,
+    initializeRouter,
+    setupNavigationSubscriptions,
+    initializeStoreFromUrl,
+} from './router.js';
+import { PAGE_NAMES, WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
 
 const BUCKET_TO_ENV = {
     e155390: 'qa',
@@ -22,13 +30,20 @@ const BUCKET_TO_ENV = {
     e59433: 'prod',
 };
 
+// Initialize store from URL first, then set up hash linking and router
+initializeStoreFromUrl();
+
+// Link store to hash parameters for reactive updates
 linkStoreToHash(Store.search, ['path', 'query']);
 linkStoreToHash(Store.filters, ['locale', 'tags'], {
     locale: 'en_US',
     tags: [],
 });
-linkStoreToHash(Store.page, 'page', 'welcome');
 linkStoreToHash(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
+
+// Initialize the router
+initializeRouter();
+setupNavigationSubscriptions();
 
 class MasStudio extends LitElement {
     static properties = {
@@ -41,7 +56,6 @@ class MasStudio extends LitElement {
         this.bucket = 'e59433';
     }
 
-    // we need to completely remove&add element to the dom
     toggleCommerce(env) {
         const service = this.querySelector('mas-commerce-service');
         const newService = service.cloneNode(true);
@@ -70,18 +84,28 @@ class MasStudio extends LitElement {
     commerceEnv = new StoreController(this, Store.commerceEnv);
 
     get content() {
-        if (this.page.value !== 'content') return nothing;
+        if (this.page.value !== PAGE_NAMES.CONTENT) return nothing;
         return html`<div id="content-container">
             <mas-toolbar></mas-toolbar>
             <mas-content></mas-content>
         </div> `;
     }
 
+    get placeholders() {
+        if (this.page.value !== PAGE_NAMES.PLACEHOLDERS) return nothing;
+        return html` <mas-placeholders></mas-placeholders> `;
+    }
+
     get splashScreen() {
-        if (this.page.value !== 'welcome') return nothing;
+        if (this.page.value !== PAGE_NAMES.WELCOME) return nothing;
         return html`<mas-splash-screen
             base-url=${this.baseUrl}
         ></mas-splash-screen>`;
+    }
+
+    get recentlyUpdated() {
+        if (this.page.value !== PAGE_NAMES.WELCOME) return nothing;
+        return html`<mas-recently-updated></mas-recently-updated>`;
     }
 
     render() {
@@ -99,7 +123,7 @@ class MasStudio extends LitElement {
             <div class="studio-content">
                 <mas-side-nav></mas-side-nav>
                 <div class="main-container">
-                    ${this.splashScreen} ${this.content}
+                    ${this.splashScreen} ${this.content} ${this.placeholders}
                 </div>
             </div>
             <editor-panel></editor-panel>

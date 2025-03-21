@@ -1,6 +1,7 @@
 import { html, css, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
+import Events from '../events.js';
 
 function pathToTagId(path) {
     return `mas:${path.replace('/content/cq:tags/mas/', '')}`;
@@ -102,13 +103,43 @@ class MasFilterPanel extends LitElement {
     }
 
     #handleRefresh() {
-        Store.search.set((prev) => ({ ...prev, tags: [] }));
+        Store.search.set((prev) => ({
+            ...prev,
+            tags: [],
+        }));
+
+        Store.filters.set((prev) => ({
+            ...prev,
+            tags: [],
+        }));
+
         this.tagsByType = { ...EMPTY_TAGS };
         this.shadowRoot
             .querySelectorAll('aem-tag-picker-field')
             .forEach((tagPicker) => {
                 tagPicker.clear();
             });
+        this.#clearFilterHashParams();
+    }
+
+    #clearFilterHashParams() {
+        const currentHash = window.location.hash.slice(1);
+        const params = new URLSearchParams(currentHash);
+
+        ['tags', 'filter'].forEach((param) => {
+            if (params.has(param)) {
+                params.delete(param);
+            }
+        });
+
+        const newHash = params.toString();
+        window.history.replaceState(
+            null,
+            '',
+            `${window.location.pathname}${window.location.search}${
+                newHash ? '#' + newHash : ''
+            }`,
+        );
     }
 
     async #handleTagDelete(e) {

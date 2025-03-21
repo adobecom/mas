@@ -6,8 +6,7 @@ import '../aem/aem-tag-picker-field.js';
 import './variant-picker.js';
 import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 import '../rte/osi-field.js';
-
-const MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
+import { CARD_MODEL_PATH } from '../constants.js';
 
 const merchCardCustomElementPromise = customElements.whenDefined('merch-card');
 
@@ -193,7 +192,7 @@ class MerchCardEditor extends LitElement {
 
     render() {
         if (!this.fragment) return nothing;
-        if (this.fragment.model.path !== MODEL_PATH) return nothing;
+        if (this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
 
         const form = Object.fromEntries([
             ...this.fragment.fields.map((f) => [f.name, f]),

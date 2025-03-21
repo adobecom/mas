@@ -41,7 +41,7 @@ async function translate(context) {
     return {
         ...context,
         status: 200,
-        body: translatedBody,
+        body: translatedBody || body,
         surface,
         parsedLocale,
         fragmentPath,

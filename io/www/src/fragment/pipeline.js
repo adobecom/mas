@@ -1,3 +1,5 @@
+'use strict';
+
 const fetchFragment = require('./fetch.js').fetchFragment;
 const translate = require('./translate.js').translate;
 const replace = require('./replace.js').replace;
@@ -30,10 +32,7 @@ async function main(params) {
         DEFAULT_HEADERS,
         status: 200,
     };
-    log(
-        `starting request pipeline for ${context.id} in ${context.locale}`,
-        context,
-    );
+    log(`starting request pipeline for ${JSON.stringify(context)}`, context);
     /* istanbul ignore next */
     if (!context.state) {
         context.state = await stateLib.init();
@@ -66,7 +65,8 @@ async function main(params) {
         context.transformer = transformer.name;
         context = await transformer(context);
     }
-    returnValue = {
+    context.transformer = 'pipeline';
+    const returnValue = {
         statusCode: context.status,
     };
     if (context.status == 200) {
@@ -78,7 +78,7 @@ async function main(params) {
         if (updated) {
             const metadata = JSON.stringify({
                 hash,
-                lastModified: lastModified.toISOString(),
+                lastModified: lastModified.toUTCString(),
                 translatedId: context.translatedId,
                 dictionaryId: context.dictionaryId,
             });
@@ -87,7 +87,6 @@ async function main(params) {
         } else if (cachedMetadata?.lastModified) {
             lastModified = new Date(cachedMetadata.lastModified);
         }
-
         // Check If-Modified-Since header
         const ifModifiedSince = params.__ow_headers?.['if-modified-since'];
         if (ifModifiedSince) {
@@ -109,7 +108,7 @@ async function main(params) {
     }
     const endTime = Date.now();
     log(
-        `pipeline completed: ${context.id} ${context.locale} -> ${context.body?.id} (${returnValue.statusCode}) in ${endTime - startTime}ms`,
+        `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.body?.id} (${returnValue.statusCode}) in ${endTime - startTime}ms`,
         {
             ...context,
             transformer: 'pipeline',

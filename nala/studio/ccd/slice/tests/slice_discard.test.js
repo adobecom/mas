@@ -463,7 +463,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-cta-link - Validate discard edit CTA link for slice card in mas studio
+    // @studio-slice-discard-cta-label - Validate discard edit CTA label for slice card in mas studio
     test(`${features[7].name},${features[7].tags}`, async ({
         page,
         baseURL,
@@ -485,7 +485,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.editorPanel).toBeVisible();
         });
 
-        await test.step('step-3: Edit CTA link', async () => {
+        await test.step('step-3: Edit CTA label', async () => {
             await expect(
                 await studio.editorPanel
                     .locator(studio.editorFooter)
@@ -760,6 +760,83 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 data.newVariant,
             );
             await expect(await studio.editorCTA).toHaveClass(data.variant);
+        });
+    });
+
+    // @studio-slice-discard-cta-checkout-params - Validate discard edit CTA checkout params for slice card in mas studio
+    test(`${features[11].name},${features[11].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[11];
+        const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'slice-wide'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA checkout params', async () => {
+            await expect(
+                await studio.editorPanel
+                    .locator(studio.editorFooter)
+                    .locator(studio.linkEdit),
+            ).toBeVisible();
+            await expect(await studio.editorCTA).toBeVisible();
+            await studio.editorCTA.click();
+            await studio.editorPanel
+                .locator(studio.editorFooter)
+                .locator(studio.linkEdit)
+                .click();
+            await expect(await studio.checkoutParameters).toBeVisible();
+            await expect(await studio.linkSave).toBeVisible();
+
+            const checkoutParamsString = Object.keys(data.checkoutParams)
+                .map(
+                    (key) =>
+                        `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`,
+                )
+                .join('&');
+            await studio.checkoutParameters.fill(checkoutParamsString);
+            await studio.linkSave.click();
+
+            const CTAhref = await slice.cardCTA.getAttribute('data-href');
+            let searchParams = new URLSearchParams(
+                decodeURI(CTAhref).split('?')[1],
+            );
+            expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
+            expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
+            expect(searchParams.get('promoid')).toBe(
+                data.checkoutParams.promoid,
+            );
+            expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
+        });
+
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+            await studio.editorPanel.locator(studio.closeEditor).click();
+            await expect(
+                await studio.editorPanel.locator(studio.confirmationDialog),
+            ).toBeVisible();
+            await studio.editorPanel.locator(studio.discardDialog).click();
+            await expect(await studio.editorPanel).not.toBeVisible();
+        });
+
+        await test.step('step-5: Verify there is no changes of the card', async () => {
+            const changedCTAhref =
+                await slice.cardCTA.getAttribute('data-href');
+            let noSearchParams = new URLSearchParams(
+                decodeURI(changedCTAhref).split('?')[1],
+            );
+            expect(noSearchParams).toBeNull;
         });
     });
 });

@@ -76,8 +76,8 @@ export function linkStoreToHash(store, keys, defaultValue) {
             const defaultForKey = Array.isArray(defaultValue)
                 ? defaultValue
                 : typeof defaultValue === 'object' && defaultValue !== null
-                ? defaultValue[key]
-                : defaultValue;
+                  ? defaultValue[key]
+                  : defaultValue;
 
             if (defaultForKey !== undefined) {
                 updates[key] = defaultForKey;
@@ -90,13 +90,21 @@ export function linkStoreToHash(store, keys, defaultValue) {
         store.set((prev) => ({ ...prev, ...updates }));
     }
 
-    store.subscribe((value) => {
+    store.subscribe((value, oldValue) => {
         const currentHash = window.location.hash.slice(1);
         const currentParams = new URLSearchParams(currentHash);
         let hasChanges = false;
 
         for (const key of keysArray) {
             const storeValue = value[key];
+            if (Array.isArray(storeValue) && storeValue.length === 0) {
+                if (currentParams.has(key)) {
+                    currentParams.delete(key);
+                    hasChanges = true;
+                }
+                continue;
+            }
+
             if (storeValue === undefined) {
                 if (currentParams.has(key)) {
                     currentParams.delete(key);

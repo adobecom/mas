@@ -14,6 +14,7 @@ class MasContent extends LitElement {
     constructor() {
         super();
         this.goToFragment = this.goToFragment.bind(this);
+        this.subscriptions = [];
     }
 
     loading = new StoreController(this, Store.fragments.list.loading);
@@ -25,11 +26,30 @@ class MasContent extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         Events.fragmentAdded.subscribe(this.goToFragment);
+
+        const fragmentsSubscription = Store.fragments.list.data.subscribe(
+            () => {
+                console.log('Fragment list updated, refreshing content view');
+                this.requestUpdate();
+            },
+        );
+
+        const filterSubscription = Store.filters.subscribe(() => {
+            console.log('Filters changed, requesting update');
+            this.requestUpdate();
+        });
+
+        this.subscriptions.push(fragmentsSubscription, filterSubscription);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         Events.fragmentAdded.unsubscribe(this.goToFragment);
+
+        this.subscriptions.forEach((subscription) =>
+            subscription.unsubscribe(),
+        );
+        this.subscriptions = [];
     }
 
     async goToFragment(id, skipUpdate = false) {

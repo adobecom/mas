@@ -43,21 +43,20 @@ export class MasRepository extends LitElement {
         this.publishFragment = this.publishFragment.bind(this);
         this.unpublishFragment = this.unpublishFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
+        this.search = new StoreController(this, Store.search);
+        this.filters = new StoreController(this, Store.filters);
+        this.page = new StoreController(this, Store.page);
+        this.foldersLoaded = new StoreController(this, Store.folders.loaded);
+        this.recentlyUpdatedLimit = new StoreController(
+            this,
+            Store.fragments.recentlyUpdated.limit,
+        );
     }
 
     /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
     #abortControllers;
     /** @type {AEM} */
     #aem;
-
-    filters = new StoreController(this, Store.filters);
-    search = new StoreController(this, Store.search);
-    page = new StoreController(this, Store.page);
-    foldersLoaded = new StoreController(this, Store.folders.loaded);
-    recentlyUpdatedLimit = new StoreController(
-        this,
-        Store.fragments.recentlyUpdated.limit,
-    );
 
     connectedCallback() {
         super.connectedCallback();
@@ -68,6 +67,10 @@ export class MasRepository extends LitElement {
         this.#aem = new AEM(this.bucket, this.baseUrl);
         this.loadFolders();
         this.style.display = 'none';
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
     }
 
     /**
@@ -88,21 +91,39 @@ export class MasRepository extends LitElement {
         });
     }
 
-    update() {
-        super.update();
+    update(changedProperties) {
+        super.update(changedProperties);
         if (!this.foldersLoaded.value) return;
-        /**
-         * Automatically fetch data when search/filters update.
-         * Both load methods have page guards (ex. fragments won't be searched on the 'welcome' page)
-         */
-        if (this.page.value === PAGE_NAMES.CONTENT) {
-            this.searchFragments();
-        }
-        if (this.page.value === PAGE_NAMES.WELCOME) {
-            this.loadRecentlyUpdatedFragments();
-        }
-        if (this.page.value === PAGE_NAMES.PLACEHOLDERS) {
-            this.searchPlaceholders();
+
+        const currentSearch = JSON.stringify(this.search.value);
+        const currentFilters = JSON.stringify(this.filters.value);
+
+        const isFilterReset =
+            (Array.isArray(this.filters.value.tags) &&
+                this.filters.value.tags.length === 0) ||
+            (Array.isArray(this.search.value.tags) &&
+                this.search.value.tags.length === 0);
+
+        const needsUpdate =
+            isFilterReset ||
+            !this._lastSearch ||
+            this._lastSearch !== currentSearch ||
+            !this._lastFilters ||
+            this._lastFilters !== currentFilters;
+
+        if (needsUpdate) {
+            this._lastSearch = currentSearch;
+            this._lastFilters = currentFilters;
+
+            if (this.page.value === PAGE_NAMES.CONTENT) {
+                this.searchFragments();
+            }
+            if (this.page.value === PAGE_NAMES.WELCOME) {
+                this.loadRecentlyUpdatedFragments();
+            }
+            if (this.page.value === PAGE_NAMES.PLACEHOLDERS) {
+                this.searchPlaceholders();
+            }
         }
     }
 

@@ -67,6 +67,7 @@ export class Fragment {
         if (!this.hasChanges) return;
         Object.assign(this, this.initialValue);
         this.initialValue = structuredClone(this);
+        this.hasChanges = false;
     }
 
     updateFieldInternal(fieldName, value) {

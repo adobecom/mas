@@ -1,6 +1,5 @@
 const { fetch } = require('./common.js');
 const { odinReferences } = require('./paths.js');
-const { extractSurfaceFromPath } = require('../dictionary/dictionary.js');
 
 const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';

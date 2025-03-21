@@ -88,8 +88,8 @@ class MerchCardCollectionEditor extends LitElement {
                 const fragment = await getFromFragmentCache(ref.id);
                 if (!fragment) continue;
                 fragmentStore = new FragmentStore(fragment);
-                this.#fragmentReferencesMap.set(ref.path, fragmentStore);
             }
+            this.#fragmentReferencesMap.set(ref.path, fragmentStore);
         }
 
         // Request an update to reflect changes

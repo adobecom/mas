@@ -22,11 +22,6 @@
             "purpose": "UI component library"
         },
         {
-            "name": "Express",
-            "version": "^4.0.0",
-            "purpose": "Backend framework"
-        },
-        {
             "name": "Playwright",
             "version": "latest",
             "purpose": "End-to-end testing"

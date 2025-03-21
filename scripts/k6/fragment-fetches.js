@@ -7,10 +7,19 @@ import { checkResponse, ramp, step } from './common.js';
 const fragments = new SharedArray('fragments', () => {
     const filePath = `./fragment-files/${__ENV.ENV?.length > 0 ? __ENV.ENV + '-' : ''}fragments.csv`;
     const f = open(filePath).split('\n'); // Read CSV
+    const headers = f[0].split(','); // Get headers
     let fragmentArray = f
         .slice(1) // Remove header,
         .map((line) => line.trim()) //white spaces,
-        .filter((line) => line.length === 36); // non well formatted items,
+        .map((line) => line.split(',')) // split by comma,
+        .map((line) =>
+            line.reduce((acc, item, index) => {
+                acc[headers[index]] = item;
+                return acc;
+            }, {}),
+        ) // convert to object,
+        .filter((line) => line.id)
+        .filter((line) => line.id.length === 36); // non well formatted items,
     fragmentArray = fragmentArray.slice(
         0,
         __ENV.MAX_FRAGMENTS || fragmentArray.length,
@@ -47,7 +56,7 @@ export default function () {
     const localeIndex = (__VU - 1 + __ITER) % locales.length; // rotates per user & iteration
     const fragment = fragments[fragmentIndex];
     const locale = locales[localeIndex];
-    const url = `${baseUrl}?id=${fragment}&locale=${locale}&api_key=${api_key}`;
+    const url = `${baseUrl}?id=${fragment.id}&locale=${locale}&api_key=${api_key}`;
     const res = http.get(url);
 
     // Assertions to validate response
@@ -55,12 +64,17 @@ export default function () {
     checkResponse(
         res,
         (res) => {
-            const fields =
-                res?.body?.length > 0 ? JSON.parse(res.body).fields : {};
+            const body = res?.body?.length > 0 ? JSON.parse(res.body) : {};
+            const fields = body?.fields || {};
+            const id = body?.id || '';
             const fieldCheck = check(fields, {
                 'description is not empty': (f) => {
                     return f?.description?.value?.length > 0;
                 },
+            });
+            check(id, {
+                'id seems valid': (i) =>
+                    i && (!fragment[locale] || i === fragment[locale]),
             });
             if (!fieldCheck) {
                 console.error(`Failed URL: ${url}, Fields: ${fields}`);

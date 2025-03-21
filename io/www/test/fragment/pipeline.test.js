@@ -227,7 +227,7 @@ describe('pipeline corner cases', () => {
             statusCode: 404,
             body: {
                 message: 'nok',
-            }
+            },
         });
     });
 

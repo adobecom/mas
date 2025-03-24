@@ -109,7 +109,7 @@ export default {
         },
         {
             tcid: '8',
-            name: '@studio-suggested-edit-cta-link',
+            name: '@studio-suggested-edit-cta-label',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -209,6 +209,23 @@ export default {
                 newCtaCSS: {
                     'background-color': 'rgb(2, 101, 220)',
                     color: 'rgb(255, 255, 255)',
+                },
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
+        },
+        {
+            tcid: '15',
+            name: '@studio-suggested-edit-cta-checkout-params',
+            path: '/studio.html',
+            data: {
+                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                checkoutParams: {
+                    mv: '1',
+                    cs: 'individual',
+                    promoid: 'ABC123',
+                    mv2: '2',
                 },
             },
             browserParams: '#query=',

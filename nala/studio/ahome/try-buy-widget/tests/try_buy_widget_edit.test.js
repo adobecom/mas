@@ -523,7 +523,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-edit-cta - Validate edit CTA for try buy widjet card in mas studio
+    // @studio-try-buy-widget-edit-cta - Validate edit CTA for try buy widget card in mas studio
     test(`${features[8].name},${features[8].tags}`, async ({
         page,
         baseURL,
@@ -1063,6 +1063,79 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 'is',
                 'checkout-button',
             );
+        });
+    });
+
+    // @studio-try-buy-widget-edit-cta-checkout-params - Validate edit CTA checkout params for try-buy-widget card in mas studio
+    test(`${features[14].name},${features[14].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[14];
+        const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'ahtrybuywidget-triple'),
+            ).toBeVisible();
+            await (
+                await studio.getCard(data.cardid, 'ahtrybuywidget-triple')
+            ).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA checkout params', async () => {
+            await expect(
+                await studio.editorPanel
+                    .locator(studio.editorFooter)
+                    .locator(studio.linkEdit),
+            ).toBeVisible();
+            await expect(await studio.editorCTA.first()).toBeVisible();
+            await studio.editorCTA.first().click();
+            await studio.editorPanel
+                .locator(studio.editorFooter)
+                .locator(studio.linkEdit)
+                .click();
+            await expect(await studio.checkoutParameters).toBeVisible();
+            await expect(await studio.linkSave).toBeVisible();
+
+            const checkoutParamsString = Object.keys(data.checkoutParams)
+                .map(
+                    (key) =>
+                        `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`,
+                )
+                .join('&');
+            await studio.checkoutParameters.fill(checkoutParamsString);
+            await studio.linkSave.click();
+        });
+
+        await test.step('step-4: Validate edited CTA on the card', async () => {
+            await expect(await trybuywidget.cardCTA.first()).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(await trybuywidget.cardCTA.first()).toHaveAttribute(
+                'is',
+                'checkout-button',
+            );
+            const CTAhref = await trybuywidget.cardCTA
+                .first()
+                .getAttribute('data-href');
+            let searchParams = new URLSearchParams(
+                decodeURI(CTAhref).split('?')[1],
+            );
+            expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
+            expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
+            expect(searchParams.get('promoid')).toBe(
+                data.checkoutParams.promoid,
+            );
+            expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
         });
     });
 });

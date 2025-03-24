@@ -90,6 +90,7 @@ export default class StudioPage {
         // RTE panel toolbar
         this.linkEdit = page.locator('#linkEditorButton');
         // Edit Link Panel
+        this.checkoutParameters = page.locator('#checkoutParameters input');
         this.linkText = page.locator('#linkText input');
         this.linkSave = page.locator('#saveButton');
         this.linkVariant = page.locator('#linkVariant');

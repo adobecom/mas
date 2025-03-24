@@ -120,7 +120,7 @@ export default class EditorPanel extends LitElement {
     maskOtherFragments(currentId) {
         document.querySelector('.main-container')?.classList.add('mask');
         document
-            .querySelector(`[data-id=${currentId}]`)
+            .querySelector(`[data-id="${currentId}"]`)
             ?.classList.add('editing-fragment');
     }
 
@@ -296,7 +296,7 @@ export default class EditorPanel extends LitElement {
     }
 
     /**
-     * Handler for the toolbar “Discard” action.
+     * Handler for the toolbar "Discard" action.
      * Uses the same prompt so that the user always sees a consistent confirmation.
      */
     async onToolbarDiscard() {

@@ -290,7 +290,19 @@ class MerchCardEditor extends LitElement {
                     @input="${this.updateFragment}"
                 ></sp-textfield>
             </sp-field-group>
-            
+            <sp-field-group class="toggle" id="mnemonics">
+                <sp-field-label for="mnemonics">Mnemonics</sp-field-label>
+                <mas-multifield
+                    id="mnemonics"
+                    .value="${this.mnemonics}"
+                    @change="${this.#updateMnemonics}"
+                    @input="${this.#updateMnemonics}"
+                >
+                    <template>
+                        <mas-mnemonic-field></mas-mnemonic-field>
+                    </template>
+                </mas-multifield>
+            </sp-field-group>
             <sp-field-group class="toggle" id="whatsIncluded">
                 <sp-field-label for="whatsIncluded">What's included</sp-field-label>
                 <sp-textfield
@@ -307,21 +319,7 @@ class MerchCardEditor extends LitElement {
                         <mas-included-field></mas-included-field>
                     </template>
                 </mas-multifield>                
-            </sp-field-group>
-            
-            <sp-field-group class="toggle" id="mnemonics">
-                <sp-field-label for="mnemonics">Mnemonics</sp-field-label>
-                <mas-multifield
-                    id="mnemonics"
-                    .value="${this.mnemonics}"
-                    @change="${this.#updateMnemonics}"
-                    @input="${this.#updateMnemonics}"
-                >
-                    <template>
-                        <mas-mnemonic-field></mas-mnemonic-field>
-                    </template>
-                </mas-multifield>
-            </sp-field-group>
+            </sp-field-group>            
             ${this.#renderColorPicker(
                 'border-color',
                 'Border Color',

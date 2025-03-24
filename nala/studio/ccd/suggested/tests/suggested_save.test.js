@@ -100,7 +100,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 data.clonedCardID,
             );
 
-            await expect(clonedCardTwo).toBeVisible();
+            await expect(await clonedCardTwo).toBeVisible();
 
             let clonedCardTwoID = await clonedCardTwo
                 .locator('aem-fragment')
@@ -121,11 +121,11 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
             await clonedCard.dblclick();
             await studio.deleteCard();
-            await expect(clonedCard).not.toBeVisible();
+            await expect(await clonedCard).not.toBeVisible();
 
             await clonedCardTwo.dblclick();
             await studio.deleteCard();
-            await expect(clonedCardTwo).not.toBeVisible();
+            await expect(await clonedCardTwo).not.toBeVisible();
         });
     });
 
@@ -672,7 +672,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-save-edit-cta - Validate saving card after editing card cta
+    // @studio-suggested-save-edit-cta-label - Validate saving card after editing card cta label
     test(`${features[9].name},${features[9].tags}`, async ({
         page,
         baseURL,
@@ -907,6 +907,88 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(
                 await clonedCard.locator(suggested.cardCTA),
             ).toHaveAttribute('is', 'checkout-button');
+        });
+    });
+
+    // @studio-suggested-save-edit-cta-checkout-params - Validate saving card after editing card cta checkout params
+    test(`${features[12].name},${features[12].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[12];
+        const testPage = `${baseURL}${features[12].path}${miloLibs}${features[12].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+        let clonedCard;
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Clone card and open editor', async () => {
+            await studio.cloneCard();
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'suggested',
+                'cloned',
+            );
+            clonedCardID = await clonedCard
+                .locator('aem-fragment')
+                .getAttribute('fragment');
+            data.clonedCardID = await clonedCardID;
+            await expect(await clonedCard).toBeVisible();
+            await clonedCard.dblclick();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-4: Edit checkout params and save card', async () => {
+            await expect(await studio.editorCTA).toBeVisible();
+            await studio.editorCTA.click();
+            await studio.editorPanel
+                .locator(studio.editorFooter)
+                .locator(studio.linkEdit)
+                .click();
+            await expect(await studio.checkoutParameters).toBeVisible();
+            await expect(await studio.linkSave).toBeVisible();
+
+            const checkoutParamsString = Object.keys(data.checkoutParams)
+                .map(
+                    (key) =>
+                        `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`,
+                )
+                .join('&');
+            await studio.checkoutParameters.fill(checkoutParamsString);
+            await studio.linkSave.click();
+            await studio.saveCard();
+        });
+
+        await test.step('step-5: Validate edited cta checkout params', async () => {
+            await expect(
+                await clonedCard.locator(suggested.cardCTA),
+            ).toHaveAttribute('data-wcs-osi', data.osi);
+            await expect(
+                await clonedCard.locator(suggested.cardCTA),
+            ).toHaveAttribute('is', 'checkout-button');
+            const CTAhref = await clonedCard
+                .locator(suggested.cardCTA)
+                .getAttribute('data-href');
+            let searchParams = new URLSearchParams(
+                decodeURI(CTAhref).split('?')[1],
+            );
+            expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
+            expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
+            expect(searchParams.get('promoid')).toBe(
+                data.checkoutParams.promoid,
+            );
+            expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
         });
     });
 });

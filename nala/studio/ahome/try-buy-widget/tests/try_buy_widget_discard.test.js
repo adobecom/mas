@@ -359,4 +359,86 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             );
         });
     });
+
+    // @studio-try-buy-widget-discard-edit-cta-checkout-params - Validate discard edit CTA checkout params for try-buy-widget card in mas studio
+    test(`${features[4].name},${features[4].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[4];
+        const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
+            ).toBeVisible();
+            await (
+                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
+            ).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA checkout params', async () => {
+            await expect(
+                await studio.editorPanel
+                    .locator(studio.editorFooter)
+                    .locator(studio.linkEdit),
+            ).toBeVisible();
+            await expect(await studio.editorCTA.first()).toBeVisible();
+            await studio.editorCTA.first().click();
+            await studio.editorPanel
+                .locator(studio.editorFooter)
+                .locator(studio.linkEdit)
+                .click();
+            await expect(await studio.checkoutParameters).toBeVisible();
+            await expect(await studio.linkSave).toBeVisible();
+
+            const checkoutParamsString = Object.keys(data.checkoutParams)
+                .map(
+                    (key) =>
+                        `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`,
+                )
+                .join('&');
+            await studio.checkoutParameters.fill(checkoutParamsString);
+            await studio.linkSave.click();
+
+            const CTAhref = await trybuywidget.cardCTA
+                .first()
+                .getAttribute('data-href');
+            let searchParams = new URLSearchParams(
+                decodeURI(CTAhref).split('?')[1],
+            );
+            expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
+            expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
+            expect(searchParams.get('promoid')).toBe(
+                data.checkoutParams.promoid,
+            );
+            expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
+        });
+
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+            await studio.editorPanel.locator(studio.closeEditor).click();
+            await expect(
+                await studio.editorPanel.locator(studio.confirmationDialog),
+            ).toBeVisible();
+            await studio.editorPanel.locator(studio.discardDialog).click();
+            await expect(await studio.editorPanel).not.toBeVisible();
+        });
+
+        await test.step('step-5: Verify there is no changes of the card', async () => {
+            const changedCTAhref = await trybuywidget.cardCTA
+                .first()
+                .getAttribute('data-href');
+            let noSearchParams = new URLSearchParams(
+                decodeURI(changedCTAhref).split('?')[1],
+            );
+            expect(noSearchParams).toBeNull;
+        });
+    });
 });

@@ -18,6 +18,7 @@ const MODEL_WEB_COMPONENT_MAPPING = {
     [COLLECTION_MODEL_PATH]: 'merch-card-collection',
 };
 
+const MODELS_NEEDING_MASK = [CARD_MODEL_PATH];
 export default class EditorPanel extends LitElement {
     static properties = {
         source: { type: Object },
@@ -118,6 +119,25 @@ export default class EditorPanel extends LitElement {
         this.setAttribute('position', position);
     }
 
+    needsMask(fragment) {
+        return MODELS_NEEDING_MASK.includes(fragment.model.path);
+    }
+
+    maskOtherFragments(currentId) {
+        document.querySelector('.main-container')?.classList.add('mask');
+        document
+            .querySelector(`[data-id="${currentId}"]`)
+            ?.classList.add('editing-fragment');
+    }
+
+    unmaskOtherFragments() {
+        // Remove mask when editor closes
+        document.querySelector('.mask')?.classList.remove('mask');
+        document
+            .querySelector('.editing-fragment')
+            ?.classList.remove('editing-fragment');
+    }
+
     /**
      * @param {FragmentStore} store
      * @param {number | undefined} x
@@ -141,6 +161,9 @@ export default class EditorPanel extends LitElement {
             store,
             this.operation,
         ]);
+        if (this.needsMask(store.get(id))) {
+            this.maskOtherFragments(id);
+        }
     }
 
     handleKeyDown(event) {
@@ -301,7 +324,7 @@ export default class EditorPanel extends LitElement {
     }
 
     /**
-     * Handler for the toolbar “Discard” action.
+     * Handler for the toolbar "Discard" action.
      * Uses the same prompt so that the user always sees a consistent confirmation.
      */
     async onToolbarDiscard() {
@@ -328,6 +351,7 @@ export default class EditorPanel extends LitElement {
                 return false;
             }
         }
+        this.unmaskOtherFragments();
         this.inEdit.set();
         return true;
     }

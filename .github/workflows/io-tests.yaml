@@ -43,7 +43,7 @@ jobs:
       if: success() && github.event_name == 'pull_request'
       run: npm install -g @adobe/aio-cli
 
-    - name: Configure AIO CLI
+    - name: Deploy action
       if: success() && github.event_name == 'pull_request'
       env:
         AIO_runtime_namespace: ${{ secrets.AIO_NS_STAGE }}
@@ -57,6 +57,7 @@ jobs:
         WCS_CDN_ENDPOINT: ${{ secrets.WCS_CDN_ENDPOINT }}
         WCS_ORIGIN_ENDPOINT: ${{ secrets.WCS_ORIGIN_ENDPOINT }}
       run: |
+        # Check for missing secrets
         missing_secrets=()
         
         [ -z "$AIO_runtime_namespace" ] && missing_secrets+=("AIO_runtime_namespace")
@@ -76,9 +77,7 @@ jobs:
           exit 1
         fi
 
-    - name: Deploy action
-      if: success() && github.event_name == 'pull_request'
-      run: |
+        # Configure and deploy
         aio config set AIO_runtime_namespace "$AIO_runtime_namespace"
         aio config set AIO_runtime_auth "$AIO_runtime_auth"
         aio config set AIO_APIHOST "$AIO_APIHOST"

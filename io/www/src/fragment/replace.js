@@ -29,9 +29,10 @@ async function getDictionary(context) {
     if (!id) {
         return null;
     }
-    const response = await fetch(odinReferences(id), context);
+    const response = await fetch(odinReferences(id, true), context);
     if (response.status == 200) {
         const raw = await response.json();
+        console.log('raw', raw);
         const dictionary = {};
         Object.keys(raw.references).forEach((id) => {
             const ref = raw.references[id]?.value?.fields;
@@ -76,14 +77,15 @@ function replaceValues(input, dictionary, calls) {
 }
 
 async function replace(context) {
-    const { body } = context;
-    let fieldsString = JSON.stringify(body.fields);
-    if (fieldsString.match(PH_REGEXP)) {
+    let body = context.body;
+    let bodyString = JSON.stringify(body);
+    if (bodyString.match(PH_REGEXP)) {
         const dictionary = await getDictionary(context);
+        console.log('dictionary', dictionary);
         if (dictionary && Object.keys(dictionary).length > 0) {
-            fieldsString = replaceValues(fieldsString, dictionary, []);
+            bodyString = replaceValues(bodyString, dictionary, []);
             try {
-                body.fields = JSON.parse(fieldsString);
+                body = JSON.parse(bodyString);
             } catch (e) {
                 /* istanbul ignore next */
                 logError(`[replace] ${e.message}`, context);

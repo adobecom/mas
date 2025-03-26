@@ -131,7 +131,7 @@ describe('pipeline full use case', () => {
             fields: {
                 description: 'corps',
                 cta: '{{buy-now}}',
-                categories: ['a', 'b', 'c'],
+                collections: ['a', 'b', 'c'],
             },
         });
         nock('https://odin.adobe.com')
@@ -146,10 +146,10 @@ describe('pipeline full use case', () => {
         expect(result.statusCode).to.equal(200);
         expect(result.body).to.have.property('fields');
         expect(result.body.fields).to.have.property('cards');
-        expect(result.body.fields).to.have.property('categories');
+        expect(result.body.fields).to.have.property('collections');
         expect(result.body.fields.cards).to.be.an('object');
-        expect(result.body.fields.categories).to.be.an('array');
-        expect(result.body.fields.categories[0]).to.deep.equal({
+        expect(result.body.fields.collections).to.be.an('array');
+        expect(result.body.fields.collections[0]).to.deep.equal({
             label: 'All',
             cards: [
                 '7c87d1c4-d7fd-4370-b318-4cb2ebb4dd13',
@@ -236,7 +236,7 @@ describe('pipeline corner cases', () => {
             id: 'test-collection',
             path: 'collections/test-collection',
             fields: {
-                categories: ['a', 'b', 'c'],
+                collections: ['a', 'b', 'c'],
             },
         });
 

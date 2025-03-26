@@ -20,7 +20,7 @@ function odinId(id) {
  * @returns full fetchable path to the fragment references
  */
 function odinReferences(id, allHydrated = false) {
-    return `${odinId(id)}/variations/master/references${allHydrated ? '?references=all-hydrated' : ''}`;
+    return `${odinId(id)}${allHydrated ? '?references=all-hydrated' : ''}`;
 }
 
 /**

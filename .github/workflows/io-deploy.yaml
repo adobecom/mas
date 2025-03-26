@@ -6,6 +6,8 @@ on:
       - completed
     branches:
       - main
+        paths:
+      - 'io/www/**'
 
 jobs:
   deploy:

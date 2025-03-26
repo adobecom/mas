@@ -94,6 +94,7 @@ jobs:
       if: success() && github.event_name == 'pull_request'
       env:
         TEST_URL: https://${{ github.head_ref }}--milo--adobecom.hlx.live/libs/features/mas/docs/ccd.html?mas-io-url=https://14257-merchatscale-Stage.adobeioruntime.net/api/v1/web/MerchAtScale
+      working-directory: nala/io
       run: |
         # Install Playwright and its test package
         npm install -D @playwright/test playwright
@@ -101,8 +102,8 @@ jobs:
         
         # Run default locale tests
         echo "Running Nala tests against: ${TEST_URL}"
-        npx playwright test ../../nala/io/ioAutomation.js --config=../../nala/io/playwright.config.js
+        npx playwright test ioAutomation.js --config=playwright.config.js
         
         # Run French locale tests
         echo "Running Nala tests against: ${TEST_URL}&locale=fr_FR"
-        TEST_URL="${TEST_URL}&locale=fr_FR" npx playwright test ../../nala/io/ioAutomation.js --config=../../nala/io/playwright.config.js
+        TEST_URL="${TEST_URL}&locale=fr_FR" npx playwright test ioAutomation.js --config=playwright.config.js

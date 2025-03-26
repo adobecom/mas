@@ -46,7 +46,7 @@ jobs:
     - name: Configure AIO CLI
       if: success() && github.event_name == 'pull_request'
       env:
-        AIO_NAMESPACE: ${{ secrets.AIO_NS_STAGE }}
+        AIO_runtime_namespace: ${{ secrets.AIO_NS_STAGE }}
         AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
         AIO_runtime_auth: ${{ secrets.AIO_AUTH_STAGE }}
         AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
@@ -59,7 +59,7 @@ jobs:
       run: |
         missing_secrets=()
         
-        [ -z "$AIO_NAMESPACE" ] && missing_secrets+=("AIO_NAMESPACE")
+        [ -z "$AIO_runtime_namespace" ] && missing_secrets+=("AIO_runtime_namespace")
         [ -z "$AIO_APIHOST" ] && missing_secrets+=("AIO_APIHOST")
         [ -z "$AIO_runtime_auth" ] && missing_secrets+=("AIO_runtime_auth")
         [ -z "$AOS_API_KEY" ] && missing_secrets+=("AOS_API_KEY")

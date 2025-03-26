@@ -1,6 +1,5 @@
 import { html, LitElement, nothing } from 'lit';
 import './editor-panel.js';
-import './editors/merch-card-editor.js';
 import './rte/rte-field.js';
 import './rte/rte-link-editor.js';
 import './rte/rte-icon-editor.js';
@@ -14,6 +13,8 @@ import './mas-splash-screen.js';
 import './filters/locale-picker.js';
 import './mas-placeholders.js';
 import './mas-recently-updated.js';
+import './editors/merch-card-editor.js';
+import './editors/merch-card-collection-editor.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import {
@@ -37,7 +38,6 @@ initializeStoreFromUrl();
 linkStoreToHash(Store.search, ['path', 'query']);
 linkStoreToHash(Store.filters, ['locale', 'tags'], {
     locale: 'en_US',
-    tags: [],
 });
 linkStoreToHash(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
 

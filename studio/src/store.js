@@ -1,6 +1,15 @@
 import { PAGE_NAMES, WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
+import {
+    deepCompare,
+    getHashParam,
+    getHashParams,
+    looseEquals,
+    setHashParams,
+} from './utils.js';
+
+const hasQuery = Boolean(getHashParam('query'));
 
 // Store definition with default values - no URL parsing here
 const Store = {
@@ -14,12 +23,12 @@ const Store = {
             data: new ReactiveStore([]),
             limit: new ReactiveStore(6),
         },
-        inEdit: new FragmentStore(null),
+        inEdit: new ReactiveStore(null),
     },
     operation: new ReactiveStore(),
     editor: {
         get hasChanges() {
-            return Store.fragments.inEdit.get()?.hasChanges || false;
+            return Store.fragments.inEdit.get()?.get()?.hasChanges || false;
         },
     },
     folders: {
@@ -27,7 +36,7 @@ const Store = {
         data: new ReactiveStore([]),
     },
     search: new ReactiveStore({}),
-    filters: new ReactiveStore({ locale: 'en_US', tags: [] }, filtersValidator),
+    filters: new ReactiveStore({ locale: 'en_US', tags: '' }, filtersValidator),
     renderMode: new ReactiveStore(
         localStorage.getItem('mas-render-mode') || 'render',
     ),
@@ -44,6 +53,8 @@ const Store = {
         editing: new ReactiveStore(null),
     },
 };
+
+window.Store = Store; // TODO remove
 
 export default Store;
 
@@ -96,8 +107,11 @@ export function toggleSelection(id) {
 /**
  * Edit a fragment in the editor panel
  */
-export function editFragment(store, x) {
-    editorPanel().editFragment(store, x);
+export function editFragment(store, x = 0) {
+    if (!Store.fragments.list.data.get().includes(store)) {
+        Store.fragments.list.data.set((prev) => [store, ...prev]);
+    }
+    editorPanel()?.editFragment(store, x);
 }
 
 export function navigateToPage(value) {

@@ -17,6 +17,7 @@ const EMPTY_TAGS = {
     market_segments: [],
     customer_segment: [],
     status: [],
+    'studio/content-type': [],
 };
 
 class MasFilterPanel extends LitElement {
@@ -56,19 +57,39 @@ class MasFilterPanel extends LitElement {
 
     #initializeTagFilters() {
         const filters = Store.filters.get();
-        if (!filters.tags?.length) return;
-        this.tagsByType = filters.tags.reduce(
+        if (!filters.tags) return;
+        this.tagsByType = filters.tags.split(',').reduce(
             (acc, tag) => {
-                // Handle 'mas:type/value' format
-                const [type, value] = tag.replace('mas:', '').split('/', 2);
-                const fullPath = `/content/cq:tags/mas/${type}/${value}`;
+                // Remove 'mas:' prefix
+                const tagPath = tag.replace('mas:', '');
+                const parts = tagPath.split('/');
+                // Find the correct type by checking if it's in EMPTY_TAGS
+                let type = parts[0];
+                let typeIndex = 1;
+                // Try to find the longest matching type in EMPTY_TAGS
+                for (let i = 1; i < parts.length; i++) {
+                    const potentialType = parts.slice(0, i + 1).join('/');
+                    if (potentialType in EMPTY_TAGS) {
+                        type = potentialType;
+                        typeIndex = i + 1;
+                    }
+                }
+                // Get values after the type
+                const values = parts.slice(typeIndex);
+                // Construct the full path
+                const fullPath = `/content/cq:tags/mas/${tagPath}`;
+                // Get the title from the last value
+                const title =
+                    values.length > 0
+                        ? values[values.length - 1].toUpperCase()
+                        : '';
                 return {
                     ...acc,
                     [type]: [
                         ...(acc[type] || []),
                         {
                             path: fullPath,
-                            title: value.toUpperCase(),
+                            title,
                             top: type,
                         },
                     ],
@@ -105,12 +126,12 @@ class MasFilterPanel extends LitElement {
     #handleRefresh() {
         Store.search.set((prev) => ({
             ...prev,
-            tags: [],
+            tags: '',
         }));
 
         Store.filters.set((prev) => ({
             ...prev,
-            tags: [],
+            tags: '',
         }));
 
         this.tagsByType = { ...EMPTY_TAGS };
@@ -207,6 +228,18 @@ class MasFilterPanel extends LitElement {
                     multiple
                     selection="checkbox"
                     value=${pathsToTagIds(this.tagsByType.status)}
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
+
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="studio/content-type"
+                    label="Content Type"
+                    multiple
+                    selection="checkbox"
+                    value=${pathsToTagIds(
+                        this.tagsByType['studio/content-type'],
+                    )}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 

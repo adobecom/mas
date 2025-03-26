@@ -91,12 +91,13 @@ class AEM {
      * @param {Object} params - The search options
      * @param {string} [params.path] - The path to search in
      * @param {Array} [params.tags] - The tags
+     * @param {Array} [params.modelIds] - The model ids
      * @param {string} [params.query] - The search query
      * @param {AbortController} abortController used for cancellation
      * @returns A generator function that fetches all the matching data using a cursor that is returned by the search API
      */
     async *searchFragment(
-        { path, query = '', tags = [], sort, status },
+        { path, query = '', tags = [], modelIds = [], sort, status },
         limit,
         abortController,
     ) {
@@ -116,6 +117,9 @@ class AEM {
         }
         if (tags.length > 0) {
             filter.tags = tags;
+        }
+        if (modelIds.length > 0) {
+            filter.modelIds = modelIds;
         }
         if (status) {
             filter.status = [status];
@@ -180,7 +184,7 @@ class AEM {
      */
     async getFragmentById(baseUrl, id, headers, abortController) {
         const response = await fetch(
-            `${baseUrl}/adobe/sites/cf/fragments/${id}`,
+            `${baseUrl}/adobe/sites/cf/fragments/${id}?references=direct-hydrated`,
             {
                 headers,
                 signal: abortController?.signal,
@@ -357,14 +361,9 @@ class AEM {
     /**
      * Create a new fragment in a given folder
      * @param {*} fragment sample fragment with mimimum req fields: { title: 'sample title', model: {id: '123'}}
-     * @param {String} parentPath - folder in which fragment will be created
      */
-    async createFragment(fragment, parentPath) {
-        const {
-            title,
-            fields,
-            model: { id: modelId },
-        } = fragment;
+    async createFragment(fragment) {
+        const { title, name, modelId, parentPath, description, fields } = fragment;
         if (!parentPath || !title || !modelId) {
             throw new Error(
                 `Missing data to create a fragment: ${parentPath}, ${title}, ${modelId}`,
@@ -376,11 +375,22 @@ class AEM {
                 'Content-Type': 'application/json',
                 ...this.headers,
             },
-            body: JSON.stringify({ title, modelId, parentPath, fields }),
+            body: JSON.stringify({
+                title,
+                name,
+                modelId,
+                parentPath,
+                description,
+                fields,
+            }),
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
         if (!response.ok) {
+            const { detail } = (await response.json()) ?? {};
+            if (detail) {
+                throw new UserFriendlyError(detail);
+            }
             throw new Error(
                 `Failed to create fragment: ${response.status} ${response.statusText}`,
             );

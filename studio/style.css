@@ -30,6 +30,7 @@ mas-studio {
     display: none;
 }
 
+
 .studio-content {
     display: grid;
     grid-template-columns: 240px 1fr;
@@ -183,25 +184,20 @@ sp-status-light {
     --spectrum-statuslight-spacing-dot-to-label: 0;
 }
 
-.render-card {
+.render-fragment {
     display: flex;
     flex-direction: column;
     padding: 6px 3px 3px 3px;
     gap: 6px;
     border: 1px solid transparent;
-    border-radius: var(--consonant-merch-spacing-xs);
-}
-
-.render-card:has(merch-card[variant='ccd-slice']),
-.render-card:has(merch-card[variant='ccd-suggested']) {
     border-radius: 4px;
 }
 
-.render-card:hover {
+.render-fragment:hover {
     border-color: var(--ccd-gray-200-light, #e6e6e6);
 }
 
-.render-card-header {
+.render-fragment-header {
     display: flex;
     justify-content: space-between;
     padding-inline: 6px;
@@ -226,12 +222,23 @@ merch-card button {
     pointer-events: none;
 }
 
-mas-fragment-render[selected] .render-card {
+.mask .mas-fragment:not(.editing-fragment) {
+    opacity: 0.5;
+    filter: grayscale(1) blur(1.5px);
+    transition: all 0.3s ease;
+}
+
+.mask .mas-fragment:not(.editing-fragment):hover {
+    opacity: 1;
+    filter: none;
+}
+
+mas-fragment-render[selected] .render-fragment {
     outline: 2px solid var(--spectrum-global-color-blue-600);
 }
 
-sp-progress-circle {
-    position: absolute;
+sp-progress-circle.fragments {
+    position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -252,11 +259,11 @@ merch-card sp-icon-remove {
     display: none;
 }
 
-merch-card.selected:hover sp-icon-remove {
+mas-fragment-render[selected]:hover sp-icon-remove {
     display: block;
 }
 
-merch-card:hover:not(.selected) sp-icon-add {
+mas-fragment-render:not([selected]):hover sp-icon-add {
     display: block;
 }
 
@@ -434,4 +441,80 @@ sp-underlay + sp-dialog {
     transform: translate(-50%, -50%);
     z-index: 1;
     background: var(--spectrum-gray-100);
+}
+
+.unknown-fragment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    gap: 8px;
+    width: 300px;
+    height: 200px;
+    border: 1px solid var(--spectrum-gray-200);
+    border-radius: 4px;
+}
+
+.model-name {
+    position: absolute;
+    color: var(--spectrum-gray-600);
+    bottom: 0;
+    right: 8px;
+    text-align: center;
+}
+
+/* Preview styles for merch-card-collection-editor */
+.preview-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9998;
+    display: flex;
+    pointer-events: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.preview-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9998;
+    animation: fadeIn 0.2s ease;
+}
+
+.preview-popover {
+    position: fixed;
+    min-width: 320px;
+    min-height: 320px;
+    background-color: var(--spectrum-global-color-gray-50);
+    border-radius: 4px;
+    z-index: 9999;
+    overflow: hidden;
+    animation: fadeIn 0.2s ease;
+    /* Center vertically in viewport */
+    top: 50% !important;
+    transform: translateY(-50%);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+sp-progress-circle.preview {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
 }

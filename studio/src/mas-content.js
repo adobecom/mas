@@ -1,11 +1,13 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { VARIANTS } from './editors/variant-picker.js';
 import StoreController from './reactivity/store-controller.js';
+import { VARIANTS } from './editors/variant-picker.js';
 import Store from './store.js';
 import './mas-fragment.js';
 import Events from './events.js';
+import { CARD_MODEL_PATH } from './constants.js';
 
+const variantValues = VARIANTS.map((v) => v.value);
 class MasContent extends LitElement {
     createRenderRoot() {
         return this;
@@ -27,28 +29,32 @@ class MasContent extends LitElement {
         super.connectedCallback();
         Events.fragmentAdded.subscribe(this.goToFragment);
 
-        const fragmentsSubscription = Store.fragments.list.data.subscribe(
-            () => {
+        this.subscriptions.push(
+            Store.fragments.list.data.subscribe(() => {
                 console.log('Fragment list updated, refreshing content view');
                 this.requestUpdate();
-            },
+            })
         );
 
-        const filterSubscription = Store.filters.subscribe(() => {
-            console.log('Filters changed, requesting update');
-            this.requestUpdate();
-        });
-
-        this.subscriptions.push(fragmentsSubscription, filterSubscription);
+        this.subscriptions.push(
+            Store.filters.subscribe(() => {
+                console.log('Filters changed, requesting update');
+                this.requestUpdate();
+            })
+        );
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         Events.fragmentAdded.unsubscribe(this.goToFragment);
 
-        this.subscriptions.forEach((subscription) =>
-            subscription.unsubscribe(),
-        );
+        if (this.subscriptions && this.subscriptions.length) {
+            this.subscriptions.forEach(subscription => {
+                if (subscription) {
+                    subscription.unsubscribe();
+                }
+            });
+        }
         this.subscriptions = [];
     }
 
@@ -64,23 +70,26 @@ class MasContent extends LitElement {
     }
 
     get renderView() {
-        const variantValues = VARIANTS.map((v) => v.value);
         return html`
             <div id="render">
                 ${repeat(
-                    this.fragments.value,
-                    (fragmentStore) => fragmentStore.get().path,
-                    (fragmentStore) => {
-                        // Hide the card if the variant isn't one of VARIANTS that is pre-defined.
+                    this.fragments.value.filter((fragmentStore) => {
+                        const value = fragmentStore.get();
+                        if (!value) return false;
+                        if (fragmentStore.new) return true;
                         if (
+                            value.model?.path === CARD_MODEL_PATH &&
                             !variantValues.includes(fragmentStore.value.variant)
                         )
-                            return html``;
-                        return html`<mas-fragment
-                            .store=${fragmentStore}
+                            return false;
+                        return true;
+                    }),
+                    (fragmentStore) => fragmentStore.get()?.path || fragmentStore.id || Math.random(),
+                    (fragmentStore) =>
+                        html`<mas-fragment
+                            .fragmentStore=${fragmentStore}
                             view="render"
-                        ></mas-fragment>`;
-                    },
+                        ></mas-fragment>`,
                 )}
             </div>
         `;
@@ -108,11 +117,13 @@ class MasContent extends LitElement {
             </sp-table-head>
             <sp-table-body>
                 ${repeat(
-                    this.fragments.value,
+                    this.fragments.value.filter(
+                        (fragmentStore) => fragmentStore.get() !== null,
+                    ),
                     (fragmentStore) => fragmentStore.get().path,
                     (fragmentStore) =>
                         html`<mas-fragment
-                            .store=${fragmentStore}
+                            .fragmentStore=${fragmentStore}
                             view="table"
                         ></mas-fragment>`,
                 )}
@@ -123,6 +134,7 @@ class MasContent extends LitElement {
     get loadingIndicator() {
         if (!this.loading.value) return nothing;
         return html`<sp-progress-circle
+            class="fragments"
             indeterminate
             size="l"
         ></sp-progress-circle>`;

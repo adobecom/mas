@@ -104,14 +104,3 @@ jobs:
         # Run French locale tests
         echo "Running Nala tests against: ${TEST_URL}&locale=fr_FR"
         TEST_URL="${TEST_URL}&locale=fr_FR" npx playwright test ioAutomation.js --config=playwright.config.js
-    - name: Upload test screenshots
-      if: always()
-      uses: actions/upload-artifact@v4.3.1
-      with:
-        name: test-screenshots
-        path: |
-          initial-load.png
-          merch-card-visible.png
-          before-price-check.png
-          price-check-failed.png
-        retention-days: 5

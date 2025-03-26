@@ -23,6 +23,9 @@
                 height: initial;
             }
         </style>
+        <mas-repository
+            base-url="http://localhost:2023/test/mocks"
+        ></mas-repository>
     </head>
     <body>
         <script type="module">
@@ -52,7 +55,7 @@
                 const spTheme = document.querySelector('sp-theme');
                 const originalFetch = window.fetch;
                 const fragmentData = await originalFetch(
-                    '/test/mocks/sites/cf/fragments/cc-all-apps.json',
+                    '/test/mocks/adobe/sites/cf/fragments/cc-all-apps',
                 ).then((res) => res.json());
                 window.fetch = async function (args) {
                     const { pathname } = new URL(args);
@@ -60,14 +63,7 @@
                         return originalFetch('/test/mocks/tags.json');
                     }
                     if (/mas.json/.test(pathname)) {
-                        return originalFetch(
-                            '/test/mocks/folders/default.json',
-                        );
-                    }
-                    if (/search/.test(pathname)) {
-                        return originalFetch(
-                            '/test/mocks/sites/cf/fragments/search/default.json',
-                        );
+                        return originalFetch('/test/mocks/api/assets/mas.json');
                     }
                     return originalFetch(...arguments);
                 };
@@ -78,25 +74,21 @@
                     let editorPanel;
                     beforeEach(async () => {
                         fragment = new Fragment(fragmentData);
+                        fragmentStore = new FragmentStore(fragment);
                         editorPanel = await fixture(
-                            html`<editor-panel></editor-panel>
-                                <mas-repository
-                                    bucket="e59341"
-                                ></mas-repository>`,
+                            html`<editor-panel></editor-panel>`,
                             { parentNode: spTheme },
                         );
-                        Store.fragments.inEdit.set(fragment);
+                        await editorPanel.editFragment(fragmentStore);
+                        await editorPanel.updateComplete;
                     });
 
                     it('implements "discard changes"', async () => {
-                        editorPanel.requestUpdate();
-                        await editorPanel.updateComplete;
                         const discardButton = document.querySelector(
                             'sp-action-button[value="discard"]',
                         );
                         const titleField = () =>
                             document.getElementById('card-title');
-                        expect(editorPanel.fragmentStore).to.not.be.null;
                         expect(discardButton.disabled).to.be.true;
                         triggerInput(titleField(), 'test title');
                         expect(
@@ -110,7 +102,8 @@
                         expect(discardButton.disabled).to.be.false;
                         discardButton.click();
                         await delay(100);
-                        const btnDiscard = document.querySelector('#btnDiscard');
+                        const btnDiscard =
+                            document.querySelector('#btnDiscard');
                         btnDiscard.click();
                         await delay(100);
                         expect(
@@ -120,15 +113,31 @@
                     });
 
                     it('implements "use"', async () => {
+                        Store.search.set((prev) => ({
+                            ...prev,
+                            path: 'acom',
+                        }));
                         await editorPanel.updateComplete;
                         await editorPanel.refreshed;
-                        const titleField = () => document.getElementById('card-title');
+                        const titleField = () =>
+                            document.getElementById('card-title');
                         triggerInput(titleField(), 'test title');
                         await editorPanel.updateComplete;
-                        const clipboardContent = editorPanel.generateCodeToUse();
-                        expect(clipboardContent[0]).to.equal('<merch-card><aem-fragment fragment="fragment-cc-all-apps" title="test title"></aem-fragment></merch-card>');
-                        expect(clipboardContent[1].includes('https://mas.adobe.com/studio.html#path=ccd&fragment=fragment-cc-all-apps'));
-                        expect(clipboardContent[1].includes('merch-card: CCD / Slice / test title'));
+                        const clipboardContent =
+                            editorPanel.generateCodeToUse();
+                        expect(clipboardContent[0]).to.equal(
+                            '<merch-card><aem-fragment fragment="cc-all-apps" title="test title"></aem-fragment></merch-card>',
+                        );
+                        expect(
+                            clipboardContent[1].includes(
+                                'https://mas.adobe.com/studio.html#path=ccd&fragment=fragment-cc-all-apps',
+                            ),
+                        );
+                        expect(
+                            clipboardContent[1].includes(
+                                'merch-card: CCD / Slice / test title',
+                            ),
+                        );
                     });
                 });
             });

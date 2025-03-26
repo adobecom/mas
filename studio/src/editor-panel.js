@@ -4,13 +4,18 @@ import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { CARD_MODEL_PATH, OPERATIONS } from './constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    EVENT_KEYDOWN,
+    OPERATIONS,
+} from './constants.js';
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
 
 const MODEL_WEB_COMPONENT_MAPPING = {
-    Card: 'merch-card',
-    'Card Collection': 'merch-card-collection',
+    [CARD_MODEL_PATH]: 'merch-card',
+    [COLLECTION_MODEL_PATH]: 'merch-card-collection',
 };
 
 const MODELS_NEEDING_MASK = [CARD_MODEL_PATH];
@@ -50,10 +55,7 @@ export default class EditorPanel extends LitElement {
     inEdit = Store.fragments.inEdit;
     operation = Store.operation;
 
-    reactiveController = new ReactiveController(this, [
-        this.inEdit,
-        this.operation,
-    ]);
+    reactiveController = new ReactiveController(this);
 
     #discardPromiseResolver;
 
@@ -83,12 +85,12 @@ export default class EditorPanel extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        document.addEventListener('keydown', this.handleKeyDown);
+        document.addEventListener(EVENT_KEYDOWN, this.handleKeyDown);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        document.removeEventListener('keydown', this.handleKeyDown);
+        document.removeEventListener(EVENT_KEYDOWN, this.handleKeyDown);
     }
 
     /** @type {MasRepository} */
@@ -98,7 +100,11 @@ export default class EditorPanel extends LitElement {
 
     /** @type {Fragment | null} */
     get fragment() {
-        return this.inEdit?.get();
+        return this.fragmentStore?.get();
+    }
+
+    get fragmentStore() {
+        return this.inEdit.get();
     }
 
     updatePosition(position) {
@@ -144,15 +150,20 @@ export default class EditorPanel extends LitElement {
         // If there is an existing fragment and unsaved changes,
         // prompt to discard before switching.
         if (!wasEmpty && !(await this.closeEditor())) return;
-        if (x) {
+        if (Number.isInteger(x)) {
             const newPosition = x > window.innerWidth / 2 ? 'left' : 'right';
             this.updatePosition(newPosition);
         }
         await this.repository.refreshFragment(store);
+        this.inEdit.set(store);
+        this.reactiveController.updateStores([
+            this.inEdit,
+            store,
+            this.operation,
+        ]);
         if (this.needsMask(store.get(id))) {
             this.maskOtherFragments(id);
         }
-        this.inEdit.set(store.value);
     }
 
     handleKeyDown(event) {
@@ -169,18 +180,31 @@ export default class EditorPanel extends LitElement {
         e.stopPropagation();
     }
 
-    getFragmentPropsToUse() {
-        const props = {
-            cardTitle: this.fragment?.getField('cardTitle')?.values[0],
-            variantCode: this.fragment?.getField('variant')?.values[0],
-        };
-        VARIANTS.forEach((variant) => {
-            if (variant.value === props.variantCode) {
-                props.variantLabel = variant.label;
-                props.surface = variant.surface;
-            }
-        });
-        return props;
+    getFragmentPartsToUse() {
+        let fragmentParts = '';
+        let title = '';
+        const surface = Store.search.value.path.toUpperCase();
+        switch (this.fragment?.model?.path) {
+            case CARD_MODEL_PATH:
+                const props =  {
+                    cardTitle: this.fragment?.getField('cardTitle')?.values[0],
+                    variantCode: this.fragment?.getField('variant')?.values[0],
+                    };
+
+                    VARIANTS.forEach((variant) => {
+                        if (variant.value === props.variantCode) {
+                            props.variantLabel = variant.label;
+                    }
+                });
+                fragmentParts = `${surface} / ${props.variantLabel} / ${props.cardTitle}`;
+                title = props.cardTitle;
+                break;  
+            case COLLECTION_MODEL_PATH:
+                title = this.fragment?.title;
+                fragmentParts = `${surface} / ${title}`;
+                break;
+        }
+        return {fragmentParts, title};
     }
 
     showNegativeAlert() {
@@ -191,18 +215,18 @@ export default class EditorPanel extends LitElement {
     }
 
     generateCodeToUse() {
-        const props = this.getFragmentPropsToUse();
+        const {fragmentParts, title} = this.getFragmentPartsToUse();
         const webComponentName =
-            MODEL_WEB_COMPONENT_MAPPING[this.fragment?.model?.name];
+            MODEL_WEB_COMPONENT_MAPPING[this.fragment?.model?.path];
         if (!webComponentName) {
             this.showNegativeAlert();
             return [];
         }
 
-        const code = `<${webComponentName}><aem-fragment fragment="${this.fragment?.id}" title="${props.cardTitle}"></aem-fragment></${webComponentName}>`;
+        const code = `<${webComponentName}><aem-fragment fragment="${this.fragment?.id}" title="${title}"></aem-fragment></${webComponentName}>`;
         const richText = `
-                <a href="https://mas.adobe.com/studio.html#path=${props.surface}&fragment=${this.fragment?.id}">
-                    ${webComponentName}: ${props.surface.toUpperCase()} / ${props.variantLabel} / ${props.cardTitle}
+                <a href="https://mas.adobe.com/studio.html#path=${Store.search.value.path}&fragment=${this.fragment?.id}">
+                    ${webComponentName}: ${fragmentParts}
                 </a>
             `;
         return [code, richText];
@@ -232,14 +256,17 @@ export default class EditorPanel extends LitElement {
     #updateFragmentInternal(event) {
         const fieldName = event.target.dataset.field;
         let value = event.target.value;
-        this.inEdit.updateFieldInternal(fieldName, value);
+        this.fragmentStore.updateFieldInternal(fieldName, value);
     }
 
-    updateFragment({ target, detail }) {
+    updateFragment({ target, detail, values }) {
         const fieldName = target.dataset.field;
-        let value = target.value || detail?.value || target.checked;
-        value = target.multiline ? value?.split(',') : [value ?? ''];
-        this.inEdit.updateField(fieldName, value);
+        let value = values;
+        if (!value) {
+            value = target.value || detail?.value || target.checked;
+            value = target.multiline ? value?.split(',') : [value ?? ''];
+        }
+        this.fragmentStore.updateField(fieldName, value);
     }
 
     async deleteFragment() {
@@ -279,6 +306,7 @@ export default class EditorPanel extends LitElement {
     discardConfirmed() {
         this.showDiscardDialog = false;
         if (this.#discardPromiseResolver) {
+            this.fragmentStore.discardChanges();
             this.#discardPromiseResolver(true);
             this.#discardPromiseResolver = null;
         }
@@ -303,7 +331,6 @@ export default class EditorPanel extends LitElement {
         if (Store.editor.hasChanges) {
             const confirmed = await this.promptDiscardChanges();
             if (confirmed) {
-                this.inEdit.discardChanges();
                 this.showEditor = false;
                 await this.updateComplete;
                 this.showEditor = true;
@@ -323,8 +350,6 @@ export default class EditorPanel extends LitElement {
             if (!confirmed) {
                 return false;
             }
-            // The user confirmed – discard changes.
-            this.inEdit.discardChanges();
         }
         this.unmaskOtherFragments();
         this.inEdit.set();
@@ -333,7 +358,7 @@ export default class EditorPanel extends LitElement {
 
     #handleLocReady() {
         const value = !this.fragment.getField('locReady').values[0];
-        this.inEdit.updateField('locReady', [value]);
+        this.fragmentStore.updateField('locReady', [value]);
     }
 
     get fragmentEditorToolbar() {
@@ -610,21 +635,32 @@ export default class EditorPanel extends LitElement {
 
     render() {
         if (!this.fragment) return nothing;
-        if (this.inEdit.loading)
+        if (this.fragment.loading)
             return html`<sp-progress-circle
                 indeterminate
                 size="l"
             ></sp-progress-circle>`;
+
+        let editor = nothing;
+        if (this.showEditor) {
+            switch (this.fragment.model.path) {
+                case CARD_MODEL_PATH:
+                    editor = html` <merch-card-editor
+                        .fragmentStore=${this.fragmentStore}
+                        .updateFragment=${this.updateFragment}
+                    ></merch-card-editor>`;
+                    break;
+                case COLLECTION_MODEL_PATH:
+                    editor = html` <merch-card-collection-editor
+                        .fragmentStore=${this.fragmentStore}
+                        .updateFragment=${this.updateFragment}
+                    ></merch-card-collection-editor>`;
+                    break;
+            }
+        }
         return html`
             <div id="editor">
-                ${this.fragmentEditorToolbar}
-                ${this.showEditor
-                    ? html` <merch-card-editor
-                          .fragment=${this.fragment}
-                          .fragmentStore=${this.inEdit}
-                          .updateFragment=${this.updateFragment}
-                      ></merch-card-editor>`
-                    : nothing}
+                ${this.fragmentEditorToolbar} ${editor}
                 <sp-divider size="s"></sp-divider>
                 ${this.fragmentEditor} ${this.deleteConfirmationDialog}
                 ${this.discardConfirmationDialog}

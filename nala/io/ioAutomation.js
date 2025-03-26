@@ -5,8 +5,10 @@ test('basic test', async ({ page }) => {
     console.log('Testing URL:', url);
     
     await page.goto(url);
+    await page.screenshot({ path: 'initial-load.png' });
     let merchCardSlice = page.locator('//merch-card[@id="51c23f28-504f-450d-9764-0e60f1e279b2"]');
     await expect(merchCardSlice).toBeVisible();
+    await page.screenshot({ path: 'merch-card-visible.png' });
     let merchIcon = merchCardSlice.locator('//merch-icon');
     await expect(merchIcon).toBeVisible();
     const iconSrc = await merchIcon.getAttribute('src');
@@ -21,8 +23,16 @@ test('basic test', async ({ page }) => {
     expect(imageSrc).toBeTruthy();
     expect(imageSrc.length).toBeGreaterThan(0);
 
+    await page.screenshot({ path: 'before-price-check.png' });
     let priceSpan = merchCardSlice.locator('span[class="price"]');
-    await expect(priceSpan).toBeVisible({timeout: 15000});
+    try {
+        await expect(priceSpan).toBeVisible({ timeout: 15000 });
+    } catch (e) {
+        // Screenshot and HTML dump on failure
+        await page.screenshot({ path: 'price-check-failed.png' });
+        console.log('Full page HTML at failure:', await page.content());
+        throw e;
+    }
 
     let currencySymbol = priceSpan.locator('span[class="price-currency-symbol"]');
     await expect(currencySymbol).toBeVisible();

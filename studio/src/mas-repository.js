@@ -181,7 +181,6 @@ export class MasRepository extends LitElement {
             tags,
         };
 
-        // Remove published status from tags and set it as a status filter
         const publishedTagIndex = tags.indexOf(TAG_STATUS_PUBLISHED);
         if (publishedTagIndex > -1) {
             tags.splice(publishedTagIndex, 1);
@@ -205,7 +204,6 @@ export class MasRepository extends LitElement {
                     fragments.push(fragment);
                     dataStore.set([new FragmentStore(fragment)]);
 
-                    // Folder selection
                     const folderPath = fragmentData.path.substring(
                         fragmentData.path.indexOf(damPath) + damPath.length + 1,
                     );
@@ -715,6 +713,22 @@ export class MasRepository extends LitElement {
 
             this.operation.set(OPERATIONS.DELETE);
 
+            try {
+                const fragmentPath = fragment.path;
+                const pathParts = fragmentPath.split('/');
+                const fragmentName = pathParts.pop();
+                const dictionaryPath = pathParts.join('/');
+
+                if (fragmentName !== 'index') {
+                    try {
+                        await this.removeFromIndexFragment(
+                            dictionaryPath,
+                            fragment,
+                        );
+                    } catch (err) {}
+                }
+            } catch (indexError) {}
+
             await this.#aem.sites.cf.fragments.delete(fragment);
 
             Events.toast.emit({
@@ -760,15 +774,12 @@ export class MasRepository extends LitElement {
             );
 
             if (!response.ok) {
-                throw new Error(
-                    `Failed to fetch fragment: ${response.status} ${response.statusText}`,
-                );
+                throw new Error(`Fragment not found at path: ${path}`);
             }
 
             const fragment = await response.json();
             return fragment;
         } catch (error) {
-            this.processError(error, 'Failed to fetch fragment:');
             throw error;
         }
     }
@@ -780,15 +791,9 @@ export class MasRepository extends LitElement {
      */
     async createDictionaryFragment(fragmentData) {
         try {
-            Events.toast.emit({
-                variant: 'info',
-                content: 'Creating placeholder...',
-            });
-
             this.operation.set(OPERATIONS.CREATE);
 
-            const { parentPath, name, modelId, title, description, data } =
-                fragmentData;
+            const { parentPath, name, modelId, title, data } = fragmentData;
 
             if (!parentPath) {
                 throw new Error(
@@ -828,6 +833,69 @@ export class MasRepository extends LitElement {
             );
 
             const newFragment = new Fragment(result);
+
+            return newFragment;
+        } catch (error) {
+            this.operation.set();
+            throw error;
+        }
+    }
+
+    /**
+     * Add a placeholder to the surface/locale index fragment
+     * @param {string} dictionaryPath - Path to the dictionary folder
+     * @param {Object} newFragment - The newly created placeholder fragment
+     * @returns {Promise<boolean>} Success indicator
+     */
+    async addToIndexFragment() {
+        return true;
+    }
+
+    /**
+     * Remove a placeholder from the index fragment
+     * @param {string} dictionaryPath - Path to the dictionary folder
+     * @param {Object} placeholderFragment - The placeholder fragment to remove
+     */
+    async removeFromIndexFragment() {
+        return;
+    }
+
+    /**
+     * Force a refresh of the placeholders table
+     */
+    async forceRefreshPlaceholders() {
+        try {
+            Store.placeholders.list.loading.set(true);
+            await this.searchPlaceholders();
+            const currentData = Store.placeholders.list.data.get();
+            if (currentData && currentData.length) {
+                Store.placeholders.list.data.set([...currentData]);
+            }
+        } catch (error) {
+            console.debug('Error refreshing placeholders:', error);
+        } finally {
+            Store.placeholders.list.loading.set(false);
+        }
+    }
+
+    /**
+     * Create a placeholder without index operations
+     * @param {Object} fragmentData - The fragment data to create
+     * @returns {Promise<Object>} - The created fragment
+     */
+    async createPlaceholderWithIndex(fragmentData) {
+        try {
+            Events.toast.emit({
+                variant: 'info',
+                content: 'Creating placeholder...',
+            });
+
+            this.operation.set(OPERATIONS.CREATE);
+
+            const newFragment =
+                await this.createDictionaryFragment(fragmentData);
+
+            await this.forceRefreshPlaceholders();
 
             Events.toast.emit({
                 variant: 'positive',

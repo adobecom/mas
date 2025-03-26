@@ -87,6 +87,14 @@ class MasSideNav extends LitElement {
                     <sp-icon-home slot="icon"></sp-icon-home>
                 </sp-sidenav-item>
                 <sp-sidenav-item
+                    label="Content"
+                    value="content"
+                    @click="${navigateToPage(PAGE_NAMES.CONTENT)}"
+                    ?selected=${Store.page.get() === PAGE_NAMES.CONTENT}
+                >
+                    <sp-icon-view-grid slot="icon"></sp-icon-view-grid>
+                </sp-sidenav-item>
+                <sp-sidenav-item
                     label="Placeholders"
                     value="placeholders"
                     @click="${navigateToPage(PAGE_NAMES.PLACEHOLDERS)}"

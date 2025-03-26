@@ -201,6 +201,7 @@ class MasPlaceholders extends LitElement {
             this.loading = true;
 
             const folderPath = this.selectedFolder?.path;
+
             const locale =
                 this.newPlaceholder.locale || this.selectedLocale || 'en_US';
 
@@ -228,7 +229,7 @@ class MasPlaceholders extends LitElement {
                 .replace(/\s+/g, '-');
 
             const fragmentData = {
-                name: name,
+                name,
                 parentPath: dictionaryPath,
                 modelId: DICTIONARY_MODEL_ID,
                 title: this.newPlaceholder.key,
@@ -240,41 +241,14 @@ class MasPlaceholders extends LitElement {
                 },
             };
 
-            if (!fragmentData.parentPath) {
-                console.error(
-                    'Dictionary path is invalid:',
-                    fragmentData.parentPath,
-                );
-                throw new Error(
-                    'Invalid dictionary path for placeholder creation',
-                );
-            }
+            await repository.createPlaceholderWithIndex(fragmentData);
 
-            await repository.createDictionaryFragment(fragmentData);
-
-            this.newPlaceholder = {
-                key: '',
-                value: '',
-            };
-
+            this.newPlaceholder = { key: '', value: '' };
             this.showCreateModal = false;
-
-            Events.toast.emit({
-                variant: 'positive',
-                content: 'Placeholder successfully created.',
-            });
-
-            if (repository) {
-                await repository.searchPlaceholders();
-                this.selectedPlaceholders = [];
-                this.requestUpdate();
-            }
+            this.selectedPlaceholders = [];
+            this.requestUpdate();
         } catch (error) {
-            console.error('Failed to create placeholder:', error);
-            Events.toast.emit({
-                variant: 'negative',
-                content: `Failed to create placeholder: ${error.message}`,
-            });
+            console.debug('Error creating placeholder:', error);
         } finally {
             Store.placeholders.list.loading.set(false);
             this.loading = false;
@@ -349,6 +323,7 @@ class MasPlaceholders extends LitElement {
 
             const savedFragment =
                 await this.repository.saveDictionaryFragment(updatedFragment);
+
             const updatedPlaceholder = {
                 ...placeholder,
                 key: this.editedKey,
@@ -364,6 +339,7 @@ class MasPlaceholders extends LitElement {
             this.placeholders = updatedPlaceholders;
             this.requestUpdate();
             this.resetEditState();
+
             Events.toast.emit({
                 variant: 'positive',
                 content: 'Placeholder successfully saved',
@@ -403,7 +379,6 @@ class MasPlaceholders extends LitElement {
             }
 
             const fragmentData = placeholder.fragment;
-
             this.activeDropdown = null;
             await this.repository.publishDictionaryFragment(fragmentData);
 

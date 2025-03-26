@@ -3,6 +3,7 @@ name: MAS Studio Monitor
 on:
   schedule:
     - cron: "*/15 * * * *"   # Executes every 15 minutes
+  workflow_dispatch:
 
 jobs:
   platform_matrix:

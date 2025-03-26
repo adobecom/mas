@@ -21,7 +21,7 @@ class MasFragmentTable extends LitElement {
     }
 
     render() {
-        const data = this.fragment.value;
+        const data = this.fragmentStore.value;
         return html`<sp-table-row value="${data.id}"
             ><sp-table-cell>${data.title}</sp-table-cell>
             <sp-table-cell>${data.name}</sp-table-cell>

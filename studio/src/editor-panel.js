@@ -14,8 +14,8 @@ import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
 
 const MODEL_WEB_COMPONENT_MAPPING = {
-    Card: 'merch-card',
-    'Card Collection': 'merch-card-collection',
+    [CARD_MODEL_PATH]: 'merch-card',
+    [COLLECTION_MODEL_PATH]: 'merch-card-collection',
 };
 
 export default class EditorPanel extends LitElement {
@@ -157,18 +157,31 @@ export default class EditorPanel extends LitElement {
         e.stopPropagation();
     }
 
-    getFragmentPropsToUse() {
-        const props = {
-            cardTitle: this.fragment?.getField('cardTitle')?.values[0],
-            variantCode: this.fragment?.getField('variant')?.values[0],
-        };
-        VARIANTS.forEach((variant) => {
-            if (variant.value === props.variantCode) {
-                props.variantLabel = variant.label;
-                props.surface = variant.surface;
-            }
-        });
-        return props;
+    getFragmentPartsToUse() {
+        let fragmentParts = '';
+        let title = '';
+        const surface = Store.search.value.path.toUpperCase();
+        switch (this.fragment?.model?.path) {
+            case CARD_MODEL_PATH:
+                const props =  {
+                    cardTitle: this.fragment?.getField('cardTitle')?.values[0],
+                    variantCode: this.fragment?.getField('variant')?.values[0],
+                    };
+
+                    VARIANTS.forEach((variant) => {
+                        if (variant.value === props.variantCode) {
+                            props.variantLabel = variant.label;
+                    }
+                });
+                fragmentParts = `${surface} / ${props.variantLabel} / ${props.cardTitle}`;
+                title = props.cardTitle;
+                break;  
+            case COLLECTION_MODEL_PATH:
+                title = this.fragment?.title;
+                fragmentParts = `${surface} / ${title}`;
+                break;
+        }
+        return {fragmentParts, title};
     }
 
     showNegativeAlert() {
@@ -179,18 +192,18 @@ export default class EditorPanel extends LitElement {
     }
 
     generateCodeToUse() {
-        const props = this.getFragmentPropsToUse();
+        const {fragmentParts, title} = this.getFragmentPartsToUse();
         const webComponentName =
-            MODEL_WEB_COMPONENT_MAPPING[this.fragment?.model?.name];
+            MODEL_WEB_COMPONENT_MAPPING[this.fragment?.model?.path];
         if (!webComponentName) {
             this.showNegativeAlert();
             return [];
         }
 
-        const code = `<${webComponentName}><aem-fragment fragment="${this.fragment?.id}" title="${props.cardTitle}"></aem-fragment></${webComponentName}>`;
+        const code = `<${webComponentName}><aem-fragment fragment="${this.fragment?.id}" title="${title}"></aem-fragment></${webComponentName}>`;
         const richText = `
-                <a href="https://mas.adobe.com/studio.html#path=${props.surface}&fragment=${this.fragment?.id}">
-                    ${webComponentName}: ${props.surface.toUpperCase()} / ${props.variantLabel} / ${props.cardTitle}
+                <a href="https://mas.adobe.com/studio.html#path=${Store.search.value.path}&fragment=${this.fragment?.id}">
+                    ${webComponentName}: ${fragmentParts}
                 </a>
             `;
         return [code, richText];

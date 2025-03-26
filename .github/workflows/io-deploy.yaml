@@ -1,14 +1,18 @@
 name: Deploy IO WWW
 on:
-  push:
-    branches:
-      - main
+  pull_request:
+    types:
+      - closed
     paths:
       - 'io/www/**'
-  workflow_dispatch:  # Adding manual trigger option
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
+    # Only run when PR is merged, not on regular PR close
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -31,7 +35,7 @@ jobs:
     - name: Run tests with coverage
       run: npm test
 
-    - name: Install AIO CLI  # Fixed indentation and name
+    - name: Install AIO CLI
       if: success()
       run: npm install -g @adobe/aio-cli
 

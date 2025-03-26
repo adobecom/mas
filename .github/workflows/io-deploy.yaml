@@ -5,7 +5,7 @@ on:
       - completed
     branches:
       - main
-        paths:
+    paths:
       - 'io/www/**'
 
 jobs:

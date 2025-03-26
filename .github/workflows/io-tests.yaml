@@ -1,0 +1,108 @@
+name: IO Tests
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'io/www/**'
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'io/www/**'
+  workflow_dispatch:
+
+jobs:
+  www-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: io/www
+
+    strategy:
+      matrix:
+        node-version: [22.x]
+        
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: io/www/package.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run linter
+      run: npm run lint
+
+    - name: Run tests with coverage
+      run: npm test
+
+    # Deploy to Adobe I/O Runtime if tests pass
+    - name: Install AIO CLI
+      if: success() && github.event_name == 'pull_request'
+      run: npm install -g @adobe/aio-cli
+
+    - name: Configure AIO CLI
+      if: success() && github.event_name == 'pull_request'
+      env:
+        AIO_NAMESPACE: ${{ secrets.AIO_NS_STAGE }}
+        AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
+        AIO_runtime_auth: ${{ secrets.AIO_AUTH_STAGE }}
+        AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
+        AOS_URL: ${{ secrets.AOS_URL }}
+        ODIN_CDN_ENDPOINT: ${{ secrets.ODIN_CDN_ENDPOINT }}
+        ODIN_ORIGIN_ENDPOINT: ${{ secrets.ODIN_ORIGIN_ENDPOINT }}
+        OST_WRITE_API_KEY: ${{ secrets.OST_WRITE_API_KEY }}
+        WCS_CDN_ENDPOINT: ${{ secrets.WCS_CDN_ENDPOINT }}
+        WCS_ORIGIN_ENDPOINT: ${{ secrets.WCS_ORIGIN_ENDPOINT }}
+      run: |
+        missing_secrets=()
+        
+        [ -z "$AIO_NAMESPACE" ] && missing_secrets+=("AIO_NAMESPACE")
+        [ -z "$AIO_APIHOST" ] && missing_secrets+=("AIO_APIHOST")
+        [ -z "$AIO_runtime_auth" ] && missing_secrets+=("AIO_runtime_auth")
+        [ -z "$AOS_API_KEY" ] && missing_secrets+=("AOS_API_KEY")
+        [ -z "$AOS_URL" ] && missing_secrets+=("AOS_URL")
+        [ -z "$ODIN_CDN_ENDPOINT" ] && missing_secrets+=("ODIN_CDN_ENDPOINT")
+        [ -z "$ODIN_ORIGIN_ENDPOINT" ] && missing_secrets+=("ODIN_ORIGIN_ENDPOINT")
+        [ -z "$OST_WRITE_API_KEY" ] && missing_secrets+=("OST_WRITE_API_KEY")
+        [ -z "$WCS_CDN_ENDPOINT" ] && missing_secrets+=("WCS_CDN_ENDPOINT")
+        [ -z "$WCS_ORIGIN_ENDPOINT" ] && missing_secrets+=("WCS_ORIGIN_ENDPOINT")
+        
+        if [ ${#missing_secrets[@]} -ne 0 ]; then
+          echo "Error: The following required secrets are empty:"
+          printf '%s\n' "${missing_secrets[@]}"
+          exit 1
+        fi
+      
+    - name: Deploy action
+      if: success() && github.event_name == 'pull_request'
+      run: aio app deploy
+
+    - name: Install Playwright
+      if: success() && github.event_name == 'pull_request'
+      run: |
+        npm init playwright@latest -y
+        npx playwright install --with-deps
+
+    - name: Run Nala Tests
+      if: success() && github.event_name == 'pull_request'
+      env:
+        TEST_URL: https://${{ github.head_ref }}--milo--adobecom.hlx.live/libs/features/mas/docs/ccd.html?mas-io-url=https://14257-merchatscale-Stage.adobeioruntime.net/api/v1/web/MerchAtScale
+      run: |
+        echo "Running Nala tests against: ${TEST_URL}"
+        npx playwright test ../../nala/io/ioAutomation.js --config=../../nala/io/playwright.config.js
+
+
+    - name: Run Nala Tests (fr_FR)
+      if: success() && github.event_name == 'pull_request'
+      env:
+        TEST_URL: https://${{ github.head_ref }}--milo--adobecom.hlx.live/libs/features/mas/docs/ccd.html?mas-io-url=https://14257-merchatscale-Stage.adobeioruntime.net/api/v1/web/MerchAtScale&locale=fr_FR
+      run: |
+        echo "Running Nala tests against: ${TEST_URL}"
+        npx playwright test ../../nala/io/ioAutomation.js --config=../../nala/io/playwright.config.js

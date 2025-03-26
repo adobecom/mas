@@ -1,0 +1,76 @@
+name: Deploy IO WWW
+on:
+  workflow_run:
+    workflows: ['WWW Unit Tests']  # Name must match exactly with io-tests.yaml
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  deploy:
+    # Only run if the tests workflow succeeded
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: io/www
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22.x'
+        cache: 'npm'
+        cache-dependency-path: io/www/package.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests with coverage
+      run: npm test
+
+    # Example deployment step (adjust based on your needs)
+   name: Install AIO CLI
+      if: success() && github.event_name == 'pull_request'
+      run: npm install -g @adobe/aio-cli
+
+    - name: Configure AIO CLI
+      if: success() && github.event_name == 'pull_request'
+      env:
+        AIO_NAMESPACE: ${{ secrets.AIO_NS_PROD }}
+        AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
+        AIO_runtime_auth: ${{ secrets.AIO_AUTH_PROD }}
+        AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
+        AOS_URL: ${{ secrets.AOS_URL }}
+        ODIN_CDN_ENDPOINT: ${{ secrets.ODIN_CDN_ENDPOINT }}
+        ODIN_ORIGIN_ENDPOINT: ${{ secrets.ODIN_ORIGIN_ENDPOINT }}
+        OST_WRITE_API_KEY: ${{ secrets.OST_WRITE_API_KEY }}
+        WCS_CDN_ENDPOINT: ${{ secrets.WCS_CDN_ENDPOINT }}
+        WCS_ORIGIN_ENDPOINT: ${{ secrets.WCS_ORIGIN_ENDPOINT }}
+          run: |
+        missing_secrets=()
+        
+        [ -z "$AIO_NAMESPACE" ] && missing_secrets+=("AIO_NAMESPACE")
+        [ -z "$AIO_APIHOST" ] && missing_secrets+=("AIO_APIHOST")
+        [ -z "$AIO_runtime_auth" ] && missing_secrets+=("AIO_runtime_auth")
+        [ -z "$AOS_API_KEY" ] && missing_secrets+=("AOS_API_KEY")
+        [ -z "$AOS_URL" ] && missing_secrets+=("AOS_URL")
+        [ -z "$ODIN_CDN_ENDPOINT" ] && missing_secrets+=("ODIN_CDN_ENDPOINT")
+        [ -z "$ODIN_ORIGIN_ENDPOINT" ] && missing_secrets+=("ODIN_ORIGIN_ENDPOINT")
+        [ -z "$OST_WRITE_API_KEY" ] && missing_secrets+=("OST_WRITE_API_KEY")
+        [ -z "$WCS_CDN_ENDPOINT" ] && missing_secrets+=("WCS_CDN_ENDPOINT")
+        [ -z "$WCS_ORIGIN_ENDPOINT" ] && missing_secrets+=("WCS_ORIGIN_ENDPOINT")
+        
+        if [ ${#missing_secrets[@]} -ne 0 ]; then
+          echo "Error: The following required secrets are empty:"
+          printf '%s\n' "${missing_secrets[@]}"
+          exit 1
+        fi
+      
+    - name: Deploy action
+      if: success() && github.event_name == 'pull_request'
+      run: aio app deploy

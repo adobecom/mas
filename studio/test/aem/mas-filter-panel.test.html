@@ -25,7 +25,6 @@
         <script type="module">
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
-            import { fixture, oneEvent } from '@open-wc/testing-helpers/pure';
             import { delay, initElementFromTemplate } from '../utils.js';
             import Store from '../../src/store.js';
             import '../../src/aem/mas-filter-panel.js';
@@ -52,7 +51,7 @@
                 describe('mas-filter-panel custom element', async () => {
                     beforeEach(async function () {
                         Store.filters.set({
-                            tags: [],
+                            tags: '',
                         });
                     });
 
@@ -68,6 +67,7 @@
                             market_segments: [],
                             customer_segment: [],
                             status: [],
+                            'studio/content-type': [],
                         });
                     });
 
@@ -262,7 +262,7 @@
                     it('Should initialize filters from search state', async function () {
                         // Set initial search state
                         Store.filters.set({
-                            tags: ['mas:status/draft', 'mas:offer_type/base'],
+                            tags: 'mas:status/draft,mas:offer_type/base',
                         });
 
                         const filterPanel = initElementFromTemplate(

@@ -1,7 +1,7 @@
 {
     "success": true,
-    "results": 93,
-    "total": 93,
+    "results": 98,
+    "total": 98,
     "more": false,
     "offset": 0,
     "hits": [
@@ -480,6 +480,30 @@
             "excerpt": "",
             "name": "published",
             "title": "PUBLISHED"
+        },
+        {
+            "path": "/content/cq:tags/mas/studio",
+            "excerpt": "",
+            "name": "studio",
+            "title": "Studio"
+        },
+        {
+            "path": "/content/cq:tags/mas/studio/content-type",
+            "excerpt": "",
+            "name": "content-type",
+            "title": "Content Type"
+        },
+        {
+            "path": "/content/cq:tags/mas/studio/content-type/merch-card",
+            "excerpt": "",
+            "name": "merch-card",
+            "title": "Merch Card"
+        },
+        {
+            "path": "/content/cq:tags/mas/studio/content-type/merch-card-collection",
+            "excerpt": "",
+            "name": "merch-card-collection",
+            "title": "Merch Card Collection"
         },
         {
             "path": "/content/cq:tags/mas/term",

@@ -1,6 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
+import { EVENT_KEYDOWN } from './constants.js';
 
 class MasSelectionPanel extends LitElement {
     static styles = css`
@@ -19,12 +20,12 @@ class MasSelectionPanel extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        window.addEventListener('keydown', this.close);
+        window.addEventListener(EVENT_KEYDOWN, this.close);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        window.removeEventListener('keydown', this.close);
+        window.removeEventListener(EVENT_KEYDOWN, this.close);
     }
 
     close(event) {

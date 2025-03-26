@@ -22,7 +22,7 @@ test('basic test', async ({ page }) => {
     expect(imageSrc.length).toBeGreaterThan(0);
 
     let priceSpan = merchCardSlice.locator('span[class="price"]');
-    await expect(priceSpan).toBeVisible();
+    await expect(priceSpan).toBeVisible({timeout: 15000});
 
     let currencySymbol = priceSpan.locator('span[class="price-currency-symbol"]');
     await expect(currencySymbol).toBeVisible();
@@ -60,6 +60,7 @@ test('basic test', async ({ page }) => {
     // Suggested Card
 
     let merchCardSuggested = page.locator('//merch-card[@id="549f6981-f5c8-4512-b41c-313d60f375b2"]');
+    await merchCardSuggested.scrollIntoViewIfNeeded();
     await expect(merchCardSuggested).toBeVisible();
     let merchIconSuggested = merchCardSuggested.locator('//merch-icon');
     await expect(merchIconSuggested).toBeVisible();

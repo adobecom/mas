@@ -174,7 +174,6 @@ export class MasRepository extends LitElement {
     }
 
     async searchFragments() {
-        console.log('searchFragments starting');
         if (this.page.value !== PAGE_NAMES.CONTENT) return;
 
         Store.fragments.list.loading.set(true);
@@ -182,16 +181,24 @@ export class MasRepository extends LitElement {
         const dataStore = Store.fragments.list.data;
         const path = this.search.value.path;
         const query = this.search.value.query;
-        let tags = this.filters.value.tags?.split(',').filter(Boolean) ?? [];
-
-        // Extract content type tags from the tags array
+        
+        let tags = [];
+        if (this.filters.value.tags) {
+            if (typeof this.filters.value.tags === 'string') {
+                tags = this.filters.value.tags.split(',').filter(Boolean);
+            } else if (Array.isArray(this.filters.value.tags)) {
+                tags = this.filters.value.tags.filter(Boolean);
+            } else {
+                console.warn('Unexpected tags format:', this.filters.value.tags);
+            }
+        }
+        
         let modelIds = tags
             .filter((tag) => tag.startsWith(TAG_STUDIO_CONTENT_TYPE))
             .map((tag) => TAG_MODEL_ID_MAPPING[tag]);
 
         if (modelIds.length === 0) modelIds = EDITABLE_FRAGMENT_MODEL_IDS;
 
-        // Remove content type tags from the original tags array
         tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE));
 
         if (
@@ -221,6 +228,7 @@ export class MasRepository extends LitElement {
             if (this.#abortControllers.search)
                 this.#abortControllers.search.abort();
             this.#abortControllers.search = new AbortController();
+
 
             if (isUUID(this.search.value.query)) {
                 const fragmentData = await this.aem.sites.cf.fragments.getById(
@@ -766,22 +774,6 @@ export class MasRepository extends LitElement {
 
             this.operation.set(OPERATIONS.DELETE);
 
-            try {
-                const fragmentPath = fragment.path;
-                const pathParts = fragmentPath.split('/');
-                const fragmentName = pathParts.pop();
-                const dictionaryPath = pathParts.join('/');
-
-                if (fragmentName !== 'index') {
-                    try {
-                        await this.removeFromIndexFragment(
-                            dictionaryPath,
-                            fragment,
-                        );
-                    } catch (err) {}
-                }
-            } catch (indexError) {}
-
             await this.aem.sites.cf.fragments.delete(fragment);
 
             Events.toast.emit({
@@ -849,15 +841,15 @@ export class MasRepository extends LitElement {
             const { parentPath, name, modelId, title, data } = fragmentData;
 
             if (!parentPath) {
-                throw new Error(
-                    'Parent path is required for placeholder creation',
-                );
+                throw new Error('Parent path is required for placeholder creation');
             }
 
             if (!modelId) {
-                throw new Error(
-                    `Missing required model ID for fragment creation`,
-                );
+                throw new Error('Missing required model ID for fragment creation');
+            }
+
+            if (!title) {
+                throw new Error('Title is required for fragment creation');
             }
 
             const fields = data
@@ -874,43 +866,27 @@ export class MasRepository extends LitElement {
                   })
                 : [];
 
+            // Create a single unified object with all parameters needed by createFragment
             const fragmentObject = {
+                parentPath: parentPath,
+                modelId: modelId,
                 title: title || name,
-                model: { id: modelId },
-                fields: fields,
+                name: name,
+                description: fragmentData.description || `Placeholder for ${title || name}`,
+                fields: fields
             };
 
-            const result = await this.aem.sites.cf.fragments.create(
-                fragmentObject,
-                parentPath,
-            );
-
+            const result = await this.aem.sites.cf.fragments.create(fragmentObject);
+            
+            // Create fragment from result
             const newFragment = new Fragment(result);
-
+            await this.#addToCache(newFragment);
+            
             return newFragment;
         } catch (error) {
             this.operation.set();
             throw error;
         }
-    }
-
-    /**
-     * Add a placeholder to the surface/locale index fragment
-     * @param {string} dictionaryPath - Path to the dictionary folder
-     * @param {Object} newFragment - The newly created placeholder fragment
-     * @returns {Promise<boolean>} Success indicator
-     */
-    async addToIndexFragment() {
-        return true;
-    }
-
-    /**
-     * Remove a placeholder from the index fragment
-     * @param {string} dictionaryPath - Path to the dictionary folder
-     * @param {Object} placeholderFragment - The placeholder fragment to remove
-     */
-    async removeFromIndexFragment() {
-        return;
     }
 
     /**
@@ -945,8 +921,22 @@ export class MasRepository extends LitElement {
 
             this.operation.set(OPERATIONS.CREATE);
 
-            const newFragment =
-                await this.createDictionaryFragment(fragmentData);
+            if (!fragmentData.parentPath || !fragmentData.modelId || !fragmentData.title) {
+                console.error("Missing required data:", {
+                    parentPath: fragmentData.parentPath,
+                    modelId: fragmentData.modelId,
+                    title: fragmentData.title
+                });
+                
+                throw new Error(
+                    `Missing required data for placeholder creation:
+                    parentPath: ${fragmentData.parentPath}, 
+                    modelId: ${fragmentData.modelId}, 
+                    title: ${fragmentData.title}`
+                );
+            }
+
+            const newFragment = await this.createDictionaryFragment(fragmentData);
 
             await this.forceRefreshPlaceholders();
 

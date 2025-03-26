@@ -360,15 +360,20 @@ class AEM {
 
     /**
      * Create a new fragment in a given folder
-     * @param {*} fragment sample fragment with mimimum req fields: { title: 'sample title', model: {id: '123'}}
+     * @param {*} fragment sample fragment with minimum req fields for creation
      */
     async createFragment(fragment) {
-        const { title, name, modelId, parentPath, description, fields } = fragment;
+        const { title, name, description, fields } = fragment;
+        const parentPath = fragment.parentPath;
+        
+        const modelId = fragment.modelId || (fragment.model && fragment.model.id);
+        
         if (!parentPath || !title || !modelId) {
             throw new Error(
                 `Missing data to create a fragment: ${parentPath}, ${title}, ${modelId}`,
             );
         }
+        
         const response = await fetch(`${this.cfFragmentsUrl}`, {
             method: 'POST',
             headers: {
@@ -386,15 +391,21 @@ class AEM {
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
+        
         if (!response.ok) {
-            const { detail } = (await response.json()) ?? {};
-            if (detail) {
-                throw new UserFriendlyError(detail);
+            try {
+                const errorData = await response.json();
+                if (errorData.detail) {
+                    throw new UserFriendlyError(errorData.detail);
+                }
+            } catch (parseError) {
             }
+            
             throw new Error(
                 `Failed to create fragment: ${response.status} ${response.statusText}`,
             );
         }
+        
         return await this.getFragment(response);
     }
 

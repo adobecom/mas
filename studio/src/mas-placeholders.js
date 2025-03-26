@@ -44,10 +44,6 @@ class MasPlaceholders extends LitElement {
             value: '',
         };
         this.error = null;
-        this.appliedFilters = {
-            locale: [],
-            key: [],
-        };
         this.columnWidths = {
             key: '20%',
             value: '35%',
@@ -228,6 +224,10 @@ class MasPlaceholders extends LitElement {
                 .toLowerCase()
                 .replace(/\s+/g, '-');
 
+            if (!DICTIONARY_MODEL_ID) {
+                throw new Error('DICTIONARY_MODEL_ID is not defined');
+            }
+
             const fragmentData = {
                 name,
                 parentPath: dictionaryPath,
@@ -248,7 +248,10 @@ class MasPlaceholders extends LitElement {
             this.selectedPlaceholders = [];
             this.requestUpdate();
         } catch (error) {
-            console.debug('Error creating placeholder:', error);
+            Events.toast.emit({
+                variant: 'negative',
+                content: `Failed to create placeholder: ${error.message}`,
+            });
         } finally {
             Store.placeholders.list.loading.set(false);
             this.loading = false;
@@ -636,22 +639,6 @@ class MasPlaceholders extends LitElement {
                     placeholder.value
                         .toLowerCase()
                         .includes(this.searchQuery.toLowerCase()),
-            );
-        }
-
-        if (this.appliedFilters?.locale?.length > 0) {
-            filtered = filtered.filter((placeholder) =>
-                this.appliedFilters.locale.includes(
-                    placeholder.locale || 'en_US',
-                ),
-            );
-        }
-
-        if (this.appliedFilters?.key?.length > 0) {
-            filtered = filtered.filter((placeholder) =>
-                this.appliedFilters.key.some((key) =>
-                    placeholder.key.includes(key),
-                ),
             );
         }
 

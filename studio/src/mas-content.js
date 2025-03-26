@@ -31,14 +31,12 @@ class MasContent extends LitElement {
 
         this.subscriptions.push(
             Store.fragments.list.data.subscribe(() => {
-                console.log('Fragment list updated, refreshing content view');
                 this.requestUpdate();
             })
         );
 
         this.subscriptions.push(
             Store.filters.subscribe(() => {
-                console.log('Filters changed, requesting update');
                 this.requestUpdate();
             })
         );

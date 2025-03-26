@@ -63,8 +63,18 @@ export default Store;
  * @returns {object}
  */
 function filtersValidator(value) {
-    if (!value) return { locale: 'en_US' };
+    if (!value) return { locale: 'en_US', tags: '' };
     if (!value.locale) value.locale = 'en_US';
+    
+    // Ensure tags is always a string
+    if (value.tags === undefined || value.tags === null) {
+        value.tags = '';
+    } else if (Array.isArray(value.tags)) {
+        value.tags = value.tags.join(',');
+    } else if (typeof value.tags !== 'string') {
+        value.tags = String(value.tags);
+    }
+    
     return value;
 }
 

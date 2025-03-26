@@ -55,18 +55,43 @@ class MasFilterPanel extends LitElement {
         this.#initializeTagFilters();
     }
 
+    connectedCallback() {
+        super.connectedCallback();
+        this.#updateFilterCount();
+        this.filtersSubscription = Store.filters.subscribe(() => {
+            this.#updateFilterCount();
+        });
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        
+        if (this.filtersSubscription) {
+            this.filtersSubscription.unsubscribe();
+        }
+    }
+
     #initializeTagFilters() {
         const filters = Store.filters.get();
+        
         if (!filters.tags) return;
-        this.tagsByType = filters.tags.split(',').reduce(
+        
+        let tagsArray = [];
+        if (typeof filters.tags === 'string') {
+            tagsArray = filters.tags.split(',');
+        } else if (Array.isArray(filters.tags)) {
+            tagsArray = filters.tags;
+        } else {
+            console.warn('Unexpected filters.tags format:', filters.tags);
+            return;
+        }
+        
+        this.tagsByType = tagsArray.reduce(
             (acc, tag) => {
-                // Remove 'mas:' prefix
                 const tagPath = tag.replace('mas:', '');
                 const parts = tagPath.split('/');
-                // Find the correct type by checking if it's in EMPTY_TAGS
                 let type = parts[0];
                 let typeIndex = 1;
-                // Try to find the longest matching type in EMPTY_TAGS
                 for (let i = 1; i < parts.length; i++) {
                     const potentialType = parts.slice(0, i + 1).join('/');
                     if (potentialType in EMPTY_TAGS) {
@@ -74,11 +99,8 @@ class MasFilterPanel extends LitElement {
                         typeIndex = i + 1;
                     }
                 }
-                // Get values after the type
                 const values = parts.slice(typeIndex);
-                // Construct the full path
                 const fullPath = `/content/cq:tags/mas/${tagPath}`;
-                // Get the title from the last value
                 const title =
                     values.length > 0
                         ? values[values.length - 1].toUpperCase()
@@ -97,21 +119,27 @@ class MasFilterPanel extends LitElement {
             },
             { ...EMPTY_TAGS },
         );
+        
+        this.#updateFilterCount();
     }
 
     #updateFiltersParams() {
+        const tagValues = Object.values(this.tagsByType ?? EMPTY_TAGS)
+            .flat()
+            .map((tag) => pathToTagId(tag.path))
+            .filter(Boolean);
+        
         Store.filters.set((prev) => ({
             ...prev,
-            tags: Object.values(this.tagsByType ?? EMPTY_TAGS)
-                .flat()
-                .map((tag) => pathToTagId(tag.path)),
+            tags: tagValues.join(','),
         }));
+        
+        this.#updateFilterCount();
     }
 
     #handleTagChange(e) {
         const picker = e.target;
 
-        // Update the tags for this specific type, adding top value to each tag
         this.tagsByType = {
             ...this.tagsByType,
             [picker.top]: picker.selectedTags.map((tag) => ({
@@ -141,6 +169,8 @@ class MasFilterPanel extends LitElement {
                 tagPicker.clear();
             });
         this.#clearFilterHashParams();
+        
+        this.#updateFilterCount();
     }
 
     #clearFilterHashParams() {
@@ -165,7 +195,6 @@ class MasFilterPanel extends LitElement {
 
     async #handleTagDelete(e) {
         const value = e.target.value;
-        // Update tagsByType to remove only the specific tag
         this.tagsByType = {
             ...this.tagsByType,
             [value.top]: this.tagsByType[value.top].filter(
@@ -173,6 +202,13 @@ class MasFilterPanel extends LitElement {
             ),
         };
         this.#updateFiltersParams();
+    }
+
+    #updateFilterCount() {
+        const totalSelectedTags = Object.values(this.tagsByType ?? EMPTY_TAGS)
+            .flat()
+            .filter(Boolean)
+            .length;
     }
 
     render() {
@@ -273,7 +309,6 @@ class MasFilterPanel extends LitElement {
     }
 
     get filterIcon() {
-        // this is a copy of sp-icon-filter with outline style manually added
         return html`<sp-icon
             style="inline-size: 20px; block-size: 20px;  color: var(--spectrum-white);"
         >

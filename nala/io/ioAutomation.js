@@ -5,7 +5,6 @@ test('basic test', async ({ page }) => {
     console.log('Testing URL:', url);
     
     await page.goto(url);
-    await page.waitForTimeout(10000);
     let merchCardSlice = page.locator('//merch-card[@id="51c23f28-504f-450d-9764-0e60f1e279b2"]');
     await expect(merchCardSlice).toBeVisible();
     let merchIcon = merchCardSlice.locator('//merch-icon');
@@ -22,22 +21,22 @@ test('basic test', async ({ page }) => {
     expect(imageSrc).toBeTruthy();
     expect(imageSrc.length).toBeGreaterThan(0);
 
-    let priceSpan = merchCardSlice.locator('span.price');
+    let priceSpan = merchCardSlice.locator('span[class="price"]');
     await expect(priceSpan).toBeVisible();
 
-    let currencySymbol = priceSpan.locator('span.price-currency-symbol');
+    let currencySymbol = priceSpan.locator('span[class="price-currency-symbol"]');
     await expect(currencySymbol).toBeVisible();
 
-    let priceInteger = priceSpan.locator('span.price-integer'); 
+    let priceInteger = priceSpan.locator('span[class="price-integer"]'); 
     await expect(priceInteger).toBeVisible();
 
-    let decimalsDelimiter = priceSpan.locator('span.price-decimals-delimiter');
+    let decimalsDelimiter = priceSpan.locator('span[class="price-decimals-delimiter"]');
     await expect(decimalsDelimiter).toBeVisible();
 
-    let priceDecimals = priceSpan.locator('span.price-decimals');
+    let priceDecimals = priceSpan.locator('span[class="price-decimals"]');
     await expect(priceDecimals).toBeVisible();
 
-    let priceRecurrence = priceSpan.locator('span.price-recurrence');
+    let priceRecurrence = priceSpan.locator('span[class="price-recurrence"]');
     await expect(priceRecurrence).toBeVisible();
     
 
@@ -96,35 +95,35 @@ test('basic test', async ({ page }) => {
     let strikethroughPrice = priceSlotSuggested.locator('span[data-template="strikethrough"]');
     await expect(strikethroughPrice).toBeVisible();
 
-    let priceCurrencySymbolStrike = strikethroughPrice.locator('span.price-currency-symbol');
+    let priceCurrencySymbolStrike = strikethroughPrice.locator('span[class="price-currency-symbol"]');
     await expect(priceCurrencySymbolStrike).toBeVisible();
 
-    let priceIntegerStrike = strikethroughPrice.locator('span.price-integer');
+    let priceIntegerStrike = strikethroughPrice.locator('span[class="price-integer"]');
     await expect(priceIntegerStrike).toBeVisible();
 
-    let priceDecimalsDelimiterStrike = strikethroughPrice.locator('span.price-decimals-delimiter');
+    let priceDecimalsDelimiterStrike = strikethroughPrice.locator('span[class="price-decimals-delimiter"]');
     await expect(priceDecimalsDelimiterStrike).toBeVisible();
 
-    let priceDecimalsStrike = strikethroughPrice.locator('span.price-decimals');
+    let priceDecimalsStrike = strikethroughPrice.locator('span[class="price-decimals"]');
     await expect(priceDecimalsStrike).toBeVisible();
 
-    let priceRecurrenceStrike = strikethroughPrice.locator('span.price-recurrence');
+    let priceRecurrenceStrike = strikethroughPrice.locator('span[class="price-recurrence"]');
     await expect(priceRecurrenceStrike).toBeVisible();
 
     // Check regular price span
     let regularPrice = priceSlotSuggested.locator('span[data-template="price"]');
     await expect(regularPrice).toBeVisible();
 
-    let priceCurrencySymbolRegular = regularPrice.locator('span.price-currency-symbol');
+    let priceCurrencySymbolRegular = regularPrice.locator('span[class="price-currency-symbol"]');
     await expect(priceCurrencySymbolRegular).toBeVisible();
 
-    let priceIntegerRegular = regularPrice.locator('span.price-integer');
+    let priceIntegerRegular = regularPrice.locator('span[class="price-integer"]');
     await expect(priceIntegerRegular).toBeVisible();
 
-    let priceDecimalsDelimiterRegular = regularPrice.locator('span.price-decimals-delimiter');
+    let priceDecimalsDelimiterRegular = regularPrice.locator('span[class="price-decimals-delimiter"]');
     await expect(priceDecimalsDelimiterRegular).toBeVisible();
 
-    let priceDecimalsRegular = regularPrice.locator('span.price-decimals');
+    let priceDecimalsRegular = regularPrice.locator('span[class="price-decimals"]');
     await expect(priceDecimalsRegular).toBeVisible();
 
     let priceRecurrenceRegular = regularPrice.locator('span.price-recurrence');

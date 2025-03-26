@@ -78,6 +78,17 @@ jobs:
 
     - name: Deploy action
       if: success() && github.event_name == 'pull_request'
+      run: |
+        aio config set AIO_runtime_namespace "$AIO_runtime_namespace"
+        aio config set AIO_runtime_auth "$AIO_runtime_auth"
+        aio config set AIO_APIHOST "$AIO_APIHOST"
+        aio config set AOS_API_KEY "$AOS_API_KEY"
+        aio config set AOS_URL "$AOS_URL"
+        aio config set ODIN_CDN_ENDPOINT "$ODIN_CDN_ENDPOINT"
+        aio config set ODIN_ORIGIN_ENDPOINT "$ODIN_ORIGIN_ENDPOINT"
+        aio config set OST_WRITE_API_KEY "$OST_WRITE_API_KEY"
+        aio config set WCS_CDN_ENDPOINT "$WCS_CDN_ENDPOINT"
+        aio config set WCS_ORIGIN_ENDPOINT "$WCS_ORIGIN_ENDPOINT"
       run: aio app deploy
 
     - name: Install Playwright

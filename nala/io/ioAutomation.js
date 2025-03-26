@@ -5,8 +5,7 @@ test('basic test', async ({ page }) => {
     console.log('Testing URL:', url);
     
     await page.goto(url);
-    await page.waitForLoadState('networkidle');
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(10000);
     let merchCardSlice = page.locator('//merch-card[@id="51c23f28-504f-450d-9764-0e60f1e279b2"]');
     await expect(merchCardSlice).toBeVisible();
     let merchIcon = merchCardSlice.locator('//merch-icon');

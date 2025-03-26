@@ -95,12 +95,13 @@ jobs:
       run: |
         # Install Playwright and its test package
         npm install -D @playwright/test playwright
+        sudo apt-get install xvfb
         npx playwright install --with-deps
         
         # Run default locale tests
         echo "Running Nala tests against: ${TEST_URL}"
-        npx playwright test ioAutomation.js --config=playwright.config.js
+        xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test ioAutomation.js --config=playwright.config.js
         
         # Run French locale tests
         echo "Running Nala tests against: ${TEST_URL}&locale=fr_FR"
-        TEST_URL="${TEST_URL}&locale=fr_FR" npx playwright test ioAutomation.js --config=playwright.config.js
+        TEST_URL="${TEST_URL}&locale=fr_FR" xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test ioAutomation.js --config=playwright.config.js

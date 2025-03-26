@@ -8,7 +8,6 @@ test('basic test', async ({ page }) => {
     let merchCardSlice = page.locator('//merch-card[@id="51c23f28-504f-450d-9764-0e60f1e279b2"]');
     await expect(merchCardSlice).toBeVisible();
 
-    console.log('Price placeholder resolved, proceeding with tests');
     let merchIcon = merchCardSlice.locator('//merch-icon');
     await expect(merchIcon).toBeVisible();
     const iconSrc = await merchIcon.getAttribute('src');

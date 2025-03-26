@@ -62,4 +62,4 @@ You can generate this file using the command `aio app use`.
 
 Main configuration file that defines an application's implementation. 
 
-Workflow test 6
+Workflow test 7

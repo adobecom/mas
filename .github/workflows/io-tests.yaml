@@ -90,24 +90,19 @@ jobs:
         aio config set WCS_ORIGIN_ENDPOINT "$WCS_ORIGIN_ENDPOINT"
         aio app deploy
 
-    - name: Install Playwright
-      if: success() && github.event_name == 'pull_request'
-      run: |
-        npm init playwright@latest -y
-        npx playwright install --with-deps
-
-    - name: Run Nala Tests
+    - name: Run Playwright Tests
       if: success() && github.event_name == 'pull_request'
       env:
         TEST_URL: https://${{ github.head_ref }}--milo--adobecom.hlx.live/libs/features/mas/docs/ccd.html?mas-io-url=https://14257-merchatscale-Stage.adobeioruntime.net/api/v1/web/MerchAtScale
       run: |
+        # Install Playwright
+        npm init playwright@latest -y
+        npx playwright install --with-deps
+        
+        # Run default locale tests
         echo "Running Nala tests against: ${TEST_URL}"
         npx playwright test ../../nala/io/ioAutomation.js --config=../../nala/io/playwright.config.js
-
-    - name: Run Nala Tests (fr_FR)
-      if: success() && github.event_name == 'pull_request'
-      env:
-        TEST_URL: https://${{ github.head_ref }}--milo--adobecom.hlx.live/libs/features/mas/docs/ccd.html?mas-io-url=https://14257-merchatscale-Stage.adobeioruntime.net/api/v1/web/MerchAtScale&locale=fr_FR
-      run: |
-        echo "Running Nala tests against: ${TEST_URL}"
-        npx playwright test ../../nala/io/ioAutomation.js --config=../../nala/io/playwright.config.js
+        
+        # Run French locale tests
+        echo "Running Nala tests against: ${TEST_URL}&locale=fr_FR"
+        TEST_URL="${TEST_URL}&locale=fr_FR" npx playwright test ../../nala/io/ioAutomation.js --config=../../nala/io/playwright.config.js

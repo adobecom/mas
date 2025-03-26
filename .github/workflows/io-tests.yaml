@@ -95,8 +95,8 @@ jobs:
       env:
         TEST_URL: https://${{ github.head_ref }}--milo--adobecom.hlx.live/libs/features/mas/docs/ccd.html?mas-io-url=https://14257-merchatscale-Stage.adobeioruntime.net/api/v1/web/MerchAtScale
       run: |
-        # Install Playwright
-        npm init playwright@latest -y
+        # Install Playwright and its test package
+        npm install -D @playwright/test playwright
         npx playwright install --with-deps
         
         # Run default locale tests

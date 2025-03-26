@@ -4,7 +4,7 @@ import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { OPERATIONS } from './constants.js';
+import { CARD_MODEL_PATH, OPERATIONS } from './constants.js';
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
 
@@ -13,6 +13,7 @@ const MODEL_WEB_COMPONENT_MAPPING = {
     'Card Collection': 'merch-card-collection',
 };
 
+const MODELS_NEEDING_MASK = [CARD_MODEL_PATH];
 export default class EditorPanel extends LitElement {
     static properties = {
         source: { type: Object },
@@ -112,6 +113,25 @@ export default class EditorPanel extends LitElement {
         this.setAttribute('position', position);
     }
 
+    needsMask(fragment) {
+        return MODELS_NEEDING_MASK.includes(fragment.model.path);
+    }
+
+    maskOtherFragments(currentId) {
+        document.querySelector('.main-container')?.classList.add('mask');
+        document
+            .querySelector(`[data-id="${currentId}"]`)
+            ?.classList.add('editing-fragment');
+    }
+
+    unmaskOtherFragments() {
+        // Remove mask when editor closes
+        document.querySelector('.mask')?.classList.remove('mask');
+        document
+            .querySelector('.editing-fragment')
+            ?.classList.remove('editing-fragment');
+    }
+
     /**
      * @param {FragmentStore} store
      * @param {number | undefined} x
@@ -129,6 +149,9 @@ export default class EditorPanel extends LitElement {
             this.updatePosition(newPosition);
         }
         await this.repository.refreshFragment(store);
+        if (this.needsMask(store.get(id))) {
+            this.maskOtherFragments(id);
+        }
         this.inEdit.set(store.value);
     }
 
@@ -273,7 +296,7 @@ export default class EditorPanel extends LitElement {
     }
 
     /**
-     * Handler for the toolbar “Discard” action.
+     * Handler for the toolbar "Discard" action.
      * Uses the same prompt so that the user always sees a consistent confirmation.
      */
     async onToolbarDiscard() {
@@ -303,6 +326,7 @@ export default class EditorPanel extends LitElement {
             // The user confirmed – discard changes.
             this.inEdit.discardChanges();
         }
+        this.unmaskOtherFragments();
         this.inEdit.set();
         return true;
     }

@@ -93,7 +93,7 @@ jobs:
     - name: Run Playwright Tests
       if: success() && github.event_name == 'pull_request'
       env:
-        TEST_URL: https://${{ github.head_ref }}--milo--adobecom.hlx.live/libs/features/mas/docs/ccd.html?mas-io-url=https://14257-merchatscale-Stage.adobeioruntime.net/api/v1/web/MerchAtScale
+        TEST_URL: https://stage--milo--adobecom.hlx.live/libs/features/mas/docs/ccd.html?mas-io-url=https://14257-merchatscale-Stage.adobeioruntime.net/api/v1/web/MerchAtScale
       working-directory: nala/io
       run: |
         # Install Playwright and its test package

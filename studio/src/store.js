@@ -42,6 +42,8 @@ const Store = {
     selection: new ReactiveStore([]),
     page: new ReactiveStore(hasQuery ? 'content' : 'welcome', pageValidator), // 'welcome' | 'content'
     commerceEnv: new ReactiveStore(WCS_ENV_PROD, commerceEnvValidator), // 'stage' | 'prod'
+    user: new ReactiveStore(),
+    profile: new ReactiveStore(),
 };
 
 export default Store;
@@ -217,3 +219,5 @@ Store.search.subscribe((value, oldValue) => {
     )
         Store.page.set('content');
 });
+
+Store.profile.set(await adobeIMS.getProfile());

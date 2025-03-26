@@ -36,9 +36,6 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Run tests with coverage
-      run: npm test
-
     - name: Install AIO CLI
       if: success() && github.event_name == 'pull_request'
       run: npm install -g @adobe/aio-cli

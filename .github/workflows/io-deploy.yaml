@@ -1,17 +1,14 @@
 name: Deploy IO WWW
 on:
-  workflow_run:
-    types:
-      - completed
+  push:
     branches:
       - main
     paths:
       - 'io/www/**'
+  workflow_dispatch:  # Adding manual trigger option
 
 jobs:
   deploy:
-    # Only run if the tests workflow succeeded
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -34,13 +31,12 @@ jobs:
     - name: Run tests with coverage
       run: npm test
 
-    # Example deployment step (adjust based on your needs)
-   name: Install AIO CLI
-      if: success() && github.event_name == 'pull_request'
+    - name: Install AIO CLI  # Fixed indentation and name
+      if: success()
       run: npm install -g @adobe/aio-cli
 
     - name: Configure AIO CLI
-      if: success() && github.event_name == 'pull_request'
+      if: success()
       env:
         AIO_NAMESPACE: ${{ secrets.AIO_NS_PROD }}
         AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
@@ -52,7 +48,7 @@ jobs:
         OST_WRITE_API_KEY: ${{ secrets.OST_WRITE_API_KEY }}
         WCS_CDN_ENDPOINT: ${{ secrets.WCS_CDN_ENDPOINT }}
         WCS_ORIGIN_ENDPOINT: ${{ secrets.WCS_ORIGIN_ENDPOINT }}
-          run: |
+      run: |
         missing_secrets=()
         
         [ -z "$AIO_NAMESPACE" ] && missing_secrets+=("AIO_NAMESPACE")
@@ -73,5 +69,5 @@ jobs:
         fi
       
     - name: Deploy action
-      if: success() && github.event_name == 'pull_request'
+      if: success()
       run: aio app deploy

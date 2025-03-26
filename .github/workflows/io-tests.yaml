@@ -42,7 +42,6 @@ jobs:
     - name: Run tests with coverage
       run: npm test
 
-    # Deploy to Adobe I/O Runtime if tests pass
     - name: Install AIO CLI
       if: success() && github.event_name == 'pull_request'
       run: npm install -g @adobe/aio-cli
@@ -79,7 +78,7 @@ jobs:
           printf '%s\n' "${missing_secrets[@]}"
           exit 1
         fi
-      
+
     - name: Deploy action
       if: success() && github.event_name == 'pull_request'
       run: aio app deploy
@@ -97,7 +96,6 @@ jobs:
       run: |
         echo "Running Nala tests against: ${TEST_URL}"
         npx playwright test ../../nala/io/ioAutomation.js --config=../../nala/io/playwright.config.js
-
 
     - name: Run Nala Tests (fr_FR)
       if: success() && github.event_name == 'pull_request'

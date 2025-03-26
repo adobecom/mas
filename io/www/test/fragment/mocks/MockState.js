@@ -1,4 +1,4 @@
-export class MockState {
+class MockState {
     constructor() {
         this.store = {};
     }
@@ -18,3 +18,5 @@ export class MockState {
         });
     }
 }
+
+module.exports = { MockState };

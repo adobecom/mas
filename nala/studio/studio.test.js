@@ -57,6 +57,9 @@ test.describe('M@S Studio feature test suite', () => {
 
             const cards = await studio.renderView.locator('merch-card');
             expect(await cards.count()).toBe(1);
+            await expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).toBeVisible();
             await expect(page).toHaveURL(`${testPage}&page=content&path=nala`);
             expect(await studio.folderPicker).toHaveAttribute('value', 'nala');
         });
@@ -88,11 +91,11 @@ test.describe('M@S Studio feature test suite', () => {
             await studio.searchInput.fill(data.cardid);
             await page.keyboard.press('Enter');
             await page.waitForTimeout(2000);
+            const searchResult = await studio.renderView.locator('merch-card');
+            expect(await searchResult.count()).toBe(1);
             await expect(
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
-            const searchResult = await studio.renderView.locator('merch-card');
-            expect(await searchResult.count()).toBe(1);
         });
     });
 
@@ -266,6 +269,31 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(
                 await studio.editorPanel.locator(studio.editorFooter),
             ).toBeVisible();
+        });
+    });
+
+    // @studio-card-dblclick-info - Validate message for double-click on the card in mas studio
+    test(`${features[7].name},${features[7].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[7];
+        const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Validate double-click message', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'suggested'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'suggested')).click();
+            await expect(page.locator('sp-tooltip')).toHaveText(
+                'Double click the card to start editing.',
+            );
         });
     });
 });

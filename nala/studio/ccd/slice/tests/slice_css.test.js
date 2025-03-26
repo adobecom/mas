@@ -2,7 +2,6 @@ import { expect, test } from '@playwright/test';
 import StudioPage from '../../../studio.page.js';
 import CCDSliceSpec from '../specs/slice_css.spec.js';
 import CCDSlicePage from '../slice.page.js';
-import OSTPage from '../../../ost.page.js';
 import WebUtil from '../../../../libs/webutil.js';
 
 const { features } = CCDSliceSpec;
@@ -10,7 +9,6 @@ const miloLibs = process.env.MILO_LIBS || '';
 
 let studio;
 let slice;
-let ost;
 let webUtil;
 
 test.beforeEach(async ({ page, browserName }) => {
@@ -22,7 +20,6 @@ test.beforeEach(async ({ page, browserName }) => {
     }
     studio = new StudioPage(page);
     slice = new CCDSlicePage(page);
-    ost = new OSTPage(page);
     webUtil = new WebUtil(page);
 });
 
@@ -33,7 +30,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[0];
-        const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}`;
+        const singleCardPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.singleCardID}`;
+        const doubleCardPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.doubleCardID}`;
         const singleSliceCard = await studio.getCard(
             data.singleCardID,
             'slice',
@@ -42,22 +40,28 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             data.doubleCardID,
             'slice-wide',
         );
-        console.info('[Test Page]: ', testPage);
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+        await test.step('step-1: Go to single card test page', async () => {
+            console.info('[Test Page]: ', singleCardPage);
+            await page.goto(singleCardPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Validate cards are visible', async () => {
+        await test.step('step-2: Validate single slice card CSS', async () => {
             await expect(singleSliceCard).toBeVisible();
-            await expect(doubleSliceCard).toBeVisible();
-        });
-
-        await test.step('step-3: Validate slice card CSS', async () => {
             expect(
                 await webUtil.verifyCSS(singleSliceCard, slice.cssProp.card),
             ).toBeTruthy();
+        });
+
+        await test.step('step-3: Go to double card test page', async () => {
+            console.info('[Test Page]: ', doubleCardPage);
+            await page.goto(doubleCardPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-4: Validate double slice card CSS', async () => {
+            await expect(doubleSliceCard).toBeVisible();
             expect(
                 await webUtil.verifyCSS(doubleSliceCard, slice.cssProp.card),
             ).toBeTruthy();
@@ -70,7 +74,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[1];
-        const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}`;
+        const singleCardPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.singleCardID}`;
+        const doubleCardPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.doubleCardID}`;
         const singleSliceCard = await studio.getCard(
             data.singleCardID,
             'slice',
@@ -80,25 +85,30 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             'slice-wide',
         );
 
-        console.info('[Test Page]: ', testPage);
-
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+        await test.step('step-1: Go to single card test page', async () => {
+            console.info('[Test Page]: ', singleCardPage);
+            await page.goto(singleCardPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Validate cards are visible', async () => {
+        await test.step('step-2: Validate single slice card CSS', async () => {
             await expect(singleSliceCard).toBeVisible();
-            await expect(doubleSliceCard).toBeVisible();
-        });
-
-        await test.step('step-3: Validate slice card CSS', async () => {
             expect(
                 await webUtil.verifyCSS(
                     singleSliceCard.locator(slice.cardBadge),
                     slice.cssProp.badge,
                 ),
             ).toBeTruthy();
+        });
+
+        await test.step('step-3: Go to double card test page', async () => {
+            console.info('[Test Page]: ', doubleCardPage);
+            await page.goto(doubleCardPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-4: Validate double slice card CSS', async () => {
+            await expect(doubleSliceCard).toBeVisible();
             expect(
                 await webUtil.verifyCSS(
                     doubleSliceCard.locator(slice.cardBadge),
@@ -114,7 +124,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[2];
-        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}`;
+        const singleCardPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.singleCardID}`;
+        const doubleCardPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.doubleCardID}`;
         const singleSliceCard = await studio.getCard(
             data.singleCardID,
             'slice',
@@ -123,19 +134,15 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             data.doubleCardID,
             'slice-wide',
         );
-        console.info('[Test Page]: ', testPage);
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+        await test.step('step-1: Go to single card test page', async () => {
+            console.info('[Test Page]: ', singleCardPage);
+            await page.goto(singleCardPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Validate cards are visible', async () => {
+        await test.step('step-2: Validate single slice card CSS', async () => {
             await expect(singleSliceCard).toBeVisible();
-            await expect(doubleSliceCard).toBeVisible();
-        });
-
-        await test.step('step-3: Validate slice card CSS', async () => {
             expect(
                 await webUtil.verifyCSS(
                     singleSliceCard
@@ -145,6 +152,16 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                     slice.cssProp.description,
                 ),
             ).toBeTruthy();
+        });
+
+        await test.step('step-3: Go to double card test page', async () => {
+            console.info('[Test Page]: ', doubleCardPage);
+            await page.goto(doubleCardPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-4: Validate double slice card CSS', async () => {
+            await expect(doubleSliceCard).toBeVisible();
             expect(
                 await webUtil.verifyCSS(
                     doubleSliceCard
@@ -163,7 +180,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[3];
-        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}`;
+        const singleCardPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.singleCardID}`;
+        const doubleCardPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.doubleCardID}`;
         const singleSliceCard = await studio.getCard(
             data.singleCardID,
             'slice',
@@ -172,25 +190,31 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             data.doubleCardID,
             'slice-wide',
         );
-        console.info('[Test Page]: ', testPage);
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+        await test.step('step-1: Go to single card test page', async () => {
+            console.info('[Test Page]: ', singleCardPage);
+            await page.goto(singleCardPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Validate cards are visible', async () => {
+        await test.step('step-2: Validate single slice card CSS', async () => {
             await expect(singleSliceCard).toBeVisible();
-            await expect(doubleSliceCard).toBeVisible();
-        });
-
-        await test.step('step-3: Validate slice card CSS', async () => {
             expect(
                 await webUtil.verifyCSS(
                     singleSliceCard.locator(slice.cardIcon),
                     slice.cssProp.icon,
                 ),
             ).toBeTruthy();
+        });
+
+        await test.step('step-3: Go to double card test page', async () => {
+            console.info('[Test Page]: ', doubleCardPage);
+            await page.goto(doubleCardPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-4: Validate double slice card CSS', async () => {
+            await expect(doubleSliceCard).toBeVisible();
             expect(
                 await webUtil.verifyCSS(
                     doubleSliceCard.locator(slice.cardIcon),
@@ -206,7 +230,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[4];
-        const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}`;
+        const singleCardPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.singleCardID}`;
+        const doubleCardPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.doubleCardID}`;
         const singleSliceCard = await studio.getCard(
             data.singleCardID,
             'slice',
@@ -215,25 +240,31 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             data.doubleCardID,
             'slice-wide',
         );
-        console.info('[Test Page]: ', testPage);
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+        await test.step('step-1: Go to single card test page', async () => {
+            console.info('[Test Page]: ', singleCardPage);
+            await page.goto(singleCardPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Validate cards are visible', async () => {
+        await test.step('step-2: Validate single slice card CSS', async () => {
             await expect(singleSliceCard).toBeVisible();
-            await expect(doubleSliceCard).toBeVisible();
-        });
-
-        await test.step('step-3: Validate slice card CSS', async () => {
             expect(
                 await webUtil.verifyCSS(
                     singleSliceCard,
                     slice.cssProp.singleSize,
                 ),
             ).toBeTruthy();
+        });
+
+        await test.step('step-3: Go to double card test page', async () => {
+            console.info('[Test Page]: ', doubleCardPage);
+            await page.goto(doubleCardPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-4: Validate double slice card CSS', async () => {
+            await expect(doubleSliceCard).toBeVisible();
             expect(
                 await webUtil.verifyCSS(
                     doubleSliceCard,
@@ -249,7 +280,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[5];
-        const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}`;
+        const singleCardPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.singleCardID}`;
+        const doubleCardPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.doubleCardID}`;
         const singleSliceCard = await studio.getCard(
             data.singleCardID,
             'slice',
@@ -258,25 +290,31 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             data.doubleCardID,
             'slice-wide',
         );
-        console.info('[Test Page]: ', testPage);
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+        await test.step('step-1: Go to single card test page', async () => {
+            console.info('[Test Page]: ', singleCardPage);
+            await page.goto(singleCardPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Validate cards are visible', async () => {
+        await test.step('step-2: Validate single slice card CSS', async () => {
             await expect(singleSliceCard).toBeVisible();
-            await expect(doubleSliceCard).toBeVisible();
-        });
-
-        await test.step('step-3: Validate slice card CSS', async () => {
             expect(
                 await webUtil.verifyCSS(
                     singleSliceCard.locator(slice.cardPrice),
                     slice.cssProp.price,
                 ),
             ).toBeTruthy();
+        });
+
+        await test.step('step-3: Go to double card test page', async () => {
+            console.info('[Test Page]: ', doubleCardPage);
+            await page.goto(doubleCardPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-4: Validate double slice card CSS', async () => {
+            await expect(doubleSliceCard).toBeVisible();
             expect(
                 await webUtil.verifyCSS(
                     doubleSliceCard.locator(slice.cardPrice),
@@ -292,7 +330,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[6];
-        const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}`;
+        const singleCardPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.singleCardID}`;
+        const doubleCardPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.doubleCardID}`;
         const singleSliceCard = await studio.getCard(
             data.singleCardID,
             'slice',
@@ -301,25 +340,31 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             data.doubleCardID,
             'slice-wide',
         );
-        console.info('[Test Page]: ', testPage);
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+        await test.step('step-1: Go to single card test page', async () => {
+            console.info('[Test Page]: ', singleCardPage);
+            await page.goto(singleCardPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Validate cards are visible', async () => {
+        await test.step('step-2: Validate single slice card CSS', async () => {
             await expect(singleSliceCard).toBeVisible();
-            await expect(doubleSliceCard).toBeVisible();
-        });
-
-        await test.step('step-3: Validate slice card CSS', async () => {
             expect(
                 await webUtil.verifyCSS(
                     singleSliceCard.locator(slice.cardPriceStrikethrough),
                     slice.cssProp.strikethroughPrice,
                 ),
             ).toBeTruthy();
+        });
+
+        await test.step('step-3: Go to double card test page', async () => {
+            console.info('[Test Page]: ', doubleCardPage);
+            await page.goto(doubleCardPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-4: Validate double slice card CSS', async () => {
+            await expect(doubleSliceCard).toBeVisible();
             expect(
                 await webUtil.verifyCSS(
                     doubleSliceCard.locator(slice.cardPriceStrikethrough),
@@ -329,13 +374,14 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-css-cta-cta - Validate CTA CSS for slice cards
+    // @studio-slice-css-cta - Validate CTA CSS for slice cards
     test(`${features[7].name},${features[7].tags}`, async ({
         page,
         baseURL,
     }) => {
         const { data } = features[7];
-        const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}`;
+        const singleCardPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.singleCardID}`;
+        const doubleCardPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.doubleCardID}`;
         const singleSliceCard = await studio.getCard(
             data.singleCardID,
             'slice',
@@ -344,25 +390,31 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             data.doubleCardID,
             'slice-wide',
         );
-        console.info('[Test Page]: ', testPage);
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+        await test.step('step-1: Go to single card test page', async () => {
+            console.info('[Test Page]: ', singleCardPage);
+            await page.goto(singleCardPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Validate cards are visible', async () => {
+        await test.step('step-2: Validate single slice card CSS', async () => {
             await expect(singleSliceCard).toBeVisible();
-            await expect(doubleSliceCard).toBeVisible();
-        });
-
-        await test.step('step-3: Validate slice card CSS', async () => {
             expect(
                 await webUtil.verifyCSS(
                     singleSliceCard.locator(slice.cardCTA),
                     slice.cssProp.cta,
                 ),
             ).toBeTruthy();
+        });
+
+        await test.step('step-3: Go to double card test page', async () => {
+            console.info('[Test Page]: ', doubleCardPage);
+            await page.goto(doubleCardPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-4: Validate double slice card CSS', async () => {
+            await expect(doubleSliceCard).toBeVisible();
             expect(
                 await webUtil.verifyCSS(
                     doubleSliceCard.locator(slice.cardCTA),
@@ -378,7 +430,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         baseURL,
     }) => {
         const { data } = features[8];
-        const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}`;
+        const singleCardPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.singleCardID}`;
+        const doubleCardPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.doubleCardID}`;
         const singleSliceCard = await studio.getCard(
             data.singleCardID,
             'slice',
@@ -387,25 +440,31 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             data.doubleCardID,
             'slice-wide',
         );
-        console.info('[Test Page]: ', testPage);
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+        await test.step('step-1: Go to single card test page', async () => {
+            console.info('[Test Page]: ', singleCardPage);
+            await page.goto(singleCardPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Validate cards are visible', async () => {
+        await test.step('step-2: Validate single slice card CSS', async () => {
             await expect(singleSliceCard).toBeVisible();
-            await expect(doubleSliceCard).toBeVisible();
-        });
-
-        await test.step('step-3: Validate slice card CSS', async () => {
             expect(
                 await webUtil.verifyCSS(
                     singleSliceCard.locator(slice.cardLegalLink),
                     slice.cssProp.legalLink,
                 ),
             ).toBeTruthy();
+        });
+
+        await test.step('step-3: Go to double card test page', async () => {
+            console.info('[Test Page]: ', doubleCardPage);
+            await page.goto(doubleCardPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-4: Validate double slice card CSS', async () => {
+            await expect(doubleSliceCard).toBeVisible();
             expect(
                 await webUtil.verifyCSS(
                     doubleSliceCard.locator(slice.cardLegalLink),

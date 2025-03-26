@@ -1,7 +1,6 @@
 name: Deploy IO WWW
 on:
   workflow_run:
-    workflows: ['WWW Unit Tests']  # Name must match exactly with io-tests.yaml
     types:
       - completed
     branches:

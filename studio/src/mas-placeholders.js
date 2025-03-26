@@ -290,15 +290,7 @@ class MasPlaceholders extends LitElement {
                 return;
             }
 
-            const fragmentPath = placeholder.fragment?.path;
-            if (!fragmentPath) {
-                throw new Error('Fragment path is missing');
-            }
-
-            const fragmentData = await this.repository
-                .getFragmentByPath(fragmentPath)
-                .catch(() => placeholder.fragment);
-
+            const fragmentData = placeholder.fragment;
             if (!fragmentData) {
                 throw new Error('Fragment data is missing');
             }
@@ -616,7 +608,13 @@ class MasPlaceholders extends LitElement {
     }
 
     handleKeyChange(e) {
-        this.editedKey = e.target.value;
+        const inputValue = e.target.value;
+        const normalizedValue = inputValue
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '');
+        
+        this.editedKey = normalizedValue;
         this.draftStatus = true;
         this.requestUpdate();
     }
@@ -780,7 +778,13 @@ class MasPlaceholders extends LitElement {
     }
 
     handleNewPlaceholderKeyChange(e) {
-        this.newPlaceholder.key = e.target.value;
+        const inputValue = e.target.value;
+        const normalizedValue = inputValue
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '');
+        
+        this.newPlaceholder.key = normalizedValue;
         this.requestUpdate();
     }
 

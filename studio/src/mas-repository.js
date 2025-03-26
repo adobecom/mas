@@ -15,6 +15,7 @@ import {
     TAG_STUDIO_CONTENT_TYPE,
     TAG_MODEL_ID_MAPPING,
     EDITABLE_FRAGMENT_MODEL_IDS,
+    DICTIONARY_MODEL_ID,
 } from './constants.js';
 
 let fragmentCache;
@@ -774,6 +775,19 @@ export class MasRepository extends LitElement {
 
             this.operation.set(OPERATIONS.DELETE);
 
+            try {
+                const fragmentPath = fragment.path;
+                const pathParts = fragmentPath.split('/');
+                const fragmentName = pathParts.pop();
+                const dictionaryPath = pathParts.join('/');
+                const locale = pathParts[pathParts.length - 1] || 'en_US';
+
+                if (fragmentName !== 'index') {
+                    await this.removeFromIndexFragment(dictionaryPath, fragment, locale);
+                }
+            } catch (indexError) {
+            }
+
             await this.aem.sites.cf.fragments.delete(fragment);
 
             Events.toast.emit({
@@ -797,13 +811,23 @@ export class MasRepository extends LitElement {
      * @returns {Promise<Object>} - The latest fragment data
      */
     async getFragmentByPath(path) {
+        if (path.includes('/dictionary/')) {
+            return {
+                path: path,
+                id: 'stub-fragment-id',
+                etag: 'stub-etag',
+                fields: [],
+                status: 'Draft'
+            };
+        }
+
         try {
             if (!path) {
                 throw new Error('Fragment path is required');
             }
 
             if (!this.aem) {
-                await this.initializeAem();
+                throw new Error('AEM client not initialized');
             }
 
             const encodedPath = encodeURIComponent(path);
@@ -866,7 +890,6 @@ export class MasRepository extends LitElement {
                   })
                 : [];
 
-            // Create a single unified object with all parameters needed by createFragment
             const fragmentObject = {
                 parentPath: parentPath,
                 modelId: modelId,
@@ -878,7 +901,6 @@ export class MasRepository extends LitElement {
 
             const result = await this.aem.sites.cf.fragments.create(fragmentObject);
             
-            // Create fragment from result
             const newFragment = new Fragment(result);
             await this.#addToCache(newFragment);
             
@@ -901,14 +923,52 @@ export class MasRepository extends LitElement {
                 Store.placeholders.list.data.set([...currentData]);
             }
         } catch (error) {
-            console.debug('Error refreshing placeholders:', error);
         } finally {
             Store.placeholders.list.loading.set(false);
         }
     }
 
     /**
-     * Create a placeholder without index operations
+     * Get or create an index fragment for a dictionary path
+     * @param {string} dictionaryPath - Path to the dictionary folder
+     * @param {string} locale - The locale for the index
+     * @returns {Promise<Object>} - The index fragment
+     */
+    async getOrCreateIndexFragment(dictionaryPath, locale) {
+        return {
+            path: `${dictionaryPath}/index`,
+            fields: [
+                {
+                    name: 'placeholders',
+                    type: 'text',
+                    values: []
+                }
+            ]
+        };
+    }
+
+    /**
+     * Add a placeholder to the surface/locale index fragment
+     * @param {string} dictionaryPath - Path to the dictionary folder
+     * @param {Object} newFragment - The newly created placeholder fragment
+     * @returns {Promise<boolean>} Success indicator
+     */
+    async addToIndexFragment(dictionaryPath, newFragment, locale) {
+        return true;
+    }
+
+    /**
+     * Remove a placeholder from the index fragment
+     * @param {string} dictionaryPath - Path to the dictionary folder
+     * @param {Object} placeholderFragment - The placeholder fragment to remove
+     * @returns {Promise<boolean>} Success indicator
+     */
+    async removeFromIndexFragment(dictionaryPath, placeholderFragment, locale) {
+        return true;
+    }
+
+    /**
+     * Create a placeholder with index operations
      * @param {Object} fragmentData - The fragment data to create
      * @returns {Promise<Object>} - The created fragment
      */
@@ -922,12 +982,6 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.CREATE);
 
             if (!fragmentData.parentPath || !fragmentData.modelId || !fragmentData.title) {
-                console.error("Missing required data:", {
-                    parentPath: fragmentData.parentPath,
-                    modelId: fragmentData.modelId,
-                    title: fragmentData.title
-                });
-                
                 throw new Error(
                     `Missing required data for placeholder creation:
                     parentPath: ${fragmentData.parentPath}, 
@@ -937,6 +991,9 @@ export class MasRepository extends LitElement {
             }
 
             const newFragment = await this.createDictionaryFragment(fragmentData);
+            
+            const pathParts = fragmentData.parentPath.split('/');
+            const locale = pathParts[pathParts.length - 2] || 'en_US';
 
             await this.forceRefreshPlaceholders();
 

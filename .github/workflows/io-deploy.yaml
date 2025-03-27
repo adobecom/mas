@@ -84,4 +84,3 @@ jobs:
         aio config set WCS_CDN_ENDPOINT "$WCS_CDN_ENDPOINT"
         aio config set WCS_ORIGIN_ENDPOINT "$WCS_ORIGIN_ENDPOINT"
         aio app deploy
-        

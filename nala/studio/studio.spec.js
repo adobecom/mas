@@ -5,7 +5,7 @@ export default {
             tcid: '0',
             name: '@studio-load',
             path: '/studio.html',
-            tags: '@mas-studio',
+            tags: '@mas-studio @monitor',
         },
         {
             tcid: '1',
@@ -41,7 +41,7 @@ export default {
             tcid: '4',
             name: '@studio-goto-content',
             path: '/studio.html',
-            tags: '@mas-studio',
+            tags: '@mas-studio @monitor',
         },
         {
             tcid: '5',

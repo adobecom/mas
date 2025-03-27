@@ -41,7 +41,6 @@ export PR_NUMBER
 
 echo "PR Branch live URL: $PR_BRANCH_LIVE_URL_GH"
 
-
 # Convert GitHub Tag(@) labels that can be grepped
 for label in ${labels}; do
   if [[ "$label" = \@* ]]; then

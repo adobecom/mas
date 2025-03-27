@@ -5,6 +5,7 @@ import { isBranchURLValid } from '../libs/baseurl.js';
 
 const MAIN_BRANCH_LIVE_URL = 'https://main--mas--adobecom.aem.live';
 const STAGE_URL = 'https://mas.stage.adobe.com';
+const PROD_URL = 'https://mas.adobe.com';
 
 async function getGitHubPRBranchLiveUrl() {
   // get the pr number
@@ -26,8 +27,8 @@ async function getGitHubPRBranchLiveUrl() {
   const prFromRepoName = process.env.prRepo;
   
   let prBranchLiveUrl;
-  if (process.env.WORKFLOW_NAME === 'Nala Daily Run') {
-    prBranchLiveUrl = `https://${prBranch}--${toRepoName}--${toRepoOrg}.aem.live`;
+  if (process.env.WORKFLOW_NAME === 'Nala Daily Run' || process.env.WORKFLOW_NAME === "Studio Montor") {
+    prBranchLiveUrl = PROD_URL;
   } else {
     prBranchLiveUrl = `https://${prBranch}--${prFromRepoName}--${prFromOrg}.aem.live`;
   }

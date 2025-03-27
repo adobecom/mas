@@ -8,7 +8,7 @@ on:
         required: false
         type: string
       milolibs:
-        description: 'Provide MiloLibs param. ex: ?milolibs=MWPW-12345--milo--adobecom'
+        description: 'Provide MiloLibs param. ex: ?milolibs=stage--milo--adobecom'
         required: false
         type: string
       tags:
@@ -21,7 +21,11 @@ on:
         type: string
 
 jobs:
-  action:
+  platform_matrix:
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20.x]
     name: Running tests
     runs-on: ${{ inputs.platform }}
     env:
@@ -31,6 +35,17 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: |
+            **/package-lock.json
+            **/yarn.lock
 
       - name: Set environment variables
         run: |

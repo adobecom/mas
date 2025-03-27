@@ -7,12 +7,6 @@ REPORTER=""
 REPORTER=$reporter
 [[ ! -z "$REPORTER" ]] && REPORTER="--reporter $REPORTER"
 
-echo "*** Installing playwright dependencies ***"
-# Navigate to the GitHub Action path and install dependencies
-cd "$GITHUB_ACTION_PATH" || exit
-npm ci
-npx playwright install --with-deps
-
 # Run Playwright tests using root-level playwright.config.js
 echo "*** Running tests on specific projects ***"
 npx playwright test --config=./playwright.config.js --project=mas-live-chromium ${REPORTER} || EXIT_STATUS=$?

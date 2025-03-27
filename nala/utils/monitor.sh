@@ -15,12 +15,6 @@ echo "*** Running tests on specific projects ***"
 echo "Run Command : npx playwright test ${TAGS} ${REPORTER}"
 echo -e "\n"
 
-echo "*** Installing playwright dependencies ***"
-# Navigate to the GitHub Action path and install dependencies
-cd "$GITHUB_ACTION_PATH" || exit
-npm ci
-npx playwright install --with-deps
-
 # Run Playwright tests using root-level playwright.config.js
 echo "*******************************"
 npx playwright test ${TAGS} --config=./playwright.config.js --project=mas-live-chromium ${REPORTER} || EXIT_STATUS=$?

@@ -38,6 +38,20 @@ jobs:
             **/package-lock.json
             **/yarn.lock
 
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
+
+      - name: Install Playwright dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps
+
       - name: Set execute permission for dailyrun.sh
         run: chmod +x ./nala/utils/dailyrun.sh
 
@@ -47,10 +61,11 @@ jobs:
           GITHUB_ACTION_PATH: ${{ github.workspace }}
           IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
           IMS_PASS: ${{ secrets.IMS_PASS }}
+
       - name: Persist JSON Artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: nala-results
-          path: nala-results.json
+          name: test-results
+          path: test-results
           retention-days: 30

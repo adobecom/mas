@@ -1,6 +1,7 @@
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 
 const config = {
+    ...eslintPluginPrettierRecommended,
     rules: {
         'prefer-const': 'error',
         'no-var': 'error',
@@ -25,7 +26,6 @@ const config = {
         '**/dist/**',
         'studio/ost/index.js',
     ],
-    ...eslintPluginPrettierRecommended,
 };
 
 export default [config];

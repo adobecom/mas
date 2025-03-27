@@ -3,12 +3,15 @@ name: MAS Studio Monitor
 on:
   schedule:
     - cron: "*/15 * * * *"   # Executes every 15 minutes
+<<<<<<< HEAD
   workflow_dispatch:
 
 # Prevent multiple runs from happening at the same time
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+=======
+>>>>>>> upstream/main
 
 jobs:
   platform_matrix:
@@ -60,7 +63,6 @@ jobs:
           GITHUB_ACTION_PATH: ${{ github.workspace }}
           IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
           IMS_PASS: ${{ secrets.IMS_PASS }}
-
       - name: Persist JSON Artifact
         uses: actions/upload-artifact@v4
         if: always()

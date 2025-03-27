@@ -1,7 +1,7 @@
 import { WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
-import { FragmentStore } from './reactivity/fragment-store.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
 import {
+    deepCompare,
     getHashParam,
     getHashParams,
     looseEquals,
@@ -21,12 +21,12 @@ const Store = {
             data: new ReactiveStore([]),
             limit: new ReactiveStore(6),
         },
-        inEdit: new FragmentStore(null),
+        inEdit: new ReactiveStore(null),
     },
     operation: new ReactiveStore(), // current operation in progress, editor or content navigation batch operations
     editor: {
         get hasChanges() {
-            return Store.fragments.inEdit.get()?.hasChanges || false;
+            return Store.fragments.inEdit.get()?.get()?.hasChanges || false;
         },
     },
     folders: {
@@ -34,7 +34,7 @@ const Store = {
         data: new ReactiveStore([]),
     },
     search: new ReactiveStore({}),
-    filters: new ReactiveStore({ locale: 'en_US', tags: [] }, filtersValidator),
+    filters: new ReactiveStore({ locale: 'en_US', tags: '' }, filtersValidator),
     renderMode: new ReactiveStore(
         localStorage.getItem('mas-render-mode') || 'render',
     ), // 'render' | 'table'
@@ -43,6 +43,8 @@ const Store = {
     page: new ReactiveStore(hasQuery ? 'content' : 'welcome', pageValidator), // 'welcome' | 'content'
     commerceEnv: new ReactiveStore(WCS_ENV_PROD, commerceEnvValidator), // 'stage' | 'prod'
 };
+
+window.Store = Store; // TODO remove
 
 export default Store;
 
@@ -85,8 +87,11 @@ export function toggleSelection(id) {
     else Store.selection.set([...selection, id]);
 }
 
-export function editFragment(store, x) {
-    editorPanel().editFragment(store, x);
+export function editFragment(store, x = 0) {
+    if (!Store.fragments.list.data.get().includes(store)) {
+        Store.fragments.list.data.set((prev) => [store, ...prev]);
+    }
+    editorPanel()?.editFragment(store, x);
 }
 
 export function navigateToPage(value) {
@@ -128,7 +133,6 @@ export function linkStoreToHash(store, params, defaultValue) {
                 store.set(hashValue);
             }
         } else {
-            let hasChanges = false;
             const hashValue = {};
             for (const param of params) {
                 const paramValue = getHashParam(param);
@@ -150,9 +154,10 @@ export function linkStoreToHash(store, params, defaultValue) {
                         looseEquals(value[param], defaultValues[param])
                     )
                         hashValue[param] = defaultValues[param];
-                    else hasChanges = true;
                 }
             }
+            const prev = store.get();
+            const hasChanges = !deepCompare(prev, hashValue);
             if (hasChanges) store.set((prev) => ({ ...prev, ...hashValue }));
         }
     }

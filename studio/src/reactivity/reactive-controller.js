@@ -13,7 +13,7 @@ export default class ReactiveController {
      * @param {LitElement} host
      * @param {ReactiveStore[]} stores
      */
-    constructor(host, stores) {
+    constructor(host, stores = []) {
         this.stores = stores;
         this.requestUpdate = this.requestUpdate.bind(this);
         (this.host = host).addController(this);
@@ -23,15 +23,29 @@ export default class ReactiveController {
         this.host.requestUpdate();
     }
 
-    hostConnected() {
+    #register() {
         for (const store of this.stores) {
             store.subscribe(this.requestUpdate);
         }
     }
 
-    hostDisconnected() {
+    hostConnected() {
+        this.#register();
+    }
+
+    #unregister() {
         for (const store of this.stores) {
             store.unsubscribe(this.requestUpdate);
         }
+    }
+
+    hostDisconnected() {
+        this.#unregister();
+    }
+
+    updateStores(stores) {
+        this.#unregister();
+        this.stores = stores;
+        this.#register();
     }
 }

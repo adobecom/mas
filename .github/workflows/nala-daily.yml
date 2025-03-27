@@ -64,7 +64,7 @@ jobs:
 
       - name: Persist JSON Artifact
         uses: actions/upload-artifact@v4
-        if: always()
+        if: failure()
         with:
           name: test-results
           path: test-results

@@ -59,9 +59,10 @@ jobs:
           GITHUB_ACTION_PATH: ${{ github.workspace }}
           IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
           IMS_PASS: ${{ secrets.IMS_PASS }}
+
       - name: Persist JSON Artifact
         uses: actions/upload-artifact@v4
-        if: always()
+        if: failure()
         with:
           name: test-results
           path: test-results

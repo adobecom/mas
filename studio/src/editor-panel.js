@@ -187,8 +187,10 @@ export default class EditorPanel extends LitElement {
         switch (this.fragment?.model?.path) {
             case CARD_MODEL_PATH:
                 const props =  {
-                    cardTitle: this.fragment?.getField('cardTitle')?.values[0],
-                    variantCode: this.fragment?.getField('variant')?.values[0],
+                        cardTitle: this.fragment?.getField('cardTitle')?.values[0],
+                        variantCode: this.fragment?.getField('variant')?.values[0],
+                        marketSegment: this.fragment?.getTagTitle('market_segment'),
+                        customerSegment: this.fragment?.getTagTitle('customer_segment'),
                     };
 
                     VARIANTS.forEach((variant) => {
@@ -196,7 +198,10 @@ export default class EditorPanel extends LitElement {
                             props.variantLabel = variant.label;
                     }
                 });
-                fragmentParts = `${surface} / ${props.variantLabel} / ${props.cardTitle}`;
+                fragmentParts = `${surface} / ${props.variantLabel}
+                ${props.marketSegment ? `/ ${props.marketSegment}` : ''}
+                ${props.customerSegment ? `/ ${props.customerSegment}` : ''}
+                / ${props.cardTitle}`;
                 title = props.cardTitle;
                 break;  
             case COLLECTION_MODEL_PATH:
@@ -224,12 +229,13 @@ export default class EditorPanel extends LitElement {
         }
 
         const code = `<${webComponentName}><aem-fragment fragment="${this.fragment?.id}" title="${title}"></aem-fragment></${webComponentName}>`;
+        const authorPath = `${webComponentName}: ${fragmentParts}`;
         const richText = `
-                <a href="https://mas.adobe.com/studio.html#path=${Store.search.value.path}&fragment=${this.fragment?.id}">
-                    ${webComponentName}: ${fragmentParts}
+                <a href="https://mas.adobe.com/studio.html#path=${Store.search.value.path}&query=${this.fragment?.id}">
+                    ${authorPath}
                 </a>
             `;
-        return [code, richText];
+        return [code, richText, authorPath];
     }
 
     async copyToUse() {
@@ -660,7 +666,13 @@ export default class EditorPanel extends LitElement {
         }
         return html`
             <div id="editor">
-                ${this.fragmentEditorToolbar} ${editor}
+                ${this.fragmentEditorToolbar}
+                <sp-divider size="s"></sp-divider>
+                <div>
+                    <a class="use-link" @click="${this.copyToUse}">${this.generateCodeToUse()[2]}</a>
+                </div>
+                <sp-divider size="s"></sp-divider>
+                ${editor}
                 <sp-divider size="s"></sp-divider>
                 ${this.fragmentEditor} ${this.deleteConfirmationDialog}
                 ${this.discardConfirmationDialog}

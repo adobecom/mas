@@ -32,7 +32,6 @@ async function getDictionary(context) {
     const response = await fetch(odinReferences(id, true), context);
     if (response.status == 200) {
         const raw = await response.json();
-        console.log('raw', raw);
         const dictionary = {};
         Object.keys(raw.references).forEach((id) => {
             const ref = raw.references[id]?.value?.fields;
@@ -52,7 +51,7 @@ function replaceValues(input, dictionary, calls) {
     let replaced = '';
     let nextIndex = 0;
     for (const match of placeholders) {
-        //match without {{ }}
+        //match without {{ }}
         const key = match[1];
         //we concatenate everything from last iteration to index of placeholder
         replaced = replaced + input.slice(nextIndex, match.index);
@@ -81,7 +80,6 @@ async function replace(context) {
     let bodyString = JSON.stringify(body);
     if (bodyString.match(PH_REGEXP)) {
         const dictionary = await getDictionary(context);
-        console.log('dictionary', dictionary);
         if (dictionary && Object.keys(dictionary).length > 0) {
             bodyString = replaceValues(bodyString, dictionary, []);
             try {

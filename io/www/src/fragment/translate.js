@@ -1,4 +1,4 @@
-const { PATH_TOKENS, odinPath } = require('./paths.js');
+const { PATH_TOKENS, odinPath, odinReferences } = require('./paths.js');
 const { fetch, log } = require('./common.js');
 
 /**
@@ -25,10 +25,20 @@ async function translate(context) {
                 message: 'translation search failed',
             };
         }
-        const root = await response.json();
-        if (root?.items?.length == 1) {
-            translatedBody = root.items[0];
-            context.translatedId = translatedBody.id;
+        const {
+            items: [{ id } = {}],
+        } = await response.json();
+        if (id) {
+            const translatedPath = odinReferences(id, true);
+            const response = await fetch(translatedPath, context);
+            if (response.status != 200) {
+                return {
+                    status: 500,
+                    message: 'translation search failed',
+                };
+            }
+            translatedBody = await response.json();
+            context.translatedId = id;
         } else {
             return {
                 status: 404,

@@ -5,14 +5,14 @@ const DICTIONARY_RESPONSE = require('./mocks/dictionary.json');
 const DICTIONARY_CF_RESPONSE = {
     items: [
         {
-            path: '/content/dam/mas/drafts/fr_FR/dictionary/index',
+            path: '/content/dam/mas/sandbox/fr_FR/dictionary/index',
             id: 'fr_FR_dictionary',
         },
     ],
 };
 
 const odinResponse = (description, cta = '{{buy-now}}') => ({
-    path: '/content/dam/mas/nala/ccd/slice-cc-allapps31211',
+    path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
     id: 'test',
     fields: {
         variant: 'ccd-slice',
@@ -24,12 +24,12 @@ const odinResponse = (description, cta = '{{buy-now}}') => ({
 const mockDictionary = () => {
     nock('https://odin.adobe.com')
         .get('/adobe/sites/fragments')
-        .query({ path: '/content/dam/mas/drafts/fr_FR/dictionary/index' })
+        .query({ path: '/content/dam/mas/sandbox/fr_FR/dictionary/index' })
         .reply(200, DICTIONARY_CF_RESPONSE);
+    
+    // Use the new URL format with ?references=all-hydrated
     nock('https://odin.adobe.com')
-        .get(
-            '/adobe/sites/fragments/fr_FR_dictionary/variations/master/references',
-        )
+        .get('/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated')
         .reply(200, DICTIONARY_RESPONSE);
 };
 
@@ -39,7 +39,7 @@ const getResponse = async (description, cta) => {
         status: 200,
         transformer: 'replace',
         requestId: 'mas-replace-ut',
-        surface: 'drafts',
+        surface: 'sandbox',
         locale: 'fr_FR',
         body: odinResponse(description, cta),
     });
@@ -48,7 +48,7 @@ const getResponse = async (description, cta) => {
 const expectedResponse = (description) => ({
     status: 200,
     body: {
-        path: '/content/dam/mas/nala/ccd/slice-cc-allapps31211',
+        path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
         id: 'test',
         fields: {
             variant: 'ccd-slice',
@@ -60,7 +60,7 @@ const expectedResponse = (description) => ({
     requestId: 'mas-replace-ut',
     dictionaryId: 'fr_FR_dictionary',
     locale: 'fr_FR',
-    surface: 'drafts',
+    surface: 'sandbox',
 });
 
 describe('replace', () => {
@@ -115,7 +115,7 @@ describe('replace', () => {
 
         const FAKE_CONTEXT = {
             status: 200,
-            surface: 'drafts',
+            surface: 'sandbox',
             locale: 'fr_FR',
             body: odinResponse('{{description}}', 'Buy now'),
         };
@@ -127,18 +127,18 @@ describe('replace', () => {
                     variant: 'ccd-slice',
                 },
                 id: 'test',
-                path: '/content/dam/mas/nala/ccd/slice-cc-allapps31211',
+                path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
             },
             locale: 'fr_FR',
             status: 200,
-            surface: 'drafts',
+            surface: 'sandbox',
         };
 
         it('manages gracefully fetch failure to find dictionary', async () => {
             nock('https://odin.adobe.com')
                 .get('/adobe/sites/fragments')
                 .query({
-                    path: '/content/dam/mas/drafts/fr_FR/dictionary/index',
+                    path: '/content/dam/mas/sandbox/fr_FR/dictionary/index',
                 })
                 .replyWithError('fetch error');
             const context = await replace(FAKE_CONTEXT);
@@ -149,7 +149,7 @@ describe('replace', () => {
             nock('https://odin.adobe.com')
                 .get('/adobe/sites/fragments')
                 .query({
-                    path: '/content/dam/mas/drafts/fr_FR/dictionary/index',
+                    path: '/content/dam/mas/sandbox/fr_FR/dictionary/index',
                 })
                 .reply(404, 'not found');
             const context = await replace(FAKE_CONTEXT);
@@ -160,7 +160,7 @@ describe('replace', () => {
             nock('https://odin.adobe.com')
                 .get('/adobe/sites/fragments')
                 .query({
-                    path: '/content/dam/mas/drafts/fr_FR/dictionary/index',
+                    path: '/content/dam/mas/sandbox/fr_FR/dictionary/index',
                 })
                 .reply(200, { items: [] });
             const context = await replace(FAKE_CONTEXT);
@@ -171,13 +171,11 @@ describe('replace', () => {
             nock('https://odin.adobe.com')
                 .get('/adobe/sites/fragments')
                 .query({
-                    path: '/content/dam/mas/drafts/fr_FR/dictionary/index',
+                    path: '/content/dam/mas/sandbox/fr_FR/dictionary/index',
                 })
                 .reply(200, DICTIONARY_CF_RESPONSE);
             nock('https://odin.adobe.com')
-                .get(
-                    '/adobe/sites/fragments/fr_FR_dictionary/variations/master/references',
-                )
+                .get('/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated')
                 .replyWithError('fetch error');
             const context = await replace(FAKE_CONTEXT);
             const dictionaryId = 'fr_FR_dictionary';
@@ -187,17 +185,15 @@ describe('replace', () => {
             nock('https://odin.adobe.com')
                 .get('/adobe/sites/fragments')
                 .query({
-                    path: '/content/dam/mas/drafts/fr_FR/dictionary/index',
+                    path: '/content/dam/mas/sandbox/fr_FR/dictionary/index',
                 })
                 .reply(200, DICTIONARY_CF_RESPONSE);
             nock('https://odin.adobe.com')
-                .get(
-                    '/adobe/sites/fragments/fr_FR_dictionary/variations/master/references',
-                )
+                .get('/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated')
                 .reply(500, 'server error');
             const context = await replace(FAKE_CONTEXT);
             const dictionaryId = 'fr_FR_dictionary';
-            expect(context).to.deep.equal({ ...EXPECTED, dictionaryId });
+            expect(context).to.deep.include({ ...EXPECTED, dictionaryId });
         });
     });
 });

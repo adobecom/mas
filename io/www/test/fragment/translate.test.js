@@ -2,6 +2,7 @@ const { expect } = require('chai');
 const nock = require('nock');
 const { MockState } = require('./mocks/MockState.js');
 const translate = require('../../src/fragment/translate.js').translate;
+const FRAGMENT_RESPONSE_FR = require('./mocks/fragment-fr.json');
 
 const FAKE_CONTEXT = {
     status: 200,
@@ -10,18 +11,28 @@ const FAKE_CONTEXT = {
     state: new MockState(),
 };
 
-describe('translate typical cases', () => {
-    afterEach(() => {
+describe('translate typical cases', function () {
+    afterEach(function () {
         nock.cleanAll();
     });
-    it('should return fr fragment (us fragment, fr locale)', async () => {
+
+    it('should return fr fragment (us fragment, fr locale)', async function () {
+        // french fragment by id
+        nock('https://odin.adobe.com')
+            .get(
+                `/adobe/sites/fragments/some-fr-fr-fragment?references=all-hydrated`,
+            )
+            .reply(200, FRAGMENT_RESPONSE_FR);
         nock('https://odin.adobe.com')
             .get('/adobe/sites/fragments')
-            .query({ path: '/content/dam/mas/drafts/fr_FR/someFragment' })
+            .query({
+                path: '/content/dam/mas/sandbox/fr_FR/some-en-us-fragment',
+            })
             .reply(200, {
                 items: [
                     {
-                        path: '/content/dam/mas/drafts/fr_FR/someFragment',
+                        path: '/content/dam/mas/sandbox/fr_FR/some-fr-fr-fragment',
+                        id: 'some-fr-fr-fragment',
                         some: 'corps',
                     },
                 ],
@@ -29,33 +40,36 @@ describe('translate typical cases', () => {
 
         const result = await translate({
             ...FAKE_CONTEXT,
-            body: { path: '/content/dam/mas/drafts/en_US/someFragment' },
+            body: {
+                path: '/content/dam/mas/sandbox/en_US/some-en-us-fragment',
+            },
             locale: 'fr_FR',
         });
         expect(result.status).to.equal(200);
-        expect(result.body).to.deep.equal({
-            path: '/content/dam/mas/drafts/fr_FR/someFragment',
-            some: 'corps',
+        expect(result.body).to.deep.include({
+            path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
         });
     });
-    it('should return fr fragment (fr fragment, no locale)', async () => {
+
+    it('should return fr fragment (fr fragment, no locale)', async function () {
         const result = await translate({
             ...FAKE_CONTEXT,
             body: {
-                path: '/content/dam/mas/drafts/fr_FR/someFragment',
+                path: '/content/dam/mas/sandbox/fr_FR/some-fr-fr-fragment',
                 some: 'corps',
             },
         });
         expect(result.status).to.equal(200);
         expect(result.body).to.deep.equal({
-            path: '/content/dam/mas/drafts/fr_FR/someFragment',
+            path: '/content/dam/mas/sandbox/fr_FR/some-fr-fr-fragment',
             some: 'corps',
         });
     });
 });
 
-describe('translate corner cases', () => {
-    it('no path should return 400', async () => {
+// eslint-disable-next-line mocha/max-top-level-suites
+describe('translate corner cases', function () {
+    it('no path should return 400', async function () {
         const result = await translate({
             ...FAKE_CONTEXT,
             body: {},
@@ -67,7 +81,7 @@ describe('translate corner cases', () => {
         });
     });
 
-    it('bad path should return 400', async () => {
+    it('bad path should return 400', async function () {
         expect(
             await translate({
                 status: 200,
@@ -90,11 +104,11 @@ describe('translate corner cases', () => {
         });
     });
 
-    it('missing path components should return 400', async () => {
+    it('missing path components should return 400', async function () {
         const result = await translate({
             ...FAKE_CONTEXT,
             status: 200,
-            body: { path: '/content/dam/mas/drafts/someFragment' }, // Missing locale
+            body: { path: '/content/dam/mas/sandbox/someFragment' }, // Missing locale
             locale: 'fr_FR',
         });
         expect(result).to.deep.equal({
@@ -103,17 +117,17 @@ describe('translate corner cases', () => {
         });
     });
 
-    it('should return 500 when translation fetch failed', async () => {
+    it('should return 500 when translation fetch failed', async function () {
         nock('https://odin.adobe.com')
             .get('/adobe/sites/fragments')
-            .query({ path: '/content/dam/mas/drafts/fr_FR/someFragment' })
+            .query({ path: '/content/dam/mas/sandbox/fr_FR/someFragment' })
             .reply(404, {
                 message: 'Not found',
             });
 
         const result = await translate({
             ...FAKE_CONTEXT,
-            body: { path: '/content/dam/mas/drafts/en_US/someFragment' },
+            body: { path: '/content/dam/mas/sandbox/en_US/someFragment' },
             locale: 'fr_FR',
         });
         expect(result).to.deep.equal({
@@ -122,17 +136,17 @@ describe('translate corner cases', () => {
         });
     });
 
-    it('should return 404 when translation has no items', async () => {
+    it('should return 404 when translation has no items', async function () {
         nock('https://odin.adobe.com')
             .get('/adobe/sites/fragments')
-            .query({ path: '/content/dam/mas/drafts/fr_FR/someFragment' })
+            .query({ path: '/content/dam/mas/sandbox/fr_FR/someFragment' })
             .reply(200, {
                 items: [],
             });
 
         const result = await translate({
             ...FAKE_CONTEXT,
-            body: { path: '/content/dam/mas/drafts/en_US/someFragment' },
+            body: { path: '/content/dam/mas/sandbox/en_US/someFragment' },
             locale: 'fr_FR',
         });
         expect(result).to.deep.equal({
@@ -141,17 +155,17 @@ describe('translate corner cases', () => {
         });
     });
 
-    it('same locale should return same body', async () => {
+    it('same locale should return same body', async function () {
         const result = await translate({
             ...FAKE_CONTEXT,
             body: {
-                path: '/content/dam/mas/drafts/fr_FR/someFragment',
+                path: '/content/dam/mas/sandbox/fr_FR/someFragment',
                 some: 'body',
             },
             locale: 'fr_FR',
         });
         expect(result.body).to.deep.equal({
-            path: '/content/dam/mas/drafts/fr_FR/someFragment',
+            path: '/content/dam/mas/sandbox/fr_FR/someFragment',
             some: 'body',
         });
     });

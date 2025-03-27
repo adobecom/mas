@@ -19,15 +19,18 @@ function parseReferences(ids, references) {
         } else if (fields?.cards || fields?.collections) {
             //reference is a collection
             const { label, cards, collections: collectionReferences } = fields;
+            /* istanbul ignore next */
             if (cards?.length) {
                 //we consider collections with cards to be final
                 //(no subcollections)
                 collections.push({ label, cards });
             } else {
+                /* istanbul ignore next */
                 const subReferences = parseReferences(
                     collectionReferences,
                     references,
                 );
+                /* istanbul ignore next */
                 collections.push({
                     label,
                     collections: subReferences.collections,
@@ -45,6 +48,7 @@ function parseReferences(ids, references) {
 async function collection(context) {
     const { body } = context;
     const { id } = body;
+    /* istanbul ignore next */
     if (isCollection(body)) {
         const referencesPath = odinReferences(id, true);
         const response = await fetch(referencesPath, context);

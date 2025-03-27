@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test';
 
 test('basic test', async ({ page }) => {
     const url = process.env.TEST_URL;
-    console.log('Testing URL:', url);
     
     await page.goto(url);
     let merchCardSlice = page.locator('//merch-card[@id="51c23f28-504f-450d-9764-0e60f1e279b2"]');

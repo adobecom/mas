@@ -1,4 +1,4 @@
-name: IO Tests
+name: IO WWW Check
 on:
   push:
     branches:
@@ -35,6 +35,9 @@ jobs:
 
     - name: Install dependencies
       run: npm ci
+    
+    - name: Run tests
+      run: npm test
 
     - name: Install AIO CLI
       if: success() && github.event_name == 'pull_request'
@@ -99,9 +102,7 @@ jobs:
         npx playwright install --with-deps
         
         # Run default locale tests
-        echo "Running Nala tests against: ${TEST_URL}"
         xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test ioAutomation.js --config=playwright.config.js
         
         # Run French locale tests
-        echo "Running Nala tests against: ${TEST_URL}&locale=fr_FR"
         TEST_URL="${TEST_URL}&locale=fr_FR" xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test ioAutomation.js --config=playwright.config.js

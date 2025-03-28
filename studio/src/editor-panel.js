@@ -191,6 +191,7 @@ export default class EditorPanel extends LitElement {
                         variantCode: this.fragment?.getField('variant')?.values[0],
                         marketSegment: this.fragment?.getTagTitle('market_segment'),
                         customerSegment: this.fragment?.getTagTitle('customer_segment'),
+                        product: this.fragment?.getTagTitle('mas:product/'),
                     };
 
                     VARIANTS.forEach((variant) => {
@@ -201,7 +202,7 @@ export default class EditorPanel extends LitElement {
                 fragmentParts = `${surface} / ${props.variantLabel}
                 ${props.marketSegment ? `/ ${props.marketSegment}` : ''}
                 ${props.customerSegment ? `/ ${props.customerSegment}` : ''}
-                / ${props.cardTitle}`;
+                / ${props.cardTitle ?? props.product ?? ''}`;
                 title = props.cardTitle;
                 break;  
             case COLLECTION_MODEL_PATH:

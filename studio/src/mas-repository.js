@@ -61,7 +61,6 @@ export class MasRepository extends LitElement {
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
         this.publishFragment = this.publishFragment.bind(this);
-        this.unpublishFragment = this.unpublishFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
         this.search = new StoreController(this, Store.search);
         this.filters = new StoreController(this, Store.filters);
@@ -72,6 +71,7 @@ export class MasRepository extends LitElement {
             Store.fragments.recentlyUpdated.limit,
         );
         this.handleSearch = debounce(this.handleSearch.bind(this), 50);
+        this.indexFragment = null;
     }
 
     /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
@@ -459,14 +459,6 @@ export class MasRepository extends LitElement {
     /**
      * @returns {Promise<boolean>} Whether or not it was successful
      */
-    async unpublishFragment() {
-        // TODO
-        return Promise.resolve(true);
-    }
-
-    /**
-     * @returns {Promise<boolean>} Whether or not it was successful
-     */
     async deleteFragment() {
         try {
             this.operation.set(OPERATIONS.DELETE);
@@ -520,10 +512,17 @@ export class MasRepository extends LitElement {
 
             Store.placeholders.list.loading.set(true);
             const locale = this.filters.value.locale || 'en_US';
-            const fullPath = `/content/dam/mas/${folderPath}/${locale}/dictionary`;
+            const dictionaryPath = `/content/dam/mas/${folderPath}/${locale}/dictionary`;
+
+            try {
+                await this.aem.sites.cf.fragments.getByPath(`${dictionaryPath}/index`);
+            } catch (error) {
+                await this.getOrCreateIndexFragment(dictionaryPath);
+            }
+
             const query = {
                 filter: {
-                    path: fullPath,
+                    path: dictionaryPath,
                 },
                 sort: [{ on: 'created', order: 'ASC' }],
             };
@@ -607,7 +606,7 @@ export class MasRepository extends LitElement {
                         key: key,
                         value: value,
                         locale: locale,
-                        status: fragment.status || 'Draft',
+                        status: 'PUBLISHED',
                         state: locReady ? 'Ready' : 'Not Ready',
                         updatedBy: fragment.modified?.by || 'Unknown',
                         updatedAt: fragment.modified?.at
@@ -743,17 +742,16 @@ export class MasRepository extends LitElement {
             });
 
             this.operation.set(OPERATIONS.PUBLISH);
-
             await this.aem.sites.cf.fragments.publish(fragment);
+            const publishedFragment = await this.aem.sites.cf.fragments.getByPath(fragment.path);
+            this.operation.set();
 
             Events.toast.emit({
                 variant: 'positive',
                 content: 'Placeholder successfully published.',
             });
 
-            this.operation.set();
-
-            return true;
+            return publishedFragment;
         } catch (error) {
             this.operation.set();
             this.processError(error, 'Failed to publish placeholder.');
@@ -768,39 +766,31 @@ export class MasRepository extends LitElement {
      */
     async deleteDictionaryFragment(fragment) {
         try {
-            Events.toast.emit({
-                variant: 'info',
-                content: 'Deleting placeholder...',
-            });
+            const fragmentPath = fragment.path;
+            const pathParts = fragmentPath.split('/');
+            const fragmentName = pathParts.pop();
+            const dictionaryPath = pathParts.join('/');
+            const locale = pathParts[pathParts.length - 1] || 'en_US';
 
-            this.operation.set(OPERATIONS.DELETE);
-
-            try {
-                const fragmentPath = fragment.path;
-                const pathParts = fragmentPath.split('/');
-                const fragmentName = pathParts.pop();
-                const dictionaryPath = pathParts.join('/');
-                const locale = pathParts[pathParts.length - 1] || 'en_US';
-
-                if (fragmentName !== 'index') {
+            if (fragmentName !== 'index') {
+                try {
                     await this.removeFromIndexFragment(dictionaryPath, fragment, locale);
+                } catch (error) {
+                    console.debug('Failed to remove from index, proceeding with deletion:', error);
                 }
-            } catch (indexError) {
             }
 
             await this.aem.sites.cf.fragments.delete(fragment);
-
+            await this.forceRefreshPlaceholders();
+            
             Events.toast.emit({
                 variant: 'positive',
                 content: 'Placeholder successfully deleted.',
             });
-
-            this.operation.set();
-
+            
             return true;
         } catch (error) {
-            this.operation.set();
-            this.processError(error, 'Failed to delete placeholder.');
+            this.processError(error, 'Failed to delete placeholder');
             throw error;
         }
     }
@@ -896,15 +886,21 @@ export class MasRepository extends LitElement {
                 title: title || name,
                 name: name,
                 description: fragmentData.description || `Placeholder for ${title || name}`,
-                fields: fields
+                fields: fields,
+                status: 'PUBLISHED'
             };
 
-            const result = await this.aem.sites.cf.fragments.create(fragmentObject);
-            
-            const newFragment = new Fragment(result);
-            await this.#addToCache(newFragment);
-            
-            return newFragment;
+            try {
+                const result = await this.aem.sites.cf.fragments.create(fragmentObject);
+                const newFragment = new Fragment(result);
+                await this.#addToCache(newFragment);
+                return newFragment;
+            } catch (error) {
+                if (error.message?.includes('409')) {
+                    throw new Error('a placeholder with that key already exists');
+                }
+                throw error;
+            }
         } catch (error) {
             this.operation.set();
             throw error;
@@ -923,6 +919,7 @@ export class MasRepository extends LitElement {
                 Store.placeholders.list.data.set([...currentData]);
             }
         } catch (error) {
+            console.warn('Error refreshing placeholders:', error);
         } finally {
             Store.placeholders.list.loading.set(false);
         }
@@ -931,40 +928,48 @@ export class MasRepository extends LitElement {
     /**
      * Get or create an index fragment for a dictionary path
      * @param {string} dictionaryPath - Path to the dictionary folder
-     * @param {string} locale - The locale for the index
      * @returns {Promise<Object>} - The index fragment
      */
-    async getOrCreateIndexFragment(dictionaryPath, locale) {
-        return {
-            path: `${dictionaryPath}/index`,
-            fields: [
-                {
-                    name: 'placeholders',
-                    type: 'text',
-                    values: []
+    async getOrCreateIndexFragment(dictionaryPath) {
+        try {
+            const indexPath = `${dictionaryPath}/index`;
+            
+            try {
+                const existingIndex = await this.aem.sites.cf.fragments.getByPath(indexPath);
+                if (existingIndex) {
+                    return existingIndex;
                 }
-            ]
-        };
-    }
+            } catch (error) {
+                const indexFragment = await this.aem.sites.cf.fragments.create({
+                    parentPath: dictionaryPath,
+                    modelId: DICTIONARY_MODEL_ID,
+                    name: 'index',
+                    title: 'index',
+                    description: '',
+                    fields: [
+                        {
+                            name: 'entries',
+                            type: 'content-fragment',
+                            multiple: true,
+                            values: []
+                        },
+                        {
+                            name: 'locReady',
+                            type: 'boolean',
+                            multiple: false,
+                            values: [true]
+                        }
+                    ]
+                });
 
-    /**
-     * Add a placeholder to the surface/locale index fragment
-     * @param {string} dictionaryPath - Path to the dictionary folder
-     * @param {Object} newFragment - The newly created placeholder fragment
-     * @returns {Promise<boolean>} Success indicator
-     */
-    async addToIndexFragment(dictionaryPath, newFragment, locale) {
-        return true;
-    }
-
-    /**
-     * Remove a placeholder from the index fragment
-     * @param {string} dictionaryPath - Path to the dictionary folder
-     * @param {Object} placeholderFragment - The placeholder fragment to remove
-     * @returns {Promise<boolean>} Success indicator
-     */
-    async removeFromIndexFragment(dictionaryPath, placeholderFragment, locale) {
-        return true;
+                const freshIndex = await this.aem.sites.cf.fragments.getByPath(indexPath);
+                await this.aem.sites.cf.fragments.publish(freshIndex);
+                
+                return freshIndex;
+            }
+        } catch (error) {
+            throw new Error(`Failed to get or create index fragment: ${error.message}`);
+        }
     }
 
     /**
@@ -974,42 +979,244 @@ export class MasRepository extends LitElement {
      */
     async createPlaceholderWithIndex(fragmentData) {
         try {
-            Events.toast.emit({
-                variant: 'info',
-                content: 'Creating placeholder...',
-            });
-
             this.operation.set(OPERATIONS.CREATE);
 
             if (!fragmentData.parentPath || !fragmentData.modelId || !fragmentData.title) {
-                throw new Error(
-                    `Missing required data for placeholder creation:
-                    parentPath: ${fragmentData.parentPath}, 
-                    modelId: ${fragmentData.modelId}, 
-                    title: ${fragmentData.title}`
-                );
+                throw new Error('Missing required data for placeholder creation');
             }
 
             const newFragment = await this.createDictionaryFragment(fragmentData);
-            
-            const pathParts = fragmentData.parentPath.split('/');
-            const locale = pathParts[pathParts.length - 2] || 'en_US';
-
+            const publishedFragment = await this.publishDictionaryFragment(newFragment);
+            await this.updateIndexWithRetry(fragmentData.parentPath, publishedFragment.path);
             await this.forceRefreshPlaceholders();
 
             Events.toast.emit({
                 variant: 'positive',
-                content: 'Placeholder successfully created.',
+                content: 'Placeholder successfully created and published.',
             });
 
             this.operation.set();
-
-            return newFragment;
+            return publishedFragment;
         } catch (error) {
             this.operation.set();
-            this.processError(error, 'Failed to create placeholder.');
+            if (error.message?.includes('409')) {
+                Events.toast.emit({
+                    variant: 'negative',
+                    content: 'Failed to create placeholder: a placeholder with that key already exists',
+                });
+            } else {
+                this.processError(error, 'Failed to create placeholder');
+            }
             throw error;
         }
+    }
+
+    async updateIndexWithRetry(parentPath, fragmentPath, maxRetries = 3) {
+        const indexPath = `${parentPath}/index`;
+        let attempt = 0;
+        
+        while (attempt < maxRetries) {
+            try {
+                let indexFragment = await this.aem.sites.cf.fragments.getByPath(indexPath);
+                if (!indexFragment?.id) {
+                    indexFragment = await this.getOrCreateIndexFragment(parentPath);
+                }
+
+                const response = await fetch(`${this.aem.cfFragmentsUrl}/${indexFragment.id}`, {
+                    method: 'GET',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        ...this.aem.headers
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to get index fragment: ${response.status}`);
+                }
+
+                const freshIndex = await response.json();
+                const currentETag = response.headers.get('ETag');
+                const entriesField = freshIndex.fields.find(f => f.name === 'entries');
+                const currentEntries = entriesField?.values || [];
+                
+                if (currentEntries.includes(fragmentPath)) {
+                    return true;
+                }
+
+                const updatedIndex = {
+                    title: freshIndex.title,
+                    description: freshIndex.description || '',
+                    fields: freshIndex.fields.map(field => {
+                        const baseField = {
+                            name: field.name,
+                            type: field.type || 'text',
+                            multiple: field.multiple || false
+                        };
+
+                        if (field.name === 'entries') {
+                            return {
+                                ...baseField,
+                                type: 'content-fragment',
+                                multiple: true,
+                                values: [...currentEntries, fragmentPath]
+                            };
+                        }
+
+                        if (field.name === 'locReady') {
+                            return {
+                                ...baseField,
+                                type: 'boolean',
+                                multiple: false,
+                                values: field.values
+                            };
+                        }
+
+                        return {
+                            ...baseField,
+                            values: field.values
+                        };
+                    })
+                };
+
+                const saveResponse = await fetch(`${this.aem.cfFragmentsUrl}/${indexFragment.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'If-Match': currentETag,
+                        ...this.aem.headers
+                    },
+                    body: JSON.stringify(updatedIndex)
+                });
+
+                if (!saveResponse.ok) {
+                    if (saveResponse.status === 412) {
+                        throw new Error('412');
+                    }
+                    throw new Error(`Failed to save index: ${saveResponse.status}`);
+                }
+
+                const savedIndex = await saveResponse.json();
+                await this.aem.sites.cf.fragments.publish(savedIndex);
+                
+                return true;
+            } catch (error) {
+                attempt++;
+                if ((!error.message?.includes('412') && !error.message?.startsWith('412')) || attempt >= maxRetries) {
+                    throw error;
+                }
+                await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+            }
+        }
+        
+        throw new Error('Failed to update index after maximum retries');
+    }
+
+    async removeFromIndexFragment(dictionaryPath, placeholderFragment) {
+        const maxRetries = 3;
+        let attempt = 0;
+        
+        while (attempt < maxRetries) {
+            try {
+                const indexPath = `${dictionaryPath}/index`;
+                
+                const indexFragment = await this.aem.sites.cf.fragments.getByPath(indexPath);
+                if (!indexFragment?.id) {
+                    return true;
+                }
+
+                const response = await fetch(`${this.aem.cfFragmentsUrl}/${indexFragment.id}`, {
+                    method: 'GET',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        ...this.aem.headers
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to get index fragment: ${response.status}`);
+                }
+
+                const freshIndex = await response.json();
+                const currentETag = response.headers.get('ETag');
+                const entriesField = freshIndex.fields.find(f => f.name === 'entries');
+                const existingEntries = entriesField?.values || [];
+                const updatedEntries = existingEntries.filter(path => path !== placeholderFragment.path);
+                
+                if (existingEntries.length === updatedEntries.length) {
+                    return true;
+                }
+                
+                const updatedIndex = {
+                    title: freshIndex.title,
+                    description: freshIndex.description || '',
+                    fields: freshIndex.fields.map(field => {
+                        const baseField = {
+                            name: field.name,
+                            type: field.type || 'text',
+                            multiple: field.multiple || false
+                        };
+
+                        if (field.name === 'entries') {
+                            return {
+                                ...baseField,
+                                type: 'content-fragment',
+                                multiple: true,
+                                values: updatedEntries
+                            };
+                        }
+
+                        if (field.name === 'locReady') {
+                            return {
+                                ...baseField,
+                                type: 'boolean',
+                                multiple: false,
+                                values: field.values
+                            };
+                        }
+
+                        return {
+                            ...baseField,
+                            values: field.values
+                        };
+                    })
+                };
+                
+                const saveResponse = await fetch(`${this.aem.cfFragmentsUrl}/${indexFragment.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'If-Match': currentETag,
+                        ...this.aem.headers
+                    },
+                    body: JSON.stringify(updatedIndex)
+                });
+
+                if (!saveResponse.ok) {
+                    if (saveResponse.status === 412) {
+                        throw new Error('412');
+                    }
+                    throw new Error(`Failed to save index: ${saveResponse.status}`);
+                }
+
+                const savedIndex = await saveResponse.json();
+                await this.aem.sites.cf.fragments.publish(savedIndex);
+                
+                return true;
+            } catch (error) {
+                attempt++;
+                if (!error.message?.includes('412') || attempt >= maxRetries) {
+                    console.debug('Index cleanup failed:', error);
+                    return true;
+                }
+                await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+            }
+        }
+        
+        return true;
     }
 
     render() {

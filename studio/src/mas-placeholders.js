@@ -391,10 +391,6 @@ class MasPlaceholders extends LitElement {
 
             Store.placeholders.list.data.set(updatedPlaceholders);
             this.placeholders = updatedPlaceholders;
-            Events.toast.emit({
-                variant: 'positive',
-                content: 'Placeholder successfully published.',
-            });
         } catch (error) {
             Events.toast.emit({
                 variant: 'negative',

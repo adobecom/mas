@@ -22,6 +22,7 @@ studio.json
 *.crt
 test-html-results/
 test-results/
+nala/.auth/
 
 # IO Runtime Config
 config.json

@@ -2,7 +2,7 @@
 import { test as setup, expect  } from '@playwright/test';
 import path from 'path';
 
-const authFile = path.join(__dirname, '../../test-results/user.json');
+const authFile = path.join(__dirname, '../../nala/.auth/user.json');
 
 setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
   if (browserName === 'chromium') {

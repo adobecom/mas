@@ -63,7 +63,7 @@ const config = {
             use: {
                 ...devices['Desktop Chrome'],
                 // Use prepared auth state.
-                storageState: './test-results/user.json',
+                storageState: './nala/.auth/user.json',
             },
             bypassCSP: true,
             launchOptions: {

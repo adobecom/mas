@@ -103,10 +103,13 @@ jobs:
         npx playwright install --with-deps
 
         # Run health check test
+        echo "Running health check test"
         npx playwright test ioAutomation.js --grep "@health" --config=playwright.config.js
         
         # Run default locale tests
+        echo "Running default locale tests"
         xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test ioAutomation.js --grep "@e2e" --config=playwright.config.js
         
         # Run French locale tests
+        echo "Running French locale tests"
         TEST_URL="${TEST_URL}&locale=fr_FR" xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test ioAutomation.js --grep "@e2e" --config=playwright.config.js

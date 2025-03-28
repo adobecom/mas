@@ -94,15 +94,19 @@ jobs:
       if: success() && github.event_name == 'pull_request'
       env:
         TEST_URL: https://stage--milo--adobecom.hlx.live/libs/features/mas/docs/ccd.html?mas-io-url=https://14257-merchatscale-Stage.adobeioruntime.net/api/v1/web/MerchAtScale
+        HEALTH_CHECK_URL: https://14257-merchatscale-Stage.adobeioruntime.net/api/v1/web/MerchAtScale/health-check
       working-directory: nala/io
       run: |
         # Install Playwright and its test package
         npm install -D @playwright/test playwright
         sudo apt-get install xvfb
         npx playwright install --with-deps
+
+        # Run health check test
+        npx playwright test ioAutomation.js --grep "@health" --config=playwright.config.js
         
         # Run default locale tests
-        xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test ioAutomation.js --config=playwright.config.js
+        xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test ioAutomation.js --grep "@e2e" --config=playwright.config.js
         
         # Run French locale tests
-        TEST_URL="${TEST_URL}&locale=fr_FR" xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test ioAutomation.js --config=playwright.config.js
+        TEST_URL="${TEST_URL}&locale=fr_FR" xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test ioAutomation.js --grep "@e2e" --config=playwright.config.js

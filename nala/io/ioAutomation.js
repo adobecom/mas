@@ -1,6 +1,12 @@
 import { test, expect } from '@playwright/test';
 
-test('basic test', async ({ page }) => {
+test('health check endpoint @health', async ({ request }) => {
+    const healthCheckUrl = process.env.HEALTH_CHECK_URL;
+    const response = await request.get(healthCheckUrl);
+    expect(response.status()).toBe(200);
+});
+
+test('basic test @e2e', async ({ page }) => {
     const url = process.env.TEST_URL;
     
     await page.goto(url);

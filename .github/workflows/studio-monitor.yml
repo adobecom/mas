@@ -50,12 +50,13 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps
 
-      - name: Set execute permission for monitor.sh
-        run: chmod +x ./nala/utils/monitor.sh
+      - name: Set execute permission for gh.run.sh
+        run: chmod +x ./nala/utils/gh.run.sh
 
-      - name: Run Studio Monitor Nala tests with monitor.sh
-        run: ./nala/utils/monitor.sh
+      - name: Run Studio Monitor Nala tests with gh.run.sh
+        run: ./nala/utils/gh.run.sh
         env:
+          labels: '@monitor'
           GITHUB_ACTION_PATH: ${{ github.workspace }}
           IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
           IMS_PASS: ${{ secrets.IMS_PASS }}

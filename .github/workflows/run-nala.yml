@@ -51,11 +51,11 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps
 
-      - name: Set execute permission for pr.run.sh
-        run: chmod +x ./nala/utils/pr.run.sh
+      - name: Set execute permission for gh.run.sh
+        run: chmod +x ./nala/utils/gh.run.sh
 
-      - name: Run Nala Tests via pr.run.sh
-        run: ./nala/utils/pr.run.sh
+      - name: Run Nala Tests via gh.run.sh
+        run: ./nala/utils/gh.run.sh
         env:
           labels: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
           branch: ${{ github.event.pull_request.head.ref }}

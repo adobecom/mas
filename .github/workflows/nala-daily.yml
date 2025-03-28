@@ -52,11 +52,11 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps
 
-      - name: Set execute permission for dailyrun.sh
-        run: chmod +x ./nala/utils/dailyrun.sh
+      - name: Set execute permission for gh.run.sh
+        run: chmod +x ./nala/utils/gh.run.sh
 
-      - name: Run Daily Nala tests with dailyrun.sh
-        run: ./nala/utils/dailyrun.sh
+      - name: Run Nala Tests via gh.run.sh
+        run: ./nala/utils/gh.run.sh
         env:
           GITHUB_ACTION_PATH: ${{ github.workspace }}
           IMS_EMAIL: ${{ secrets.IMS_EMAIL }}

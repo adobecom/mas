@@ -62,11 +62,11 @@ jobs:
           echo "PR_BRANCH_MILOLIBS_LIVE_URL=${{ github.event.inputs.branch }}" >> $GITHUB_ENV
           echo "MILO_LIBS=${{ github.event.inputs.milolibs }}" >> $GITHUB_ENV
 
-      - name: Set execute permission for pr.run.sh
-        run: chmod +x ./nala/utils/pr.run.sh
+      - name: Set execute permission for gh.run.sh
+        run: chmod +x ./nala/utils/gh.run.sh
         
-      - name: Run Nala ubuntu-latest
-        run: ./nala/utils/pr.run.sh
+      - name: Run Nala Tests with Milolibs via gh.run.sh
+        run: ./nala/utils/gh.run.sh
         env:
           labels: ${{ inputs.tags }}
           IMS_EMAIL: ${{ secrets.IMS_EMAIL }}

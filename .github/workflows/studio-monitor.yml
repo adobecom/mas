@@ -20,6 +20,7 @@ jobs:
     timeout-minutes: 10  # Prevent hanging jobs
     env:
       WORKFLOW_NAME: 'Studio Montor'
+      DAILY_RUN: 'true'
 
     steps:
       - name: Check out repository

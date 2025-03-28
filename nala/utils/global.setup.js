@@ -133,7 +133,7 @@ async function globalSetup() {
 
     if (process.env.MILO_LIBS_RUN === 'true') {
       await getGitHubMiloLibsBranchLiveUrl();
-    } else if (process.env.WORKFLOW_NAME === 'Nala Daily Run' || process.env.WORKFLOW_NAME === "Studio Montor") {
+    } else if (process.env.DAILY_RUN === 'true') {
       await getProdWorkflowLiveUrl();
     } else {
       await getGitHubPRBranchLiveUrl();

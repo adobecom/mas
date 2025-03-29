@@ -356,96 +356,6 @@ class MasPlaceholders extends LitElement {
         this.draftStatus = false;
     }
 
-    async handlePublish(key) {
-        try {
-            Store.placeholders.list.loading.set(true);
-            const placeholderIndex = this.placeholdersData.findIndex(
-                (p) => p.key === key,
-            );
-
-            if (placeholderIndex === -1) {
-                throw new Error(`Placeholder with key "${key}" not found`);
-            }
-
-            const placeholder = this.placeholdersData[placeholderIndex];
-
-            if (!placeholder?.fragment) {
-                throw new Error('Fragment data is missing or incomplete');
-            }
-
-            const fragmentData = placeholder.fragment;
-            this.activeDropdown = null;
-            await this.repository.publishDictionaryFragment(fragmentData);
-
-            const updatedPlaceholder = {
-                ...placeholder,
-                status: 'Published',
-                fragment: {
-                    ...placeholder.fragment,
-                    status: 'Published',
-                },
-            };
-
-            const updatedPlaceholders = [...this.placeholdersData];
-            updatedPlaceholders[placeholderIndex] = updatedPlaceholder;
-
-            Store.placeholders.list.data.set(updatedPlaceholders);
-            this.placeholders = updatedPlaceholders;
-        } catch (error) {
-            Events.toast.emit({
-                variant: 'negative',
-                content: `Failed to publish placeholder: ${error.message}`,
-            });
-        } finally {
-            Store.placeholders.list.loading.set(false);
-        }
-    }
-
-    async handleUnpublish(key) {
-        try {
-            Store.placeholders.list.loading.set(true);
-
-            const placeholderIndex = this.placeholdersData.findIndex(
-                (p) => p.key === key,
-            );
-
-            if (placeholderIndex === -1) {
-                throw new Error(`Placeholder with key "${key}" not found`);
-            }
-
-            const placeholder = this.placeholdersData[placeholderIndex];
-
-            if (!placeholder?.fragment) {
-                throw new Error('Fragment data is missing or incomplete');
-            }
-            const fragmentData = placeholder.fragment;
-
-            this.activeDropdown = null;
-
-            await this.repository.unpublishDictionaryFragment(fragmentData);
-
-            const updatedPlaceholder = {
-                ...placeholder,
-                status: 'Draft',
-            };
-
-            const updatedPlaceholders = [...this.placeholdersData];
-            updatedPlaceholders[placeholderIndex] = updatedPlaceholder;
-            Store.placeholders.list.data.set(updatedPlaceholders);
-
-            if (this.repository.searchPlaceholders) {
-                this.repository.searchPlaceholders();
-            }
-        } catch (error) {
-            Events.toast.emit({
-                variant: 'negative',
-                content: `Failed to unpublish placeholder: ${error.message}`,
-            });
-        } finally {
-            Store.placeholders.list.loading.set(false);
-        }
-    }
-
     async handleDelete(key) {
         if (
             !confirm(
@@ -650,25 +560,7 @@ class MasPlaceholders extends LitElement {
     }
 
     getStatusBadge(status) {
-        if (status === 'Published' || status === 'PUBLISHED') {
-            return html`<sp-badge size="s" quiet variant="positive"
-                >PUBLISHED</sp-badge
-            >`;
-        } else if (status === 'Yet to Publish') {
-            return html`<sp-badge size="s" quiet variant="neutral"
-                >YET TO PUBLISH</sp-badge
-            >`;
-        } else if (status === 'Draft' || status === 'DRAFT') {
-            return html`<sp-badge
-                size="s"
-                quiet
-                style="background-color: var(--spectrum-blue-800); color: white;"
-                >DRAFT</sp-badge
-            >`;
-        }
-        return html`<sp-badge size="s" quiet
-            >${status.toUpperCase()}</sp-badge
-        >`;
+        return html`<sp-badge size="s" quiet variant="positive">PUBLISHED</sp-badge>`;
     }
 
     renderPlaceholdersTable() {
@@ -922,7 +814,7 @@ class MasPlaceholders extends LitElement {
     renderStatusCell(placeholder) {
         return html`
             <sp-table-cell style="text-align: right;">
-                ${this.getStatusBadge(placeholder.status)}
+                <sp-badge size="s" quiet variant="positive">PUBLISHED</sp-badge>
             </sp-table-cell>
         `;
     }
@@ -973,31 +865,6 @@ class MasPlaceholders extends LitElement {
                 ${this.activeDropdown === placeholder.key
                     ? html`
                           <div class="dropdown-menu">
-                              ${placeholder.status !== 'Published'
-                                  ? html`
-                                        <div
-                                            class="dropdown-item"
-                                            @click=${() =>
-                                                this.handlePublish(
-                                                    placeholder.key,
-                                                )}
-                                        >
-                                            <sp-icon-publish-check></sp-icon-publish-check>
-                                            <span>Publish</span>
-                                        </div>
-                                    `
-                                  : html`
-                                        <div
-                                            class="dropdown-item"
-                                            @click=${() =>
-                                                this.handleUnpublish(
-                                                    placeholder.key,
-                                                )}
-                                        >
-                                            <sp-icon-publish-remove></sp-icon-publish-remove>
-                                            <span>Unpublish</span>
-                                        </div>
-                                    `}
                               <div
                                   class="dropdown-item"
                                   @click=${() =>

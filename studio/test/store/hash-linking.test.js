@@ -1,10 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import Store, {
-    linkStoreToHash,
-    unlinkStoreFromHash,
-} from '../../src/store.js';
-
+import Store from '../../src/store.js';
+import { linkStoreToHash, unlinkStoreFromHash } from '../../src/router.js';
 describe('Hash linking', () => {
     let storeValue;
     let filtersValue;

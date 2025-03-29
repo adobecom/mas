@@ -19,6 +19,7 @@ import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import {
     linkStoreToHash,
+    linkStoreToSearch,
     initializeRouter,
     setupNavigationSubscriptions,
     initializeStoreFromUrl,
@@ -31,17 +32,15 @@ const BUCKET_TO_ENV = {
     e59433: 'prod',
 };
 
-// Initialize store from URL first, then set up hash linking and router
 initializeStoreFromUrl();
 
-// Link store to hash parameters for reactive updates
-linkStoreToHash(Store.search, ['path', 'query']);
-linkStoreToHash(Store.filters, ['locale', 'tags'], {
+linkStoreToHash(Store.search, ['path', 'query'], {});
+
+linkStoreToSearch(Store.filters, ['locale', 'tags'], {
     locale: 'en_US',
 });
-linkStoreToHash(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
+linkStoreToSearch(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
 
-// Initialize the router
 initializeRouter();
 setupNavigationSubscriptions();
 

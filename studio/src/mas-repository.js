@@ -514,12 +514,6 @@ export class MasRepository extends LitElement {
             const locale = this.filters.value.locale || 'en_US';
             const dictionaryPath = `/content/dam/mas/${folderPath}/${locale}/dictionary`;
 
-            try {
-                await this.aem.sites.cf.fragments.getByPath(`${dictionaryPath}/index`);
-            } catch (error) {
-                await this.getOrCreateIndexFragment(dictionaryPath);
-            }
-
             const query = {
                 filter: {
                     path: dictionaryPath,
@@ -539,6 +533,10 @@ export class MasRepository extends LitElement {
             });
 
             if (!response.ok) {
+                if (response.status === 404) {
+                    Store.placeholders.list.data.set([]);
+                    return;
+                }
                 throw new Error(
                     `Network response was not ok: ${response.status} ${response.statusText}`,
                 );
@@ -601,12 +599,14 @@ export class MasRepository extends LitElement {
                             ? locReadyField.values[0]
                             : false;
 
+                    const status = 'PUBLISHED';
+
                     return {
                         id: fragment.id,
                         key: key,
                         value: value,
                         locale: locale,
-                        status: 'PUBLISHED',
+                        status: status,
                         state: locReady ? 'Ready' : 'Not Ready',
                         updatedBy: fragment.modified?.by || 'Unknown',
                         updatedAt: fragment.modified?.at
@@ -732,7 +732,7 @@ export class MasRepository extends LitElement {
     /**
      * Publish a dictionary/placeholder fragment using the AEM SDK
      * @param {Object} fragment - The fragment to publish
-     * @returns {Promise<boolean>} Whether the operation was successful
+     * @returns {Promise<Object>} The published fragment
      */
     async publishDictionaryFragment(fragment) {
         try {
@@ -745,11 +745,6 @@ export class MasRepository extends LitElement {
             await this.aem.sites.cf.fragments.publish(fragment);
             const publishedFragment = await this.aem.sites.cf.fragments.getByPath(fragment.path);
             this.operation.set();
-
-            Events.toast.emit({
-                variant: 'positive',
-                content: 'Placeholder successfully published.',
-            });
 
             return publishedFragment;
         } catch (error) {
@@ -807,7 +802,7 @@ export class MasRepository extends LitElement {
                 id: 'stub-fragment-id',
                 etag: 'stub-etag',
                 fields: [],
-                status: 'Draft'
+                status: 'PUBLISHED'
             };
         }
 
@@ -985,9 +980,58 @@ export class MasRepository extends LitElement {
                 throw new Error('Missing required data for placeholder creation');
             }
 
-            const newFragment = await this.createDictionaryFragment(fragmentData);
+            const fragmentObjectWithStatus = {
+                ...fragmentData,
+                status: 'PUBLISHED'
+            };
+            
+            const newFragment = await this.createDictionaryFragment(fragmentObjectWithStatus);
+            
             const publishedFragment = await this.publishDictionaryFragment(newFragment);
-            await this.updateIndexWithRetry(fragmentData.parentPath, publishedFragment.path);
+            
+            const dictionaryPath = fragmentData.parentPath;
+            const fragmentPath = publishedFragment.path;
+            
+            try {
+                const indexPath = `${dictionaryPath}/index`;
+                let indexFragment;
+                
+                try {
+                    indexFragment = await this.aem.sites.cf.fragments.getByPath(indexPath);
+                    
+                    if (indexFragment) {
+                        await this.updateIndexWithRetry(dictionaryPath, fragmentPath);
+                    }
+                } catch (error) {
+                    indexFragment = await this.aem.sites.cf.fragments.create({
+                        parentPath: dictionaryPath,
+                        modelId: DICTIONARY_MODEL_ID,
+                        name: 'index',
+                        title: 'index',
+                        description: '',
+                        fields: [
+                            {
+                                name: 'entries',
+                                type: 'content-fragment',
+                                multiple: true,
+                                values: [fragmentPath]
+                            },
+                            {
+                                name: 'locReady',
+                                type: 'boolean',
+                                multiple: false,
+                                values: [true]
+                            }
+                        ],
+                        status: 'PUBLISHED',
+                    });
+                    
+                    await this.aem.sites.cf.fragments.publish(indexFragment);
+                }
+            } catch (indexError) {
+                console.error('Failed to update/create index:', indexError);
+            }
+            
             await this.forceRefreshPlaceholders();
 
             Events.toast.emit({
@@ -1017,9 +1061,39 @@ export class MasRepository extends LitElement {
         
         while (attempt < maxRetries) {
             try {
-                let indexFragment = await this.aem.sites.cf.fragments.getByPath(indexPath);
+                let indexFragment;
+                try {
+                    indexFragment = await this.aem.sites.cf.fragments.getByPath(indexPath);
+                } catch (error) {
+                    console.log(`Index not found at ${indexPath}, creating new one`);
+                    indexFragment = await this.aem.sites.cf.fragments.create({
+                        parentPath: parentPath,
+                        modelId: DICTIONARY_MODEL_ID,
+                        name: 'index',
+                        title: 'index',
+                        description: '',
+                        fields: [
+                            {
+                                name: 'entries',
+                                type: 'content-fragment',
+                                multiple: true,
+                                values: [fragmentPath]
+                            },
+                            {
+                                name: 'locReady',
+                                type: 'boolean',
+                                multiple: false,
+                                values: [true]
+                            }
+                        ]
+                    });
+                    
+                    await this.aem.sites.cf.fragments.publish(indexFragment);
+                    return true;
+                }
+                
                 if (!indexFragment?.id) {
-                    indexFragment = await this.getOrCreateIndexFragment(parentPath);
+                    throw new Error("Index fragment has no ID");
                 }
 
                 const response = await fetch(`${this.aem.cfFragmentsUrl}/${indexFragment.id}`, {
@@ -1050,7 +1124,7 @@ export class MasRepository extends LitElement {
                     fields: freshIndex.fields.map(field => {
                         const baseField = {
                             name: field.name,
-                            type: field.type || 'text',
+                            type: field.type || 'content-fragment',
                             multiple: field.multiple || false
                         };
 
@@ -1060,15 +1134,6 @@ export class MasRepository extends LitElement {
                                 type: 'content-fragment',
                                 multiple: true,
                                 values: [...currentEntries, fragmentPath]
-                            };
-                        }
-
-                        if (field.name === 'locReady') {
-                            return {
-                                ...baseField,
-                                type: 'boolean',
-                                multiple: false,
-                                values: field.values
                             };
                         }
 
@@ -1104,6 +1169,7 @@ export class MasRepository extends LitElement {
             } catch (error) {
                 attempt++;
                 if ((!error.message?.includes('412') && !error.message?.startsWith('412')) || attempt >= maxRetries) {
+                    console.error('Failed to update index:', error);
                     throw error;
                 }
                 await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));

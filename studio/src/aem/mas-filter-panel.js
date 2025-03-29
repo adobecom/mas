@@ -168,28 +168,27 @@ class MasFilterPanel extends LitElement {
             .forEach((tagPicker) => {
                 tagPicker.clear();
             });
-        this.#clearFilterHashParams();
+        this.#clearFilterSearchParams();
         
         this.#updateFilterCount();
     }
 
-    #clearFilterHashParams() {
-        const currentHash = window.location.hash.slice(1);
-        const params = new URLSearchParams(currentHash);
+    #clearFilterSearchParams() {
+        const urlParams = new URLSearchParams(window.location.search);
 
         ['tags', 'filter'].forEach((param) => {
-            if (params.has(param)) {
-                params.delete(param);
+            if (urlParams.has(param)) {
+                urlParams.delete(param);
             }
         });
 
-        const newHash = params.toString();
+        const newSearch = urlParams.toString();
         window.history.replaceState(
             null,
             '',
-            `${window.location.pathname}${window.location.search}${
-                newHash ? '#' + newHash : ''
-            }`,
+            `${window.location.pathname}${
+                newSearch ? '?' + newSearch : ''
+            }${window.location.hash}`,
         );
     }
 

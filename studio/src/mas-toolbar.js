@@ -35,6 +35,7 @@ class MasToolbar extends LitElement {
         filtersShown: { state: true },
         createDialogOpen: { state: true },
         selectedContentType: { state: true },
+        filterCount: { state: true },
     };
 
     static styles = css`
@@ -122,6 +123,7 @@ class MasToolbar extends LitElement {
         this.filtersShown = false;
         this.createDialogOpen = false;
         this.selectedContentType = 'merch-card';
+        this.filterCount = 0;
     }
 
     filters = new StoreController(this, Store.filters);
@@ -129,6 +131,40 @@ class MasToolbar extends LitElement {
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
     loading = new StoreController(this, Store.fragments.list.loading);
+
+    connectedCallback() {
+        super.connectedCallback();
+        
+        this.updateFilterCount();
+        
+        this.filtersSubscription = Store.filters.subscribe(() => {
+            this.updateFilterCount();
+        });
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        
+        if (this.filtersSubscription) {
+            this.filtersSubscription.unsubscribe();
+        }
+    }
+
+    updateFilterCount() {
+        const filters = Store.filters.get();
+        if (!filters || !filters.tags) {
+            this.filterCount = 0;
+            return;
+        }
+        
+        if (typeof filters.tags === 'string') {
+            this.filterCount = filters.tags.split(',').filter(Boolean).length;
+        } else if (Array.isArray(filters.tags)) {
+            this.filterCount = filters.tags.filter(Boolean).length;
+        } else {
+            this.filterCount = 0;
+        }
+    }
 
     handleRenderModeChange(ev) {
         localStorage.setItem('mas-render-mode', ev.target.value);
@@ -159,7 +195,6 @@ class MasToolbar extends LitElement {
     }
 
     handleChange(ev) {
-        // only handle if value is empty to add address clear button
         if (ev.target.value === '') {
             this.updateQuery('');
         }
@@ -178,7 +213,7 @@ class MasToolbar extends LitElement {
                     ? html`<sp-icon-filter-add
                           slot="icon"
                       ></sp-icon-filter-add>`
-                    : html`<div slot="icon" class="filters-badge">0</div>`}
+                    : html`<div slot="icon" class="filters-badge">${this.filterCount}</div>`}
                 Filter</sp-action-button
             >
             <sp-search

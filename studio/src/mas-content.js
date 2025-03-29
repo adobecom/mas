@@ -16,6 +16,7 @@ class MasContent extends LitElement {
     constructor() {
         super();
         this.goToFragment = this.goToFragment.bind(this);
+        this.subscriptions = [];
     }
 
     loading = new StoreController(this, Store.fragments.list.loading);
@@ -27,11 +28,32 @@ class MasContent extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         Events.fragmentAdded.subscribe(this.goToFragment);
+
+        this.subscriptions.push(
+            Store.fragments.list.data.subscribe(() => {
+                this.requestUpdate();
+            })
+        );
+
+        this.subscriptions.push(
+            Store.filters.subscribe(() => {
+                this.requestUpdate();
+            })
+        );
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         Events.fragmentAdded.unsubscribe(this.goToFragment);
+
+        if (this.subscriptions && this.subscriptions.length) {
+            this.subscriptions.forEach(subscription => {
+                if (subscription) {
+                    subscription.unsubscribe();
+                }
+            });
+        }
+        this.subscriptions = [];
     }
 
     async goToFragment(id, skipUpdate = false) {
@@ -54,13 +76,13 @@ class MasContent extends LitElement {
                         if (!value) return false;
                         if (fragmentStore.new) return true;
                         if (
-                            value.model.path === CARD_MODEL_PATH &&
+                            value.model?.path === CARD_MODEL_PATH &&
                             !variantValues.includes(fragmentStore.value.variant)
                         )
                             return false;
                         return true;
                     }),
-                    (fragmentStore) => fragmentStore.id,
+                    (fragmentStore) => fragmentStore.get()?.path || fragmentStore.id || Math.random(),
                     (fragmentStore) =>
                         html`<mas-fragment
                             .fragmentStore=${fragmentStore}

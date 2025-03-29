@@ -3,9 +3,16 @@ import { LitElement, html, css, until } from 'lit';
 import Store from './store.js';
 
 class MasTopNav extends LitElement {
-    async profileBuilder () {
+    async profileBuilder() {
         const accessToken = window.adobeIMS.getAccessToken();
-        const ioResp = await fetch(`https://${ENVS[this.aemEnv].adobeIO}/profile`, { headers: new Headers({ Authorization: `Bearer ${accessToken.token}` }) });
+        const ioResp = await fetch(
+            `https://${ENVS[this.aemEnv].adobeIO}/profile`,
+            {
+                headers: new Headers({
+                    Authorization: `Bearer ${accessToken.token}`,
+                }),
+            },
+        );
         const profiles = {};
         profiles.ims = await window.adobeIMS.getProfile();
         profiles.io = await ioResp.json();
@@ -40,13 +47,16 @@ class MasTopNav extends LitElement {
         const signOutLink = profileEl.querySelector('.signout-link');
         const studioContentEl = document.querySelector('.studio-content');
 
-        profileButton.addEventListener('click', () => { profileBody.classList.toggle('show'); });
+        profileButton.addEventListener('click', () => {
+            profileBody.classList.toggle('show');
+        });
         signOutLink.addEventListener('click', (e) => {
             e.preventDefault();
             window.adobeIMS.signOut();
         });
-        studioContentEl.addEventListener('click', () => { profileBody.classList.remove('show'); });
-        
+        studioContentEl.addEventListener('click', () => {
+            profileBody.classList.remove('show');
+        });
 
         return profileEl;
     }
@@ -54,7 +64,7 @@ class MasTopNav extends LitElement {
     static properties = {
         aemEnv: { type: String, attribute: 'aem-env' },
     };
-    
+
     constructor() {
         super();
         this.aemEnv = 'prod';
@@ -114,9 +124,9 @@ class MasTopNav extends LitElement {
                 cursor: pointer;
                 border: 0;
                 background: 0;
-                position: relative
+                position: relative;
             }
-            
+
             .profile-body {
                 display: none;
                 margin: 0;
@@ -134,7 +144,7 @@ class MasTopNav extends LitElement {
             .profile-body.show {
                 display: block;
             }
-            
+
             .account-menu-header {
                 display: flex;
                 align-items: center;
@@ -143,18 +153,18 @@ class MasTopNav extends LitElement {
             }
 
             .account-info h2 {
-                margin: .5rem 0;
+                margin: 0.5rem 0;
             }
 
             .account-info p {
-                margin: 0 0 .5rem;
+                margin: 0 0 0.5rem;
                 font-size: 14px;
             }
 
             .profile-actions {
                 list-style: none;
             }
-            
+
             .account-menu hr {
                 margin: 0 20px 10px;
             }
@@ -163,7 +173,7 @@ class MasTopNav extends LitElement {
                 font-size: 16px;
                 padding: 5px 20px;
             }
-            
+
             .account-menu-item:hover {
                 background-color: var(--spectrum-global-color-gray-100);
                 color: var(--spectrum-global-color-gray-800);
@@ -215,15 +225,8 @@ class MasTopNav extends LitElement {
                         Stage Commerce
                     </sp-switch>
                 </a>
-                <a>
-                    <sp-icon-help-outline></sp-icon-help-outline>
-                </a>
-                <a>
-                    <sp-icon-bell></sp-icon-bell>
-                </a>
                 ${until(
-                    this.profileBuilder().then(profile => 
-                    html`${profile}`),
+                    this.profileBuilder().then((profile) => html`${profile}`),
                 )}
             </nav>
             <sp-divider></sp-divider>

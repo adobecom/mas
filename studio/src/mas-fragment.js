@@ -10,11 +10,26 @@ const tooltipTimeout = new ReactiveStore(null);
 
 class MasFragment extends LitElement {
     static properties = {
-        fragmentStore: { type: Object, attribute: false },
-        view: { type: String, attribute: true }, // 'render' | 'table'
+        store: { type: Object },
+        fragmentStore: { type: Object },
+        view: { type: String },
     };
 
     static styles = [styles];
+
+    constructor() {
+        super();
+        this.store = null;
+        this.fragmentStore = null;
+    }
+
+    willUpdate(changedProperties) {
+        if (changedProperties.has('store') && this.store && !this.fragmentStore) {
+            this.fragmentStore = this.store;
+        } else if (changedProperties.has('fragmentStore') && this.fragmentStore && !this.store) {
+            this.store = this.fragmentStore;
+        }
+    }
 
     createRenderRoot() {
         return this;
@@ -42,20 +57,19 @@ class MasFragment extends LitElement {
 
     edit(event) {
         if (Store.selecting.get()) return;
-        // Remove tooltip
         clearTimeout(tooltipTimeout.get());
         event.currentTarget.classList.remove('has-tooltip');
-        // Handle edit
-        editFragment(this.fragmentStore, event.clientX);
+        editFragment(this.fragmentStore || this.store, event.clientX);
     }
 
     get renderView() {
         if (this.view !== 'render') return nothing;
-        const selected = this.selection.value.includes(this.fragmentStore.id);
+        const fragmentStore = this.fragmentStore || this.store;
+        const selected = this.selection.value.includes(fragmentStore.id);
         return html`<mas-fragment-render
             class="mas-fragment"
-            data-id=${this.fragmentStore.id}
-            .fragmentStore=${this.fragmentStore}
+            data-id=${fragmentStore.id}
+            .fragmentStore=${fragmentStore}
             ?selected=${selected}
             @click=${this.handleClick}
             @mouseleave=${this.handleMouseLeave}
@@ -65,13 +79,14 @@ class MasFragment extends LitElement {
 
     get tableView() {
         if (this.view !== 'table') return nothing;
-        const fragment = this.fragmentStore.get();
+        const fragmentStore = this.fragmentStore || this.store;
+        const fragment = fragmentStore.get();
         return html`<overlay-trigger placement="top"
             ><mas-fragment-table
                 class="mas-fragment"
                 data-id=${fragment.id}
                 slot="trigger"
-                .fragmentStore=${this.fragmentStore}
+                .fragmentStore=${fragmentStore}
                 @click=${this.handleClick}
                 @mouseleave=${this.handleMouseLeave}
                 @dblclick=${this.edit}

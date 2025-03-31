@@ -67,7 +67,6 @@ describe('translate typical cases', function () {
     });
 });
 
-// eslint-disable-next-line mocha/max-top-level-suites
 describe('translate corner cases', function () {
     it('no path should return 400', async function () {
         const result = await translate({
@@ -123,6 +122,37 @@ describe('translate corner cases', function () {
             .query({ path: '/content/dam/mas/sandbox/fr_FR/someFragment' })
             .reply(404, {
                 message: 'Not found',
+            });
+
+        const result = await translate({
+            ...FAKE_CONTEXT,
+            body: { path: '/content/dam/mas/sandbox/en_US/someFragment' },
+            locale: 'fr_FR',
+        });
+        expect(result).to.deep.equal({
+            status: 500,
+            message: 'translation search failed',
+        });
+    });
+
+    it('should return 500 when translation fetch by id failed', async function () {
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments')
+            .query({ path: '/content/dam/mas/sandbox/fr_FR/someFragment' })
+            .reply(200, {
+                items: [
+                    {
+                        path: '/content/dam/mas/sandbox/fr_FR/someFragment',
+                        id: 'some-fr-fr-fragment-server-error',
+                    },
+                ],
+            });
+
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments')
+            .query({ path: '/some-fr-fr-fragment-server-error' })
+            .reply(500, {
+                message: 'Error',
             });
 
         const result = await translate({

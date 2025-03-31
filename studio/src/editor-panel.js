@@ -199,10 +199,11 @@ export default class EditorPanel extends LitElement {
                             props.variantLabel = variant.label;
                     }
                 });
-                fragmentParts = `${surface} / ${props.variantLabel}
-                ${props.marketSegment ? `/ ${props.marketSegment}` : ''}
-                ${props.customerSegment ? `/ ${props.customerSegment}` : ''}
-                / ${props.cardTitle ?? props.product ?? ''}`;
+                const buildPart = ((part) => { 
+                    if(part) return ` ${part}`;
+                    return '';
+                });
+                fragmentParts = `${surface}${buildPart(props.variantLabel)}${buildPart(props.customerSegment)}${buildPart(props.marketSegment)}${buildPart(props.product)}`;
                 title = props.cardTitle;
                 break;  
             case COLLECTION_MODEL_PATH:

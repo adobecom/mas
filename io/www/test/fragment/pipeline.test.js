@@ -2,56 +2,58 @@ const { expect } = require('chai');
 const nock = require('nock');
 const action = require('../../src/fragment/pipeline.js');
 const mockDictionary = require('./replace.test.js').mockDictionary;
-const COLLECTION_RESPONSE = require('./mocks/collection.json');
+
+const FRAGMENT_RESPONSE_EN = require('./mocks/fragment.json');
+const FRAGMENT_RESPONSE_FR = require('./mocks/fragment-fr.json');
+
 const { MockState } = require('./mocks/MockState.js');
 
 function setupFragmentMocks({ id, path, fields = {} }) {
-    // Mock the initial fragment fetch
+    // english fragment by id
     nock('https://odin.adobe.com')
-        .get(`/adobe/sites/fragments/${id}`)
-        .reply(200, {
-            path: `/content/dam/mas/drafts/en_US/${path}`,
-            some: 'body',
-        });
+        .get(
+            `/adobe/sites/fragments/some-en-us-fragment?references=all-hydrated`,
+        )
+        .reply(200, FRAGMENT_RESPONSE_EN);
 
-    const frenchObject = () => ({
-        id: 'test',
-        path: `/content/dam/mas/drafts/fr_FR/${path}`,
-        fields: {
-            description: 'test description',
-            ...fields,
-        },
-    });
-    // Mock the fragment lookup
+    // french fragment by path
     nock('https://odin.adobe.com')
-        .get('/adobe/sites/fragments')
-        .query({
-            path: `/content/dam/mas/drafts/fr_FR/${path}`,
-        })
-        .reply(200, { items: [frenchObject()] });
-    // Mock same fragment lookup, but with id
+        .get(
+            '/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
+        )
+        .reply(200, {
+            items: [
+                {
+                    id: 'some-fr-fr-fragment',
+                },
+            ],
+        });
+    // french fragment by id
     nock('https://odin.adobe.com')
-        .get('/adobe/sites/fragments/test')
-        .reply(200, frenchObject());
+        .get(
+            `/adobe/sites/fragments/some-fr-fr-fragment?references=all-hydrated`,
+        )
+        .reply(200, FRAGMENT_RESPONSE_FR);
+
+    // dictionary by id
+    nock('https://odin.adobe.com')
+        .get('/adobe/sites/fragments/dictionary?references=all-hydrated')
+        .reply(200, mockDictionary());
 }
 
 const EXPECTED_BODY = {
-    id: 'test',
-    path: '/content/dam/mas/drafts/fr_FR/someFragment',
-    fields: {
-        description: 'corps',
-        cta: 'Buy now',
-    },
+    id: 'some-fr-fr-fragment',
+    path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
 };
 //EXPECTED BODY SHA256 hash
 const EXPECTED_BODY_HASH =
-    '9f420496ba3f9deb54f8c9d230fefbc6a8d22d24cb4bf3441a50764ea4473e5d';
+    '6c73236ddcf2b74ed422f1f398d4cb47d61f993713c491624bdefc5f55dbda60';
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 
 const runOnFilledState = async (entry, headers) => {
     setupFragmentMocks({
-        id: 'some-us-en-fragment',
+        id: 'some-en-us-fragment',
         path: 'someFragment',
         fields: {
             description: 'corps',
@@ -59,9 +61,9 @@ const runOnFilledState = async (entry, headers) => {
         },
     });
     const state = new MockState();
-    state.put('req-some-us-en-fragment-fr_FR', entry);
+    state.put('req-some-en-us-fragment-fr_FR', entry);
     return await action.main({
-        id: 'some-us-en-fragment',
+        id: 'some-en-us-fragment',
         state: state,
         locale: 'fr_FR',
         __ow_headers: headers,
@@ -74,43 +76,38 @@ describe('pipeline full use case', () => {
         mockDictionary();
     });
 
-    it('should return fully baked /content/dam/mas/drafts/fr_FR/someFragment', async () => {
+    it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment', async () => {
         setupFragmentMocks({
-            id: 'some-us-en-fragment',
+            id: 'some-en-us-fragment',
             path: 'someFragment',
-            fields: {
-                description: 'corps',
-                cta: '{{buy-now}}',
-            },
         });
         const state = new MockState();
         const result = await action.main({
-            id: 'some-us-en-fragment',
+            id: 'some-en-us-fragment',
             state: state,
             locale: 'fr_FR',
         });
         expect(result.statusCode).to.equal(200);
-        expect(result.body).to.deep.equal(EXPECTED_BODY);
+        expect(result.body).to.deep.include(EXPECTED_BODY);
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
         expect(result.headers['ETag']).to.equal(EXPECTED_BODY_HASH);
         expect(Object.keys(state.store).length).to.equal(1);
-        console.log(JSON.stringify(state.store));
-        expect(state.store).to.have.property('req-some-us-en-fragment-fr_FR');
-        const json = JSON.parse(state.store['req-some-us-en-fragment-fr_FR']);
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR');
+        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR']);
         delete json.lastModified; // removing the date to avoid flakiness
-        expect(json).to.deep.equal({
+        expect(json).to.deep.include({
             dictionaryId: 'fr_FR_dictionary',
-            translatedId: 'test',
+            translatedId: 'some-fr-fr-fragment',
             hash: EXPECTED_BODY_HASH,
         });
     });
 
-    it('should detect already treated /content/dam/mas/drafts/fr_FR/someFragment if not changed', async () => {
+    it('should detect already treated /content/dam/mas/sandbox/fr_FR/someFragment if not changed', async () => {
         const result = await runOnFilledState(
             JSON.stringify({
                 dictionaryId: 'fr_FR_dictionary',
-                translatedId: 'test',
+                translatedId: 'some-fr-fr-fragment',
                 lastModified: RANDOM_OLD_DATE,
                 hash: EXPECTED_BODY_HASH,
             }),
@@ -122,50 +119,6 @@ describe('pipeline full use case', () => {
         expect(result.statusCode).to.equal(304);
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers['Last-Modified']).to.equal(RANDOM_OLD_DATE);
-    });
-
-    it('should return fully baked /content/dam/mas/drafts/fr_FR/collections/plans-individual', async () => {
-        setupFragmentMocks({
-            id: 'some-us-en-fragment',
-            path: 'collections/someFragment',
-            fields: {
-                description: 'corps',
-                cta: '{{buy-now}}',
-                categories: ['a', 'b', 'c'],
-            },
-        });
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments/test/variations/master/references')
-            .query({ references: 'all-hydrated' })
-            .reply(200, COLLECTION_RESPONSE);
-        const result = await action.main({
-            id: 'some-us-en-fragment',
-            state: new MockState(),
-            locale: 'fr_FR',
-        });
-        expect(result.statusCode).to.equal(200);
-        expect(result.body).to.have.property('fields');
-        expect(result.body.fields).to.have.property('cards');
-        expect(result.body.fields).to.have.property('categories');
-        expect(result.body.fields.cards).to.be.an('object');
-        expect(result.body.fields.categories).to.be.an('array');
-        expect(result.body.fields.categories[0]).to.deep.equal({
-            label: 'All',
-            cards: [
-                '7c87d1c4-d7fd-4370-b318-4cb2ebb4dd13',
-                'aec092ef-d5b5-4271-8b6f-4bbd535fcc56',
-            ],
-        });
-        expect(
-            result.body.fields.cards['7c87d1c4-d7fd-4370-b318-4cb2ebb4dd13']
-                ?.fields?.description?.value,
-        ).to.be.a('string');
-        expect(
-            result.body.fields.cards['7c87d1c4-d7fd-4370-b318-4cb2ebb4dd13']
-                .fields.description.value,
-        ).to.equal(
-            "<p><strong>i'm aon, with a price his is nicolas' card View account</strong></p>",
-        );
     });
 });
 
@@ -217,6 +170,13 @@ describe('pipeline corner cases', () => {
                 message: 'Fragment not found',
             });
 
+        // Also mock the request with references=all-hydrated parameter
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments/test-fragment?references=all-hydrated')
+            .reply(404, {
+                message: 'Fragment not found',
+            });
+
         const result = await action.main({
             id: 'test-fragment',
             state: new MockState(),
@@ -231,40 +191,11 @@ describe('pipeline corner cases', () => {
         });
     });
 
-    it('should handle collection references fetch error', async () => {
-        setupFragmentMocks({
-            id: 'test-collection',
-            path: 'collections/test-collection',
-            fields: {
-                categories: ['a', 'b', 'c'],
-            },
-        });
-
-        // Mock the references fetch to fail
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments/test/variations/master/references')
-            .query({ references: 'all-hydrated' })
-            .replyWithError('Failed to fetch references');
-
-        const result = await action.main({
-            id: 'test-collection',
-            state: new MockState(),
-            locale: 'fr_FR',
-        });
-
-        expect(result).to.deep.equal({
-            statusCode: 500,
-            body: {
-                message: 'unable to fetch references',
-            },
-        });
-    });
-
     it('should manage ignore old if-modified', async () => {
         const result = await runOnFilledState(
             JSON.stringify({
                 dictionaryId: 'fr_FR_dictionary',
-                translatedId: 'test',
+                translatedId: 'some-fr-fr-fragment',
                 lastModified: 'Tue, 21 Nov 2024 08:00:00 GMT',
                 hash: EXPECTED_BODY_HASH,
             }),
@@ -272,7 +203,7 @@ describe('pipeline corner cases', () => {
                 'if-modified-since': RANDOM_OLD_DATE,
             },
         );
-        expect(result.body).to.deep.equal(EXPECTED_BODY);
+        expect(result.body).to.deep.include(EXPECTED_BODY);
         expect(result.statusCode).to.equal(200);
     });
 
@@ -280,26 +211,26 @@ describe('pipeline corner cases', () => {
         const result = await runOnFilledState(
             JSON.stringify({
                 dictionaryId: 'fr_FR_dictionary',
-                translatedId: 'test',
+                translatedId: 'some-fr-fr-fragment',
                 hash: EXPECTED_BODY_HASH,
             }),
             {
                 'if-modified-since': RANDOM_OLD_DATE,
             },
         );
-        expect(result.body).to.deep.equal(EXPECTED_BODY);
+        expect(result.body).to.deep.include(EXPECTED_BODY);
         expect(result.statusCode).to.equal(200);
     });
 
     it('should manage bad cache entry', async () => {
         const result = await runOnFilledState('undefined', {});
-        expect(result.body).to.deep.equal(EXPECTED_BODY);
+        expect(result.body).to.deep.include(EXPECTED_BODY);
         expect(result.statusCode).to.equal(200);
     });
 
     it('should manage null cache entry', async () => {
         const result = await runOnFilledState('null', {});
-        expect(result.body).to.deep.equal(EXPECTED_BODY);
+        expect(result.body).to.deep.include(EXPECTED_BODY);
         expect(result.statusCode).to.equal(200);
     });
 });

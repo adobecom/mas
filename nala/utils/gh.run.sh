@@ -41,7 +41,6 @@ export PR_NUMBER
 
 echo "PR Branch live URL: $PR_BRANCH_LIVE_URL_GH"
 
-
 # Convert GitHub Tag(@) labels that can be grepped
 for label in ${labels}; do
   if [[ "$label" = \@* ]]; then
@@ -64,13 +63,7 @@ echo "Run Command : npx playwright test ${TAGS} ${EXCLUDE_TAGS} ${REPORTER}"
 echo -e "\n"
 echo "*******************************"
 
-# Navigate to the GitHub Action path and install dependencies
-cd "$GITHUB_ACTION_PATH" || exit
-npm ci
-npx playwright install --with-deps
-
 # Run Playwright tests on the specific projects using root-level playwright.config.js
-# This will be changed later
 echo "*** Running tests on specific projects ***"
 npx playwright test --config=./playwright.config.js ${TAGS} ${EXCLUDE_TAGS} --project=mas-live-chromium ${REPORTER} || EXIT_STATUS=$?
 

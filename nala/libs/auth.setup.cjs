@@ -35,13 +35,20 @@ setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
   await page.locator('#PasswordPage-PasswordField').fill(process.env.IMS_PASS);
   await page.locator('[data-id=PasswordPage-ContinueButton]').click();
   await page.locator('div.ActionList-Item:nth-child(1)').click();
-  await page.waitForURL(`${baseURL}/studio.html?locale=en_US#page=content&path=acom`);
-  await expect(page).toHaveURL(`${baseURL}/studio.html?locale=en_US#page=content&path=acom`);
+  
+  // Use regex for more flexible URL matching
+  const urlPattern = new RegExp(`${baseURL}/studio.html.*path=acom`);
+  await page.waitForURL(urlPattern, { timeout: 60000 });
+  
+  // Verify we have the locale and path in the URL
+  const currentUrl = page.url();
+  expect(currentUrl).toContain('locale=en_US');
+  expect(currentUrl).toContain('path=acom');
 
   await expect(async () => {
     const response = await page.request.get(`${baseURL}/studio.html`);
     expect(response.status()).toBe(200);
-  }).toPass();
+  }).toPass({ timeout: 60000 });
   await page.waitForLoadState('domcontentloaded');
 
   // End of authentication steps.

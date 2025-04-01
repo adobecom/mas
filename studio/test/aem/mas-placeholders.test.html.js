@@ -371,7 +371,6 @@ runTests(async () => {
             // Test when modal is hidden
             expect(masPlaceholders.renderCreateModal()).to.equal(nothing);
             
-            // Test when modal is shown
             masPlaceholders.showCreateModal = true;
             const modal = masPlaceholders.renderCreateModal();
             expect(modal).to.not.equal(nothing);
@@ -379,7 +378,6 @@ runTests(async () => {
         });
         
         it('should render confirm dialog when confirmDialogConfig exists', () => {
-            // Create test implementation
             masPlaceholders.renderConfirmDialog = function() {
                 if (this.confirmDialogConfig) {
                     return html`<div class="confirm-dialog"></div>`;
@@ -387,10 +385,8 @@ runTests(async () => {
                 return nothing;
             };
             
-            // Test when dialog config is null
             expect(masPlaceholders.renderConfirmDialog()).to.equal(nothing);
             
-            // Test when dialog config exists
             masPlaceholders.confirmDialogConfig = {
                 title: 'Confirm',
                 message: 'Are you sure?',
@@ -402,17 +398,14 @@ runTests(async () => {
             expect(dialog.strings.join('')).to.include('confirm-dialog');
         });
 
-        // UI INTERACTION TESTS
         it('should toggle dropdown correctly', () => {
             const fakeEvent = { stopPropagation: sinon.stub() };
             
-            // Test opening dropdown
             masPlaceholders.activeDropdown = null;
             masPlaceholders.toggleDropdown('test-key', fakeEvent);
             expect(masPlaceholders.activeDropdown).to.equal('test-key');
             expect(fakeEvent.stopPropagation.called).to.be.true;
             
-            // Test closing dropdown
             fakeEvent.stopPropagation.resetHistory();
             masPlaceholders.toggleDropdown('test-key', fakeEvent);
             expect(masPlaceholders.activeDropdown).to.be.null;
@@ -426,7 +419,6 @@ runTests(async () => {
         });
         
         it('should handle search input', () => {
-            // Create a mock implementation
             const originalHandleSearch = masPlaceholders.handleSearch;
             masPlaceholders.handleSearch = function(event) {
                 this.searchQuery = event.target.value;
@@ -439,14 +431,12 @@ runTests(async () => {
             expect(masPlaceholders.searchQuery).to.equal('search term');
             expect(masPlaceholders.searchPlaceholders.called).to.be.true;
             
-            // Restore original if it exists
             if (originalHandleSearch) {
                 masPlaceholders.handleSearch = originalHandleSearch;
             }
         });
         
         it('should handle sort order changes', () => {
-            // Create a mock implementation
             const originalHandleSort = masPlaceholders.handleSort;
             masPlaceholders.handleSort = function(field) {
                 if (field === this.sortField) {
@@ -458,41 +448,33 @@ runTests(async () => {
                 this.searchPlaceholders();
             };
             
-            // Set initial sort state
             masPlaceholders.sortField = 'key';
             masPlaceholders.sortDirection = 'asc';
             
-            // Test toggling same field
             masPlaceholders.handleSort('key');
             expect(masPlaceholders.sortDirection).to.equal('desc');
             expect(masPlaceholders.searchPlaceholders.called).to.be.true;
             
-            // Test switching to new field
             masPlaceholders.searchPlaceholders.resetHistory();
             masPlaceholders.handleSort('value');
             expect(masPlaceholders.sortField).to.equal('value');
             expect(masPlaceholders.sortDirection).to.equal('asc');
             expect(masPlaceholders.searchPlaceholders.called).to.be.true;
             
-            // Restore original if it exists
             if (originalHandleSort) {
                 masPlaceholders.handleSort = originalHandleSort;
             }
         });
         
         it('should handle add placeholder button click', () => {
-            // Create a mock implementation
             masPlaceholders.handleCreateClick = function() {
                 this.handleAddPlaceholder();
             };
             
-            // Implement or stub handleAddPlaceholder to isolate test
             masPlaceholders.handleAddPlaceholder = sinon.stub();
             
-            // Call method
             masPlaceholders.handleCreateClick();
             
-            // Verify method was called
             expect(masPlaceholders.handleAddPlaceholder.called).to.be.true;
         });
         
@@ -506,7 +488,6 @@ runTests(async () => {
         });
         
         it('should handle click outside to close create modal', () => {
-            // Create a mock implementation
             const originalHandleCreateModalClickOutside = masPlaceholders.handleCreateModalClickOutside;
             masPlaceholders.handleCreateModalClickOutside = function(event) {
                 if (
@@ -517,12 +498,10 @@ runTests(async () => {
                 }
             };
             
-            // Ensure closeCreateModal works
             masPlaceholders.closeCreateModal = function() {
                 this.showCreateModal = false;
             };
             
-            // Setup - first test click inside modal (should stay open)
             masPlaceholders.showCreateModal = true;
             const modalEl = document.createElement('div');
             modalEl.classList.add('create-modal-overlay');
@@ -533,7 +512,6 @@ runTests(async () => {
             masPlaceholders.handleCreateModalClickOutside(insideEvent);
             expect(masPlaceholders.showCreateModal).to.be.true;
             
-            // Then test click outside modal (should close)
             masPlaceholders.showCreateModal = true;
             const outsideEvent = {
                 target: document.createElement('div'),
@@ -542,13 +520,11 @@ runTests(async () => {
             masPlaceholders.handleCreateModalClickOutside(outsideEvent);
             expect(masPlaceholders.showCreateModal).to.be.false;
             
-            // Restore original if it exists
             if (originalHandleCreateModalClickOutside) {
                 masPlaceholders.handleCreateModalClickOutside = originalHandleCreateModalClickOutside;
             }
         });
 
-        // FORM INTERACTIONS
         it('should update new placeholder key on input', () => {
             const event = { target: { value: 'new-key' } };
             masPlaceholders.handleNewPlaceholderKeyChange(event);
@@ -568,84 +544,65 @@ runTests(async () => {
             expect(masPlaceholders.loadPlaceholders.called).to.be.true;
         });
         
-        // EDITING INTERACTIONS
         it('should start and cancel editing correctly', () => {
             const placeholder = mockPlaceholders[0];
             
-            // Start edit and verify state
             masPlaceholders.startEdit(placeholder);
             expect(masPlaceholders.editingPlaceholder).to.equal(placeholder.key);
             expect(masPlaceholders.editedKey).to.equal(placeholder.key);
             expect(masPlaceholders.editedValue).to.equal(placeholder.value);
             
-            // Cancel edit and verify state
             masPlaceholders.cancelEdit();
             expect(masPlaceholders.editingPlaceholder).to.be.null;
         });
         
-        // FILTERING AND SORTING TESTS
         it('should filter placeholders by search query', () => {
-            // Setup test data
             masPlaceholders.searchQuery = 'french';
             
-            // Call method and verify results
             const filtered = masPlaceholders.getFilteredPlaceholders();
             expect(filtered.length).to.equal(1);
             expect(filtered[0].key).to.equal('french-key');
         });
 
         it('should sort placeholders correctly', () => {
-            // Setup test data
             const testData = [
                 { key: 'c-key', value: 'c-value' },
                 { key: 'a-key', value: 'a-value' },
                 { key: 'b-key', value: 'b-value' },
             ];
             
-            // Define sort settings
             masPlaceholders.sortField = 'key';
             masPlaceholders.sortDirection = 'asc';
             
-            // Call method and verify results
             const sorted = masPlaceholders.getSortedPlaceholders(testData);
             expect(sorted[0].key).to.equal('a-key');
             expect(sorted[1].key).to.equal('b-key');
             expect(sorted[2].key).to.equal('c-key');
         });
         
-        // EVENT LISTENER TESTS
         it('should add event listeners on connectedCallback', () => {
             const addSpy = sinon.spy(document, 'addEventListener');
             
-            // Call method
             masPlaceholders.connectedCallback();
             
-            // Verify appropriate event listeners were added
             expect(addSpy.calledWith('click', masPlaceholders.handleClickOutside)).to.be.true;
             expect(addSpy.calledWith('click', masPlaceholders.handleCreateModalClickOutside)).to.be.true;
             
-            // Cleanup
             addSpy.restore();
         });
         
         it('should remove event listeners on disconnectedCallback', () => {
-            // Setup
             masPlaceholders.subscriptions = [{ unsubscribe: sinon.stub() }];
             const removeSpy = sinon.spy(document, 'removeEventListener');
             
-            // Call method
             masPlaceholders.disconnectedCallback();
             
-            // Verify event listeners were removed
             expect(removeSpy.called).to.be.true;
             
-            // Cleanup
             removeSpy.restore();
         });
         
-        // TOAST NOTIFICATION TEST
         it('should show toast notification with correct parameters', () => {
-            // Create a mock implementation
             const originalShowToast = masPlaceholders.showToast;
             masPlaceholders.showToast = function(message, variant = 'info') {
                 Events.toast.emit({
@@ -654,17 +611,14 @@ runTests(async () => {
                 });
             };
             
-            // Call showToast directly
             masPlaceholders.showToast('Test message', 'positive');
             
-            // Verify toast was emitted with correct params
             expect(eventsToastEmitStub.called).to.be.true;
             expect(eventsToastEmitStub.firstCall.args[0]).to.deep.equal({
                 variant: 'positive',
                 content: 'Test message'
             });
             
-            // Restore original if it exists
             if (originalShowToast) {
                 masPlaceholders.showToast = originalShowToast;
             }

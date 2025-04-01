@@ -14,7 +14,7 @@ export default {
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
-            browserParams: '#query=',
+            browserParams: '?locale=en_US#query=',
             tags: '@mas-studio',
         },
         {
@@ -50,7 +50,7 @@ export default {
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
-            browserParams: '#query=',
+            browserParams: '?locale=en_US#query=',
             tags: '@mas-studio @ccd @ccd-suggested',
         },
         {
@@ -60,7 +60,7 @@ export default {
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
             },
-            browserParams: '#query=',
+            browserParams: '?locale=en_US#query=',
             tags: '@mas-studio @ccd @ccd-slice',
         },
         {
@@ -70,7 +70,7 @@ export default {
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
-            browserParams: '#query=',
+            browserParams: '?locale=en_US#query=',
             tags: '@mas-studio @ccd @ccd-suggested',
         },
     ],

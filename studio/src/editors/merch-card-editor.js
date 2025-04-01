@@ -278,28 +278,15 @@ class MerchCardEditor extends LitElement {
                 </mas-multifield>
             </sp-field-group>
             <sp-field-group class="toggle" id="badge">
-                <sp-field-label for="badge">Badge</sp-field-label>
+                <sp-field-label for="card-badge">Badge</sp-field-label>
                 <sp-textfield
                     placeholder="Enter badge text"
+                    id="card-badge"
+                    data-field="badge"
                     value="${this.badge.text}"
                     @input="${this.#updateBadgeText}"
                 ></sp-textfield>
-                ${this.#renderColorPicker(
-                    'badgeColor',
-                    'Badge Color',
-                    this.availableBorderColors,
-                    this.badge.bgColor,
-                    'badgeColor',
-                    this.onBadgeColorChange,
-                )}
-                ${this.#renderColorPicker(
-                    'badgeBorderColor',
-                    'Badge Border Color',
-                    this.availableBorderColors,
-                    this.badge.borderColor,
-                    'badgeBorderColor',
-                    this.onBadgeBorderColorChange,
-                )}
+                ${this.#renderBadgeColors()}
             </sp-field-group>
             ${this.#renderColorPicker(
                 'border-color',
@@ -542,15 +529,20 @@ class MerchCardEditor extends LitElement {
     }
 
     displayBadgeColorFields(text) {
+        if (!this.isPlans) return;
         document.querySelector('#badgeColor').style.display = text ? 'block' : 'none';
         document.querySelector('#badgeBorderColor').style.display = text ? 'block' : 'none';
     }
 
-    get badgeElement() {
+    get badgeText() {
         const badgeValues =
             this.fragment.fields.find((f) => f.name === 'badge')
                 ?.values ?? [];
-        const badgeHtml = badgeValues?.length ? badgeValues[0] : '';
+        return badgeValues?.length ? badgeValues[0] : '';
+    }
+
+    get badgeElement() {
+        const badgeHtml = this.badgeText;
 
         if (!badgeHtml) return undefined;
 
@@ -565,7 +557,17 @@ class MerchCardEditor extends LitElement {
         }
     }
 
+    get isPlans() {
+        return this.fragment.variant === 'plans';
+    }
+
     get badge() {
+        if (!this.isPlans) {
+            return {
+                text: this.badgeText,
+            }
+        }
+
         const text = this.badgeElement?.textContent || '';
         const bgColorAttr = this.badgeElement?.getAttribute?.('background-color');
         const bgColorSelected = document.querySelector('sp-picker[data-field="badgeColor"]')?.value
@@ -596,8 +598,12 @@ class MerchCardEditor extends LitElement {
 
     #updateBadgeText(event) {
         const text = event.target.value?.trim() || '';
-        this.displayBadgeColorFields(text);
-        this.updateBadge(text, this.badge.bgColor, this.badge.borderColor);
+        if (this.isPlans) {
+            this.displayBadgeColorFields(text);
+            this.updateBadge(text, this.badge.bgColor, this.badge.borderColor);
+        } else {
+            this.fragmentStore.updateField('badge', [text]);
+        }
     }
 
     onBadgeColorChange(event) {
@@ -631,6 +637,29 @@ class MerchCardEditor extends LitElement {
             .replace(/\b\w/g, (l) => l.toUpperCase())
             .replace(/\s+/g, ' ')
             .trim();
+    }
+
+    #renderBadgeColors() {
+        if (!this.isPlans) return;
+
+        return html`
+            ${this.#renderColorPicker(
+                'badgeColor',
+                'Badge Color',
+                this.availableBorderColors,
+                this.badge.bgColor,
+                'badgeColor',
+                this.onBadgeColorChange,
+            )}
+            ${this.#renderColorPicker(
+                'badgeBorderColor',
+                'Badge Border Color',
+                this.availableBorderColors,
+                this.badge.borderColor,
+                'badgeBorderColor',
+                this.onBadgeBorderColorChange,
+            )}
+        `;
     }
 
     #renderColorPicker(id, label, colors, selectedValue, dataField, onChange) {

@@ -5,6 +5,22 @@ import { getHashParam } from './utils.js';
 const originalUrl = window.location.href;
 
 /**
+ * Cleans URL parameters by removing empty values
+ * @param {URLSearchParams} params - The parameters to clean
+ * @returns {boolean} Whether any changes were made
+ */
+function cleanUrlParams(params) {
+    let hasChanges = false;
+    for (const [key, value] of params.entries()) {
+        if (!value || value === '') {
+            params.delete(key);
+            hasChanges = true;
+        }
+    }
+    return hasChanges;
+}
+
+/**
  * Determines and returns the initial page based on URL parameters
  * @returns {string} The page name to initialize with
  */
@@ -12,8 +28,9 @@ export function determineInitialPage() {
     const hash = window.location.hash.slice(1);
     const hashParams = new URLSearchParams(hash);
     const pageFromHash = hashParams.get('page');
-    const pathFromHash = hashParams.get('path');
-    const hasQuery = Boolean(getHashParam('query'));
+    const queryFromHash = hashParams.get('query');
+    const hasQuery = Boolean(queryFromHash);
+
     return pageFromHash || (hasQuery ? PAGE_NAMES.CONTENT : PAGE_NAMES.WELCOME);
 }
 
@@ -22,16 +39,20 @@ export function determineInitialPage() {
  * This is the central function for URL-based store initialization
  */
 export function initializeStoreFromUrl() {
-    // Initialize page parameter
     const initialPage = determineInitialPage();
     Store.page.set(initialPage);
     const hash = window.location.hash.slice(1);
     const hashParams = new URLSearchParams(hash);
     const pathFromHash = hashParams.get('path');
-    if (pathFromHash && Store.search) {
-        Store.search.set((prev) => ({ ...prev, path: pathFromHash }));
+    const queryFromHash = hashParams.get('query');
+    if ((pathFromHash || queryFromHash) && Store.search) {
+        Store.search.set((prev) => ({
+            ...prev,
+            path: pathFromHash || prev.path,
+            query: queryFromHash || prev.query,
+        }));
     }
-    
+
     initializeFiltersFromUrl();
 }
 
@@ -49,14 +70,13 @@ export function navigateToPage(value) {
         if (confirmed) {
             Store.fragments.inEdit.set();
             Store.page.set(value);
-            
-            // First remove page from search params if it exists
+
             const url = new URL(window.location);
             if (url.searchParams.has('page')) {
                 url.searchParams.delete('page');
                 window.history.replaceState({}, '', url.toString());
             }
-            
+
             const currentHash = window.location.hash.slice(1);
             const hashParams = new URLSearchParams(currentHash);
             hashParams.delete('page');
@@ -67,11 +87,11 @@ export function navigateToPage(value) {
                 hashParams.delete('path');
                 orderedParams.set('path', pathValue);
             }
-            
+
             for (const [key, val] of hashParams.entries()) {
                 orderedParams.set(key, val);
             }
-            
+
             window.location.hash = orderedParams.toString();
         }
     };
@@ -155,6 +175,13 @@ export function linkStoreToHash(store, keys, defaultValue) {
             }
         }
 
+        hasChanges = cleanUrlParams(currentParams) || hasChanges;
+
+        if (currentParams.has('query') && !currentParams.has('page')) {
+            currentParams.set('page', PAGE_NAMES.CONTENT);
+            hasChanges = true;
+        }
+
         if (hasChanges) {
             const newHash = currentParams.toString();
             window.history.replaceState(
@@ -186,86 +213,86 @@ export function unlinkStoreFromHash(store) {
 export function initializeRouter() {
     document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
-            window.history.replaceState({}, '', originalUrl);
-            
+            const originalHash = window.location.hash.slice(1);
+            const hashParams = new URLSearchParams(originalHash);
             const url = new URL(window.location);
-            const pageFromSearch = url.searchParams.get('page');
-            const pathFromSearch = url.searchParams.get('path');
-            
+
+            if (url.searchParams.has('query')) {
+                url.searchParams.delete('query');
+            }
+
             if (url.searchParams.has('page')) {
+                const pageFromSearch = url.searchParams.get('page');
                 url.searchParams.delete('page');
-            }
-            
-            const orderedHashParams = new URLSearchParams();
-            
-            if (pageFromSearch) {
-                orderedHashParams.set('page', pageFromSearch);
-            } else {
-                const hash = window.location.hash.slice(1);
-                const hashParams = new URLSearchParams(hash);
-                const pageFromHash = hashParams.get('page');
-                
-                if (pageFromHash) {
-                    orderedHashParams.set('page', pageFromHash);
-                } else {
-                    orderedHashParams.set('page', PAGE_NAMES.WELCOME);
+
+                if (pageFromSearch && !hashParams.has('page')) {
+                    hashParams.set('page', pageFromSearch);
+                } else if (!hashParams.has('page')) {
+                    hashParams.set('page', PAGE_NAMES.WELCOME);
                 }
+            } else if (!hashParams.has('page')) {
+                hashParams.set('page', PAGE_NAMES.WELCOME);
             }
-            
-            if (pathFromSearch) {
+
+            if (url.searchParams.has('path')) {
+                const pathFromSearch = url.searchParams.get('path');
                 url.searchParams.delete('path');
-                orderedHashParams.set('path', pathFromSearch);
-            } else {
-                const hash = window.location.hash.slice(1);
-                const hashParams = new URLSearchParams(hash);
-                const pathFromHash = hashParams.get('path');
-                
-                if (pathFromHash) {
-                    orderedHashParams.set('path', pathFromHash);
+
+                if (pathFromSearch && !hashParams.has('path')) {
+                    hashParams.set('path', pathFromSearch);
                 }
             }
-            
-            const hash = window.location.hash.slice(1);
-            const existingHashParams = new URLSearchParams(hash);
-            
-            for (const [key, value] of existingHashParams.entries()) {
-                if (key !== 'page' && key !== 'path') {
-                    url.searchParams.set(key, value);
-                }
+
+            cleanUrlParams(hashParams);
+
+            if (hashParams.has('query') && !hashParams.has('page')) {
+                hashParams.set('page', PAGE_NAMES.CONTENT);
+                Store.page.set(PAGE_NAMES.CONTENT);
             }
-            
-            for (const [key, value] of existingHashParams.entries()) {
-                if (key === 'query') {
-                    orderedHashParams.set(key, value);
-                }
-            }
-            
-            url.hash = orderedHashParams.toString();
+
+            url.hash = hashParams.toString();
+
             window.history.replaceState({}, '', url.toString());
         }, 100);
     });
 
     window.addEventListener('popstate', (event) => {
-        // Get page and path from hash
         const hash = window.location.hash.slice(1);
         const hashParams = new URLSearchParams(hash);
+
+        cleanUrlParams(hashParams);
+
         const pageFromHash = hashParams.get('page');
         const pathFromHash = hashParams.get('path');
+        const queryFromHash = hashParams.get('query');
+
+        if (queryFromHash && !pageFromHash) {
+            hashParams.set('page', PAGE_NAMES.CONTENT);
+            window.location.hash = hashParams.toString();
+            Store.page.set(PAGE_NAMES.CONTENT);
+            return;
+        }
+
+        const hasQuery = Boolean(queryFromHash);
 
         if (pageFromHash) {
             Store.page.set(pageFromHash);
+        } else if (hasQuery) {
+            Store.page.set(PAGE_NAMES.CONTENT);
         } else {
             Store.page.set(PAGE_NAMES.WELCOME);
         }
-        
-        if (pathFromHash && Store.search) {
-            Store.search.set((prev) => ({ ...prev, path: pathFromHash }));
+        if ((pathFromHash || queryFromHash) && Store.search) {
+            Store.search.set((prev) => ({
+                ...prev,
+                path: pathFromHash || prev.path,
+                query: queryFromHash || prev.query,
+            }));
         }
-        
         const urlParams = new URLSearchParams(window.location.search);
         const localeFromUrl = urlParams.get('locale');
         const tagsFromUrl = urlParams.get('tags');
-        
+
         if (localeFromUrl || tagsFromUrl) {
             const updates = {};
             if (localeFromUrl) updates.locale = localeFromUrl;
@@ -278,7 +305,7 @@ export function initializeRouter() {
             }
             Store.filters.set((prev) => ({ ...prev, ...updates }));
         }
-        
+
         const commerceEnvFromUrl = urlParams.get('commerce.env');
         if (commerceEnvFromUrl) {
             Store.commerceEnv.set(commerceEnvFromUrl);
@@ -323,33 +350,57 @@ export function setupNavigationSubscriptions() {
         if (value.path !== oldValue.path) {
             const currentHash = window.location.hash.slice(1);
             const hashParams = new URLSearchParams(currentHash);
-            
+            let hasChanges = false;
+
             hashParams.delete('path');
-            
-            const orderedParams = new URLSearchParams();
-            
-            const pageValue = hashParams.get('page');
-            if (pageValue) {
-                hashParams.delete('page');
-                orderedParams.set('page', pageValue);
-            }
-            
+
             if (value.path) {
-                orderedParams.set('path', value.path);
+                hashParams.set('path', value.path);
             }
-            
-            for (const [key, val] of hashParams.entries()) {
-                orderedParams.set(key, val);
+            hasChanges = true;
+
+            hasChanges = cleanUrlParams(hashParams) || hasChanges;
+
+            window.location.hash = hashParams.toString();
+        }
+    });
+
+    Store.search.subscribe((value, oldValue) => {
+        if (value.query !== oldValue.query) {
+            const currentHash = window.location.hash.slice(1);
+            const hashParams = new URLSearchParams(currentHash);
+            let hasChanges = false;
+
+            if (value.query) {
+                hashParams.set('query', value.query);
+                if (!hashParams.has('page')) {
+                    hashParams.set('page', PAGE_NAMES.CONTENT);
+                    Store.page.set(PAGE_NAMES.CONTENT);
+                } else if (hashParams.get('page') !== PAGE_NAMES.CONTENT) {
+                    console.warn(
+                        'Query parameter exists but page is not set to content',
+                    );
+                }
+                hasChanges = true;
+            } else {
+                if (hashParams.has('query')) {
+                    hashParams.delete('query');
+                    hasChanges = true;
+                }
             }
-            
-            window.location.hash = orderedParams.toString();
+
+            hasChanges = cleanUrlParams(hashParams) || hasChanges;
+
+            if (hasChanges) {
+                window.location.hash = hashParams.toString();
+            }
         }
     });
 
     Store.filters.subscribe((value, oldValue) => {
         const urlParams = new URLSearchParams(window.location.search);
         let hasChanges = false;
-        
+
         if (value.locale !== oldValue.locale) {
             if (value.locale) {
                 urlParams.set('locale', value.locale);
@@ -358,16 +409,19 @@ export function setupNavigationSubscriptions() {
             }
             hasChanges = true;
         }
-        
+
         if (JSON.stringify(value.tags) !== JSON.stringify(oldValue.tags)) {
-            if (value.tags && (Array.isArray(value.tags) ? value.tags.length > 0 : true)) {
+            if (
+                value.tags &&
+                (Array.isArray(value.tags) ? value.tags.length > 0 : true)
+            ) {
                 urlParams.set('tags', JSON.stringify(value.tags));
             } else {
                 urlParams.delete('tags');
             }
             hasChanges = true;
         }
-        
+
         if (hasChanges) {
             const newSearch = urlParams.toString();
             window.history.replaceState(
@@ -379,17 +433,17 @@ export function setupNavigationSubscriptions() {
             );
         }
     });
-    
+
     Store.commerceEnv.subscribe((value, oldValue) => {
         if (value !== oldValue) {
             const urlParams = new URLSearchParams(window.location.search);
-            
+
             if (value) {
                 urlParams.set('commerce.env', value);
             } else {
                 urlParams.delete('commerce.env');
             }
-            
+
             const newSearch = urlParams.toString();
             window.history.replaceState(
                 null,
@@ -478,6 +532,8 @@ export function linkStoreToSearch(store, keys, defaultValue) {
             }
         }
 
+        hasChanges = cleanUrlParams(currentParams) || hasChanges;
+
         if (hasChanges) {
             const newSearch = currentParams.toString();
             window.history.replaceState(
@@ -499,7 +555,7 @@ function initializeFiltersFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
     const localeFromUrl = urlParams.get('locale');
     const tagsFromUrl = urlParams.get('tags');
-    
+
     if (localeFromUrl || tagsFromUrl) {
         const updates = {};
         if (localeFromUrl) updates.locale = localeFromUrl;
@@ -514,7 +570,7 @@ function initializeFiltersFromUrl() {
     } else {
         Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
     }
-    
+
     const commerceEnvFromUrl = urlParams.get('commerce.env');
     if (commerceEnvFromUrl) {
         Store.commerceEnv.set(commerceEnvFromUrl);

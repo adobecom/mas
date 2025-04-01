@@ -71,7 +71,6 @@ export class MasRepository extends LitElement {
             Store.fragments.recentlyUpdated.limit,
         );
         this.handleSearch = debounce(this.handleSearch.bind(this), 50);
-        this.indexFragment = null;
     }
 
     /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
@@ -361,7 +360,7 @@ export class MasRepository extends LitElement {
         try {
             const isPlaceholder = fragmentData.data && (fragmentData.data.key !== undefined || 
                                                        fragmentData.parentPath?.includes('/dictionary/'));
-            this.showToast(isPlaceholder ? 'Creating placeholder...' : 'Creating fragment...');
+            this.showToast('Creating fragment...');
             
             this.operation.set(OPERATIONS.CREATE);
 
@@ -383,7 +382,7 @@ export class MasRepository extends LitElement {
             this.operation.set();
             return new FragmentStore(fragment);
         } catch (error) {
-            this.processError(error, isPlaceholder ? 'Failed to create placeholder.' : 'Failed to create fragment.');
+            this.processError(error, 'Failed to create fragment.');
         }
     }
 
@@ -417,7 +416,7 @@ export class MasRepository extends LitElement {
         }
         
         const isDictionaryFragment = fragmentToSave.path?.includes('/dictionary/');
-        this.showToast(isDictionaryFragment ? 'Saving placeholder...' : 'Saving fragment...');
+        this.showToast('Saving fragment...');
         this.operation.set(OPERATIONS.SAVE);
         
         try {
@@ -467,18 +466,12 @@ export class MasRepository extends LitElement {
                 this.fragmentStoreInEdit.refreshFrom(savedFragment);
             }
             
-            this.showToast(
-                isDictionaryFragment ? 'Placeholder successfully saved.' : 'Fragment successfully saved.',
-                'positive'
-            );
+            this.showToast('Fragment successfully saved.', 'positive');
             this.operation.set();
             return savedFragment;
         } catch (error) {
             this.operation.set();
-            this.processError(
-                error, 
-                isDictionaryFragment ? 'Failed to save placeholder.' : 'Failed to save fragment.'
-            );
+            this.processError(error, 'Failed to save fragment.');
             if (isDictionaryFragment) {
                 throw error;
             }
@@ -547,13 +540,7 @@ export class MasRepository extends LitElement {
         try {
             this.operation.set(OPERATIONS.DELETE);
             
-            const isDictionaryFragment = fragmentToDelete.path?.includes('/dictionary/');
-            
-            this.showToast(
-                isDictionaryFragment 
-                    ? 'Deleting placeholder...' 
-                    : 'Deleting fragment...'
-            );
+            this.showToast('Deleting fragment...');
             
             const fragmentId = fragmentToDelete.id;
             const fragmentEndpoint = `${this.aem.cfFragmentsUrl}/${fragmentId}`;
@@ -602,21 +589,11 @@ export class MasRepository extends LitElement {
             }
             
             this.operation.set();
-            this.showToast(
-                isDictionaryFragment 
-                    ? 'Placeholder successfully deleted.' 
-                    : 'Fragment successfully deleted.', 
-                'positive'
-            );
+            this.showToast('Fragment successfully deleted.', 'positive');
             return true;
         } catch (error) {
             this.operation.set();
-            this.processError(
-                error, 
-                fragment.path?.includes('/dictionary/') 
-                    ? 'Failed to delete placeholder' 
-                    : 'Failed to delete fragment'
-            );
+            this.processError(error, 'Failed to delete fragment');
             if (fragment.path?.includes('/dictionary/')) {
                 throw error;
             }

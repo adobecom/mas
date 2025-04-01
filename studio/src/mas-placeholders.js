@@ -6,6 +6,7 @@ import Events from './events.js';
 import { MasRepository } from './mas-repository.js';
 import './mas-folder-picker.js';
 import './filters/locale-picker.js';
+import './rte/rte-field.js';
 import { ROOT_PATH, DICTIONARY_MODEL_ID, PAGE_NAMES, OPERATIONS } from './constants.js';
 import { normalizeKey } from './utils.js';
 
@@ -27,26 +28,32 @@ class MasPlaceholders extends LitElement {
         this.editingPlaceholder = null;
         this.editedKey = '';
         this.editedValue = '';
-        this.draftStatus = false;
+        this.editedRichText = false;
         this.activeDropdown = null;
         this.showCreateModal = false;
+        this.isDialogOpen = false;
+        this.confirmDialogConfig = null;
         this.newPlaceholder = {
             key: '',
             value: '',
+            locale: 'en_US',
+            isRichText: false
         };
         this.error = null;
         this.selectedFolder = {};
-        this.selectedLocale = 'en_US';
+        this.selectedLocale = localStorage.getItem('selectedLocale') || 'en_US';
         this.folderData = [];
         this.foldersLoaded = false;
         this.placeholdersData = [];
         this.placeholdersLoading = false;
+        this.isBulkDeleteInProgress = false;
         this.subscriptions = [];
         this.handleClickOutside = this.handleClickOutside.bind(this);
         this.handleCreateModalClickOutside =
             this.handleCreateModalClickOutside.bind(this);
         this.handleFolderChange = this.handleFolderChange.bind(this);
         this.handleLocaleChange = this.handleLocaleChange.bind(this);
+        this.handleRteValueChange = this.handleRteValueChange.bind(this);
     }
 
     /** @type {MasRepository} */
@@ -59,9 +66,33 @@ class MasPlaceholders extends LitElement {
     }
 
     /**
-     * Helper method to show toast messages with consistent formatting
-     * @param {string} message - The message to display
-     * @param {string} variant - The toast variant (positive, negative, info)
+     * Search and filter placeholders based on current search text
+     * @param {boolean} forceCacheBust - Whether to bypass cache
+     */
+    async searchPlaceholders(forceCacheBust = false) {
+        if (!this.placeholdersData || !this.placeholdersData.length) return;
+        
+        const searchText = this.searchQuery?.toLowerCase().trim() || '';
+        if (!searchText) {
+            Store.placeholders.filtered.data.set(this.placeholdersData);
+            this.updateTableSelection();
+            return;
+        }
+        
+        const filteredPlaceholders = this.placeholdersData.filter(placeholder => {
+            const key = placeholder.key?.toLowerCase() || '';
+            const value = placeholder.displayValue?.toLowerCase() || '';
+            return key.includes(searchText) || value.includes(searchText);
+        });
+        
+        Store.placeholders.filtered.data.set(filteredPlaceholders);
+        this.updateTableSelection();
+    }
+    
+    /**
+     * Shows a toast notification
+     * @param {string} message - Message to display
+     * @param {string} variant - Variant type (positive, negative, info, warning)
      */
     showToast(message, variant = 'info') {
         Events.toast.emit({
@@ -171,7 +202,7 @@ class MasPlaceholders extends LitElement {
         if (folderData?.path) {
             Store.placeholders.list.loading.set(true);
             if (this.repository) {
-                this.searchPlaceholders();
+                this.loadPlaceholders();
             } else {
                 this.error = 'Repository component not found';
             }
@@ -221,7 +252,7 @@ class MasPlaceholders extends LitElement {
             };
 
             await this.createPlaceholderWithIndex(fragmentData);
-            this.newPlaceholder = { key: '', value: '' };
+            this.newPlaceholder = { key: '', value: '', locale: this.selectedLocale, isRichText: false };
             this.showCreateModal = false;
             this.selectedPlaceholders = [];
             this.requestUpdate();
@@ -234,8 +265,6 @@ class MasPlaceholders extends LitElement {
 
     async saveEdit() {
         try {
-            Store.placeholders.list.loading.set(true);
-
             if (!this.editingPlaceholder) {
                 throw new Error('No placeholder is being edited');
             }
@@ -262,46 +291,114 @@ class MasPlaceholders extends LitElement {
             }
 
             const fragmentData = placeholder.fragment;
-            if (!fragmentData) {
-                throw new Error('Fragment data is missing');
+            if (!fragmentData || !fragmentData.id) {
+                throw new Error('Fragment data is missing or invalid');
             }
 
-            const updatedFragment = { ...fragmentData };
+            Store.placeholders.list.loading.set(true);
+
+            const repository = this.repository;
+            const fragmentId = fragmentData.id;
+            const fragmentEndpoint = `${repository.aem.cfFragmentsUrl}/${fragmentId}`;
+
+            const getResponse = await fetch(fragmentEndpoint, {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    ...repository.aem.headers
+                }
+            });
+
+            if (!getResponse.ok) {
+                throw new Error(`Failed to get latest fragment: ${getResponse.status}`);
+            }
+
+            const latestFragment = await getResponse.json();
+            const currentETag = getResponse.headers.get('ETag');
+
+            if (!currentETag) {
+                throw new Error('Failed to get ETag for fragment');
+            }
+
+            const savePayload = {
+                title: fragmentData.title || this.editedKey,
+                description: fragmentData.description || '',
+                fields: []
+            };
+
             const fieldsToUpdate = [
                 { name: 'key', value: this.editedKey },
                 { name: 'value', value: this.editedValue },
-                { name: 'locReady', value: true },
+                { name: 'locReady', value: true }
             ];
 
+            const currentFields = latestFragment.fields || [];
+
             fieldsToUpdate.forEach((field) => {
-                const fieldIndex = updatedFragment.fields.findIndex(
-                    (f) => f.name === field.name,
-                );
-                if (fieldIndex !== -1) {
-                    updatedFragment.fields[fieldIndex].values = [field.value];
+                const existingFieldIndex = currentFields.findIndex(f => f.name === field.name);
+                
+                if (existingFieldIndex !== -1) {
+                    const existingField = {...currentFields[existingFieldIndex]};
+                    existingField.values = [field.value];
+                    savePayload.fields.push(existingField);
                 } else {
-                    updatedFragment.fields.push({
+                    savePayload.fields.push({
                         name: field.name,
-                        values: [field.value],
+                        type: field.name === 'locReady' ? 'boolean' : 'text',
+                        values: [field.value]
                     });
                 }
             });
 
-            const savedFragment =
-                await this.repository.saveFragment(updatedFragment, { isInEditStore: false });
+            currentFields.forEach(field => {
+                if (!fieldsToUpdate.some(f => f.name === field.name)) {
+                    savePayload.fields.push({...field});
+                }
+            });
 
+            const saveResponse = await fetch(fragmentEndpoint, {
+                method: 'PUT',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'If-Match': currentETag,
+                    ...repository.aem.headers
+                },
+                body: JSON.stringify(savePayload)
+            });
+
+            if (!saveResponse.ok) {
+                throw new Error(`Failed to save fragment: ${saveResponse.status} ${saveResponse.statusText}`);
+            }
+
+            const savedFragment = await saveResponse.json();
+
+            try {
+                await repository.aem.sites.cf.fragments.publish(savedFragment);
+            } catch (publishError) {
+                this.showToast(`Fragment saved but failed to publish: ${publishError.message}`, 'warning');
+            }
+
+            const containsHtml = /<\/?[a-z][\s\S]*>/i.test(this.editedValue);
+            const displayValue = containsHtml ? 
+                this.editedValue.replace(/<[^>]*>/g, '') : this.editedValue;
+            
             const updatedPlaceholders = [...this.placeholdersData];
             updatedPlaceholders[placeholderIndex] = {
                 ...placeholder,
                 key: this.editedKey,
                 value: this.editedValue,
+                displayValue: displayValue,
+                isRichText: containsHtml,
                 fragment: savedFragment,
+                updatedAt: new Date().toLocaleString()
             };
-
+            
             Store.placeholders.list.data.set(updatedPlaceholders);
-            this.resetEditState();
 
-            this.showToast('Placeholder successfully saved', 'positive');
+            this.resetEditState();
+            this.showToast('Placeholder successfully saved and published', 'positive');
         } catch (error) {
             this.showToast(`Failed to save placeholder: ${error.message}`, 'negative');
         } finally {
@@ -313,14 +410,25 @@ class MasPlaceholders extends LitElement {
         this.editingPlaceholder = null;
         this.editedKey = '';
         this.editedValue = '';
-        this.draftStatus = false;
+        this.editedRichText = false;
     }
 
     async handleDelete(key) {
-        if (!confirm(`Are you sure you want to delete the placeholder with key: ${key}?`)) {
+        if (this.isDialogOpen) {
             return;
         }
-
+        
+        // Prevent this item from being considered "selected" for bulk actions
+        this.selectedPlaceholders = this.selectedPlaceholders.filter(k => k !== key);
+        
+        const confirmed = await this.showDialog(
+            'Delete Placeholder',
+            `Are you sure you want to delete the placeholder "${key}"? This action cannot be undone.`,
+            { confirmText: 'Delete', cancelText: 'Cancel', variant: 'negative' }
+        );
+        
+        if (!confirmed) return;
+        
         try {
             Store.placeholders.list.loading.set(true);
             const placeholder = this.placeholdersData.find(p => p.key === key);
@@ -330,9 +438,9 @@ class MasPlaceholders extends LitElement {
             }
             
             const fragmentData = placeholder.fragment;
+            const fragmentId = fragmentData.id;
             const fragmentPath = fragmentData.path;
             
-            // Handle index removal if needed
             if (!fragmentPath.endsWith('/index')) {
                 const dictionaryPath = fragmentPath.substring(0, fragmentPath.lastIndexOf('/'));
                 try {
@@ -344,16 +452,15 @@ class MasPlaceholders extends LitElement {
 
             this.activeDropdown = null;
 
-            // Delete the fragment
             await this.repository.deleteFragment(fragmentData, { 
                 isInEditStore: false,
-                refreshPlaceholders: false
+                refreshPlaceholders: false 
             });
 
-            // Update UI directly
-            Store.placeholders.list.data.set(
-                this.placeholdersData.filter(p => p.key !== key)
-            );
+            const updatedPlaceholders = this.placeholdersData.filter(p => p.id !== fragmentId);
+            Store.placeholders.list.data.set(updatedPlaceholders);
+            
+            this.showToast('Placeholder successfully deleted', 'positive');
         } catch (error) {
             this.showToast(`Failed to delete placeholder: ${error.message}`, 'negative');
         } finally {
@@ -394,7 +501,6 @@ class MasPlaceholders extends LitElement {
             const existingEntries = entriesField?.values || [];
             const updatedEntries = existingEntries.filter(path => path !== placeholderFragment.path);
             
-            // No change needed if path wasn't in the index
             if (existingEntries.length === updatedEntries.length) return true;
             
             const updatedFields = repository.updateFieldInFragment(
@@ -435,9 +541,11 @@ class MasPlaceholders extends LitElement {
     }
 
     /**
-     * Search for placeholder fragments in the dictionary
+     * Load placeholders with selective update
+     * Fetches data and updates Store without triggering a full reload
+     * @param {boolean} forceCacheBust - Whether to bypass cache
      */
-    async searchPlaceholders() {
+    async loadPlaceholders(forceCacheBust = false) {
         try {
             const folderPath = this.selectedFolder?.path;
             if (!folderPath) {
@@ -456,7 +564,10 @@ class MasPlaceholders extends LitElement {
                 sort: [{ on: 'created', order: 'ASC' }],
             };
 
-            const searchUrl = `${repository.aem.cfFragmentsUrl}/search?query=${encodeURIComponent(JSON.stringify(query))}&limit=50`;
+            let searchUrl = `${repository.aem.cfFragmentsUrl}/search?query=${encodeURIComponent(JSON.stringify(query))}&limit=50`;
+            if (forceCacheBust) {
+                searchUrl += `&timestamp=${Date.now()}`;
+            }
 
             const response = await fetch(searchUrl, {
                 method: 'GET',
@@ -465,6 +576,7 @@ class MasPlaceholders extends LitElement {
                     'Content-Type': 'application/json',
                     ...repository.aem.headers,
                 },
+                cache: forceCacheBust ? 'no-store' : 'default'
             });
 
             if (!response.ok) {
@@ -495,9 +607,6 @@ class MasPlaceholders extends LitElement {
                     const valueField = fragment.fields.find(
                         (field) => field.name === 'value',
                     );
-                    const richTextValueField = fragment.fields.find(
-                        (field) => field.name === 'richTextValue',
-                    );
                     const locReadyField = fragment.fields.find(
                         (field) => field.name === 'locReady',
                     );
@@ -510,20 +619,7 @@ class MasPlaceholders extends LitElement {
                             : '';
 
                     let value = '';
-                    if (
-                        richTextValueField &&
-                        richTextValueField.values &&
-                        richTextValueField.values.length > 0
-                    ) {
-                        value = richTextValueField.values[0].replace(
-                            /<[^>]*>/g,
-                            '',
-                        );
-                    } else if (
-                        valueField &&
-                        valueField.values &&
-                        valueField.values.length > 0
-                    ) {
+                    if (valueField?.values?.length > 0) {
                         value = valueField.values[0];
                     }
 
@@ -534,10 +630,17 @@ class MasPlaceholders extends LitElement {
                             ? locReadyField.values[0]
                             : false;
 
+                    const containsHtml = /<\/?[a-z][\s\S]*>/i.test(value);
+                    
+                    const displayValue = containsHtml ? 
+                        value.replace(/<[^>]*>/g, '') : value;
+
                     return {
                         id: fragment.id,
                         key: key,
                         value: value,
+                        displayValue: displayValue,
+                        isRichText: containsHtml,
                         locale: locale,
                         state: locReady ? 'Ready' : 'Not Ready',
                         updatedBy: fragment.modified?.by || 'Unknown',
@@ -560,130 +663,6 @@ class MasPlaceholders extends LitElement {
     }
 
     /**
-     * Force a refresh of the placeholders table
-     */
-    async forceRefreshPlaceholders() {
-        try {
-            Store.placeholders.list.loading.set(true);
-            await this.searchPlaceholders();
-        } catch (error) {
-            console.warn('Error refreshing placeholders:', error);
-        } finally {
-            Store.placeholders.list.loading.set(false);
-        }
-    }
-
-    /**
-     * Creates a new index fragment with initial entries
-     * @param {string} parentPath - Parent path for the index
-     * @param {string} fragmentPath - Initial fragment path to include
-     * @returns {Promise<boolean>} - Success status
-     */
-    async createIndexFragment(parentPath, fragmentPath) {
-        const repository = this.repository;
-        const indexFragment = await repository.aem.sites.cf.fragments.create({
-            parentPath,
-            modelId: DICTIONARY_MODEL_ID,
-            name: 'index',
-            title: 'index',
-            description: '',
-            fields: [
-                {
-                    name: 'entries',
-                    type: 'content-fragment',
-                    multiple: true,
-                    values: [fragmentPath]
-                },
-                {
-                    name: 'locReady',
-                    type: 'boolean',
-                    multiple: false,
-                    values: [true]
-                }
-            ]
-        });
-        
-        await repository.aem.sites.cf.fragments.publish(indexFragment);
-        return true;
-    }
-
-    /**
-     * Updates index fragment with a new placeholder entry
-     * @param {string} parentPath - Path to the directory containing the index
-     * @param {string} fragmentPath - Path to the fragment to add to the index
-     * @returns {Promise<boolean>} - Success status
-     */
-    async updateIndexFragment(parentPath, fragmentPath) {
-        const indexPath = `${parentPath}/index`;
-        const repository = this.repository;
-        
-        try {
-            let indexFragment;
-            try {
-                indexFragment = await repository.aem.sites.cf.fragments.getByPath(indexPath);
-            } catch (error) {
-                console.log(`Index not found at ${indexPath}, creating new one`);
-                return await this.createIndexFragment(parentPath, fragmentPath);
-            }
-            
-            if (!indexFragment?.id) {
-                throw new Error("Index fragment has no ID");
-            }
-
-            const response = await fetch(`${repository.aem.cfFragmentsUrl}/${indexFragment.id}`, {
-                method: 'GET',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                    ...repository.aem.headers
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to get index fragment: ${response.status}`);
-            }
-
-            const freshIndex = await response.json();
-            const entriesField = freshIndex.fields.find(f => f.name === 'entries');
-            const currentEntries = entriesField?.values || [];
-            
-            if (currentEntries.includes(fragmentPath)) {
-                return true;
-            }
-
-            const currentETag = response.headers.get('ETag');
-            const updatedEntries = [...currentEntries, fragmentPath];
-            const updatedFields = repository.updateFieldInFragment(freshIndex.fields, 'entries', updatedEntries, 'content-fragment', true);
-            
-            const saveResponse = await fetch(`${repository.aem.cfFragmentsUrl}/${indexFragment.id}`, {
-                method: 'PUT',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                    'If-Match': currentETag,
-                    ...repository.aem.headers
-                },
-                body: JSON.stringify({
-                    title: freshIndex.title,
-                    description: freshIndex.description || '',
-                    fields: updatedFields
-                })
-            });
-
-            if (!saveResponse.ok) {
-                throw new Error(`Failed to save index: ${saveResponse.status}`);
-            }
-
-            const savedIndex = await saveResponse.json();
-            await repository.aem.sites.cf.fragments.publish(savedIndex);
-            return true;
-        } catch (error) {
-            console.error('Failed to update index:', error);
-            throw error;
-        }
-    }
-
-    /**
      * Create a placeholder with index operations
      * @param {Object} fragmentData - The fragment data to create
      * @returns {Promise<Object>} - The created fragment
@@ -697,23 +676,75 @@ class MasPlaceholders extends LitElement {
                 throw new Error('Missing required data for placeholder creation');
             }
             
-            // Use the repository's createFragment method for actual fragment creation
-            const newFragment = await repository.createFragment(fragmentData);            
-            const dictionaryPath = fragmentData.parentPath;
-            const fragmentPath = newFragment.get().path;
-            
-            // Update the index to include the new placeholder
-            try {
-                await this.updateIndexFragment(dictionaryPath, fragmentPath);
-            } catch (indexError) {
-                console.error('Failed to update/create index:', indexError);
+            const createPayload = {
+                name: fragmentData.name,
+                parentPath: fragmentData.parentPath,
+                modelId: fragmentData.modelId,
+                title: fragmentData.title,
+                description: fragmentData.description || '',
+                fields: []
+            };
+
+            if (fragmentData.data) {
+                Object.entries(fragmentData.data).forEach(([key, value]) => {
+                    if (value !== undefined) {
+                        createPayload.fields.push({
+                            name: key,
+                            type: key === 'locReady' ? 'boolean' : 'text',
+                            values: [value]
+                        });
+                    }
+                });
             }
             
-            // Refresh UI and show success message
-            await this.forceRefreshPlaceholders();
+            const newFragment = await repository.createFragment(createPayload);            
+            const createdFragmentData = newFragment.get();
+            const dictionaryPath = createdFragmentData.parentPath;
+            const fragmentPath = createdFragmentData.path;
+            
+            try {
+                const indexUpdateResult = await this.updateIndexFragment(dictionaryPath, fragmentPath);
+                if (!indexUpdateResult) {
+                    console.info('Index update skipped - this is not critical for basic functionality');
+                }
+            } catch (indexError) {
+                console.warn('Failed to update/create index - continuing with placeholder creation:', indexError);
+            }
+            
+            try {
+                await repository.aem.sites.cf.fragments.publish(createdFragmentData);
+            } catch (publishError) {
+                console.error('Failed to publish fragment:', publishError);
+                this.showToast('Placeholder created but not published', 'warning');
+            }
+            
+            const locale = this.selectedLocale || 'en_US';
+            const key = fragmentData.data.key;
+            const value = fragmentData.data.value;
+            const containsHtml = /<\/?[a-z][\s\S]*>/i.test(value);
+            const displayValue = containsHtml ? 
+                value.replace(/<[^>]*>/g, '') : value;
+                
+            const newPlaceholder = {
+                id: createdFragmentData.id,
+                key: key,
+                value: value,
+                displayValue: displayValue,
+                isRichText: containsHtml,
+                locale: locale,
+                state: 'Ready',
+                updatedBy: 'You',
+                updatedAt: new Date().toLocaleString(),
+                path: fragmentPath,
+                fragment: createdFragmentData
+            };
+            
+            const updatedPlaceholders = [...this.placeholdersData, newPlaceholder];
+            Store.placeholders.list.data.set(updatedPlaceholders);
+            
             this.showToast('Placeholder successfully created and published.', 'positive');
             repository.operation.set();
-            return newFragment.get();
+            return createdFragmentData;
         } catch (error) {
             repository.operation.set();
             if (error.message?.includes('409')) {
@@ -763,7 +794,17 @@ class MasPlaceholders extends LitElement {
 
     closeCreateModal() {
         this.showCreateModal = false;
+        this.clearRteInitializedFlags();
         this.requestUpdate();
+    }
+
+    clearRteInitializedFlags() {
+        const rteFields = this.shadowRoot?.querySelectorAll('rte-field');
+        if (rteFields) {
+            rteFields.forEach(field => {
+                field.initDone = false;
+            });
+        }
     }
 
     handleSearch(e) {
@@ -778,10 +819,10 @@ class MasPlaceholders extends LitElement {
             key: '',
             value: '',
             locale: currentLocale,
+            isRichText: false
         };
 
         setTimeout(() => {
-            //needed for the modal to display
             if (!this.showCreateModal) {
                 this.showCreateModal = true;
                 this.requestUpdate();
@@ -790,7 +831,10 @@ class MasPlaceholders extends LitElement {
     }
 
     updateTableSelection(event) {
-        this.selectedPlaceholders = Array.from(event.target.selectedSet);
+        if (event && event.target) {
+            this.selectedPlaceholders = Array.from(event.target.selectedSet);
+            this.requestUpdate();
+        }
     }
 
     handleSort(field) {
@@ -803,7 +847,11 @@ class MasPlaceholders extends LitElement {
         this.requestUpdate();
     }
 
-    startEditing(placeholder) {
+    /**
+     * Start editing a placeholder
+     * @param {Object} placeholder - The placeholder to edit
+     */
+    startEdit(placeholder) {
         if (this.editingPlaceholder) {
             this.cancelEdit();
         }
@@ -811,7 +859,7 @@ class MasPlaceholders extends LitElement {
         this.editingPlaceholder = placeholder.key;
         this.editedKey = placeholder.key;
         this.editedValue = placeholder.value;
-        this.draftStatus = false;
+        this.editedRichText = placeholder.isRichText;
         this.requestUpdate();
     }
 
@@ -819,7 +867,8 @@ class MasPlaceholders extends LitElement {
         this.editingPlaceholder = null;
         this.editedKey = '';
         this.editedValue = '';
-        this.draftStatus = false;
+        this.editedRichText = false;
+        this.clearRteInitializedFlags();
         this.requestUpdate();
     }
 
@@ -836,13 +885,45 @@ class MasPlaceholders extends LitElement {
 
     handleKeyChange(e) {
         this.editedKey = normalizeKey(e.target.value);
-        this.draftStatus = true;
         this.requestUpdate();
     }
 
     handleValueChange(e) {
         this.editedValue = e.target.value;
-        this.draftStatus = true;
+        this.requestUpdate();
+    }
+
+    handleRteValueChange(e) {
+        if (e && e.target) {
+            this.editedValue = e.target.value || '';
+            this.requestUpdate();
+        }
+    }
+
+    handleNewPlaceholderKeyChange(e) {
+        this.newPlaceholder.key = normalizeKey(e.target.value);
+        this.requestUpdate();
+    }
+
+    handleNewPlaceholderLocaleChange(e) {
+        this.newPlaceholder.locale = e.detail.locale;
+        this.requestUpdate();
+    }
+
+    handleNewPlaceholderRteChange(e) {
+        if (e && e.target) {
+            this.newPlaceholder.value = e.target.value || '';
+            this.requestUpdate();
+        }
+    }
+
+    handleRichTextToggle(e) {
+        const existingField = this.shadowRoot.querySelector('#placeholder-rich-value');
+        if (existingField) {
+            existingField.initDone = false;
+        }
+        
+        this.newPlaceholder.isRichText = e.target.checked;
         this.requestUpdate();
     }
 
@@ -855,7 +936,7 @@ class MasPlaceholders extends LitElement {
                     placeholder.key
                         .toLowerCase()
                         .includes(this.searchQuery.toLowerCase()) ||
-                    placeholder.value
+                    placeholder.displayValue
                         .toLowerCase()
                         .includes(this.searchQuery.toLowerCase()),
             );
@@ -875,15 +956,28 @@ class MasPlaceholders extends LitElement {
     }
 
     /**
-     * Helper to create a table cell with optional styling
+     * Renders a table cell with optional tooltip
      * @param {string} content - Cell content
-     * @param {string} align - Text alignment (left, right, center)
-     * @returns {TemplateResult} The rendered table cell
+     * @returns {TemplateResult} - HTML template
      */
-    renderTableCell(content, align = 'left') {
+    renderTableCell(content) {
+        const value = content || '';
+        const needsTooltip = value.length > 50;
+        
+        if (needsTooltip) {
+            return html`
+                <sp-table-cell>
+                    <sp-tooltip placement="right">
+                        ${value}
+                        <div slot="trigger" class="cell-content">${value.substring(0, 50)}...</div>
+                    </sp-tooltip>
+                </sp-table-cell>
+            `;
+        }
+        
         return html`
-            <sp-table-cell style=${align !== 'left' ? `text-align: ${align};` : ''}>
-                ${content}
+            <sp-table-cell>
+                <div class="cell-content">${value}</div>
             </sp-table-cell>
         `;
     }
@@ -910,16 +1004,37 @@ class MasPlaceholders extends LitElement {
             return html`
                 <sp-table-cell class="editing-cell">
                     <div class="edit-field-container">
-                        <sp-textfield
-                            placeholder="Value"
-                            .value=${this.editedValue}
-                            @input=${this.handleValueChange}
-                        ></sp-textfield>
+                        ${this.editedRichText ? 
+                            html`
+                                <div class="rte-container">
+                                    <rte-field
+                                        inline
+                                        link
+                                        .maxLength=${500}
+                                        @change=${this.handleRteValueChange}
+                                    ></rte-field>
+                                </div>
+                            ` : 
+                            html`<sp-textfield
+                                placeholder="Value"
+                                .value=${this.editedValue}
+                                @input=${this.handleValueChange}
+                            ></sp-textfield>`
+                        }
                     </div>
                 </sp-table-cell>
             `;
         }
-        return this.renderTableCell(placeholder.value);
+        
+        if (placeholder.isRichText) {
+            return html`
+                <sp-table-cell>
+                    <div class="rich-text-cell" .innerHTML=${placeholder.value}></div>
+                </sp-table-cell>
+            `;
+        }
+        
+        return this.renderTableCell(placeholder.displayValue);
     }
 
     renderTableHeader(columns) {
@@ -988,18 +1103,8 @@ class MasPlaceholders extends LitElement {
         ></sp-progress-circle>`;
     }
 
-    handleNewPlaceholderKeyChange(e) {
-        this.newPlaceholder.key = normalizeKey(e.target.value);
-        this.requestUpdate();
-    }
-
     handleNewPlaceholderValueChange(e) {
         this.newPlaceholder.value = e.target.value;
-        this.requestUpdate();
-    }
-
-    handleNewPlaceholderLocaleChange(e) {
-        this.newPlaceholder.locale = e.detail.locale;
         this.requestUpdate();
     }
 
@@ -1034,14 +1139,47 @@ class MasPlaceholders extends LitElement {
             ></mas-locale-picker>
         `;
 
-        const valueField = html`
-            <sp-textfield
-                id="placeholder-value"
-                placeholder="Value"
-                .value=${this.newPlaceholder.value}
-                @input=${this.handleNewPlaceholderValueChange}
-            ></sp-textfield>
+        const richTextToggle = html`
+            <div class="rich-text-toggle">
+                <sp-switch
+                    id="rich-text-toggle"
+                    @change=${this.handleRichTextToggle}
+                    .checked=${this.newPlaceholder.isRichText}
+                >
+                    Rich Text
+                </sp-switch>
+            </div>
         `;
+
+        const valueField = this.newPlaceholder.isRichText ? 
+            html`
+                <div class="rte-container">
+                    <rte-field
+                        id="placeholder-rich-value"
+                        inline
+                        link
+                        .maxLength=${500}
+                        @change=${this.handleNewPlaceholderRteChange}
+                    ></rte-field>
+                </div>
+            ` : 
+            html`
+                <sp-textfield
+                    id="placeholder-value"
+                    placeholder="Value"
+                    .value=${this.newPlaceholder.value}
+                    @input=${this.handleNewPlaceholderValueChange}
+                ></sp-textfield>
+            `;
+
+        setTimeout(() => {
+            if (this.newPlaceholder.isRichText) {
+                const rteField = this.shadowRoot.querySelector('#placeholder-rich-value');
+                if (rteField) {
+                    rteField.innerHTML = this.newPlaceholder.value || '';
+                }
+            }
+        }, 0);
 
         return html`
             <div
@@ -1055,6 +1193,7 @@ class MasPlaceholders extends LitElement {
                         <div class="create-modal-form">
                             ${this.renderFormGroup("placeholder-key", "Enter Key", true, keyField)}
                             ${this.renderFormGroup("placeholder-locale", "Choose Locale", true, localeField)}
+                            ${richTextToggle}
                             ${this.renderFormGroup("placeholder-value", "Enter Value", true, valueField)}
                         </div>
 
@@ -1090,7 +1229,7 @@ class MasPlaceholders extends LitElement {
         Store.placeholders.list.loading.set(true);
 
         if (this.repository) {
-            this.searchPlaceholders();
+            this.loadPlaceholders();
         }
     }
 
@@ -1123,7 +1262,10 @@ class MasPlaceholders extends LitElement {
                 <div class="dropdown-menu">
                     <div
                         class="dropdown-item"
-                        @click=${() => this.handleDelete(placeholder.key)}
+                        @click=${(e) => {
+                            e.stopPropagation();
+                            this.handleDelete(placeholder.key);
+                        }}
                     >
                         <sp-icon-delete></sp-icon-delete>
                         <span>Delete</span>
@@ -1137,7 +1279,10 @@ class MasPlaceholders extends LitElement {
                 <div class="action-buttons">
                     <button
                         class="action-button approve-button"
-                        @click=${() => this.startEditing(placeholder)}
+                        @click=${(e) => {
+                            e.stopPropagation();
+                            this.startEdit(placeholder);
+                        }}
                         aria-label="Edit placeholder"
                     >
                         <sp-icon-edit></sp-icon-edit>
@@ -1173,8 +1318,18 @@ class MasPlaceholders extends LitElement {
         return this.renderPlaceholdersTable();
     }
 
+    /**
+     * Check if the bulk action button should be visible
+     * @returns {boolean} - True if the button should be visible
+     */
+    shouldShowBulkAction() {
+        return this.selectedPlaceholders.length > 0 && !this.isDialogOpen && !this.loading;
+    }
+
     render() {
         const modalContent = this.showCreateModal ? this.renderCreateModal() : nothing;
+        const confirmDialog = this.renderConfirmDialog();
+        const showBulkAction = this.shouldShowBulkAction();
         
         return html`
             <div class="placeholders-container">
@@ -1219,6 +1374,310 @@ class MasPlaceholders extends LitElement {
                 </div>
 
                 ${modalContent}
+                ${confirmDialog}
+                
+                <div class="bulk-action-container ${showBulkAction ? 'visible' : ''}">
+                    <sp-action-button 
+                        variant="negative"
+                        @click=${this.handleBulkDelete}
+                        ?disabled=${this.isBulkDeleteInProgress}
+                        size="l"
+                    >
+                        <sp-icon-delete slot="icon"></sp-icon-delete>
+                        Delete (${this.selectedPlaceholders.length})
+                    </sp-action-button>
+                </div>
+            </div>
+        `;
+    }
+
+    updated(changedProperties) {
+        super.updated(changedProperties);
+        
+        if (this.editingPlaceholder && this.editedRichText) {
+            const rteField = this.shadowRoot.querySelector('rte-field');
+            if (rteField && !rteField.initDone) {
+                rteField.innerHTML = this.editedValue;
+                rteField.initDone = true;
+            }
+        }
+        
+        if (this.showCreateModal && this.newPlaceholder.isRichText) {
+            const rteField = this.shadowRoot.querySelector('#placeholder-rich-value');
+            if (rteField && !rteField.initDone) {
+                rteField.innerHTML = this.newPlaceholder.value || '';
+                rteField.initDone = true;
+            }
+        }
+    }
+
+    /**
+     * Updates index fragment with a new placeholder entry
+     * @param {string} parentPath - Path to the directory containing the index
+     * @param {string} fragmentPath - Path to the fragment to add to the index
+     * @returns {Promise<boolean>} - Success status
+     */
+    async updateIndexFragment(parentPath, fragmentPath) {
+        if (!parentPath || !fragmentPath) {
+            console.warn('Invalid paths for index update:', { parentPath, fragmentPath });
+            return false;
+        }
+        
+        const indexPath = `${parentPath}/index`;
+        const repository = this.repository;
+        
+        try {
+            let indexFragment;
+            try {
+                indexFragment = await repository.aem.sites.cf.fragments.getByPath(indexPath);
+            } catch (error) {
+                console.log(`Index not found at ${indexPath}, creating new one`);
+                return await this.createIndexFragment(parentPath, fragmentPath);
+            }
+            
+            if (!indexFragment?.id) {
+                console.warn("Index fragment has no ID");
+                return false;
+            }
+
+            const response = await fetch(`${repository.aem.cfFragmentsUrl}/${indexFragment.id}`, {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    ...repository.aem.headers
+                }
+            });
+
+            if (!response.ok) {
+                console.warn(`Failed to get index fragment: ${response.status}`);
+                return false;
+            }
+
+            const freshIndex = await response.json();
+            const entriesField = freshIndex.fields.find(f => f.name === 'entries');
+            const currentEntries = entriesField?.values || [];
+            
+            if (currentEntries.includes(fragmentPath)) {
+                return true;
+            }
+
+            const currentETag = response.headers.get('ETag');
+            const updatedEntries = [...currentEntries, fragmentPath];
+            const updatedFields = repository.updateFieldInFragment(freshIndex.fields, 'entries', updatedEntries, 'content-fragment', true);
+            
+            const saveResponse = await fetch(`${repository.aem.cfFragmentsUrl}/${indexFragment.id}`, {
+                method: 'PUT',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'If-Match': currentETag,
+                    ...repository.aem.headers
+                },
+                body: JSON.stringify({
+                    title: freshIndex.title,
+                    description: freshIndex.description || '',
+                    fields: updatedFields
+                })
+            });
+
+            if (!saveResponse.ok) {
+                console.warn(`Failed to save index: ${saveResponse.status}`);
+                return false;
+            }
+
+            const savedIndex = await saveResponse.json();
+            await repository.aem.sites.cf.fragments.publish(savedIndex);
+            return true;
+        } catch (error) {
+            console.warn('Failed to update index:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Creates a new index fragment with initial entries
+     * @param {string} parentPath - Parent path for the index
+     * @param {string} fragmentPath - Initial fragment path to include
+     * @returns {Promise<boolean>} - Success status
+     */
+    async createIndexFragment(parentPath, fragmentPath) {
+        if (!parentPath || !fragmentPath) {
+            console.warn('Invalid paths for index creation:', { parentPath, fragmentPath });
+            return false;
+        }
+        
+        try {
+            const repository = this.repository;
+            const indexFragment = await repository.aem.sites.cf.fragments.create({
+                parentPath,
+                modelId: DICTIONARY_MODEL_ID,
+                name: 'index',
+                title: 'index',
+                description: '',
+                fields: [
+                    {
+                        name: 'entries',
+                        type: 'content-fragment',
+                        multiple: true,
+                        values: [fragmentPath]
+                    },
+                    {
+                        name: 'locReady',
+                        type: 'boolean',
+                        multiple: false,
+                        values: [true]
+                    }
+                ]
+            });
+            
+            await repository.aem.sites.cf.fragments.publish(indexFragment);
+            return true;
+        } catch (error) {
+            console.warn('Failed to create index fragment:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Display a dialog for confirmation
+     * @param {string} title - Dialog title
+     * @param {string} message - Dialog message
+     * @param {Object} options - Additional options
+     * @returns {Promise<boolean>} - True if confirmed, false if canceled
+     */
+    async showDialog(title, message, options = {}) {
+        if (this.isDialogOpen) {
+            console.warn('A dialog is already open');
+            return false;
+        }
+        
+        this.isDialogOpen = true;
+        const { confirmText = 'OK', cancelText = 'Cancel', variant = 'primary' } = options;
+        
+        return new Promise(resolve => {
+            this.confirmDialogConfig = {
+                title,
+                message,
+                confirmText,
+                cancelText,
+                variant,
+                onConfirm: () => {
+                    resolve(true);
+                },
+                onCancel: () => {
+                    resolve(false);
+                }
+            };
+            
+            this.requestUpdate();
+        });
+    }
+
+    /**
+     * Handle bulk delete of selected placeholders
+     */
+    async handleBulkDelete() {
+        if (this.isBulkDeleteInProgress || this.isDialogOpen) {
+            return;
+        }
+        
+        const placeholdersToDelete = [...this.selectedPlaceholders];
+        this.selectedPlaceholders = [];
+        
+        if (!placeholdersToDelete.length) return;
+        
+        const confirmed = await this.showDialog(
+            'Delete Placeholders',
+            `Are you sure you want to delete ${placeholdersToDelete.length} placeholders? This action cannot be undone.`,
+            { confirmText: 'Delete', cancelText: 'Cancel', variant: 'negative' }
+        );
+        
+        if (!confirmed) return;
+        
+        this.isBulkDeleteInProgress = true;
+        Store.placeholders.list.loading.set(true);
+        this.showToast(`Deleting ${placeholdersToDelete.length} placeholders...`, 'info');
+        
+        try {
+            const placeholderObjects = this.placeholdersData.filter(p => 
+                placeholdersToDelete.includes(p.key));
+                
+            for (const placeholder of placeholderObjects) {
+                try {
+                    if (placeholder.fragment) {
+                        const fragmentData = placeholder.fragment;
+                        const fragmentPath = fragmentData.path;
+                        
+                        if (!fragmentPath.endsWith('/index')) {
+                            const dictionaryPath = fragmentPath.substring(0, fragmentPath.lastIndexOf('/'));
+                            try {
+                                await this.removeFromIndexFragment(dictionaryPath, fragmentData);
+                            } catch (error) {
+                                console.debug('Failed to remove from index, proceeding with deletion:', error);
+                            }
+                        }
+                        
+                        await this.repository.deleteFragment(fragmentData, { 
+                            isInEditStore: false,
+                            refreshPlaceholders: false 
+                        });
+                    }
+                } catch (error) {
+                    console.error(`Failed to delete placeholder ${placeholder.key}:`, error);
+                }
+            }
+            
+            const updatedPlaceholders = this.placeholdersData.filter(p => 
+                !placeholdersToDelete.includes(p.key));
+                
+            Store.placeholders.list.data.set(updatedPlaceholders);
+            this.loadPlaceholders(true);
+            
+            this.showToast(`Successfully deleted ${placeholdersToDelete.length} placeholders`, 'positive');
+        } catch (error) {
+            console.error('Bulk delete error:', error);
+            this.showToast(`Failed to delete some placeholders: ${error.message}`, 'negative');
+        } finally {
+            this.isBulkDeleteInProgress = false;
+            Store.placeholders.list.loading.set(false);
+        }
+    }
+
+    /**
+     * Renders a confirmation dialog
+     * @returns {TemplateResult} - HTML template
+     */
+    renderConfirmDialog() {
+        if (!this.confirmDialogConfig) return nothing;
+        
+        const { title, message, onConfirm, onCancel, confirmText, cancelText, variant } = this.confirmDialogConfig;
+        
+        return html`
+            <div class="confirm-dialog-overlay">
+                <sp-dialog-wrapper
+                    open
+                    underlay
+                    id="bulk-delete-confirm-dialog"
+                    .heading=${title}
+                    .variant=${variant || 'negative'}
+                    .confirmLabel=${confirmText}
+                    .cancelLabel=${cancelText}
+                    @confirm=${() => {
+                        this.confirmDialogConfig = null;
+                        this.isDialogOpen = false;
+                        this.requestUpdate();
+                        onConfirm && onConfirm();
+                    }}
+                    @cancel=${() => {
+                        this.confirmDialogConfig = null;
+                        this.isDialogOpen = false;
+                        this.requestUpdate();
+                        onCancel && onCancel();
+                    }}
+                >
+                    <div>${message}</div>
+                </sp-dialog-wrapper>
             </div>
         `;
     }

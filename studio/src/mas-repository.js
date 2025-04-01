@@ -138,9 +138,6 @@ export class MasRepository extends LitElement {
             case 'welcome':
                 this.loadRecentlyUpdatedFragments();
                 break;
-            case 'placeholders':
-                this.searchPlaceholders();
-                break;
         }
     }
 
@@ -443,6 +440,8 @@ export class MasRepository extends LitElement {
                 
                 const currentETag = response.headers.get('ETag');
                 
+                const { id, ...fragmentPayload } = fragmentToSave;
+                
                 const saveResponse = await fetch(fragmentEndpoint, {
                     method: 'PUT',
                     headers: {
@@ -451,7 +450,7 @@ export class MasRepository extends LitElement {
                         'If-Match': currentETag,
                         ...this.aem.headers
                     },
-                    body: JSON.stringify(fragmentToSave)
+                    body: JSON.stringify(fragmentPayload)
                 });
                 
                 if (!saveResponse.ok) {

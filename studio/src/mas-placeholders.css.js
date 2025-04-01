@@ -127,7 +127,6 @@ export const styles = css`
         overflow: visible;
     }
 
-    /* Action column styles */
     .action-cell {
         position: relative;
         box-sizing: border-box;
@@ -157,7 +156,6 @@ export const styles = css`
         background-color: var(--spectrum-global-color-gray-200);
     }
 
-    /* Dropdown menu styles */
     .dropdown-menu {
         position: absolute;
         right: 0;
@@ -191,7 +189,6 @@ export const styles = css`
         display: inline-flex;
     }
 
-    /* Create Modal Styles */
     .create-modal-overlay {
         position: fixed;
         top: 0;
@@ -253,7 +250,6 @@ export const styles = css`
         margin-top: 24px;
     }
 
-    /* Editing styles */
     .editing-cell {
         padding: 0 !important;
     }
@@ -266,7 +262,6 @@ export const styles = css`
         width: 100%;
     }
 
-    /* Breadcrumbs styles */
     .breadcrumbs {
         display: flex;
         align-items: center;
@@ -289,6 +284,113 @@ export const styles = css`
 
     .reject-button sp-icon-close {
         color: var(--spectrum-semantic-negative-color-default, red);
+    }
+
+    .rich-text-toggle {
+        padding: 8px 0;
+        margin-bottom: 8px;
+    }
+
+    .editing-cell {
+        min-width: 300px;
+    }
+
+    .edit-field-container {
+        width: 100%;
+    }
+
+    .edit-field-container rte-field {
+        width: 100%;
+        min-height: 80px;
+        margin-bottom: 8px;
+    }
+
+    .rte-container {
+        position: relative;
+        display: block;
+        width: 100%;
+        min-height: 120px;
+        margin: 5px 0;
+    }
+
+    sp-switch {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    rte-field {
+        display: block;
+        min-height: 120px;
+        border-radius: 4px;
+        width: 100%;
+    }
+
+    .rich-text-cell {
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 4px 0;
+        font-size: var(--spectrum-global-font-size-100);
+        line-height: var(--spectrum-global-font-line-height-medium);
+    }
+
+    .rich-text-cell p {
+        margin: 0 0 8px 0;
+    }
+
+    .rich-text-cell p:last-child {
+        margin-bottom: 0;
+    }
+
+    .rich-text-cell a {
+        color: var(--spectrum-global-color-blue-600);
+        text-decoration: none;
+    }
+
+    .rich-text-cell a:hover {
+        text-decoration: underline;
+    }
+    
+    .bulk-action-container {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+        border-radius: 4px;
+        background-color: var(--spectrum-semantic-negative-color-background);
+        padding: 6px;
+    }
+
+    .bulk-action-container.visible {
+        opacity: 1;
+        visibility: visible;
+    }
+    
+    .bulk-action-container sp-action-button {
+        color: var(--spectrum-white);
+        background-color: var(--spectrum-red-800);
+        box-shadow: 1px 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .confirm-dialog-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1500;
+    }
+    
+    .confirm-dialog-overlay sp-dialog-wrapper {
+        max-width: 100vw;
     }
 `;
 

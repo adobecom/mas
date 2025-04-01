@@ -96,7 +96,11 @@ class MasStudio extends LitElement {
     }
 
     get splashScreen() {
-        if (this.page.value !== PAGE_NAMES.WELCOME) return nothing;
+        const hash = window.location.hash.slice(1);
+        const hashParams = new URLSearchParams(hash);
+        const hasQuery = hashParams.has('query');
+        const hasPath = hashParams.has('path');
+        if (this.page.value !== PAGE_NAMES.WELCOME || hasQuery || hasPath) return nothing;
         return html`<mas-splash-screen
             base-url=${this.baseUrl}
         ></mas-splash-screen>`;

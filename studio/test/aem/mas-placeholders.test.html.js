@@ -159,14 +159,14 @@ runTests(async () => {
             masRepository.getFragmentByPath = sinon
                 .stub()
                 .resolves(mockPlaceholders[0].fragment);
-            masRepository.saveDictionaryFragment = sinon
+            masRepository.saveFragment = sinon
                 .stub()
                 .resolves({ id: '123', status: 'Draft' });
             masRepository.publishDictionaryFragment = sinon.stub().resolves({});
             masRepository.unpublishDictionaryFragment = sinon
                 .stub()
                 .resolves({});
-            masRepository.deleteDictionaryFragment = sinon.stub().resolves({});
+            masRepository.deleteFragment = sinon.stub().resolves({});
             masRepository.loadFolders = sinon.stub().resolves();
             masRepository.processError = sinon.stub();
             Object.defineProperty(masPlaceholders, 'repository', {

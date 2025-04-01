@@ -100,36 +100,6 @@ export const styles = css`
         border-bottom: 1px solid var(--spectrum-gray-200);
     }
 
-    .placeholders-table sp-table-head-cell:nth-child(2),
-    .placeholders-table sp-table-cell:nth-child(2) {
-        width: 200px;
-    }
-
-    .placeholders-table sp-table-head-cell:nth-child(3),
-    .placeholders-table sp-table-cell:nth-child(3) {
-        width: 400px;
-    }
-
-    .placeholders-table sp-table-head-cell:nth-child(4),
-    .placeholders-table sp-table-cell:nth-child(4) {
-        width: 120px;
-    }
-
-    .placeholders-table sp-table-head-cell:nth-child(5),
-    .placeholders-table sp-table-cell:nth-child(5) {
-        width: 150px;
-    }
-
-    .placeholders-table sp-table-head-cell:nth-child(6),
-    .placeholders-table sp-table-cell:nth-child(6) {
-        width: 200px;
-    }
-
-    .placeholders-table sp-table-head-cell:nth-child(7),
-    .placeholders-table sp-table-cell:nth-child(7) {
-        width: 200px;
-    }
-
     .placeholders-table sp-table-head-cell {
         font-weight: 600;
         cursor: pointer;
@@ -281,17 +251,6 @@ export const styles = css`
         justify-content: flex-end;
         gap: 8px;
         margin-top: 24px;
-    }
-
-    /* Column widths for the table */
-    .columnWidths {
-        --key-width: 20%;
-        --value-width: 35%;
-        --locale-width: 10%;
-        --status-width: 10%;
-        --updatedBy-width: 10%;
-        --updatedAt-width: 10%;
-        --action-width: 5%;
     }
 
     /* Editing styles */

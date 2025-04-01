@@ -60,7 +60,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
-            await expect(page).toHaveURL(`${testPage}&page=welcome&path=nala`);
+            await expect(page).toHaveURL(`${testPage}&page=content&path=nala`);
             expect(await studio.folderPicker).toHaveAttribute('value', 'nala');
         });
     });
@@ -150,7 +150,7 @@ test.describe('M@S Studio feature test suite', () => {
             const cards = await studio.renderView.locator('merch-card');
             expect(await cards.count()).toBeGreaterThan(1);
             await expect(page).toHaveURL(
-                `${testPage}?locale=en_US#path=acom&page=welcome`,
+                `${testPage}?locale=en_US#path=acom&page=content`,
             );
             expect(await studio.folderPicker).toHaveAttribute('value', 'acom');
         });

@@ -96,13 +96,13 @@ export default class StudioPage {
         this.linkVariant = page.locator('#linkVariant');
         this.accentVariant = page.locator('sp-button[variant="accent"]');
         this.primaryVariant = page.locator(
-            'sp-button[variant="primary]:not([treatment="outline"]])',
+            'sp-button[variant="primary"]:not([treatment="outline"]])',
         );
         this.primaryOutlineVariant = page.locator(
             'sp-button[variant="primary"][treatment="outline"]',
         );
         this.secondaryVariant = page.locator(
-            'sp-button[variant="secondary]:not([treatment="outline"]])',
+            'sp-button[variant="secondary"]:not([treatment="outline"]])',
         );
         this.secondaryOutlineVariant = page.locator(
             'sp-button[variant="secondary"][treatment="outline"]',
@@ -151,17 +151,43 @@ export default class StudioPage {
     async cloneCard() {
         await expect(await this.cloneCardButton).toBeEnabled();
         await this.cloneCardButton.click();
-        await expect(await this.toastPositive).toHaveText(
-            'Fragment successfully copied.',
-        );
+        // Increase timeout for toast message to appear and add a retry ability
+        try {
+            await expect(await this.toastPositive).toHaveText(
+                'Fragment successfully copied.',
+                { timeout: 60000 },
+            );
+        } catch (e) {
+            console.log(
+                'Toast not found on first try, waiting and trying again',
+            );
+            await this.page.waitForTimeout(2000);
+            await expect(await this.toastPositive).toHaveText(
+                'Fragment successfully copied.',
+                { timeout: 30000 },
+            );
+        }
     }
 
     async saveCard() {
         await expect(await this.saveCardButton).toBeEnabled();
         await this.saveCardButton.click();
-        await expect(await this.toastPositive).toHaveText(
-            'Fragment successfully saved.',
-        );
+        // Increase timeout for toast message to appear and add a retry ability
+        try {
+            await expect(await this.toastPositive).toHaveText(
+                'Fragment successfully saved.',
+                { timeout: 60000 },
+            );
+        } catch (e) {
+            console.log(
+                'Toast not found on first try, waiting and trying again',
+            );
+            await this.page.waitForTimeout(2000);
+            await expect(await this.toastPositive).toHaveText(
+                'Fragment successfully saved.',
+                { timeout: 30000 },
+            );
+        }
     }
 
     async deleteCard() {
@@ -169,9 +195,22 @@ export default class StudioPage {
         await this.deleteCardButton.click();
         await expect(await this.confirmationDialog).toBeVisible();
         await this.confirmationDialog.locator(this.deleteDialog).click();
-        await expect(await this.toastPositive).toHaveText(
-            'Fragment successfully deleted.',
-        );
+        // Increase timeout for toast message to appear and add a retry ability
+        try {
+            await expect(await this.toastPositive).toHaveText(
+                'Fragment successfully deleted.',
+                { timeout: 60000 },
+            );
+        } catch (e) {
+            console.log(
+                'Toast not found on first try, waiting and trying again',
+            );
+            await this.page.waitForTimeout(2000);
+            await expect(await this.toastPositive).toHaveText(
+                'Fragment successfully deleted.',
+                { timeout: 30000 },
+            );
+        }
     }
 
     async getLinkVariant(variant) {

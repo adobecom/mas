@@ -1,9 +1,26 @@
 {
+    "path": "/content/dam/mas/sandbox/en_US/dictionary/index",
+    "name": "",
+    "title": "index",
+    "id": "4218bdb3-8d25-4706-974d-21b1f0f13aa9",
+    "description": "",
+    "model": {
+        "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk"
+    },
+    "fields": {
+        "entries": [
+            "1a7d9a19-4c94-4eaa-b476-56b3330490ed",
+            "2b247428-a2dc-4920-9313-42bec2363094",
+            "7ae52941-3790-4e1c-a19d-62d5409618bf",
+            "c8642ebf-40a0-4396-8cc5-1776d9c479a9"
+        ],
+        "locReady": true
+    },
     "references": {
         "1a7d9a19-4c94-4eaa-b476-56b3330490ed": {
             "type": "content-fragment",
             "value": {
-                "path": "/content/dam/mas/drafts/en_US/dictionary/view-account",
+                "path": "/content/dam/mas/sandbox/en_US/dictionary/view-account",
                 "name": "",
                 "title": "View account",
                 "id": "1a7d9a19-4c94-4eaa-b476-56b3330490ed",
@@ -22,7 +39,7 @@
         "2b247428-a2dc-4920-9313-42bec2363094": {
             "type": "content-fragment",
             "value": {
-                "path": "/content/dam/mas/drafts/en_US/dictionary/buy-now",
+                "path": "/content/dam/mas/sandbox/en_US/dictionary/buy-now",
                 "name": "",
                 "title": "buy now",
                 "id": "2b247428-a2dc-4920-9313-42bec2363094",
@@ -41,7 +58,7 @@
         "7ae52941-3790-4e1c-a19d-62d5409618bf": {
             "type": "content-fragment",
             "value": {
-                "path": "/content/dam/mas/drafts/en_US/dictionary/cai-default",
+                "path": "/content/dam/mas/sandbox/en_US/dictionary/cai-default",
                 "name": "",
                 "title": "cai-default",
                 "id": "7ae52941-3790-4e1c-a19d-62d5409618bf",
@@ -57,7 +74,28 @@
                 }
             }
         },
-        "fake-empty-placeholder": {            
+        "c8642ebf-40a0-4396-8cc5-1776d9c479a9": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_US/dictionary/test",
+                "name": "",
+                "title": "test",
+                "id": "c8642ebf-40a0-4396-8cc5-1776d9c479a9",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5"
+                },
+                "fields": {
+                    "key": "test",
+                    "richTextValue": {
+                        "value": "<p>test</p>\n",
+                        "mimeType": "text/html"
+                    },
+                    "locReady": true
+                }
+            }
+        },
+        "fake-empty-placeholder": {
             "value": {
                 "fields": {
                     "key": "empty",
@@ -65,7 +103,7 @@
                 }
             }
         },
-        "nested-value": {            
+        "nested-value": {
             "value": {
                 "fields": {
                     "key": "nested",
@@ -73,7 +111,7 @@
                 }
             }
         },
-        "nest": {            
+        "nest": {
             "value": {
                 "fields": {
                     "key": "nest",
@@ -81,7 +119,7 @@
                 }
             }
         },
-        "yin": {            
+        "yin": {
             "value": {
                 "fields": {
                     "key": "yin",
@@ -89,7 +127,7 @@
                 }
             }
         },
-        "yang": {            
+        "yang": {
             "value": {
                 "fields": {
                     "key": "yang",
@@ -108,6 +146,30 @@
                 }
             }
         },
+        "learn-more": {
+            "value": {
+                "fields": {
+                    "key": "learn-more",
+                    "value": "Learn more"
+                }
+            }
+        },
+        "select": {
+            "value": {
+                "fields": {
+                    "key": "select",
+                    "value": "Select"
+                }
+            }
+        },
+        "buy-now": {
+            "value": {
+                "fields": {
+                    "key": "buy-now",
+                    "value": "Buy now"
+                }
+            }
+        },
         "empty": {
             "value": {
                 "fields": {
@@ -115,5 +177,6 @@
                 }
             }
         }
-    }
+    },
+    "referencesTree": []
 }

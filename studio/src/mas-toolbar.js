@@ -134,9 +134,9 @@ class MasToolbar extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        
+
         this.updateFilterCount();
-        
+
         this.filtersSubscription = Store.filters.subscribe(() => {
             this.updateFilterCount();
         });
@@ -144,7 +144,7 @@ class MasToolbar extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        
+
         if (this.filtersSubscription) {
             this.filtersSubscription.unsubscribe();
         }

@@ -149,7 +149,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.renderView).toBeVisible();
             const cards = await studio.renderView.locator('merch-card');
             expect(await cards.count()).toBeGreaterThan(1);
-            await expect(page).toHaveURL(`${testPage}#path=acom&page=content`);
+            await expect(page).toHaveURL(`${testPage}#page=content&path=acom`);
             expect(await studio.folderPicker).toHaveAttribute('value', 'acom');
         });
     });

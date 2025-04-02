@@ -21,6 +21,7 @@ class MerchCardEditor extends LitElement {
         availableSizes: { type: Array, state: true },
         availableColors: { type: Array, state: true },
         availableBorderColors: { type: Array, state: true },
+        availableBadgeColors: { type: Array, state: true },
         availableBackgroundColors: { type: Array, state: true },
         quantitySelectorValues: { type: String, state: true },
     };
@@ -33,6 +34,7 @@ class MerchCardEditor extends LitElement {
         this.availableSizes = [];
         this.availableColors = [];
         this.availableBorderColors = [];
+        this.availableBadgeColors = [];
         this.availableBackgroundColors = [];
         this.quantitySelectorValues = '';
     }
@@ -198,12 +200,13 @@ class MerchCardEditor extends LitElement {
                 'sp-field-group.toggle#border-color',
             );
             if (borderField) borderField.style.display = 'block';
-            this.availableBorderColors =
-                variant.allowedBorderColors || SPECTRUM_COLORS;
-        } else if (variant.badge?.tag) {
+        }
+        if (variant.borderColor || variant.badge?.tag) {
             this.availableBorderColors = variant.allowedBorderColors || SPECTRUM_COLORS;
+            this.availableBadgeColors = variant.allowedBadgeColors || SPECTRUM_COLORS;
         } else {
             this.availableBorderColors = [];
+            this.availableBadgeColors = [];
         }
         this.availableColors = variant?.allowedColors || [];
     }
@@ -589,7 +592,7 @@ class MerchCardEditor extends LitElement {
 
         const element = document.createElement('merch-badge');
         element.setAttribute('background-color', bgColor);
-        if (bgColor === 'spectrum-green-800') element.setAttribute('color', '#fff');
+        if (bgColor === 'spectrum-green-900-plans') element.setAttribute('color', '#fff');
         element.setAttribute('border-color', borderColor);
         element.setAttribute('variant', this.fragment.variant);
         element.textContent = text;
@@ -633,7 +636,7 @@ class MerchCardEditor extends LitElement {
 
     #formatColorName(color) {
         return color
-            .replace(/(spectrum|global|color|-)/gi, ' ')
+            .replace(/(spectrum|global|color|plans|-)/gi, ' ')
             .replace(/\b\w/g, (l) => l.toUpperCase())
             .replace(/\s+/g, ' ')
             .trim();
@@ -646,7 +649,7 @@ class MerchCardEditor extends LitElement {
             ${this.#renderColorPicker(
                 'badgeColor',
                 'Badge Color',
-                this.availableBorderColors,
+                this.availableBadgeColors,
                 this.badge.bgColor,
                 'badgeColor',
                 this.onBadgeColorChange,
@@ -654,7 +657,7 @@ class MerchCardEditor extends LitElement {
             ${this.#renderColorPicker(
                 'badgeBorderColor',
                 'Badge Border Color',
-                this.availableBorderColors,
+                this.availableBadgeColors,
                 this.badge.borderColor,
                 'badgeBorderColor',
                 this.onBadgeBorderColorChange,

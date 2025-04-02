@@ -19,6 +19,30 @@ export function getDictionaryPath(folderPath, locale) {
 class MasPlaceholders extends LitElement {
     static styles = styles;
 
+    static properties = {
+        searchQuery: { type: String, state: true },
+        selectedPlaceholders: { type: Array, state: true },
+        sortField: { type: String, state: true },
+        sortDirection: { type: String, state: true },
+        editingPlaceholder: { type: String, state: true },
+        editedKey: { type: String, state: true },
+        editedValue: { type: String, state: true },
+        editedRichText: { type: Boolean, state: true },
+        activeDropdown: { type: String, state: true },
+        showCreateModal: { type: Boolean, state: true },
+        isDialogOpen: { type: Boolean, state: true },
+        confirmDialogConfig: { type: Object, state: true },
+        newPlaceholder: { type: Object, state: true },
+        error: { type: String, state: true },
+        selectedFolder: { type: Object, state: true },
+        selectedLocale: { type: String, state: true },
+        folderData: { type: Array, state: true },
+        foldersLoaded: { type: Boolean, state: true },
+        placeholdersData: { type: Array, state: true },
+        placeholdersLoading: { type: Boolean, state: true },
+        isBulkDeleteInProgress: { type: Boolean, state: true }
+    };
+
     constructor() {
         super();
 
@@ -101,7 +125,6 @@ class MasPlaceholders extends LitElement {
                 Store.placeholders.filtered.data = {
                     set: (data) => {
                         Store.placeholders.filtered._data = data;
-                        this.requestUpdate();
                     },
                     get: () => Store.placeholders.filtered._data || []
                 };
@@ -113,6 +136,7 @@ class MasPlaceholders extends LitElement {
         if (!searchText) {
             Store.placeholders.filtered.data.set(this.placeholdersData);
             this.updateTableSelection();
+            this.ensureTableCheckboxes();
             return;
         }
         
@@ -124,6 +148,7 @@ class MasPlaceholders extends LitElement {
         
         Store.placeholders.filtered.data.set(filteredPlaceholders);
         this.updateTableSelection();
+        this.ensureTableCheckboxes();
     }
     
     /**
@@ -239,7 +264,6 @@ class MasPlaceholders extends LitElement {
         try {
             Store.placeholders.list.loading.set(true);
             this.placeholdersLoading = true;
-            this.requestUpdate();
             
             const folderPath = this.selectedFolder?.path;
             const locale = this.newPlaceholder.locale || this.selectedLocale || 'en_US';
@@ -283,13 +307,11 @@ class MasPlaceholders extends LitElement {
             this.newPlaceholder = { key: '', value: '', locale: this.selectedLocale, isRichText: false };
             this.showCreateModal = false;
             this.selectedPlaceholders = [];
-            this.requestUpdate();
         } catch (error) {
             this.showToast(`Failed to create placeholder: ${error.message}`, 'negative');
         } finally {
             Store.placeholders.list.loading.set(false);
             this.placeholdersLoading = false;
-            this.requestUpdate();
         }
     }
 
@@ -327,7 +349,6 @@ class MasPlaceholders extends LitElement {
 
             Store.placeholders.list.loading.set(true);
             this.placeholdersLoading = true;
-            this.requestUpdate();
 
             const repository = this.repository;
             const fragmentId = fragmentData.id;
@@ -437,7 +458,6 @@ class MasPlaceholders extends LitElement {
         } finally {
             Store.placeholders.list.loading.set(false);
             this.placeholdersLoading = false;
-            this.requestUpdate();
         }
     }
 
@@ -466,7 +486,6 @@ class MasPlaceholders extends LitElement {
         try {
             Store.placeholders.list.loading.set(true);
             this.placeholdersLoading = true;
-            this.requestUpdate();
             
             const placeholder = this.placeholdersData.find(p => p.key === key);
             
@@ -500,7 +519,6 @@ class MasPlaceholders extends LitElement {
         } finally {
             Store.placeholders.list.loading.set(false);
             this.placeholdersLoading = false;
-            this.requestUpdate();
         }
     }
 
@@ -593,7 +611,6 @@ class MasPlaceholders extends LitElement {
 
             Store.placeholders.list.loading.set(true);
             this.placeholdersLoading = true;
-            this.requestUpdate();
             
             const locale = this.selectedLocale || 'en_US';
             const dictionaryPath = `/content/dam/mas/${folderPath}/${locale}/dictionary`;
@@ -679,8 +696,6 @@ class MasPlaceholders extends LitElement {
                 
                 this.placeholdersData = placeholders;
                 Store.placeholders.list.data.set(placeholders);
-                this.requestUpdate();
-                
             } catch (error) {
                 if (error.name !== 'AbortError') {
                     if (error.message?.includes('404')) {
@@ -699,7 +714,6 @@ class MasPlaceholders extends LitElement {
         } finally {
             this.placeholdersLoading = false;
             Store.placeholders.list.loading.set(false);
-            this.requestUpdate();
         }
     }
 
@@ -898,7 +912,6 @@ class MasPlaceholders extends LitElement {
             !event.target.closest('.action-menu-button')
         ) {
             this.activeDropdown = null;
-            this.requestUpdate();
         }
     }
 
@@ -913,13 +926,11 @@ class MasPlaceholders extends LitElement {
             }
             this.closeCreateModal();
         }
-        this.requestUpdate();
     }
 
     closeCreateModal() {
         this.showCreateModal = false;
         this.clearRteInitializedFlags();
-        this.requestUpdate();
     }
 
     clearRteInitializedFlags() {
@@ -933,7 +944,7 @@ class MasPlaceholders extends LitElement {
 
     handleSearch(e) {
         this.searchQuery = e.target.value;
-        this.requestUpdate();
+        this.searchPlaceholders();
     }
 
     handleAddPlaceholder() {
@@ -949,7 +960,6 @@ class MasPlaceholders extends LitElement {
         setTimeout(() => {
             if (!this.showCreateModal) {
                 this.showCreateModal = true;
-                this.requestUpdate();
             }
         }, 100);
     }
@@ -957,7 +967,6 @@ class MasPlaceholders extends LitElement {
     updateTableSelection(event) {
         if (event && event.target) {
             this.selectedPlaceholders = Array.from(event.target.selectedSet);
-            this.requestUpdate();
         }
     }
 
@@ -968,7 +977,6 @@ class MasPlaceholders extends LitElement {
             this.sortField = field;
             this.sortDirection = 'asc';
         }
-        this.requestUpdate();
     }
 
     /**
@@ -984,7 +992,6 @@ class MasPlaceholders extends LitElement {
         this.editedKey = placeholder.key;
         this.editedValue = placeholder.value;
         this.editedRichText = placeholder.isRichText;
-        this.requestUpdate();
     }
 
     cancelEdit() {
@@ -993,7 +1000,6 @@ class MasPlaceholders extends LitElement {
         this.editedValue = '';
         this.editedRichText = false;
         this.clearRteInitializedFlags();
-        this.requestUpdate();
     }
 
     toggleDropdown(key, event) {
@@ -1004,40 +1010,42 @@ class MasPlaceholders extends LitElement {
         } else {
             this.activeDropdown = key;
         }
-        this.requestUpdate();
     }
 
     handleKeyChange(e) {
         this.editedKey = normalizeKey(e.target.value);
-        this.requestUpdate();
     }
 
     handleValueChange(e) {
         this.editedValue = e.target.value;
-        this.requestUpdate();
     }
 
     handleRteValueChange(e) {
         if (e && e.target) {
             this.editedValue = e.target.value || '';
-            this.requestUpdate();
         }
     }
 
     handleNewPlaceholderKeyChange(e) {
-        this.newPlaceholder.key = normalizeKey(e.target.value);
-        this.requestUpdate();
+        this.newPlaceholder = {
+            ...this.newPlaceholder,
+            key: normalizeKey(e.target.value)
+        };
     }
 
     handleNewPlaceholderLocaleChange(e) {
-        this.newPlaceholder.locale = e.detail.locale;
-        this.requestUpdate();
+        this.newPlaceholder = {
+            ...this.newPlaceholder,
+            locale: e.detail.locale
+        };
     }
 
     handleNewPlaceholderRteChange(e) {
         if (e && e.target) {
-            this.newPlaceholder.value = e.target.value || '';
-            this.requestUpdate();
+            this.newPlaceholder = {
+                ...this.newPlaceholder,
+                value: e.target.value || ''
+            };
         }
     }
 
@@ -1047,8 +1055,10 @@ class MasPlaceholders extends LitElement {
             existingField.initDone = false;
         }
         
-        this.newPlaceholder.isRichText = e.target.checked;
-        this.requestUpdate();
+        this.newPlaceholder = {
+            ...this.newPlaceholder,
+            isRichText: e.target.checked
+        };
     }
 
     getFilteredPlaceholders() {
@@ -1193,10 +1203,12 @@ class MasPlaceholders extends LitElement {
         if (!filteredPlaceholders || filteredPlaceholders.length === 0) {
             return html`
                 <div class="no-placeholders-message">
-                    <p>No placeholders found. Click "Create New Placeholder" to add one.</p>
+                    <p>No placeholders found.</p>
                 </div>
             `;
         }
+
+        this.ensureTableCheckboxes();
 
         return html`
             <sp-table
@@ -1238,8 +1250,10 @@ class MasPlaceholders extends LitElement {
     }
 
     handleNewPlaceholderValueChange(e) {
-        this.newPlaceholder.value = e.target.value;
-        this.requestUpdate();
+        this.newPlaceholder = {
+            ...this.newPlaceholder,
+            value: e.target.value
+        };
     }
 
     renderFormGroup(id, label, isRequired, component) {
@@ -1363,7 +1377,6 @@ class MasPlaceholders extends LitElement {
         this.selectedLocale = newLocale;
         Store.placeholders.list.loading.set(true);
         this.placeholdersLoading = true;
-        this.requestUpdate();
 
         if (this.repository) {
             this.loadPlaceholders();
@@ -1629,8 +1642,6 @@ class MasPlaceholders extends LitElement {
                     resolve(false);
                 }
             };
-            
-            this.requestUpdate();
         });
     }
 
@@ -1658,7 +1669,6 @@ class MasPlaceholders extends LitElement {
         this.isBulkDeleteInProgress = true;
         Store.placeholders.list.loading.set(true);
         this.placeholdersLoading = true;
-        this.requestUpdate();
         this.showToast(`Deleting ${placeholdersToDelete.length} placeholders...`, 'info');
         
         const successfulDeletes = [];
@@ -1717,7 +1727,6 @@ class MasPlaceholders extends LitElement {
             this.isBulkDeleteInProgress = false;
             Store.placeholders.list.loading.set(false);
             this.placeholdersLoading = false;
-            this.requestUpdate();
         }
     }
 
@@ -1743,13 +1752,11 @@ class MasPlaceholders extends LitElement {
                     @confirm=${() => {
                         this.confirmDialogConfig = null;
                         this.isDialogOpen = false;
-                        this.requestUpdate();
                         onConfirm && onConfirm();
                     }}
                     @cancel=${() => {
                         this.confirmDialogConfig = null;
                         this.isDialogOpen = false;
-                        this.requestUpdate();
                         onCancel && onCancel();
                     }}
                 >
@@ -1757,6 +1764,50 @@ class MasPlaceholders extends LitElement {
                 </sp-dialog-wrapper>
             </div>
         `;
+    }
+
+    /**
+     * Ensures that all table rows have checkbox cells
+     * This is needed after filtering or when the table is re-rendered
+     */
+    ensureTableCheckboxes() {
+        const table = this.shadowRoot?.querySelector('sp-table');
+        if (!table) return;
+        
+        const currentSelection = this.selectedPlaceholders;
+        this.selectedPlaceholders = [...currentSelection];
+        table.selected = JSON.stringify(this.selectedPlaceholders);
+        
+        setTimeout(() => {
+            const rows = table.querySelectorAll('sp-table-row');
+            rows.forEach(row => {
+                const hasCheckbox = row.querySelector('sp-table-checkbox-cell');
+                if (!hasCheckbox) {
+                    const checkboxCell = document.createElement('sp-table-checkbox-cell');
+                    checkboxCell.emphasized = true;
+                    checkboxCell.checked = this.selectedPlaceholders.includes(row.value);
+                    
+                    row.insertAdjacentElement('afterbegin', checkboxCell);
+                }
+            });
+            
+            const tableHead = table.querySelector('sp-table-head');
+            if (tableHead) {
+                const headHasCheckbox = tableHead.querySelector('sp-table-checkbox-cell');
+                if (!headHasCheckbox) {
+                    const headCheckbox = document.createElement('sp-table-checkbox-cell');
+                    headCheckbox.headCell = true;
+                    headCheckbox.emphasized = true;
+                    
+                    const allRowValues = Array.from(rows).map(row => row.value);
+                    const allSelected = allRowValues.length > 0 && 
+                        allRowValues.every(value => this.selectedPlaceholders.includes(value));
+                    headCheckbox.checked = allSelected;
+                    
+                    tableHead.insertAdjacentElement('afterbegin', headCheckbox);
+                }
+            }
+        }, 0);
     }
 }
 

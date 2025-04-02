@@ -200,7 +200,7 @@ export default class EditorPanel extends LitElement {
                     }
                 });
                 const buildPart = ((part) => { 
-                    if(part) return ` ${part}`;
+                    if(part) return ` / ${part}`;
                     return '';
                 });
                 fragmentParts = `${surface}${buildPart(props.variantLabel)}${buildPart(props.customerSegment)}${buildPart(props.marketSegment)}${buildPart(props.product)}`;
@@ -671,7 +671,7 @@ export default class EditorPanel extends LitElement {
                 ${this.fragmentEditorToolbar}
                 <sp-divider size="s"></sp-divider>
                 <div>
-                    <a class="use-link" @click="${this.copyToUse}">${this.generateCodeToUse()[2]}</a>
+                    <p>${this.generateCodeToUse()[2]}</p>
                 </div>
                 <sp-divider size="s"></sp-divider>
                 ${editor}

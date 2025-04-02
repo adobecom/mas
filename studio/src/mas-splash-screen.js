@@ -2,7 +2,7 @@ import { LitElement, html } from 'lit';
 import { contentIcon } from './img/content-icon.js';
 import { promosIcon } from './img/promos-icon.js';
 import { ostIcon } from './img/ost-icon.js';
-import { navigateToPage } from './store.js';
+import { navigateToPage } from './router.js';
 import './mas-recently-updated.js';
 import { openOfferSelectorTool } from './rte/ost.js';
 

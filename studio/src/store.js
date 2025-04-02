@@ -123,18 +123,3 @@ export function editFragment(store, x = 0) {
     }
     editorPanel()?.editFragment(store, x);
 }
-
-export function navigateToPage(value) {
-    return async () => {
-        const confirmed =
-            !Store.editor.hasChanges ||
-            (await editorPanel().promptDiscardChanges());
-        if (confirmed) {
-            Store.fragments.inEdit.set();
-            Store.page.set(value);
-            const url = new URL(window.location);
-            url.searchParams.set('page', value);
-            window.history.pushState({}, '', url.toString());
-        }
-    };
-}

@@ -148,6 +148,15 @@ export function linkStoreToHash(store, keys, defaultValue) {
 
         for (const key of keysArray) {
             const storeValue = value[key];
+
+            if (key === 'locale' && storeValue === 'en_US') {
+                if (currentParams.has(key)) {
+                    currentParams.delete(key);
+                    hasChanges = true;
+                }
+                continue;
+            }
+
             if (Array.isArray(storeValue) && storeValue.length === 0) {
                 if (currentParams.has(key)) {
                     currentParams.delete(key);
@@ -289,8 +298,10 @@ export function initializeRouter() {
                 query: queryFromHash || prev.query,
             }));
         }
+
         const urlParams = new URLSearchParams(window.location.search);
-        const localeFromUrl = urlParams.get('locale');
+
+        const localeFromUrl = hashParams.get('locale');
         const tagsFromUrl = urlParams.get('tags');
 
         if (localeFromUrl || tagsFromUrl) {
@@ -400,15 +411,6 @@ export function setupNavigationSubscriptions() {
     Store.filters.subscribe((value, oldValue) => {
         const urlParams = new URLSearchParams(window.location.search);
         let hasChanges = false;
-
-        if (value.locale !== oldValue.locale) {
-            if (value.locale) {
-                urlParams.set('locale', value.locale);
-            } else {
-                urlParams.delete('locale');
-            }
-            hasChanges = true;
-        }
 
         if (JSON.stringify(value.tags) !== JSON.stringify(oldValue.tags)) {
             if (
@@ -553,7 +555,8 @@ export function linkStoreToSearch(store, keys, defaultValue) {
  */
 function initializeFiltersFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
-    const localeFromUrl = urlParams.get('locale');
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const localeFromUrl = hashParams.get('locale');
     const tagsFromUrl = urlParams.get('tags');
 
     if (localeFromUrl || tagsFromUrl) {

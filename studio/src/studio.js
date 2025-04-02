@@ -35,10 +35,11 @@ const BUCKET_TO_ENV = {
 initializeStoreFromUrl();
 
 linkStoreToHash(Store.search, ['path', 'query'], {});
-
-linkStoreToSearch(Store.filters, ['locale', 'tags'], {
+linkStoreToHash(Store.filters, ['locale'], {
     locale: 'en_US',
 });
+
+linkStoreToSearch(Store.filters, ['tags'], {});
 linkStoreToSearch(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
 
 initializeRouter();

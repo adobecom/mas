@@ -23,14 +23,6 @@ class MasFragment extends LitElement {
         this.fragmentStore = null;
     }
 
-    willUpdate(changedProperties) {
-        if (changedProperties.has('store') && this.store && !this.fragmentStore) {
-            this.fragmentStore = this.store;
-        } else if (changedProperties.has('fragmentStore') && this.fragmentStore && !this.store) {
-            this.store = this.fragmentStore;
-        }
-    }
-
     createRenderRoot() {
         return this;
     }
@@ -62,9 +54,13 @@ class MasFragment extends LitElement {
         editFragment(this.fragmentStore || this.store, event.clientX);
     }
 
+    get storeRef() {
+        return this.fragmentStore || this.store;
+    }
+
     get renderView() {
         if (this.view !== 'render') return nothing;
-        const fragmentStore = this.fragmentStore || this.store;
+        const fragmentStore = this.storeRef;
         const selected = this.selection.value.includes(fragmentStore.id);
         return html`<mas-fragment-render
             class="mas-fragment"
@@ -79,7 +75,7 @@ class MasFragment extends LitElement {
 
     get tableView() {
         if (this.view !== 'table') return nothing;
-        const fragmentStore = this.fragmentStore || this.store;
+        const fragmentStore = this.storeRef;
         const fragment = fragmentStore.get();
         return html`<overlay-trigger placement="top"
             ><mas-fragment-table

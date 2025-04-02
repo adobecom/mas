@@ -133,8 +133,17 @@ class MasPlaceholders extends LitElement {
         }
 
         if (Store.filters) {
-            const localeSub = Store.filters.subscribe((value) => {
-                this.selectedLocale = value.locale || 'en_US';
+            const localeSub = Store.filters.subscribe((value, oldValue) => {
+                const newLocale = value.locale || 'en_US';
+                this.selectedLocale = newLocale;
+                
+                if (oldValue && newLocale !== oldValue.locale && this.selectedFolder?.path) {
+                    Store.placeholders.list.loading.set(true);
+                    if (this.repository) {
+                        this.loadPlaceholders(true);
+                    }
+                }
+                
                 this.requestUpdate();
             });
             this.subscriptions.push(localeSub);

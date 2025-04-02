@@ -57,15 +57,11 @@ class MasFilterPanel extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.#updateFilterCount();
-        this.filtersSubscription = Store.filters.subscribe(() => {
-            this.#updateFilterCount();
-        });
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        
+
         if (this.filtersSubscription) {
             this.filtersSubscription.unsubscribe();
         }
@@ -73,25 +69,16 @@ class MasFilterPanel extends LitElement {
 
     #initializeTagFilters() {
         const filters = Store.filters.get();
-        
         if (!filters.tags) return;
-        
-        let tagsArray = [];
-        if (typeof filters.tags === 'string') {
-            tagsArray = filters.tags.split(',');
-        } else if (Array.isArray(filters.tags)) {
-            tagsArray = filters.tags;
-        } else {
-            console.warn('Unexpected filters.tags format:', filters.tags);
-            return;
-        }
-        
-        this.tagsByType = tagsArray.reduce(
+        this.tagsByType = filters.tags.split(',').reduce(
             (acc, tag) => {
+                // Remove 'mas:' prefix
                 const tagPath = tag.replace('mas:', '');
                 const parts = tagPath.split('/');
+                // Find the correct type by checking if it's in EMPTY_TAGS
                 let type = parts[0];
                 let typeIndex = 1;
+                // Try to find the longest matching type in EMPTY_TAGS
                 for (let i = 1; i < parts.length; i++) {
                     const potentialType = parts.slice(0, i + 1).join('/');
                     if (potentialType in EMPTY_TAGS) {
@@ -99,8 +86,11 @@ class MasFilterPanel extends LitElement {
                         typeIndex = i + 1;
                     }
                 }
+                // Get values after the type
                 const values = parts.slice(typeIndex);
+                // Construct the full path
                 const fullPath = `/content/cq:tags/mas/${tagPath}`;
+                // Get the title from the last value
                 const title =
                     values.length > 0
                         ? values[values.length - 1].toUpperCase()
@@ -119,22 +109,19 @@ class MasFilterPanel extends LitElement {
             },
             { ...EMPTY_TAGS },
         );
-        
-        this.#updateFilterCount();
     }
+
 
     #updateFiltersParams() {
         const tagValues = Object.values(this.tagsByType ?? EMPTY_TAGS)
             .flat()
             .map((tag) => pathToTagId(tag.path))
             .filter(Boolean);
-        
+
         Store.filters.set((prev) => ({
             ...prev,
             tags: tagValues.join(','),
         }));
-        
-        this.#updateFilterCount();
     }
 
     #handleTagChange(e) {
@@ -169,8 +156,7 @@ class MasFilterPanel extends LitElement {
                 tagPicker.clear();
             });
         this.#clearFilterSearchParams();
-        
-        this.#updateFilterCount();
+
     }
 
     #clearFilterSearchParams() {
@@ -201,13 +187,6 @@ class MasFilterPanel extends LitElement {
             ),
         };
         this.#updateFiltersParams();
-    }
-
-    #updateFilterCount() {
-        const totalSelectedTags = Object.values(this.tagsByType ?? EMPTY_TAGS)
-            .flat()
-            .filter(Boolean)
-            .length;
     }
 
     render() {

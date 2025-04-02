@@ -8,7 +8,7 @@ export default {
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit nopr',
         },
         {
@@ -21,7 +21,7 @@ export default {
                 updatedTitle: 'Creative Cloud All Apps Long title test example',
                 newTitle: 'Creative Cloud All Apps Long title te...',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
@@ -33,7 +33,7 @@ export default {
                 originalBgColor: 'gray',
                 updatedBgColor: 'Default',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
@@ -47,7 +47,7 @@ export default {
                 originalBorderCSSColor: 'rgba(0, 0, 0, 0)',
                 updatedBorderCSSColor: 'rgb(70, 70, 70)',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
@@ -59,7 +59,7 @@ export default {
                 description: 'AHome Original Automation Test Card',
                 updatedDescription: 'AHome Updated Automation Test Card',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
@@ -73,7 +73,7 @@ export default {
                 newIconURL:
                     'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
@@ -87,7 +87,7 @@ export default {
                 newBackgroundURL:
                     'https://milo.adobe.com/assets/img/commerce/media_158c1c22b1322dd28d7912d30fb27f29aa79f79b1.png',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
@@ -100,7 +100,7 @@ export default {
                 newPrice: 'US$22.99/moper license',
                 abmText: 'Annual, billed monthly',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
@@ -118,7 +118,7 @@ export default {
                 lang: 'en',
                 client: 'adobe_com',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
@@ -129,7 +129,7 @@ export default {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
@@ -140,7 +140,7 @@ export default {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
@@ -155,7 +155,7 @@ export default {
                 marketSegmentsTag: 'market_segments/com',
                 planTypeTag: 'plan_type/abm',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
@@ -174,7 +174,7 @@ export default {
                 newOfferTypeTag: 'offer_type/trial',
                 newMarketSegmentsTag: 'market_segments/edu',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
@@ -195,7 +195,7 @@ export default {
                     color: 'rgb(34, 34, 34)',
                 },
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
@@ -212,7 +212,7 @@ export default {
                     mv2: '2',
                 },
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
     ],

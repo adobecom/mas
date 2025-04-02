@@ -127,7 +127,7 @@ test.describe('M@S Studio feature test suite', () => {
         page,
         baseURL,
     }) => {
-        const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}`;
+        const testPage = `${baseURL}${features[4].path}${miloLibs}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {

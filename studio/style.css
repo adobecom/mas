@@ -163,15 +163,6 @@ sp-underlay + sp-dialog {
     margin-top: 20px;
 }
 
-#editor .use-link {
-    color: var(--link-color);
-    cursor: pointer;
-}
-
-#editor .use-link:hover {
-    color: var(--link-hover-color);
-}
-
 editor-panel[position='left'] #move-left {
     display: none;
 }

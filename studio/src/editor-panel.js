@@ -183,7 +183,7 @@ export default class EditorPanel extends LitElement {
     getFragmentPartsToUse() {
         let fragmentParts = '';
         let title = '';
-        const surface = Store.search.value.path.toUpperCase();
+        const surface = Store.search.value.path?.toUpperCase();
         switch (this.fragment?.model?.path) {
             case CARD_MODEL_PATH:
                 const props =  {

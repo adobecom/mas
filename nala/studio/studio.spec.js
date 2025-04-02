@@ -41,6 +41,7 @@ export default {
             tcid: '4',
             name: '@studio-goto-content',
             path: '/studio.html',
+            browserParams: '#page=content&path=acom',
             tags: '@mas-studio @monitor',
         },
         {

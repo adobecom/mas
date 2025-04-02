@@ -21,6 +21,7 @@ class MerchCardEditor extends LitElement {
         availableSizes: { type: Array, state: true },
         availableColors: { type: Array, state: true },
         availableBorderColors: { type: Array, state: true },
+        availableBadgeColors: { type: Array, state: true },
         availableBackgroundColors: { type: Array, state: true },
         quantitySelectorValues: { type: String, state: true },
     };
@@ -33,6 +34,7 @@ class MerchCardEditor extends LitElement {
         this.availableSizes = [];
         this.availableColors = [];
         this.availableBorderColors = [];
+        this.availableBadgeColors = [];
         this.availableBackgroundColors = [];
         this.quantitySelectorValues = '';
     }
@@ -201,8 +203,10 @@ class MerchCardEditor extends LitElement {
         }
         if (variant.borderColor || variant.badge?.tag) {
             this.availableBorderColors = variant.allowedBorderColors || SPECTRUM_COLORS;
+            this.availableBadgeColors = variant.allowedBadgeColors || SPECTRUM_COLORS;
         } else {
             this.availableBorderColors = [];
+            this.availableBadgeColors = [];
         }
         this.availableColors = variant?.allowedColors || [];
     }
@@ -645,7 +649,7 @@ class MerchCardEditor extends LitElement {
             ${this.#renderColorPicker(
                 'badgeColor',
                 'Badge Color',
-                this.availableBorderColors,
+                this.availableBadgeColors,
                 this.badge.bgColor,
                 'badgeColor',
                 this.onBadgeColorChange,
@@ -653,7 +657,7 @@ class MerchCardEditor extends LitElement {
             ${this.#renderColorPicker(
                 'badgeBorderColor',
                 'Badge Border Color',
-                this.availableBorderColors,
+                this.availableBadgeColors,
                 this.badge.borderColor,
                 'badgeBorderColor',
                 this.onBadgeBorderColorChange,

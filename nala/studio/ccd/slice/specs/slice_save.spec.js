@@ -9,7 +9,7 @@ export default {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
         },
         {
@@ -20,7 +20,7 @@ export default {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
         },
         {
@@ -30,7 +30,7 @@ export default {
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
         },
         {
@@ -42,7 +42,7 @@ export default {
                 description: 'Field Edit & Save',
                 newDescription: 'Cloned Field Edit',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
         },
         {
@@ -53,7 +53,7 @@ export default {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
                 newBadge: 'New Badge',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
         },
         {
@@ -67,7 +67,7 @@ export default {
                 newIconURL:
                     'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
         },
         {
@@ -81,7 +81,7 @@ export default {
                 newBackgroundURL:
                     'https://milo.adobe.com/assets/img/commerce/media_158c1c22b1322dd28d7912d30fb27f29aa79f79b1.png',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
         },
         {
@@ -93,7 +93,7 @@ export default {
                 price: 'US$17.24/mo',
                 strikethroughPrice: 'US$34.49/mo',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
         },
         {
@@ -105,7 +105,7 @@ export default {
                 ctaText: 'Buy now',
                 newCtaText: 'Buy now 2',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
         },
 
@@ -125,7 +125,7 @@ export default {
                 newOfferTypeTag: 'offer_type/trial',
                 newMarketSegmentsTag: 'market_segments/edu',
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
         },
         {
@@ -145,7 +145,7 @@ export default {
                     color: 'rgb(34, 34, 34)',
                 },
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
         },
         {
@@ -162,7 +162,7 @@ export default {
                     mv2: '2',
                 },
             },
-            browserParams: '?locale=en_US#query=',
+            browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
         },
     ],

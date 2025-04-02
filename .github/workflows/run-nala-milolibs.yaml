@@ -1,13 +1,20 @@
-name: MAS Studio Monitor
+name: Run Nala on Milolibs
 
 on:
-  schedule:
-    - cron: "*/15 * * * *"   # Executes every 15 minutes
-
-# Prevent multiple runs from happening at the same time
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Provide the live branch url. ex: https://main--mas--adobecom.aem.live'
+        required: false
+        type: string
+      milolibs:
+        description: 'Provide Milolibs param. (with "?") ex: ?milolibs=stage--milo--adobecom'
+        required: false
+        type: string
+      tags:
+        description: 'Test scenario tags, if empty all tests will run. i.e., @mas-studio'
+        required: false
+        type: string
 
 jobs:
   platform_matrix:
@@ -15,12 +22,11 @@ jobs:
       fail-fast: false
       matrix:
         node-version: [20.x]
-    name: Running Studio Monitor Nala tests
+    name: Running tests
     runs-on: ubuntu-latest
-    timeout-minutes: 10  # Prevent hanging jobs
     env:
-      WORKFLOW_NAME: 'Studio Montor'
-      DAILY_RUN: 'true'
+      WORKFLOW_NAME: 'Milo Libs Run'
+      MILO_LIBS_RUN: 'true'
 
     steps:
       - name: Check out repository
@@ -51,17 +57,21 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps
 
+      - name: Set environment variables
+        run: |
+          echo "PR_BRANCH_MILOLIBS_LIVE_URL=${{ github.event.inputs.branch }}" >> $GITHUB_ENV
+          echo "MILO_LIBS=${{ github.event.inputs.milolibs }}" >> $GITHUB_ENV
+
       - name: Set execute permission for gh.run.sh
         run: chmod +x ./nala/utils/gh.run.sh
-
-      - name: Run Studio Monitor Nala tests with gh.run.sh
+        
+      - name: Run Nala Tests with Milolibs via gh.run.sh
         run: ./nala/utils/gh.run.sh
         env:
-          labels: '@monitor'
-          GITHUB_ACTION_PATH: ${{ github.workspace }}
+          labels: ${{ inputs.tags }}
           IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
           IMS_PASS: ${{ secrets.IMS_PASS }}
-
+       
       - name: Persist JSON Artifact
         uses: actions/upload-artifact@v4
         if: failure()

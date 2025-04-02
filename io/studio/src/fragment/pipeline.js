@@ -1,6 +1,5 @@
 const fetchFragment = require('./fetch.js').fetchFragment;
 const replace = require('./replace.js').replace;
-const collection = require('./collection.js').collection;
 const { log } = require('./common.js');
 const { Ims } = require('@adobe/aio-lib-ims');
 
@@ -37,7 +36,7 @@ async function main(params) {
         status: 200,
     };
     log('starting request pipeline', context);
-    for (const transformer of [fetchFragment, collection, replace]) {
+    for (const transformer of [fetchFragment, replace]) {
         if (context.status != 200) break;
         context.transformer = transformer.name;
         context = await transformer(context);

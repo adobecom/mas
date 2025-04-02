@@ -203,7 +203,7 @@ export default class EditorPanel extends LitElement {
                     if(part) return ` / ${part}`;
                     return '';
                 });
-                fragmentParts = `${surface}${buildPart(props.variantLabel)}${buildPart(props.customerSegment)}${buildPart(props.marketSegment)}${buildPart(props.product)}`;
+                fragmentParts = `${surface}${buildPart(props.variantLabel)}${buildPart(props.customerSegment)}${buildPart(props.marketSegment)}${buildPart(props.product)} / ${this.fragment.fragmentName}`;
                 title = props.cardTitle;
                 break;  
             case COLLECTION_MODEL_PATH:

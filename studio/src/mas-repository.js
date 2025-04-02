@@ -15,7 +15,6 @@ import {
     TAG_STUDIO_CONTENT_TYPE,
     TAG_MODEL_ID_MAPPING,
     EDITABLE_FRAGMENT_MODEL_IDS,
-    DICTIONARY_MODEL_ID,
 } from './constants.js';
 
 let fragmentCache;
@@ -420,46 +419,10 @@ export class MasRepository extends LitElement {
         this.operation.set(OPERATIONS.SAVE);
         
         try {
-            let savedFragment;
-            const fragmentEndpoint = `${this.aem.cfFragmentsUrl}/${fragmentToSave.id}`;
+            const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave);
             
-            if (isDictionaryFragment) {
-                const response = await fetch(fragmentEndpoint, {
-                    method: 'GET',
-                    headers: {
-                        Accept: 'application/json',
-                        'Content-Type': 'application/json',
-                        ...this.aem.headers
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`Failed to get fragment for saving: ${response.status}`);
-                }
-                
-                const currentETag = response.headers.get('ETag');
-                
-                const { id, ...fragmentPayload } = fragmentToSave;
-                
-                const saveResponse = await fetch(fragmentEndpoint, {
-                    method: 'PUT',
-                    headers: {
-                        Accept: 'application/json',
-                        'Content-Type': 'application/json',
-                        'If-Match': currentETag,
-                        ...this.aem.headers
-                    },
-                    body: JSON.stringify(fragmentPayload)
-                });
-                
-                if (!saveResponse.ok) {
-                    throw new Error(`Failed to save fragment: ${saveResponse.status}`);
-                }
-                
-                savedFragment = await saveResponse.json();
-            } else {
-                savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave);
-                if (!savedFragment) throw new Error('Invalid fragment.');
+            if (!savedFragment) {
+                throw new Error('Invalid fragment.');
             }
             
             if (isInEditStore) {
@@ -539,39 +502,19 @@ export class MasRepository extends LitElement {
         
         try {
             this.operation.set(OPERATIONS.DELETE);
-            
             this.showToast('Deleting fragment...');
             
-            const fragmentId = fragmentToDelete.id;
-            const fragmentEndpoint = `${this.aem.cfFragmentsUrl}/${fragmentId}`;
-            const response = await fetch(fragmentEndpoint, {
-                method: 'GET',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                    ...this.aem.headers
-                }
-            });
-
-            if (response.status === 404) {
-                console.debug('Fragment already deleted');
-            } else if (response.ok) {
-                const currentETag = response.headers.get('ETag');
-                console.debug(`Deleting fragment with ETag: ${currentETag}`);
+            try {
+                const fragmentWithEtag = await this.aem.sites.cf.fragments.getWithEtag(fragmentToDelete.id);
                 
-                const deleteResponse = await fetch(fragmentEndpoint, {
-                    method: 'DELETE',
-                    headers: {
-                        'If-Match': currentETag,
-                        ...this.aem.headers
-                    }
-                });
-
-                if (!deleteResponse.ok && deleteResponse.status !== 404) {
-                    throw new Error(`Failed to delete fragment: ${deleteResponse.status}`);
+                if (fragmentWithEtag) {
+                    await this.aem.sites.cf.fragments.delete(fragmentWithEtag);
                 }
-            } else {
-                throw new Error(`Failed to get fragment: ${response.status}`);
+            } catch (error) {
+                if (!error.message.includes('404')) {
+                    throw error;
+                }
+                console.debug('Fragment already deleted or not found');
             }
             
             if (isInEditStore) {

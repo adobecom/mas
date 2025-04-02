@@ -150,10 +150,6 @@ export function linkStoreToHash(store, keys, defaultValue) {
             const storeValue = value[key];
 
             if (key === 'locale' && storeValue === 'en_US') {
-                if (currentParams.has(key)) {
-                    currentParams.delete(key);
-                    hasChanges = true;
-                }
                 continue;
             }
 
@@ -409,8 +405,26 @@ export function setupNavigationSubscriptions() {
     });
 
     Store.filters.subscribe((value, oldValue) => {
-        const urlParams = new URLSearchParams(window.location.search);
+        const currentHash = window.location.hash.slice(1);
+        const hashParams = new URLSearchParams(currentHash);
         let hasChanges = false;
+
+        if (value.locale !== oldValue.locale) {
+            if (value.locale === 'en_US') {
+                if (hashParams.has('locale')) {
+                    hashParams.delete('locale');
+                    hasChanges = true;
+                }
+            } else if (value.locale) {
+                hashParams.set('locale', value.locale);
+                hasChanges = true;
+            } else if (hashParams.has('locale')) {
+                hashParams.delete('locale');
+                hasChanges = true;
+            }
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
 
         if (JSON.stringify(value.tags) !== JSON.stringify(oldValue.tags)) {
             if (
@@ -420,11 +434,18 @@ export function setupNavigationSubscriptions() {
                 urlParams.set('tags', JSON.stringify(value.tags));
             } else {
                 urlParams.delete('tags');
+                if (urlParams.has('filter')) {
+                    urlParams.delete('filter');
+                }
             }
             hasChanges = true;
         }
 
         if (hasChanges) {
+            if (hashParams.toString() !== currentHash) {
+                window.location.hash = hashParams.toString();
+            }
+            
             const newSearch = urlParams.toString();
             window.history.replaceState(
                 null,
@@ -547,6 +568,33 @@ export function linkStoreToSearch(store, keys, defaultValue) {
             );
         }
     });
+}
+
+/**
+ * Clear specific search parameters from the URL
+ * @param {string[]} paramsToRemove - Array of parameter names to remove
+ */
+export function clearSearchParams(paramsToRemove) {
+    const urlParams = new URLSearchParams(window.location.search);
+    let hasChanges = false;
+
+    paramsToRemove.forEach((param) => {
+        if (urlParams.has(param)) {
+            urlParams.delete(param);
+            hasChanges = true;
+        }
+    });
+
+    if (hasChanges) {
+        const newSearch = urlParams.toString();
+        window.history.replaceState(
+            null,
+            '',
+            `${window.location.pathname}${
+                newSearch ? '?' + newSearch : ''
+            }${window.location.hash}`,
+        );
+    }
 }
 
 /**

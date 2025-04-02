@@ -55,10 +55,6 @@ class MasFilterPanel extends LitElement {
         this.#initializeTagFilters();
     }
 
-    connectedCallback() {
-        super.connectedCallback();
-    }
-
     disconnectedCallback() {
         super.disconnectedCallback();
 
@@ -111,7 +107,6 @@ class MasFilterPanel extends LitElement {
         );
     }
 
-
     #updateFiltersParams() {
         const tagValues = Object.values(this.tagsByType ?? EMPTY_TAGS)
             .flat()
@@ -155,27 +150,6 @@ class MasFilterPanel extends LitElement {
             .forEach((tagPicker) => {
                 tagPicker.clear();
             });
-        this.#clearFilterSearchParams();
-
-    }
-
-    #clearFilterSearchParams() {
-        const urlParams = new URLSearchParams(window.location.search);
-
-        ['tags', 'filter'].forEach((param) => {
-            if (urlParams.has(param)) {
-                urlParams.delete(param);
-            }
-        });
-
-        const newSearch = urlParams.toString();
-        window.history.replaceState(
-            null,
-            '',
-            `${window.location.pathname}${
-                newSearch ? '?' + newSearch : ''
-            }${window.location.hash}`,
-        );
     }
 
     async #handleTagDelete(e) {

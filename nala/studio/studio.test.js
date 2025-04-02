@@ -60,7 +60,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
-            await expect(page).toHaveURL(`${testPage}&path=nala&page=content`);
+            await expect(page).toHaveURL(`${testPage}&page=content&path=nala`);
             expect(await studio.folderPicker).toHaveAttribute('value', 'nala');
         });
     });

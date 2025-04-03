@@ -25,13 +25,8 @@ async function getGitHubPRBranchLiveUrl() {
   // Get the org and repo from the environment variables
   const prFromOrg = process.env.prOrg;
   const prFromRepoName = process.env.prRepo;
-  
-  let prBranchLiveUrl;
-  if (process.env.WORKFLOW_NAME === 'Nala Daily Run' || process.env.WORKFLOW_NAME === "Studio Montor") {
-    prBranchLiveUrl = PROD_URL;
-  } else {
-    prBranchLiveUrl = `https://${prBranch}--${prFromRepoName}--${prFromOrg}.aem.live`;
-  }
+
+  const prBranchLiveUrl = `https://${prBranch}--${prFromRepoName}--${prFromOrg}.aem.live`;
   
   try {
     if (await isBranchURLValid(prBranchLiveUrl)) {
@@ -55,12 +50,8 @@ async function getGitHubPRBranchLiveUrl() {
 
 async function getGitHubMiloLibsBranchLiveUrl() {
   const repository = process.env.GITHUB_REPOSITORY;
-
-  let prBranchLiveUrl;
-  let miloLibs;
-
-  prBranchLiveUrl = process.env.PR_BRANCH_MILOLIBS_LIVE_URL;
-  miloLibs = process.env.MILO_LIBS;
+  const prBranchLiveUrl = process.env.PR_BRANCH_MILOLIBS_LIVE_URL;
+  const miloLibs = process.env.MILO_LIBS;
 
   try {
     if (await isBranchURLValid(prBranchLiveUrl)) {
@@ -87,6 +78,21 @@ async function getCircleCIBranchLiveUrl() {
   } catch (err) {
     console.error('Error => Error in setting Stage Branch test URL : ', stageUrl);
     console.info('Note: Stage branch test url is not valid, Exiting test execution.');
+    process.exit(1);
+  }
+}
+
+async function getProdWorkflowLiveUrl() {
+  const prodUrl = PROD_URL;
+
+  try {
+    if (await isBranchURLValid(prodUrl)) {
+      process.env.PR_BRANCH_LIVE_URL = prodUrl;
+    }
+    console.info('Workflow Live URL : ', prodUrl);
+  } catch (err) {
+    console.error('Error => Error in setting worflow test URL : ', prodUrl);
+    console.info('Note: Worflow test url is not valid, Exiting test execution.');
     process.exit(1);
   }
 }
@@ -127,6 +133,8 @@ async function globalSetup() {
 
     if (process.env.MILO_LIBS_RUN === 'true') {
       await getGitHubMiloLibsBranchLiveUrl();
+    } else if (process.env.DAILY_RUN === 'true') {
+      await getProdWorkflowLiveUrl();
     } else {
       await getGitHubPRBranchLiveUrl();
     }

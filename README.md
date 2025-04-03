@@ -54,7 +54,7 @@ Ask colleagues/slack for IMS_EMAIL ad IMS_PASS values, your user might not work 
 `npm run nala MWPW-160756 mode=ui` - ui mode
 
 Beware that 'npm run nala' runs `node nala/utils/nala.run.js`, it's not the script that GH action does. 
-If you want to debug GH action script run sh `nala/utils/pr.run.sh`
+If you want to debug GH action script run sh `nala/utils/gh.run.sh`
 # CI/CD
 documented in .github/README.md
 

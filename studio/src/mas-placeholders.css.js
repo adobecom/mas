@@ -87,12 +87,19 @@ export const styles = css`
         transform: translate(-50%, -50%);
     }
 
+    mas-locale-picker {
+        width: 150px;
+        border: 1px solid var(--spectrum-gray-700);
+        border-radius: 4px;
+    }
+
     .placeholders-table {
         width: 100%;
         border-collapse: separate;
         border-spacing: 0;
         border-radius: 8px;
         border: 1px solid var(--spectrum-gray-200);
+        table-layout: fixed;
     }
 
     .placeholders-table sp-table-head {
@@ -121,6 +128,12 @@ export const styles = css`
         display: flex;
         align-items: center;
         justify-content: flex-start;
+    }
+
+    .placeholders-table sp-table-cell.editing-cell {
+        box-sizing: border-box;
+        display: inline-flex;
+        padding: 0 30px 0 0;
     }
 
     .placeholders-table sp-table-body {
@@ -154,6 +167,10 @@ export const styles = css`
 
     .action-button:hover {
         background-color: var(--spectrum-global-color-gray-200);
+    }
+
+    .dropdown-menu-container {
+        position: relative;
     }
 
     .dropdown-menu {
@@ -250,53 +267,15 @@ export const styles = css`
         margin-top: 24px;
     }
 
-    .editing-cell {
-        padding: 0 !important;
-    }
-
     .edit-field-container {
-        padding: 4px;
+        width: 100%;
+        padding: 8px;
+        display: flex;
     }
 
     .edit-field-container sp-textfield {
         width: 100%;
-    }
-
-    .breadcrumbs {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 14px;
-    }
-
-    .breadcrumb-link {
-        color: var(--spectrum-global-color-blue-600);
-        text-decoration: none;
-    }
-
-    .breadcrumb-current {
-        color: var(--spectrum-global-color-gray-700);
-    }
-
-    .approve-button sp-icon-checkmark {
-        color: var(--spectrum-semantic-positive-color-default, green);
-    }
-
-    .reject-button sp-icon-close {
-        color: var(--spectrum-semantic-negative-color-default, red);
-    }
-
-    .rich-text-toggle {
-        padding: 8px 0;
-        margin-bottom: 8px;
-    }
-
-    .editing-cell {
-        min-width: 300px;
-    }
-
-    .edit-field-container {
-        width: 100%;
+        flex: 1;
     }
 
     .edit-field-container rte-field {
@@ -315,7 +294,6 @@ export const styles = css`
 
     sp-switch {
         display: inline-flex;
-        align-items: center;
     }
 
     rte-field {
@@ -350,7 +328,7 @@ export const styles = css`
     .rich-text-cell a:hover {
         text-decoration: underline;
     }
-    
+
     .bulk-action-container {
         position: fixed;
         bottom: 24px;
@@ -359,7 +337,9 @@ export const styles = css`
         z-index: 1000;
         opacity: 0;
         visibility: hidden;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
+        transition: 
+            opacity 0.3s ease, 
+            visibility 0.3s ease;
         border-radius: 4px;
         background-color: var(--spectrum-semantic-negative-color-background);
         padding: 6px;
@@ -369,7 +349,7 @@ export const styles = css`
         opacity: 1;
         visibility: visible;
     }
-    
+
     .bulk-action-container sp-action-button {
         color: var(--spectrum-white);
         background-color: var(--spectrum-red-800);
@@ -388,9 +368,38 @@ export const styles = css`
         justify-content: center;
         z-index: 1500;
     }
-    
+
     .confirm-dialog-overlay sp-dialog-wrapper {
         max-width: 100vw;
+    }
+
+    .breadcrumbs {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+    }
+
+    .breadcrumb-link {
+        color: var(--spectrum-global-color-blue-600);
+        text-decoration: none;
+    }
+
+    .breadcrumb-current {
+        color: var(--spectrum-global-color-gray-700);
+    }
+
+    .approve-button sp-icon-checkmark {
+        color: var(--spectrum-semantic-positive-color-default, green);
+    }
+
+    .reject-button sp-icon-close {
+        color: var(--spectrum-semantic-negative-color-default, red);
+    }
+
+    .rich-text-toggle {
+        padding: 8px 0;
+        margin-bottom: 8px;
     }
 `;
 

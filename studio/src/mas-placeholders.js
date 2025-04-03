@@ -46,6 +46,7 @@ class MasPlaceholders extends LitElement {
         placeholdersData: { type: Array, state: true },
         placeholdersLoading: { type: Boolean, state: true },
         isBulkDeleteInProgress: { type: Boolean, state: true },
+        indexUpdateRetries: { type: Number, state: true },
     };
 
     constructor() {
@@ -77,12 +78,13 @@ class MasPlaceholders extends LitElement {
         this.placeholdersData = [];
         this.placeholdersLoading = false;
         this.isBulkDeleteInProgress = false;
+        this.indexUpdateRetries = 0;
 
         this.reactiveController = new ReactiveController(this, [
             Store.search,
             Store.filters,
-            Store.folders?.data,
-            Store.folders?.loaded,
+            Store.folders.data,
+            Store.folders.loaded,
             Store.placeholders?.list?.data,
             Store.placeholders?.list?.loading,
         ]);
@@ -183,19 +185,20 @@ class MasPlaceholders extends LitElement {
         }
 
         const masRepository = this.repository;
-        if (masRepository) {
-            this.selectedFolder = Store.search.get();
-            this.selectedLocale = Store.filters.get().locale || 'en_US';
-            this.placeholdersData = Store.placeholders?.list?.data?.get() || [];
-
-            if (this.selectedFolder?.path) {
-                Store.placeholders.list.loading.set(true);
-                this.loadPlaceholders(true);
-            } else {
-                this.error = 'Please select a folder to view placeholders';
-            }
-        } else {
+        if (!masRepository) {
             this.error = 'Repository component not found';
+            return;
+        }
+
+        this.selectedFolder = Store.search.get();
+        this.selectedLocale = Store.filters.get().locale || 'en_US';
+        this.placeholdersData = Store.placeholders?.list?.data?.get() || [];
+
+        if (this.selectedFolder?.path) {
+            Store.placeholders.list.loading.set(true);
+            this.loadPlaceholders(true);
+        } else {
+            this.error = 'Please select a folder to view placeholders';
         }
     }
 
@@ -363,7 +366,7 @@ class MasPlaceholders extends LitElement {
 
             if (placeholderIndex === -1) {
                 throw new Error(
-                    `Placeholder with key "${this.editingPlaceholder}" not found`,
+                    `Placeholder "${this.editingPlaceholder}" not found`,
                 );
             }
 
@@ -379,7 +382,7 @@ class MasPlaceholders extends LitElement {
             }
 
             const fragmentData = placeholder.fragment;
-            if (!fragmentData || !fragmentData.id) {
+            if (!fragmentData?.id) {
                 throw new Error('Fragment data is missing or invalid');
             }
 
@@ -387,89 +390,49 @@ class MasPlaceholders extends LitElement {
             this.placeholdersLoading = true;
 
             const repository = this.repository;
-            const fragmentId = fragmentData.id;
-            const fragmentEndpoint = `${repository.aem.cfFragmentsUrl}/${fragmentId}`;
+            if (!repository) {
+                throw new Error('Repository component not found');
+            }
 
-            const getResponse = await fetch(fragmentEndpoint, {
-                method: 'GET',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                    ...repository.aem.headers,
-                },
-            });
-
-            if (!getResponse.ok) {
-                throw new Error(
-                    `Failed to get latest fragment: ${getResponse.status}`,
+            const latestFragment =
+                await repository.aem.sites.cf.fragments.getById(
+                    fragmentData.id,
                 );
+            if (!latestFragment) {
+                throw new Error('Failed to get latest fragment');
             }
 
-            const latestFragment = await getResponse.json();
-            const currentETag = getResponse.headers.get('ETag');
+            const updatedFragment = { ...latestFragment };
+            updatedFragment.title = this.editedKey || fragmentData.title || '';
+            updatedFragment.description = fragmentData.description || '';
 
-            if (!currentETag) {
-                throw new Error('Failed to get ETag for fragment');
-            }
-
-            const savePayload = {
-                title: fragmentData.title || this.editedKey,
-                description: fragmentData.description || '',
-                fields: [],
-            };
-
-            const fieldsToUpdate = [
-                { name: 'key', value: this.editedKey },
-                { name: 'value', value: this.editedValue },
-                { name: 'locReady', value: true },
+            const fieldUpdates = [
+                ['key', [this.editedKey], 'text'],
+                ['value', [this.editedValue], 'text'],
+                ['locReady', [true], 'boolean'],
             ];
 
-            const currentFields = latestFragment.fields || [];
+            fieldUpdates.reduce(
+                (fields, [name, values, type]) =>
+                    repository.updateFieldInFragment(
+                        fields,
+                        name,
+                        values,
+                        type,
+                    ),
+                updatedFragment.fields,
+            );
 
-            fieldsToUpdate.forEach((field) => {
-                const existingFieldIndex = currentFields.findIndex(
-                    (f) => f.name === field.name,
-                );
-
-                if (existingFieldIndex !== -1) {
-                    const existingField = {
-                        ...currentFields[existingFieldIndex],
-                    };
-                    existingField.values = [field.value];
-                    savePayload.fields.push(existingField);
-                } else {
-                    savePayload.fields.push({
-                        name: field.name,
-                        type: field.name === 'locReady' ? 'boolean' : 'text',
-                        values: [field.value],
-                    });
-                }
-            });
-
-            currentFields.forEach((field) => {
-                if (!fieldsToUpdate.some((f) => f.name === field.name)) {
-                    savePayload.fields.push({ ...field });
-                }
-            });
-
-            const saveResponse = await fetch(fragmentEndpoint, {
-                method: 'PUT',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                    'If-Match': currentETag,
-                    ...repository.aem.headers,
+            const savedFragment = await repository.saveFragment(
+                updatedFragment,
+                {
+                    isInEditStore: false,
                 },
-                body: JSON.stringify(savePayload),
-            });
+            );
 
-            if (!saveResponse.ok) {
-                throw new Error(
-                    `Failed to save fragment: ${saveResponse.status} ${saveResponse.statusText}`,
-                );
+            if (!savedFragment) {
+                throw new Error('Failed to save fragment');
             }
-
-            const savedFragment = await saveResponse.json();
 
             try {
                 await repository.aem.sites.cf.fragments.publish(savedFragment);
@@ -490,7 +453,7 @@ class MasPlaceholders extends LitElement {
                 ...placeholder,
                 key: this.editedKey,
                 value: this.editedValue,
-                displayValue: displayValue,
+                displayValue,
                 isRichText: containsHtml,
                 fragment: savedFragment,
                 updatedAt: new Date().toLocaleString(),
@@ -601,17 +564,16 @@ class MasPlaceholders extends LitElement {
         }
 
         try {
-            const indexPath = `${dictionaryPath}/index`;
-            const repository = this.repository;
-
-            if (!repository) {
+            if (!this.repository) {
                 return false;
             }
+
+            const indexPath = `${dictionaryPath}/index`;
 
             let indexFragment;
             try {
                 indexFragment =
-                    await repository.aem.sites.cf.fragments.getByPath(
+                    await this.repository.aem.sites.cf.fragments.getByPath(
                         indexPath,
                     );
             } catch (error) {
@@ -622,9 +584,11 @@ class MasPlaceholders extends LitElement {
                 return false;
             }
 
-            const freshIndex = await repository.aem.sites.cf.fragments.getById(
-                indexFragment.id,
-            );
+            const freshIndex =
+                await this.repository.aem.sites.cf.fragments.getById(
+                    indexFragment.id,
+                );
+
             if (!freshIndex) {
                 return false;
             }
@@ -641,7 +605,7 @@ class MasPlaceholders extends LitElement {
                 return true;
             }
 
-            const updatedFields = repository.updateFieldInFragment(
+            const updatedFields = this.repository.updateFieldInFragment(
                 freshIndex.fields,
                 'entries',
                 updatedEntries,
@@ -656,13 +620,13 @@ class MasPlaceholders extends LitElement {
 
             try {
                 const savedIndex =
-                    await repository.aem.sites.cf.fragments.save(
+                    await this.repository.aem.sites.cf.fragments.save(
                         updatedFragment,
                     );
 
                 if (savedIndex) {
                     try {
-                        await repository.aem.sites.cf.fragments.publish(
+                        await this.repository.aem.sites.cf.fragments.publish(
                             savedIndex,
                         );
                     } catch (publishError) {
@@ -676,6 +640,17 @@ class MasPlaceholders extends LitElement {
             } catch (error) {
                 if (error.message?.includes('412')) {
                     await new Promise((resolve) => setTimeout(resolve, 500));
+                    const maxRetries = 3;
+                    if (!this.indexUpdateRetries) {
+                        this.indexUpdateRetries = 1;
+                    } else if (this.indexUpdateRetries < maxRetries) {
+                        this.indexUpdateRetries++;
+                    } else {
+                        this.indexUpdateRetries = 0;
+                        throw new Error(
+                            'Maximum retries reached for index update',
+                        );
+                    }
                     return await this.removeFromIndexFragment(
                         dictionaryPath,
                         placeholderFragment,
@@ -696,6 +671,13 @@ class MasPlaceholders extends LitElement {
      */
     async loadPlaceholders(forceCacheBust = false) {
         try {
+            if (!this.repository) {
+                this.error = 'Repository component not found';
+                Store.placeholders.list.loading.set(false);
+                this.placeholdersLoading = false;
+                return;
+            }
+
             const folderPath = this.selectedFolder?.path;
             if (!folderPath) {
                 return;
@@ -706,7 +688,6 @@ class MasPlaceholders extends LitElement {
 
             const locale = this.selectedLocale || 'en_US';
             const dictionaryPath = `/content/dam/mas/${folderPath}/${locale}/dictionary`;
-            const repository = this.repository;
 
             try {
                 const searchOptions = {
@@ -716,11 +697,12 @@ class MasPlaceholders extends LitElement {
 
                 const abortController = new AbortController();
 
-                const cursor = await repository.aem.sites.cf.fragments.search(
-                    searchOptions,
-                    50,
-                    abortController,
-                );
+                const cursor =
+                    await this.repository.aem.sites.cf.fragments.search(
+                        searchOptions,
+                        50,
+                        abortController,
+                    );
 
                 const result = await cursor.next();
                 if (!result.value || result.value.length === 0) {
@@ -952,18 +934,17 @@ class MasPlaceholders extends LitElement {
             return false;
         }
 
-        const indexPath = `${parentPath}/index`;
-        const repository = this.repository;
-
-        if (!repository) {
-            return false;
-        }
-
         try {
+            if (!this.repository) {
+                return false;
+            }
+
+            const indexPath = `${parentPath}/index`;
+
             let indexFragment;
             try {
                 indexFragment =
-                    await repository.aem.sites.cf.fragments.getByPath(
+                    await this.repository.aem.sites.cf.fragments.getByPath(
                         indexPath,
                     );
             } catch (error) {
@@ -974,9 +955,11 @@ class MasPlaceholders extends LitElement {
                 return await this.createIndexFragment(parentPath, fragmentPath);
             }
 
-            const freshIndex = await repository.aem.sites.cf.fragments.getById(
-                indexFragment.id,
-            );
+            const freshIndex =
+                await this.repository.aem.sites.cf.fragments.getById(
+                    indexFragment.id,
+                );
+
             if (!freshIndex) {
                 return await this.createIndexFragment(parentPath, fragmentPath);
             }
@@ -992,7 +975,7 @@ class MasPlaceholders extends LitElement {
 
             const updatedEntries = [...currentEntries, fragmentPath];
 
-            const updatedFields = repository.updateFieldInFragment(
+            const updatedFields = this.repository.updateFieldInFragment(
                 freshIndex.fields,
                 'entries',
                 updatedEntries,
@@ -1007,13 +990,13 @@ class MasPlaceholders extends LitElement {
 
             try {
                 const savedIndex =
-                    await repository.aem.sites.cf.fragments.save(
+                    await this.repository.aem.sites.cf.fragments.save(
                         updatedFragment,
                     );
 
                 if (savedIndex) {
                     try {
-                        await repository.aem.sites.cf.fragments.publish(
+                        await this.repository.aem.sites.cf.fragments.publish(
                             savedIndex,
                         );
                     } catch (publishError) {
@@ -1027,6 +1010,17 @@ class MasPlaceholders extends LitElement {
             } catch (error) {
                 if (error.message?.includes('412')) {
                     await new Promise((resolve) => setTimeout(resolve, 500));
+                    const maxRetries = 3;
+                    if (!this.indexUpdateRetries) {
+                        this.indexUpdateRetries = 1;
+                    } else if (this.indexUpdateRetries < maxRetries) {
+                        this.indexUpdateRetries++;
+                    } else {
+                        this.indexUpdateRetries = 0;
+                        throw new Error(
+                            'Maximum retries reached for index update',
+                        );
+                    }
                     return await this.updateIndexFragment(
                         parentPath,
                         fragmentPath,
@@ -1055,7 +1049,8 @@ class MasPlaceholders extends LitElement {
         if (
             this.activeDropdown &&
             !event.target.closest('.dropdown-menu') &&
-            !event.target.closest('.action-menu-button')
+            !event.target.closest('.action-menu-button') &&
+            !event.target.closest('.dropdown-item')
         ) {
             this.activeDropdown = null;
         }
@@ -1149,13 +1144,18 @@ class MasPlaceholders extends LitElement {
     }
 
     toggleDropdown(key, event) {
-        event.stopPropagation();
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
 
         if (this.activeDropdown === key) {
             this.activeDropdown = null;
         } else {
             this.activeDropdown = key;
         }
+
+        this.requestUpdate();
     }
 
     handleKeyChange(e) {
@@ -1634,15 +1634,19 @@ class MasPlaceholders extends LitElement {
                     >
                         <sp-icon-edit></sp-icon-edit>
                     </button>
-                    <button
-                        class="action-button action-menu-button"
-                        @click=${(e) => this.toggleDropdown(placeholder.key, e)}
-                        aria-label="More options"
-                    >
-                        <sp-icon-more></sp-icon-more>
-                    </button>
+                    <div class="dropdown-menu-container">
+                        <button
+                            class="action-button action-menu-button"
+                            @click=${(e) =>
+                                this.toggleDropdown(placeholder.key, e)}
+                            @mousedown=${(e) => e.stopPropagation()}
+                            aria-label="More options"
+                        >
+                            <sp-icon-more></sp-icon-more>
+                        </button>
+                        ${dropdownMenu}
+                    </div>
                 </div>
-                ${dropdownMenu}
             </sp-table-cell>
         `;
     }
@@ -1763,13 +1767,12 @@ class MasPlaceholders extends LitElement {
         }
 
         try {
-            const repository = this.repository;
-            if (!repository) {
+            if (!this.repository) {
                 return false;
             }
 
             const indexFragment =
-                await repository.aem.sites.cf.fragments.create({
+                await this.repository.aem.sites.cf.fragments.create({
                     parentPath,
                     modelId: DICTIONARY_MODEL_ID,
                     name: 'index',
@@ -1810,7 +1813,9 @@ class MasPlaceholders extends LitElement {
             await new Promise((resolve) => setTimeout(resolve, 1000));
 
             try {
-                await repository.aem.sites.cf.fragments.publish(indexFragment);
+                await this.repository.aem.sites.cf.fragments.publish(
+                    indexFragment,
+                );
             } catch (publishError) {}
 
             return true;

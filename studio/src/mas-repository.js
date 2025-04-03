@@ -88,10 +88,6 @@ export class MasRepository extends LitElement {
         this.style.display = 'none';
     }
 
-    disconnectedCallback() {
-        super.disconnectedCallback();
-    }
-
     /**
      * @param {Error} error
      * @param {string} defaultMessage - Generic toast message (can be overriden by the error's message)

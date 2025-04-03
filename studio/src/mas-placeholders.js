@@ -1384,7 +1384,7 @@ class MasPlaceholders extends LitElement {
                 scroller
                 selects="multiple"
                 selectable-with="cell"
-                selected=${JSON.stringify(this.selectedPlaceholders)}
+                .selected=${this.selectedPlaceholders}
                 @change=${this.updateTableSelection}
                 class="placeholders-table"
             >
@@ -2017,7 +2017,7 @@ class MasPlaceholders extends LitElement {
 
         const currentSelection = this.selectedPlaceholders;
         this.selectedPlaceholders = [...currentSelection];
-        table.selected = JSON.stringify(this.selectedPlaceholders);
+        table.selected = this.selectedPlaceholders;
 
         setTimeout(() => {
             const rows = table.querySelectorAll('sp-table-row');

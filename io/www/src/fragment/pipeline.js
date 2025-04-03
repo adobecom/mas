@@ -38,7 +38,7 @@ async function main(params) {
         context.state = await stateLib.init();
     }
     context.debugLogs =
-        (await context.state.get('debugFragmentLogs')).value || false;
+        (await context.state.get('debugFragmentLogs'))?.value || false;
     const requestKey = `req-${context.id}-${context.locale}`;
     const cachedMetadataStr = (await context.state.get(requestKey))?.value;
     let cachedMetadata = {};

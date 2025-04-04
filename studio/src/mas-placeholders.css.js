@@ -128,6 +128,7 @@ export const styles = css`
         display: flex;
         align-items: center;
         justify-content: flex-start;
+        overflow: hidden;
     }
 
     .placeholders-table sp-table-cell.editing-cell {

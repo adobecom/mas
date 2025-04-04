@@ -7,14 +7,38 @@ import { MasRepository } from './mas-repository.js';
 import './mas-folder-picker.js';
 import './filters/locale-picker.js';
 import './rte/rte-field.js';
+import './mas-fragment-status.js';
 import {
     ROOT_PATH,
     DICTIONARY_MODEL_ID,
     PAGE_NAMES,
     OPERATIONS,
+    STATUS_DRAFT,
+    STATUS_MODIFIED,
+    STATUS_PUBLISHED,
 } from './constants.js';
 import { normalizeKey } from './utils.js';
 import ReactiveController from './reactivity/reactive-controller.js';
+
+function withLoadingState(fn) {
+    return async function (...args) {
+        try {
+            Store.placeholders.list.loading.set(true);
+            this.placeholdersLoading = true;
+            return await fn.apply(this, args);
+        } finally {
+            Store.placeholders.list.loading.set(false);
+            this.placeholdersLoading = false;
+        }
+    };
+}
+
+function getFragmentFieldValue(fragment, fieldName, defaultValue = '') {
+    if (!fragment?.fields) return defaultValue;
+    const field = fragment.fields.find((field) => field.name === fieldName);
+    if (!field?.values?.length) return defaultValue;
+    return field.values[0];
+}
 
 export function getDictionaryPath(folderPath, locale) {
     if (!folderPath || !locale) return null;
@@ -79,6 +103,16 @@ class MasPlaceholders extends LitElement {
         this.placeholdersLoading = false;
         this.isBulkDeleteInProgress = false;
         this.indexUpdateRetries = 0;
+        this.persistentStatus = {};
+
+        try {
+            const savedStatus = localStorage.getItem('placeholder-status');
+            if (savedStatus) {
+                this.persistentStatus = JSON.parse(savedStatus);
+            }
+        } catch (e) {
+            console.error('Error loading persistent status:', e);
+        }
 
         this.reactiveController = new ReactiveController(this, [
             Store.search,
@@ -114,6 +148,21 @@ class MasPlaceholders extends LitElement {
     /** @type {MasRepository} */
     get repository() {
         return document.querySelector('mas-repository');
+    }
+
+    /**
+     * Ensures the repository is available
+     * @param {string} [errorMessage='Repository component not found'] - Custom error message
+     * @throws {Error} If repository is not available
+     * @returns {MasRepository} The repository instance
+     */
+    ensureRepository(errorMessage = 'Repository component not found') {
+        const repository = this.repository;
+        if (!repository) {
+            this.error = errorMessage;
+            throw new Error(errorMessage);
+        }
+        return repository;
     }
 
     get loading() {
@@ -194,12 +243,8 @@ class MasPlaceholders extends LitElement {
         this.selectedLocale = Store.filters.get().locale || 'en_US';
         this.placeholdersData = Store.placeholders?.list?.data?.get() || [];
 
-        if (this.selectedFolder?.path) {
-            Store.placeholders.list.loading.set(true);
-            this.loadPlaceholders(true);
-        } else {
-            this.error = 'Please select a folder to view placeholders';
-        }
+        Store.placeholders.list.loading.set(true);
+        this.loadPlaceholders(true);
     }
 
     disconnectedCallback() {
@@ -213,13 +258,11 @@ class MasPlaceholders extends LitElement {
 
     handleFolderChange() {
         const folderData = Store.search.get();
-        if (folderData?.path) {
-            Store.placeholders.list.loading.set(true);
-            if (this.repository) {
-                this.loadPlaceholders();
-            } else {
-                this.error = 'Repository component not found';
-            }
+        Store.placeholders.list.loading.set(true);
+        if (this.repository) {
+            this.loadPlaceholders();
+        } else {
+            this.error = 'Repository component not found';
         }
     }
 
@@ -291,21 +334,11 @@ class MasPlaceholders extends LitElement {
             Store.placeholders.list.loading.set(true);
             this.placeholdersLoading = true;
 
-            const folderPath = this.selectedFolder?.path;
+            const folderPath = this.selectedFolder.path;
             const locale =
                 this.newPlaceholder.locale || this.selectedLocale || 'en_US';
 
-            if (!folderPath) {
-                this.showToast(
-                    'No folder selected. Please select a folder first.',
-                    'negative',
-                );
-                return;
-            }
-
-            if (!this.repository) {
-                throw new Error('Repository element not found');
-            }
+            const repository = this.ensureRepository();
 
             const dictionaryPath = getDictionaryPath(folderPath, locale);
             if (!dictionaryPath) {
@@ -406,6 +439,11 @@ class MasPlaceholders extends LitElement {
             updatedFragment.title = this.editedKey || fragmentData.title || '';
             updatedFragment.description = fragmentData.description || '';
 
+            const newStatus =
+                placeholder.status === STATUS_PUBLISHED
+                    ? STATUS_MODIFIED
+                    : STATUS_DRAFT;
+
             const fieldUpdates = [
                 ['key', [this.editedKey], 'text'],
                 ['value', [this.editedValue], 'text'],
@@ -434,15 +472,6 @@ class MasPlaceholders extends LitElement {
                 throw new Error('Failed to save fragment');
             }
 
-            try {
-                await repository.aem.sites.cf.fragments.publish(savedFragment);
-            } catch (publishError) {
-                this.showToast(
-                    `Fragment saved but failed to publish: ${publishError.message}`,
-                    'warning',
-                );
-            }
-
             const containsHtml = /<\/?[a-z][\s\S]*>/i.test(this.editedValue);
             const displayValue = containsHtml
                 ? this.editedValue.replace(/<[^>]*>/g, '')
@@ -457,16 +486,14 @@ class MasPlaceholders extends LitElement {
                 isRichText: containsHtml,
                 fragment: savedFragment,
                 updatedAt: new Date().toLocaleString(),
+                status: newStatus,
             };
 
             Store.placeholders.list.data.set(updatedPlaceholders);
             this.placeholdersData = updatedPlaceholders;
 
             this.resetEditState();
-            this.showToast(
-                'Placeholder successfully saved and published',
-                'positive',
-            );
+            this.showToast('Placeholder successfully saved', 'positive');
         } catch (error) {
             this.showToast(
                 `Failed to save placeholder: ${error.message}`,
@@ -596,12 +623,12 @@ class MasPlaceholders extends LitElement {
             const entriesField = freshIndex.fields.find(
                 (f) => f.name === 'entries',
             );
-            const existingEntries = entriesField?.values || [];
-            const updatedEntries = existingEntries.filter(
+            const currentEntries = entriesField?.values || [];
+            const updatedEntries = currentEntries.filter(
                 (path) => path !== placeholderFragment.path,
             );
 
-            if (existingEntries.length === updatedEntries.length) {
+            if (currentEntries.length === updatedEntries.length) {
                 return true;
             }
 
@@ -670,26 +697,13 @@ class MasPlaceholders extends LitElement {
      * @param {boolean} forceCacheBust - Whether to bypass cache
      */
     async loadPlaceholders(forceCacheBust = false) {
-        try {
-            if (!this.repository) {
-                this.error = 'Repository component not found';
-                Store.placeholders.list.loading.set(false);
-                this.placeholdersLoading = false;
-                return;
-            }
-
-            const folderPath = this.selectedFolder?.path;
-            if (!folderPath) {
-                return;
-            }
-
-            Store.placeholders.list.loading.set(true);
-            this.placeholdersLoading = true;
-
-            const locale = this.selectedLocale || 'en_US';
-            const dictionaryPath = `/content/dam/mas/${folderPath}/${locale}/dictionary`;
-
+        const innerLoadPlaceholders = async (forceCacheBust = false) => {
             try {
+                this.ensureRepository();
+                const folderPath = this.selectedFolder.path;
+                const locale = this.selectedLocale || 'en_US';
+                const dictionaryPath = `/content/dam/mas/${folderPath}/${locale}/dictionary`;
+
                 const searchOptions = {
                     path: dictionaryPath,
                     sort: [{ on: 'created', order: 'ASC' }],
@@ -716,49 +730,43 @@ class MasPlaceholders extends LitElement {
                     .map((fragment) => {
                         if (!fragment || !fragment.fields) return null;
 
-                        const keyField = fragment.fields.find(
-                            (field) => field.name === 'key',
-                        );
-                        const valueField = fragment.fields.find(
-                            (field) => field.name === 'value',
-                        );
-                        const locReadyField = fragment.fields.find(
-                            (field) => field.name === 'locReady',
+                        const key = getFragmentFieldValue(fragment, 'key');
+                        const value = getFragmentFieldValue(fragment, 'value');
+                        const locReady = getFragmentFieldValue(
+                            fragment,
+                            'locReady',
+                            false,
                         );
 
-                        const key =
-                            keyField &&
-                            keyField.values &&
-                            keyField.values.length > 0
-                                ? keyField.values[0]
-                                : '';
-
-                        let value = '';
-                        if (valueField?.values?.length > 0) {
-                            value = valueField.values[0];
-                        }
-
-                        const locReady =
-                            locReadyField &&
-                            locReadyField.values &&
-                            locReadyField.values.length > 0
-                                ? locReadyField.values[0]
-                                : false;
+                        const statusInfo = this.detectFragmentStatus(
+                            fragment,
+                            fragment.id,
+                        );
 
                         const containsHtml = /<\/?[a-z][\s\S]*>/i.test(value);
-
                         const displayValue = containsHtml
                             ? value.replace(/<[^>]*>/g, '')
                             : value;
 
                         return {
                             id: fragment.id,
-                            key: key,
-                            value: value,
-                            displayValue: displayValue,
+                            key,
+                            value,
+                            displayValue,
                             isRichText: containsHtml,
-                            locale: locale,
+                            locale,
                             state: locReady ? 'Ready' : 'Not Ready',
+                            status: statusInfo.status,
+                            published: statusInfo.isPublished,
+                            hasPublishedRef: statusInfo.hasPublishedRef,
+                            modifiedAfterPublished:
+                                statusInfo.modifiedAfterPublished,
+                            publishedTime: fragment.published
+                                ? new Date(fragment.published.at).getTime()
+                                : 0,
+                            modifiedTime: fragment.modified
+                                ? new Date(fragment.modified.at).getTime()
+                                : 0,
                             updatedBy: fragment.modified?.by || 'Unknown',
                             updatedAt: fragment.modified?.at
                                 ? new Date(
@@ -766,7 +774,7 @@ class MasPlaceholders extends LitElement {
                                   ).toLocaleString()
                                 : 'Unknown',
                             path: fragment.path,
-                            fragment: fragment,
+                            fragment,
                         };
                     })
                     .filter(Boolean);
@@ -783,17 +791,12 @@ class MasPlaceholders extends LitElement {
                     throw error;
                 }
             }
-        } catch (error) {
-            this.showToast(
-                `Failed to search for placeholders: ${error.message}`,
-                'negative',
-            );
-            this.placeholdersData = [];
-            Store.placeholders.list.data.set([]);
-        } finally {
-            this.placeholdersLoading = false;
-            Store.placeholders.list.loading.set(false);
-        }
+        };
+
+        return withLoadingState(innerLoadPlaceholders).call(
+            this,
+            forceCacheBust,
+        );
     }
 
     /**
@@ -865,6 +868,7 @@ class MasPlaceholders extends LitElement {
             const indexUpdateResult = await this.updateIndexFragment(
                 dictionaryPath,
                 fragmentPath,
+                false,
             );
             if (!indexUpdateResult) {
                 throw new Error(
@@ -888,6 +892,11 @@ class MasPlaceholders extends LitElement {
                 isRichText: containsHtml,
                 locale: locale,
                 state: 'Ready',
+                status: STATUS_DRAFT,
+                published: false,
+                modifiedAfterPublished: false,
+                publishedTime: 0,
+                modifiedTime: new Date().getTime(),
                 updatedBy: 'You',
                 updatedAt: new Date().toLocaleString(),
                 path: fragmentPath,
@@ -900,10 +909,6 @@ class MasPlaceholders extends LitElement {
             ];
             Store.placeholders.list.data.set(updatedPlaceholders);
 
-            this.showToast(
-                'Placeholder successfully created and published.',
-                'positive',
-            );
             repository.operation.set();
             return createdFragmentData;
         } catch (error) {
@@ -927,109 +932,49 @@ class MasPlaceholders extends LitElement {
      * Updates index fragment with a new placeholder entry
      * @param {string} parentPath - Path to the directory containing the index
      * @param {string} fragmentPath - Path to the fragment to add to the index
+     * @param {boolean} shouldPublish - Whether to publish the index after updating (defaults to false)
      * @returns {Promise<boolean>} - Success status
      */
-    async updateIndexFragment(parentPath, fragmentPath) {
+    async updateIndexFragment(parentPath, fragmentPath, shouldPublish = false) {
         if (!parentPath || !fragmentPath) {
             return false;
         }
 
         try {
-            if (!this.repository) {
-                return false;
-            }
+            const repository = this.ensureRepository();
 
             const indexPath = `${parentPath}/index`;
 
             let indexFragment;
             try {
                 indexFragment =
-                    await this.repository.aem.sites.cf.fragments.getByPath(
+                    await repository.aem.sites.cf.fragments.getByPath(
                         indexPath,
                     );
             } catch (error) {
-                return await this.createIndexFragment(parentPath, fragmentPath);
-            }
-
-            if (!indexFragment?.id) {
-                return await this.createIndexFragment(parentPath, fragmentPath);
-            }
-
-            const freshIndex =
-                await this.repository.aem.sites.cf.fragments.getById(
-                    indexFragment.id,
+                return await this.createIndexFragment(
+                    parentPath,
+                    fragmentPath,
+                    shouldPublish,
                 );
-
-            if (!freshIndex) {
-                return await this.createIndexFragment(parentPath, fragmentPath);
             }
 
-            const entriesField = freshIndex.fields.find(
-                (f) => f.name === 'entries',
-            );
-            const currentEntries = entriesField?.values || [];
-
-            if (currentEntries.includes(fragmentPath)) {
-                return true;
-            }
-
-            const updatedEntries = [...currentEntries, fragmentPath];
-
-            const updatedFields = this.repository.updateFieldInFragment(
-                freshIndex.fields,
-                'entries',
-                updatedEntries,
-                'content-fragment',
-                true,
-            );
-
-            const updatedFragment = {
-                ...freshIndex,
-                fields: updatedFields,
-            };
-
-            try {
-                const savedIndex =
-                    await this.repository.aem.sites.cf.fragments.save(
-                        updatedFragment,
-                    );
-
-                if (savedIndex) {
-                    try {
-                        await this.repository.aem.sites.cf.fragments.publish(
-                            savedIndex,
-                        );
-                    } catch (publishError) {
-                        console.debug(
-                            'Failed to publish index, but update was successful',
-                        );
-                    }
-                    return true;
-                }
+            if (!indexFragment || !indexFragment.id) {
                 return false;
-            } catch (error) {
-                if (error.message?.includes('412')) {
-                    await new Promise((resolve) => setTimeout(resolve, 500));
-                    const maxRetries = 3;
-                    if (!this.indexUpdateRetries) {
-                        this.indexUpdateRetries = 1;
-                    } else if (this.indexUpdateRetries < maxRetries) {
-                        this.indexUpdateRetries++;
-                    } else {
-                        this.indexUpdateRetries = 0;
-                        throw new Error(
-                            'Maximum retries reached for index update',
-                        );
-                    }
-                    return await this.updateIndexFragment(
-                        parentPath,
-                        fragmentPath,
-                    );
-                }
-                throw error;
             }
+
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+
+            if (shouldPublish) {
+                try {
+                    await repository.aem.sites.cf.fragments.publish(
+                        indexFragment,
+                    );
+                } catch (publishError) {}
+            }
+
+            return true;
         } catch (error) {
-            console.error('Failed to update index fragment:', error);
             return false;
         }
     }
@@ -1346,12 +1291,26 @@ class MasPlaceholders extends LitElement {
         `;
     }
 
+    renderStatusCell(placeholder) {
+        const status = placeholder.status || 'draft';
+        return html`
+            <sp-table-cell>
+                <div class="status-cell">
+                    <mas-fragment-status
+                        variant="${status.toLowerCase()}"
+                    ></mas-fragment-status>
+                </div>
+            </sp-table-cell>
+        `;
+    }
+
     renderPlaceholdersTable() {
         const filteredPlaceholders = this.getFilteredPlaceholders();
 
         const columns = [
             { key: 'key', label: 'Key', sortable: true },
             { key: 'value', label: 'Value', sortable: true },
+            { key: 'status', label: 'Status', sortable: true, priority: true },
             { key: 'locale', label: 'Locale', sortable: true, align: 'right' },
             {
                 key: 'updatedBy',
@@ -1397,6 +1356,7 @@ class MasPlaceholders extends LitElement {
                             <sp-table-row value=${placeholder.key}>
                                 ${this.renderKeyCell(placeholder)}
                                 ${this.renderValueCell(placeholder)}
+                                ${this.renderStatusCell(placeholder)}
                                 ${this.renderTableCell(
                                     placeholder.locale,
                                     'right',
@@ -1608,6 +1568,24 @@ class MasPlaceholders extends LitElement {
                 ? html`
                       <div class="dropdown-menu">
                           <div
+                              class="dropdown-item ${placeholder.published &&
+                              !placeholder.modifiedAfterPublished
+                                  ? 'disabled'
+                                  : ''}"
+                              @click=${(e) => {
+                                  if (
+                                      !placeholder.published ||
+                                      placeholder.modifiedAfterPublished
+                                  ) {
+                                      e.stopPropagation();
+                                      this.handlePublish(placeholder.key);
+                                  }
+                              }}
+                          >
+                              <sp-icon-publish-check></sp-icon-publish-check>
+                              <span>Publish</span>
+                          </div>
+                          <div
                               class="dropdown-item"
                               @click=${(e) => {
                                   e.stopPropagation();
@@ -1655,12 +1633,6 @@ class MasPlaceholders extends LitElement {
         if (!(this.foldersLoaded ?? false)) {
             return html`<div class="loading-container">
                 ${this.loadingIndicator}
-            </div>`;
-        }
-
-        if (!this.selectedFolder?.path) {
-            return html`<div class="no-folder-message">
-                Please select a folder to view placeholders
             </div>`;
         }
 
@@ -1759,20 +1731,19 @@ class MasPlaceholders extends LitElement {
      * Creates a new index fragment with initial entries
      * @param {string} parentPath - Parent path for the index
      * @param {string} fragmentPath - Initial fragment path to include
+     * @param {boolean} shouldPublish - Whether to publish the index after creation
      * @returns {Promise<boolean>} - Success status
      */
-    async createIndexFragment(parentPath, fragmentPath) {
+    async createIndexFragment(parentPath, fragmentPath, shouldPublish = false) {
         if (!parentPath || !fragmentPath) {
             return false;
         }
 
         try {
-            if (!this.repository) {
-                return false;
-            }
+            const repository = this.ensureRepository();
 
             const indexFragment =
-                await this.repository.aem.sites.cf.fragments.create({
+                await repository.aem.sites.cf.fragments.create({
                     parentPath,
                     modelId: DICTIONARY_MODEL_ID,
                     name: 'index',
@@ -1812,11 +1783,13 @@ class MasPlaceholders extends LitElement {
 
             await new Promise((resolve) => setTimeout(resolve, 1000));
 
-            try {
-                await this.repository.aem.sites.cf.fragments.publish(
-                    indexFragment,
-                );
-            } catch (publishError) {}
+            if (shouldPublish) {
+                try {
+                    await repository.aem.sites.cf.fragments.publish(
+                        indexFragment,
+                    );
+                } catch (publishError) {}
+            }
 
             return true;
         } catch (error) {
@@ -2067,6 +2040,165 @@ class MasPlaceholders extends LitElement {
                 }
             }
         }, 0);
+    }
+
+    /**
+     * Publish a placeholder
+     * @param {string} key - Placeholder key to publish
+     */
+    async handlePublish(key) {
+        if (this.isDialogOpen) {
+            return;
+        }
+
+        try {
+            Store.placeholders.list.loading.set(true);
+            this.placeholdersLoading = true;
+
+            const placeholder = this.placeholdersData.find(
+                (p) => p.key === key,
+            );
+
+            if (!placeholder?.fragment) {
+                throw new Error('Fragment data is missing or incomplete');
+            }
+
+            if (placeholder.published && !placeholder.modifiedAfterPublished) {
+                this.showToast('Placeholder is already published', 'info');
+                return;
+            }
+
+            const fragmentData = placeholder.fragment;
+            const fragmentPath = fragmentData.path;
+
+            const dictionaryPath = fragmentPath.substring(
+                0,
+                fragmentPath.lastIndexOf('/'),
+            );
+
+            const indexUpdateResult = await this.updateIndexFragment(
+                dictionaryPath,
+                fragmentPath,
+                true,
+            );
+            if (!indexUpdateResult) {
+                throw new Error(
+                    'Failed to update index fragment with new placeholder reference',
+                );
+            }
+
+            const updatedStatus = {
+                status: STATUS_PUBLISHED,
+                isPublished: true,
+                hasPublishedRef: true,
+                modifiedAfterPublished: false,
+            };
+
+            this.updatePersistentStatus(fragmentData.id, updatedStatus);
+
+            const updatedPlaceholders = [...this.placeholdersData];
+            const placeholderIndex = updatedPlaceholders.findIndex(
+                (p) => p.id === fragmentData.id,
+            );
+
+            if (placeholderIndex !== -1) {
+                updatedPlaceholders[placeholderIndex] = {
+                    ...updatedPlaceholders[placeholderIndex],
+                    ...updatedStatus,
+                    publishedTime: new Date().getTime(),
+                };
+                this.placeholdersData = updatedPlaceholders;
+                Store.placeholders.list.data.set(updatedPlaceholders);
+            }
+
+            this.showToast(
+                `Placeholder "${key}" published successfully`,
+                'positive',
+            );
+        } catch (error) {
+            this.showToast(`Failed to publish: ${error.message}`, 'negative');
+        } finally {
+            this.placeholdersLoading = false;
+            Store.placeholders.list.loading.set(false);
+        }
+    }
+
+    /**
+     * Detect fragment status considering publishedRef and locally stored state
+     * @param {Object} fragment - The fragment to check
+     * @param {string} fragmentId - The fragment ID
+     * @returns {Object} Status information object
+     */
+    detectFragmentStatus(fragment, fragmentId) {
+        let status = STATUS_DRAFT;
+        let modifiedAfterPublished = false;
+        const hasPublishedRef = !!fragment.publishedRef;
+        const isPublished = !!fragment.published || hasPublishedRef;
+
+        const persistedInfo = this.persistentStatus[fragmentId];
+
+        if (persistedInfo && persistedInfo.status === STATUS_PUBLISHED) {
+            status = STATUS_PUBLISHED;
+
+            if (fragment.modified && persistedInfo.publishTime) {
+                const publishTime = persistedInfo.publishTime;
+                const modifiedTime = new Date(fragment.modified.at).getTime();
+
+                if (modifiedTime > publishTime) {
+                    status = STATUS_MODIFIED;
+                    modifiedAfterPublished = true;
+                }
+            }
+        } else if (isPublished) {
+            status = STATUS_PUBLISHED;
+
+            if (
+                fragment.modified &&
+                fragment.modified.at &&
+                fragment.published &&
+                fragment.published.at
+            ) {
+                const publishedTime = new Date(fragment.published.at).getTime();
+                const modifiedTime = new Date(fragment.modified.at).getTime();
+
+                if (modifiedTime > publishedTime) {
+                    status = STATUS_MODIFIED;
+                    modifiedAfterPublished = true;
+                }
+            }
+        }
+
+        return {
+            status,
+            modifiedAfterPublished,
+            isPublished,
+            hasPublishedRef,
+        };
+    }
+
+    /**
+     * Update the persistent status for a fragment
+     * @param {string} fragmentId - The fragment ID
+     * @param {Object} statusInfo - Status information to persist
+     */
+    updatePersistentStatus(fragmentId, statusInfo) {
+        if (!fragmentId) return;
+
+        this.persistentStatus[fragmentId] = {
+            status: statusInfo.status,
+            publishTime: statusInfo.publishTime || Date.now(),
+            path: statusInfo.path,
+            key: statusInfo.key,
+        };
+
+        try {
+            localStorage.setItem(
+                'placeholder-status',
+                JSON.stringify(this.persistentStatus),
+            );
+        } catch (e) {
+            console.error('Error saving persistent status:', e);
+        }
     }
 }
 

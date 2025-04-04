@@ -110,6 +110,8 @@ export const ENVS = {
 export const LOCALE_DEFAULT = 'en_US';
 
 export const STATUS_PUBLISHED = 'PUBLISHED';
+export const STATUS_DRAFT = 'DRAFT';
+export const STATUS_MODIFIED = 'MODIFIED';
 
 export const PAGE_NAMES = {
     WELCOME: 'welcome',

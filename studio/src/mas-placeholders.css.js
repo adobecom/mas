@@ -201,9 +201,33 @@ export const styles = css`
         background-color: var(--spectrum-global-color-gray-100);
     }
 
+    .dropdown-item.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .dropdown-item.disabled:hover {
+        background-color: transparent;
+    }
+
     .dropdown-item span {
         flex: 1;
         display: inline-flex;
+    }
+
+    .status-cell {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        min-width: 120px;
+        padding: 8px 0;
+    }
+
+    .status-cell mas-fragment-status {
+        height: 24px;
+        width: auto;
+        display: inline-flex;
+        font-weight: 500;
     }
 
     .create-modal-overlay {
@@ -337,8 +361,8 @@ export const styles = css`
         z-index: 1000;
         opacity: 0;
         visibility: hidden;
-        transition: 
-            opacity 0.3s ease, 
+        transition:
+            opacity 0.3s ease,
             visibility 0.3s ease;
         border-radius: 4px;
         background-color: var(--spectrum-semantic-negative-color-background);

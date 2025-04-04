@@ -1,6 +1,7 @@
 import { html, LitElement, nothing } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import '../fields/multifield.js';
+import '../fields/included-field.js';
 import '../fields/mnemonic-field.js';
 import '../aem/aem-tag-picker-field.js';
 import './variant-picker.js';
@@ -11,6 +12,7 @@ import { CARD_MODEL_PATH } from '../constants.js';
 const merchCardCustomElementPromise = customElements.whenDefined('merch-card');
 
 const QUANTITY_MODEL = 'quantitySelect';
+const WHAT_IS_INCLUDED = 'whatsIncluded';
 
 class MerchCardEditor extends LitElement {
     static properties = {
@@ -47,6 +49,37 @@ class MerchCardEditor extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+    }
+
+    get whatsIncludedElement() {
+        const whatsIncludedValues =
+            this.fragment.fields.find((f) => f.name === WHAT_IS_INCLUDED)
+                ?.values ?? [];
+        const whatsIncludedHtml = whatsIncludedValues?.length ? whatsIncludedValues[0] : '';
+
+        if (!whatsIncludedHtml) return undefined;
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(whatsIncludedHtml, 'text/html');
+        return doc.querySelector('merch-whats-included');
+    }
+
+    get whatsIncluded() {
+        const label = this.whatsIncludedElement?.querySelector('[slot="heading"]')?.textContent || '';
+        const values = [];
+        this.whatsIncludedElement?.querySelectorAll('merch-mnemonic-list').forEach((listEl) => {
+            const icon = listEl.querySelector('merch-icon')?.getAttribute('src') || '';
+            const text = listEl.querySelector('[slot="description"]')?.textContent || '';
+            values.push({
+                icon,
+                text,
+            });
+        });
+
+        return {
+            label,
+            values,
+        }
     }
 
     get mnemonics() {
@@ -285,6 +318,23 @@ class MerchCardEditor extends LitElement {
                     </template>
                 </mas-multifield>
             </sp-field-group>
+            <sp-field-group class="toggle" id="whatsIncluded">
+                <sp-field-label for="whatsIncluded">What's included</sp-field-label>
+                <sp-textfield
+                    placeholder="Enter the label text"
+                    value="${this.whatsIncluded.label}"
+                    @input="${this.#updateWhatsIncluded}"
+                ></sp-textfield>                
+                <mas-multifield
+                    .value="${this.whatsIncluded.values}"
+                    @change="${this.#updateWhatsIncluded}"
+                    @input="${this.#updateWhatsIncluded}"
+                >
+                    <template>
+                        <mas-included-field></mas-included-field>
+                    </template>
+                </mas-multifield>                
+            </sp-field-group>            
             ${this.#renderColorPicker(
                 'border-color',
                 'Border Color',
@@ -481,6 +531,59 @@ class MerchCardEditor extends LitElement {
         const value = e.target.getAttribute('value');
         const newTags = value ? value.split(',') : []; // do not overwrite the tags array
         this.fragmentStore.updateField('tags', newTags);
+    }
+
+    createIncludedElement(label, values) {
+        if (!label && !values?.length) return undefined;
+
+        const element = document.createElement('merch-whats-included');
+        const heading = document.createElement('div');
+        heading.setAttribute('slot', 'heading');
+        heading.textContent = label || '';
+        element.append(heading);
+        const content = document.createElement('div');
+        content.setAttribute('slot', 'content');
+        element.append(content);
+        values.forEach((value) => {
+            const list = document.createElement('merch-mnemonic-list');
+            const icon = document.createElement('div');
+            icon.setAttribute('slot', 'icon');
+            if (value.icon) {
+                const merchIcon = document.createElement('merch-icon');
+                merchIcon.setAttribute('size', 's');
+                merchIcon.setAttribute('src', value.icon);
+                merchIcon.setAttribute('alt', value.text);
+                icon.append(merchIcon);
+            }
+            const description = document.createElement('p');
+            description.setAttribute('slot', 'description');
+            const strong = document.createElement('strong');
+            strong.textContent = value.text || '';
+            description.append(strong);
+            list.append(icon);
+            list.append(description);
+            content.append(list);
+        });
+
+        return element;
+    }
+
+    #updateWhatsIncluded(event) {
+        let label = '';
+        let values = [];
+        if (Array.isArray(event.target.value)) {
+            event.target.value.forEach(({ icon, text }) => {
+                values.push({
+                    icon, text,
+                });
+            });
+            label = this.whatsIncluded.label;
+        } else {
+            label = event.target.value;
+            values = this.whatsIncluded.values;
+        }
+        const element = this.createIncludedElement(label, values);
+        this.fragmentStore.updateField(WHAT_IS_INCLUDED, [element?.outerHTML || '']);
     }
 
     #updateMnemonics(event) {

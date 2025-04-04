@@ -47,7 +47,7 @@ async function internalFetch(path, context) {
             success ? 'info' : 'error',
         );
         logDebug(
-            () => `response headers: ${JSON.stringify(response.headers)}`,
+            () => `response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`,
             context,
         );
         return response;

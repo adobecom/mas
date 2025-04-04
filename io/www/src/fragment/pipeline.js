@@ -121,6 +121,7 @@ async function main(params) {
         responseBody?.length > 0
             ? zlib.brotliCompressSync(responseBody).toString('base64')
             : undefined;
+    logDebug(() => 'full response: ' + JSON.stringify(returnValue), context);
     log(
         `pipeline completed: ${context.id} ${context.locale} -> ${id} (${returnValue.statusCode}) in ${Date.now() - startTime}ms`,
         {

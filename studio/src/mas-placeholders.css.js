@@ -128,7 +128,6 @@ export const styles = css`
         display: flex;
         align-items: center;
         justify-content: flex-start;
-        overflow: hidden;
     }
 
     .placeholders-table sp-table-cell.editing-cell {
@@ -329,12 +328,13 @@ export const styles = css`
     }
 
     .rich-text-cell {
-        max-width: 300px;
+        max-width: 7vw;
         overflow: hidden;
-        text-overflow: ellipsis;
         padding: 4px 0;
         font-size: var(--spectrum-global-font-size-100);
         line-height: var(--spectrum-global-font-line-height-medium);
+        position: relative;
+        text-overflow: ellipsis;
     }
 
     .rich-text-cell p {

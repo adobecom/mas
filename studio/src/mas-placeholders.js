@@ -96,23 +96,13 @@ class MasPlaceholders extends LitElement {
         };
         this.error = null;
         this.selectedFolder = {};
-        this.selectedLocale = localStorage.getItem('selectedLocale') || 'en_US';
+        this.selectedLocale = 'en_US';
         this.folderData = [];
         this.foldersLoaded = false;
         this.placeholdersData = [];
         this.placeholdersLoading = false;
         this.isBulkDeleteInProgress = false;
         this.indexUpdateRetries = 0;
-        this.persistentStatus = {};
-
-        try {
-            const savedStatus = localStorage.getItem('placeholder-status');
-            if (savedStatus) {
-                this.persistentStatus = JSON.parse(savedStatus);
-            }
-        } catch (e) {
-            console.error('Error loading persistent status:', e);
-        }
 
         this.reactiveController = new ReactiveController(this, [
             Store.search,
@@ -257,7 +247,6 @@ class MasPlaceholders extends LitElement {
     }
 
     handleFolderChange() {
-        const folderData = Store.search.get();
         Store.placeholders.list.loading.set(true);
         if (this.repository) {
             this.loadPlaceholders();
@@ -546,7 +535,6 @@ class MasPlaceholders extends LitElement {
             }
 
             const fragmentData = placeholder.fragment;
-            const fragmentId = fragmentData.id;
             const fragmentPath = fragmentData.path;
 
             if (!fragmentPath.endsWith('/index')) {
@@ -568,7 +556,7 @@ class MasPlaceholders extends LitElement {
             });
 
             const updatedPlaceholders = this.placeholdersData.filter(
-                (p) => p.id !== fragmentId,
+                (p) => p.id !== fragmentData.id,
             );
             Store.placeholders.list.data.set(updatedPlaceholders);
             this.placeholdersData = updatedPlaceholders;
@@ -615,7 +603,6 @@ class MasPlaceholders extends LitElement {
                 await this.repository.aem.sites.cf.fragments.getById(
                     indexFragment.id,
                 );
-
             if (!freshIndex) {
                 return false;
             }
@@ -650,7 +637,6 @@ class MasPlaceholders extends LitElement {
                     await this.repository.aem.sites.cf.fragments.save(
                         updatedFragment,
                     );
-
                 if (savedIndex) {
                     try {
                         await this.repository.aem.sites.cf.fragments.publish(
@@ -725,6 +711,34 @@ class MasPlaceholders extends LitElement {
                     return;
                 }
 
+                let indexFragment = null;
+                try {
+                    const indexPath = `${dictionaryPath}/index`;
+                    indexFragment =
+                        await this.repository.aem.sites.cf.fragments.getByPath(
+                            indexPath,
+                            {
+                                references: 'direct-hydrated',
+                            },
+                        );
+                } catch (error) {
+                    console.error('No index fragment found:', error);
+                }
+
+                const publishedInIndex = {};
+
+                if (indexFragment && indexFragment.publishedRef) {
+                    const entriesField = indexFragment.fields.find(
+                        (f) => f.name === 'entries',
+                    );
+
+                    if (entriesField && entriesField.values) {
+                        entriesField.values.forEach((path) => {
+                            publishedInIndex[path] = true;
+                        });
+                    }
+                }
+
                 const placeholders = result.value
                     .filter((item) => !item.path.endsWith('/index'))
                     .map((fragment) => {
@@ -738,10 +752,36 @@ class MasPlaceholders extends LitElement {
                             false,
                         );
 
-                        const statusInfo = this.detectFragmentStatus(
-                            fragment,
-                            fragment.id,
-                        );
+                        const isInPublishedIndex =
+                            indexFragment?.publishedRef &&
+                            publishedInIndex[fragment.path];
+
+                        let statusInfo;
+                        if (isInPublishedIndex) {
+                            const modifiedTime = fragment.modified?.at
+                                ? new Date(fragment.modified.at).getTime()
+                                : 0;
+
+                            const indexPublishedTime = indexFragment.published
+                                ?.at
+                                ? new Date(indexFragment.published.at).getTime()
+                                : 0;
+
+                            const modifiedAfterPublished =
+                                modifiedTime > indexPublishedTime &&
+                                indexPublishedTime > 0;
+
+                            statusInfo = {
+                                status: modifiedAfterPublished
+                                    ? STATUS_MODIFIED
+                                    : STATUS_PUBLISHED,
+                                isPublished: true,
+                                hasPublishedRef: true,
+                                modifiedAfterPublished,
+                            };
+                        } else {
+                            statusInfo = this.detectFragmentStatus(fragment);
+                        }
 
                         const containsHtml = /<\/?[a-z][\s\S]*>/i.test(value);
                         const displayValue = containsHtml
@@ -763,7 +803,11 @@ class MasPlaceholders extends LitElement {
                                 statusInfo.modifiedAfterPublished,
                             publishedTime: fragment.published
                                 ? new Date(fragment.published.at).getTime()
-                                : 0,
+                                : isInPublishedIndex && indexFragment.published
+                                  ? new Date(
+                                        indexFragment.published.at,
+                                    ).getTime()
+                                  : 0,
                             modifiedTime: fragment.modified
                                 ? new Date(fragment.modified.at).getTime()
                                 : 0,
@@ -775,6 +819,7 @@ class MasPlaceholders extends LitElement {
                                 : 'Unknown',
                             path: fragment.path,
                             fragment,
+                            isInPublishedIndex,
                         };
                     })
                     .filter(Boolean);
@@ -933,17 +978,34 @@ class MasPlaceholders extends LitElement {
      * @param {string} parentPath - Path to the directory containing the index
      * @param {string} fragmentPath - Path to the fragment to add to the index
      * @param {boolean} shouldPublish - Whether to publish the index after updating (defaults to false)
-     * @returns {Promise<boolean>} - Success status
+     * @returns {Promise<Object>} - Success status and index info
      */
     async updateIndexFragment(parentPath, fragmentPath, shouldPublish = false) {
         if (!parentPath || !fragmentPath) {
+            console.error(
+                'Missing parentPath or fragmentPath for updateIndexFragment',
+            );
             return false;
         }
 
         try {
             const repository = this.ensureRepository();
-
             const indexPath = `${parentPath}/index`;
+
+            let fragmentToAdd;
+            try {
+                fragmentToAdd =
+                    await repository.aem.sites.cf.fragments.getByPath(
+                        fragmentPath,
+                    );
+                if (!fragmentToAdd || !fragmentToAdd.id) {
+                    console.error('Failed to get fragment to add - missing ID');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Failed to get fragment by path:', error);
+                return false;
+            }
 
             let indexFragment;
             try {
@@ -960,22 +1022,99 @@ class MasPlaceholders extends LitElement {
             }
 
             if (!indexFragment || !indexFragment.id) {
+                console.error('Index fragment is invalid');
                 return false;
             }
 
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-
-            if (shouldPublish) {
-                try {
-                    await repository.aem.sites.cf.fragments.publish(
-                        indexFragment,
-                    );
-                } catch (publishError) {}
+            const freshIndex = await repository.aem.sites.cf.fragments.getById(
+                indexFragment.id,
+            );
+            if (!freshIndex) {
+                console.error('Failed to get fresh index by ID');
+                return false;
             }
 
-            return true;
+            const entriesField = freshIndex.fields.find(
+                (f) => f.name === 'entries',
+            );
+            const currentEntries = entriesField?.values || [];
+
+            let publishedIndex = null;
+            const wasUpdated = !currentEntries.includes(fragmentToAdd.path);
+
+            if (wasUpdated) {
+                const updatedEntries = [...currentEntries, fragmentToAdd.path];
+
+                const updatedFields = repository.updateFieldInFragment(
+                    freshIndex.fields,
+                    'entries',
+                    updatedEntries,
+                    'content-fragment',
+                    true,
+                );
+
+                const updatedFragment = {
+                    ...freshIndex,
+                    fields: updatedFields,
+                };
+
+                const savedIndex =
+                    await repository.aem.sites.cf.fragments.save(
+                        updatedFragment,
+                    );
+
+                if (!savedIndex) {
+                    console.error('Failed to save index fragment');
+                    return false;
+                }
+
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+
+                if (shouldPublish) {
+                    try {
+                        const latestIndex =
+                            await repository.aem.sites.cf.fragments.getById(
+                                savedIndex.id,
+                            );
+
+                        if (latestIndex) {
+                            await repository.aem.sites.cf.fragments.publish(
+                                latestIndex,
+                            );
+                            publishedIndex = latestIndex;
+                        }
+                    } catch (publishError) {
+                        console.error(
+                            'Failed to publish index with references:',
+                            publishError,
+                        );
+                    }
+                }
+            } else if (shouldPublish) {
+                try {
+                    await repository.aem.sites.cf.fragments.publish(freshIndex);
+                    publishedIndex = freshIndex;
+                } catch (publishError) {
+                    console.error(
+                        'Failed to publish existing index with references:',
+                        publishError,
+                    );
+                }
+            } else {
+                console.error(
+                    `Fragment ${fragmentToAdd.path} already in entries, no publish needed`,
+                );
+            }
+
+            return {
+                success: true,
+                wasUpdated,
+                publishedIndex,
+                indexPath,
+            };
         } catch (error) {
-            return false;
+            console.error('Failed to update index fragment:', error);
+            return { success: false };
         }
     }
 
@@ -1736,11 +1875,31 @@ class MasPlaceholders extends LitElement {
      */
     async createIndexFragment(parentPath, fragmentPath, shouldPublish = false) {
         if (!parentPath || !fragmentPath) {
+            console.error(
+                'Missing parentPath or fragmentPath for createIndexFragment',
+            );
             return false;
         }
 
         try {
             const repository = this.ensureRepository();
+
+            let fragmentToAdd;
+            try {
+                fragmentToAdd =
+                    await repository.aem.sites.cf.fragments.getByPath(
+                        fragmentPath,
+                    );
+                if (!fragmentToAdd || !fragmentToAdd.id) {
+                    console.error(
+                        'Failed to get fragment to add to new index - missing ID',
+                    );
+                    return false;
+                }
+            } catch (error) {
+                console.error('Failed to get fragment by path:', error);
+                return false;
+            }
 
             const indexFragment =
                 await repository.aem.sites.cf.fragments.create({
@@ -1754,7 +1913,7 @@ class MasPlaceholders extends LitElement {
                             name: 'entries',
                             type: 'content-fragment',
                             multiple: true,
-                            values: [fragmentPath],
+                            values: [fragmentToAdd.path],
                         },
                         {
                             name: 'key',
@@ -1778,6 +1937,7 @@ class MasPlaceholders extends LitElement {
                 });
 
             if (!indexFragment || !indexFragment.id) {
+                console.error('Failed to create index fragment');
                 return false;
             }
 
@@ -1788,11 +1948,17 @@ class MasPlaceholders extends LitElement {
                     await repository.aem.sites.cf.fragments.publish(
                         indexFragment,
                     );
-                } catch (publishError) {}
+                } catch (publishError) {
+                    console.error(
+                        'Failed to publish index with references:',
+                        publishError,
+                    );
+                }
             }
 
             return true;
         } catch (error) {
+            console.error('Failed to create index fragment:', error);
             return false;
         }
     }
@@ -2068,6 +2234,7 @@ class MasPlaceholders extends LitElement {
                 return;
             }
 
+
             const fragmentData = placeholder.fragment;
             const fragmentPath = fragmentData.path;
 
@@ -2076,14 +2243,15 @@ class MasPlaceholders extends LitElement {
                 fragmentPath.lastIndexOf('/'),
             );
 
-            const indexUpdateResult = await this.updateIndexFragment(
+            const result = await this.updateIndexFragment(
                 dictionaryPath,
                 fragmentPath,
                 true,
             );
-            if (!indexUpdateResult) {
+
+            if (!result || !result.success) {
                 throw new Error(
-                    'Failed to update index fragment with new placeholder reference',
+                    'Failed to update index fragment with placeholder reference',
                 );
             }
 
@@ -2092,9 +2260,9 @@ class MasPlaceholders extends LitElement {
                 isPublished: true,
                 hasPublishedRef: true,
                 modifiedAfterPublished: false,
+                isInPublishedIndex: true,
+                publishedTime: new Date().getTime(),
             };
-
-            this.updatePersistentStatus(fragmentData.id, updatedStatus);
 
             const updatedPlaceholders = [...this.placeholdersData];
             const placeholderIndex = updatedPlaceholders.findIndex(
@@ -2105,8 +2273,8 @@ class MasPlaceholders extends LitElement {
                 updatedPlaceholders[placeholderIndex] = {
                     ...updatedPlaceholders[placeholderIndex],
                     ...updatedStatus,
-                    publishedTime: new Date().getTime(),
                 };
+
                 this.placeholdersData = updatedPlaceholders;
                 Store.placeholders.list.data.set(updatedPlaceholders);
             }
@@ -2115,7 +2283,11 @@ class MasPlaceholders extends LitElement {
                 `Placeholder "${key}" published successfully`,
                 'positive',
             );
+
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+            await this.loadPlaceholders(true);
         } catch (error) {
+            console.error('Publish error:', error);
             this.showToast(`Failed to publish: ${error.message}`, 'negative');
         } finally {
             this.placeholdersLoading = false;
@@ -2123,33 +2295,13 @@ class MasPlaceholders extends LitElement {
         }
     }
 
-    /**
-     * Detect fragment status considering publishedRef and locally stored state
-     * @param {Object} fragment - The fragment to check
-     * @param {string} fragmentId - The fragment ID
-     * @returns {Object} Status information object
-     */
-    detectFragmentStatus(fragment, fragmentId) {
+    detectFragmentStatus(fragment) {
         let status = STATUS_DRAFT;
         let modifiedAfterPublished = false;
         const hasPublishedRef = !!fragment.publishedRef;
         const isPublished = !!fragment.published || hasPublishedRef;
 
-        const persistedInfo = this.persistentStatus[fragmentId];
-
-        if (persistedInfo && persistedInfo.status === STATUS_PUBLISHED) {
-            status = STATUS_PUBLISHED;
-
-            if (fragment.modified && persistedInfo.publishTime) {
-                const publishTime = persistedInfo.publishTime;
-                const modifiedTime = new Date(fragment.modified.at).getTime();
-
-                if (modifiedTime > publishTime) {
-                    status = STATUS_MODIFIED;
-                    modifiedAfterPublished = true;
-                }
-            }
-        } else if (isPublished) {
+        if (isPublished) {
             status = STATUS_PUBLISHED;
 
             if (
@@ -2174,31 +2326,6 @@ class MasPlaceholders extends LitElement {
             isPublished,
             hasPublishedRef,
         };
-    }
-
-    /**
-     * Update the persistent status for a fragment
-     * @param {string} fragmentId - The fragment ID
-     * @param {Object} statusInfo - Status information to persist
-     */
-    updatePersistentStatus(fragmentId, statusInfo) {
-        if (!fragmentId) return;
-
-        this.persistentStatus[fragmentId] = {
-            status: statusInfo.status,
-            publishTime: statusInfo.publishTime || Date.now(),
-            path: statusInfo.path,
-            key: statusInfo.key,
-        };
-
-        try {
-            localStorage.setItem(
-                'placeholder-status',
-                JSON.stringify(this.persistentStatus),
-            );
-        } catch (e) {
-            console.error('Error saving persistent status:', e);
-        }
     }
 }
 

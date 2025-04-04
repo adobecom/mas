@@ -3,19 +3,31 @@
     <head>
         <title>Merch at Scale Studio - Placeholders Test</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <!-- Load Spectrum Web Components -->
         <script src="../../src/swc.js" type="module"></script>
+        <!-- Load the test runner script -->
         <script src="./mas-placeholders.test.html.js" type="module"></script>
+        <style>
+            /* Add basic styles if needed for layout during testing */
+            body {
+                margin: 0;
+                padding: 16px;
+            }
+        </style>
     </head>
 
     <body>
-        <main>
-            <sp-theme color="light" scale="medium"></sp-theme>
-            <template id="mas-placeholders-with-repository">
-                <div>
-                    <mas-repository bucket="test-bucket"></mas-repository>
-                    <mas-placeholders></mas-placeholders>
-                </div>
-            </template>
-        </main>
+        <!-- Basic theme wrapper required by Spectrum Web Components -->
+        <sp-theme color="light" scale="medium">
+            <!-- Test content will be added dynamically by the tests -->
+        </sp-theme>
+
+        <!-- Template potentially used by initElementFromTemplate (keep if utils rely on it) -->
+        <template id="mas-placeholders-with-repository">
+            <div>
+                <mas-repository bucket="test-bucket"></mas-repository>
+                <mas-placeholders></mas-placeholders>
+            </div>
+        </template>
     </body>
 </html>

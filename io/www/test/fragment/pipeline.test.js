@@ -2,11 +2,33 @@ const { expect } = require('chai');
 const nock = require('nock');
 const action = require('../../src/fragment/pipeline.js');
 const mockDictionary = require('./replace.test.js').mockDictionary;
+const zlib = require('zlib');
 
 const FRAGMENT_RESPONSE_EN = require('./mocks/fragment.json');
 const FRAGMENT_RESPONSE_FR = require('./mocks/fragment-fr.json');
 
 const { MockState } = require('./mocks/MockState.js');
+
+function decompress(response) {
+    const body =
+        response.body?.length > 0
+            ? JSON.parse(
+                  zlib
+                      .brotliDecompressSync(
+                          Buffer.from(response.body, 'base64'),
+                      )
+                      .toString('utf-8'),
+              )
+            : undefined;
+    return {
+        ...response,
+        body,
+    };
+}
+
+async function getFragment(params) {
+    return decompress(await action.main(params));
+}
 
 function setupFragmentMocks({ id, path, fields = {} }) {
     // english fragment by id
@@ -47,7 +69,7 @@ const EXPECTED_BODY = {
 };
 //EXPECTED BODY SHA256 hash
 const EXPECTED_BODY_HASH =
-    '6c73236ddcf2b74ed422f1f398d4cb47d61f993713c491624bdefc5f55dbda60';
+    '99eac4575d8e4c623fc630f85d2c9486daa9e0590a1407653665ffd1939ec5ba';
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 
@@ -61,8 +83,9 @@ const runOnFilledState = async (entry, headers) => {
         },
     });
     const state = new MockState();
-    state.put('req-some-en-us-fragment-fr_FR', entry);
-    return await action.main({
+    await state.put('req-some-en-us-fragment-fr_FR', entry);
+    await state.put('debugFragmentLogs', true);
+    return await getFragment({
         id: 'some-en-us-fragment',
         state: state,
         locale: 'fr_FR',
@@ -82,7 +105,7 @@ describe('pipeline full use case', () => {
             path: 'someFragment',
         });
         const state = new MockState();
-        const result = await action.main({
+        const result = await getFragment({
             id: 'some-en-us-fragment',
             state: state,
             locale: 'fr_FR',
@@ -133,10 +156,14 @@ describe('pipeline corner cases', () => {
     });
 
     it('no arguments should return 400', async () => {
-        const result = await action.main({
+        const result = await getFragment({
             state: new MockState(),
         });
         expect(result).to.deep.equal({
+            headers: {
+                'Content-Encoding': 'br',
+                'Content-Type': 'application/json',
+            },
             body: {
                 message: 'requested parameters are not present',
             },
@@ -149,7 +176,7 @@ describe('pipeline corner cases', () => {
             .get('/adobe/sites/fragments/test-fragment')
             .replyWithError('Network error');
 
-        const result = await action.main({
+        const result = await getFragment({
             id: 'test-fragment',
             state: new MockState(),
             locale: 'fr_FR',
@@ -157,6 +184,10 @@ describe('pipeline corner cases', () => {
 
         expect(result).to.deep.equal({
             statusCode: 500,
+            headers: {
+                'Content-Encoding': 'br',
+                'Content-Type': 'application/json',
+            },
             body: {
                 message: 'nok',
             },
@@ -177,7 +208,7 @@ describe('pipeline corner cases', () => {
                 message: 'Fragment not found',
             });
 
-        const result = await action.main({
+        const result = await getFragment({
             id: 'test-fragment',
             state: new MockState(),
             locale: 'fr_FR',
@@ -185,6 +216,10 @@ describe('pipeline corner cases', () => {
 
         expect(result).to.deep.equal({
             statusCode: 404,
+            headers: {
+                'Content-Encoding': 'br',
+                'Content-Type': 'application/json',
+            },
             body: {
                 message: 'nok',
             },

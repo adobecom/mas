@@ -811,9 +811,9 @@ class RteField extends LitElement {
     #handleListAction(listType) {
         return () => {
             const { state, dispatch } = this.editorView;
-            const list = this.#editorSchema.nodes[listType];
-            if (list) {
-                wrapInList(list)(state, dispatch);
+            const node = this.#editorSchema.nodes[listType];
+            if (node) {
+                wrapInList(node)(state, dispatch);
             }
         };
     }

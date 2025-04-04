@@ -6,7 +6,7 @@ import '../aem/aem-tag-picker-field.js';
 import './variant-picker.js';
 import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 import '../rte/osi-field.js';
-import { CARD_MODEL_PATH } from '../constants.js';
+import { CARD_MODEL_PATH } from '../constants.js';
 
 const merchCardCustomElementPromise = customElements.whenDefined('merch-card');
 
@@ -359,6 +359,7 @@ class MerchCardEditor extends LitElement {
                     id="description"
                     link
                     upt-link
+                    list
                     data-field="description"
                     default-link-style="secondary-link"
                     @change="${this.updateFragment}"

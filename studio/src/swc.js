@@ -66,6 +66,7 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-table.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-tag-bold.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-tag-italic.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-text-bold.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-text-bulleted.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-text-strikethrough.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-underline.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-undo.js';

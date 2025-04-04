@@ -390,6 +390,10 @@ mas-content {
     background-color: #f8f8f8;
 }
 
+#badgeBorderColor {
+    margin: 0;
+}
+
 .quick-action-card div[slot='cover-photo'] svg {
     width: 36px;
     height: 36px;

@@ -14,8 +14,9 @@ import {
     PAGE_NAMES,
     OPERATIONS,
     STATUS_DRAFT,
-    STATUS_MODIFIED,
     STATUS_PUBLISHED,
+    TAG_STATUS_PUBLISHED,
+    TAG_STATUS_DRAFT,
 } from './constants.js';
 import { normalizeKey } from './utils.js';
 import ReactiveController from './reactivity/reactive-controller.js';
@@ -71,6 +72,7 @@ class MasPlaceholders extends LitElement {
         placeholdersLoading: { type: Boolean, state: true },
         isBulkDeleteInProgress: { type: Boolean, state: true },
         indexUpdateRetries: { type: Number, state: true },
+        modifiedPlaceholders: { type: Object, state: true },
     };
 
     constructor() {
@@ -103,6 +105,7 @@ class MasPlaceholders extends LitElement {
         this.placeholdersLoading = false;
         this.isBulkDeleteInProgress = false;
         this.indexUpdateRetries = 0;
+        this.modifiedPlaceholders = {};
 
         this.reactiveController = new ReactiveController(this, [
             Store.search,
@@ -427,16 +430,15 @@ class MasPlaceholders extends LitElement {
             const updatedFragment = { ...latestFragment };
             updatedFragment.title = this.editedKey || fragmentData.title || '';
             updatedFragment.description = fragmentData.description || '';
-
-            const newStatus =
-                placeholder.status === STATUS_PUBLISHED
-                    ? STATUS_MODIFIED
-                    : STATUS_DRAFT;
+            const newStatus = STATUS_DRAFT;
+            updatedFragment.status = newStatus;
+            updatedFragment.newTags = [TAG_STATUS_DRAFT];
 
             const fieldUpdates = [
                 ['key', [this.editedKey], 'text'],
                 ['value', [this.editedValue], 'text'],
                 ['locReady', [true], 'boolean'],
+                ['status', [newStatus], 'text'],
             ];
 
             fieldUpdates.reduce(
@@ -461,10 +463,16 @@ class MasPlaceholders extends LitElement {
                 throw new Error('Failed to save fragment');
             }
 
+            await repository.aem.saveTags(updatedFragment);
+
             const containsHtml = /<\/?[a-z][\s\S]*>/i.test(this.editedValue);
             const displayValue = containsHtml
                 ? this.editedValue.replace(/<[^>]*>/g, '')
                 : this.editedValue;
+
+            if (placeholder.id && this.modifiedPlaceholders[placeholder.id]) {
+                delete this.modifiedPlaceholders[placeholder.id];
+            }
 
             const updatedPlaceholders = [...this.placeholdersData];
             updatedPlaceholders[placeholderIndex] = {
@@ -476,6 +484,10 @@ class MasPlaceholders extends LitElement {
                 fragment: savedFragment,
                 updatedAt: new Date().toLocaleString(),
                 status: newStatus,
+                published: false,
+                isInPublishedIndex: false,
+                publishedTime: 0,
+                modified: false,
             };
 
             Store.placeholders.list.data.set(updatedPlaceholders);
@@ -495,6 +507,31 @@ class MasPlaceholders extends LitElement {
     }
 
     resetEditState() {
+        if (this.editingPlaceholder) {
+            const placeholderIndex = this.placeholdersData.findIndex(
+                (p) => p.key === this.editingPlaceholder,
+            );
+
+            if (placeholderIndex !== -1) {
+                const placeholder = this.placeholdersData[placeholderIndex];
+
+                if (
+                    placeholder.id &&
+                    this.modifiedPlaceholders[placeholder.id]
+                ) {
+                    delete this.modifiedPlaceholders[placeholder.id];
+                    const updatedPlaceholders = [...this.placeholdersData];
+                    updatedPlaceholders[placeholderIndex] = {
+                        ...placeholder,
+                        modified: false,
+                    };
+
+                    this.placeholdersData = updatedPlaceholders;
+                    Store.placeholders.list.data.set(updatedPlaceholders);
+                }
+            }
+        }
+
         this.editingPlaceholder = null;
         this.editedKey = '';
         this.editedValue = '';
@@ -603,6 +640,7 @@ class MasPlaceholders extends LitElement {
                 await this.repository.aem.sites.cf.fragments.getById(
                     indexFragment.id,
                 );
+
             if (!freshIndex) {
                 return false;
             }
@@ -711,6 +749,11 @@ class MasPlaceholders extends LitElement {
                     return;
                 }
 
+                const existingPlaceholders = {};
+                this.placeholdersData.forEach((placeholder) => {
+                    existingPlaceholders[placeholder.id] = placeholder;
+                });
+
                 let indexFragment = null;
                 try {
                     const indexPath = `${dictionaryPath}/index`;
@@ -762,22 +805,11 @@ class MasPlaceholders extends LitElement {
                                 ? new Date(fragment.modified.at).getTime()
                                 : 0;
 
-                            const indexPublishedTime = indexFragment.published
-                                ?.at
-                                ? new Date(indexFragment.published.at).getTime()
-                                : 0;
-
-                            const modifiedAfterPublished =
-                                modifiedTime > indexPublishedTime &&
-                                indexPublishedTime > 0;
-
                             statusInfo = {
-                                status: modifiedAfterPublished
-                                    ? STATUS_MODIFIED
-                                    : STATUS_PUBLISHED,
+                                status: STATUS_PUBLISHED,
                                 isPublished: true,
                                 hasPublishedRef: true,
-                                modifiedAfterPublished,
+                                modifiedAfterPublished: false,
                             };
                         } else {
                             statusInfo = this.detectFragmentStatus(fragment);
@@ -787,8 +819,10 @@ class MasPlaceholders extends LitElement {
                         const displayValue = containsHtml
                             ? value.replace(/<[^>]*>/g, '')
                             : value;
+                        const existingPlaceholder =
+                            existingPlaceholders[fragment.id];
 
-                        return {
+                        const updatedPlaceholder = {
                             id: fragment.id,
                             key,
                             value,
@@ -820,7 +854,26 @@ class MasPlaceholders extends LitElement {
                             path: fragment.path,
                             fragment,
                             isInPublishedIndex,
+                            modified: existingPlaceholder
+                                ? existingPlaceholder.modified
+                                : false,
                         };
+
+                        if (
+                            existingPlaceholder &&
+                            this.editingPlaceholder === existingPlaceholder.key
+                        ) {
+                            return existingPlaceholder;
+                        }
+
+                        if (
+                            existingPlaceholder &&
+                            this.modifiedPlaceholders[fragment.id]
+                        ) {
+                            updatedPlaceholder.modified = true;
+                        }
+
+                        return updatedPlaceholder;
                     })
                     .filter(Boolean);
 
@@ -896,6 +949,11 @@ class MasPlaceholders extends LitElement {
             if (!createdFragmentData || !createdFragmentData.path) {
                 throw new Error('Fragment creation returned invalid data');
             }
+
+            const updatedFragment = { ...createdFragmentData };
+            updatedFragment.status = STATUS_DRAFT;
+            updatedFragment.newTags = [TAG_STATUS_DRAFT];
+            await repository.aem.saveTags(updatedFragment);
 
             const fragmentPath = createdFragmentData.path;
             const dictionaryPath = fragmentPath.substring(
@@ -1210,6 +1268,17 @@ class MasPlaceholders extends LitElement {
      */
     startEdit(placeholder) {
         if (this.editingPlaceholder) {
+            const currentIndex = this.placeholdersData.findIndex(
+                (p) => p.key === this.editingPlaceholder,
+            );
+
+            if (currentIndex !== -1) {
+                const currentPlaceholder = this.placeholdersData[currentIndex];
+                if (currentPlaceholder.modified) {
+                    this.modifiedPlaceholders[currentPlaceholder.id] = true;
+                }
+            }
+
             this.cancelEdit();
         }
 
@@ -1220,10 +1289,7 @@ class MasPlaceholders extends LitElement {
     }
 
     cancelEdit() {
-        this.editingPlaceholder = null;
-        this.editedKey = '';
-        this.editedValue = '';
-        this.editedRichText = false;
+        this.resetEditState();
         this.clearRteInitializedFlags();
     }
 
@@ -1244,199 +1310,78 @@ class MasPlaceholders extends LitElement {
 
     handleKeyChange(e) {
         this.editedKey = normalizeKey(e.target.value);
+
+        if (this.editingPlaceholder) {
+            this.markPlaceholderAsModified();
+        }
     }
 
     handleValueChange(e) {
         this.editedValue = e.target.value;
+
+        if (this.editingPlaceholder) {
+            this.markPlaceholderAsModified();
+        }
     }
 
     handleRteValueChange(e) {
         if (e && e.target) {
             this.editedValue = e.target.value || '';
+
+            if (this.editingPlaceholder) {
+                this.markPlaceholderAsModified();
+            }
         }
-    }
-
-    handleNewPlaceholderKeyChange(e) {
-        this.newPlaceholder = {
-            ...this.newPlaceholder,
-            key: normalizeKey(e.target.value),
-        };
-    }
-
-    handleNewPlaceholderLocaleChange(e) {
-        this.newPlaceholder = {
-            ...this.newPlaceholder,
-            locale: e.detail.locale,
-        };
-    }
-
-    handleNewPlaceholderRteChange(e) {
-        if (e && e.target) {
-            this.newPlaceholder = {
-                ...this.newPlaceholder,
-                value: e.target.value || '',
-            };
-        }
-    }
-
-    handleRichTextToggle(e) {
-        const existingField = this.shadowRoot.querySelector(
-            '#placeholder-rich-value',
-        );
-        if (existingField) {
-            existingField.initDone = false;
-        }
-
-        this.newPlaceholder = {
-            ...this.newPlaceholder,
-            isRichText: e.target.checked,
-        };
-    }
-
-    getFilteredPlaceholders() {
-        let filtered = this.placeholdersData || [];
-
-        if (this.searchQuery) {
-            filtered = filtered.filter(
-                (placeholder) =>
-                    placeholder.key
-                        .toLowerCase()
-                        .includes(this.searchQuery.toLowerCase()) ||
-                    placeholder.displayValue
-                        .toLowerCase()
-                        .includes(this.searchQuery.toLowerCase()),
-            );
-        }
-
-        return this.getSortedPlaceholders(filtered);
-    }
-
-    getSortedPlaceholders(placeholders) {
-        return [...placeholders].sort((a, b) => {
-            const aValue = a[this.sortField];
-            const bValue = b[this.sortField];
-
-            const comparison = aValue.localeCompare(bValue);
-            return this.sortDirection === 'asc' ? comparison : -comparison;
-        });
     }
 
     /**
-     * Renders a table cell with optional tooltip
-     * @param {string} content - Cell content
-     * @returns {TemplateResult} - HTML template
+     * Helper method to mark a placeholder as modified during editing
      */
-    renderTableCell(content) {
-        const value = content || '';
-        const needsTooltip = value.length > 50;
+    markPlaceholderAsModified() {
+        if (!this.editingPlaceholder) return;
 
-        if (needsTooltip) {
-            return html`
-                <sp-table-cell>
-                    <sp-tooltip placement="right">
-                        ${value}
-                        <div slot="trigger" class="cell-content">
-                            ${value.substring(0, 50)}...
-                        </div>
-                    </sp-tooltip>
-                </sp-table-cell>
-            `;
+        const placeholderIndex = this.placeholdersData.findIndex(
+            (p) => p.key === this.editingPlaceholder,
+        );
+
+        if (placeholderIndex !== -1) {
+            const placeholder = this.placeholdersData[placeholderIndex];
+
+            if (!placeholder.modified) {
+                this.modifiedPlaceholders[placeholder.id] = true;
+
+                const updatedPlaceholders = [...this.placeholdersData];
+                updatedPlaceholders[placeholderIndex] = {
+                    ...placeholder,
+                    modified: true,
+                };
+
+                this.placeholdersData = updatedPlaceholders;
+                Store.placeholders.list.data.set(updatedPlaceholders);
+            }
         }
-
-        return html`
-            <sp-table-cell>
-                <div class="cell-content">${value}</div>
-            </sp-table-cell>
-        `;
     }
 
-    renderKeyCell(placeholder) {
-        if (this.editingPlaceholder === placeholder.key) {
-            return html`
-                <sp-table-cell class="editing-cell">
-                    <div class="edit-field-container">
-                        <sp-textfield
-                            placeholder="Key"
-                            .value=${this.editedKey}
-                            @input=${this.handleKeyChange}
-                        ></sp-textfield>
-                    </div>
-                </sp-table-cell>
-            `;
-        }
-        return this.renderTableCell(placeholder.key);
-    }
-
-    renderValueCell(placeholder) {
-        if (this.editingPlaceholder === placeholder.key) {
-            return html`
-                <sp-table-cell class="editing-cell">
-                    <div class="edit-field-container">
-                        ${this.editedRichText
-                            ? html`
-                                  <div class="rte-container">
-                                      <rte-field
-                                          inline
-                                          link
-                                          hide-offer-selector
-                                          .maxLength=${500}
-                                          @change=${this.handleRteValueChange}
-                                      ></rte-field>
-                                  </div>
-                              `
-                            : html`<sp-textfield
-                                  placeholder="Value"
-                                  .value=${this.editedValue}
-                                  @input=${this.handleValueChange}
-                              ></sp-textfield>`}
-                    </div>
-                </sp-table-cell>
-            `;
+    /**
+     * Get status variant for a placeholder
+     * @param {Object} placeholder - The placeholder to get status for
+     * @returns {string} The status variant (draft, modified, published)
+     */
+    getStatusVariant(placeholder) {
+        if (placeholder.modified) {
+            return 'modified';
         }
 
-        if (placeholder.isRichText) {
-            return html`
-                <sp-table-cell>
-                    <div
-                        class="rich-text-cell"
-                        .innerHTML=${placeholder.value}
-                    ></div>
-                </sp-table-cell>
-            `;
-        }
-
-        return this.renderTableCell(placeholder.displayValue);
-    }
-
-    renderTableHeader(columns) {
-        return html`
-            <sp-table-head>
-                ${columns.map(
-                    ({ key, label, sortable, align }) => html`
-                        <sp-table-head-cell
-                            ?sortable=${sortable}
-                            @click=${sortable
-                                ? () => this.handleSort(key)
-                                : undefined}
-                            style="${align === 'right'
-                                ? 'text-align: right;'
-                                : ''}"
-                        >
-                            ${label}
-                        </sp-table-head-cell>
-                    `,
-                )}
-            </sp-table-head>
-        `;
+        const status = placeholder.status || 'draft';
+        return status.toLowerCase();
     }
 
     renderStatusCell(placeholder) {
-        const status = placeholder.status || 'draft';
         return html`
             <sp-table-cell>
                 <div class="status-cell">
                     <mas-fragment-status
-                        variant="${status.toLowerCase()}"
+                        variant="${this.getStatusVariant(placeholder)}"
                     ></mas-fragment-status>
                 </div>
             </sp-table-cell>
@@ -1707,15 +1652,12 @@ class MasPlaceholders extends LitElement {
                 ? html`
                       <div class="dropdown-menu">
                           <div
-                              class="dropdown-item ${placeholder.published &&
-                              !placeholder.modifiedAfterPublished
+                              class="dropdown-item ${placeholder.status ===
+                              STATUS_PUBLISHED
                                   ? 'disabled'
                                   : ''}"
                               @click=${(e) => {
-                                  if (
-                                      !placeholder.published ||
-                                      placeholder.modifiedAfterPublished
-                                  ) {
+                                  if (placeholder.status !== STATUS_PUBLISHED) {
                                       e.stopPropagation();
                                       this.handlePublish(placeholder.key);
                                   }
@@ -2229,13 +2171,37 @@ class MasPlaceholders extends LitElement {
                 throw new Error('Fragment data is missing or incomplete');
             }
 
-            if (placeholder.published && !placeholder.modifiedAfterPublished) {
+            if (placeholder.status === STATUS_PUBLISHED) {
                 this.showToast('Placeholder is already published', 'info');
                 return;
             }
 
             const fragmentData = placeholder.fragment;
             const fragmentPath = fragmentData.path;
+
+            const latestFragment =
+                await this.repository.aem.sites.cf.fragments.getById(
+                    fragmentData.id,
+                );
+            if (!latestFragment) {
+                throw new Error('Failed to get latest fragment for publishing');
+            }
+
+            const updatedFragment = { ...latestFragment };
+            updatedFragment.status = STATUS_PUBLISHED;
+            updatedFragment.newTags = [TAG_STATUS_PUBLISHED];
+
+            const savedFragment =
+                await this.repository.aem.sites.cf.fragments.save(
+                    updatedFragment,
+                );
+            if (!savedFragment) {
+                throw new Error(
+                    'Failed to save fragment with published status',
+                );
+            }
+
+            await this.repository.aem.sites.cf.fragments.publish(savedFragment);
 
             const dictionaryPath = fragmentPath.substring(
                 0,
@@ -2272,6 +2238,7 @@ class MasPlaceholders extends LitElement {
                 updatedPlaceholders[placeholderIndex] = {
                     ...updatedPlaceholders[placeholderIndex],
                     ...updatedStatus,
+                    fragment: savedFragment,
                 };
 
                 this.placeholdersData = updatedPlaceholders;
@@ -2282,9 +2249,6 @@ class MasPlaceholders extends LitElement {
                 `Placeholder "${key}" published successfully`,
                 'positive',
             );
-
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-            await this.loadPlaceholders(true);
         } catch (error) {
             console.error('Publish error:', error);
             this.showToast(`Failed to publish: ${error.message}`, 'negative');
@@ -2300,31 +2264,214 @@ class MasPlaceholders extends LitElement {
         const hasPublishedRef = !!fragment.publishedRef;
         const isPublished = !!fragment.published || hasPublishedRef;
 
-        if (isPublished) {
-            status = STATUS_PUBLISHED;
+        if (fragment.status) {
+            status =
+                fragment.status === STATUS_PUBLISHED
+                    ? STATUS_PUBLISHED
+                    : STATUS_DRAFT;
+            modifiedAfterPublished = false;
+            return {
+                status,
+                modifiedAfterPublished,
+                isPublished: status === STATUS_PUBLISHED || isPublished,
+                hasPublishedRef,
+            };
+        }
 
-            if (
-                fragment.modified &&
-                fragment.modified.at &&
-                fragment.published &&
-                fragment.published.at
-            ) {
-                const publishedTime = new Date(fragment.published.at).getTime();
-                const modifiedTime = new Date(fragment.modified.at).getTime();
+        if (fragment.tags && Array.isArray(fragment.tags)) {
+            const tagIds = fragment.tags.map((tag) => tag.id || tag);
 
-                if (modifiedTime > publishedTime) {
-                    status = STATUS_MODIFIED;
-                    modifiedAfterPublished = true;
-                }
+            if (tagIds.includes(TAG_STATUS_PUBLISHED)) {
+                status = STATUS_PUBLISHED;
+            } else {
+                status = STATUS_DRAFT;
             }
+        }
+
+        if (status === STATUS_DRAFT && isPublished) {
+            status = STATUS_PUBLISHED;
         }
 
         return {
             status,
-            modifiedAfterPublished,
+            modifiedAfterPublished: false,
             isPublished,
             hasPublishedRef,
         };
+    }
+
+    handleNewPlaceholderKeyChange(e) {
+        this.newPlaceholder = {
+            ...this.newPlaceholder,
+            key: normalizeKey(e.target.value),
+        };
+    }
+
+    handleNewPlaceholderLocaleChange(e) {
+        this.newPlaceholder = {
+            ...this.newPlaceholder,
+            locale: e.detail.locale,
+        };
+    }
+
+    handleNewPlaceholderRteChange(e) {
+        if (e && e.target) {
+            this.newPlaceholder = {
+                ...this.newPlaceholder,
+                value: e.target.value || '',
+            };
+        }
+    }
+
+    handleRichTextToggle(e) {
+        const existingField = this.shadowRoot.querySelector(
+            '#placeholder-rich-value',
+        );
+        if (existingField) {
+            existingField.initDone = false;
+        }
+
+        this.newPlaceholder = {
+            ...this.newPlaceholder,
+            isRichText: e.target.checked,
+        };
+    }
+
+    getFilteredPlaceholders() {
+        let filtered = this.placeholdersData || [];
+
+        if (this.searchQuery) {
+            filtered = filtered.filter(
+                (placeholder) =>
+                    placeholder.key
+                        .toLowerCase()
+                        .includes(this.searchQuery.toLowerCase()) ||
+                    placeholder.displayValue
+                        .toLowerCase()
+                        .includes(this.searchQuery.toLowerCase()),
+            );
+        }
+
+        return this.getSortedPlaceholders(filtered);
+    }
+
+    getSortedPlaceholders(placeholders) {
+        return [...placeholders].sort((a, b) => {
+            const aValue = a[this.sortField];
+            const bValue = b[this.sortField];
+
+            const comparison = aValue.localeCompare(bValue);
+            return this.sortDirection === 'asc' ? comparison : -comparison;
+        });
+    }
+
+    /**
+     * Renders a table cell with optional tooltip
+     * @param {string} content - Cell content
+     * @returns {TemplateResult} - HTML template
+     */
+    renderTableCell(content) {
+        const value = content || '';
+        const needsTooltip = value.length > 50;
+
+        if (needsTooltip) {
+            return html`
+                <sp-table-cell>
+                    <sp-tooltip placement="right">
+                        ${value}
+                        <div slot="trigger" class="cell-content">
+                            ${value.substring(0, 50)}...
+                        </div>
+                    </sp-tooltip>
+                </sp-table-cell>
+            `;
+        }
+
+        return html`
+            <sp-table-cell>
+                <div class="cell-content">${value}</div>
+            </sp-table-cell>
+        `;
+    }
+
+    renderKeyCell(placeholder) {
+        if (this.editingPlaceholder === placeholder.key) {
+            return html`
+                <sp-table-cell class="editing-cell">
+                    <div class="edit-field-container">
+                        <sp-textfield
+                            placeholder="Key"
+                            .value=${this.editedKey}
+                            @input=${this.handleKeyChange}
+                        ></sp-textfield>
+                    </div>
+                </sp-table-cell>
+            `;
+        }
+        return this.renderTableCell(placeholder.key);
+    }
+
+    renderValueCell(placeholder) {
+        if (this.editingPlaceholder === placeholder.key) {
+            return html`
+                <sp-table-cell class="editing-cell">
+                    <div class="edit-field-container">
+                        ${this.editedRichText
+                            ? html`
+                                  <div class="rte-container">
+                                      <rte-field
+                                          inline
+                                          link
+                                          hide-offer-selector
+                                          .maxLength=${500}
+                                          @change=${this.handleRteValueChange}
+                                      ></rte-field>
+                                  </div>
+                              `
+                            : html`<sp-textfield
+                                  placeholder="Value"
+                                  .value=${this.editedValue}
+                                  @input=${this.handleValueChange}
+                              ></sp-textfield>`}
+                    </div>
+                </sp-table-cell>
+            `;
+        }
+
+        if (placeholder.isRichText) {
+            return html`
+                <sp-table-cell>
+                    <div
+                        class="rich-text-cell"
+                        .innerHTML=${placeholder.value}
+                    ></div>
+                </sp-table-cell>
+            `;
+        }
+
+        return this.renderTableCell(placeholder.displayValue);
+    }
+
+    renderTableHeader(columns) {
+        return html`
+            <sp-table-head>
+                ${columns.map(
+                    ({ key, label, sortable, align }) => html`
+                        <sp-table-head-cell
+                            ?sortable=${sortable}
+                            @click=${sortable
+                                ? () => this.handleSort(key)
+                                : undefined}
+                            style="${align === 'right'
+                                ? 'text-align: right;'
+                                : ''}"
+                        >
+                            ${label}
+                        </sp-table-head-cell>
+                    `,
+                )}
+            </sp-table-head>
+        `;
     }
 }
 

@@ -4,7 +4,11 @@ import { Schema, DOMParser, DOMSerializer } from 'prosemirror-model';
 import { EditorView } from 'prosemirror-view';
 import { keymap } from 'prosemirror-keymap';
 import { schema } from 'prosemirror-schema-basic';
-import { addListNodes, wrapInList } from 'prosemirror-schema-list';
+import {
+    addListNodes,
+    wrapInList,
+    splitListItem,
+} from 'prosemirror-schema-list';
 import { baseKeymap, toggleMark } from 'prosemirror-commands';
 import { history, undo, redo } from 'prosemirror-history';
 import {
@@ -12,7 +16,6 @@ import {
     attributeFilter,
     closeOfferSelectorTool,
 } from './ost.js';
-
 import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
 import throttle from '../utils/throttle.js';
@@ -441,6 +444,9 @@ class RteField extends LitElement {
                 'Mod-z': undo,
                 'Mod-y': redo,
                 'Shift-Mod-z': redo,
+                ...(this.list && {
+                    Enter: splitListItem(this.#editorSchema.nodes.list_item),
+                }),
             }),
             keymap(baseKeymap),
         ];

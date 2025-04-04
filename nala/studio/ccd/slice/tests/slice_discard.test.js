@@ -140,10 +140,16 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Edit description field', async () => {
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.description).toContainText(data.description);
+            await expect(await editor.description).toContainText(
+                data.description,
+            );
             await editor.description.fill(data.newDescription);
-            await expect(await editor.description).toContainText(data.newDescription);
-            await expect(await slice.cardDescription).toHaveText(data.newDescription);
+            await expect(await editor.description).toContainText(
+                data.newDescription,
+            );
+            await expect(await slice.cardDescription).toHaveText(
+                data.newDescription,
+            );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -154,7 +160,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            await expect(await slice.cardDescription).toContainText(data.description);
+            await expect(await slice.cardDescription).toContainText(
+                data.description,
+            );
         });
     });
 
@@ -185,7 +193,10 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await editor.iconURL).toHaveValue(data.iconURL);
             await editor.iconURL.fill(data.newIconURL);
             await expect(await editor.iconURL).toHaveValue(data.newIconURL);
-            await expect(await slice.cardIcon).toHaveAttribute('src', data.newIconURL);
+            await expect(await slice.cardIcon).toHaveAttribute(
+                'src',
+                data.newIconURL,
+            );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -196,7 +207,10 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            await expect(await slice.cardIcon).toHaveAttribute('src', data.iconURL);
+            await expect(await slice.cardIcon).toHaveAttribute(
+                'src',
+                data.iconURL,
+            );
         });
     });
 
@@ -224,10 +238,17 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Enter new value in the background URL field', async () => {
             await expect(await editor.backgroundImage).toBeVisible();
-            await expect(await editor.backgroundImage).toHaveValue(data.backgroundURL);
+            await expect(await editor.backgroundImage).toHaveValue(
+                data.backgroundURL,
+            );
             await editor.backgroundImage.fill(data.newBackgroundURL);
-            await expect(await editor.backgroundImage).toHaveValue(data.newBackgroundURL);
-            await expect(await slice.cardImage).toHaveAttribute('src', data.newBackgroundURL);
+            await expect(await editor.backgroundImage).toHaveValue(
+                data.newBackgroundURL,
+            );
+            await expect(await slice.cardImage).toHaveAttribute(
+                'src',
+                data.newBackgroundURL,
+            );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -239,7 +260,10 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(await slice.cardImage).toBeVisible();
-            await expect(await slice.cardImage).toHaveAttribute('src', data.backgroundURL);
+            await expect(await slice.cardImage).toHaveAttribute(
+                'src',
+                data.backgroundURL,
+            );
         });
     });
 
@@ -268,11 +292,19 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         await test.step('step-3: Edit price field', async () => {
             await expect(await editor.description).toBeVisible();
             await expect(await editor.description).toContainText(data.price);
-            await expect(await editor.description).not.toContainText(data.newPrice);
-            await expect(await editor.description).toContainText(data.strikethroughPrice);
-            await expect(await editor.description).not.toContainText(data.newStrikethroughPrice);
+            await expect(await editor.description).not.toContainText(
+                data.newPrice,
+            );
+            await expect(await editor.description).toContainText(
+                data.strikethroughPrice,
+            );
+            await expect(await editor.description).not.toContainText(
+                data.newStrikethroughPrice,
+            );
 
-            await (await editor.description.locator(editor.regularPrice)).dblclick();
+            await (
+                await editor.description.locator(editor.regularPrice)
+            ).dblclick();
             await expect(await ost.price).toBeVisible();
             await expect(await ost.priceUse).toBeVisible();
             await expect(await ost.unitCheckbox).toBeVisible();
@@ -282,7 +314,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-4: Validate edited price in Editor panel', async () => {
             await expect(await editor.description).toContainText(data.newPrice);
-            await expect(await editor.description).toContainText(data.newStrikethroughPrice);
+            await expect(await editor.description).toContainText(
+                data.newStrikethroughPrice,
+            );
         });
 
         await test.step('step-5: Validate edited price field on the card', async () => {
@@ -409,7 +443,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-3: Edit CTA label', async () => {
-            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
+            await expect(
+                await editor.footer.locator(editor.linkEdit),
+            ).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
             await expect(await editor.footer).toContainText(data.ctaText);
             await editor.CTA.click();
@@ -459,7 +495,10 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Change variant', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-slice');
+            await expect(await editor.variant).toHaveAttribute(
+                'default-value',
+                'ccd-slice',
+            );
             await editor.variant.locator('sp-picker').first().click();
             await page.getByRole('option', { name: 'suggested' }).click();
             await page.waitForTimeout(2000);
@@ -514,10 +553,22 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await editor.OSI).toBeVisible();
             await expect(await editor.OSI).toContainText(data.osi);
             await expect(await editor.tags).toBeVisible();
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.productCodeTag}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.offerTypeTag}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.marketSegmentsTag}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.planTypeTag}`));
+            await expect(await editor.tags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.productCodeTag}`),
+            );
+            await expect(await editor.tags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.offerTypeTag}`),
+            );
+            await expect(await editor.tags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.marketSegmentsTag}`),
+            );
+            await expect(await editor.tags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.planTypeTag}`),
+            );
             await editor.OSIButton.click();
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.newosi);
@@ -525,9 +576,18 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await ost.priceUse).toBeVisible();
             await ost.priceUse.click();
             await expect(await editor.OSI).toContainText(data.newosi);
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.newPlanTypeTag}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.newOfferTypeTag}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.newMarketSegmentsTag}`));
+            await expect(await editor.tags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.newPlanTypeTag}`),
+            );
+            await expect(await editor.tags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.newOfferTypeTag}`),
+            );
+            await expect(await editor.tags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.newMarketSegmentsTag}`),
+            );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -542,13 +602,34 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.OSI).toContainText(data.osi);
             await expect(await editor.OSI).not.toContainText(data.newosi);
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.productCodeTag}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.offerTypeTag}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.marketSegmentsTag}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.planTypeTag}`));
-            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.newPlanTypeTag}`));
-            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.newOfferTypeTag}`));
-            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.newMarketSegmentsTag}`));
+            await expect(await editor.tags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.productCodeTag}`),
+            );
+            await expect(await editor.tags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.offerTypeTag}`),
+            );
+            await expect(await editor.tags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.marketSegmentsTag}`),
+            );
+            await expect(await editor.tags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.planTypeTag}`),
+            );
+            await expect(await editor.tags).not.toHaveAttribute(
+                'value',
+                new RegExp(`${data.newPlanTypeTag}`),
+            );
+            await expect(await editor.tags).not.toHaveAttribute(
+                'value',
+                new RegExp(`${data.newOfferTypeTag}`),
+            );
+            await expect(await editor.tags).not.toHaveAttribute(
+                'value',
+                new RegExp(`${data.newMarketSegmentsTag}`),
+            );
         });
     });
 
@@ -575,14 +656,18 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-3: Edit CTA variant', async () => {
-            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
+            await expect(
+                await editor.footer.locator(editor.linkEdit),
+            ).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
             await expect(await editor.CTA).toHaveClass(data.variant);
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkVariant).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-            await expect(await editor.getLinkVariant(data.newVariant)).toBeVisible();
+            await expect(
+                await editor.getLinkVariant(data.newVariant),
+            ).toBeVisible();
             await (await editor.getLinkVariant(data.newVariant)).click();
             await editor.linkSave.click();
             await expect(await editor.CTA).toHaveClass(data.newVariant);
@@ -627,7 +712,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-3: Edit CTA checkout params', async () => {
-            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
+            await expect(
+                await editor.footer.locator(editor.linkEdit),
+            ).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();

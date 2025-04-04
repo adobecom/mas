@@ -121,7 +121,10 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-3: Change variant', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-try-buy-widget');
+            await expect(await editor.variant).toHaveAttribute(
+                'default-value',
+                'ah-try-buy-widget',
+            );
             await editor.variant.locator('sp-picker').first().click();
             await page.getByRole('option', { name: 'slice' }).click();
             await page.waitForTimeout(2000);
@@ -285,14 +288,18 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-3: Edit CTA variant', async () => {
-            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
+            await expect(
+                await editor.footer.locator(editor.linkEdit),
+            ).toBeVisible();
             await expect(await editor.CTA.first()).toBeVisible();
             await expect(await editor.CTA.first()).toHaveClass(data.variant);
             await editor.CTA.first().click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkVariant).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-            await expect(await editor.getLinkVariant(data.newVariant)).toBeVisible();
+            await expect(
+                await editor.getLinkVariant(data.newVariant),
+            ).toBeVisible();
             await (await editor.getLinkVariant(data.newVariant)).click();
             await editor.linkSave.click();
             await expect(await editor.CTA.first()).toHaveClass(data.newVariant);
@@ -312,7 +319,9 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.CTA.first()).toBeVisible();
             await expect(await editor.CTA.first()).toHaveClass(data.variant);
-            await expect(await editor.CTA.first()).not.toHaveClass(data.newVariant);
+            await expect(await editor.CTA.first()).not.toHaveClass(
+                data.newVariant,
+            );
         });
     });
 
@@ -341,7 +350,9 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-3: Edit CTA checkout params', async () => {
-            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
+            await expect(
+                await editor.footer.locator(editor.linkEdit),
+            ).toBeVisible();
             await expect(await editor.CTA.first()).toBeVisible();
             await editor.CTA.first().click();
             await editor.footer.locator(editor.linkEdit).click();

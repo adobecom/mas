@@ -523,10 +523,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-3: Edit promo field', async () => {
-            await expect(await editor.prices.locator(editor.regularPrice)).toHaveAttribute(
-                'data-promotion-code',
-                data.promo,
-            );
+            await expect(
+                await editor.prices.locator(editor.regularPrice),
+            ).toHaveAttribute('data-promotion-code', data.promo);
             await expect(
                 await suggested.cardPrice.locator(editor.regularPrice),
             ).toHaveAttribute('data-promotion-code', data.promo);
@@ -544,10 +543,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-4: Validate promo change in Editor panel', async () => {
-            await expect(await editor.prices.locator(editor.regularPrice)).toHaveAttribute(
-                'data-promotion-code',
-                data.newPromo,
-            );
+            await expect(
+                await editor.prices.locator(editor.regularPrice),
+            ).toHaveAttribute('data-promotion-code', data.newPromo);
         });
 
         await test.step('step-5: Validate edited price promo on the card', async () => {
@@ -568,9 +566,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-7: Validate promo removed in Editor panel', async () => {
-            await expect(await editor.prices.locator(editor.regularPrice)).not.toHaveAttribute(
-                'data-promotion-code',
-            );
+            await expect(
+                await editor.prices.locator(editor.regularPrice),
+            ).not.toHaveAttribute('data-promotion-code');
         });
 
         await test.step('step-8: Validate price promo removed from the card', async () => {

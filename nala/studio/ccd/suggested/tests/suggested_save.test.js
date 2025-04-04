@@ -172,7 +172,10 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-4: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-suggested');
+            await expect(await editor.variant).toHaveAttribute(
+                'default-value',
+                'ccd-suggested',
+            );
             await editor.variant.locator('sp-picker').first().click();
             await page.getByRole('option', { name: 'slice' }).click();
             await page.waitForTimeout(2000);
@@ -180,11 +183,26 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-5: Validate variant change', async () => {
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-slice');
-            await expect(await studio.getCard(data.clonedCardID, 'suggested')).not.toBeVisible();
-            await expect(await studio.getCard(data.clonedCardID, 'slice')).toBeVisible();
-            await expect(await (await studio.getCard(data.clonedCardID, 'slice')).locator(slice.cardCTA)).toHaveAttribute('data-wcs-osi', data.osi);
-            await expect(await (await studio.getCard(data.clonedCardID, 'slice')).locator(slice.cardCTA)).toHaveAttribute('is', 'checkout-button');
+            await expect(await editor.variant).toHaveAttribute(
+                'default-value',
+                'ccd-slice',
+            );
+            await expect(
+                await studio.getCard(data.clonedCardID, 'suggested'),
+            ).not.toBeVisible();
+            await expect(
+                await studio.getCard(data.clonedCardID, 'slice'),
+            ).toBeVisible();
+            await expect(
+                await (
+                    await studio.getCard(data.clonedCardID, 'slice')
+                ).locator(slice.cardCTA),
+            ).toHaveAttribute('data-wcs-osi', data.osi);
+            await expect(
+                await (
+                    await studio.getCard(data.clonedCardID, 'slice')
+                ).locator(slice.cardCTA),
+            ).toHaveAttribute('is', 'checkout-button');
         });
     });
 
@@ -228,7 +246,10 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-4: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-suggested');
+            await expect(await editor.variant).toHaveAttribute(
+                'default-value',
+                'ccd-suggested',
+            );
             await editor.variant.locator('sp-picker').first().click();
             await page.getByRole('option', { name: 'try buy widget' }).click();
             await page.waitForTimeout(2000);
@@ -236,11 +257,26 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-5: Validate variant change', async () => {
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-try-buy-widget');
-            await expect(await studio.getCard(data.clonedCardID, 'suggested')).not.toBeVisible();
-            await expect(await studio.getCard(data.clonedCardID, 'ahtrybuywidget')).toBeVisible();
-            await expect(await (await studio.getCard(data.clonedCardID, 'ahtrybuywidget')).locator(trybuywidget.cardCTA)).toHaveAttribute('data-wcs-osi', data.osi);
-            await expect(await (await studio.getCard(data.clonedCardID, 'ahtrybuywidget')).locator(trybuywidget.cardCTA)).toHaveAttribute('is', 'checkout-button');
+            await expect(await editor.variant).toHaveAttribute(
+                'default-value',
+                'ah-try-buy-widget',
+            );
+            await expect(
+                await studio.getCard(data.clonedCardID, 'suggested'),
+            ).not.toBeVisible();
+            await expect(
+                await studio.getCard(data.clonedCardID, 'ahtrybuywidget'),
+            ).toBeVisible();
+            await expect(
+                await (
+                    await studio.getCard(data.clonedCardID, 'ahtrybuywidget')
+                ).locator(trybuywidget.cardCTA),
+            ).toHaveAttribute('data-wcs-osi', data.osi);
+            await expect(
+                await (
+                    await studio.getCard(data.clonedCardID, 'ahtrybuywidget')
+                ).locator(trybuywidget.cardCTA),
+            ).toHaveAttribute('is', 'checkout-button');
         });
     });
 
@@ -292,7 +328,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-5: Validate edited card title', async () => {
             await expect(await editor.title).toHaveValue(data.newTitle);
-            await expect(await clonedCard.locator(suggested.cardTitle)).toHaveText(data.newTitle);
+            await expect(
+                await clonedCard.locator(suggested.cardTitle),
+            ).toHaveText(data.newTitle);
         });
     });
 
@@ -344,7 +382,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-5: Validate edited card eyebrow', async () => {
             await expect(await editor.subtitle).toHaveValue(data.newSubtitle);
-            await expect(await clonedCard.locator(suggested.cardEyebrow)).toHaveText(data.newSubtitle);
+            await expect(
+                await clonedCard.locator(suggested.cardEyebrow),
+            ).toHaveText(data.newSubtitle);
         });
     });
 
@@ -396,7 +436,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-5: Validate edited card mnemonic', async () => {
             await expect(await editor.iconURL).toHaveValue(data.newIconURL);
-            await expect(await clonedCard.locator(suggested.cardIcon)).toHaveAttribute('src', data.newIconURL);
+            await expect(
+                await clonedCard.locator(suggested.cardIcon),
+            ).toHaveAttribute('src', data.newIconURL);
         });
     });
 
@@ -441,14 +483,20 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-4: Edit description and save card', async () => {
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.description).toContainText(data.description);
+            await expect(await editor.description).toContainText(
+                data.description,
+            );
             await editor.description.fill(data.newDescription);
             await studio.saveCard();
         });
 
         await test.step('step-5: Validate edited card description', async () => {
-            await expect(await editor.description).toContainText(data.newDescription);
-            await expect(await clonedCard.locator(suggested.cardDescription)).toHaveText(data.newDescription);
+            await expect(await editor.description).toContainText(
+                data.newDescription,
+            );
+            await expect(
+                await clonedCard.locator(suggested.cardDescription),
+            ).toHaveText(data.newDescription);
         });
     });
 
@@ -499,8 +547,13 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-5: Validate edited card image', async () => {
-            await expect(await editor.backgroundImage).toHaveValue(data.newBackgroundURL);
-            await expect(await clonedCard).toHaveAttribute('background-image', data.newBackgroundURL);
+            await expect(await editor.backgroundImage).toHaveValue(
+                data.newBackgroundURL,
+            );
+            await expect(await clonedCard).toHaveAttribute(
+                'background-image',
+                data.newBackgroundURL,
+            );
         });
     });
 
@@ -546,7 +599,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-4: Edit price and save card', async () => {
             await expect(await editor.prices).toBeVisible();
             await expect(await editor.prices).toContainText(data.price);
-            await expect(await editor.prices).toContainText(data.strikethroughPrice);
+            await expect(await editor.prices).toContainText(
+                data.strikethroughPrice,
+            );
             await editor.prices.locator(editor.regularPrice).dblclick();
             await expect(await ost.price).toBeVisible();
             await expect(await ost.priceUse).toBeVisible();
@@ -558,9 +613,15 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-5: Validate edited card price', async () => {
             await expect(await editor.prices).toContainText(data.price);
-            await expect(await editor.prices).not.toContainText(data.strikethroughPrice);
-            await expect(await clonedCard.locator(suggested.cardPrice)).toContainText(data.price);
-            await expect(await clonedCard.locator(suggested.cardPrice)).not.toContainText(data.strikethroughPrice);
+            await expect(await editor.prices).not.toContainText(
+                data.strikethroughPrice,
+            );
+            await expect(
+                await clonedCard.locator(suggested.cardPrice),
+            ).toContainText(data.price);
+            await expect(
+                await clonedCard.locator(suggested.cardPrice),
+            ).not.toContainText(data.strikethroughPrice);
         });
     });
 
@@ -618,7 +679,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-5: Validate edited card cta', async () => {
             await expect(await editor.footer).toContainText(data.newCtaText);
-            await expect(await clonedCard.locator(suggested.cardCTA)).toContainText(data.newCtaText);
+            await expect(
+                await clonedCard.locator(suggested.cardCTA),
+            ).toContainText(data.newCtaText);
         });
     });
 
@@ -746,8 +809,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-4: Edit CTA variant and save card', async () => {
             await expect(
-                await editor.footer
-                    .locator(editor.linkEdit),
+                await editor.footer.locator(editor.linkEdit),
             ).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
             await expect(await editor.CTA).toHaveClass(data.variant);
@@ -859,7 +921,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             );
             expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
             expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
-            expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
+            expect(searchParams.get('promoid')).toBe(
+                data.checkoutParams.promoid,
+            );
             expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
         });
     });

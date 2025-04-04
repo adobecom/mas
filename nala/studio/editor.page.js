@@ -28,13 +28,23 @@ export default class EditorPage {
             'sp-field-group#ctas a.secondary',
         );
         this.callout = this.panel.locator('sp-field-group#callout');
-        this.calloutRTE = this.panel.locator( 'sp-field-group#callout div[contenteditable="true"]');
-        this.calloutRTEIcon = this.panel.locator('sp-field-group#callout .icon-button');
+        this.calloutRTE = this.panel.locator(
+            'sp-field-group#callout div[contenteditable="true"]',
+        );
+        this.calloutRTEIcon = this.panel.locator(
+            'sp-field-group#callout .icon-button',
+        );
         this.showStockCheckbox = this.panel.locator('#stockOffer #input');
         this.showQuantitySelector = this.panel.locator('#quantitySelect input');
-        this.quantitySelectorTitle = this.panel.locator('sp-field-group#quantitySelector #title-quantity input');
-        this.quantityselectorStart = this.panel.locator('sp-field-group#quantitySelector #start-quantity input');
-        this.quantityselectorStep = this.panel.locator('sp-field-group#quantitySelector #step-quantity input');
+        this.quantitySelectorTitle = this.panel.locator(
+            'sp-field-group#quantitySelector #title-quantity input',
+        );
+        this.quantityselectorStart = this.panel.locator(
+            'sp-field-group#quantitySelector #start-quantity input',
+        );
+        this.quantityselectorStep = this.panel.locator(
+            'sp-field-group#quantitySelector #step-quantity input',
+        );
 
         this.closeEditor = this.panel.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="close"]',

@@ -46,9 +46,7 @@ export default class StudioPage {
         this.ahTryBuyWidgetDoubleCard = page.locator(
             'merch-card[variant="ah-try-buy-widget"][size="double"]',
         );
-        this.plansCard = page.locator(
-            'merch-card[variant="plans"]',
-        );
+        this.plansCard = page.locator('merch-card[variant="plans"]');
         // Editor panel toolbar
         this.cloneCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="clone"]',

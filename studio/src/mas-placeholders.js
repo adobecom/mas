@@ -2234,7 +2234,6 @@ class MasPlaceholders extends LitElement {
                 return;
             }
 
-
             const fragmentData = placeholder.fragment;
             const fragmentPath = fragmentData.path;
 

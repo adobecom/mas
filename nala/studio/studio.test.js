@@ -274,13 +274,53 @@ test.describe('M@S Studio feature test suite', () => {
         });
     });
 
-    // @studio-card-dblclick-info - Validate message for double-click on the card in mas studio
+    // @studio-try-buy-widget-editor - Validate editor fields for try buy widget card in mas studio
     test(`${features[7].name},${features[7].tags}`, async ({
         page,
         baseURL,
     }) => {
         const { data } = features[7];
         const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'ahtrybuywidget-triple'),
+            ).toBeVisible();
+            await (
+                await studio.getCard(data.cardid, 'ahtrybuywidget-triple')
+            ).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Validate fields rendering', async () => {
+            await expect(await editor.variant).toBeVisible();
+            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-try-buy-widget');
+            await expect(await editor.size).toBeVisible();
+            await expect(await editor.title).toBeVisible();
+            await expect(await editor.description).toBeVisible();
+            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.borderColor).toBeVisible();
+            await expect(await editor.backgroundColor).toBeVisible();
+            await expect(await editor.backgroundImage).toBeVisible();
+            await expect(await editor.prices).toBeVisible();
+            await expect(await editor.footer).toBeVisible();
+        });
+    });
+
+
+    // @studio-card-dblclick-info - Validate message for double-click on the card in mas studio
+    test(`${features[8].name},${features[8].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[8];
+        const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {

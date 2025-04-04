@@ -36,52 +36,13 @@ test.beforeEach(async ({ page, browserName }) => {
 });
 
 test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
-    // @studio-try-buy-widget-editor - Validate editor fields for try buy widget card in mas studio
+    // @studio-try-buy-widget-edit-title - Validate editing title for try buy widget card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({
         page,
         baseURL,
     }) => {
         const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
-
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'ahtrybuywidget-triple'),
-            ).toBeVisible();
-            await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-triple')
-            ).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Validate fields rendering', async () => {
-            await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-try-buy-widget');
-            await expect(await editor.size).toBeVisible();
-            await expect(await editor.title).toBeVisible();
-            await expect(await editor.description).toBeVisible();
-            await expect(await editor.iconURL).toBeVisible();
-            await expect(await editor.borderColor).toBeVisible();
-            await expect(await editor.backgroundColor).toBeVisible();
-            await expect(await editor.backgroundImage).toBeVisible();
-            await expect(await editor.prices).toBeVisible();
-            await expect(await editor.footer).toBeVisible();
-        });
-    });
-
-    // @studio-try-buy-widget-edit-title - Validate editing title for try buy widget card in mas studio
-    test(`${features[1].name},${features[1].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
-        const { data } = features[1];
-        const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -129,12 +90,12 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     });
 
     // @studio-try-buy-widget-edit-bg-color - Validate editing background color for try buy widget card in mas studio
-    test(`${features[2].name},${features[2].tags}`, async ({
+    test(`${features[1].name},${features[1].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[2];
-        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
+        const { data } = features[1];
+        const testPage = `${baseURL}${features[1].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -180,12 +141,12 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     });
 
     // @studio-try-buy-widget-edit-border-color - Validate editing border color for try buy widget card in mas studio
-    test(`${features[3].name},${features[3].tags}`, async ({
+    test(`${features[2].name},${features[2].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[3];
-        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
+        const { data } = features[2];
+        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -248,12 +209,12 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     });
 
     // @studio-try-buy-widget-edit-description - Validate edit description field for try buy widget card in mas studio
-    test(`${features[4].name},${features[4].tags}`, async ({
+    test(`${features[3].name},${features[3].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[4];
-        const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
+        const { data } = features[3];
+        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -289,12 +250,12 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     });
 
     // @studio-try-buy-widget-edit-mnemonic - Validate edit mnemonic field for try buy widget card in mas studio
-    test(`${features[5].name},${features[5].tags}`, async ({
+    test(`${features[4].name},${features[4].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[5];
-        const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.cardid}`;
+        const { data } = features[4];
+        const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -331,12 +292,12 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     });
 
     // @studio-try-buy-widget-edit-image - Validate edit background image field for single try buy widjet card in mas studio
-    test(`${features[6].name},${features[6].tags}`, async ({
+    test(`${features[5].name},${features[5].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[6];
-        const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.cardid}`;
+        const { data } = features[5];
+        const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -388,12 +349,12 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     });
 
     // @studio-try-buy-widget-edit-price - Validate editing price field for try buy widjet card in mas studio
-    test(`${features[7].name},${features[7].tags}`, async ({
+    test(`${features[6].name},${features[6].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[7];
-        const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.cardid}`;
+        const { data } = features[6];
+        const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -441,12 +402,12 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     });
 
     // @studio-try-buy-widget-edit-cta - Validate edit CTA for try buy widget card in mas studio
-    test(`${features[8].name},${features[8].tags}`, async ({
+    test(`${features[7].name},${features[7].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[8];
-        const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.cardid}`;
+        const { data } = features[7];
+        const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -524,12 +485,12 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     });
 
     // @studio-try-buy-widget-change-to-slice - Validate card variant change from AHome try-buy-widget to ccd slice
-    test(`${features[9].name},${features[9].tags}`, async ({
+    test(`${features[8].name},${features[8].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[9];
-        const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}${data.cardid}`;
+        const { data } = features[8];
+        const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -588,12 +549,12 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     });
 
     // @studio-try-buy-widget-change-to-suggested - Validate card variant change from AHome try-buy-widget to ccd suggested
-    test(`${features[10].name},${features[10].tags}`, async ({
+    test(`${features[9].name},${features[9].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[10];
-        const testPage = `${baseURL}${features[10].path}${miloLibs}${features[10].browserParams}${data.cardid}`;
+        const { data } = features[9];
+        const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -654,12 +615,12 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     });
 
     // @studio-try-buy-widget-add-osi - Validate adding OSI for try-buy-widget card in mas studio
-    test(`${features[11].name},${features[11].tags}`, async ({
+    test(`${features[10].name},${features[10].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[11];
-        const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.cardid}`;
+        const { data } = features[10];
+        const testPage = `${baseURL}${features[10].path}${miloLibs}${features[10].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -731,12 +692,12 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     });
 
     // @studio-try-buy-widget-edit-osi - Validate changing OSI for try-buy-widget card in mas studio
-    test(`${features[12].name},${features[12].tags}`, async ({
+    test(`${features[11].name},${features[11].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[12];
-        const testPage = `${baseURL}${features[12].path}${miloLibs}${features[12].browserParams}${data.cardid}`;
+        const { data } = features[11];
+        const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -819,12 +780,12 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     });
 
     // @studio-try-buy-widget-edit-cta-variant - Validate edit CTA variant for try-buy-widget card in mas studio
-    test(`${features[13].name},${features[13].tags}`, async ({
+    test(`${features[12].name},${features[12].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[13];
-        const testPage = `${baseURL}${features[13].path}${miloLibs}${features[13].browserParams}${data.cardid}`;
+        const { data } = features[12];
+        const testPage = `${baseURL}${features[12].path}${miloLibs}${features[12].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -897,12 +858,12 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     });
 
     // @studio-try-buy-widget-edit-cta-checkout-params - Validate edit CTA checkout params for try-buy-widget card in mas studio
-    test(`${features[14].name},${features[14].tags}`, async ({
+    test(`${features[13].name},${features[13].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[14];
-        const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}${data.cardid}`;
+        const { data } = features[13];
+        const testPage = `${baseURL}${features[13].path}${miloLibs}${features[13].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {

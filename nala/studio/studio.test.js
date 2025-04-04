@@ -1,12 +1,13 @@
 import { expect, test } from '@playwright/test';
 import StudioSpec from './studio.spec.js';
 import StudioPage from './studio.page.js';
+import EditorPage from './editor.page.js';
 
 const { features } = StudioSpec;
 const miloLibs = process.env.MILO_LIBS || '';
 
 let studio;
-
+let editor;
 test.beforeEach(async ({ page, browserName }) => {
     test.slow();
     if (browserName === 'chromium') {
@@ -15,6 +16,7 @@ test.beforeEach(async ({ page, browserName }) => {
         });
     }
     studio = new StudioPage(page);
+    editor = new EditorPage(page);
 });
 
 test.describe('M@S Studio feature test suite', () => {
@@ -173,42 +175,42 @@ test.describe('M@S Studio feature test suite', () => {
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Validate fields rendering', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorVariant),
+                await editor.variant,
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorVariant),
+                await editor.variant
             ).toHaveAttribute('default-value', 'ccd-suggested');
             await expect(
-                await studio.editorPanel.locator(studio.editorSize),
+                await editor.size
             ).not.toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
+                await editor.title
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorSubtitle),
+                await editor.subtitle
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorBadge),
+                await editor.badge
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorDescription),
+                await editor.description
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorIconURL),
+                await editor.iconURL
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorBackgroundImage),
+                await editor.backgroundImage
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
+                await editor.prices
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorFooter),
+                await editor.footer
             ).toBeVisible();
         });
     });
@@ -232,42 +234,42 @@ test.describe('M@S Studio feature test suite', () => {
                 await studio.getCard(data.cardid, 'slice-wide'),
             ).toBeVisible();
             await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Validate fields rendering', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorVariant),
+                await editor.variant
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorVariant),
+                await editor.variant
             ).toHaveAttribute('default-value', 'ccd-slice');
             await expect(
-                await studio.editorPanel.locator(studio.editorSize),
+                await editor.size
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
+                await editor.title
             ).not.toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorSubtitle),
+                await editor.subtitle
             ).not.toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorBadge),
+                await editor.badge
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorDescription),
+                await editor.description
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorIconURL),
+                await editor.iconURL
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorBackgroundImage),
+                await editor.backgroundImage
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
+                await editor.prices
             ).not.toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorFooter),
+                await editor.footer
             ).toBeVisible();
         });
     });

@@ -71,7 +71,7 @@ export default {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-suggested',
+            tags: '@mas-studio',
         },
     ],
 };

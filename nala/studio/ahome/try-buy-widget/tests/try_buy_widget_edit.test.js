@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import StudioPage from '../../../studio.page.js';
+import EditorPage from '../../../editor.page.js';
 import AHTryBuyWidgetSpec from '../specs/try_buy_widget_edit.spec.js';
 import AHTryBuyWidgetPage from '../try-buy-widget.page.js';
 import CCDSlicePage from '../../../ccd/slice/slice.page.js';
@@ -11,6 +12,7 @@ const { features } = AHTryBuyWidgetSpec;
 const miloLibs = process.env.MILO_LIBS || '';
 
 let studio;
+let editor;
 let slice;
 let suggested;
 let trybuywidget;
@@ -25,6 +27,7 @@ test.beforeEach(async ({ page, browserName }) => {
         });
     }
     studio = new StudioPage(page);
+    editor = new EditorPage(page);
     slice = new CCDSlicePage(page);
     suggested = new CCDSuggestedPage(page);
     trybuywidget = new AHTryBuyWidgetPage(page);
@@ -54,43 +57,21 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ahtrybuywidget-triple')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Validate fields rendering', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorVariant),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorVariant),
-            ).toHaveAttribute('default-value', 'ah-try-buy-widget');
-            await expect(
-                await studio.editorPanel.locator(studio.editorSize),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorDescription),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorIconURL),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorBorderColor),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorBackgroundColor),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorBackgroundImage),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorFooter),
-            ).toBeVisible();
+            await expect(await editor.variant).toBeVisible();
+            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-try-buy-widget');
+            await expect(await editor.size).toBeVisible();
+            await expect(await editor.title).toBeVisible();
+            await expect(await editor.description).toBeVisible();
+            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.borderColor).toBeVisible();
+            await expect(await editor.backgroundColor).toBeVisible();
+            await expect(await editor.backgroundImage).toBeVisible();
+            await expect(await editor.prices).toBeVisible();
+            await expect(await editor.footer).toBeVisible();
         });
     });
 
@@ -115,21 +96,15 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ahtrybuywidget-triple')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Enter long string in title field', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
-            ).toBeVisible();
-            await studio.editorPanel.locator(studio.editorTitle).click();
+            await expect(await editor.title).toBeVisible();
+            await editor.title.click();
             await page.waitForTimeout(2000);
-            await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveValue(data.oldTitle);
-            await studio.editorPanel
-                .locator(studio.editorTitle)
-                .fill(data.updatedTitle);
+            await expect(await editor.title).toHaveValue(data.oldTitle);
+            await editor.title.fill(data.updatedTitle);
             await page.waitForTimeout(2000);
         });
 
@@ -141,9 +116,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-5: Edit the original title back', async () => {
-            await studio.editorPanel
-                .locator(studio.editorTitle)
-                .fill(data.oldTitle);
+            await editor.title.fill(data.oldTitle);
             await page.waitForTimeout(2000);
         });
 
@@ -176,22 +149,14 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ahtrybuywidget-triple')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit background color field', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorBackgroundColor),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorBackgroundColor),
-            ).toHaveAttribute('value', data.originalBgColor);
-            await studio.editorPanel
-                .locator(studio.editorBackgroundColor)
-                .click();
-            await page
-                .getByRole('option', { name: data.updatedBgColor })
-                .click();
+            await expect(await editor.backgroundColor).toBeVisible();
+            await expect(await editor.backgroundColor).toHaveAttribute('value', data.originalBgColor);
+            await editor.backgroundColor.click();
+            await page.getByRole('option', { name: data.updatedBgColor }).click();
             await page.waitForTimeout(2000);
         });
 
@@ -201,24 +166,20 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             ).not.toHaveAttribute('background-color', data.originalBgColor);
         });
 
-        await test.step('step-5: Edit background color field back to gray', async () => {
-            await studio.editorPanel
-                .locator(studio.editorBackgroundColor)
-                .click();
-            await page
-                .getByRole('option', { name: data.originalBgColor })
-                .click();
+        await test.step('step-5: Edit background color back to original', async () => {
+            await editor.backgroundColor.click();
+            await page.getByRole('option', { name: data.originalBgColor }).click();
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Validate original background color of the card', async () => {
+        await test.step('step-6: Validate original background color of the card', async () => {
             await expect(
                 await studio.getCard(data.cardid, 'ahtrybuywidget-triple'),
             ).toHaveAttribute('background-color', data.originalBgColor);
         });
     });
 
-    // @studio-try-buy-widget-edit-bg-color - Validate editing border color for try buy widget card in mas studio
+    // @studio-try-buy-widget-edit-border-color - Validate editing border color for try buy widget card in mas studio
     test(`${features[3].name},${features[3].tags}`, async ({
         page,
         baseURL,
@@ -239,17 +200,13 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ahtrybuywidget-triple')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit border color field', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorBorderColor),
-            ).toBeVisible();
-            await studio.editorPanel.locator(studio.editorBorderColor).click();
-            await page
-                .getByRole('option', { name: data.updatedBorderColor })
-                .click();
+            await expect(await editor.borderColor).toBeVisible();
+            await editor.borderColor.click();
+            await page.getByRole('option', { name: data.updatedBorderColor }).click();
             await page.waitForTimeout(2000);
         });
 
@@ -268,15 +225,13 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             ).toHaveCSS('border-right-color', data.updatedBorderCSSColor);
         });
 
-        await test.step('step-5: Edit border color field back to gray', async () => {
-            await studio.editorPanel.locator(studio.editorBorderColor).click();
-            await page
-                .getByRole('option', { name: data.originalBorderColor })
-                .click();
+        await test.step('step-5: Edit border color back to original', async () => {
+            await editor.borderColor.click();
+            await page.getByRole('option', { name: data.originalBorderColor }).click();
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Validate original border color of the card', async () => {
+        await test.step('step-6: Validate original border color of the card', async () => {
             await expect(
                 await studio.getCard(data.cardid, 'ahtrybuywidget-triple'),
             ).toHaveCSS('border-top-color', data.originalBorderCSSColor);
@@ -313,25 +268,17 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ahtrybuywidget-triple')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit description field', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorDescription),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorDescription),
-            ).toContainText(data.description);
-            await studio.editorPanel
-                .locator(studio.editorDescription)
-                .fill(data.updatedDescription);
+            await expect(await editor.description).toBeVisible();
+            await expect(await editor.description).toContainText(data.description);
+            await editor.description.fill(data.updatedDescription);
         });
 
         await test.step('step-4: Validate update in description field of Editor panel', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorDescription),
-            ).toContainText(data.updatedDescription);
+            await expect(await editor.description).toContainText(data.updatedDescription);
         });
 
         await test.step('step-5: Validate update on the description of card', async () => {
@@ -362,25 +309,17 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ahtrybuywidget-triple')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorIconURL),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorIconURL),
-            ).toHaveValue(data.iconURL);
-            await studio.editorPanel
-                .locator(studio.editorIconURL)
-                .fill(data.newIconURL);
+            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.iconURL).toHaveValue(data.iconURL);
+            await editor.iconURL.fill(data.newIconURL);
         });
 
         await test.step('step-4: Validate edited mnemonic field in Editor panel', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorIconURL),
-            ).toHaveValue(data.newIconURL);
+            await expect(await editor.iconURL).toHaveValue(data.newIconURL);
         });
 
         await test.step('step-5: Validate edited mnemonic on the card', async () => {
@@ -412,25 +351,17 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ahtrybuywidget-single')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Remove background URL field', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorBackgroundImage),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorBackgroundImage),
-            ).toHaveValue(data.backgroundURL);
-            await studio.editorPanel
-                .locator(studio.editorBackgroundImage)
-                .fill('');
+            await expect(await editor.backgroundImage).toBeVisible();
+            await expect(await editor.backgroundImage).toHaveValue(data.backgroundURL);
+            await editor.backgroundImage.fill('');
         });
 
         await test.step('step-4: Validate edited background image url field in Editor panel', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorBackgroundImage),
-            ).toHaveValue('');
+            await expect(await editor.backgroundImage).toHaveValue('');
         });
 
         await test.step('step-5: Validate image is removed from the card', async () => {
@@ -438,14 +369,12 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-6: Enter new value in the background URL field', async () => {
-            await studio.editorPanel
-                .locator(studio.editorBackgroundImage)
-                .fill(data.newBackgroundURL);
+            await editor.backgroundImage.fill(data.newBackgroundURL);
         });
 
         await test.step('step-7: Validate edited background image url field in Editor panel', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorBackgroundImage),
+                await editor.backgroundImage
             ).toHaveValue(data.newBackgroundURL);
         });
 
@@ -479,22 +408,14 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ahtrybuywidget-triple')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit price field', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).toContainText(data.price);
+            await expect(await editor.prices).toBeVisible();
+            await expect(await editor.prices).toContainText(data.price);
 
-            await (
-                await studio.editorPanel
-                    .locator(studio.editorPrices)
-                    .locator(studio.regularPrice)
-            ).dblclick();
+            await (await editor.prices.locator(editor.regularPrice)).dblclick();
             await expect(await ost.price).toBeVisible();
             await expect(await ost.priceUse).toBeVisible();
             await expect(await ost.unitCheckbox).toBeVisible();
@@ -503,12 +424,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-4: Validate edited price in Editor panel', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).toContainText(data.newPrice);
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).toContainText(data.abmText);
+            await expect(await editor.prices).toContainText(data.newPrice);
+            await expect(await editor.prices).toContainText(data.abmText);
         });
 
         await test.step('step-5: Validate edited price field on the card', async () => {
@@ -544,20 +461,14 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ahtrybuywidget-triple')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA field', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorFooter),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorFooter),
-            ).toContainText(data.ctaText);
+            await expect(await editor.footer).toBeVisible();
+            await expect(await editor.footer).toContainText(data.ctaText);
 
-            await (
-                await studio.editorPanel.locator(studio.editorCTAClassSecondary)
-            ).dblclick();
+            await (await editor.CTAClassSecondary).dblclick();
             await expect(await ost.checkoutTab).toBeVisible();
             await expect(await ost.workflowMenu).toBeVisible();
             await expect(await ost.ctaTextMenu).toBeEnabled();
@@ -580,9 +491,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-4: Validate edited CTA in Editor panel', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorFooter),
-            ).toContainText(data.newCtaText);
+            await expect(await editor.footer).toContainText(data.newCtaText);
         });
 
         await test.step('step-5: Validate edited price field on the card', async () => {
@@ -635,71 +544,35 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ahtrybuywidget-triple')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit card variant', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorVariant),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorVariant),
-            ).toHaveAttribute('default-value', 'ah-try-buy-widget');
-            await studio.editorPanel
-                .locator(studio.editorVariant)
-                .locator('sp-picker')
-                .first()
-                .click();
+            await expect(await editor.variant).toBeVisible();
+            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-try-buy-widget');
+            await editor.variant.locator('sp-picker').first().click();
             await page.getByRole('option', { name: 'slice' }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-4: Validate editor fields rendering after variant change', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorVariant),
-            ).toHaveAttribute('default-value', 'ccd-slice');
-            await expect(
-                await studio.editorPanel.locator(studio.editorSize),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
-            ).not.toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorSubtitle),
-            ).not.toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorBadge),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorDescription),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorIconURL),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorBorderColor),
-            ).not.toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorBackgroundColor),
-            ).not.toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorBackgroundImage),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).not.toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorFooter),
-            ).toBeVisible();
+            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-slice');
+            await expect(await editor.size).toBeVisible();
+            await expect(await editor.title).not.toBeVisible();
+            await expect(await editor.subtitle).not.toBeVisible();
+            await expect(await editor.badge).toBeVisible();
+            await expect(await editor.description).toBeVisible();
+            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.borderColor).not.toBeVisible();
+            await expect(await editor.backgroundColor).not.toBeVisible();
+            await expect(await editor.backgroundImage).toBeVisible();
+            await expect(await editor.prices).not.toBeVisible();
+            await expect(await editor.footer).toBeVisible();
         });
 
         await test.step('step-5: Validate card variant change', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice'),
-            ).toBeVisible();
-            await expect(
-                await studio.getCard(data.cardid, 'ahtrybuywidget-triple'),
-            ).not.toBeVisible();
+            await expect(await studio.getCard(data.cardid, 'slice')).toBeVisible();
+            await expect(await studio.getCard(data.cardid, 'ahtrybuywidget-triple')).not.toBeVisible();
             await expect(await slice.cardDescription).toBeVisible();
             await expect(await slice.cardIcon).toBeVisible();
             await expect(await slice.cardCTA.first()).toBeVisible();
@@ -735,71 +608,35 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ahtrybuywidget-triple')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit card variant', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorVariant),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorVariant),
-            ).toHaveAttribute('default-value', 'ah-try-buy-widget');
-            await studio.editorPanel
-                .locator(studio.editorVariant)
-                .locator('sp-picker')
-                .first()
-                .click();
+            await expect(await editor.variant).toBeVisible();
+            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-try-buy-widget');
+            await editor.variant.locator('sp-picker').first().click();
             await page.getByRole('option', { name: 'suggested' }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-4: Validate editor fields rendering after variant change', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorVariant),
-            ).toHaveAttribute('default-value', 'ccd-suggested');
-            await expect(
-                await studio.editorPanel.locator(studio.editorSize),
-            ).not.toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorSubtitle),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorBadge),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorDescription),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorIconURL),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorBorderColor),
-            ).not.toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorBackgroundColor),
-            ).not.toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorBackgroundImage),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorFooter),
-            ).toBeVisible();
+            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-suggested');
+            await expect(await editor.size).not.toBeVisible();
+            await expect(await editor.title).toBeVisible();
+            await expect(await editor.subtitle).toBeVisible();
+            await expect(await editor.badge).toBeVisible();
+            await expect(await editor.description).toBeVisible();
+            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.borderColor).not.toBeVisible();
+            await expect(await editor.backgroundColor).not.toBeVisible();
+            await expect(await editor.backgroundImage).toBeVisible();
+            await expect(await editor.prices).toBeVisible();
+            await expect(await editor.footer).toBeVisible();
         });
 
         await test.step('step-5: Validate card variant change', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).toBeVisible();
-            await expect(
-                await studio.getCard(data.cardid, 'ahtrybuywidget-triple'),
-            ).not.toBeVisible();
+            await expect(await studio.getCard(data.cardid, 'suggested')).toBeVisible();
+            await expect(await studio.getCard(data.cardid, 'ahtrybuywidget-triple')).not.toBeVisible();
             await expect(await suggested.cardTitle).toBeVisible();
             await expect(await suggested.cardDescription).toBeVisible();
             await expect(await suggested.cardPrice).toBeVisible();
@@ -837,33 +674,31 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ahtrybuywidget-triple')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Choose OSI in OST', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorOSI),
-            ).toBeVisible();
-            await expect(await studio.editorTags).toBeVisible();
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.OSI).toBeVisible();
+            await expect(await editor.tags).toBeVisible();
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.productCodeTag}`),
             );
-            await expect(await studio.editorOSI).not.toContainText(data.osi);
-            await expect(await studio.editorTags).not.toHaveAttribute(
+            await expect(await editor.OSI).not.toContainText(data.osi);
+            await expect(await editor.tags).not.toHaveAttribute(
                 'value',
                 new RegExp(`${data.planTypeTag}`),
             );
-            await expect(await studio.editorTags).not.toHaveAttribute(
+            await expect(await editor.tags).not.toHaveAttribute(
                 'value',
                 new RegExp(`${data.offerTypeTag}`),
             );
-            await expect(await studio.editorTags).not.toHaveAttribute(
+            await expect(await editor.tags).not.toHaveAttribute(
                 'value',
                 new RegExp(`${data.marketSegmentsTag}`),
             );
 
-            await (await studio.editorOSIButton).click();
+            await (await editor.OSIButton).click();
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.osi);
             await (await ost.nextButton).click();
@@ -872,23 +707,23 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-4: Validate osi value in Editor panel', async () => {
-            await expect(await studio.editorOSI).toContainText(data.osi);
+            await expect(await editor.OSI).toContainText(data.osi);
         });
 
         await test.step('step-5: Validate tags update', async () => {
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.productCodeTag}`),
             );
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.offerTypeTag}`),
             );
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.marketSegmentsTag}`),
             );
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.planTypeTag}`),
             );
@@ -916,32 +751,30 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ahtrybuywidget-double')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Change OSI in OST', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorOSI),
-            ).toBeVisible();
-            await expect(await studio.editorOSI).toContainText(data.osi);
-            await expect(await studio.editorTags).toBeVisible();
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.OSI).toBeVisible();
+            await expect(await editor.OSI).toContainText(data.osi);
+            await expect(await editor.tags).toBeVisible();
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.productCodeTag}`),
             );
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.offerTypeTag}`),
             );
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.marketSegmentsTag}`),
             );
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.planTypeTag}`),
             );
-            await (await studio.editorOSIButton).click();
+            await (await editor.OSIButton).click();
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.newosi);
             await (await ost.nextButton).click();
@@ -950,35 +783,35 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-4: Validate osi value in Editor panel', async () => {
-            await expect(await studio.editorOSI).toContainText(data.newosi);
+            await expect(await editor.OSI).toContainText(data.newosi);
         });
 
         await test.step('step-5: Validate tags update', async () => {
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.productCodeTag}`),
             );
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.newOfferTypeTag}`),
             );
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.newMarketSegmentsTag}`),
             );
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.newPlanTypeTag}`),
             );
-            await expect(await studio.editorTags).not.toHaveAttribute(
+            await expect(await editor.tags).not.toHaveAttribute(
                 'value',
                 new RegExp(`${data.planTypeTag}`),
             );
-            await expect(await studio.editorTags).not.toHaveAttribute(
+            await expect(await editor.tags).not.toHaveAttribute(
                 'value',
                 new RegExp(`${data.offerTypeTag}`),
             );
-            await expect(await studio.editorTags).not.toHaveAttribute(
+            await expect(await editor.tags).not.toHaveAttribute(
                 'value',
                 new RegExp(`${data.marketSegmentsTag}`),
             );
@@ -1006,17 +839,15 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ahtrybuywidget-triple')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA variant', async () => {
             await expect(
-                await studio.editorPanel
-                    .locator(studio.editorFooter)
-                    .locator(studio.linkEdit),
+                await editor.footer.locator(editor.linkEdit),
             ).toBeVisible();
-            await expect(await studio.editorCTA.first()).toBeVisible();
-            await expect(await studio.editorCTA.first()).toHaveClass(
+            await expect(await editor.CTA.first()).toBeVisible();
+            await expect(await editor.CTA.first()).toHaveClass(
                 data.variant,
             );
             expect(
@@ -1025,25 +856,24 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                     data.ctaCSS,
                 ),
             ).toBeTruthy();
-            await studio.editorCTA.first().click();
-            await studio.editorPanel
-                .locator(studio.editorFooter)
-                .locator(studio.linkEdit)
+            await editor.CTA.first().click();
+            await editor.footer
+                .locator(editor.linkEdit)
                 .click();
-            await expect(await studio.linkVariant).toBeVisible();
-            await expect(await studio.linkSave).toBeVisible();
+            await expect(await editor.linkVariant).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
             await expect(
-                await studio.getLinkVariant(data.newVariant),
+                await editor.getLinkVariant(data.newVariant),
             ).toBeVisible();
-            await (await studio.getLinkVariant(data.newVariant)).click();
-            await studio.linkSave.click();
+            await (await editor.getLinkVariant(data.newVariant)).click();
+            await editor.linkSave.click();
         });
 
         await test.step('step-4: Validate edited CTA variant in Editor panel', async () => {
-            await expect(await studio.editorCTA.first()).toHaveClass(
+            await expect(await editor.CTA.first()).toHaveClass(
                 data.newVariant,
             );
-            await expect(await studio.editorCTA.first()).not.toHaveClass(
+            await expect(await editor.CTA.first()).not.toHaveClass(
                 data.variant,
             );
         });
@@ -1087,23 +917,16 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ahtrybuywidget-triple')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA checkout params', async () => {
-            await expect(
-                await studio.editorPanel
-                    .locator(studio.editorFooter)
-                    .locator(studio.linkEdit),
-            ).toBeVisible();
-            await expect(await studio.editorCTA.first()).toBeVisible();
-            await studio.editorCTA.first().click();
-            await studio.editorPanel
-                .locator(studio.editorFooter)
-                .locator(studio.linkEdit)
-                .click();
-            await expect(await studio.checkoutParameters).toBeVisible();
-            await expect(await studio.linkSave).toBeVisible();
+            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
+            await expect(await editor.CTA.first()).toBeVisible();
+            await editor.CTA.first().click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.checkoutParameters).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
 
             const checkoutParamsString = Object.keys(data.checkoutParams)
                 .map(
@@ -1111,8 +934,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                         `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`,
                 )
                 .join('&');
-            await studio.checkoutParameters.fill(checkoutParamsString);
-            await studio.linkSave.click();
+            await editor.checkoutParameters.fill(checkoutParamsString);
+            await editor.linkSave.click();
         });
 
         await test.step('step-4: Validate edited CTA on the card', async () => {

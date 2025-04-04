@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import StudioPage from '../../../studio.page.js';
+import EditorPage from '../../../editor.page.js';
 import CCDSuggestedSpec from '../specs/suggested_discard.spec.js';
 import CCDSuggestedPage from '../suggested.page.js';
 import OSTPage from '../../../ost.page.js';
@@ -8,6 +9,7 @@ const { features } = CCDSuggestedSpec;
 const miloLibs = process.env.MILO_LIBS || '';
 
 let studio;
+let editor;
 let suggested;
 let ost;
 
@@ -19,6 +21,7 @@ test.beforeEach(async ({ page, browserName }) => {
         });
     }
     studio = new StudioPage(page);
+    editor = new EditorPage(page);
     suggested = new CCDSuggestedPage(page);
     ost = new OSTPage(page);
 });
@@ -43,32 +46,22 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit title field', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveValue(data.title);
-            await studio.editorPanel
-                .locator(studio.editorTitle)
-                .fill(data.newTitle);
-            await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveValue(data.newTitle);
+            await expect(await editor.title).toBeVisible();
+            await expect(await editor.title).toHaveValue(data.title);
+            await editor.title.fill(data.newTitle);
+            await expect(await editor.title).toHaveValue(data.newTitle);
             await expect(await suggested.cardTitle).toHaveText(data.newTitle);
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
-            await studio.editorPanel.locator(studio.closeEditor).click();
-            await expect(
-                await studio.editorPanel.locator(studio.confirmationDialog),
-            ).toBeVisible();
-            await studio.editorPanel.locator(studio.discardDialog).click();
-            await expect(await studio.editorPanel).not.toBeVisible();
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
@@ -95,34 +88,24 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit eyebrow field', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorSubtitle),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorSubtitle),
-            ).toHaveValue(data.subtitle);
-            await studio.editorPanel
-                .locator(studio.editorSubtitle)
-                .fill(data.newSubtitle);
-            await expect(
-                await studio.editorPanel.locator(studio.editorSubtitle),
-            ).toHaveValue(data.newSubtitle);
+            await expect(await editor.subtitle).toBeVisible();
+            await expect(await editor.subtitle).toHaveValue(data.subtitle);
+            await editor.subtitle.fill(data.newSubtitle);
+            await expect(await editor.subtitle).toHaveValue(data.newSubtitle);
             await expect(await suggested.cardEyebrow).toHaveText(
                 data.newSubtitle,
             );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
-            await studio.editorPanel.locator(studio.closeEditor).click();
-            await expect(
-                await studio.editorPanel.locator(studio.confirmationDialog),
-            ).toBeVisible();
-            await studio.editorPanel.locator(studio.discardDialog).click();
-            await expect(await studio.editorPanel).not.toBeVisible();
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
@@ -149,34 +132,28 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit description field', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorDescription),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorDescription),
-            ).toContainText(data.description);
-            await studio.editorPanel
-                .locator(studio.editorDescription)
-                .fill(data.newDescription);
-            await expect(
-                await studio.editorPanel.locator(studio.editorDescription),
-            ).toContainText(data.newDescription);
+            await expect(await editor.description).toBeVisible();
+            await expect(await editor.description).toContainText(
+                data.description,
+            );
+            await editor.description.fill(data.newDescription);
+            await expect(await editor.description).toContainText(
+                data.newDescription,
+            );
             await expect(await suggested.cardDescription).toHaveText(
                 data.newDescription,
             );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
-            await studio.editorPanel.locator(studio.closeEditor).click();
-            await expect(
-                await studio.editorPanel.locator(studio.confirmationDialog),
-            ).toBeVisible();
-            await studio.editorPanel.locator(studio.discardDialog).click();
-            await expect(await studio.editorPanel).not.toBeVisible();
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
@@ -205,22 +182,14 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorIconURL),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorIconURL),
-            ).toHaveValue(data.iconURL);
-            await studio.editorPanel
-                .locator(studio.editorIconURL)
-                .fill(data.newIconURL);
-            await expect(
-                await studio.editorPanel.locator(studio.editorIconURL),
-            ).toHaveValue(data.newIconURL);
+            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.iconURL).toHaveValue(data.iconURL);
+            await editor.iconURL.fill(data.newIconURL);
+            await expect(await editor.iconURL).toHaveValue(data.newIconURL);
             await expect(await suggested.cardIcon).toHaveAttribute(
                 'src',
                 data.newIconURL,
@@ -228,12 +197,10 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
-            await studio.editorPanel.locator(studio.closeEditor).click();
-            await expect(
-                await studio.editorPanel.locator(studio.confirmationDialog),
-            ).toBeVisible();
-            await studio.editorPanel.locator(studio.discardDialog).click();
-            await expect(await studio.editorPanel).not.toBeVisible();
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
@@ -263,31 +230,23 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit background URL field', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorBackgroundImage),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorBackgroundImage),
-            ).toHaveValue('');
-            await studio.editorPanel
-                .locator(studio.editorBackgroundImage)
-                .fill(data.newBackgroundURL);
-            await expect(
-                await studio.editorPanel.locator(studio.editorBackgroundImage),
-            ).toHaveValue(data.newBackgroundURL);
+            await expect(await editor.backgroundImage).toBeVisible();
+            await expect(await editor.backgroundImage).toHaveValue('');
+            await editor.backgroundImage.fill(data.newBackgroundURL);
+            await expect(await editor.backgroundImage).toHaveValue(
+                data.newBackgroundURL,
+            );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
-            await studio.editorPanel.locator(studio.closeEditor).click();
-            await expect(
-                await studio.editorPanel.locator(studio.confirmationDialog),
-            ).toBeVisible();
-            await studio.editorPanel.locator(studio.discardDialog).click();
-            await expect(await studio.editorPanel).not.toBeVisible();
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
@@ -316,29 +275,21 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit price field', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).toContainText(data.price);
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).not.toContainText(data.newPrice);
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).toContainText(data.strikethroughPrice);
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).not.toContainText(data.newStrikethroughPrice);
+            await expect(await editor.prices).toBeVisible();
+            await expect(await editor.prices).toContainText(data.price);
+            await expect(await editor.prices).not.toContainText(data.newPrice);
+            await expect(await editor.prices).toContainText(
+                data.strikethroughPrice,
+            );
+            await expect(await editor.prices).not.toContainText(
+                data.newStrikethroughPrice,
+            );
 
-            await (
-                await studio.editorPanel.locator(studio.regularPrice)
-            ).dblclick();
+            await (await editor.prices.locator(editor.regularPrice)).dblclick();
             await expect(await ost.price).toBeVisible();
             await expect(await ost.priceUse).toBeVisible();
             await expect(await ost.unitCheckbox).toBeVisible();
@@ -347,12 +298,10 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-4: Validate edited price in Editor panel', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).toContainText(data.newPrice);
-            await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).toContainText(data.newStrikethroughPrice);
+            await expect(await editor.prices).toContainText(data.newPrice);
+            await expect(await editor.prices).toContainText(
+                data.newStrikethroughPrice,
+            );
         });
 
         await test.step('step-5: Validate edited price field on the card', async () => {
@@ -365,12 +314,10 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await studio.editorPanel.locator(studio.closeEditor).click();
-            await expect(
-                await studio.editorPanel.locator(studio.confirmationDialog),
-            ).toBeVisible();
-            await studio.editorPanel.locator(studio.discardDialog).click();
-            await expect(await studio.editorPanel).not.toBeVisible();
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
@@ -406,20 +353,14 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit price field', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorFooter),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorFooter),
-            ).toContainText(data.ctaText);
+            await expect(await editor.footer).toBeVisible();
+            await expect(await editor.footer).toContainText(data.ctaText);
 
-            await (
-                await studio.editorPanel.locator(studio.editorCTA)
-            ).dblclick();
+            await (await editor.CTA).dblclick();
             await expect(await ost.checkoutTab).toBeVisible();
             await expect(await ost.workflowMenu).toBeVisible();
             await expect(await ost.ctaTextMenu).toBeEnabled();
@@ -440,21 +381,17 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 })
                 .click();
             await ost.checkoutLinkUse.click();
-            await expect(
-                await studio.editorPanel.locator(studio.editorFooter),
-            ).toContainText(data.newCtaText);
+            await expect(await editor.footer).toContainText(data.newCtaText);
             await expect(await suggested.cardCTA).toContainText(
                 data.newCtaText,
             );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
-            await studio.editorPanel.locator(studio.closeEditor).click();
-            await expect(
-                await studio.editorPanel.locator(studio.confirmationDialog),
-            ).toBeVisible();
-            await studio.editorPanel.locator(studio.discardDialog).click();
-            await expect(await studio.editorPanel).not.toBeVisible();
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
@@ -481,44 +418,33 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA label', async () => {
             await expect(
-                await studio.editorPanel
-                    .locator(studio.editorFooter)
-                    .locator(studio.linkEdit),
+                await editor.footer.locator(editor.linkEdit),
             ).toBeVisible();
-            await expect(await studio.editorCTA).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorFooter),
-            ).toContainText(data.ctaText);
-            await studio.editorCTA.click();
-            await studio.editorPanel
-                .locator(studio.editorFooter)
-                .locator(studio.linkEdit)
-                .click();
-            await expect(await studio.linkText).toBeVisible();
-            await expect(await studio.linkSave).toBeVisible();
-            await expect(await studio.linkText).toHaveValue(data.ctaText);
-            await studio.linkText.fill(data.newCtaText);
-            await studio.linkSave.click();
-            await expect(
-                await studio.editorPanel.locator(studio.editorFooter),
-            ).toContainText(data.newCtaText);
+            await expect(await editor.CTA).toBeVisible();
+            await expect(await editor.footer).toContainText(data.ctaText);
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.linkText).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
+            await expect(await editor.linkText).toHaveValue(data.ctaText);
+            await editor.linkText.fill(data.newCtaText);
+            await editor.linkSave.click();
+            await expect(await editor.footer).toContainText(data.newCtaText);
             await expect(await suggested.cardCTA).toContainText(
                 data.newCtaText,
             );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
-            await studio.editorPanel.locator(studio.closeEditor).click();
-            await expect(
-                await studio.editorPanel.locator(studio.confirmationDialog),
-            ).toBeVisible();
-            await studio.editorPanel.locator(studio.discardDialog).click();
-            await expect(await studio.editorPanel).not.toBeVisible();
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
@@ -545,21 +471,16 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Change variant', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorVariant),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorVariant),
-            ).toHaveAttribute('default-value', 'ccd-suggested');
-            await studio.editorPanel
-                .locator(studio.editorVariant)
-                .locator('sp-picker')
-                .first()
-                .click();
+            await expect(await editor.variant).toBeVisible();
+            await expect(await editor.variant).toHaveAttribute(
+                'default-value',
+                'ccd-suggested',
+            );
+            await editor.variant.locator('sp-picker').first().click();
             await page.getByRole('option', { name: 'slice' }).click();
             await page.waitForTimeout(2000);
             await expect(
@@ -571,12 +492,10 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
-            await studio.editorPanel.locator(studio.closeEditor).click();
-            await expect(
-                await studio.editorPanel.locator(studio.confirmationDialog),
-            ).toBeVisible();
-            await studio.editorPanel.locator(studio.discardDialog).click();
-            await expect(await studio.editorPanel).not.toBeVisible();
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
@@ -608,91 +527,87 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Change OSI in OST', async () => {
-            await expect(
-                await studio.editorPanel.locator(studio.editorOSI),
-            ).toBeVisible();
-            await expect(await studio.editorOSI).toContainText(data.osi);
-            await expect(await studio.editorTags).toBeVisible();
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.OSI).toBeVisible();
+            await expect(await editor.OSI).toContainText(data.osi);
+            await expect(await editor.tags).toBeVisible();
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.productCodeTag}`),
             );
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.offerTypeTag}`),
             );
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.marketSegmentsTag}`),
             );
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.planTypeTag}`),
             );
-            await (await studio.editorOSIButton).click();
+            await editor.OSIButton.click();
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.newosi);
-            await (await ost.nextButton).click();
+            await ost.nextButton.click();
             await expect(await ost.priceUse).toBeVisible();
             await ost.priceUse.click();
-            await expect(await studio.editorOSI).toContainText(data.newosi);
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.OSI).toContainText(data.newosi);
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.newPlanTypeTag}`),
             );
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.newOfferTypeTag}`),
             );
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.newMarketSegmentsTag}`),
             );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
-            await studio.editorPanel.locator(studio.closeEditor).click();
-            await expect(
-                await studio.editorPanel.locator(studio.confirmationDialog),
-            ).toBeVisible();
-            await studio.editorPanel.locator(studio.discardDialog).click();
-            await expect(await studio.editorPanel).not.toBeVisible();
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
         });
 
         await test.step('step-4: Open the editor and validate there are no changes', async () => {
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
-            await expect(await studio.editorOSI).toContainText(data.osi);
-            await expect(await studio.editorOSI).not.toContainText(data.newosi);
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.OSI).toContainText(data.osi);
+            await expect(await editor.OSI).not.toContainText(data.newosi);
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.productCodeTag}`),
             );
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.offerTypeTag}`),
             );
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.marketSegmentsTag}`),
             );
-            await expect(await studio.editorTags).toHaveAttribute(
+            await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.planTypeTag}`),
             );
-            await expect(await studio.editorTags).not.toHaveAttribute(
+            await expect(await editor.tags).not.toHaveAttribute(
                 'value',
                 new RegExp(`${data.newPlanTypeTag}`),
             );
-            await expect(await studio.editorTags).not.toHaveAttribute(
+            await expect(await editor.tags).not.toHaveAttribute(
                 'value',
                 new RegExp(`${data.newOfferTypeTag}`),
             );
-            await expect(await studio.editorTags).not.toHaveAttribute(
+            await expect(await editor.tags).not.toHaveAttribute(
                 'value',
                 new RegExp(`${data.newMarketSegmentsTag}`),
             );
@@ -718,49 +633,40 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA variant', async () => {
             await expect(
-                await studio.editorPanel
-                    .locator(studio.editorFooter)
-                    .locator(studio.linkEdit),
+                await editor.footer.locator(editor.linkEdit),
             ).toBeVisible();
-            await expect(await studio.editorCTA).toBeVisible();
-            await expect(await studio.editorCTA).toHaveClass(data.variant);
-            await studio.editorCTA.click();
-            await studio.editorPanel
-                .locator(studio.editorFooter)
-                .locator(studio.linkEdit)
-                .click();
-            await expect(await studio.linkVariant).toBeVisible();
-            await expect(await studio.linkSave).toBeVisible();
+            await expect(await editor.CTA).toBeVisible();
+            await expect(await editor.CTA).toHaveClass(data.variant);
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.linkVariant).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
             await expect(
-                await studio.getLinkVariant(data.newVariant),
+                await editor.getLinkVariant(data.newVariant),
             ).toBeVisible();
-            await (await studio.getLinkVariant(data.newVariant)).click();
-            await studio.linkSave.click();
-            await expect(await studio.editorCTA).toHaveClass(data.newVariant);
+            await (await editor.getLinkVariant(data.newVariant)).click();
+            await editor.linkSave.click();
+            await expect(await editor.CTA).toHaveClass(data.newVariant);
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
-            await studio.editorPanel.locator(studio.closeEditor).click();
-            await expect(
-                await studio.editorPanel.locator(studio.confirmationDialog),
-            ).toBeVisible();
-            await studio.editorPanel.locator(studio.discardDialog).click();
-            await expect(await studio.editorPanel).not.toBeVisible();
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
         });
 
         await test.step('step-4: Open the editor and validate there are no changes', async () => {
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
-            await expect(await studio.editorCTA).toBeVisible();
-            await expect(await studio.editorCTA).not.toHaveClass(
-                data.newVariant,
-            );
-            await expect(await studio.editorCTA).toHaveClass(data.variant);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.CTA).toBeVisible();
+            await expect(await editor.CTA).not.toHaveClass(data.newVariant);
+            await expect(await editor.CTA).toHaveClass(data.variant);
         });
     });
 
@@ -783,23 +689,18 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA checkout params', async () => {
             await expect(
-                await studio.editorPanel
-                    .locator(studio.editorFooter)
-                    .locator(studio.linkEdit),
+                await editor.footer.locator(editor.linkEdit),
             ).toBeVisible();
-            await expect(await studio.editorCTA).toBeVisible();
-            await studio.editorCTA.click();
-            await studio.editorPanel
-                .locator(studio.editorFooter)
-                .locator(studio.linkEdit)
-                .click();
-            await expect(await studio.checkoutParameters).toBeVisible();
-            await expect(await studio.linkSave).toBeVisible();
+            await expect(await editor.CTA).toBeVisible();
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.checkoutParameters).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
 
             const checkoutParamsString = Object.keys(data.checkoutParams)
                 .map(
@@ -807,8 +708,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                         `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`,
                 )
                 .join('&');
-            await studio.checkoutParameters.fill(checkoutParamsString);
-            await studio.linkSave.click();
+            await editor.checkoutParameters.fill(checkoutParamsString);
+            await editor.linkSave.click();
 
             const CTAhref = await suggested.cardCTA.getAttribute('data-href');
             let searchParams = new URLSearchParams(
@@ -823,12 +724,10 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
-            await studio.editorPanel.locator(studio.closeEditor).click();
-            await expect(
-                await studio.editorPanel.locator(studio.confirmationDialog),
-            ).toBeVisible();
-            await studio.editorPanel.locator(studio.discardDialog).click();
-            await expect(await studio.editorPanel).not.toBeVisible();
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {

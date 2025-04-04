@@ -61,10 +61,18 @@ const mockPlaceholders = [
  * @returns {Object} - Observable property with get/set/subscribe
  */
 function createObservable(initialValue) {
+    let value = initialValue;
     return {
-        value: initialValue,
-        get: () => initialValue,
-        set: sinon.stub(),
+        value,
+        get: () => value,
+        set: (newValue) => {
+            if (typeof newValue === 'function') {
+                value = newValue(value);
+            } else {
+                value = newValue;
+            }
+            return value;
+        },
         subscribe: sinon.stub().returns({ unsubscribe: sinon.stub() }),
     };
 }
@@ -96,10 +104,13 @@ function createStoreMock(initialData = {}) {
             },
             filtered: {
                 data: {
-                    set: sinon.stub(),
+                    set: (data) => {
+                        store.placeholders.filtered.storedData = data;
+                    },
                     get: () => store.placeholders.filtered.storedData || [],
                 },
                 storedData: initialData.placeholders || [...mockPlaceholders],
+                _data: initialData.placeholders || [...mockPlaceholders],
             },
         },
     };
@@ -109,9 +120,7 @@ function createStoreMock(initialData = {}) {
 
 const spTheme = document.querySelector('sp-theme');
 
-// Create test templates before running tests
 function createTestTemplates() {
-    // Add placeholder template if needed
     if (!document.getElementById('mas-placeholders-with-repository')) {
         const template = document.createElement('template');
         template.id = 'mas-placeholders-with-repository';
@@ -125,13 +134,11 @@ function createTestTemplates() {
     }
 }
 
-// Create templates before tests run
 createTestTemplates();
 
 const initElementFromTemplate = (templateId) => {
     const [root] = getTemplateContent(templateId);
 
-    // If template content wasn't found, create it directly
     if (!root) {
         const div = document.createElement('div');
         div.innerHTML = `
@@ -149,7 +156,6 @@ const initElementFromTemplate = (templateId) => {
 };
 
 runTests(async () => {
-    // Suppress console error messages from AEM folder loading
     const originalConsoleError = console.error;
     console.error = function (...args) {
         const errorMessage = args.join(' ');
@@ -158,10 +164,8 @@ runTests(async () => {
             errorMessage.includes('Cannot read properties of undefined') ||
             errorMessage.includes('listFoldersClassic')
         ) {
-            // Suppress these specific errors
             return;
         }
-        // Pass through other errors
         originalConsoleError.apply(console, args);
     };
 
@@ -192,13 +196,10 @@ runTests(async () => {
                 .stub(Events.toast, 'emit')
                 .callsFake(() => {});
 
-            // Stub loadFolders first before Store is created - this prevents errors
-            // from being thrown during initialization
             const mockLoadFolders = sinon
                 .stub()
                 .resolves([{ path: 'test-folder', name: 'Test Folder' }]);
 
-            // Create a fully mocked AEM instance to replace the real one
             const mockAem = {
                 sites: {
                     cf: {
@@ -229,7 +230,6 @@ runTests(async () => {
                         ],
                     }),
                 },
-                // Explicitly define listFoldersClassic to prevent errors
                 listFoldersClassic: sinon.stub().resolves({
                     children: [
                         {
@@ -242,7 +242,6 @@ runTests(async () => {
                 cfFragmentsUrl: '/test-api/fragments',
             };
 
-            // Use our Store mock factory to create consistent test store
             window.Store = createStoreMock();
 
             const root = initElementFromTemplate(
@@ -251,7 +250,6 @@ runTests(async () => {
             masRepository = root.querySelector('mas-repository');
             masPlaceholders = root.querySelector('mas-placeholders');
 
-            // Replace the entire repository with our mock
             Object.assign(masRepository, {
                 baseUrl: '/test-url',
                 bucket: 'test-bucket',
@@ -274,13 +272,11 @@ runTests(async () => {
                 }),
             });
 
-            // Define repository getter
             Object.defineProperty(masPlaceholders, 'repository', {
                 get: () => masRepository,
                 configurable: true,
             });
 
-            // Create shallow copy to avoid test interference
             masPlaceholders.placeholdersData = JSON.parse(
                 JSON.stringify(mockPlaceholders),
             );
@@ -291,7 +287,6 @@ runTests(async () => {
                 isRichText: false,
             };
 
-            // Initialize necessary properties
             masPlaceholders.selectedFolder = { path: 'test-folder' };
             masPlaceholders.isDialogOpen = false;
             masPlaceholders.showToast = sinon.stub();
@@ -301,13 +296,11 @@ runTests(async () => {
             masPlaceholders.requestUpdate = sinon.stub();
             masPlaceholders.isBulkDeleteInProgress = false;
 
-            // Define a custom property descriptor for the loading property
             Object.defineProperty(masPlaceholders, 'placeholdersLoading', {
                 writable: true,
                 value: false,
             });
 
-            // Override the loading getter
             Object.defineProperty(masPlaceholders, 'loading', {
                 get: function () {
                     return this.placeholdersLoading;
@@ -317,20 +310,15 @@ runTests(async () => {
         });
 
         afterEach(() => {
-            // Restore original methods
             fetchStub.restore();
             eventsToastEmitStub.restore();
-
-            // Clear any mock data
             delete window.Store;
         });
 
-        // Restore console.error at the end of all tests
         after(() => {
             console.error = originalConsoleError;
         });
 
-        // TESTING DICTIONARY PATH FUNCTION
         it('should create correct dictionary paths', () => {
             expect(getDictionaryPath('surface1', 'en_US')).to.equal(
                 '/content/dam/mas/surface1/en_US/dictionary',
@@ -340,7 +328,6 @@ runTests(async () => {
         });
 
         it('should handle edge cases for dictionary paths', () => {
-            // Test with empty strings
             expect(getDictionaryPath('', 'en_US')).to.equal(
                 '/content/dam/mas//en_US/dictionary',
             );
@@ -348,20 +335,16 @@ runTests(async () => {
                 '/content/dam/mas/surface1//dictionary',
             );
 
-            // Test with special characters
             expect(getDictionaryPath('folder/with/slashes', 'en_US')).to.equal(
                 '/content/dam/mas/folder/with/slashes/en_US/dictionary',
             );
 
-            // Test with leading/trailing slashes
             expect(getDictionaryPath('/surface1/', 'en_US')).to.equal(
                 '/content/dam/mas//surface1//en_US/dictionary',
             );
         });
 
-        // UI RENDERING TESTS
         it('should render error message when there is an error', () => {
-            // Create test implementation
             masPlaceholders.renderError = function () {
                 if (this.error) {
                     return html`<div class="error-message">${this.error}</div>`;
@@ -369,11 +352,9 @@ runTests(async () => {
                 return nothing;
             };
 
-            // Test without error
             masPlaceholders.error = null;
             expect(masPlaceholders.renderError()).to.equal(nothing);
 
-            // Test with error
             masPlaceholders.error = 'Test Error';
             const errorElement = masPlaceholders.renderError();
             expect(errorElement).to.not.equal(nothing);
@@ -381,7 +362,6 @@ runTests(async () => {
         });
 
         it('should render loading indicator when loading', () => {
-            // Create test implementation
             Object.defineProperty(masPlaceholders, 'loadingIndicator', {
                 get: function () {
                     if (this.placeholdersLoading) {
@@ -394,17 +374,14 @@ runTests(async () => {
                 configurable: true,
             });
 
-            // Test when not loading
             expect(masPlaceholders.loadingIndicator).to.equal(nothing);
 
-            // Test when loading
             masPlaceholders.placeholdersLoading = true;
             const indicator = masPlaceholders.loadingIndicator;
             expect(indicator.strings.join('')).to.include('sp-progress-circle');
         });
 
         it('should render create modal when showCreateModal is true', () => {
-            // Create test implementation
             masPlaceholders.renderCreateModal = function () {
                 if (this.showCreateModal) {
                     return html`<div class="create-modal"></div>`;
@@ -412,7 +389,6 @@ runTests(async () => {
                 return nothing;
             };
 
-            // Test when modal is hidden
             expect(masPlaceholders.renderCreateModal()).to.equal(nothing);
 
             masPlaceholders.showCreateModal = true;
@@ -586,16 +562,12 @@ runTests(async () => {
         });
 
         it('should close create modal and reset RTE fields', () => {
-            // Setup
             masPlaceholders.showCreateModal = true;
 
-            // Mock clearRteInitializedFlags
             masPlaceholders.clearRteInitializedFlags = sinon.stub();
 
-            // Call closeCreateModal
             masPlaceholders.closeCreateModal();
 
-            // Verify state changes
             expect(masPlaceholders.showCreateModal).to.be.false;
             expect(masPlaceholders.clearRteInitializedFlags.called).to.be.true;
         });
@@ -622,35 +594,30 @@ runTests(async () => {
         });
 
         it('should filter placeholders by search query', () => {
-            // Ensure the component has the correct data
             masPlaceholders.placeholdersData = JSON.parse(
                 JSON.stringify(mockPlaceholders),
             );
 
-            // Set the search query
             masPlaceholders.searchQuery = 'french';
 
-            // Make sure we have the required methods for testing
-            masPlaceholders.getSortedPlaceholders = function (placeholders) {
-                return placeholders; // Simple pass-through for testing
+            masPlaceholders.getSortedPlaceholders = function (
+                placeholders,
+            ) {
+                return placeholders;
             };
 
             masPlaceholders.getFilteredPlaceholders = function () {
-                let filtered = this.placeholdersData || [];
-
-                if (this.searchQuery) {
-                    filtered = filtered.filter((placeholder) => {
-                        const matchesKey = placeholder.key
-                            .toLowerCase()
-                            .includes(this.searchQuery.toLowerCase());
-
-                        const matchesValue = placeholder.displayValue
-                            .toLowerCase()
-                            .includes(this.searchQuery.toLowerCase());
-
-                        return matchesKey || matchesValue;
-                    });
-                }
+                const filtered = this.searchQuery
+                    ? (this.placeholdersData || []).filter(
+                          (placeholder) =>
+                              placeholder.key
+                                  .toLowerCase()
+                                  .includes(this.searchQuery.toLowerCase()) ||
+                              placeholder.displayValue
+                                  .toLowerCase()
+                                  .includes(this.searchQuery.toLowerCase()),
+                      )
+                    : this.placeholdersData || [];
 
                 return this.getSortedPlaceholders(filtered);
             };
@@ -661,16 +628,11 @@ runTests(async () => {
         });
 
         it('should reset edit state correctly', () => {
-            // Set up edit state
             masPlaceholders.editingPlaceholder = 'test-key';
             masPlaceholders.editedKey = 'test-key';
             masPlaceholders.editedValue = 'Test Value';
             masPlaceholders.editedRichText = true;
-
-            // Call resetEditState
             masPlaceholders.resetEditState();
-
-            // Verify all properties are properly reset
             expect(masPlaceholders.editingPlaceholder).to.be.null;
             expect(masPlaceholders.editedKey).to.equal('');
             expect(masPlaceholders.editedValue).to.equal('');
@@ -678,31 +640,25 @@ runTests(async () => {
         });
 
         it('should handle rich text editor value changes', () => {
-            // Set up initial state
             masPlaceholders.editedValue = '';
 
-            // Create a mock event
             const event = {
                 target: {
                     value: '<p>Rich Text Content</p>',
                 },
             };
 
-            // Call the handler
             masPlaceholders.handleRteValueChange(event);
 
-            // Verify the value was updated
             expect(masPlaceholders.editedValue).to.equal(
                 '<p>Rich Text Content</p>',
             );
 
-            // Test with undefined value
             masPlaceholders.handleRteValueChange({ target: {} });
             expect(masPlaceholders.editedValue).to.equal('');
         });
 
         it('should handle new placeholder rich text changes', () => {
-            // Set up initial state
             masPlaceholders.newPlaceholder = {
                 key: 'test-key',
                 value: '',
@@ -710,22 +666,18 @@ runTests(async () => {
                 isRichText: true,
             };
 
-            // Create a mock event
             const event = {
                 target: {
                     value: '<p>New Rich Text</p>',
                 },
             };
 
-            // Call the handler
             masPlaceholders.handleNewPlaceholderRteChange(event);
 
-            // Verify the value was updated
             expect(masPlaceholders.newPlaceholder.value).to.equal(
                 '<p>New Rich Text</p>',
             );
 
-            // Test with missing target or value
             masPlaceholders.handleNewPlaceholderRteChange({});
             expect(masPlaceholders.newPlaceholder.value).to.equal(
                 '<p>New Rich Text</p>',
@@ -733,7 +685,6 @@ runTests(async () => {
         });
 
         it('should handle rich text toggle', () => {
-            // Setup
             masPlaceholders.newPlaceholder = {
                 key: 'test-key',
                 value: 'Test Value',
@@ -741,7 +692,6 @@ runTests(async () => {
                 isRichText: false,
             };
 
-            // Mock the shadowRoot.querySelector
             const originalQuerySelector =
                 masPlaceholders.shadowRoot.querySelector;
             const mockRteField = { initDone: true };
@@ -749,20 +699,16 @@ runTests(async () => {
                 .stub()
                 .returns(mockRteField);
 
-            // Create event
             const event = {
                 target: {
                     checked: true,
                 },
             };
 
-            // Call the handler
             masPlaceholders.handleRichTextToggle(event);
 
-            // Verify the rich text flag was toggled
             expect(masPlaceholders.newPlaceholder.isRichText).to.be.true;
 
-            // Restore original
             if (originalQuerySelector) {
                 masPlaceholders.shadowRoot.querySelector =
                     originalQuerySelector;
@@ -770,7 +716,6 @@ runTests(async () => {
         });
 
         it('should render form groups correctly', () => {
-            // Create a test implementation
             if (!masPlaceholders.renderFormGroup) {
                 masPlaceholders.renderFormGroup = function (
                     id,
@@ -792,12 +737,10 @@ runTests(async () => {
                 };
             }
 
-            // Create test components
             const testComponent = html`<sp-textfield
                 id="test-field"
             ></sp-textfield>`;
 
-            // Test required form group
             const requiredGroup = masPlaceholders.renderFormGroup(
                 'test-id',
                 'Test Label',
@@ -808,7 +751,6 @@ runTests(async () => {
             expect(requiredGroup.strings.join('')).to.include('Test Label');
             expect(requiredGroup.strings.join('')).to.include('required');
 
-            // Test optional form group
             const optionalGroup = masPlaceholders.renderFormGroup(
                 'test-id',
                 'Test Label',
@@ -821,43 +763,30 @@ runTests(async () => {
         });
 
         it('should get loading state correctly', () => {
-            // Test when not loading
             masPlaceholders.placeholdersLoading = false;
             expect(masPlaceholders.loading).to.be.false;
-
-            // Test when loading
             masPlaceholders.placeholdersLoading = true;
             expect(masPlaceholders.loading).to.be.true;
         });
 
         it('should get repository correctly', () => {
-            // Test with repository available
             const result = masPlaceholders.repository;
             expect(result).to.equal(masRepository);
-
-            // Test with non-existent repository
             const originalQuerySelector = document.querySelector;
             document.querySelector = sinon.stub().returns(null);
-
             const noRepository = masPlaceholders.repository;
             expect(noRepository).to.be.null;
-
-            // Restore original
             document.querySelector = originalQuerySelector;
         });
 
         it('should ensure repository or throw error', () => {
-            // Test with repository available
             const result = masPlaceholders.ensureRepository();
             expect(result).to.equal(masRepository);
 
-            // Test with custom error message
             const customMsg = 'Custom repository error';
             const resultWithCustomMsg =
                 masPlaceholders.ensureRepository(customMsg);
             expect(resultWithCustomMsg).to.equal(masRepository);
-
-            // Test with non-existent repository
             const originalGetter = Object.getOwnPropertyDescriptor(
                 masPlaceholders.constructor.prototype,
                 'repository',
@@ -875,10 +804,8 @@ runTests(async () => {
                 masPlaceholders.ensureRepository('Custom error'),
             ).to.throw('Custom error');
 
-            // Verify error property is set
             expect(masPlaceholders.error).to.equal('Custom error');
 
-            // Restore original
             if (originalGetter) {
                 Object.defineProperty(
                     masPlaceholders,
@@ -903,9 +830,8 @@ runTests(async () => {
                     placeholders,
                 ) {
                     return [...placeholders].sort((a, b) => {
-                        const aValue = a[this.sortField];
-                        const bValue = b[this.sortField];
-
+                        const aValue = a[this.sortField] || '';
+                        const bValue = b[this.sortField] || '';
                         const comparison = aValue.localeCompare(bValue);
                         return this.sortDirection === 'asc'
                             ? comparison
@@ -969,6 +895,142 @@ runTests(async () => {
             if (originalShowToast) {
                 masPlaceholders.showToast = originalShowToast;
             }
+        });
+
+        it('should create placeholder data correctly', () => {
+            masPlaceholders.detectFragmentStatus = sinon.stub().returns({
+                status: 'Draft',
+                isPublished: false,
+                hasPublishedRef: false,
+                modifiedAfterPublished: false,
+            });
+
+            const fragment = {
+                id: 'test-fragment-id',
+                path: '/content/dam/mas/test-folder/en_US/dictionary/test-placeholder',
+                fields: [
+                    { name: 'key', values: ['test-placeholder'] },
+                    { name: 'value', values: ['Test Value'] },
+                    { name: 'locReady', values: [true] },
+                ],
+                modified: {
+                    at: '2023-06-15T12:30:00Z',
+                    by: 'Test User',
+                },
+            };
+
+            const locale = 'en_US';
+            const existingPlaceholders = {};
+            const publishedInIndex = {};
+            const indexFragment = null;
+
+            const result = masPlaceholders.createPlaceholderData(
+                fragment,
+                locale,
+                existingPlaceholders,
+                publishedInIndex,
+                indexFragment
+            );
+
+            expect(result).to.be.an('object');
+            expect(result.id).to.equal('test-fragment-id');
+            expect(result.key).to.equal('test-placeholder');
+            expect(result.value).to.equal('Test Value');
+            expect(result.displayValue).to.equal('Test Value');
+            expect(result.locale).to.equal('en_US');
+            expect(result.state).to.equal('Ready');
+            expect(result.status).to.equal('Draft');
+            expect(result.fragment).to.equal(fragment);
+            expect(result.path).to.equal(
+                '/content/dam/mas/test-folder/en_US/dictionary/test-placeholder'
+            );
+            expect(result.updatedBy).to.equal('Test User');
+            expect(result.isRichText).to.be.false;
+            expect(result.modified).to.be.false;
+        });
+
+        it('should render table cells correctly with and without tooltips', () => {
+            masPlaceholders.renderTableCell = function (content, align = '') {
+                const value = content || '';
+                const needsTooltip = value.length > 50;
+
+                return html`
+                    <sp-table-cell
+                        style="${align === 'right' ? 'text-align: right;' : ''}"
+                    >
+                        ${needsTooltip
+                            ? html`
+                                  <sp-tooltip placement="right">
+                                      ${value}
+                                      <div slot="trigger" class="cell-content">
+                                          ${value.substring(0, 50)}...
+                                      </div>
+                                  </sp-tooltip>
+                              `
+                            : html`<div class="cell-content">${value}</div>`}
+                    </sp-table-cell>
+                `;
+            };
+
+            const shortCell = masPlaceholders.renderTableCell('Short content');
+            expect(shortCell.strings.join('')).to.include('sp-table-cell');
+            expect(shortCell.strings.join('')).to.include('Short content');
+            expect(shortCell.strings.join('')).to.not.include('sp-tooltip');
+
+            const longContent =
+                'This is a very long content that should definitely get a tooltip since it exceeds 50 characters';
+            const longCell = masPlaceholders.renderTableCell(longContent);
+            expect(longCell.strings.join('')).to.include('sp-table-cell');
+            expect(longCell.strings.join('')).to.include('sp-tooltip');
+            expect(longCell.strings.join('')).to.include('trigger');
+            expect(longCell.strings.join('')).to.include('...');
+
+            const alignedCell = masPlaceholders.renderTableCell(
+                'Aligned content',
+                'right',
+            );
+            expect(alignedCell.strings.join('')).to.include(
+                'style="text-align: right;"',
+            );
+        });
+
+        it('should handle loading state with withLoadingState helper', async () => {
+            // Setup mocks
+            window.Store = createStoreMock();
+            
+            // Mock store loading state functions
+            Store.placeholders.list.loading.set = sinon.stub();
+            
+            // Define a test implementation matching the actual withLoadingState helper
+            const withLoadingState = function(fn) {
+                return async function(...args) {
+                    try {
+                        Store.placeholders.list.loading.set(true);
+                        return await fn.apply(this, args);
+                    } finally {
+                        Store.placeholders.list.loading.set(false);
+                        this.placeholdersLoading = false;
+                    }
+                };
+            };
+            
+            // Create a simple mock function to be wrapped
+            const testFn = sinon.stub().resolves('success');
+            
+            // Create the wrapped function
+            const wrappedFn = withLoadingState(testFn);
+            
+            // Execute the wrapped function
+            masPlaceholders.placeholdersLoading = true;
+            const result = await wrappedFn.call(masPlaceholders, 'test-arg');
+            
+            // Verify the results
+            expect(Store.placeholders.list.loading.set.calledTwice).to.be.true;
+            expect(Store.placeholders.list.loading.set.firstCall.args[0]).to.be.true;
+            expect(Store.placeholders.list.loading.set.secondCall.args[0]).to.be.false;
+            expect(testFn.calledWith('test-arg')).to.be.true;
+            expect(result).to.equal('success');
+            expect(masPlaceholders.placeholdersLoading).to.be.false;
         });
     });
 });

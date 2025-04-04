@@ -25,7 +25,6 @@ function withLoadingState(fn) {
     return async function (...args) {
         try {
             Store.placeholders.list.loading.set(true);
-            this.placeholdersLoading = true;
             return await fn.apply(this, args);
         } finally {
             Store.placeholders.list.loading.set(false);
@@ -71,7 +70,6 @@ class MasPlaceholders extends LitElement {
         placeholdersData: { type: Array, state: true },
         placeholdersLoading: { type: Boolean, state: true },
         isBulkDeleteInProgress: { type: Boolean, state: true },
-        indexUpdateRetries: { type: Number, state: true },
         modifiedPlaceholders: { type: Object, state: true },
     };
 
@@ -104,7 +102,6 @@ class MasPlaceholders extends LitElement {
         this.placeholdersData = [];
         this.placeholdersLoading = false;
         this.isBulkDeleteInProgress = false;
-        this.indexUpdateRetries = 0;
         this.modifiedPlaceholders = {};
 
         this.reactiveController = new ReactiveController(this, [
@@ -691,21 +688,48 @@ class MasPlaceholders extends LitElement {
             } catch (error) {
                 if (error.message?.includes('412')) {
                     await new Promise((resolve) => setTimeout(resolve, 500));
-                    const maxRetries = 3;
-                    if (!this.indexUpdateRetries) {
-                        this.indexUpdateRetries = 1;
-                    } else if (this.indexUpdateRetries < maxRetries) {
-                        this.indexUpdateRetries++;
-                    } else {
-                        this.indexUpdateRetries = 0;
-                        throw new Error(
-                            'Maximum retries reached for index update',
+                    // Retry once after 412 (Precondition Failed) error
+                    try {
+                        const retryIndex =
+                            await this.repository.aem.sites.cf.fragments.getById(
+                                indexFragment.id,
+                            );
+                        if (!retryIndex) return false;
+
+                        const retryEntriesField = retryIndex.fields.find(
+                            (f) => f.name === 'entries',
                         );
+                        const retryEntries = retryEntriesField?.values || [];
+                        const filteredEntries = retryEntries.filter(
+                            (path) => path !== placeholderFragment.path,
+                        );
+
+                        if (retryEntries.length === filteredEntries.length)
+                            return true;
+
+                        const retryFields =
+                            this.repository.updateFieldInFragment(
+                                retryIndex.fields,
+                                'entries',
+                                filteredEntries,
+                                'content-fragment',
+                                true,
+                            );
+
+                        const retrySave =
+                            await this.repository.aem.sites.cf.fragments.save({
+                                ...retryIndex,
+                                fields: retryFields,
+                            });
+
+                        return !!retrySave;
+                    } catch (retryError) {
+                        console.error(
+                            'Failed on retry removing from index:',
+                            retryError,
+                        );
+                        return false;
                     }
-                    return await this.removeFromIndexFragment(
-                        dictionaryPath,
-                        placeholderFragment,
-                    );
                 }
                 throw error;
             }
@@ -721,7 +745,7 @@ class MasPlaceholders extends LitElement {
      * @param {boolean} forceCacheBust - Whether to bypass cache
      */
     async loadPlaceholders(forceCacheBust = false) {
-        const innerLoadPlaceholders = async (forceCacheBust = false) => {
+        return withLoadingState(async () => {
             try {
                 this.ensureRepository();
                 const folderPath = this.selectedFolder.path;
@@ -760,9 +784,7 @@ class MasPlaceholders extends LitElement {
                     indexFragment =
                         await this.repository.aem.sites.cf.fragments.getByPath(
                             indexPath,
-                            {
-                                references: 'direct-hydrated',
-                            },
+                            { references: 'direct-hydrated' },
                         );
                 } catch (error) {
                     console.error('No index fragment found:', error);
@@ -784,97 +806,15 @@ class MasPlaceholders extends LitElement {
 
                 const placeholders = result.value
                     .filter((item) => !item.path.endsWith('/index'))
-                    .map((fragment) => {
-                        if (!fragment || !fragment.fields) return null;
-
-                        const key = getFragmentFieldValue(fragment, 'key');
-                        const value = getFragmentFieldValue(fragment, 'value');
-                        const locReady = getFragmentFieldValue(
+                    .map((fragment) =>
+                        this.createPlaceholderData(
                             fragment,
-                            'locReady',
-                            false,
-                        );
-
-                        const isInPublishedIndex =
-                            indexFragment?.publishedRef &&
-                            publishedInIndex[fragment.path];
-
-                        let statusInfo;
-                        if (isInPublishedIndex) {
-                            const modifiedTime = fragment.modified?.at
-                                ? new Date(fragment.modified.at).getTime()
-                                : 0;
-
-                            statusInfo = {
-                                status: STATUS_PUBLISHED,
-                                isPublished: true,
-                                hasPublishedRef: true,
-                                modifiedAfterPublished: false,
-                            };
-                        } else {
-                            statusInfo = this.detectFragmentStatus(fragment);
-                        }
-
-                        const containsHtml = /<\/?[a-z][\s\S]*>/i.test(value);
-                        const displayValue = containsHtml
-                            ? value.replace(/<[^>]*>/g, '')
-                            : value;
-                        const existingPlaceholder =
-                            existingPlaceholders[fragment.id];
-
-                        const updatedPlaceholder = {
-                            id: fragment.id,
-                            key,
-                            value,
-                            displayValue,
-                            isRichText: containsHtml,
                             locale,
-                            state: locReady ? 'Ready' : 'Not Ready',
-                            status: statusInfo.status,
-                            published: statusInfo.isPublished,
-                            hasPublishedRef: statusInfo.hasPublishedRef,
-                            modifiedAfterPublished:
-                                statusInfo.modifiedAfterPublished,
-                            publishedTime: fragment.published
-                                ? new Date(fragment.published.at).getTime()
-                                : isInPublishedIndex && indexFragment.published
-                                  ? new Date(
-                                        indexFragment.published.at,
-                                    ).getTime()
-                                  : 0,
-                            modifiedTime: fragment.modified
-                                ? new Date(fragment.modified.at).getTime()
-                                : 0,
-                            updatedBy: fragment.modified?.by || 'Unknown',
-                            updatedAt: fragment.modified?.at
-                                ? new Date(
-                                      fragment.modified.at,
-                                  ).toLocaleString()
-                                : 'Unknown',
-                            path: fragment.path,
-                            fragment,
-                            isInPublishedIndex,
-                            modified: existingPlaceholder
-                                ? existingPlaceholder.modified
-                                : false,
-                        };
-
-                        if (
-                            existingPlaceholder &&
-                            this.editingPlaceholder === existingPlaceholder.key
-                        ) {
-                            return existingPlaceholder;
-                        }
-
-                        if (
-                            existingPlaceholder &&
-                            this.modifiedPlaceholders[fragment.id]
-                        ) {
-                            updatedPlaceholder.modified = true;
-                        }
-
-                        return updatedPlaceholder;
-                    })
+                            existingPlaceholders,
+                            publishedInIndex,
+                            indexFragment,
+                        ),
+                    )
                     .filter(Boolean);
 
                 this.placeholdersData = placeholders;
@@ -889,12 +829,87 @@ class MasPlaceholders extends LitElement {
                     throw error;
                 }
             }
+        }).call(this, forceCacheBust);
+    }
+
+    createPlaceholderData(
+        fragment,
+        locale,
+        existingPlaceholders,
+        publishedInIndex,
+        indexFragment,
+    ) {
+        if (!fragment || !fragment.fields) return null;
+
+        const key = getFragmentFieldValue(fragment, 'key');
+        const value = getFragmentFieldValue(fragment, 'value');
+        const locReady = getFragmentFieldValue(fragment, 'locReady', false);
+
+        const isInPublishedIndex =
+            indexFragment?.publishedRef && publishedInIndex[fragment.path];
+
+        let statusInfo;
+        if (isInPublishedIndex) {
+            statusInfo = {
+                status: STATUS_PUBLISHED,
+                isPublished: true,
+                hasPublishedRef: true,
+                modifiedAfterPublished: false,
+            };
+        } else {
+            statusInfo = this.detectFragmentStatus(fragment);
+        }
+
+        const containsHtml = /<\/?[a-z][\s\S]*>/i.test(value);
+        const displayValue = containsHtml
+            ? value.replace(/<[^>]*>/g, '')
+            : value;
+        const existingPlaceholder = existingPlaceholders[fragment.id];
+
+        const updatedPlaceholder = {
+            id: fragment.id,
+            key,
+            value,
+            displayValue,
+            isRichText: containsHtml,
+            locale,
+            state: locReady ? 'Ready' : 'Not Ready',
+            status: statusInfo.status,
+            published: statusInfo.isPublished,
+            hasPublishedRef: statusInfo.hasPublishedRef,
+            modifiedAfterPublished: statusInfo.modifiedAfterPublished,
+            publishedTime: fragment.published
+                ? new Date(fragment.published.at).getTime()
+                : isInPublishedIndex && indexFragment.published
+                  ? new Date(indexFragment.published.at).getTime()
+                  : 0,
+            modifiedTime: fragment.modified
+                ? new Date(fragment.modified.at).getTime()
+                : 0,
+            updatedBy: fragment.modified?.by || 'Unknown',
+            updatedAt: fragment.modified?.at
+                ? new Date(fragment.modified.at).toLocaleString()
+                : 'Unknown',
+            path: fragment.path,
+            fragment,
+            isInPublishedIndex,
+            modified: existingPlaceholder
+                ? existingPlaceholder.modified
+                : false,
         };
 
-        return withLoadingState(innerLoadPlaceholders).call(
-            this,
-            forceCacheBust,
-        );
+        if (
+            existingPlaceholder &&
+            this.editingPlaceholder === existingPlaceholder.key
+        ) {
+            return existingPlaceholder;
+        }
+
+        if (existingPlaceholder && this.modifiedPlaceholders[fragment.id]) {
+            updatedPlaceholder.modified = true;
+        }
+
+        return updatedPlaceholder;
     }
 
     /**
@@ -1647,39 +1662,6 @@ class MasPlaceholders extends LitElement {
             `;
         }
 
-        const dropdownMenu =
-            this.activeDropdown === placeholder.key
-                ? html`
-                      <div class="dropdown-menu">
-                          <div
-                              class="dropdown-item ${placeholder.status ===
-                              STATUS_PUBLISHED
-                                  ? 'disabled'
-                                  : ''}"
-                              @click=${(e) => {
-                                  if (placeholder.status !== STATUS_PUBLISHED) {
-                                      e.stopPropagation();
-                                      this.handlePublish(placeholder.key);
-                                  }
-                              }}
-                          >
-                              <sp-icon-publish-check></sp-icon-publish-check>
-                              <span>Publish</span>
-                          </div>
-                          <div
-                              class="dropdown-item"
-                              @click=${(e) => {
-                                  e.stopPropagation();
-                                  this.handleDelete(placeholder.key);
-                              }}
-                          >
-                              <sp-icon-delete></sp-icon-delete>
-                              <span>Delete</span>
-                          </div>
-                      </div>
-                  `
-                : nothing;
-
         return html`
             <sp-table-cell class="action-cell">
                 <div class="action-buttons">
@@ -1703,7 +1685,44 @@ class MasPlaceholders extends LitElement {
                         >
                             <sp-icon-more></sp-icon-more>
                         </button>
-                        ${dropdownMenu}
+                        ${this.activeDropdown === placeholder.key
+                            ? html`
+                                  <div class="dropdown-menu">
+                                      <div
+                                          class="dropdown-item ${placeholder.status ===
+                                          STATUS_PUBLISHED
+                                              ? 'disabled'
+                                              : ''}"
+                                          @click=${(e) => {
+                                              if (
+                                                  placeholder.status !==
+                                                  STATUS_PUBLISHED
+                                              ) {
+                                                  e.stopPropagation();
+                                                  this.handlePublish(
+                                                      placeholder.key,
+                                                  );
+                                              }
+                                          }}
+                                      >
+                                          <sp-icon-publish-check></sp-icon-publish-check>
+                                          <span>Publish</span>
+                                      </div>
+                                      <div
+                                          class="dropdown-item"
+                                          @click=${(e) => {
+                                              e.stopPropagation();
+                                              this.handleDelete(
+                                                  placeholder.key,
+                                              );
+                                          }}
+                                      >
+                                          <sp-icon-delete></sp-icon-delete>
+                                          <span>Delete</span>
+                                      </div>
+                                  </div>
+                              `
+                            : nothing}
                     </div>
                 </div>
             </sp-table-cell>
@@ -2338,28 +2357,25 @@ class MasPlaceholders extends LitElement {
     }
 
     getFilteredPlaceholders() {
-        let filtered = this.placeholdersData || [];
-
-        if (this.searchQuery) {
-            filtered = filtered.filter(
-                (placeholder) =>
-                    placeholder.key
-                        .toLowerCase()
-                        .includes(this.searchQuery.toLowerCase()) ||
-                    placeholder.displayValue
-                        .toLowerCase()
-                        .includes(this.searchQuery.toLowerCase()),
-            );
-        }
+        const filtered = this.searchQuery
+            ? (this.placeholdersData || []).filter(
+                  (placeholder) =>
+                      placeholder.key
+                          .toLowerCase()
+                          .includes(this.searchQuery.toLowerCase()) ||
+                      placeholder.displayValue
+                          .toLowerCase()
+                          .includes(this.searchQuery.toLowerCase()),
+              )
+            : this.placeholdersData || [];
 
         return this.getSortedPlaceholders(filtered);
     }
 
     getSortedPlaceholders(placeholders) {
         return [...placeholders].sort((a, b) => {
-            const aValue = a[this.sortField];
-            const bValue = b[this.sortField];
-
+            const aValue = a[this.sortField] || '';
+            const bValue = b[this.sortField] || '';
             const comparison = aValue.localeCompare(bValue);
             return this.sortDirection === 'asc' ? comparison : -comparison;
         });
@@ -2370,26 +2386,24 @@ class MasPlaceholders extends LitElement {
      * @param {string} content - Cell content
      * @returns {TemplateResult} - HTML template
      */
-    renderTableCell(content) {
+    renderTableCell(content, align = '') {
         const value = content || '';
         const needsTooltip = value.length > 50;
 
-        if (needsTooltip) {
-            return html`
-                <sp-table-cell>
-                    <sp-tooltip placement="right">
-                        ${value}
-                        <div slot="trigger" class="cell-content">
-                            ${value.substring(0, 50)}...
-                        </div>
-                    </sp-tooltip>
-                </sp-table-cell>
-            `;
-        }
-
         return html`
-            <sp-table-cell>
-                <div class="cell-content">${value}</div>
+            <sp-table-cell
+                style="${align === 'right' ? 'text-align: right;' : ''}"
+            >
+                ${needsTooltip
+                    ? html`
+                          <sp-tooltip placement="right">
+                              ${value}
+                              <div slot="trigger" class="cell-content">
+                                  ${value.substring(0, 50)}...
+                              </div>
+                          </sp-tooltip>
+                      `
+                    : html`<div class="cell-content">${value}</div>`}
             </sp-table-cell>
         `;
     }

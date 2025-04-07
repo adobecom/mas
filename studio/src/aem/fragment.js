@@ -76,6 +76,7 @@ export class Fragment {
     }
 
     getField(fieldName) {
+        console.log('getField', fieldName, this.fields[22]);
         return this.fields.find((field) => field.name === fieldName);
     }
 

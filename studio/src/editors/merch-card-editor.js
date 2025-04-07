@@ -7,6 +7,7 @@ import './variant-picker.js';
 import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 import '../rte/osi-field.js';
 import { CARD_MODEL_PATH } from '../constants.js';
+import '../fields/secure-text-field.js';
 
 const merchCardCustomElementPromise = customElements.whenDefined('merch-card');
 
@@ -23,6 +24,7 @@ class MerchCardEditor extends LitElement {
         availableBorderColors: { type: Array, state: true },
         availableBackgroundColors: { type: Array, state: true },
         quantitySelectorValues: { type: String, state: true },
+        showSecureTextField: { type: Boolean, state: true },
     };
 
     constructor() {
@@ -35,6 +37,7 @@ class MerchCardEditor extends LitElement {
         this.availableBorderColors = [];
         this.availableBackgroundColors = [];
         this.quantitySelectorValues = '';
+        this.showSecureTextField = true;
     }
 
     createRenderRoot() {
@@ -377,6 +380,16 @@ class MerchCardEditor extends LitElement {
                     ?readonly=${this.disabled}
                     >${unsafeHTML(form.callout?.values[0])}</rte-field
                 >
+            </sp-field-group>
+            <sp-field-group id="secureLabel" class="toggle">
+            <secure-text-field
+                id="secure-text-field"
+                label="Secure Text Label"
+                data-field="showSecureLabel"
+                value="${form.showSecureLabel?.values[0]}"
+                @input="${this.updateFragment}"
+            >
+            </secure-text-field>
             </sp-field-group>
             <sp-field-group class="toggle" id="stockOffer">
                 <sp-checkbox

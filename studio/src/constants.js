@@ -76,6 +76,7 @@ export const OPERATIONS = {
     SAVE: 'save',
     CLONE: 'clone',
     UNPUBLISH: 'unpublish',
+    CREATE: 'create',
 };
 
 export const EnvColorCode = {
@@ -109,6 +110,14 @@ export const ENVS = {
 export const LOCALE_DEFAULT = 'en_US';
 
 export const STATUS_PUBLISHED = 'PUBLISHED';
+export const STATUS_DRAFT = 'DRAFT';
+export const STATUS_MODIFIED = 'MODIFIED';
+
+export const PAGE_NAMES = {
+    WELCOME: 'welcome',
+    PLACEHOLDERS: 'placeholders',
+    CONTENT: 'content',
+};
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
 export const TAG_STATUS_PUBLISHED_PATH =
@@ -116,6 +125,10 @@ export const TAG_STATUS_PUBLISHED_PATH =
 export const TAG_STATUS_DRAFT = 'mas:status/draft';
 export const TAG_STATUS_DRAFT_PATH = '/content/cq:tags/mas/status/draft';
 
+export const ROOT_PATH = '/content/dam/mas';
+export const DICTIONARY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';
+
+// Add the card-related constants from incoming changes
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 export const COLLECTION_MODEL_PATH =
     '/conf/mas/settings/dam/cfm/models/collection';

@@ -98,6 +98,7 @@ class RteField extends LitElement {
         defaultLinkStyle: { type: String, attribute: 'default-link-style' },
         maxLength: { type: Number, attribute: 'max-length' },
         length: { type: Number, state: true },
+        hideOfferSelector: { type: Boolean, attribute: 'hide-offer-selector' },
     };
 
     static get styles() {
@@ -271,6 +272,7 @@ class RteField extends LitElement {
         this.uptLink = false;
         this.maxLength = 70;
         this.length = 0;
+        this.hideOfferSelector = false;
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
             ostEvent: this.#handleOstEvent.bind(this),
@@ -1019,6 +1021,7 @@ class RteField extends LitElement {
     }
 
     get #offerSelectorToolButton() {
+        if (this.hideOfferSelector) return nothing;
         return html`
             <sp-divider size="s" vertical></sp-divider>
             <sp-action-button

@@ -12,6 +12,7 @@ concurrency:
 
 jobs:
   platform_matrix:
+    if: ${{ github.event.repository.fork == false }}  # Only run on the main repository
     strategy:
       fail-fast: false
       matrix:

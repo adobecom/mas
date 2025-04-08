@@ -140,3 +140,17 @@ export function deepCompare(left, right) {
         return deepCompare(left[key], right[key]);
     });
 }
+
+/**
+ * Normalizes a string to be used as a key or fragment name
+ * Converts to lowercase, replaces spaces with hyphens, and removes special characters
+ * @param {string} str - The string to normalize
+ * @returns {string} - The normalized string
+ */
+export function normalizeKey(str) {
+    if (!str) return '';
+    return str
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '');
+}

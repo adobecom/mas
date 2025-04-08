@@ -93,6 +93,7 @@ class RteField extends LitElement {
         defaultLinkStyle: { type: String, attribute: 'default-link-style' },
         maxLength: { type: Number, attribute: 'max-length' },
         length: { type: Number, state: true },
+        hideOfferSelector: { type: Boolean, attribute: 'hide-offer-selector' },
     };
 
     static get styles() {
@@ -231,6 +232,17 @@ class RteField extends LitElement {
                     outline-offset: 2px;
                     border-radius: 16px;
                 }
+                sr-only {
+                    position: absolute;
+                    width: 1px;
+                    height: 1px;
+                    padding: 0;
+                    margin: -1px;
+                    overflow: hidden;
+                    clip: rect(0, 0, 0, 0);
+                    white-space: nowrap;
+                    border: 0;
+                }
             `,
             prosemirrorStyles,
         ];
@@ -254,6 +266,7 @@ class RteField extends LitElement {
         this.uptLink = false;
         this.maxLength = 70;
         this.length = 0;
+        this.hideOfferSelector = false;
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
             ostEvent: this.#handleOstEvent.bind(this),
@@ -983,6 +996,7 @@ class RteField extends LitElement {
     }
 
     get #offerSelectorToolButton() {
+        if (this.hideOfferSelector) return nothing;
         return html`
             <sp-divider size="s" vertical></sp-divider>
             <sp-action-button

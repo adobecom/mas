@@ -1,11 +1,12 @@
 'use strict';
 
+const crypto = require('crypto');
 const fetchFragment = require('./fetch.js').fetchFragment;
+const { log, logDebug, logError } = require('./common.js');
 const translate = require('./translate.js').translate;
 const replace = require('./replace.js').replace;
 const stateLib = require('@adobe/aio-lib-state');
-const { log, logError } = require('./common.js');
-const crypto = require('crypto');
+const zlib = require('zlib');
 
 function calculateHash(body) {
     return crypto
@@ -36,6 +37,8 @@ async function main(params) {
     if (!context.state) {
         context.state = await stateLib.init();
     }
+    context.debugLogs =
+        (await context.state.get('debugFragmentLogs'))?.value || false;
     const requestKey = `req-${context.id}-${context.locale}`;
     const cachedMetadataStr = (await context.state.get(requestKey))?.value;
     let cachedMetadata = {};
@@ -68,10 +71,14 @@ async function main(params) {
     const returnValue = {
         statusCode: context.status,
     };
+    let id = undefined;
+    let responseBody = undefined;
     if (context.status == 200) {
-        returnValue.body = context.body;
+        id = context.body.id;
+        responseBody = JSON.stringify(context.body, null, 0);
+        logDebug(() => `response body: ${responseBody}`, context);
         // Calculate hash of response body
-        const hash = calculateHash(context.body);
+        const hash = calculateHash(responseBody);
         const updated = !cachedMetadata?.hash || cachedMetadata.hash !== hash;
         let lastModified = new Date(Date.now());
         if (updated) {
@@ -92,7 +99,7 @@ async function main(params) {
             const modifiedSince = new Date(ifModifiedSince);
             if (lastModified.getTime() <= modifiedSince.getTime()) {
                 returnValue.statusCode = 304;
-                delete returnValue.body;
+                responseBody = undefined;
             }
         }
         returnValue.headers = {
@@ -101,13 +108,22 @@ async function main(params) {
             'Last-Modified': lastModified.toUTCString(),
         };
     } else {
-        returnValue.body = {
+        responseBody = JSON.stringify({
             message: context.message,
-        };
+        });
     }
-    const endTime = Date.now();
+    returnValue.headers = {
+        ...returnValue.headers,
+        'Content-Type': 'application/json',
+        'Content-Encoding': 'br',
+    };
+    returnValue.body =
+        responseBody?.length > 0
+            ? zlib.brotliCompressSync(responseBody).toString('base64')
+            : undefined;
+    logDebug(() => 'full response: ' + JSON.stringify(returnValue), context);
     log(
-        `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.body?.id} (${returnValue.statusCode}) in ${endTime - startTime}ms`,
+        `pipeline completed: ${context.id} ${context.locale} -> ${id} (${returnValue.statusCode}) in ${Date.now() - startTime}ms`,
         {
             ...context,
             transformer: 'pipeline',

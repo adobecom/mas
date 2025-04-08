@@ -92,6 +92,10 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await trybuywidget.cardPrice).not.toContainText(
                 data.newPrice,
             );
+            await (await studio.getCard(data.cardid, 'ahtrybuywidget-double')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.prices).toContainText(data.price);
+            await expect(await editor.prices).not.toContainText(data.newPrice);
         });
     });
 
@@ -150,6 +154,12 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(
                 await studio.getCard(data.cardid, 'slice'),
             ).not.toBeVisible();
+            await (await studio.getCard(data.cardid, 'ahtrybuywidget-double')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.variant).toHaveAttribute(
+                'default-value',
+                'ah-try-buy-widget',
+            );
         });
     });
 

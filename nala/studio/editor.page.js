@@ -12,6 +12,7 @@ export default class EditorPage {
         this.subtitle = this.panel.locator('#card-subtitle input');
         this.badge = this.panel.locator('#card-badge input');
         this.iconURL = this.panel.locator('#icon input');
+        this.promoText = this.panel.locator('#promo-text input');
         this.backgroundImage = this.panel.locator('#background-image input');
         this.prices = this.panel.locator('sp-field-group#prices');
         this.footer = this.panel.locator('sp-field-group#ctas');
@@ -35,7 +36,7 @@ export default class EditorPage {
             'sp-field-group#callout .icon-button',
         );
         this.showStockCheckbox = this.panel.locator('#stockOffer #input');
-        this.showQuantitySelector = this.panel.locator('#quantitySelect input');
+        this.showQuantitySelector = this.panel.locator('#quantitySelect sp-checkbox input');
         this.quantitySelectorTitle = this.panel.locator(
             'sp-field-group#quantitySelector #title-quantity input',
         );
@@ -45,6 +46,7 @@ export default class EditorPage {
         this.quantityselectorStep = this.panel.locator(
             'sp-field-group#quantitySelector #step-quantity input',
         );
+        this.whatsIncluded = this.panel.locator('#whatsIncluded input');
 
         this.closeEditor = this.panel.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="close"]',

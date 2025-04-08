@@ -27,7 +27,7 @@ test.beforeEach(async ({ page, browserName }) => {
 });
 
 test.describe('M@S Studio CCD Slice card test suite', () => {
-    // @studio-slice-discard-size - Validate discard edit size for slice card in mas studio
+    // @studio-slice-discard-edit-size - Validate discard edit size for slice card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({
         page,
         baseURL,
@@ -71,10 +71,13 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(
                 await studio.getCard(data.cardid, 'slice-wide'),
             ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.size).toHaveAttribute('value', 'wide');
         });
     });
 
-    // @studio-slice-discard-badge - Validate discard edit badge field for slice card in mas studio
+    // @studio-slice-discard-edit-badge - Validate discard edit badge field for slice card in mas studio
     test(`${features[1].name},${features[1].tags}`, async ({
         page,
         baseURL,
@@ -113,10 +116,13 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(await slice.cardBadge).toHaveText(data.badge);
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.badge).toHaveValue(data.badge);
         });
     });
 
-    // @studio-slice-discard-description - Validate discard edit description field for slice card in mas studio
+    // @studio-slice-discard-edit-description - Validate discard edit description field for slice card in mas studio
     test(`${features[2].name},${features[2].tags}`, async ({
         page,
         baseURL,
@@ -163,10 +169,13 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await slice.cardDescription).toContainText(
                 data.description,
             );
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.description).toContainText(data.description);
         });
     });
 
-    // @studio-slice-discard-mnemonic - Validate discard edit mnemonic URL field for slice card in mas studio
+    // @studio-slice-discard-edit-mnemonic - Validate discard edit mnemonic URL field for slice card in mas studio
     test(`${features[3].name},${features[3].tags}`, async ({
         page,
         baseURL,
@@ -211,10 +220,13 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'src',
                 data.iconURL,
             );
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.iconURL).toHaveValue(data.iconURL);
         });
     });
 
-    // @studio-slice-discard-image - Validate discard edit background image field for slice card in mas studio
+    // @studio-slice-discard-edit-image - Validate discard edit background image field for slice card in mas studio
     test(`${features[4].name},${features[4].tags}`, async ({
         page,
         baseURL,
@@ -264,10 +276,13 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'src',
                 data.backgroundURL,
             );
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.backgroundImage).toHaveValue(data.backgroundURL);
         });
     });
 
-    // @studio-slice-discard-price - Validate discard edit price field for slice card in mas studio
+    // @studio-slice-discard-edit-price - Validate discard edit price field for slice card in mas studio
     test(`${features[5].name},${features[5].tags}`, async ({
         page,
         baseURL,
@@ -354,10 +369,16 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                     slice.cardPriceStrikethrough,
                 ),
             ).not.toContainText(data.newStrikethroughPrice);
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.description).toContainText(data.price);
+            await expect(await editor.description).toContainText(data.strikethroughPrice);
+            await expect(await editor.description).not.toContainText(data.newPrice);
+            await expect(await editor.description).not.toContainText(data.newStrikethroughPrice);
         });
     });
 
-    // @studio-slice-discard-cta-ost - Validate discard edit CTA for slice card in mas studio
+    // @studio-slice-discard-edit-cta-ost - Validate discard edit CTA for slice card in mas studio
     test(`${features[6].name},${features[6].tags}`, async ({
         page,
         baseURL,
@@ -417,10 +438,13 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(await slice.cardCTA).toContainText(data.ctaText);
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.footer).toContainText(data.ctaText);
         });
     });
 
-    // @studio-slice-discard-cta-label - Validate discard edit CTA label for slice card in mas studio
+    // @studio-slice-discard-edit-cta-label - Validate discard edit CTA label for slice card in mas studio
     test(`${features[7].name},${features[7].tags}`, async ({
         page,
         baseURL,
@@ -468,10 +492,13 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(await slice.cardCTA).toContainText(data.ctaText);
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.footer).toContainText(data.ctaText);
         });
     });
 
-    // @studio-slice-discard-variant-change - Validate variant change for slice card in mas studio
+    // @studio-slice-discard-edit-variant-change - Validate discard edit variant change for slice card in mas studio
     test(`${features[8].name},${features[8].tags}`, async ({
         page,
         baseURL,
@@ -524,10 +551,16 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(
                 await studio.getCard(data.cardid, 'suggested'),
             ).not.toBeVisible();
+            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.variant).toHaveAttribute(
+                'default-value',
+                'ccd-slice',
+            );
         });
     });
 
-    // @studio-slice-discard-edit-osi - Validate changing OSI for slice card in mas studio
+    // @studio-slice-discard-edit-osi - Validate discard edit OSI for slice card in mas studio
     test(`${features[9].name},${features[9].tags}`, async ({
         page,
         baseURL,
@@ -633,7 +666,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-edit-cta-variant - Validate changing CTA variant for slice card in mas studio
+    // @studio-slice-discard-edit-cta-variant - Validate discard edit CTA variant for slice card in mas studio
     test(`${features[10].name},${features[10].tags}`, async ({
         page,
         baseURL,
@@ -689,7 +722,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-cta-checkout-params - Validate discard edit CTA checkout params for slice card in mas studio
+    // @studio-slice-discard-edit-cta-checkout-params - Validate discard edit CTA checkout params for slice card in mas studio
     test(`${features[11].name},${features[11].tags}`, async ({
         page,
         baseURL,
@@ -750,8 +783,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            const changedCTAhref =
-                await slice.cardCTA.getAttribute('data-href');
+            const changedCTAhref = await slice.cardCTA.getAttribute('data-href');
             let noSearchParams = new URLSearchParams(
                 decodeURI(changedCTAhref).split('?')[1],
             );

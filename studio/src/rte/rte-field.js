@@ -232,7 +232,9 @@ class RteField extends LitElement {
                 div.ProseMirror-focused
                     span[is='inline-price'].ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode,
-                div.ProseMirror-focused a.ProseMirror-selectednode {
+                div.ProseMirror-focused a.ProseMirror-selectednode,
+                div.ProseMirror-focused
+                    p[class^='heading-'].ProseMirror-selectednode {
                     outline: 2px dashed var(--spectrum-global-color-blue-500);
                     outline-offset: 2px;
                     border-radius: 16px;
@@ -247,6 +249,18 @@ class RteField extends LitElement {
                     clip: rect(0, 0, 0, 0);
                     white-space: nowrap;
                     border: 0;
+                }
+
+                .heading-icon {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    font-weight: bold;
+                    font-size: 20px;
+                }
+
+                p[class^='heading-'] {
+                    font-weight: bold;
                 }
             `,
             prosemirrorStyles,
@@ -321,7 +335,18 @@ class RteField extends LitElement {
         const basicNodes = this.list
             ? addListNodes(schema.spec.nodes, 'paragraph block*', 'block')
             : schema.spec.nodes;
-        let nodes = basicNodes.addToStart('inlinePrice', {
+
+        let nodes = basicNodes.remove('heading').addToStart('heading', {
+            group: 'block',
+            atom: true,
+            attrs: {
+                class: { default: null },
+            },
+            parseDOM: [{ tag: `p[class^="heading-"]` }],
+            toDOM: this.#createHeadingElement.bind(this),
+        });
+
+        nodes = nodes.addToStart('inlinePrice', {
             group: 'inline',
             inline: true,
             atom: true,
@@ -480,6 +505,17 @@ class RteField extends LitElement {
             icon.setAttribute('title', tooltipText);
         }
         return icon;
+    }
+
+    #createHeadingElement(node) {
+        const element = document.createElement('p');
+        element.textContent = node.textContent;
+        for (const [key, value] of Object.entries(node.attrs)) {
+            if (value !== null) {
+                element.setAttribute(key, value);
+            }
+        }
+        return element;
     }
 
     #createInlinePriceElement(node) {
@@ -808,6 +844,32 @@ class RteField extends LitElement {
         };
     }
 
+    #handleHeadingAction(event) {
+        event.stopPropagation();
+        const headingType = event.target.value;
+
+        const { state, dispatch } = this.editorView;
+        const { selection } = state;
+        if (selection.empty) return;
+
+        const nodeType = state.schema.nodes.heading;
+
+        const content = selection.node
+            ? selection.node.textContent
+            : state.doc.textBetween(selection.from, selection.to);
+        const node = nodeType.create(
+            { class: `heading-${headingType}` },
+            state.schema.text(content),
+            selection.node?.marks,
+        );
+
+        const tr = selection.empty
+            ? state.tr.insert(selection.from, node)
+            : state.tr.replaceWith(selection.from, selection.to, node);
+
+        dispatch(tr);
+    }
+
     #handleListAction(listType) {
         return () => {
             const { state, dispatch } = this.editorView;
@@ -1079,6 +1141,16 @@ class RteField extends LitElement {
             >
                 <sp-icon-underline slot="icon"></sp-icon-underline>
             </sp-action-button>
+            <sp-action-menu quiet @change=${this.#handleHeadingAction}>
+                <span slot="icon" class="heading-icon">H</span>
+                <sp-menu-item value="xxxs">Heading XXXS</sp-menu-item>
+                <sp-menu-item value="xxs">Heading XXS</sp-menu-item>
+                <sp-menu-item value="xs">Heading XS</sp-menu-item>
+                <sp-menu-item value="s">Heading S</sp-menu-item>
+                <sp-menu-item value="m">Heading M</sp-menu-item>
+                <sp-menu-item value="l">Heading L</sp-menu-item>
+                <sp-menu-item value="xl">Heading XL</sp-menu-item>
+            </sp-action-menu>
         `;
     }
 

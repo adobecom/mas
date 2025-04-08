@@ -1,8 +1,7 @@
 import { LitElement, html } from 'lit';
 import { contentIcon } from './img/content-icon.js';
-import { promosIcon } from './img/promos-icon.js';
 import { ostIcon } from './img/ost-icon.js';
-import { navigateToPage } from './store.js';
+import { navigateToPage } from './router.js';
 import './mas-recently-updated.js';
 import { openOfferSelectorTool } from './rte/ost.js';
 
@@ -44,13 +43,6 @@ class MasSplashScreen extends LitElement {
                     >
                         <div slot="cover-photo">${contentIcon}</div>
                         <div slot="heading">Go To Content</div>
-                    </div>
-                    <div
-                        class="quick-action-card"
-                        @click=${this.viewPromotions}
-                    >
-                        <div slot="cover-photo">${promosIcon}</div>
-                        <div slot="heading">View Promotions</div>
                     </div>
                     <div class="quick-action-card" @click=${this.openOst}>
                         <div slot="cover-photo">${ostIcon}</div>

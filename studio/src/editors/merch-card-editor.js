@@ -314,8 +314,9 @@ class MerchCardEditor extends LitElement {
                 </mas-multifield>
             </sp-field-group>
             <sp-field-group class="toggle" id="whatsIncluded">
-                <sp-field-label for="whatsIncluded">What's included</sp-field-label>
+                <sp-field-label for="whatsIncludedLabel">What's included</sp-field-label>
                 <sp-textfield
+                    id="whatsIncludedLabel"
                     placeholder="Enter the label text"
                     value="${this.whatsIncluded.label}"
                     @input="${this.#updateWhatsIncluded}"

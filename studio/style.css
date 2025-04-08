@@ -30,7 +30,6 @@ mas-studio {
     display: none;
 }
 
-
 .studio-content {
     display: grid;
     grid-template-columns: 240px 1fr;
@@ -316,6 +315,7 @@ mas-content {
     border-radius: 8px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     margin-bottom: 32px;
+    width: fit-content;
     max-width: 564px;
     height: 178px;
 }
@@ -370,7 +370,7 @@ mas-content {
 .actions-grid {
     display: flex;
     gap: 16px;
-    justify-content: space-between;
+    justify-content: flex-start;
     margin-top: 24px;
 }
 

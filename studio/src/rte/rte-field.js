@@ -9,7 +9,7 @@ import {
     wrapInList,
     splitListItem,
 } from 'prosemirror-schema-list';
-import { baseKeymap, toggleMark } from 'prosemirror-commands';
+import { baseKeymap, toggleMark, setBlockType } from 'prosemirror-commands';
 import { history, undo, redo } from 'prosemirror-history';
 import {
     openOfferSelectorTool,
@@ -232,9 +232,7 @@ class RteField extends LitElement {
                 div.ProseMirror-focused
                     span[is='inline-price'].ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode,
-                div.ProseMirror-focused a.ProseMirror-selectednode,
-                div.ProseMirror-focused
-                    p[class^='heading-'].ProseMirror-selectednode {
+                div.ProseMirror-focused a.ProseMirror-selectednode {
                     outline: 2px dashed var(--spectrum-global-color-blue-500);
                     outline-offset: 2px;
                     border-radius: 16px;
@@ -336,15 +334,19 @@ class RteField extends LitElement {
             ? addListNodes(schema.spec.nodes, 'paragraph block*', 'block')
             : schema.spec.nodes;
 
-        let nodes = basicNodes.remove('heading').addToStart('heading', {
-            group: 'block',
-            atom: true,
-            attrs: {
-                class: { default: null },
-            },
-            parseDOM: [{ tag: `p[class^="heading-"]` }],
-            toDOM: this.#createHeadingElement.bind(this),
-        });
+        let nodes = basicNodes
+            .remove('heading')
+            .addBefore('code_block', 'heading', {
+                content: 'inline*',
+                group: 'block',
+                defining: true,
+                attrs: { class: { default: null } },
+                parseDOM: [{ tag: 'p[class^="heading-"]' }],
+                toDOM(node) {
+                    const { class: _class } = node.attrs;
+                    return ['p', { class: _class }, 0];
+                },
+            });
 
         nodes = nodes.addToStart('inlinePrice', {
             group: 'inline',
@@ -505,17 +507,6 @@ class RteField extends LitElement {
             icon.setAttribute('title', tooltipText);
         }
         return icon;
-    }
-
-    #createHeadingElement(node) {
-        const element = document.createElement('p');
-        element.textContent = node.textContent;
-        for (const [key, value] of Object.entries(node.attrs)) {
-            if (value !== null) {
-                element.setAttribute(key, value);
-            }
-        }
-        return element;
     }
 
     #createInlinePriceElement(node) {
@@ -847,27 +838,10 @@ class RteField extends LitElement {
     #handleHeadingAction(event) {
         event.stopPropagation();
         const headingType = event.target.value;
-
         const { state, dispatch } = this.editorView;
-        const { selection } = state;
-        if (selection.empty) return;
-
-        const nodeType = state.schema.nodes.heading;
-
-        const content = selection.node
-            ? selection.node.textContent
-            : state.doc.textBetween(selection.from, selection.to);
-        const node = nodeType.create(
-            { class: `heading-${headingType}` },
-            state.schema.text(content),
-            selection.node?.marks,
-        );
-
-        const tr = selection.empty
-            ? state.tr.insert(selection.from, node)
-            : state.tr.replaceWith(selection.from, selection.to, node);
-
-        dispatch(tr);
+        setBlockType(state.schema.nodes.heading, {
+            class: `heading-${headingType}`,
+        })(state, dispatch);
     }
 
     #handleListAction(listType) {

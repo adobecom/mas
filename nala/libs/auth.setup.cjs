@@ -2,7 +2,7 @@
 import { test as setup, expect  } from '@playwright/test';
 import path from 'path';
 
-const authFile = path.join(__dirname, '../../test-results/user.json');
+const authFile = path.join(__dirname, '../../nala/.auth/user.json');
 
 setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
   if (browserName === 'chromium') {
@@ -36,8 +36,8 @@ setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
   await page.locator('#PasswordPage-PasswordField').fill(process.env.IMS_PASS);
   await page.locator('[data-id=PasswordPage-ContinueButton]').click();
   await page.locator('div.ActionList-Item:nth-child(1)').click();
-  await page.waitForURL(`${baseURL}/studio.html#`);
-  await expect(page).toHaveURL(`${baseURL}/studio.html#`);
+  await page.waitForURL(`${baseURL}/studio.html#page=welcome&path=acom`);
+  await expect(page).toHaveURL(`${baseURL}/studio.html#page=welcome&path=acom`);
 
   await expect(async () => {
     const response = await page.request.get(`${baseURL}/studio.html`);
@@ -49,4 +49,3 @@ setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
 
   await page.context().storageState({ path: authFile });
 });
-

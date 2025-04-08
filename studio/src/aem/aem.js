@@ -91,12 +91,13 @@ class AEM {
      * @param {Object} params - The search options
      * @param {string} [params.path] - The path to search in
      * @param {Array} [params.tags] - The tags
+     * @param {Array} [params.modelIds] - The model ids
      * @param {string} [params.query] - The search query
      * @param {AbortController} abortController used for cancellation
      * @returns A generator function that fetches all the matching data using a cursor that is returned by the search API
      */
     async *searchFragment(
-        { path, query = '', tags = [], sort, status },
+        { path, query = '', tags = [], modelIds = [], sort, status },
         limit,
         abortController,
     ) {
@@ -116,6 +117,9 @@ class AEM {
         }
         if (tags.length > 0) {
             filter.tags = tags;
+        }
+        if (modelIds.length > 0) {
+            filter.modelIds = modelIds;
         }
         if (status) {
             filter.status = [status];
@@ -180,7 +184,7 @@ class AEM {
      */
     async getFragmentById(baseUrl, id, headers, abortController) {
         const response = await fetch(
-            `${baseUrl}/adobe/sites/cf/fragments/${id}`,
+            `${baseUrl}/adobe/sites/cf/fragments/${id}?references=direct-hydrated`,
             {
                 headers,
                 signal: abortController?.signal,
@@ -224,19 +228,35 @@ class AEM {
      * @returns {Promise<Object>} the updated fragment
      */
     async saveFragment(fragment) {
+        if (!fragment || !fragment.id) {
+            throw new Error('Invalid fragment data for save operation');
+        }
+
+        const latestFragment = await this.getFragmentWithEtag(fragment.id);
+        if (!latestFragment) {
+            throw new Error('Failed to retrieve fragment for update');
+        }
+
         const { title, description, fields } = fragment;
+        const isDictionaryFragment = fragment.path?.includes('/dictionary/');
+
+        const payload = isDictionaryFragment
+            ? {
+                  title: fragment.title || latestFragment.title,
+                  description:
+                      fragment.description || latestFragment.description || '',
+                  fields: fragment.fields || latestFragment.fields || [],
+              }
+            : { title, description, fields };
+
         const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
             method: 'PUT',
             headers: {
                 ...this.headers,
                 'Content-Type': 'application/json',
-                'If-Match': fragment.etag,
+                'If-Match': latestFragment.etag,
             },
-            body: JSON.stringify({
-                title,
-                description,
-                fields,
-            }),
+            body: JSON.stringify(payload),
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
@@ -247,9 +267,13 @@ class AEM {
             );
         }
 
-        await this.saveTags(fragment);
+        if (!isDictionaryFragment) {
+            await this.saveTags(fragment);
+        }
 
-        return this.pollUpdatedFragment(fragment);
+        return isDictionaryFragment
+            ? this.getFragment(response)
+            : this.pollUpdatedFragment(fragment);
     }
 
     async saveTags(fragment) {
@@ -361,35 +385,51 @@ class AEM {
 
     /**
      * Create a new fragment in a given folder
-     * @param {*} fragment sample fragment with mimimum req fields: { title: 'sample title', model: {id: '123'}}
-     * @param {String} parentPath - folder in which fragment will be created
+     * @param {*} fragment sample fragment with minimum req fields for creation
      */
-    async createFragment(fragment, parentPath) {
-        const {
-            title,
-            fields,
-            model: { id: modelId },
-        } = fragment;
+    async createFragment(fragment) {
+        const { title, name, description, fields } = fragment;
+        const parentPath = fragment.parentPath;
+        const modelId =
+            fragment.modelId || (fragment.model && fragment.model.id);
+
         if (!parentPath || !title || !modelId) {
             throw new Error(
                 `Missing data to create a fragment: ${parentPath}, ${title}, ${modelId}`,
             );
         }
+
         const response = await fetch(`${this.cfFragmentsUrl}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 ...this.headers,
             },
-            body: JSON.stringify({ title, modelId, fields }),
+            body: JSON.stringify({
+                title,
+                name,
+                modelId,
+                parentPath,
+                description,
+                fields,
+            }),
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
+
         if (!response.ok) {
+            try {
+                const errorData = await response.json();
+                if (errorData.detail) {
+                    throw new UserFriendlyError(errorData.detail);
+                }
+            } catch (parseError) {}
+
             throw new Error(
                 `Failed to create fragment: ${response.status} ${response.statusText}`,
             );
         }
+
         return await this.getFragment(response);
     }
 
@@ -526,6 +566,36 @@ class AEM {
         return response.json();
     }
 
+    /**
+     * Get fragment by ID with its ETag in a single operation
+     * @param {string} id - Fragment ID
+     * @returns {Promise<Object>} - Fragment with its etag
+     */
+    async getFragmentWithEtag(id) {
+        if (!id) {
+            throw new Error('Fragment ID is required');
+        }
+
+        const response = await fetch(`${this.cfFragmentsUrl}/${id}`, {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                ...this.headers,
+            },
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to get fragment: ${response.status} ${response.statusText}`,
+            );
+        }
+
+        return await this.getFragment(response);
+    }
+
     sites = {
         cf: {
             fragments: {
@@ -547,6 +617,10 @@ class AEM {
                         this.headers,
                         abortController,
                     ),
+                /**
+                 * @see AEM#getFragmentWithEtag
+                 */
+                getWithEtag: this.getFragmentWithEtag.bind(this),
                 /**
                  * @see AEM#saveFragment
                  */

@@ -1,24 +1,40 @@
 import { LitElement, nothing } from 'lit';
 import StoreController from './reactivity/store-controller.js';
-import Store from './store.js';
+import Store, { editFragment } from './store.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
-import { looseEquals, UserFriendlyError } from './utils.js';
-import ReactiveController from './reactivity/reactive-controller.js';
+import { debounce, looseEquals, UserFriendlyError } from './utils.js';
 import {
     OPERATIONS,
     STATUS_PUBLISHED,
     TAG_STATUS_PUBLISHED,
+    ROOT_PATH,
+    PAGE_NAMES,
+    TAG_STUDIO_CONTENT_TYPE,
+    TAG_MODEL_ID_MAPPING,
+    EDITABLE_FRAGMENT_MODEL_IDS,
 } from './constants.js';
 
-const ROOT = '/content/dam/mas';
+let fragmentCache;
 
 export function getDamPath(path) {
-    if (!path) return ROOT;
-    if (path.startsWith(ROOT)) return path;
-    return ROOT + '/' + path;
+    if (!path) return ROOT_PATH;
+    if (path.startsWith(ROOT_PATH)) return path;
+    return ROOT_PATH + '/' + path;
+}
+
+export async function initFragmentCache() {
+    if (fragmentCache) return;
+    await customElements.whenDefined('aem-fragment').then(() => {
+        fragmentCache = document.createElement('aem-fragment').cache;
+    });
+}
+
+export async function getFromFragmentCache(fragmentId) {
+    await initFragmentCache();
+    return fragmentCache.get(fragmentId);
 }
 
 function isUUID(str) {
@@ -36,31 +52,30 @@ export class MasRepository extends LitElement {
     inEdit = Store.fragments.inEdit;
     operation = Store.operation;
 
+    getFromFragmentCache = getFromFragmentCache;
+
     constructor() {
         super();
         this.#abortControllers = { search: null, recentlyUpdated: null };
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
         this.publishFragment = this.publishFragment.bind(this);
-        this.unpublishFragment = this.unpublishFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
+        this.search = new StoreController(this, Store.search);
+        this.filters = new StoreController(this, Store.filters);
+        this.page = new StoreController(this, Store.page);
+        this.foldersLoaded = new StoreController(this, Store.folders.loaded);
+        this.recentlyUpdatedLimit = new StoreController(
+            this,
+            Store.fragments.recentlyUpdated.limit,
+        );
+        this.handleSearch = debounce(this.handleSearch.bind(this), 50);
     }
 
     /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
     #abortControllers;
     /** @type {AEM} */
-    #aem;
-
-    filters = new StoreController(this, Store.filters);
-    search = new StoreController(this, Store.search);
-    page = new StoreController(this, Store.page);
-    foldersLoaded = new StoreController(this, Store.folders.loaded);
-    reactiveController = new ReactiveController(this, [Store.user]);
-
-    recentlyUpdatedLimit = new StoreController(
-        this,
-        Store.fragments.recentlyUpdated.limit,
-    );
+    aem;
 
     connectedCallback() {
         super.connectedCallback();
@@ -68,7 +83,7 @@ export class MasRepository extends LitElement {
             throw new Error(
                 'Either the bucket or baseUrl attribute is required.',
             );
-        this.#aem = new AEM(this.bucket, this.baseUrl);
+        this.aem = new AEM(this.bucket, this.baseUrl);
         this.loadFolders();
         this.style.display = 'none';
     }
@@ -91,24 +106,38 @@ export class MasRepository extends LitElement {
         });
     }
 
-    update() {
-        super.update();
+    /**
+     * Helper method to show toast messages with consistent formatting
+     * @param {string} message - The message to display
+     * @param {string} variant - The toast variant (positive, negative, info)
+     */
+    showToast(message, variant = 'info') {
+        Events.toast.emit({
+            variant,
+            content: message,
+        });
+    }
+
+    update(changedProperties) {
+        super.update(changedProperties);
         if (!this.foldersLoaded.value) return;
-        /**
-         * Automatically fetch data when search/filters update.
-         * Both load methods have page guards (ex. fragments won't be searched on the 'welcome' page)
-         */
-        if (this.page.value === 'content') {
-            this.searchFragments();
-        }
-        if (this.page.value === 'welcome') {
-            this.loadRecentlyUpdatedFragments();
+        this.handleSearch();
+    }
+
+    handleSearch() {
+        switch (this.page.value) {
+            case 'content':
+                this.searchFragments();
+                break;
+            case 'welcome':
+                this.loadRecentlyUpdatedFragments();
+                break;
         }
     }
 
     async loadFolders() {
         try {
-            const { children } = await this.#aem.folders.list(ROOT);
+            const { children } = await this.aem.folders.list(ROOT_PATH);
             const ignore = window.localStorage.getItem('ignore_folders') || [
                 'images',
             ];
@@ -134,15 +163,50 @@ export class MasRepository extends LitElement {
         }
     }
 
+    get parentPath() {
+        return `${getDamPath(this.search.value.path)}/${
+            this.filters.value.locale
+        }`;
+    }
+
+    get fragmentStoreInEdit() {
+        return this.inEdit.get();
+    }
+
+    get fragmentInEdit() {
+        return this.fragmentStoreInEdit?.get();
+    }
+
     async searchFragments() {
-        if (this.page.value !== 'content') return;
+        if (this.page.value !== PAGE_NAMES.CONTENT) return;
 
         Store.fragments.list.loading.set(true);
 
         const dataStore = Store.fragments.list.data;
         const path = this.search.value.path;
         const query = this.search.value.query;
-        const tags = [...(this.filters.value.tags ?? [])];
+
+        let tags = [];
+        if (this.filters.value.tags) {
+            if (typeof this.filters.value.tags === 'string') {
+                tags = this.filters.value.tags.split(',').filter(Boolean);
+            } else if (Array.isArray(this.filters.value.tags)) {
+                tags = this.filters.value.tags.filter(Boolean);
+            } else {
+                console.warn(
+                    'Unexpected tags format:',
+                    this.filters.value.tags,
+                );
+            }
+        }
+
+        let modelIds = tags
+            .filter((tag) => tag.startsWith(TAG_STUDIO_CONTENT_TYPE))
+            .map((tag) => TAG_MODEL_ID_MAPPING[tag]);
+
+        if (modelIds.length === 0) modelIds = EDITABLE_FRAGMENT_MODEL_IDS;
+
+        tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE));
 
         if (
             !looseEquals(dataStore.getMeta('path'), path) ||
@@ -156,18 +220,16 @@ export class MasRepository extends LitElement {
         const damPath = getDamPath(path);
         const localSearch = {
             ...this.search.value,
+            modelIds,
             path: `${damPath}/${this.filters.value.locale}`,
             tags,
         };
 
-        // Remove published status from tags and set it as a status filter
         const publishedTagIndex = tags.indexOf(TAG_STATUS_PUBLISHED);
         if (publishedTagIndex > -1) {
             tags.splice(publishedTagIndex, 1);
             localSearch.status = STATUS_PUBLISHED;
         }
-
-        const fragments = [];
 
         try {
             if (this.#abortControllers.search)
@@ -175,16 +237,14 @@ export class MasRepository extends LitElement {
             this.#abortControllers.search = new AbortController();
 
             if (isUUID(this.search.value.query)) {
-                const fragmentData = await this.#aem.sites.cf.fragments.getById(
+                const fragmentData = await this.aem.sites.cf.fragments.getById(
                     localSearch.query,
                     this.#abortControllers.search,
                 );
                 if (fragmentData && fragmentData.path.indexOf(damPath) == 0) {
-                    const fragment = new Fragment(fragmentData);
-                    fragments.push(fragment);
+                    const fragment = await this.#addToCache(fragmentData);
                     dataStore.set([new FragmentStore(fragment)]);
 
-                    // Folder selection
                     const folderPath = fragmentData.path.substring(
                         fragmentData.path.indexOf(damPath) + damPath.length + 1,
                     );
@@ -200,26 +260,20 @@ export class MasRepository extends LitElement {
                     }
                 }
             } else {
-                const cursor = await this.#aem.sites.cf.fragments.search(
+                const cursor = await this.aem.sites.cf.fragments.search(
                     localSearch,
                     null,
                     this.#abortControllers.search,
                 );
-                const currentUserEmail = Store.user.get()?.email;
+
+                const fragmentStores = [];
                 for await (const result of cursor) {
-                    result.forEach((item) => {
-                        if (
-                            currentUserEmail &&
-                            item.created.by !== currentUserEmail
-                        )
-                            return;
-                        const fragment = new Fragment(item);
-                        fragments.push(fragment);
-                    });
+                    for await (const item of result) {
+                        const fragment = await this.#addToCache(item);
+                        fragmentStores.push(new FragmentStore(fragment));
+                    }
                 }
-                dataStore.set(
-                    fragments.map((fragment) => new FragmentStore(fragment)),
-                );
+                dataStore.set(fragmentStores);
             }
 
             dataStore.setMeta('path', path);
@@ -227,8 +281,6 @@ export class MasRepository extends LitElement {
             dataStore.setMeta('tags', tags);
 
             this.#abortControllers.search = null;
-
-            await this.addToCache(fragments);
         } catch (error) {
             this.processError(error, 'Could not load fragments.');
         }
@@ -237,7 +289,7 @@ export class MasRepository extends LitElement {
     }
 
     async loadRecentlyUpdatedFragments() {
-        if (this.page.value !== 'welcome') return;
+        if (this.page.value !== PAGE_NAMES.WELCOME) return;
         if (this.#abortControllers.recentlyUpdated)
             this.#abortControllers.recentlyUpdated.abort();
         this.#abortControllers.recentlyUpdated = new AbortController();
@@ -253,7 +305,7 @@ export class MasRepository extends LitElement {
         }
 
         try {
-            const cursor = await this.#aem.sites.cf.fragments.search(
+            const cursor = await this.aem.sites.cf.fragments.search(
                 {
                     sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
                     path: `/content/dam/mas/${path}`,
@@ -263,20 +315,16 @@ export class MasRepository extends LitElement {
             );
 
             const result = await cursor.next();
-            const fragments = [];
-            dataStore.set(
-                result.value.map((item) => {
-                    const fragment = new Fragment(item);
-                    fragments.push(fragment);
-                    return new FragmentStore(fragment);
-                }),
-            );
+            const fragmentStores = [];
+            for await (const item of result.value) {
+                const fragment = await this.#addToCache(item);
+                fragmentStores.push(new FragmentStore(fragment));
+            }
+            dataStore.set(fragmentStores);
 
             dataStore.setMeta('path', path);
 
             this.#abortControllers.recentlyUpdated = null;
-
-            await this.addToCache(fragments);
         } catch (error) {
             this.processError(
                 error,
@@ -287,44 +335,119 @@ export class MasRepository extends LitElement {
         Store.fragments.recentlyUpdated.loading.set(false);
     }
 
-    async addToCache(fragments) {
-        if (!Fragment.cache) {
-            await customElements.whenDefined('aem-fragment').then(() => {
-                Fragment.cache = document.createElement('aem-fragment').cache;
-            });
-        }
-        Fragment.cache.add(...fragments);
+    /**
+     * Helper method to create fragment fields from data object
+     * @param {Object} data - The data object containing field values
+     * @param {Array} existingFields - Any existing fields to include
+     * @returns {Array} The complete fields array
+     */
+    createFieldsFromData(data, existingFields = []) {
+        if (!data) return existingFields;
+
+        return Object.entries(data)
+            .filter(([key, value]) => value !== undefined)
+            .reduce(
+                (fields, [key, value]) => {
+                    const type = key === 'locReady' ? 'boolean' : 'text';
+                    fields.push({ name: key, type, values: [value] });
+                    return fields;
+                },
+                [...existingFields],
+            );
     }
 
-    /** Write */
+    async createFragment(fragmentData) {
+        try {
+            const isPlaceholder =
+                fragmentData.data &&
+                (fragmentData.data.key !== undefined ||
+                    fragmentData.parentPath?.includes('/dictionary/'));
+            this.showToast('Creating fragment...');
+
+            this.operation.set(OPERATIONS.CREATE);
+
+            const fields = this.createFieldsFromData(
+                fragmentData.data,
+                fragmentData.fields || [],
+            );
+
+            const result = await this.aem.sites.cf.fragments.create({
+                ...fragmentData,
+                description: fragmentData.description || '',
+                fields,
+                parentPath: fragmentData.parentPath || this.parentPath,
+            });
+            const latest = await this.aem.sites.cf.fragments.getById(result.id);
+            const fragment = await this.#addToCache(latest);
+
+            if (!isPlaceholder) {
+                this.showToast('Fragment successfully created.', 'positive');
+            }
+
+            this.operation.set();
+            return new FragmentStore(fragment);
+        } catch (error) {
+            this.processError(error, 'Failed to create fragment.');
+        }
+    }
+
+    async #addToCache(fragmentData) {
+        await initFragmentCache();
+        for (const reference of fragmentData.references || []) {
+            if (fragmentCache.has(reference.id)) continue;
+            await this.#addToCache(reference);
+        }
+        let fragment = fragmentCache.get(fragmentData.id);
+        if (!fragment) {
+            fragment = new Fragment(fragmentData);
+            fragmentCache.add(fragment);
+        }
+        return fragment;
+    }
 
     /**
-     * @returns {Promise<boolean>} Whether or not it was successful
+     * Unified method to save a fragment (regular or dictionary)
+     * @param {Object} fragment - The fragment to save
+     * @param {Object} options - Additional options
+     * @param {boolean} options.isInEditStore - Whether the fragment is from the inEdit store
+     * @returns {Promise<Object>} The saved fragment
      */
-    async saveFragment() {
-        Events.toast.emit({
-            variant: 'info',
-            content: 'Saving fragment...',
-        });
-        this.operation.set(OPERATIONS.SAVE);
-        try {
-            let updatedFragment = await this.#aem.sites.cf.fragments.save(
-                this.inEdit.get(),
-            );
-            if (!updatedFragment) throw new Error('Invalid fragment.');
-            this.inEdit.refreshFrom(updatedFragment);
+    async saveFragment(fragment, options = {}) {
+        const { isInEditStore = true } = options;
+        const fragmentToSave = isInEditStore ? this.fragmentInEdit : fragment;
 
-            Events.toast.emit({
-                variant: 'positive',
-                content: 'Fragment successfully saved.',
-            });
+        if (!fragmentToSave) {
+            throw new Error('No fragment provided for saving');
+        }
+
+        const isDictionaryFragment =
+            fragmentToSave.path?.includes('/dictionary/');
+        this.showToast('Saving fragment...');
+        this.operation.set(OPERATIONS.SAVE);
+
+        try {
+            const savedFragment =
+                await this.aem.sites.cf.fragments.save(fragmentToSave);
+
+            if (!savedFragment) {
+                throw new Error('Invalid fragment.');
+            }
+
+            if (isInEditStore) {
+                this.fragmentStoreInEdit.refreshFrom(savedFragment);
+            }
+
+            this.showToast('Fragment successfully saved.', 'positive');
             this.operation.set();
-            return true;
+            return savedFragment;
         } catch (error) {
             this.operation.set();
             this.processError(error, 'Failed to save fragment.');
+            if (isDictionaryFragment) {
+                throw error;
+            }
+            return false;
         }
-        return false;
     }
 
     /**
@@ -333,25 +456,21 @@ export class MasRepository extends LitElement {
     async copyFragment() {
         try {
             this.operation.set(OPERATIONS.CLONE);
-            const result = await this.#aem.sites.cf.fragments.copy(
-                this.inEdit.get(),
+            const result = await this.aem.sites.cf.fragments.copy(
+                this.fragmentInEdit,
             );
-            const newFragment = new Fragment(result);
-            Fragment.cache.add(newFragment);
+            const newFragment = await this.#addToCache(result);
 
             const newFragmentStore = new FragmentStore(newFragment);
             Store.fragments.list.data.set((prev) => [
                 ...prev,
                 newFragmentStore,
             ]);
-            this.inEdit.set(newFragment);
+            editFragment(newFragmentStore);
 
             this.operation.set();
             Events.fragmentAdded.emit(newFragment.id);
-            Events.toast.emit({
-                variant: 'positive',
-                content: 'Fragment successfully copied.',
-            });
+            this.showToast('Fragment successfully copied.', 'positive');
             return true;
         } catch (error) {
             this.operation.set();
@@ -366,13 +485,9 @@ export class MasRepository extends LitElement {
     async publishFragment() {
         try {
             this.operation.set(OPERATIONS.PUBLISH);
-            await this.#aem.sites.cf.fragments.publish(this.inEdit.get());
-
+            await this.aem.sites.cf.fragments.publish(this.fragmentInEdit);
             this.operation.set();
-            Events.toast.emit({
-                variant: 'positive',
-                content: 'Fragment successfully published.',
-            });
+            this.showToast('Fragment successfully published.', 'positive');
 
             return true;
         } catch (error) {
@@ -385,40 +500,60 @@ export class MasRepository extends LitElement {
     /**
      * @returns {Promise<boolean>} Whether or not it was successful
      */
-    async unpublishFragment() {
-        // TODO
-        return Promise.resolve(true);
-    }
+    async deleteFragment(fragment, options = {}) {
+        const { isInEditStore = true, refreshPlaceholders = false } = options;
+        const fragmentToDelete = isInEditStore ? this.fragmentInEdit : fragment;
 
-    /**
-     * @returns {Promise<boolean>} Whether or not it was successful
-     */
-    async deleteFragment() {
+        if (!fragmentToDelete) {
+            throw new Error('No fragment provided for deletion');
+        }
+
         try {
             this.operation.set(OPERATIONS.DELETE);
-            const fragment = this.inEdit.get();
-            await this.#aem.sites.cf.fragments.delete(fragment);
+            this.showToast('Deleting fragment...');
 
-            Store.fragments.list.data.set((prev) => {
-                var result = [...prev];
-                const index = result.findIndex(
-                    (fragmentStore) => fragmentStore.value.id === fragment.id,
-                );
-                result.splice(index, 1);
-                return result;
-            });
-            this.inEdit.set(null);
+            try {
+                const fragmentWithEtag =
+                    await this.aem.sites.cf.fragments.getWithEtag(
+                        fragmentToDelete.id,
+                    );
+
+                if (fragmentWithEtag) {
+                    await this.aem.sites.cf.fragments.delete(fragmentWithEtag);
+                }
+            } catch (error) {
+                if (!error.message.includes('404')) {
+                    throw error;
+                }
+                console.debug('Fragment already deleted or not found');
+            }
+
+            if (isInEditStore) {
+                Store.fragments.list.data.set((prev) => {
+                    const result = [...prev];
+                    const index = result.findIndex(
+                        (fragmentStore) =>
+                            fragmentStore.value.id === fragmentToDelete.id,
+                    );
+                    if (index !== -1) {
+                        result.splice(index, 1);
+                    }
+                    return result;
+                });
+                this.inEdit.set();
+            }
+
             this.operation.set();
-            Events.toast.emit({
-                variant: 'positive',
-                content: 'Fragment successfully deleted.',
-            });
+            this.showToast('Fragment successfully deleted.', 'positive');
             return true;
         } catch (error) {
             this.operation.set();
-            this.processError(error, 'Failed to delete fragment.');
+            this.processError(error, 'Failed to delete fragment');
+            if (fragment.path?.includes('/dictionary/')) {
+                throw error;
+            }
+            return false;
         }
-        return false;
     }
 
     /**
@@ -426,11 +561,81 @@ export class MasRepository extends LitElement {
      * @param {FragmentStore} store
      */
     async refreshFragment(store) {
-        this.inEdit.setLoading(true);
+        store.setLoading(true);
         const id = store.get().id;
-        const latest = await this.#aem.sites.cf.fragments.getById(id);
+        const latest = await this.aem.sites.cf.fragments.getById(id);
         store.refreshFrom(latest);
-        this.inEdit.setLoading(false);
+        this.#addToCache(store.get());
+        store.setLoading(false);
+    }
+
+    /**
+     * Helper to update a specific field in a fragment fields array
+     * @param {Array} fields - The fields array
+     * @param {string} fieldName - Name of the field to update
+     * @param {Array} values - New values for the field
+     * @param {string} type - Field type
+     * @param {boolean} multiple - Whether field supports multiple values
+     * @returns {Array} - Updated fields array
+     */
+    updateFieldInFragment(fields, fieldName, values, type, multiple = false) {
+        return fields.map((field) => {
+            if (field.name === fieldName) {
+                return {
+                    name: fieldName,
+                    type: type || field.type || 'content-fragment',
+                    multiple: multiple || field.multiple || false,
+                    values,
+                };
+            }
+            return {
+                name: field.name,
+                type: field.type || 'text',
+                multiple: field.multiple || false,
+                values: field.values,
+            };
+        });
+    }
+
+    /**
+     * Fetches a fragment by its path to get the latest version
+     * @param {string} path - Path to the fragment
+     * @returns {Promise<Object>} - The latest fragment data
+     */
+    async getFragmentByPath(path) {
+        if (!path) {
+            throw new Error('Fragment path is required');
+        }
+
+        if (path.includes('/dictionary/')) {
+            return {
+                path,
+                id: 'stub-fragment-id',
+                etag: 'stub-etag',
+                fields: [],
+                status: 'PUBLISHED',
+            };
+        }
+
+        if (!this.aem) {
+            throw new Error('AEM client not initialized');
+        }
+
+        const encodedPath = encodeURIComponent(path);
+        const url = `${this.aem.cfFragmentsUrl}/api/assets/${encodedPath}`;
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(this.aem?.headers || {}),
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Fragment not found at path: ${path}`);
+        }
+
+        return await response.json();
     }
 
     render() {

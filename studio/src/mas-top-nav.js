@@ -1,13 +1,66 @@
-import { LitElement, html, css } from 'lit';
+import { ENVS, EnvColorCode } from './constants.js';
+import { LitElement, html, css, until } from 'lit';
 import Store from './store.js';
 
-const EnvColorCode = {
-    proxy: 'gray',
-    prod: 'negative',
-    stage: 'notice',
-    qa: 'positive',
-};
 class MasTopNav extends LitElement {
+    async profileBuilder() {
+        const accessToken = window.adobeIMS.getAccessToken();
+        const ioResp = await fetch(
+            `https://${ENVS[this.aemEnv].adobeIO}/profile`,
+            {
+                headers: new Headers({
+                    Authorization: `Bearer ${accessToken.token}`,
+                }),
+            },
+        );
+        const profiles = {};
+        profiles.ims = await window.adobeIMS.getProfile();
+        profiles.io = await ioResp.json();
+        const { displayName, email } = profiles.ims;
+        const { user } = profiles.io;
+        const { avatar } = user;
+        const profileEl = document.createElement('div');
+        profileEl.classList.add('profile');
+        profileEl.innerHTML = `
+        <button class="profile-button">
+                <img src="${avatar}" alt="${displayName}" height="26">
+            </button>
+            <div class="profile-body">
+                <div class="account-menu-header">
+                    <div style="width: 75px; height: 75px;"><img src="${avatar}" alt="${displayName}" width="100%"></div>
+                    <div class="account-info">
+                        <h2>${displayName}</h2>
+                        <p>${email}</p>
+                        <a href="https://account.adobe.com" target="_blank">Manage account</a>
+                    </div>
+                </div>
+                <div class="account-menu">
+                    <hr>
+                    <a class="signout-link">
+                        <div class="account-menu-item">Sign out</div>
+                    </a>
+                </div>
+            </div>
+        `;
+        const profileButton = profileEl.querySelector('.profile-button');
+        const profileBody = profileEl.querySelector('.profile-body');
+        const signOutLink = profileEl.querySelector('.signout-link');
+        const studioContentEl = document.querySelector('.studio-content');
+
+        profileButton.addEventListener('click', () => {
+            profileBody.classList.toggle('show');
+        });
+        signOutLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.adobeIMS.signOut();
+        });
+        studioContentEl.addEventListener('click', () => {
+            profileBody.classList.remove('show');
+        });
+
+        return profileEl;
+    }
+
     static properties = {
         aemEnv: { type: String, attribute: 'aem-env' },
     };
@@ -65,6 +118,66 @@ class MasTopNav extends LitElement {
             a:nth-child(2) {
                 margin-inline-start: auto;
             }
+
+            .profile-button {
+                padding: 0;
+                cursor: pointer;
+                border: 0;
+                background: 0;
+                position: relative;
+            }
+
+            .profile-body {
+                display: none;
+                margin: 0;
+                position: absolute;
+                min-width: 280px;
+                right: 30px;
+                top: 45px;
+                background: white;
+                padding: 20px 0;
+                border-radius: 10px;
+                box-shadow: 5px 5px 5px #cfcfcf;
+                z-index: 99;
+            }
+
+            .profile-body.show {
+                display: block;
+            }
+
+            .account-menu-header {
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                padding: 0 20px 20px;
+            }
+
+            .account-info h2 {
+                margin: 0.5rem 0;
+            }
+
+            .account-info p {
+                margin: 0 0 0.5rem;
+                font-size: 14px;
+            }
+
+            .profile-actions {
+                list-style: none;
+            }
+
+            .account-menu hr {
+                margin: 0 20px 10px;
+            }
+
+            .account-menu-item {
+                font-size: 16px;
+                padding: 5px 20px;
+            }
+
+            .account-menu-item:hover {
+                background-color: var(--spectrum-global-color-gray-100);
+                color: var(--spectrum-global-color-gray-800);
+            }
         `;
     }
 
@@ -112,12 +225,9 @@ class MasTopNav extends LitElement {
                         Stage Commerce
                     </sp-switch>
                 </a>
-                <a>
-                    <sp-icon-help-outline></sp-icon-help-outline>
-                </a>
-                <a>
-                    <sp-icon-bell></sp-icon-bell>
-                </a>
+                ${until(
+                    this.profileBuilder().then((profile) => html`${profile}`),
+                )}
             </nav>
             <sp-divider></sp-divider>
         `;

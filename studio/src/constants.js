@@ -69,17 +69,55 @@ export const LOCALES = [
 ];
 
 export const OPERATIONS = {
+    CREATE: 'create',
     DELETE: 'delete',
     DISCARD: 'discard',
     PUBLISH: 'publish',
     SAVE: 'save',
     CLONE: 'clone',
     UNPUBLISH: 'unpublish',
+    CREATE: 'create',
+};
+
+export const EnvColorCode = {
+    proxy: 'gray',
+    prod: 'negative',
+    stage: 'notice',
+    qa: 'positive',
+};
+
+export const ENVS = {
+    stage: {
+        name: 'stage',
+        ims: 'stg1',
+        adobeIO: 'cc-collab-stage.adobe.io',
+        adminconsole: 'stage.adminconsole.adobe.com',
+        account: 'stage.account.adobe.com',
+        edgeConfigId: 'e065836d-be57-47ef-b8d1-999e1657e8fd',
+        pdfViewerClientId: 'a76f1668fd3244d98b3838e189900a5e',
+    },
+    prod: {
+        name: 'prod',
+        ims: 'prod',
+        adobeIO: 'cc-collab.adobe.io',
+        adminconsole: 'adminconsole.adobe.com',
+        account: 'account.adobe.com',
+        edgeConfigId: '913eac4d-900b-45e8-9ee7-306216765cd2',
+        pdfViewerClientId: '3c0a5ddf2cc04d3198d9e48efc390fa9',
+    },
 };
 
 export const LOCALE_DEFAULT = 'en_US';
 
 export const STATUS_PUBLISHED = 'PUBLISHED';
+export const STATUS_DRAFT = 'DRAFT';
+export const STATUS_MODIFIED = 'MODIFIED';
+
+export const PAGE_NAMES = {
+    WELCOME: 'welcome',
+    PLACEHOLDERS: 'placeholders',
+    CONTENT: 'content',
+};
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
 export const TAG_STATUS_PUBLISHED_PATH =
@@ -87,3 +125,26 @@ export const TAG_STATUS_PUBLISHED_PATH =
 export const TAG_STATUS_DRAFT = 'mas:status/draft';
 export const TAG_STATUS_DRAFT_PATH = '/content/cq:tags/mas/status/draft';
 
+export const ROOT_PATH = '/content/dam/mas';
+export const DICTIONARY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';
+
+// Add the card-related constants from incoming changes
+export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
+export const COLLECTION_MODEL_PATH =
+    '/conf/mas/settings/dam/cfm/models/collection';
+
+export const FIELD_MODEL_MAPPING = {
+    [CARD_MODEL_PATH]: 'cards',
+    [COLLECTION_MODEL_PATH]: 'collections',
+};
+
+export const TAG_STUDIO_CONTENT_TYPE = 'mas:studio/content-type';
+
+export const TAG_MODEL_ID_MAPPING = {
+    'mas:studio/content-type/merch-card-collection':
+        'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
+    'mas:studio/content-type/merch-card':
+        'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
+};
+
+export const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);

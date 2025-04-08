@@ -1,10 +1,10 @@
 import { LitElement, html, css, nothing } from 'lit';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
-import { extractValue, preventDefault } from './utils.js';
 import './mas-folder-picker.js';
 import './aem/mas-filter-panel.js';
 import './mas-selection-panel.js';
+import './mas-create-dialog.js';
 
 const renderModes = [
     {
@@ -19,9 +19,23 @@ const renderModes = [
     },
 ];
 
+const contentTypes = [
+    {
+        value: 'merch-card',
+        label: 'Merch Card',
+    },
+    {
+        value: 'merch-card-collection',
+        label: 'Merch Card Collection',
+    },
+];
+
 class MasToolbar extends LitElement {
     static properties = {
-        _filtersShown: { state: true },
+        filtersShown: { state: true },
+        createDialogOpen: { state: true },
+        selectedContentType: { state: true },
+        filterCount: { state: true },
     };
 
     static styles = css`
@@ -106,7 +120,10 @@ class MasToolbar extends LitElement {
 
     constructor() {
         super();
-        this._filtersShown = false;
+        this.filtersShown = false;
+        this.createDialogOpen = false;
+        this.selectedContentType = 'merch-card';
+        this.filterCount = 0;
     }
 
     filters = new StoreController(this, Store.filters);
@@ -114,6 +131,40 @@ class MasToolbar extends LitElement {
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
     loading = new StoreController(this, Store.fragments.list.loading);
+
+    connectedCallback() {
+        super.connectedCallback();
+
+        this.updateFilterCount();
+
+        this.filtersSubscription = Store.filters.subscribe(() => {
+            this.updateFilterCount();
+        });
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+
+        if (this.filtersSubscription) {
+            this.filtersSubscription.unsubscribe();
+        }
+    }
+
+    updateFilterCount() {
+        const filters = Store.filters.get();
+        if (!filters || !filters.tags) {
+            this.filterCount = 0;
+            return;
+        }
+        
+        if (typeof filters.tags === 'string') {
+            this.filterCount = filters.tags.split(',').filter(Boolean).length;
+        } else if (Array.isArray(filters.tags)) {
+            this.filterCount = filters.tags.filter(Boolean).length;
+        } else {
+            this.filterCount = 0;
+        }
+    }
 
     handleRenderModeChange(ev) {
         localStorage.setItem('mas-render-mode', ev.target.value);
@@ -124,39 +175,84 @@ class MasToolbar extends LitElement {
         Store.search.set((prev) => ({ ...prev, query: value }));
     }
 
+    get popover() {
+        return this.shadowRoot.querySelector('sp-popover');
+    }
+
+    selectContentType(type) {
+        this.selectedContentType = type;
+        this.popover.open = false;
+        this.openCreateDialog();
+    }
+
+    openCreateDialog() {
+        this.createDialogOpen = true;
+    }
+
+    handleSearchSubmit(ev) {
+        ev.preventDefault();
+        this.updateQuery(ev.target.value);
+    }
+
+    handleChange(ev) {
+        if (ev.target.value === '') {
+            this.updateQuery('');
+        }
+    }
+
     get searchAndFilterControls() {
         return html`<div id="read">
             <sp-action-button
                 toggles
                 label="Filter"
-                @click=${() => (this._filtersShown = !this._filtersShown)}
-                ?quiet=${!this._filtersShown}
-                class="filters-button ${this._filtersShown ? 'shown' : ''}"
+                @click=${() => (this.filtersShown = !this.filtersShown)}
+                ?quiet=${!this.filtersShown}
+                class="filters-button ${this.filtersShown ? 'shown' : ''}"
             >
-                ${!this._filtersShown
+                ${!this.filtersShown
                     ? html`<sp-icon-filter-add
                           slot="icon"
                       ></sp-icon-filter-add>`
-                    : html`<div slot="icon" class="filters-badge">0</div>`}
+                    : html`<div slot="icon" class="filters-badge">${this.filterCount}</div>`}
                 Filter</sp-action-button
             >
             <sp-search
                 placeholder="Search"
-                @change="${extractValue(this.updateQuery)}"
-                @submit="${preventDefault(extractValue(this.updateQuery))}"
+                @submit="${this.handleSearchSubmit}"
+                @change=${this.handleChange}
                 value=${this.search.value.query}
                 size="m"
             ></sp-search>
         </div>`;
     }
 
+    get createButton() {
+        return html`<overlay-trigger id="trigger" placement="bottom" offset="6">
+            <sp-button variant="accent" slot="trigger">
+                <sp-icon-add slot="icon"></sp-icon-add>
+                Create
+            </sp-button>
+            <sp-popover slot="click-content" direction="bottom" tip>
+                <sp-menu>
+                    ${contentTypes.map(
+                        ({ value, label }) => html`
+                            <sp-menu-item
+                                @click=${() => this.selectContentType(value)}
+                            >
+                                ${label}
+                                <sp-icon-add slot="icon"></sp-icon-add>
+                            </sp-menu-item>
+                        `,
+                    )}
+                </sp-menu>
+            </sp-popover>
+        </overlay-trigger> `;
+    }
+
     get contentManagementControls() {
         if (this.selecting.value) return nothing;
         return html`<div id="write">
-            <sp-button variant="accent" disabled>
-                <sp-icon-add slot="icon"></sp-icon-add>
-                Create New Card
-            </sp-button>
+            ${this.createButton}
             <sp-button @click=${() => Store.selecting.set(true)}>
                 <sp-icon-selection-checked
                     slot="icon"
@@ -180,7 +276,7 @@ class MasToolbar extends LitElement {
     }
 
     get filtersPanel() {
-        if (!this._filtersShown) return nothing;
+        if (!this.filtersShown) return nothing;
         return html`<mas-filter-panel></mas-filter-panel>`;
     }
 
@@ -199,7 +295,13 @@ class MasToolbar extends LitElement {
                 </div>
                 ${this.filtersPanel}${this.searchResultsLabel}
             </div>
-            <mas-selection-panel></mas-selection-panel>`;
+            <mas-selection-panel></mas-selection-panel>
+            ${this.createDialogOpen
+                ? html`<mas-create-dialog
+                      type=${this.selectedContentType}
+                      @close=${() => (this.createDialogOpen = false)}
+                  ></mas-create-dialog>`
+                : nothing} `;
     }
 }
 

@@ -91,7 +91,7 @@ export default {
         },
         {
             tcid: '7',
-            name: '@studio-slice-discard-cta-link',
+            name: '@studio-slice-discard-cta-label',
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
@@ -107,6 +107,54 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
+        },
+        {
+            tcid: '9',
+            name: '@studio-slice-discard-edit-osi',
+            path: '/studio.html',
+            data: {
+                cardid: '3b1fb0f1-b74e-4e8f-81ad-1744012b1935',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                productCodeTag: 'product_code/phsp',
+                offerTypeTag: 'offer_type/base',
+                marketSegmentsTag: 'market_segments/com',
+                planTypeTag: 'plan_type/abm',
+                newosi: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
+                newPlanTypeTag: 'plan_type/puf',
+                newOfferTypeTag: 'offer_type/trial',
+                newMarketSegmentsTag: 'market_segments/edu',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
+        },
+        {
+            tcid: '10',
+            name: '@studio-slice-discard-edit-cta-variant',
+            path: '/studio.html',
+            data: {
+                cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+                variant: 'accent',
+                newVariant: 'primary-outline',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
+        },
+        {
+            tcid: '11',
+            name: '@studio-slice-discard-cta-checkout-params',
+            path: '/studio.html',
+            data: {
+                cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                checkoutParams: {
+                    mv: '1',
+                    cs: 'individual',
+                    promoid: 'ABC123',
+                    mv2: '2',
+                },
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',

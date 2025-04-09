@@ -202,30 +202,6 @@ rte-field {
     width: 100%;
 }
 
-merch-card {
-    cursor: pointer;
-    user-select: none;
-    box-sizing: border-box;
-}
-
-merch-card a,
-merch-card button {
-    pointer-events: none;
-}
-
-mas-fragment-render {
-    display: block;
-    position: relative;
-    background-color: var(--spectrum-white);
-    border-radius: 4px;
-}
-
-mas-fragment-render:hover {
-    box-shadow: 0 var(--spectrum-drop-shadow-y) var(--spectrum-drop-shadow-blur) rgba(0, 0, 0, 0.1);
-    background-color: var(--spectrum-menu-item-background-color-hover);
-    transition: all 0.1s ease;
-}
-
 .mask .mas-fragment:not(.editing-fragment) {
     opacity: 0.5;
     filter: grayscale(1) blur(1.5px);
@@ -254,30 +230,12 @@ mas-fragment-table:not(.has-tooltip) ~ sp-tooltip {
     display: none;
 }
 
-merch-card sp-icon-add,
-merch-card sp-icon-remove {
-    display: none;
-}
-
 mas-fragment-render[selected]:hover sp-icon-remove {
     display: block;
 }
 
 mas-fragment-render:not([selected]):hover sp-icon-add {
     display: block;
-}
-
-merch-card .overlay {
-    background-color: rgba(255, 255, 255, 0.5);
-    border-radius: 16px;
-    position: absolute;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
 }
 
 mas-multifield,

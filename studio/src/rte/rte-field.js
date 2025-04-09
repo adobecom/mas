@@ -130,7 +130,8 @@ class RteField extends LitElement {
                     color: var(--spectrum-global-color-red-700);
                 }
 
-                rte-link-editor, rte-icon-editor {
+                rte-link-editor,
+                rte-icon-editor {
                     display: contents;
                 }
 
@@ -206,18 +207,18 @@ class RteField extends LitElement {
                     white-space: nowrap;
                     margin: 0 1px;
                 }
-                
+
                 .ProseMirror .icon-button {
                     position: relative;
                     top: 3px;
                 }
-                
+
                 .ProseMirror .icon-button:before {
                     display: inline-block;
                     content: '';
                     width: 18px;
                     height: 18px;
-                    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 0 18 18" width="18"><defs><style> .fill { fill: %23464646; } </style></defs><title>S Info 18 N</title><rect id="Canvas" fill="%23ff13dc" opacity="0" width="18" height="18" /><path class="fill" d="M9,1a8,8,0,1,0,8,8A8,8,0,0,0,9,1ZM8.85,3.15a1.359,1.359,0,0,1,1.43109,1.28286q.00352.06452.00091.12914A1.332,1.332,0,0,1,8.85,5.9935a1.3525,1.3525,0,0,1-1.432-1.432A1.3585,1.3585,0,0,1,8.72033,3.14907Q8.78516,3.14643,8.85,3.15ZM11,13.5a.5.5,0,0,1-.5.5h-3a.5.5,0,0,1-.5-.5v-1a.5.5,0,0,1,.5-.5H8V9H7.5A.5.5,0,0,1,7,8.5v-1A.5.5,0,0,1,7.5,7h2a.5.5,0,0,1,.5.5V12h.5a.5.5,0,0,1,.5.5Z" /></svg>')
+                    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 0 18 18" width="18"><defs><style> .fill { fill: %23464646; } </style></defs><title>S Info 18 N</title><rect id="Canvas" fill="%23ff13dc" opacity="0" width="18" height="18" /><path class="fill" d="M9,1a8,8,0,1,0,8,8A8,8,0,0,0,9,1ZM8.85,3.15a1.359,1.359,0,0,1,1.43109,1.28286q.00352.06452.00091.12914A1.332,1.332,0,0,1,8.85,5.9935a1.3525,1.3525,0,0,1-1.432-1.432A1.3585,1.3585,0,0,1,8.72033,3.14907Q8.78516,3.14643,8.85,3.15ZM11,13.5a.5.5,0,0,1-.5.5h-3a.5.5,0,0,1-.5-.5v-1a.5.5,0,0,1,.5-.5H8V9H7.5A.5.5,0,0,1,7,8.5v-1A.5.5,0,0,1,7.5,7h2a.5.5,0,0,1,.5.5V12h.5a.5.5,0,0,1,.5.5Z" /></svg>');
                 }
 
                 .price.price-strikethrough {
@@ -354,7 +355,7 @@ class RteField extends LitElement {
                     {
                         tag: '.icon-button',
                         getAttrs: this.#collectDataAttributes,
-                    }
+                    },
                 ],
                 toDOM: this.#createIconElement.bind(this),
             });
@@ -379,6 +380,9 @@ class RteField extends LitElement {
                     title: { default: null },
                     target: { default: null },
                     'data-analytics-id': { default: null },
+                    'data-modal': { default: null },
+                    'data-entitlement': { default: null },
+                    'data-upgrade': { default: null },
                 },
                 parseDOM: [
                     {
@@ -461,7 +465,8 @@ class RteField extends LitElement {
     }
 
     #createIconElement(node) {
-        const tooltipText = node.content.content[0]?.text.trim() || node.attrs.title;
+        const tooltipText =
+            node.content.content[0]?.text.trim() || node.attrs.title;
 
         const icon = document.createElement('span');
         icon.setAttribute('class', 'icon-button');
@@ -663,8 +668,11 @@ class RteField extends LitElement {
         const { state, dispatch } = this.editorView;
         const { selection } = state;
 
-        const node = state.schema.nodes.icon.create({}, state.schema.text(tooltip || ' '));
-        const tr = state.tr.insert(selection.from, node)
+        const node = state.schema.nodes.icon.create(
+            {},
+            state.schema.text(tooltip || ' '),
+        );
+        const tr = state.tr.insert(selection.from, node);
         dispatch(tr);
 
         this.showIconEditor = false;
@@ -967,8 +975,7 @@ class RteField extends LitElement {
             <sp-action-group quiet size="m" aria-label="RTE toolbar actions">
                 ${this.#formatButtons} ${this.#linkEditorButton}
                 ${this.#unlinkEditorButton} ${this.#offerSelectorToolButton}
-                ${this.#iconsButton}
-                ${this.#uptLinkButton}
+                ${this.#iconsButton} ${this.#uptLinkButton}
             </sp-action-group>
             <div id="editor"></div>
             <p id="counter">
@@ -976,8 +983,7 @@ class RteField extends LitElement {
                     >${this.length}</span
                 >/${this.maxLength}
             </p>
-            ${this.linkEditor}
-            ${this.iconEditor}
+            ${this.linkEditor} ${this.iconEditor}
         `;
     }
 

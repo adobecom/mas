@@ -3,6 +3,7 @@
 const fetchFragment = require('./fetch.js').fetchFragment;
 const translate = require('./translate.js').translate;
 const replace = require('./replace.js').replace;
+const settings = require('./settings.js').settings;
 const stateLib = require('@adobe/aio-lib-state');
 const { log, logError } = require('./common.js');
 const crypto = require('crypto');
@@ -56,7 +57,7 @@ async function main(params) {
         }
     }
 
-    for (const transformer of [fetchFragment, translate, replace]) {
+    for (const transformer of [fetchFragment, translate, settings, replace]) {
         if (context.status != 200) {
             logError(context.message, context);
             break;

@@ -22,8 +22,13 @@ export class SecureTextField extends LitElement {
 
     updated(changedProperties) {
         if (changedProperties.has('value')) {
-            this.isEditable = !!this.value;
-            this.showSecureTextField = !this.value || this.value === 'true';
+            if (!this.value || this.value === '') {
+                this.isEditable = false;
+                this.showSecureTextField = true;
+            } else {
+                this.isEditable = true;
+                this.showSecureTextField = this.value !== 'false';
+            }
         }
     }
 
@@ -33,9 +38,16 @@ export class SecureTextField extends LitElement {
             this.value = this.showSecureTextField ? '' : 'false';
             this.dispatchInputEvent(this.value);
         } else {
-            // When toggle is turned off, clear the value
             this.value = '';
-            this.dispatchInputEvent([]);
+            this.dispatchInputEvent(this.value);
+        }
+    }
+
+    #handleCheckbox(e) {
+        this.showSecureTextField = e.target.checked;
+        if (this.isEditable) {
+            this.value = e.target.checked ? '' : 'false';
+            this.dispatchInputEvent(this.value);
         }
     }
 
@@ -64,13 +76,7 @@ export class SecureTextField extends LitElement {
                     size="m"
                     .checked="${this.showSecureTextField}"
                     ?disabled="${!this.isEditable}"
-                    @change="${(e) => {
-                        this.showSecureTextField = e.target.checked;
-                        if (this.isEditable) {
-                            this.value = e.target.checked.toString();
-                            this.dispatchInputEvent();
-                        }
-                    }}"
+                    @change="${this.#handleCheckbox}"
                 >Show Secure Text Label</sp-checkbox>
             </sp-field-group>
         `;

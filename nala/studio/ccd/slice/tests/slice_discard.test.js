@@ -27,7 +27,7 @@ test.beforeEach(async ({ page, browserName }) => {
 });
 
 test.describe('M@S Studio CCD Slice card test suite', () => {
-    // @studio-slice-discard-edit-size - Validate discard edit size for slice card in mas studio
+    // @studio-slice-discard-edited-size - Validate discard edited size for slice card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({
         page,
         baseURL,
@@ -77,7 +77,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-edit-badge - Validate discard edit badge field for slice card in mas studio
+    // @studio-slice-discard-edited-badge - Validate discard edited badge field for slice card in mas studio
     test(`${features[1].name},${features[1].tags}`, async ({
         page,
         baseURL,
@@ -122,7 +122,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-edit-description - Validate discard edit description field for slice card in mas studio
+    // @studio-slice-discard-edited-description - Validate discard edited description field for slice card in mas studio
     test(`${features[2].name},${features[2].tags}`, async ({
         page,
         baseURL,
@@ -166,7 +166,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-edit-mnemonic - Validate discard edit mnemonic URL field for slice card in mas studio
+    // @studio-slice-discard-edited-mnemonic - Validate discard edited mnemonic URL field for slice card in mas studio
     test(`${features[3].name},${features[3].tags}`, async ({
         page,
         baseURL,
@@ -211,7 +211,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-edit-image - Validate discard edit background image field for slice card in mas studio
+    // @studio-slice-discard-edited-image - Validate discard edited background image field for slice card in mas studio
     test(`${features[4].name},${features[4].tags}`, async ({
         page,
         baseURL,
@@ -257,7 +257,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-edit-price - Validate discard edit price field for slice card in mas studio
+    // @studio-slice-discard-edited-price - Validate discard edited price field for slice card in mas studio
     test(`${features[5].name},${features[5].tags}`, async ({
         page,
         baseURL,
@@ -324,7 +324,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-edit-cta-ost - Validate discard edit CTA for slice card in mas studio
+    // @studio-slice-discard-edited-cta-ost - Validate discard edited CTA for slice card in mas studio
     test(`${features[6].name},${features[6].tags}`, async ({
         page,
         baseURL,
@@ -386,7 +386,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-edit-cta-label - Validate discard edit CTA label for slice card in mas studio
+    // @studio-slice-discard-edited-cta-label - Validate discard edited CTA label for slice card in mas studio
     test(`${features[7].name},${features[7].tags}`, async ({
         page,
         baseURL,
@@ -436,7 +436,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-edit-variant-change - Validate discard edit variant change for slice card in mas studio
+    // @studio-slice-discard-edited-variant-change - Validate discard edited variant change for slice card in mas studio
     test(`${features[8].name},${features[8].tags}`, async ({
         page,
         baseURL,
@@ -488,7 +488,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-edit-osi - Validate discard edit OSI for slice card in mas studio
+    // @studio-slice-discard-edited-osi - Validate discard edited OSI for slice card in mas studio
     test(`${features[9].name},${features[9].tags}`, async ({
         page,
         baseURL,
@@ -564,7 +564,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-edit-cta-variant - Validate discard edit CTA variant for slice card in mas studio
+    // @studio-slice-discard-edited-cta-variant - Validate discard edited CTA variant for slice card in mas studio
     test(`${features[10].name},${features[10].tags}`, async ({
         page,
         baseURL,
@@ -615,7 +615,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-discard-edit-cta-checkout-params - Validate discard edit CTA checkout params for slice card in mas studio
+    // @studio-slice-discard-edited-cta-checkout-params - Validate discard edited CTA checkout params for slice card in mas studio
     test(`${features[11].name},${features[11].tags}`, async ({
         page,
         baseURL,

@@ -58,7 +58,7 @@ test.afterEach(async ({ page }) => {
 });
 
 test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
-    // @studio-try-buy-widget-save-edit-size - Validate editing and saving try buy widjet card in mas studio
+    // @studio-try-buy-widget-save-edited-size - Validate saving edited size for try buy widjet card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({
         page,
         baseURL,
@@ -124,7 +124,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-save-variant-change-to-slice - Validate saving card after variant change to ccd slice
+    // @studio-try-buy-widget-save-edited-variant-change-to-slice - Validate saving card after variant change to ccd slice
     test(`${features[1].name},${features[1].tags}`, async ({
         page,
         baseURL,
@@ -200,7 +200,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-save-variant-change-to-suggested - Validate saving card after variant change ccd suggested
+    // @studio-try-buy-widget-save-edited-variant-change-to-suggested - Validate saving card after variant change ccd suggested
     test(`${features[2].name},${features[2].tags}`, async ({
         page,
         baseURL,
@@ -276,7 +276,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-save-edit-osi - Validate saving change osi
+    // @studio-try-buy-widget-save-edited-osi - Validate saving change osi
     test(`${features[3].name},${features[3].tags}`, async ({
         page,
         baseURL,
@@ -361,7 +361,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-save-edit-cta-variant - Validate saving change CTA variant
+    // @studio-try-buy-widget-save-edited-cta-variant - Validate saving change CTA variant
     test(`${features[4].name},${features[4].tags}`, async ({
         page,
         baseURL,
@@ -446,7 +446,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-save-edit-cta-checkout-params - Validate saving card after editing card cta checkout params
+    // @studio-try-buy-widget-save-edited-cta-checkout-params - Validate saving card after editing card cta checkout params
     test(`${features[5].name},${features[5].tags}`, async ({
         page,
         baseURL,

@@ -206,7 +206,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-save-edit-size - Validate saving card after editing card size
+    // @studio-slice-save-edited-size - Validate saving card after editing card size
     test(`${features[2].name},${features[2].tags}`, async ({
         page,
         baseURL,
@@ -258,7 +258,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-save-edit-description - Validate saving card after editing card description
+    // @studio-slice-save-edited-description - Validate saving card after editing card description
     test(`${features[3].name},${features[3].tags}`, async ({
         page,
         baseURL,
@@ -316,7 +316,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-save-edit-badge - Validate saving card after editing card badge
+    // @studio-slice-save-edited-badge - Validate saving card after editing card badge
     test(`${features[4].name},${features[4].tags}`, async ({
         page,
         baseURL,
@@ -372,7 +372,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-save-edit-mnemonic - Validate saving card after editing card mnemonic
+    // @studio-slice-save-edited-mnemonic - Validate saving card after editing card mnemonic
     test(`${features[5].name},${features[5].tags}`, async ({
         page,
         baseURL,
@@ -426,7 +426,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-save-edit-image - Validate saving card after editing card image
+    // @studio-slice-save-edited-image - Validate saving card after editing card image
     test(`${features[6].name},${features[6].tags}`, async ({
         page,
         baseURL,
@@ -487,7 +487,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-save-edit-price - Validate saving card after editing card price
+    // @studio-slice-save-edited-price - Validate saving card after editing card price
     test(`${features[7].name},${features[7].tags}`, async ({
         page,
         baseURL,
@@ -556,7 +556,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-save-edit-cta-label - Validate saving card after editing card cta label
+    // @studio-slice-save-edited-cta-label - Validate saving card after editing card cta label
     test(`${features[8].name},${features[8].tags}`, async ({
         page,
         baseURL,
@@ -625,7 +625,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-save-edit-osi - Validate saving change osi
+    // @studio-slice-save-edited-osi - Validate saving change osi
     test(`${features[9].name},${features[9].tags}`, async ({
         page,
         baseURL,
@@ -708,7 +708,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-save-edit-cta-variant - Validate saving change CTA variant
+    // @studio-slice-save-edited-cta-variant - Validate saving change CTA variant
     test(`${features[10].name},${features[10].tags}`, async ({
         page,
         baseURL,
@@ -789,7 +789,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-save-edit-cta-checkout-params - Validate saving card after editing card cta checkout params
+    // @studio-slice-save-edited-cta-checkout-params - Validate saving card after editing card cta checkout params
     test(`${features[11].name},${features[11].tags}`, async ({
         page,
         baseURL,

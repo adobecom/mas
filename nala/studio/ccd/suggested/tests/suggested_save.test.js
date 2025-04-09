@@ -280,7 +280,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-save-edit-title - Validate saving card after editing card title
+    // @studio-suggested-save-edited-title - Validate saving card after editing card title
     test(`${features[3].name},${features[3].tags}`, async ({
         page,
         baseURL,
@@ -334,7 +334,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-save-edit-eyebrow - Validate saving card after editing card eyebrow
+    // @studio-suggested-save-edited-eyebrow - Validate saving card after editing card eyebrow
     test(`${features[4].name},${features[4].tags}`, async ({
         page,
         baseURL,
@@ -388,7 +388,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-save-edit-mnemonic - Validate saving card after editing card mnemonic
+    // @studio-suggested-save-edited-mnemonic - Validate saving card after editing card mnemonic
     test(`${features[5].name},${features[5].tags}`, async ({
         page,
         baseURL,
@@ -442,7 +442,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-save-edit-description - Validate saving card after editing card description
+    // @studio-suggested-save-edited-description - Validate saving card after editing card description
     test(`${features[6].name},${features[6].tags}`, async ({
         page,
         baseURL,
@@ -500,7 +500,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-save-edit-image - Validate saving card after editing card background image
+    // @studio-suggested-save-edited-image - Validate saving card after editing card background image
     test(`${features[7].name},${features[7].tags}`, async ({
         page,
         baseURL,
@@ -557,7 +557,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-save-edit-price - Validate saving card after editing card price
+    // @studio-suggested-save-edited-price - Validate saving card after editing card price
     test(`${features[8].name},${features[8].tags}`, async ({
         page,
         baseURL,
@@ -625,7 +625,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-save-edit-cta-label - Validate saving card after editing card cta label
+    // @studio-suggested-save-edited-cta-label - Validate saving card after editing card cta label
     test(`${features[9].name},${features[9].tags}`, async ({
         page,
         baseURL,
@@ -685,7 +685,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-save-edit-osi - Validate saving change osi
+    // @studio-suggested-save-edited-osi - Validate saving change osi
     test(`${features[10].name},${features[10].tags}`, async ({
         page,
         baseURL,
@@ -768,7 +768,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-save-edit-cta-variant - Validate saving change CTA variant
+    // @studio-suggested-save-edited-cta-variant - Validate saving change CTA variant
     test(`${features[11].name},${features[11].tags}`, async ({
         page,
         baseURL,
@@ -849,7 +849,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-save-edit-cta-checkout-params - Validate saving card after editing card cta checkout params
+    // @studio-suggested-save-edited-cta-checkout-params - Validate saving card after editing card cta checkout params
     test(`${features[12].name},${features[12].tags}`, async ({
         page,
         baseURL,

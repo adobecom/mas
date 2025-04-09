@@ -27,7 +27,7 @@ test.beforeEach(async ({ page, browserName }) => {
 });
 
 test.describe('M@S Studio CCD Suggested card test suite', () => {
-    // @studio-suggested-discard-edit-title - Validate discard edit title for suggested card in mas studio
+    // @studio-suggested-discard-edited-title - Validate discard edited title for suggested card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({
         page,
         baseURL,
@@ -69,7 +69,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-discard-edit-eyebrow - Validate discard edit eyebrow field for suggested card in mas studio
+    // @studio-suggested-discard-edited-eyebrow - Validate discard edited eyebrow field for suggested card in mas studio
     test(`${features[1].name},${features[1].tags}`, async ({
         page,
         baseURL,
@@ -111,7 +111,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-discard-edit-description - Validate discard edit description field for suggested card in mas studio
+    // @studio-suggested-discard-edited-description - Validate discard edited description field for suggested card in mas studio
     test(`${features[2].name},${features[2].tags}`, async ({
         page,
         baseURL,
@@ -155,7 +155,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-discard-edit-mnemonic - Validate discard edit mnemonic URL field for suggested card in mas studio
+    // @studio-suggested-discard-edited-mnemonic - Validate discard edited mnemonic URL field for suggested card in mas studio
     test(`${features[3].name},${features[3].tags}`, async ({
         page,
         baseURL,
@@ -200,7 +200,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-discard-edit-background - Validate discard edit eyebrow field for suggested card in mas studio
+    // @studio-suggested-discard-edited-background - Validate discard edited background field for suggested card in mas studio
     test(`${features[4].name},${features[4].tags}`, async ({
         page,
         baseURL,
@@ -244,7 +244,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-discard-edit-price - Validate discard edit price field for suggested card in mas studio
+    // @studio-suggested-discard-edited-price - Validate discard edited price field for suggested card in mas studio
     test(`${features[5].name},${features[5].tags}`, async ({
         page,
         baseURL,
@@ -303,7 +303,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-discard-edit-cta-ost - Validate discard edit CTA for suggested card in mas studio
+    // @studio-suggested-discard-edited-cta-ost - Validate discard edited CTA for suggested card in mas studio
     test(`${features[6].name},${features[6].tags}`, async ({
         page,
         baseURL,
@@ -365,7 +365,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-discard-edit-cta-label - Validate discard edit CTA label for suggested card in mas studio
+    // @studio-suggested-discard-edited-cta-label - Validate discard edited CTA label for suggested card in mas studio
     test(`${features[7].name},${features[7].tags}`, async ({
         page,
         baseURL,
@@ -415,7 +415,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-discard-edit-variant-change - Validate variant change for suggested card in mas studio
+    // @studio-suggested-discard-edited-variant-change - Validate variant change for suggested card in mas studio
     test(`${features[8].name},${features[8].tags}`, async ({
         page,
         baseURL,
@@ -467,7 +467,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-discard-edit-osi - Validate discard edit OSI for suggested card in mas studio
+    // @studio-suggested-discard-edited-osi - Validate discard edited OSI for suggested card in mas studio
     test(`${features[9].name},${features[9].tags}`, async ({
         page,
         baseURL,
@@ -543,7 +543,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-discard-edit-cta-variant - Validate changing CTA variant for suggested card in mas studio
+    // @studio-suggested-discard-edited-cta-variant - Validate changing CTA variant for suggested card in mas studio
     test(`${features[10].name},${features[10].tags}`, async ({
         page,
         baseURL,
@@ -597,7 +597,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-discard-edit-cta-checkout-params - Validate discard edit CTA checkout params for suggested card in mas studio
+    // @studio-suggested-discard-edited-cta-checkout-params - Validate discard edited CTA checkout params for suggested card in mas studio
     test(`${features[11].name},${features[11].tags}`, async ({
         page,
         baseURL,

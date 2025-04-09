@@ -27,7 +27,7 @@ test.beforeEach(async ({ page, browserName }) => {
 });
 
 test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
-    // @studio-try-buy-widget-edit-discard-price - Validate editing and discarding changes for try buy widjet card in mas studio
+    // @studio-try-buy-widget-discard-edited-price - Validate discard edited changes for try buy widjet card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({
         page,
         baseURL,
@@ -84,7 +84,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-discard-variant-change - Validate variant change for AHome try-buy-widget card in mas studio
+    // @studio-try-buy-widget-discard-edited-variant-change - Validate variant change for AHome try-buy-widget card in mas studio
     test(`${features[1].name},${features[1].tags}`, async ({
         page,
         baseURL,
@@ -138,7 +138,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-discard-edit-osi - Validate changing OSI for AH try-buy-widget card in mas studio
+    // @studio-try-buy-widget-discard-edited-osi - Validate changing OSI for AH try-buy-widget card in mas studio
     test(`${features[2].name},${features[2].tags}`, async ({
         page,
         baseURL,
@@ -218,7 +218,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-discard-edit-cta-variant - Validate changing CTA variant for AH try-buy-widget card in mas studio
+    // @studio-try-buy-widget-discard-edited-cta-variant - Validate changing CTA variant for AH try-buy-widget card in mas studio
     test(`${features[3].name},${features[3].tags}`, async ({
         page,
         baseURL,
@@ -278,7 +278,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-discard-edit-cta-checkout-params - Validate discard edit CTA checkout params for try-buy-widget card in mas studio
+    // @studio-try-buy-widget-discard-edited-cta-checkout-params - Validate discard edited CTA checkout params for try-buy-widget card in mas studio
     test(`${features[4].name},${features[4].tags}`, async ({
         page,
         baseURL,

@@ -3,7 +3,7 @@ export default {
     features: [
         {
             tcid: '0',
-            name: '@studio-suggested-discard-edit-title',
+            name: '@studio-suggested-discard-edited-title',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -15,7 +15,7 @@ export default {
         },
         {
             tcid: '1',
-            name: '@studio-suggested-discard-edit-eyebrow',
+            name: '@studio-suggested-discard-edited-eyebrow',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -27,7 +27,7 @@ export default {
         },
         {
             tcid: '2',
-            name: '@studio-suggested-discard-edit-description',
+            name: '@studio-suggested-discard-edited-description',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -39,7 +39,7 @@ export default {
         },
         {
             tcid: '3',
-            name: '@studio-suggested-discard-edit-mnemonic',
+            name: '@studio-suggested-discard-edited-mnemonic',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -53,7 +53,7 @@ export default {
         },
         {
             tcid: '4',
-            name: '@studio-suggested-discard-edit-background',
+            name: '@studio-suggested-discard-edited-background',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -65,7 +65,7 @@ export default {
         },
         {
             tcid: '5',
-            name: '@studio-suggested-discard-edit-price',
+            name: '@studio-suggested-discard-edited-price',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -79,7 +79,7 @@ export default {
         },
         {
             tcid: '6',
-            name: '@studio-suggested-discard-edit-cta-ost',
+            name: '@studio-suggested-discard-edited-cta-ost',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -91,7 +91,7 @@ export default {
         },
         {
             tcid: '7',
-            name: '@studio-suggested-discard-edit-cta-label',
+            name: '@studio-suggested-discard-edited-cta-label',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -103,7 +103,7 @@ export default {
         },
         {
             tcid: '8',
-            name: '@studio-suggested-discard-edit-variant-change',
+            name: '@studio-suggested-discard-edited-variant-change',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
@@ -113,7 +113,7 @@ export default {
         },
         {
             tcid: '9',
-            name: '@studio-suggested-discard-edit-osi',
+            name: '@studio-suggested-discard-edited-osi',
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
@@ -132,7 +132,7 @@ export default {
         },
         {
             tcid: '10',
-            name: '@studio-suggested-discard-edit-cta-variant',
+            name: '@studio-suggested-discard-edited-cta-variant',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',

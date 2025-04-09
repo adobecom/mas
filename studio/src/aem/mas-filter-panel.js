@@ -44,7 +44,11 @@ class MasFilterPanel extends LitElement {
         }
     `;
 
-    storeController = new ReactiveController(this, [Store.user]);
+    storeController = new ReactiveController(this, [
+        Store.profile,
+        Store.selectedUserId,
+        Store.users,
+    ]);
 
     constructor() {
         super();
@@ -146,6 +150,8 @@ class MasFilterPanel extends LitElement {
             tags: '',
         }));
 
+        Store.selectedUserId.set(null);
+
         this.tagsByType = { ...EMPTY_TAGS };
         this.shadowRoot
             .querySelectorAll('aem-tag-picker-field')
@@ -166,7 +172,17 @@ class MasFilterPanel extends LitElement {
     }
 
     #handleUserDelete() {
-        Store.user.set(null);
+        Store.selectedUserId.set(null);
+    }
+
+    #handleUserChange(e) {
+        Store.selectedUserId.set(e.detail?.user?.id);
+    }
+
+    get selectedUser() {
+        return Store.users
+            .get()
+            .find((user) => user.id === Store.selectedUserId.get());
     }
 
     render() {
@@ -237,7 +253,13 @@ class MasFilterPanel extends LitElement {
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
-                <mas-user-picker label="Created by"></mas-user-picker>
+                <mas-user-picker
+                    label="Created by"
+                    .currentUser=${Store.profile.get()}
+                    .users=${Store.users.get()}
+                    .selectedUser=${this.selectedUser}
+                    @change=${this.#handleUserChange}
+                ></mas-user-picker>
 
                 <sp-action-button
                     quiet
@@ -264,14 +286,14 @@ class MasFilterPanel extends LitElement {
                         >
                     `,
                 )}
-                ${Store.user.get()
+                ${this.selectedUser
                     ? html`
                           <sp-tag
                               size="s"
                               deletable
                               @delete=${this.#handleUserDelete}
-                              >${Store.user.get().firstName}
-                              ${Store.user.get().lastName}
+                              >${this.selectedUser.firstName}
+                              ${this.selectedUser.lastName}
                               <sp-icon-user slot="icon" size="s"></sp-icon-user>
                           </sp-tag>
                       `

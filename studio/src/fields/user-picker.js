@@ -1,15 +1,13 @@
 import { html, css, LitElement, nothing } from 'lit';
-import Store from '../store.js';
 import { repeat } from 'lit/directives/repeat.js';
-import ReactiveController from '../reactivity/reactive-controller.js';
 
 class MasUserPicker extends LitElement {
     static properties = {
         search: { type: String },
-        users: { type: Array },
-        loading: { type: Boolean },
         label: { type: String },
-        error: { type: String },
+        users: { type: Array },
+        currentUser: { type: Object },
+        selectedUser: { type: Object },
     };
 
     static styles = css`
@@ -55,30 +53,23 @@ class MasUserPicker extends LitElement {
         }
     `;
 
-    storeController = new ReactiveController(this, [Store.user, Store.profile]);
-
     constructor() {
         super();
         this.search = '';
         this.users = [];
-        this.loading = false;
-        this.error = '';
-        this.debounceTimer = null;
-    }
-
-    get endpoint() {
-        return `https://bps-il.adobe.io/jil-api/v2/organizations/3B962FB55F5F922E0A495C88@AdobeOrg/user-groups/805679796/users/?page=0&page_size=100&search_query=${encodeURIComponent(
-            this.search,
-        )}&sort=FNAME_LNAME&sort_order=ASC&currentPage=1&filterQuery=`;
+        this.currentUser = null;
+        this.selectedUser = null;
     }
 
     get filteredUsers() {
-        const currentUserEmail = Store.profile.get()?.email?.toLowerCase();
-        return this.users
+        if (!this.users) return [];
+
+        return [...this.users]
             .sort((a, b) => {
-                // If current user's email matches, put them first
-                if (a.email.toLowerCase() === currentUserEmail) return -1;
-                if (b.email.toLowerCase() === currentUserEmail) return 1;
+                if (!this.currentUser) return a.id.localeCompare(b.id);
+                // If current user matches, put them first
+                if (a.id === this.currentUser.userId) return -1;
+                if (b.id === this.currentUser.userId) return 1;
                 return 0;
             })
             .filter((user) =>
@@ -88,44 +79,47 @@ class MasUserPicker extends LitElement {
             );
     }
 
-    async fetchUsers(searchQuery = '') {
-        this.loading = true;
-        this.error = '';
-
-        try {
-            const response = await fetch(this.endpoint, {
-                headers: {
-                    Authorization: `Bearer ${window.adobeid?.authorize?.()}`,
-                    'x-api-key': 'mas-commerce',
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch users');
-            }
-
-            this.users = await response.json();
-        } catch (err) {
-            this.error = 'Error loading users. Please try again.';
-            console.error('Error fetching users:', err);
-        } finally {
-            this.loading = false;
-        }
-    }
-
-    connectedCallback() {
-        super.connectedCallback();
-        this.fetchUsers();
-    }
-
     get selectedText() {
-        const selectedUser = Store.user.get();
-        return selectedUser ? 'User selected' : 'No user selected';
+        return this.selectedUser ? 'User selected' : 'No user selected';
     }
 
     resetSelection() {
-        Store.user.set(null);
+        this.selectedUser = null;
+        this.dispatchEvent(
+            new CustomEvent('change', {
+                detail: { user: null },
+                bubbles: true,
+                composed: true,
+            }),
+        );
+    }
+
+    handleSearchKeyDown(e) {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            this.updateComplete.then(() => {
+                const menuItems =
+                    this.shadowRoot.querySelectorAll('sp-menu-item');
+                if (menuItems[0]) {
+                    menuItems[0].focus();
+                }
+            });
+        }
+    }
+
+    handleMenuKeyDown(e) {
+        if (e.key === 'ArrowUp') {
+            // move focus to the search field if the first item is focused
+            const focusedItem = e.target.querySelector('sp-menu-item[focused]');
+            if (!focusedItem) return;
+            const index = [...e.target.children].indexOf(focusedItem);
+            if (index > 0) return;
+            const search = this.shadowRoot.querySelector('sp-search');
+            if (search) {
+                e.preventDefault();
+                search.focus();
+            }
+        }
     }
 
     render() {
@@ -141,6 +135,8 @@ class MasUserPicker extends LitElement {
                         placeholder="Search Users"
                         .value="${this.search}"
                         @input="${this.handleSearchInput}"
+                        @keydown="${this.handleSearchKeyDown}"
+                        @change="${this.handleSearchChange}"
                     ></sp-search>
 
                     ${this.loading
@@ -155,15 +151,15 @@ class MasUserPicker extends LitElement {
                         : this.error
                           ? html`<div class="error-message">${this.error}</div>`
                           : html`
-                                <sp-menu>
+                                <sp-menu
+                                    @keydown="${this.handleMenuKeyDown}"
+                                    @change="${this.handleChange}"
+                                >
                                     ${repeat(
                                         this.filteredUsers,
                                         (user) => user.id,
                                         (user) => html`
-                                            <sp-menu-item
-                                                value="${user.id}"
-                                                @click="${this.handleSelect}"
-                                            >
+                                            <sp-menu-item value="${user.id}">
                                                 <span
                                                     >${user.firstName}
                                                     ${user.lastName}</span
@@ -171,8 +167,8 @@ class MasUserPicker extends LitElement {
                                                 <span slot="description"
                                                     >${user.email}</span
                                                 >
-                                                ${user.email ===
-                                                Store.user.get()?.email
+                                                ${this.selectedUser?.id ===
+                                                user.id
                                                     ? html`
                                                           <sp-icon-checkmark-circle
                                                               slot="icon"
@@ -206,15 +202,26 @@ class MasUserPicker extends LitElement {
         this.search = e.target.value;
     }
 
-    handleSelect(e) {
-        const selectedUserId = e.currentTarget.getAttribute('value');
+    handleSearchChange(e) {
+        e.stopPropagation();
+    }
+
+    handleChange(e) {
+        e.stopPropagation();
+        const selectedUserId = e.target.value;
         const selectedUser = this.users.find(
             (user) => user.id === selectedUserId,
         );
-        if (selectedUser) {
-            Store.user.set(selectedUser);
-        }
+        this.selectedUser = selectedUser;
         e.target.closest('overlay-trigger').open = false;
+
+        this.dispatchEvent(
+            new CustomEvent('change', {
+                detail: { user: selectedUser },
+                bubbles: true,
+                composed: true,
+            }),
+        );
     }
 }
 

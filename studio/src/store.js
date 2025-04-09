@@ -42,11 +42,11 @@ const Store = {
         selected: new ReactiveStore(null),
         editing: new ReactiveStore(null),
     },
-    user: new ReactiveStore(),
     profile: new ReactiveStore(),
+    userGroups: new ReactiveStore([]), // groups for the current user
+    selectedUserId: new ReactiveStore(null),
+    users: new ReactiveStore([]),
 };
-
-window.Store = Store; // TODO remove
 
 export default Store;
 

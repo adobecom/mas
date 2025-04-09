@@ -12,12 +12,14 @@ class MasFragmentStatus extends LitElement {
 
     get badgeVariant() {
         switch (this.variant) {
+            case 'draft':
+                return 'cyan';
             case 'published':
-                return 'positive';
+                return 'green';
             case 'modified':
                 return 'yellow';
-            case 'draft':
-                return 'informative';
+            case 'unpublished':
+                return 'blue';
             default:
                 return '';
         }

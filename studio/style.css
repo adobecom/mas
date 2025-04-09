@@ -192,10 +192,6 @@ sp-status-light {
     border-radius: 4px;
 }
 
-.render-fragment:hover {
-    border-color: var(--ccd-gray-200-light, #e6e6e6);
-}
-
 .render-fragment-header {
     display: flex;
     justify-content: space-between;
@@ -215,6 +211,19 @@ merch-card {
 merch-card a,
 merch-card button {
     pointer-events: none;
+}
+
+mas-fragment-render {
+    display: block;
+    position: relative;
+    background-color: var(--spectrum-white);
+    border-radius: 4px;
+}
+
+mas-fragment-render:hover {
+    box-shadow: 0 var(--spectrum-drop-shadow-y) var(--spectrum-drop-shadow-blur) rgba(0, 0, 0, 0.1);
+    background-color: var(--spectrum-menu-item-background-color-hover);
+    transition: all 0.1s ease;
 }
 
 .mask .mas-fragment:not(.editing-fragment) {
@@ -243,10 +252,6 @@ sp-progress-circle.fragments {
 mas-fragment-render:not(.has-tooltip) merch-card ~ sp-tooltip,
 mas-fragment-table:not(.has-tooltip) ~ sp-tooltip {
     display: none;
-}
-
-merch-card:hover {
-    background-color: var(--spectrum-background-base-color) !important;
 }
 
 merch-card sp-icon-add,
@@ -440,23 +445,28 @@ sp-underlay + sp-dialog {
 }
 
 .render-card-header {
+    merch-card:hover {
+        background-color: var(--spectrum-background-base-color) !important;
+    }
     height: 32px;
 }
 
-mas-fragment-render div[slot="trigger"] {
+mas-fragment-render div[slot='trigger'] {
     position: relative;
 }
 
-mas-fragment-render[unkown] sp-icon-cover-image {
+mas-fragment-render[unknown] sp-icon-cover-image {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
 }
 
-mas-fragment-render[unkown] merch-card {
+mas-fragment-render[unknown] merch-card {
     width: 303px;
     height: 203px;
+}
+
 .unknown-fragment {
     display: flex;
     align-items: center;

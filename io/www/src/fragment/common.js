@@ -12,6 +12,12 @@ function logError(message, context) {
     console.error(`${logPrefix(context, 'error')} ${message}`);
 }
 
+function logDebug(getMessage, context) {
+    if (context.debugLogs) {
+        console.log(`${logPrefix(context, 'debug')} ${getMessage()}`);
+    }
+}
+
 async function getErrorContext(response) {
     return {
         status: response.status,
@@ -40,6 +46,10 @@ async function internalFetch(path, context) {
             context,
             success ? 'info' : 'error',
         );
+        logDebug(
+            () => `response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`,
+            context,
+        );
         return response;
     } catch (e) {
         logError(`[fetch] ${path} fetch error: ${e.message}`, context);
@@ -55,5 +65,6 @@ module.exports = {
     fetch: internalFetch,
     getErrorContext,
     log,
+    logDebug,
     logError,
 };

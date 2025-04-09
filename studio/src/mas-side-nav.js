@@ -1,5 +1,8 @@
 import { LitElement, html, css } from 'lit';
-import { navigateToPage } from './store.js';
+import { navigateToPage } from './router.js';
+import StoreController from './reactivity/store-controller.js';
+import Store from './store.js';
+import { PAGE_NAMES } from './constants.js';
 
 class MasSideNav extends LitElement {
     static styles = css`
@@ -67,6 +70,8 @@ class MasSideNav extends LitElement {
         }
     `;
 
+    currentPage = new StoreController(this, Store.page);
+
     render() {
         return html`<side-nav>
             <div class="dropdown-container">
@@ -76,20 +81,26 @@ class MasSideNav extends LitElement {
                 <sp-sidenav-item
                     label="Home"
                     value="home"
-                    @click="${navigateToPage('welcome')}"
-                    selected
+                    @click="${navigateToPage(PAGE_NAMES.WELCOME)}"
+                    ?selected=${Store.page.get() === PAGE_NAMES.WELCOME}
                 >
                     <sp-icon-home slot="icon"></sp-icon-home>
                 </sp-sidenav-item>
-
-                <sp-sidenav-item label="Promotions" value="promotions">
-                    <sp-icon-promote slot="icon"></sp-icon-promote>
+                <sp-sidenav-item
+                    label="Content"
+                    value="content"
+                    @click="${navigateToPage(PAGE_NAMES.CONTENT)}"
+                    ?selected=${Store.page.get() === PAGE_NAMES.CONTENT}
+                >
+                    <sp-icon-view-grid slot="icon"></sp-icon-view-grid>
                 </sp-sidenav-item>
-
-                <sp-sidenav-item label="Reporting" value="reporting">
-                    <sp-icon-graph-bar-vertical
-                        slot="icon"
-                    ></sp-icon-graph-bar-vertical>
+                <sp-sidenav-item
+                    label="Placeholders"
+                    value="placeholders"
+                    @click="${navigateToPage(PAGE_NAMES.PLACEHOLDERS)}"
+                    ?selected=${Store.page.get() === PAGE_NAMES.PLACEHOLDERS}
+                >
+                    <sp-icon-cclibrary slot="icon"></sp-icon-cclibrary>
                 </sp-sidenav-item>
                 <sp-sidenav-item
                     class="side-nav-support"

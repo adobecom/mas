@@ -192,6 +192,7 @@ export default class EditorPanel extends LitElement {
                         marketSegment: this.fragment?.getTagTitle('market_segment'),
                         customerSegment: this.fragment?.getTagTitle('customer_segment'),
                         product: this.fragment?.getTagTitle('mas:product/'),
+                        promotion: this.fragment?.getTagTitle('mas:promotion/'),
                     };
 
                     VARIANTS.forEach((variant) => {
@@ -203,7 +204,7 @@ export default class EditorPanel extends LitElement {
                     if(part) return ` / ${part}`;
                     return '';
                 });
-                fragmentParts = `${surface}${buildPart(props.variantLabel)}${buildPart(props.customerSegment)}${buildPart(props.marketSegment)}${buildPart(props.product)} / ${this.fragment.fragmentName}`;
+                fragmentParts = `${surface}${buildPart(props.variantLabel)}${buildPart(props.customerSegment)}${buildPart(props.marketSegment)}${buildPart(props.product)}${buildPart(props.promotion)}`;
                 title = props.cardTitle;
                 break;  
             case COLLECTION_MODEL_PATH:
@@ -641,6 +642,10 @@ export default class EditorPanel extends LitElement {
         `;
     }
 
+    get authorPath() {
+        return this.generateCodeToUse()[2];
+    }
+
     render() {
         if (!this.fragment) return nothing;
         if (this.fragment.loading)
@@ -671,7 +676,7 @@ export default class EditorPanel extends LitElement {
                 ${this.fragmentEditorToolbar}
                 <sp-divider size="s"></sp-divider>
                 <div>
-                    <p>${this.generateCodeToUse()[2]}</p>
+                    <p>${this.authorPath}</p>
                 </div>
                 <sp-divider size="s"></sp-divider>
                 ${editor}

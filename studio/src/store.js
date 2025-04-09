@@ -1,4 +1,5 @@
-import { WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
+import { PAGE_NAMES, WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
+import { FragmentStore } from './reactivity/fragment-store.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
 import {
     deepCompare,
@@ -10,6 +11,7 @@ import {
 
 const hasQuery = Boolean(getHashParam('query'));
 
+// Store definition with default values - no URL parsing here
 const Store = {
     fragments: {
         list: {
@@ -23,7 +25,7 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
     },
-    operation: new ReactiveStore(), // current operation in progress, editor or content navigation batch operations
+    operation: new ReactiveStore(),
     editor: {
         get hasChanges() {
             return Store.fragments.inEdit.get()?.get()?.hasChanges || false;
@@ -37,11 +39,19 @@ const Store = {
     filters: new ReactiveStore({ locale: 'en_US', tags: '' }, filtersValidator),
     renderMode: new ReactiveStore(
         localStorage.getItem('mas-render-mode') || 'render',
-    ), // 'render' | 'table'
+    ),
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
-    page: new ReactiveStore(hasQuery ? 'content' : 'welcome', pageValidator), // 'welcome' | 'content'
-    commerceEnv: new ReactiveStore(WCS_ENV_PROD, commerceEnvValidator), // 'stage' | 'prod'
+    page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
+    commerceEnv: new ReactiveStore(WCS_ENV_PROD, commerceEnvValidator),
+    placeholders: {
+        list: {
+            data: new ReactiveStore([]),
+            loading: new ReactiveStore(false),
+        },
+        selected: new ReactiveStore(null),
+        editing: new ReactiveStore(null),
+    },
 };
 
 window.Store = Store; // TODO remove
@@ -53,8 +63,18 @@ export default Store;
  * @returns {object}
  */
 function filtersValidator(value) {
-    if (!value) return { locale: 'en_US' }; // eventually we can have a constant, initialFilters
+    if (!value) return { locale: 'en_US', tags: '' };
     if (!value.locale) value.locale = 'en_US';
+    
+    // Ensure tags is always a string
+    if (value.tags === undefined || value.tags === null) {
+        value.tags = '';
+    } else if (Array.isArray(value.tags)) {
+        value.tags = value.tags.join(',');
+    } else if (typeof value.tags !== 'string') {
+        value.tags = String(value.tags);
+    }
+    
     return value;
 }
 
@@ -63,8 +83,12 @@ function filtersValidator(value) {
  * @returns {string}
  */
 function pageValidator(value) {
-    if (value === 'content') return value;
-    return 'welcome';
+    const validPages = [
+        PAGE_NAMES.WELCOME,
+        PAGE_NAMES.CONTENT,
+        PAGE_NAMES.PLACEHOLDERS,
+    ];
+    return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }
 
 /**
@@ -78,6 +102,9 @@ function commerceEnvValidator(value) {
 
 const editorPanel = () => document.querySelector('editor-panel');
 
+/**
+ * Toggle selection of a fragment
+ */
 export function toggleSelection(id) {
     const selection = Store.selection.get();
     if (selection.includes(id))
@@ -87,138 +114,12 @@ export function toggleSelection(id) {
     else Store.selection.set([...selection, id]);
 }
 
+/**
+ * Edit a fragment in the editor panel
+ */
 export function editFragment(store, x = 0) {
     if (!Store.fragments.list.data.get().includes(store)) {
         Store.fragments.list.data.set((prev) => [store, ...prev]);
     }
     editorPanel()?.editFragment(store, x);
 }
-
-export function navigateToPage(value) {
-    return async () => {
-        const confirmed =
-            !Store.editor.hasChanges ||
-            (await editorPanel().promptDiscardChanges());
-        if (confirmed) {
-            Store.fragments.inEdit.set();
-            Store.page.set(value);
-        }
-    };
-}
-
-/**
- * Links a given store to the hash; Only primitive values and object values with primitive properties are supported
- * @param {ReactiveStore} store
- * @param {string | string[]} params
- * @param {any} defaultValue - The default value that will not be shown in the hash; for object values, pass an
- *                             object containing the default values for as many properties as needed
- */
-export function linkStoreToHash(store, params, defaultValue) {
-    if (store.hasMeta('hashLink')) {
-        console.error('Cannot link to hash a store that is already linked.');
-        return;
-    }
-
-    const isPrimitive = !Array.isArray(params);
-
-    function syncFromHash() {
-        const value = store.get();
-        const defaultValues = isPrimitive
-            ? { [params]: defaultValue }
-            : defaultValue || {};
-
-        if (isPrimitive) {
-            const hashValue = getHashParam(params);
-            if (hashValue && hashValue !== value) {
-                store.set(hashValue);
-            }
-        } else {
-            const hashValue = {};
-            for (const param of params) {
-                const paramValue = getHashParam(param);
-                // Handle array values by splitting on commas if the default value is an array
-                hashValue[param] = Array.isArray(defaultValues[param])
-                    ? paramValue
-                        ? paramValue.split(',')
-                        : []
-                    : paramValue;
-
-                if (!looseEquals(hashValue[param], value[param])) {
-                    if (
-                        (!hashValue[param] ||
-                            looseEquals(
-                                hashValue[param],
-                                defaultValues[param],
-                            )) &&
-                        defaultValues[param] &&
-                        looseEquals(value[param], defaultValues[param])
-                    )
-                        hashValue[param] = defaultValues[param];
-                }
-            }
-            const prev = store.get();
-            const hasChanges = !deepCompare(prev, hashValue);
-            if (hasChanges) store.set((prev) => ({ ...prev, ...hashValue }));
-        }
-    }
-
-    function syncToHash(value) {
-        const normalizedValue = isPrimitive
-            ? { [params]: value }
-            : structuredClone(value); // TODO pass clones from stores to these functions, instead of the underlying value
-        const hashParams = getHashParams();
-
-        const defaultValues = isPrimitive
-            ? { [params]: defaultValue }
-            : defaultValue;
-
-        for (const prop in defaultValues) {
-            const propValue = normalizedValue[prop];
-            // Join arrays with commas before comparing with default value
-            const normalizedPropValue = Array.isArray(propValue)
-                ? propValue.join(',')
-                : propValue;
-            const normalizedDefaultValue = Array.isArray(defaultValues[prop])
-                ? defaultValues[prop].join(',')
-                : defaultValues[prop];
-
-            if (normalizedPropValue === normalizedDefaultValue) {
-                hashParams.delete(prop);
-                delete normalizedValue[prop];
-            } else if (Array.isArray(propValue)) {
-                // Ensure arrays are joined with commas when setting in URL
-                normalizedValue[prop] = propValue.join(',');
-            }
-        }
-        setHashParams(hashParams, normalizedValue);
-        window.location.hash = hashParams.toString();
-    }
-
-    // Initialize
-    syncFromHash();
-
-    // Subscribe
-    window.addEventListener('hashchange', syncFromHash);
-    store.subscribe(syncToHash);
-    store.setMeta('hashLink', { from: syncFromHash, to: syncToHash });
-}
-
-/**
- * @param {ReactiveStore} store
- */
-export function unlinkStoreFromHash(store) {
-    const hashLink = store.getMeta('hashLink');
-    if (!hashLink) return;
-    window.removeEventListener('hashchange', hashLink.from);
-    store.unsubscribe(hashLink.to);
-    store.removeMeta('hashLink');
-}
-
-// When the query param is populated or changes, switch to the 'content' page.
-Store.search.subscribe((value, oldValue) => {
-    if (
-        (!oldValue.query && value.query) ||
-        (Boolean(value.query) && value.query !== oldValue.query)
-    )
-        Store.page.set('content');
-});

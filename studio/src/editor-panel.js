@@ -676,7 +676,7 @@ export default class EditorPanel extends LitElement {
                 ${this.fragmentEditorToolbar}
                 <sp-divider size="s"></sp-divider>
                 <div>
-                    <p id="author-path>${this.authorPath}</p>
+                    <p id="author-path">${this.authorPath}</p>
                 </div>
                 <sp-divider size="s"></sp-divider>
                 ${editor}

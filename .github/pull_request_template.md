@@ -3,5 +3,5 @@ Please always provide the [GitHub issue(s)](../issues) your PR is for, as well a
 Resolve <JIRA>
 
 Test URLs:
-- Before: https://main--mas--adobecom.aem.live/studio.html
-- After: https://<branch>--mas--adobecom.aem.live/studio.html
+- Before: https://main--mas--adobecom.aem.live/
+- After: https://<branch>--mas--adobecom.aem.live/

@@ -151,7 +151,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             );
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.description).toContainText(data.description);
+            await expect(await editor.description).toContainText(
+                data.description,
+            );
         });
     });
 
@@ -297,9 +299,13 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await (await studio.getCard(data.cardid, 'suggested')).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.prices).toContainText(data.price);
-            await expect(await editor.prices).toContainText(data.strikethroughPrice);
+            await expect(await editor.prices).toContainText(
+                data.strikethroughPrice,
+            );
             await expect(await editor.prices).not.toContainText(data.newPrice);
-            await expect(await editor.prices).not.toContainText(data.newStrikethroughPrice);
+            await expect(await editor.prices).not.toContainText(
+                data.newStrikethroughPrice,
+            );
         });
     });
 

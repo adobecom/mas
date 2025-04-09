@@ -38,7 +38,6 @@ test.beforeEach(async ({ page, browserName }) => {
     trybuywidget = new AHTryBuyWidgetPage(page);
 });
 
-
 test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-edit-variant-change-to-suggested - Validate variant change for plans individuals card to suggested in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({
@@ -110,8 +109,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardPromoText).not.toBeVisible();
             await expect(await individuals.cardCallout).not.toBeVisible();
             await expect(await individuals.cardStockCheckbox).not.toBeVisible();
-            await expect(await individuals.cardQuantitySelector).not.toBeVisible();
-            await expect(await individuals.cardSecureTransaction).not.toBeVisible();
+            await expect(
+                await individuals.cardQuantitySelector,
+            ).not.toBeVisible();
+            await expect(
+                await individuals.cardSecureTransaction,
+            ).not.toBeVisible();
         });
     });
     // @studio-plans-individuals-edit-variant-change-to-slice - Validate variant change for plans individuals card to slice in mas studio
@@ -185,8 +188,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardPromoText).not.toBeVisible();
             await expect(await individuals.cardCallout).not.toBeVisible();
             await expect(await individuals.cardStockCheckbox).not.toBeVisible();
-            await expect(await individuals.cardQuantitySelector).not.toBeVisible();
-            await expect(await individuals.cardSecureTransaction).not.toBeVisible();
+            await expect(
+                await individuals.cardQuantitySelector,
+            ).not.toBeVisible();
+            await expect(
+                await individuals.cardSecureTransaction,
+            ).not.toBeVisible();
         });
     });
 
@@ -262,8 +269,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardPromoText).not.toBeVisible();
             await expect(await individuals.cardCallout).not.toBeVisible();
             await expect(await individuals.cardStockCheckbox).not.toBeVisible();
-            await expect(await individuals.cardQuantitySelector).not.toBeVisible();
-            await expect(await individuals.cardSecureTransaction).not.toBeVisible();
+            await expect(
+                await individuals.cardQuantitySelector,
+            ).not.toBeVisible();
+            await expect(
+                await individuals.cardSecureTransaction,
+            ).not.toBeVisible();
         });
     });
 
@@ -293,7 +304,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.size).toBeVisible();
             await expect(await editor.size).toHaveAttribute('value', 'Default');
             await editor.size.click();
-            await page.getByRole('option', { name: 'Wide', exact: true}).click();
+            await page
+                .getByRole('option', { name: 'Wide', exact: true })
+                .click();
             await page.waitForTimeout(2000);
         });
 
@@ -305,7 +318,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-5: Edit size field to super-wide', async () => {
             await editor.size.click();
-            await page.getByRole('option', { name: 'Super Wide', exact: true }).click();
+            await page
+                .getByRole('option', { name: 'Super Wide', exact: true })
+                .click();
             await page.waitForTimeout(2000);
         });
 
@@ -424,8 +439,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-4: Validate description field updated', async () => {
-            await expect(await editor.description).toContainText(data.newDescription);
-            await expect(await individuals.cardDescription).toContainText(data.newDescription);
+            await expect(await editor.description).toContainText(
+                data.newDescription,
+            );
+            await expect(await individuals.cardDescription).toContainText(
+                data.newDescription,
+            );
         });
     });
 
@@ -490,7 +509,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Remove callout field', async () => {
             await expect(await editor.calloutRTE).toBeVisible();
-            await expect(await editor.calloutRTE).toContainText(data.calloutText);
+            await expect(await editor.calloutRTE).toContainText(
+                data.calloutText,
+            );
             await editor.calloutRTE.click();
             await editor.calloutRTE.fill('');
         });
@@ -504,8 +525,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-6: Validate callout field updated', async () => {
-            await expect(await editor.calloutRTE).toContainText(data.newCalloutText);
-            await expect(await individuals.cardCallout).toContainText(data.newCalloutText);
+            await expect(await editor.calloutRTE).toContainText(
+                data.newCalloutText,
+            );
+            await expect(await individuals.cardCallout).toContainText(
+                data.newCalloutText,
+            );
         });
     });
 
@@ -535,7 +560,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.promoText).toBeVisible();
             await expect(await editor.promoText).toHaveValue(data.promoText);
             await editor.promoText.fill('');
-        }); 
+        });
 
         await test.step('step-4: Validate promo text field is removed', async () => {
             await expect(await editor.promoText).toHaveValue('');
@@ -548,7 +573,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-6: Validate promo text field updated', async () => {
             await expect(await editor.promoText).toHaveValue(data.newPromoText);
-            await expect(await individuals.cardPromoText).toHaveText(data.newPromoText);
+            await expect(await individuals.cardPromoText).toHaveText(
+                data.newPromoText,
+            );
         });
     });
 
@@ -578,8 +605,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.prices).toBeVisible();
             await expect(await editor.prices).toContainText(data.price);
             await expect(await editor.prices).not.toContainText(data.newPrice);
-            await expect(await editor.prices).toContainText(data.strikethroughPrice);
-            await expect(await editor.prices).not.toContainText(data.newStrikethroughPrice);
+            await expect(await editor.prices).toContainText(
+                data.strikethroughPrice,
+            );
+            await expect(await editor.prices).not.toContainText(
+                data.newStrikethroughPrice,
+            );
 
             await (await editor.prices.locator(editor.regularPrice)).dblclick();
             await expect(await ost.price).toBeVisible();
@@ -591,12 +622,18 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-4: Validate edited price in Editor panel', async () => {
             await expect(await editor.prices).toContainText(data.newPrice);
-            await expect(await editor.prices).toContainText(data.newStrikethroughPrice);
+            await expect(await editor.prices).toContainText(
+                data.newStrikethroughPrice,
+            );
         });
 
         await test.step('step-5: Validate edited price field on the card', async () => {
-            await expect(await individuals.cardPrice).toContainText(data.newPrice);
-            await expect(await individuals.cardPrice).toContainText(data.newStrikethroughPrice);
+            await expect(await individuals.cardPrice).toContainText(
+                data.newPrice,
+            );
+            await expect(await individuals.cardPrice).toContainText(
+                data.newStrikethroughPrice,
+            );
         });
     });
 
@@ -709,7 +746,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.showStockCheckbox).not.toBeChecked();
             await expect(await editor.showStockCheckbox).toBeVisible();
             await expect(await individuals.cardStockCheckbox).not.toBeVisible();
-            await expect(await individuals.cardStockCheckboxIcon).not.toBeVisible();
+            await expect(
+                await individuals.cardStockCheckboxIcon,
+            ).not.toBeVisible();
         });
 
         await test.step('step-5: Toggle back stock checkbox', async () => {
@@ -749,18 +788,20 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-3: Toggle quantity selector', async () => {
             await expect(await editor.showQuantitySelector).toBeVisible();
             await expect(await editor.showQuantitySelector).toBeChecked();
-            await expect(await individuals.cardQuantitySelector).toBeVisible(); 
+            await expect(await individuals.cardQuantitySelector).toBeVisible();
             await editor.showQuantitySelector.click();
         });
 
         await test.step('step-4: Validate quantity selector updated', async () => {
             await expect(await editor.showQuantitySelector).not.toBeChecked();
             await expect(await editor.showQuantitySelector).toBeVisible();
-            await expect(await individuals.cardQuantitySelector).not.toBeVisible();
+            await expect(
+                await individuals.cardQuantitySelector,
+            ).not.toBeVisible();
         });
 
-        await test.step('step-5: Toggle back quantity selector', async () => {  
-            await editor.showQuantitySelector.click();  
+        await test.step('step-5: Toggle back quantity selector', async () => {
+            await editor.showQuantitySelector.click();
         });
 
         await test.step('step-6: Validate quantity selector updated', async () => {
@@ -802,7 +843,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-4: Validate whats included field updated', async () => {
-            await expect(await editor.whatsIncluded).toHaveValue(data.whatsIncludedText);
+            await expect(await editor.whatsIncluded).toHaveValue(
+                data.whatsIncludedText,
+            );
             await expect(await individuals.cardWhatsIncluded).toBeVisible();
         });
 
@@ -814,5 +857,5 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.whatsIncluded).toHaveValue('');
             await expect(await individuals.cardWhatsIncluded).not.toBeVisible();
         });
-    });    
+    });
 });

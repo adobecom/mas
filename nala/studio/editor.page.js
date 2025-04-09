@@ -36,7 +36,9 @@ export default class EditorPage {
             'sp-field-group#callout .icon-button',
         );
         this.showStockCheckbox = this.panel.locator('#stockOffer #input');
-        this.showQuantitySelector = this.panel.locator('#quantitySelect sp-checkbox input');
+        this.showQuantitySelector = this.panel.locator(
+            '#quantitySelect sp-checkbox input',
+        );
         this.quantitySelectorTitle = this.panel.locator(
             'sp-field-group#quantitySelector #title-quantity input',
         );

@@ -42,7 +42,10 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
         await test.step('step-2: Validate individuals card CSS', async () => {
             await expect(individualsCard).toBeVisible();
             expect(
-                await webUtil.verifyCSS(individualsCard, individuals.cssProp.card),
+                await webUtil.verifyCSS(
+                    individualsCard,
+                    individuals.cssProp.card,
+                ),
             ).toBeTruthy();
         });
     });
@@ -144,7 +147,9 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
             await expect(individualsCard).toBeVisible();
             expect(
                 await webUtil.verifyCSS(
-                    individualsCard.locator(individuals.cardDescription).first(),
+                    individualsCard
+                        .locator(individuals.cardDescription)
+                        .first(),
                     individuals.cssProp.description,
                 ),
             ).toBeTruthy();
@@ -170,7 +175,9 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
             await expect(individualsCard).toBeVisible();
             expect(
                 await webUtil.verifyCSS(
-                    individualsCard.locator(individuals.cardDescription).locator(individuals.cardLegalLink),
+                    individualsCard
+                        .locator(individuals.cardDescription)
+                        .locator(individuals.cardLegalLink),
                     individuals.cssProp.legalLink,
                 ),
             ).toBeTruthy();

@@ -40,7 +40,7 @@ export default {
             },
             browserParams: '#query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
-        },        
+        },
         {
             tcid: '4',
             name: '@studio-plans-individuals-edit-title',
@@ -71,7 +71,8 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
-                description: 'Edit and organize photos. Save 25% for the first 6 months. Ends Feb 26.',
+                description:
+                    'Edit and organize photos. Save 25% for the first 6 months. Ends Feb 26.',
                 newDescription: 'New Test Description',
             },
             browserParams: '#query=',

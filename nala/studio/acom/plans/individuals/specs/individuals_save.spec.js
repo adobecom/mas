@@ -20,7 +20,7 @@ export default {
             },
             browserParams: '#query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
-        },        
+        },
         {
             tcid: '2',
             name: '@studio-plans-individuals-save-edited-title',

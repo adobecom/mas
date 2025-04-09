@@ -162,7 +162,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             );
             await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.description).toContainText(data.description);
+            await expect(await editor.description).toContainText(
+                data.description,
+            );
         });
     });
 
@@ -253,7 +255,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             );
             await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.backgroundImage).toHaveValue(data.backgroundURL);
+            await expect(await editor.backgroundImage).toHaveValue(
+                data.backgroundURL,
+            );
         });
     });
 
@@ -318,9 +322,15 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.description).toContainText(data.price);
-            await expect(await editor.description).toContainText(data.strikethroughPrice);
-            await expect(await editor.description).not.toContainText(data.newPrice);
-            await expect(await editor.description).not.toContainText(data.newStrikethroughPrice);
+            await expect(await editor.description).toContainText(
+                data.strikethroughPrice,
+            );
+            await expect(await editor.description).not.toContainText(
+                data.newPrice,
+            );
+            await expect(await editor.description).not.toContainText(
+                data.newStrikethroughPrice,
+            );
         });
     });
 
@@ -665,7 +675,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            const changedCTAhref = await slice.cardCTA.getAttribute('data-href');
+            const changedCTAhref =
+                await slice.cardCTA.getAttribute('data-href');
             let noSearchParams = new URLSearchParams(
                 decodeURI(changedCTAhref).split('?')[1],
             );

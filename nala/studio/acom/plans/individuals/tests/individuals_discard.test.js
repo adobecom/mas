@@ -107,7 +107,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-3: Edit size field', async () => {
             await expect(await editor.size).toBeVisible();
             await editor.size.click();
-            await page.getByRole('option', { name: 'Wide', exact: true}).click();
+            await page
+                .getByRole('option', { name: 'Wide', exact: true })
+                .click();
             await page.waitForTimeout(2000);
         });
 
@@ -163,7 +165,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await studio.confirmationDialog).toBeVisible();
             await studio.discardDialog.click();
             await expect(await editor.panel).not.toBeVisible();
-
         });
 
         await test.step('step-5: Validate title field not updated', async () => {
@@ -256,7 +257,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             );
             await (await studio.getCard(data.cardid, 'plans')).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.description).toContainText(data.description);
+            await expect(await editor.description).toContainText(
+                data.description,
+            );
         });
     });
 
@@ -340,10 +343,14 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Validate callout field not updated', async () => {
-            await expect(await individuals.cardCallout).toContainText(data.calloutText);
+            await expect(await individuals.cardCallout).toContainText(
+                data.calloutText,
+            );
             await (await studio.getCard(data.cardid, 'plans')).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.calloutRTE).toContainText(data.calloutText);
+            await expect(await editor.calloutRTE).toContainText(
+                data.calloutText,
+            );
         });
     });
 
@@ -382,7 +389,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Validate promo text field not updated', async () => {
-            await expect(await individuals.cardPromoText).toHaveText(data.promoText);
+            await expect(await individuals.cardPromoText).toHaveText(
+                data.promoText,
+            );
             await (await studio.getCard(data.cardid, 'plans')).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.promoText).toHaveValue(data.promoText);
@@ -430,15 +439,25 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(await individuals.cardPrice).toContainText(data.price);
-            await expect(await individuals.cardPrice).toContainText(data.strikethroughPrice);
-            await expect(await individuals.cardPrice).not.toContainText(data.newPrice);
-            await expect(await individuals.cardPrice).not.toContainText(data.newStrikethroughPrice);
+            await expect(await individuals.cardPrice).toContainText(
+                data.strikethroughPrice,
+            );
+            await expect(await individuals.cardPrice).not.toContainText(
+                data.newPrice,
+            );
+            await expect(await individuals.cardPrice).not.toContainText(
+                data.newStrikethroughPrice,
+            );
             await (await studio.getCard(data.cardid, 'plans')).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.prices).toContainText(data.price);
-            await expect(await editor.prices).toContainText(data.strikethroughPrice);
+            await expect(await editor.prices).toContainText(
+                data.strikethroughPrice,
+            );
             await expect(await editor.prices).not.toContainText(data.newPrice);
-            await expect(await editor.prices).not.toContainText(data.newStrikethroughPrice);
+            await expect(await editor.prices).not.toContainText(
+                data.newStrikethroughPrice,
+            );
         });
     });
 

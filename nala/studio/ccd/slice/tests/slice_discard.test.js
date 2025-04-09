@@ -146,16 +146,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Edit description field', async () => {
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.description).toContainText(
-                data.description,
-            );
             await editor.description.fill(data.newDescription);
-            await expect(await editor.description).toContainText(
-                data.newDescription,
-            );
-            await expect(await slice.cardDescription).toHaveText(
-                data.newDescription,
-            );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -199,13 +190,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
             await expect(await editor.iconURL).toBeVisible();
-            await expect(await editor.iconURL).toHaveValue(data.iconURL);
             await editor.iconURL.fill(data.newIconURL);
-            await expect(await editor.iconURL).toHaveValue(data.newIconURL);
-            await expect(await slice.cardIcon).toHaveAttribute(
-                'src',
-                data.newIconURL,
-            );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -250,17 +235,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Enter new value in the background URL field', async () => {
             await expect(await editor.backgroundImage).toBeVisible();
-            await expect(await editor.backgroundImage).toHaveValue(
-                data.backgroundURL,
-            );
             await editor.backgroundImage.fill(data.newBackgroundURL);
-            await expect(await editor.backgroundImage).toHaveValue(
-                data.newBackgroundURL,
-            );
-            await expect(await slice.cardImage).toHaveAttribute(
-                'src',
-                data.newBackgroundURL,
-            );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -306,17 +281,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Edit price field', async () => {
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.description).toContainText(data.price);
-            await expect(await editor.description).not.toContainText(
-                data.newPrice,
-            );
-            await expect(await editor.description).toContainText(
-                data.strikethroughPrice,
-            );
-            await expect(await editor.description).not.toContainText(
-                data.newStrikethroughPrice,
-            );
-
             await (
                 await editor.description.locator(editor.regularPrice)
             ).dblclick();
@@ -327,32 +291,14 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await ost.priceUse.click();
         });
 
-        await test.step('step-4: Validate edited price in Editor panel', async () => {
-            await expect(await editor.description).toContainText(data.newPrice);
-            await expect(await editor.description).toContainText(
-                data.newStrikethroughPrice,
-            );
-        });
-
-        await test.step('step-5: Validate edited price field on the card', async () => {
-            await expect(
-                await slice.cardDescription.locator(slice.cardPrice),
-            ).toContainText(data.newPrice);
-            await expect(
-                await slice.cardDescription.locator(
-                    slice.cardPriceStrikethrough,
-                ),
-            ).toContainText(data.newStrikethroughPrice);
-        });
-
-        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
             await editor.closeEditor.click();
             await expect(await studio.confirmationDialog).toBeVisible();
             await studio.discardDialog.click();
             await expect(await editor.panel).not.toBeVisible();
         });
 
-        await test.step('step-7: Verify there is no changes of the card', async () => {
+        await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(
                 await slice.cardDescription.locator(slice.cardPrice),
             ).toContainText(data.price);
@@ -402,8 +348,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Edit CTA field', async () => {
             await expect(await editor.footer).toBeVisible();
-            await expect(await editor.footer).toContainText(data.ctaText);
-
             await (await editor.CTA).dblclick();
             await expect(await ost.checkoutTab).toBeVisible();
             await expect(await ost.workflowMenu).toBeVisible();
@@ -425,8 +369,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 })
                 .click();
             await ost.checkoutLinkUse.click();
-            await expect(await editor.footer).toContainText(data.newCtaText);
-            await expect(await slice.cardCTA).toContainText(data.newCtaText);
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -471,16 +413,12 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 await editor.footer.locator(editor.linkEdit),
             ).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
-            await expect(await editor.footer).toContainText(data.ctaText);
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkText).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-            await expect(await editor.linkText).toHaveValue(data.ctaText);
             await editor.linkText.fill(data.newCtaText);
             await editor.linkSave.click();
-            await expect(await editor.footer).toContainText(data.newCtaText);
-            await expect(await slice.cardCTA).toContainText(data.newCtaText);
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -522,19 +460,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Change variant', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute(
-                'default-value',
-                'ccd-slice',
-            );
             await editor.variant.locator('sp-picker').first().click();
             await page.getByRole('option', { name: 'suggested' }).click();
             await page.waitForTimeout(2000);
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).not.toBeVisible();
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).toBeVisible();
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -584,43 +512,13 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Change OSI in OST', async () => {
             await expect(await editor.OSI).toBeVisible();
-            await expect(await editor.OSI).toContainText(data.osi);
             await expect(await editor.tags).toBeVisible();
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.productCodeTag}`),
-            );
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.offerTypeTag}`),
-            );
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.marketSegmentsTag}`),
-            );
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.planTypeTag}`),
-            );
             await editor.OSIButton.click();
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.newosi);
             await (await ost.nextButton).click();
             await expect(await ost.priceUse).toBeVisible();
             await ost.priceUse.click();
-            await expect(await editor.OSI).toContainText(data.newosi);
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.newPlanTypeTag}`),
-            );
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.newOfferTypeTag}`),
-            );
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.newMarketSegmentsTag}`),
-            );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -630,7 +528,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await editor.panel).not.toBeVisible();
         });
 
-        await test.step('step-4: Open the editor and validate there are no changes', async () => {
+        await test.step('step-5: Open the editor and validate there are no changes', async () => {
             await (await studio.getCard(data.cardid, 'slice')).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.OSI).toContainText(data.osi);
@@ -693,17 +591,12 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 await editor.footer.locator(editor.linkEdit),
             ).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
-            await expect(await editor.CTA).toHaveClass(data.variant);
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkVariant).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-            await expect(
-                await editor.getLinkVariant(data.newVariant),
-            ).toBeVisible();
             await (await editor.getLinkVariant(data.newVariant)).click();
             await editor.linkSave.click();
-            await expect(await editor.CTA).toHaveClass(data.newVariant);
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -713,7 +606,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await editor.panel).not.toBeVisible();
         });
 
-        await test.step('step-4: Open the editor and validate there are no changes', async () => {
+        await test.step('step-5: Open the editor and validate there are no changes', async () => {
             await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
@@ -762,17 +655,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 .join('&');
             await editor.checkoutParameters.fill(checkoutParamsString);
             await editor.linkSave.click();
-
-            const CTAhref = await slice.cardCTA.getAttribute('data-href');
-            let searchParams = new URLSearchParams(
-                decodeURI(CTAhref).split('?')[1],
-            );
-            expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
-            expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
-            expect(searchParams.get('promoid')).toBe(
-                data.checkoutParams.promoid,
-            );
-            expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {

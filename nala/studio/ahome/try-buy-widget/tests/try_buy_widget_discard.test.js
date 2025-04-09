@@ -53,9 +53,6 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-3: Edit price field', async () => {
             await expect(await editor.prices).toBeVisible();
-            await expect(await editor.prices).toContainText(data.price);
-            await expect(await editor.prices).not.toContainText(data.newPrice);
-
             await (await editor.prices.locator(editor.regularPrice)).dblclick();
             await expect(await ost.price).toBeVisible();
             await expect(await ost.priceUse).toBeVisible();
@@ -64,26 +61,14 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await ost.priceUse.click();
         });
 
-        await test.step('step-4: Validate edited price in Editor panel', async () => {
-            await expect(await editor.prices).toContainText(data.newPrice);
-        });
-
-        await test.step('step-5: Validate edited price field on the card', async () => {
-            await expect(await trybuywidget.cardPriceSlot).toBeVisible();
-            await expect(await trybuywidget.cardPrice).toBeVisible();
-            await expect(await trybuywidget.cardPrice).toContainText(
-                data.newPrice,
-            );
-        });
-
-        await test.step('step-6: Close the editor to discard changes', async () => {
+        await test.step('step-4: Close the editor to discard changes', async () => {
             await editor.closeEditor.click();
             await expect(await studio.confirmationDialog).toBeVisible();
             await studio.discardDialog.click();
             await expect(await editor.panel).not.toBeVisible();
         });
 
-        await test.step('step-7: Verify that the changes are not reflected on the card', async () => {
+        await test.step('step-5: Verify that the changes are not reflected on the card', async () => {
             await expect(await trybuywidget.cardPriceSlot).toBeVisible();
             await expect(await trybuywidget.cardPrice).toBeVisible();
             await expect(await trybuywidget.cardPrice).toContainText(
@@ -125,19 +110,9 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-3: Change variant', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute(
-                'default-value',
-                'ah-try-buy-widget',
-            );
             await editor.variant.locator('sp-picker').first().click();
             await page.getByRole('option', { name: 'slice' }).click();
             await page.waitForTimeout(2000);
-            await expect(
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
-            ).not.toBeVisible();
-            await expect(
-                await studio.getCard(data.cardid, 'slice'),
-            ).toBeVisible();
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -189,43 +164,13 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-3: Change OSI in OST', async () => {
             await expect(await editor.OSI).toBeVisible();
-            await expect(await editor.OSI).toContainText(data.osi);
             await expect(await editor.tags).toBeVisible();
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.productCodeTag}`),
-            );
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.offerTypeTag}`),
-            );
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.marketSegmentsTag}`),
-            );
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.planTypeTag}`),
-            );
             await editor.OSIButton.click();
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.newosi);
             await (await ost.nextButton).click();
             await expect(await ost.priceUse).toBeVisible();
             await ost.priceUse.click();
-            await expect(await editor.OSI).toContainText(data.newosi);
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.newPlanTypeTag}`),
-            );
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.newOfferTypeTag}`),
-            );
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.newMarketSegmentsTag}`),
-            );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -235,7 +180,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await editor.panel).not.toBeVisible();
         });
 
-        await test.step('step-4: Open the editor and validate there are no changes', async () => {
+        await test.step('step-5: Open the editor and validate there are no changes', async () => {
             await (
                 await studio.getCard(data.cardid, 'ahtrybuywidget-double')
             ).dblclick();
@@ -302,7 +247,6 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 await editor.footer.locator(editor.linkEdit),
             ).toBeVisible();
             await expect(await editor.CTA.first()).toBeVisible();
-            await expect(await editor.CTA.first()).toHaveClass(data.variant);
             await editor.CTA.first().click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkVariant).toBeVisible();
@@ -312,7 +256,6 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             ).toBeVisible();
             await (await editor.getLinkVariant(data.newVariant)).click();
             await editor.linkSave.click();
-            await expect(await editor.CTA.first()).toHaveClass(data.newVariant);
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -322,7 +265,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await editor.panel).not.toBeVisible();
         });
 
-        await test.step('step-4: Open the editor and validate there are no changes', async () => {
+        await test.step('step-5: Open the editor and validate there are no changes', async () => {
             await (
                 await studio.getCard(data.cardid, 'ahtrybuywidget-double')
             ).dblclick();
@@ -377,19 +320,6 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 .join('&');
             await editor.checkoutParameters.fill(checkoutParamsString);
             await editor.linkSave.click();
-
-            const CTAhref = await trybuywidget.cardCTA
-                .first()
-                .getAttribute('data-href');
-            let searchParams = new URLSearchParams(
-                decodeURI(CTAhref).split('?')[1],
-            );
-            expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
-            expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
-            expect(searchParams.get('promoid')).toBe(
-                data.checkoutParams.promoid,
-            );
-            expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {

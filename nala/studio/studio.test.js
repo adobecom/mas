@@ -237,6 +237,9 @@ test.describe('M@S Studio feature test suite', () => {
 
         await test.step('step-3: Validate fields rendering', async () => {
             await expect(
+                await studio.editorPanel.locator(studio.editorAuthorPath),
+            ).toBeVisible();
+            await expect(
                 await studio.editorPanel.locator(studio.editorVariant),
             ).toBeVisible();
             await expect(

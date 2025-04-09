@@ -47,6 +47,7 @@ export default class StudioPage {
             'merch-card[variant="ah-try-buy-widget"][size="double"]',
         );
         // Editor panel fields
+        this.editorAuthorPath = page.locator('#author-path');
         this.editorVariant = page.locator('#card-variant');
         this.editorSize = page.locator('#card-size');
         this.editorTitle = page.locator('#card-title input');

@@ -7,7 +7,7 @@ export default class ACOMPlansIndividualsPage {
         this.cardTitle = page.locator('p[slot="heading-xs"]');
         this.cardBadge = page.locator('.plans-badge');
         this.cardDescription = page.locator('div[slot="body-xs"] p');
-        this.cardLegalLink = page.locator('a.modal-link');
+        this.cardLegalLink = page.locator('a.modal-Link');
         this.cardPrice = page.locator('p[slot="heading-m"]');
         this.cardPriceStrikethrough = page.locator(
             'p[slot="heading-m"] span.price-strikethrough',

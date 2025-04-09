@@ -26,7 +26,6 @@ class MerchCardEditor extends LitElement {
         availableBorderColors: { type: Array, state: true },
         availableBackgroundColors: { type: Array, state: true },
         quantitySelectorValues: { type: String, state: true },
-        showSecureTextField: { type: Boolean, state: true },
     };
 
     constructor() {
@@ -39,7 +38,6 @@ class MerchCardEditor extends LitElement {
         this.availableBorderColors = [];
         this.availableBackgroundColors = [];
         this.quantitySelectorValues = '';
-        this.showSecureTextField = true;
     }
 
     createRenderRoot() {

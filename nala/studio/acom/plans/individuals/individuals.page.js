@@ -14,12 +14,12 @@ export default class ACOMPlansIndividualsPage {
         );
         // this.cardCTA = page.locator('div[slot="footer"] > a[is="checkout-link"]');
         this.cardPromoText = page.locator('p[slot="promo-text"]');
-        this.StockCheckbox = page.locator('[id="stock-checkbox"]');
-        this.StockCheckboxIcon = page.locator('[id="stock-checkbox"] > span');
+        this.cardStockCheckbox = page.locator('[id="stock-checkbox"]');
+        this.cardStockCheckboxIcon = page.locator('[id="stock-checkbox"] > span');
         this.cardCallout = page.locator('div[slot="callout-content"] > p');
         this.cardSecureTransaction = page.locator('.secure-transaction-label');
         this.cardQuantitySelector = page.locator('div[slot="quantity-select"]');
-        this.whatsIncluded = page.locator('div[slot="whats-included"]');
+        this.cardWhatsIncluded = page.locator('div[slot="whats-included"]');
 
         // Plans individual card properties:
         this.cssProp = {

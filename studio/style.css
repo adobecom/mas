@@ -206,21 +206,6 @@ rte-field {
     width: 100%;
 }
 
-merch-card:not([variant]) {
-    display: none;
-}
-
-merch-card {
-    cursor: pointer;
-    user-select: none;
-    box-sizing: border-box;
-}
-
-merch-card a,
-merch-card button {
-    pointer-events: none;
-}
-
 .mask .mas-fragment:not(.editing-fragment) {
     opacity: 0.5;
     filter: grayscale(1) blur(1.5px);
@@ -249,34 +234,12 @@ mas-fragment-table:not(.has-tooltip) ~ sp-tooltip {
     display: none;
 }
 
-merch-card:hover {
-    background-color: var(--spectrum-background-base-color) !important;
-}
-
-merch-card sp-icon-add,
-merch-card sp-icon-remove {
-    display: none;
-}
-
 mas-fragment-render[selected]:hover sp-icon-remove {
     display: block;
 }
 
 mas-fragment-render:not([selected]):hover sp-icon-add {
     display: block;
-}
-
-merch-card .overlay {
-    background-color: rgba(255, 255, 255, 0.5);
-    border-radius: 16px;
-    position: absolute;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
 }
 
 mas-multifield,

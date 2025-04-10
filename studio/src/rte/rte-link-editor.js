@@ -16,6 +16,7 @@ export class RteLinkEditor extends LitElement {
             attribute: 'checkout-parameters',
             reflect: true,
         },
+        linkType: { type: String, attribute: 'link-type', reflect: true },
         linkAttrs: { type: Object },
         analyticsId: {
             type: String,
@@ -34,6 +35,8 @@ export class RteLinkEditor extends LitElement {
         }
 
         sp-underlay + sp-dialog {
+            --spectrum-dialog-confirm-divider-block-spacing-start: 0;
+            --spectrum-dialog-confirm-buttongroup-padding-top: 20px;
             position: fixed;
             top: 50%;
             left: 50%;
@@ -54,6 +57,12 @@ export class RteLinkEditor extends LitElement {
 
         :host([checkout-parameters]) sp-dialog {
             max-width: 770px;
+        }
+
+        .tab-panel {
+            display: flex;
+            flex-direction: column;
+            margin-top: 8px;
         }
 
         sp-textfield {
@@ -84,6 +93,7 @@ export class RteLinkEditor extends LitElement {
         this.variant = 'accent';
         this.target = '_self';
         this.open = true;
+        this.linkType = null;
         this.analyticsId = '';
         this.addEventListener('change', (e) => {
             // changes in the dialog should not propagate to outside
@@ -244,41 +254,95 @@ export class RteLinkEditor extends LitElement {
         return this.shadowRoot.querySelector('#linkTarget');
     }
 
+    get isPhone() {
+        return this.linkType === 'phone';
+    }
+
+    get headingLinkLabel() {
+        return this.isPhone
+            ? 'Phone Link'
+            : this.#isCheckoutLink
+              ? 'Checkout Link'
+              : 'Link';
+    }
+
     get #editor() {
-        const type = this.#isCheckoutLink ? 'Checkout Link' : 'Link';
         return html`<sp-dialog close=${this.#handleClose}>
-            <h2 slot="heading">Insert/Edit ${type}</h2>
-            ${this.#linkHrefField} ${this.#checkoutParametersField}
-            <sp-field-label for="linkText">Link Text</sp-field-label>
-            <sp-textfield
-                id="linkText"
-                placeholder="Display text"
-                .value=${this.text}
-                @input=${(e) => (this.text = e.target.value)}
-            ></sp-textfield>
-
-            <sp-field-label for="linkTitle">Title</sp-field-label>
-            <sp-textfield
-                id="linkTitle"
-                placeholder="link title"
-                .value=${this.title}
-                @input=${(e) => (this.title = e.target.value)}
-            ></sp-textfield>
-
-            <sp-field-label for="linkTarget">Target</sp-field-label>
-            <sp-picker
-                id="linkTarget"
-                .value=${this.target}
-                @change=${(e) => (this.target = e.target.value)}
+            <h2 slot="heading">Insert/Edit ${this.headingLinkLabel}</h2>
+            <sp-tabs
+                selected="${this.linkType}"
+                @change=${this.#handleTypeChange}
             >
-                <sp-menu>
-                    <sp-menu-item value="_self">Same Window</sp-menu-item>
-                    <sp-menu-item value="_blank">New Window</sp-menu-item>
-                    <sp-menu-item value="_parent">Parent Frame</sp-menu-item>
-                    <sp-menu-item value="_top">Top Frame</sp-menu-item>
-                </sp-menu>
-            </sp-picker>
-            ${this.#analyticsIdField} ${this.#linkVariants}
+                <sp-tab label="Web" value="web"></sp-tab>
+                <sp-tab label="Phone" value="phone"></sp-tab>
+                <sp-tab-panel value="web">
+                    <div class="tab-panel">
+                        ${this.#linkHrefField} ${this.#checkoutParametersField}
+                        <sp-field-label for="linkText"
+                            >Link Text</sp-field-label
+                        >
+                        <sp-textfield
+                            id="linkText"
+                            placeholder="Display text"
+                            .value=${this.text}
+                            @input=${(e) => (this.text = e.target.value)}
+                        ></sp-textfield>
+
+                        <sp-field-label for="linkTitle">Title</sp-field-label>
+                        <sp-textfield
+                            id="linkTitle"
+                            placeholder="Link title"
+                            .value=${this.title}
+                            @input=${(e) => (this.title = e.target.value)}
+                        ></sp-textfield>
+
+                        <sp-field-label for="linkTarget">Target</sp-field-label>
+                        <sp-picker
+                            id="linkTarget"
+                            .value=${this.target}
+                            @change=${(e) => (this.target = e.target.value)}
+                        >
+                            <sp-menu>
+                                <sp-menu-item value="_self"
+                                    >Same Window</sp-menu-item
+                                >
+                                <sp-menu-item value="_blank"
+                                    >New Window</sp-menu-item
+                                >
+                                <sp-menu-item value="_parent"
+                                    >Parent Frame</sp-menu-item
+                                >
+                                <sp-menu-item value="_top"
+                                    >Top Frame</sp-menu-item
+                                >
+                            </sp-menu>
+                        </sp-picker>
+                        ${this.#analyticsIdField} ${this.#linkVariants}
+                    </div>
+                </sp-tab-panel>
+                <sp-tab-panel value="phone">
+                    <div class="tab-panel">
+                        <sp-field-label for="phoneNumber"
+                            >Phone Number</sp-field-label
+                        >
+                        <sp-textfield
+                            id="phoneNumber"
+                            type="tel"
+                            placeholder="Display text"
+                            .value=${this.text}
+                            @input=${(e) => (this.text = e.target.value)}
+                        ></sp-textfield>
+
+                        <sp-field-label for="linkTitle">Title</sp-field-label>
+                        <sp-textfield
+                            id="linkTitle"
+                            placeholder="Link title"
+                            .value=${this.title}
+                            @input=${(e) => (this.title = e.target.value)}
+                        ></sp-textfield>
+                    </div>
+                </sp-tab-panel>
+            </sp-tabs>
             <sp-button
                 id="cancelButton"
                 slot="button"
@@ -310,10 +374,20 @@ export class RteLinkEditor extends LitElement {
         return this.#editor;
     }
 
+    #handleTypeChange(e) {
+        if (e.target.nodeName !== 'SP-TABS') return;
+        this.linkType = e.target.selected;
+    }
+
     #handleSave(e) {
         e.preventDefault();
+
+        const href = this.isPhone
+            ? `tel:${this.text.replace(/ /g, '')}`
+            : this.href;
+
         const data = {
-            href: this.href,
+            href,
             text: this.text,
             title: this.title,
             target: this.target,

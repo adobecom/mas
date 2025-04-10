@@ -24,14 +24,22 @@ export async function loadUsers(groupId) {
     if (groupId === MAS_CONSUMER_GROUPS[SANDBOX]) {
         Store.selectedUserId.set(Store.profile.value.userId);
     }
-    const response = await fetch(
-        `https://bps-il.adobe.io/jil-api/v2/organizations/3B962FB55F5F922E0A495C88@AdobeOrg/user-groups/${groupId}/users/?page=0&page_size=100&sort=FNAME_LNAME&sort_order=ASC&currentPage=1&filterQuery=`,
-        {
-            headers,
-        },
-    );
-    const userData = await response.json();
-    return userData;
+    try {
+        const response = await fetch(
+            `https://bps-il.adobe.io/jil-api/v2/organizations/3B962FB55F5F922E0A495C88@AdobeOrg/user-groups/${groupId}/users/?page=0&page_size=100&sort=FNAME_LNAME&sort_order=ASC&currentPage=1&filterQuery=`,
+            {
+                headers,
+            },
+        );
+        if (!response.ok) {
+            throw new Error(`${response.status} ${response.statusText}`);
+        }
+        const userData = await response.json();
+        return userData;
+    } catch (e) {
+        console.error(e);
+        return [];
+    }
 }
 
 /**

@@ -11,6 +11,9 @@ export default class EditorPage {
         this.title = this.panel.locator('#card-title input');
         this.subtitle = this.panel.locator('#card-subtitle input');
         this.badge = this.panel.locator('#card-badge input');
+        this.badgeColor = this.panel.locator('sp-picker#badgeColor');
+        this.badgeBorderColor = this.panel.locator('sp-picker#badgeBorderColor');
+        this.cardBorderColor = this.panel.locator('sp-picker#border-color');
         this.iconURL = this.panel.locator('#icon input');
         this.promoText = this.panel.locator('#promo-text input');
         this.backgroundImage = this.panel.locator('#background-image input');

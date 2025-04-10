@@ -658,4 +658,164 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.whatsIncluded).toHaveValue('');
         });
     });
+
+    // @studio-plans-individuals-discard-edited-badge-color - Validate discard edited badge color for plans individuals card in mas studio
+    test(`${features[13].name},${features[13].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[13];
+        const testPage = `${baseURL}${features[13].path}${miloLibs}${features[13].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+        const individualsCard = await studio.getCard(data.cardid, 'plans');
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'plans'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit badge color field', async () => {
+            await expect(await editor.badgeColor).toBeVisible();
+            await editor.badgeColor.click();
+            await page
+                .getByRole('option', { name: data.newColor, exact: true })
+                .click();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-5: Verify badge color is unchanged', async () => {
+            expect(
+                await webUtil.verifyCSS(
+                    individualsCard.locator(individuals.cardBadge),
+                    { 'background-color': data.colorCSS },
+                ),
+            ).toBeTruthy();
+            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.badgeColor).toContainText(data.color);
+        });
+    });
+
+    // @studio-plans-individuals-discard-edited-badge-border-color - Validate discard edited badge border color for plans individuals card in mas studio
+    test(`${features[14].name},${features[14].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[14];
+        const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+        const individualsCard = await studio.getCard(data.cardid, 'plans');
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'plans'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit badge border color field', async () => {
+            await expect(await editor.badgeBorderColor).toBeVisible();
+            await editor.badgeBorderColor.click();
+            await page
+                .getByRole('option', { name: data.newColor, exact: true })
+                .click();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-5: Verify badge border color is unchanged', async () => {
+            expect(
+                await webUtil.verifyCSS(
+                    individualsCard.locator(individuals.cardBadge),
+                    {
+                        'border-left-color': data.colorCSS,
+                        'border-top-color': data.colorCSS,
+                        'border-bottom-color': data.colorCSS,
+                    },
+                ),
+            ).toBeTruthy();
+            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.badgeBorderColor).toContainText(data.color);
+        });
+    });
+
+    // @studio-plans-individuals-discard-edited-card-border-color - Validate discard edited card border color for plans individuals card in mas studio
+    test(`${features[15].name},${features[15].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[15];
+        const testPage = `${baseURL}${features[15].path}${miloLibs}${features[15].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+        const individualsCard = await studio.getCard(data.cardid, 'plans');
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'plans'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit card border color field', async () => {
+            await expect(await editor.cardBorderColor).toBeVisible();
+            await editor.cardBorderColor.click();
+            await page
+                .getByRole('option', { name: data.newColor, exact: true })
+                .click();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-5: Verify card border color is unchanged', async () => {
+            expect(
+                await webUtil.verifyCSS(
+                    individualsCard,
+                    { 'border-color': data.colorCSS },
+                ),
+            ).toBeTruthy();
+            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.cardBorderColor).toContainText(data.color);
+        });
+    });
 });

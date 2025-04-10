@@ -5,7 +5,7 @@ export default class ACOMPlansIndividualsPage {
         // Card element selectors
         this.cardIcon = page.locator('merch-icon');
         this.cardTitle = page.locator('p[slot="heading-xs"]');
-        this.cardBadge = page.locator('.plans-badge');
+        this.cardBadge = page.locator('merch-badge');
         this.cardDescription = page.locator('div[slot="body-xs"] p');
         this.cardLegalLink = page.locator('a.modal-Link');
         this.cardPrice = page.locator('p[slot="heading-m"]');
@@ -27,16 +27,18 @@ export default class ACOMPlansIndividualsPage {
         this.cssProp = {
             card: {
                 'background-color': 'rgb(255, 255, 255)',
-                // 'max-width': '378px',
+                'border-color': 'rgb(245, 199, 0)',
             },
             icon: {
                 width: '41.5px',
                 height: '40px',
             },
             badge: {
-                // 'background-color': 'rgb(255, 204, 0)', // set when configurable
+                'background-color': 'rgb(245, 199, 0)',
+                'border-left-color': 'rgb(245, 199, 0)',
+                'border-top-color': 'rgb(245, 199, 0)',
+                'border-bottom-color': 'rgb(245, 199, 0)',
                 color: 'rgb(0, 0, 0)',
-                // 'height': '26px',
                 'font-size': '14px',
                 'font-weight': '400',
                 'line-height': '21px',

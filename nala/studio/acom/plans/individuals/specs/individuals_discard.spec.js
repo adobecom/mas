@@ -52,7 +52,7 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 description:
-                    'Edit and organize photos. Save 25% for the first 6 months. Ends Feb 26.',
+                    'Edit and organize photos. Save 25% for the first 6 months. Ends Feb 26.',
                 newDescription: 'New Test Description',
             },
             browserParams: '#query=',
@@ -155,6 +155,45 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 whatsIncludedText: 'List of items:',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
+        },
+        {
+            tcid: '13',
+            name: '@studio-plans-individuals-discard-edited-badge-color',
+            path: '/studio.html',
+            data: {
+                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                color: 'Yellow 300',
+                colorCSS: 'rgb(245, 199, 0)',
+                newColor: 'Green 900',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
+        },
+        {
+            tcid: '14',
+            name: '@studio-plans-individuals-discard-edited-badge-border-color',
+            path: '/studio.html',
+            data: {
+                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                color: 'Yellow 300',
+                colorCSS: 'rgb(245, 199, 0)',
+                newColor: 'Green 900',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
+        },
+        {
+            tcid: '15',
+            name: '@studio-plans-individuals-discard-edited-card-border-color',
+            path: '/studio.html',
+            data: {
+                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                color: 'Yellow 300',
+                colorCSS: 'rgb(245, 199, 0)',
+                newColor: 'Gray 300',
             },
             browserParams: '#query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',

@@ -858,4 +858,142 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardWhatsIncluded).not.toBeVisible();
         });
     });
+
+    // @studio-plans-individuals-edit-badge-color - Validate edit badge color for plans individuals card in mas studio
+    test(`${features[15].name},${features[15].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[15];
+        const testPage = `${baseURL}${features[15].path}${miloLibs}${features[15].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+        const individualsCard = await studio.getCard(data.cardid, 'plans');
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'plans'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit badge color field', async () => {
+            await expect(await editor.badgeColor).toBeVisible();
+            await expect(await editor.badgeColor).toContainText(data.color);
+            await editor.badgeColor.click();
+            await page
+                .getByRole('option', { name: data.newColor, exact: true })
+                .click();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-4: Validate badge color field updated', async () => {
+            await expect(await editor.badgeColor).toContainText(data.newColor);
+            expect(
+                await webUtil.verifyCSS(
+                    individualsCard.locator(individuals.cardBadge),
+                    { 'background-color': data.newColorCSS },
+                ),
+            ).toBeTruthy();
+        });
+
+    });
+
+    // @studio-plans-individuals-edit-badge-border-color - Validate edit badge border color for plans individuals card in mas studio
+    test(`${features[16].name},${features[16].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[16];
+        const testPage = `${baseURL}${features[16].path}${miloLibs}${features[16].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+        const individualsCard = await studio.getCard(data.cardid, 'plans');
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'plans'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit badge border color field', async () => {
+            await expect(await editor.badgeBorderColor).toBeVisible();
+            await expect(await editor.badgeBorderColor).toContainText(data.color);
+            await editor.badgeBorderColor.click();
+            await page
+                .getByRole('option', { name: data.newColor, exact: true })
+                .click();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-4: Validate badge border color field updated', async () => {
+            await expect(await editor.badgeBorderColor).toContainText(data.newColor);
+            expect(
+                await webUtil.verifyCSS(
+                    individualsCard.locator(individuals.cardBadge),
+                    {
+                        'border-left-color': data.newColorCSS,
+                        'border-top-color': data.newColorCSS,
+                        'border-bottom-color': data.newColorCSS,
+                    },
+                ),
+            ).toBeTruthy();
+        });
+    });
+
+    // @studio-plans-individuals-edit-card-border-color - Validate edit card border color for plans individuals card in mas studio
+    test(`${features[17].name},${features[17].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[17];
+        const testPage = `${baseURL}${features[17].path}${miloLibs}${features[17].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+        const individualsCard = await studio.getCard(data.cardid, 'plans');
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'plans'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit card border color field', async () => {
+            await expect(await editor.cardBorderColor).toBeVisible();
+            await expect(await editor.cardBorderColor).toContainText(data.color);
+            await editor.cardBorderColor.click();
+            await page
+                .getByRole('option', { name: data.newColor, exact: true })
+                .click();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-4: Validate card border color field updated', async () => {
+            await expect(await editor.cardBorderColor).toContainText(data.newColor);
+            expect(
+                await webUtil.verifyCSS(
+                    individualsCard,
+                    { 'border-color': data.newColorCSS },
+                ),
+            ).toBeTruthy();
+        });
+    });
+
 });

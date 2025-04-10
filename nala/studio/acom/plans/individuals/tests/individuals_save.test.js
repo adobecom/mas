@@ -725,13 +725,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-4: Edit whats included field and save card', async () => {
-            await expect(await editor.whatsIncluded).toBeVisible();
-            await editor.whatsIncluded.fill(data.whatsIncludedText);
+            await expect(await editor.whatsIncludedLabel).toBeVisible();
+            await editor.whatsIncludedLabel.fill(data.whatsIncludedText);
             await studio.saveCard();
         });
 
         await test.step('step-5: Verify whats included change is saved', async () => {
-            await expect(await editor.whatsIncluded).toHaveValue(
+            await expect(await editor.whatsIncludedLabel).toHaveValue(
                 data.whatsIncludedText,
             );
             await expect(

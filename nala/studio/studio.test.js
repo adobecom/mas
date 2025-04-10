@@ -196,7 +196,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await editor.badgeColor).not.toBeVisible();
             await expect(await editor.badgeBorderColor).not.toBeVisible();
             await expect(await editor.cardBorderColor).not.toBeVisible();
-            await expect(await editor.whatsIncluded).not.toBeVisible();
+            await expect(await editor.whatsIncludedLabel).not.toBeVisible();
             await expect(await editor.promoText).not.toBeVisible();
             await expect(await editor.callout).not.toBeVisible();
             await expect(await editor.showStockCheckbox).not.toBeVisible();
@@ -245,7 +245,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await editor.badgeColor).not.toBeVisible();
             await expect(await editor.badgeBorderColor).not.toBeVisible();
             await expect(await editor.cardBorderColor).not.toBeVisible();
-            await expect(await editor.whatsIncluded).not.toBeVisible();
+            await expect(await editor.whatsIncludedLabel).not.toBeVisible();
             await expect(await editor.promoText).not.toBeVisible();
             await expect(await editor.callout).not.toBeVisible();
             await expect(await editor.showStockCheckbox).not.toBeVisible();
@@ -362,7 +362,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await editor.backgroundImage).not.toBeVisible();
             await expect(await editor.prices).toBeVisible();
             await expect(await editor.footer).toBeVisible();
-            await expect(await editor.whatsIncluded).toBeVisible();
+            await expect(await editor.whatsIncludedLabel).toBeVisible();
             await expect(await editor.promoText).toBeVisible();
             await expect(await editor.callout).toBeVisible();
             await expect(await editor.showStockCheckbox).toBeVisible();

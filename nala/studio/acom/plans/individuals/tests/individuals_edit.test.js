@@ -86,7 +86,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.prices).toBeVisible();
             await expect(await editor.footer).toBeVisible();
-            await expect(await editor.whatsIncluded).not.toBeVisible();
+            await expect(await editor.whatsIncludedLabel).not.toBeVisible();
             await expect(await editor.promoText).not.toBeVisible();
             await expect(await editor.callout).not.toBeVisible();
             await expect(await editor.showStockCheckbox).not.toBeVisible();
@@ -164,7 +164,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.prices).not.toBeVisible();
             await expect(await editor.footer).toBeVisible();
-            await expect(await editor.whatsIncluded).not.toBeVisible();
+            await expect(await editor.whatsIncludedLabel).not.toBeVisible();
             await expect(await editor.promoText).not.toBeVisible();
             await expect(await editor.callout).not.toBeVisible();
             await expect(await editor.showStockCheckbox).not.toBeVisible();
@@ -246,7 +246,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.backgroundColor).toBeVisible();
             await expect(await editor.prices).toBeVisible();
             await expect(await editor.footer).toBeVisible();
-            await expect(await editor.whatsIncluded).not.toBeVisible();
+            await expect(await editor.whatsIncludedLabel).not.toBeVisible();
             await expect(await editor.promoText).not.toBeVisible();
             await expect(await editor.callout).not.toBeVisible();
             await expect(await editor.showStockCheckbox).not.toBeVisible();

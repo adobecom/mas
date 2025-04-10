@@ -641,8 +641,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-3: Edit whats included field', async () => {
-            await expect(await editor.whatsIncluded).toBeVisible();
-            await editor.whatsIncluded.fill(data.whatsIncludedText);
+            await expect(await editor.whatsIncludedLabel).toBeVisible();
+            await editor.whatsIncludedLabel.fill(data.whatsIncludedText);
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
@@ -655,7 +655,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-6: Verify whats included text not updated', async () => {
             await expect(await individuals.cardWhatsIncluded).not.toBeVisible();
             await (await studio.getCard(data.cardid, 'plans')).dblclick();
-            await expect(await editor.whatsIncluded).toHaveValue('');
+            await expect(await editor.whatsIncludedLabel).toHaveValue('');
         });
     });
 

@@ -238,6 +238,7 @@ export class MasRepository extends LitElement {
             path: `${damPath}/${this.filters.value.locale}`,
             tags,
             createdBy,
+            sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
         };
 
         const publishedTagIndex = tags.indexOf(TAG_STATUS_PUBLISHED);

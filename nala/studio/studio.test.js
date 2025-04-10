@@ -296,4 +296,133 @@ test.describe('M@S Studio feature test suite', () => {
             );
         });
     });
+
+    // @studio-promoted-plans-editor - Validate editor fields for promoted plans card
+    test(`${features[8].name},${features[8].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[8];
+        const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'ah-promoted-plans'),
+            ).toBeVisible();
+            await (
+                await studio.getCard(data.cardid, 'ah-promoted-plans')
+            ).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+        });
+
+        await test.step('step-3: Validate fields rendering', async () => {
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorVariant),
+            ).toHaveAttribute('default-value', 'ah-promoted-plans');
+            await expect(
+                await studio.editorPanel.locator(studio.editorTitle),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorDescription),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorBorderColor),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorPrices),
+            ).toBeVisible();
+            await expect(
+                await studio.editorPanel.locator(studio.editorFooter),
+            ).toBeVisible();
+        });
+    });
+
+    // @studio-promoted-plans-gradient-border - Validate gradient border for promoted plans card
+    test(`${features[9].name},${features[9].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[9];
+        const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor and set gradient border', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'ah-promoted-plans'),
+            ).toBeVisible();
+            await (
+                await studio.getCard(data.cardid, 'ah-promoted-plans')
+            ).dblclick();
+            await expect(await studio.editorPanel).toBeVisible();
+
+            await expect(
+                await studio.editorPanel.locator(studio.editorBorderColor),
+            ).toBeVisible();
+
+            await studio.editorPanel.locator(studio.editorBorderColor).click();
+            await page
+                .getByRole('option', { name: data.gradientBorderColor })
+                .click();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-3: Validate gradient border applied to card', async () => {
+            const borderColor = await (
+                await studio.getCard(data.cardid, 'ah-promoted-plans')
+            ).getAttribute('border-color');
+
+            expect(borderColor).toBe(data.gradientBorderCSSColor);
+            await expect(
+                await studio.getCard(data.cardid, 'ah-promoted-plans-gradient'),
+            ).toBeVisible();
+        });
+    });
+
+    // @studio-promoted-plans-acrobat-card - Validate Acrobat promoted plans card
+    test(`${features[10].name},${features[10].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[10];
+        const testPage = `${baseURL}${features[10].path}${miloLibs}${features[10].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Validate Acrobat card properties', async () => {
+            const card = await studio.getCard(data.cardid, 'ah-promoted-plans');
+            await expect(card).toBeVisible();
+
+            // Verify title
+            const titleElement = card.locator('h3[slot="heading-xxxs"]');
+            await expect(titleElement).toHaveText(data.title);
+
+            // Verify icon
+            const iconElement = card.locator('merch-icon[slot="icons"]');
+            await expect(iconElement).toHaveAttribute('src', data.iconURL);
+
+            // Verify border color
+            await expect(card).toHaveAttribute(
+                'border-color',
+                data.borderColor,
+            );
+        });
+    });
 });

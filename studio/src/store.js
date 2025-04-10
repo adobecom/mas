@@ -25,7 +25,7 @@ const Store = {
         loaded: new ReactiveStore(false),
         data: new ReactiveStore([]),
     },
-    search: new ReactiveStore({}),
+    search: new ReactiveStore({ path: 'acom' }),
     filters: new ReactiveStore({ locale: 'en_US', tags: '' }, filtersValidator),
     renderMode: new ReactiveStore(
         localStorage.getItem('mas-render-mode') || 'render',

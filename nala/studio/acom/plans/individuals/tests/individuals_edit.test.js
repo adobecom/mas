@@ -901,7 +901,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 ),
             ).toBeTruthy();
         });
-
     });
 
     // @studio-plans-individuals-edit-badge-border-color - Validate edit badge border color for plans individuals card in mas studio
@@ -929,7 +928,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit badge border color field', async () => {
             await expect(await editor.badgeBorderColor).toBeVisible();
-            await expect(await editor.badgeBorderColor).toContainText(data.color);
+            await expect(await editor.badgeBorderColor).toContainText(
+                data.color,
+            );
             await editor.badgeBorderColor.click();
             await page
                 .getByRole('option', { name: data.newColor, exact: true })
@@ -938,7 +939,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-4: Validate badge border color field updated', async () => {
-            await expect(await editor.badgeBorderColor).toContainText(data.newColor);
+            await expect(await editor.badgeBorderColor).toContainText(
+                data.newColor,
+            );
             expect(
                 await webUtil.verifyCSS(
                     individualsCard.locator(individuals.cardBadge),
@@ -977,7 +980,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit card border color field', async () => {
             await expect(await editor.cardBorderColor).toBeVisible();
-            await expect(await editor.cardBorderColor).toContainText(data.color);
+            await expect(await editor.cardBorderColor).toContainText(
+                data.color,
+            );
             await editor.cardBorderColor.click();
             await page
                 .getByRole('option', { name: data.newColor, exact: true })
@@ -986,14 +991,14 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-4: Validate card border color field updated', async () => {
-            await expect(await editor.cardBorderColor).toContainText(data.newColor);
+            await expect(await editor.cardBorderColor).toContainText(
+                data.newColor,
+            );
             expect(
-                await webUtil.verifyCSS(
-                    individualsCard,
-                    { 'border-color': data.newColorCSS },
-                ),
+                await webUtil.verifyCSS(individualsCard, {
+                    'border-color': data.newColorCSS,
+                }),
             ).toBeTruthy();
         });
     });
-
 });

@@ -833,7 +833,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-4: Edit badge border color field and save card', async () => {
             await expect(await editor.badgeBorderColor).toBeVisible();
-            await expect(await editor.badgeBorderColor).toContainText(data.color);
+            await expect(await editor.badgeBorderColor).toContainText(
+                data.color,
+            );
             await editor.badgeBorderColor.click();
             await page
                 .getByRole('option', { name: data.newColor, exact: true })
@@ -853,7 +855,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                     },
                 ),
             ).toBeTruthy();
-            await expect(await editor.badgeBorderColor).toContainText(data.newColor);
+            await expect(await editor.badgeBorderColor).toContainText(
+                data.newColor,
+            );
         });
     });
 
@@ -894,7 +898,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-4: Edit card border color field and save card', async () => {
             await expect(await editor.cardBorderColor).toBeVisible();
-            await expect(await editor.cardBorderColor).toContainText(data.color);
+            await expect(await editor.cardBorderColor).toContainText(
+                data.color,
+            );
             await editor.cardBorderColor.click();
             await page
                 .getByRole('option', { name: data.newColor, exact: true })
@@ -905,12 +911,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-5: Verify card border color is updated', async () => {
             expect(
-                await webUtil.verifyCSS(
-                    clonedCard,
-                    { 'border-color': data.newColorCSS },
-                ),
+                await webUtil.verifyCSS(clonedCard, {
+                    'border-color': data.newColorCSS,
+                }),
             ).toBeTruthy();
-            await expect(await editor.cardBorderColor).toContainText(data.newColor);
+            await expect(await editor.cardBorderColor).toContainText(
+                data.newColor,
+            );
         });
     });
 });

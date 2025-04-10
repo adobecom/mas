@@ -763,7 +763,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             ).toBeTruthy();
             await (await studio.getCard(data.cardid, 'plans')).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.badgeBorderColor).toContainText(data.color);
+            await expect(await editor.badgeBorderColor).toContainText(
+                data.color,
+            );
         });
     });
 
@@ -808,14 +810,15 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-5: Verify card border color is unchanged', async () => {
             expect(
-                await webUtil.verifyCSS(
-                    individualsCard,
-                    { 'border-color': data.colorCSS },
-                ),
+                await webUtil.verifyCSS(individualsCard, {
+                    'border-color': data.colorCSS,
+                }),
             ).toBeTruthy();
             await (await studio.getCard(data.cardid, 'plans')).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.cardBorderColor).toContainText(data.color);
+            await expect(await editor.cardBorderColor).toContainText(
+                data.color,
+            );
         });
     });
 });

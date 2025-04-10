@@ -193,6 +193,15 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.prices).toBeVisible();
             await expect(await editor.footer).toBeVisible();
+            await expect(await editor.badgeColor).not.toBeVisible();
+            await expect(await editor.badgeBorderColor).not.toBeVisible();
+            await expect(await editor.cardBorderColor).not.toBeVisible();
+            await expect(await editor.whatsIncluded).not.toBeVisible();
+            await expect(await editor.promoText).not.toBeVisible();
+            await expect(await editor.callout).not.toBeVisible();
+            await expect(await editor.showStockCheckbox).not.toBeVisible();
+            await expect(await editor.showQuantitySelector).not.toBeVisible();
+            await expect(await editor.OSI).toBeVisible();
         });
     });
 
@@ -233,6 +242,15 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.prices).not.toBeVisible();
             await expect(await editor.footer).toBeVisible();
+            await expect(await editor.badgeColor).not.toBeVisible();
+            await expect(await editor.badgeBorderColor).not.toBeVisible();
+            await expect(await editor.cardBorderColor).not.toBeVisible();
+            await expect(await editor.whatsIncluded).not.toBeVisible();
+            await expect(await editor.promoText).not.toBeVisible();
+            await expect(await editor.callout).not.toBeVisible();
+            await expect(await editor.showStockCheckbox).not.toBeVisible();
+            await expect(await editor.showQuantitySelector).not.toBeVisible();
+            await expect(await editor.OSI).toBeVisible();
         });
     });
 
@@ -275,6 +293,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.prices).toBeVisible();
             await expect(await editor.footer).toBeVisible();
+            await expect(await editor.OSI).toBeVisible();
         });
     });
 
@@ -300,6 +319,55 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(page.locator('sp-tooltip')).toHaveText(
                 'Double click the card to start editing.',
             );
+        });
+    });
+
+    // @studio-plans-individuals-editor - Validate editor fields for plans individuals card in mas studio
+    test(`${features[9].name},${features[9].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[9];
+        const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'plans'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Validate fields rendering', async () => {
+            await expect(await editor.variant).toBeVisible();
+            await expect(await editor.variant).toHaveAttribute(
+                'default-value',
+                'plans',
+            );
+            await expect(await editor.size).toBeVisible();
+            await expect(await editor.title).toBeVisible();
+            await expect(await editor.subtitle).not.toBeVisible();
+            await expect(await editor.badge).toBeVisible();
+            await expect(await editor.badgeColor).toBeVisible();
+            await expect(await editor.badgeBorderColor).toBeVisible();
+            await expect(await editor.cardBorderColor).toBeVisible();
+            await expect(await editor.description).toBeVisible();
+            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.backgroundImage).not.toBeVisible();
+            await expect(await editor.prices).toBeVisible();
+            await expect(await editor.footer).toBeVisible();
+            await expect(await editor.whatsIncluded).toBeVisible();
+            await expect(await editor.promoText).toBeVisible();
+            await expect(await editor.callout).toBeVisible();
+            await expect(await editor.showStockCheckbox).toBeVisible();
+            await expect(await editor.showQuantitySelector).toBeVisible();
+            await expect(await editor.OSI).toBeVisible();
         });
     });
 });

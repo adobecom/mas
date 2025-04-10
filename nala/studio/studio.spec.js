@@ -83,5 +83,15 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio',
         },
+        {
+            tcid: '9',
+            name: '@studio-plans-individuals-editor',
+            path: '/studio.html',
+            data: {
+                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals',
+        },
     ],
 };

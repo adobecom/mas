@@ -198,6 +198,10 @@ sp-status-light {
     padding-inline: 6px;
 }
 
+.unknown-fragment:hover {
+    background-color: var(--spectrum-background-base-color) !important;
+}
+
 rte-field {
     width: 100%;
 }
@@ -400,29 +404,6 @@ sp-underlay + sp-dialog {
     transform: translate(-50%, -50%);
     z-index: 1;
     background: var(--spectrum-gray-100);
-}
-
-.render-card-header {
-    merch-card:hover {
-        background-color: var(--spectrum-background-base-color) !important;
-    }
-    height: 32px;
-}
-
-mas-fragment-render div[slot='trigger'] {
-    position: relative;
-}
-
-mas-fragment-render[unknown] sp-icon-cover-image {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-mas-fragment-render[unknown] merch-card {
-    width: 303px;
-    height: 203px;
 }
 
 .unknown-fragment {

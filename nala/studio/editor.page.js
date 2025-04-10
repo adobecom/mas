@@ -53,8 +53,11 @@ export default class EditorPage {
         this.quantitySelectorStep = this.panel.locator(
             'sp-field-group#quantitySelector #step-quantity input',
         );
-        this.whatsIncluded = this.panel.locator('#whatsIncluded input');
-
+        this.whatsIncludedLabel = this.panel.locator('#whatsIncludedLabel input');
+        this.whatsIncludedAddIcon = this.panel.locator('#whatsIncluded sp-icon-add');
+        this.whatsIncludedIconURL = this.panel.locator('#whatsIncluded #icon input');
+        this.whatsIncludedIconLabel = this.panel.locator('#whatsIncluded #text input');
+        this.whatsIncludedIconRemoveButton = this.panel.locator('#whatsIncluded sp-icon-close');
         this.closeEditor = this.panel.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="close"]',
         );

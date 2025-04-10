@@ -861,26 +861,60 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-3: Edit whats included field', async () => {
-            await expect(await editor.whatsIncluded).toBeVisible();
-            await expect(await editor.whatsIncluded).toHaveValue('');
+            await expect(await editor.whatsIncludedLabel).toBeVisible();
+            await expect(await editor.whatsIncludedLabel).toHaveValue('');
             await expect(await individuals.cardWhatsIncluded).not.toBeVisible();
-            await editor.whatsIncluded.fill(data.whatsIncludedText);
+            await editor.whatsIncludedLabel.fill(data.whatsIncludedText);
         });
 
         await test.step('step-4: Validate whats included field updated', async () => {
-            await expect(await editor.whatsIncluded).toHaveValue(
+            await expect(await editor.whatsIncludedLabel).toHaveValue(
                 data.whatsIncludedText,
             );
             await expect(await individuals.cardWhatsIncluded).toBeVisible();
+            await expect(await individuals.cardWhatsIncludedLabel).toHaveText(data.whatsIncludedText);
         });
 
-        await test.step('step-5: Remove whats included field', async () => {
-            await editor.whatsIncluded.fill('');
+        await test.step('step-5: Add icon to whats included', async () => {
+            await expect(await editor.whatsIncludedAddIcon).toBeVisible();
+            await editor.whatsIncludedAddIcon.click();
+            
+            await expect(await editor.whatsIncludedIconURL).toBeVisible();
+            await expect(await editor.whatsIncludedIconLabel).toBeVisible();
+            
+            await editor.whatsIncludedIconURL.fill(data.iconURL);
+            await editor.whatsIncludedIconLabel.fill(data.iconLabel);
         });
 
-        await test.step('step-6: Validate whats included field is removed', async () => {
-            await expect(await editor.whatsIncluded).toHaveValue('');
+        await test.step('step-6: Validate icon added to whats included', async () => {
+            await expect(await individuals.cardWhatsIncludedIcon).toBeVisible();
+            await expect(await individuals.cardWhatsIncludedIcon).toHaveAttribute('src', data.iconURL);
+            await expect(await individuals.cardWhatsIncludedIconLabel).toHaveText(data.iconLabel);
+        });
+
+        await test.step('step-7: Remove whats included label field', async () => {
+            await editor.whatsIncludedLabel.fill('');
+        });
+
+        await test.step('step-8: Validate whats included label is removed', async () => {
+            await expect(await editor.whatsIncludedLabel).toHaveValue('');
+            await expect(await individuals.cardWhatsIncludedLabel).not.toBeVisible();
+            await expect(await individuals.cardWhatsIncludedIcon).toBeVisible();
+            await expect(await individuals.cardWhatsIncludedIconLabel).toBeVisible();
+        });
+
+        await test.step('step-9: Remove whats included icon', async () => {
+            await expect(await editor.whatsIncludedIconRemoveButton).toBeVisible();
+            await editor.whatsIncludedIconRemoveButton.click();
+        });
+
+        await test.step('step-10: Validate whats included field is removed', async () => {
+            await expect(await editor.whatsIncludedLabel).toHaveValue('');
+            await expect(await editor.whatsIncludedIconURL).not.toBeVisible();
+            await expect(await editor.whatsIncludedIconLabel).not.toBeVisible();
             await expect(await individuals.cardWhatsIncluded).not.toBeVisible();
+            await expect(await individuals.cardWhatsIncludedIcon).not.toBeVisible();
+            await expect(await individuals.cardWhatsIncludedIconLabel).not.toBeVisible();
         });
     });
 

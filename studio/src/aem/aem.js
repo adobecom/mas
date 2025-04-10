@@ -376,13 +376,8 @@ class AEM {
         }
         await this.wait(2000); // give AEM time to process the copy
         let newFragment = await this.getFragmentByPath(newPath);
-        newFragment = await this.sites.cf.fragments.getById(newFragment.id);
         if (newFragment) {
-            fragment.updateField(
-                'tags',
-                fragment.tags.concat(['mas:status/draft']),
-            );
-            newFragment = await window.aem.sites.cf.fragments.save(fragment);
+            newFragment = await this.sites.cf.fragments.getById(newFragment.id);
         }
         return newFragment;
     }

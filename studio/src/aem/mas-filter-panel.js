@@ -44,7 +44,7 @@ class MasFilterPanel extends LitElement {
         }
     `;
 
-    storeController = new ReactiveController(this, [
+    reactiveController = new ReactiveController(this, [
         Store.profile,
         Store.selectedUserId,
         Store.users,

@@ -152,26 +152,3 @@ export function initElementFromTemplate(templateId, title) {
     }
     return root;
 }
-
-export function mockFetch() {
-    const originalFetch = window.fetch;
-    window.fetch = async function (args) {
-        const { pathname } = new URL(args);
-        if (/querybuilder.json/.test(pathname)) {
-            return originalFetch('/test/mocks/tags.json');
-        }
-        if (/mas.json/.test(pathname)) {
-            return originalFetch('/test/mocks/folders/default.json');
-        }
-        if (/search/.test(pathname)) {
-            return originalFetch(
-                '/test/mocks/sites/cf/fragments/search/default.json',
-            );
-        }
-        if (/user-groups/.test(pathname)) {
-            return originalFetch('/test/mocks/users.json');
-        }
-        return originalFetch(...arguments);
-    };
-    return originalFetch;
-}

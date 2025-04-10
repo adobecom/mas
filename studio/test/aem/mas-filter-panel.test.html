@@ -37,7 +37,6 @@
             import '../../src/aem/mas-filter-panel.js';
             import '../../src/aem/aem-tag-picker-field.js';
             import '../../src/fields/user-picker.js';
-            import { mockFetch } from '../utils.js';
 
             async function clickTagClearButton(filterPanel, tagKey) {
                 const tag = filterPanel.shadowRoot.querySelector(
@@ -50,8 +49,12 @@
             }
 
             runTests(async () => {
-                mockFetch();
-
+                let fetchPromise;
+                const originalFetch = window.fetch;
+                window.fetch = async () => {
+                    fetchPromise = originalFetch('/test/mocks/tags.json');
+                    return fetchPromise;
+                };
                 describe('mas-filter-panel custom element', async () => {
                     beforeEach(async function () {
                         Store.filters.set({

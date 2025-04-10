@@ -145,14 +145,12 @@ export class RteLinkEditor extends LitElement {
                     this.analyticsId = e.target.value;
                 }}
             >
-                <sp-menu>
-                    ${options.map(
-                        (option) =>
-                            html`<sp-menu-item value="${option}"
-                                >${option}</sp-menu-item
-                            >`,
-                    )}
-                </sp-menu>
+                ${options.map(
+                    (option) =>
+                        html`<sp-menu-item value="${option}"
+                            >${option}</sp-menu-item
+                        >`,
+                )}
             </sp-picker>`;
     }
 
@@ -271,12 +269,10 @@ export class RteLinkEditor extends LitElement {
                 .value=${this.target}
                 @change=${(e) => (this.target = e.target.value)}
             >
-                <sp-menu>
-                    <sp-menu-item value="_self">Same Window</sp-menu-item>
-                    <sp-menu-item value="_blank">New Window</sp-menu-item>
-                    <sp-menu-item value="_parent">Parent Frame</sp-menu-item>
-                    <sp-menu-item value="_top">Top Frame</sp-menu-item>
-                </sp-menu>
+                <sp-menu-item value="_self">Same Window</sp-menu-item>
+                <sp-menu-item value="_blank">New Window</sp-menu-item>
+                <sp-menu-item value="_parent">Parent Frame</sp-menu-item>
+                <sp-menu-item value="_top">Top Frame</sp-menu-item>
             </sp-picker>
             ${this.#analyticsIdField} ${this.#linkVariants}
             <sp-button

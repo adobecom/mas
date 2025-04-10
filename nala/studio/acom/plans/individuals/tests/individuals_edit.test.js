@@ -1001,4 +1001,82 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             ).toBeTruthy();
         });
     });
+
+    // @studio-plans-individuals-edit-price-promo - Validate edit price promo for plans individuals card in mas studio
+    test(`${features[18].name},${features[18].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[18];
+        const testPage = `${baseURL}${features[18].path}${miloLibs}${features[18].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'plans'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit promo field', async () => {
+            await expect(
+                await editor.prices.locator(editor.regularPrice),
+            ).toHaveAttribute('data-promotion-code', data.promo);
+            await expect(
+                await individuals.cardPrice.locator(editor.regularPrice),
+            ).toHaveAttribute('data-promotion-code', data.promo);
+            await (await editor.prices.locator(editor.regularPrice)).dblclick();
+
+            await expect(await ost.promoField).toBeVisible();
+            await expect(await ost.promoLabel).toBeVisible();
+            await expect(await ost.promoLabel).toContainText(data.promo);
+            await expect(await ost.promoField).toHaveValue(data.promo);
+
+            await ost.promoField.fill(data.newPromo);
+            await expect(await ost.promoLabel).toContainText(data.newPromo);
+            await expect(await ost.promoField).toHaveValue(data.newPromo);
+            await ost.priceUse.click();
+        });
+
+        await test.step('step-4: Validate promo change in Editor panel', async () => {
+            await expect(
+                await editor.prices.locator(editor.regularPrice),
+            ).toHaveAttribute('data-promotion-code', data.newPromo);
+        });
+
+        await test.step('step-5: Validate edited price promo on the card', async () => {
+            await expect(
+                await individuals.cardPrice.locator(editor.regularPrice),
+            ).toHaveAttribute('data-promotion-code', data.newPromo);
+        });
+
+        await test.step('step-6: Remove promo', async () => {
+            await (await editor.prices.locator(editor.regularPrice)).dblclick();
+            await expect(await ost.promoField).toBeVisible();
+            await expect(await ost.promoLabel).toBeVisible();
+
+            await ost.promoField.fill('');
+            await expect(await ost.promoLabel).toContainText('no promo');
+            await expect(await ost.promoField).toHaveValue('');
+            await ost.priceUse.click();
+        });
+
+        await test.step('step-7: Validate promo removed in Editor panel', async () => {
+            await expect(
+                await editor.prices.locator(editor.regularPrice),
+            ).not.toHaveAttribute('data-promotion-code');
+        });
+
+        await test.step('step-8: Validate price promo removed from the card', async () => {
+            await expect(await individuals.cardPrice).not.toHaveAttribute(
+                'data-promotion-code',
+            );
+        });
+    });
 });

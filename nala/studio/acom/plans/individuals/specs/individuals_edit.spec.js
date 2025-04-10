@@ -218,5 +218,17 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
         },
+        {
+            tcid: '18',
+            name: '@studio-plans-individuals-edit-price-promo',
+            path: '/studio.html',
+            data: {
+                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                promo: 'UMRM2MUSPr501YOC',
+                newPromo: 'testpromo',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+        },
     ],
 };

@@ -3,7 +3,7 @@ import Store from './store.js';
 const SANDBOX = 'sandbox';
 
 const MAS_CONSUMER_GROUPS = {
-    mas: 805679776,
+    mas: 805267566,
     acom: 805679776,
     'adobe-home': 805679786,
     ccd: 805679796,

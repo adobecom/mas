@@ -69,7 +69,6 @@ export class MasRepository extends LitElement {
         this.reactiveController = new ReactiveController(this, [
             Store.profile,
             Store.selectedUserId,
-            Store.users,
         ]);
         this.recentlyUpdatedLimit = new StoreController(
             this,
@@ -131,7 +130,7 @@ export class MasRepository extends LitElement {
     }
 
     handleSearch() {
-        if (!Store.profile.value || Store.users.value.length === 0) return;
+        if (!Store.profile.value) return;
         switch (this.page.value) {
             case 'content':
                 this.searchFragments();

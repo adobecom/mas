@@ -842,9 +842,18 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 await individuals.cardQuantitySelector,
             ).toHaveAttribute('min', data.newStartValue);
             // Test stepping through values
-            await individuals.cardQuantitySelector.click();
-            await individuals.cardQuantitySelector.press('ArrowDown');
-            await expect(await individuals.cardQuantitySelector).toContainText(
+            await individuals.cardQuantitySelector.locator('button').click();
+            await individuals.cardQuantitySelector
+                .locator('button')
+                .press('ArrowDown');
+            await individuals.cardQuantitySelector
+                .locator('button')
+                .press('Enter');
+            await expect(
+                await individuals.cardQuantitySelector.locator(
+                    '.text-field-input',
+                ),
+            ).toHaveValue(
                 String(Number(data.newStartValue) + Number(data.newStepValue)),
             );
         });

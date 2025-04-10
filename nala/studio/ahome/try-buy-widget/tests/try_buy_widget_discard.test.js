@@ -330,6 +330,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 await studio.getLinkVariant(data.newVariant),
             ).toBeVisible();
             await (await studio.getLinkVariant(data.newVariant)).click();
+
             await studio.linkSave.click();
             await expect(await studio.editorCTA.first()).toHaveClass(
                 data.newVariant,

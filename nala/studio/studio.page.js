@@ -46,6 +46,12 @@ export default class StudioPage {
         this.ahTryBuyWidgetDoubleCard = page.locator(
             'merch-card[variant="ah-try-buy-widget"][size="double"]',
         );
+        this.ahPromotedPlansCard = page.locator(
+            'merch-card[variant="ah-promoted-plans"]',
+        );
+        this.ahPromotedPlansCardGradientBorder = page.locator(
+            'merch-card[variant="ah-promoted-plans"][gradient-border="true"]',
+        );
         // Editor panel fields
         this.editorVariant = page.locator('#card-variant');
         this.editorSize = page.locator('#card-size');
@@ -68,6 +74,7 @@ export default class StudioPage {
         );
         this.editorBorderColor = page.locator('sp-picker#border-color');
         this.editorBackgroundColor = page.locator('sp-picker#backgroundColor');
+        this.editorPromoText = page.locator('sp-field-group#promoText');
         this.editorOSI = page.locator('osi-field#osi');
         this.editorOSIButton = page.locator('#offerSelectorToolButtonOSI');
         this.editorTags = page.locator('aem-tag-picker-field[label="Tags"]');
@@ -87,6 +94,9 @@ export default class StudioPage {
         this.saveCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="save"]',
         );
+        this.discardCardButton = page.locator(
+            'div[id="editor-toolbar"] >> sp-action-button[value="discard"]',
+        );
         // RTE panel toolbar
         this.linkEdit = page.locator('#linkEditorButton');
         // Edit Link Panel
@@ -96,13 +106,13 @@ export default class StudioPage {
         this.linkVariant = page.locator('#linkVariant');
         this.accentVariant = page.locator('sp-button[variant="accent"]');
         this.primaryVariant = page.locator(
-            'sp-button[variant="primary]:not([treatment="outline"]])',
+            'sp-button[variant="primary"]:not([treatment="outline"])',
         );
         this.primaryOutlineVariant = page.locator(
             'sp-button[variant="primary"][treatment="outline"]',
         );
         this.secondaryVariant = page.locator(
-            'sp-button[variant="secondary]:not([treatment="outline"]])',
+            'sp-button[variant="secondary"]:not([treatment="outline"])',
         );
         this.secondaryOutlineVariant = page.locator(
             'sp-button[variant="secondary"][treatment="outline"]',
@@ -124,7 +134,9 @@ export default class StudioPage {
             'ahtrybuywidget-triple': this.ahTryBuyWidgetTripleCard,
             'ahtrybuywidget-single': this.ahTryBuyWidgetSingleCard,
             'ahtrybuywidget-double': this.ahTryBuyWidgetDoubleCard,
-
+            'ah-promoted-plans': this.ahPromotedPlansCard,
+            'ah-promoted-plans-gradient':
+                this.ahPromotedPlansCardGradientBorder,
             empty: this.emptyCard,
         };
 

@@ -23,9 +23,15 @@ export default class ACOMPlansIndividualsPage {
         this.cardSecureTransaction = page.locator('.secure-transaction-label');
         this.cardQuantitySelector = page.locator('merch-quantity-select');
         this.cardWhatsIncluded = page.locator('div[slot="whats-included"]');
-        this.cardWhatsIncludedLabel = page.locator('merch-whats-included div[slot="heading"]');
-        this.cardWhatsIncludedIcon = page.locator('merch-whats-included merch-icon');
-        this.cardWhatsIncludedIconLabel = page.locator('merch-whats-included p[slot="description"]');
+        this.cardWhatsIncludedLabel = page.locator(
+            'merch-whats-included div[slot="heading"]',
+        );
+        this.cardWhatsIncludedIcon = page.locator(
+            'merch-whats-included merch-icon',
+        );
+        this.cardWhatsIncludedIconLabel = page.locator(
+            'merch-whats-included p[slot="description"]',
+        );
 
         // Plans individual card properties:
         this.cssProp = {

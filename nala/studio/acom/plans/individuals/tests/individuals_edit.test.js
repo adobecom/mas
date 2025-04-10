@@ -814,26 +814,38 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-7: Edit quantity selector start value', async () => {
             await expect(await editor.quantitySelectorStart).toBeVisible();
-            await expect(await editor.quantitySelectorStart).toHaveValue(data.startValue);
+            await expect(await editor.quantitySelectorStart).toHaveValue(
+                data.startValue,
+            );
             await editor.quantitySelectorStart.fill(data.newStartValue);
-            await expect(await editor.quantitySelectorStart).toHaveValue(data.newStartValue);
+            await expect(await editor.quantitySelectorStart).toHaveValue(
+                data.newStartValue,
+            );
         });
 
         await test.step('step-8: Edit quantity selector step value', async () => {
             await expect(await editor.quantitySelectorStep).toBeVisible();
-            await expect(await editor.quantitySelectorStep).toHaveValue(data.stepValue);
+            await expect(await editor.quantitySelectorStep).toHaveValue(
+                data.stepValue,
+            );
             await editor.quantitySelectorStep.fill(data.newStepValue);
-            await expect(await editor.quantitySelectorStep).toHaveValue(data.newStepValue);
+            await expect(await editor.quantitySelectorStep).toHaveValue(
+                data.newStepValue,
+            );
         });
 
         await test.step('step-10: Validate quantity selector step value on card', async () => {
-            await expect(await individuals.cardQuantitySelector).toHaveAttribute('step', data.newStepValue);
-            await expect(await individuals.cardQuantitySelector).toHaveAttribute('min', data.newStartValue);
+            await expect(
+                await individuals.cardQuantitySelector,
+            ).toHaveAttribute('step', data.newStepValue);
+            await expect(
+                await individuals.cardQuantitySelector,
+            ).toHaveAttribute('min', data.newStartValue);
             // Test stepping through values
             await individuals.cardQuantitySelector.click();
             await individuals.cardQuantitySelector.press('ArrowDown');
             await expect(await individuals.cardQuantitySelector).toContainText(
-                String(Number(data.newStartValue) + Number(data.newStepValue))
+                String(Number(data.newStartValue) + Number(data.newStepValue)),
             );
         });
     });
@@ -872,24 +884,30 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 data.whatsIncludedText,
             );
             await expect(await individuals.cardWhatsIncluded).toBeVisible();
-            await expect(await individuals.cardWhatsIncludedLabel).toHaveText(data.whatsIncludedText);
+            await expect(await individuals.cardWhatsIncludedLabel).toHaveText(
+                data.whatsIncludedText,
+            );
         });
 
         await test.step('step-5: Add icon to whats included', async () => {
             await expect(await editor.whatsIncludedAddIcon).toBeVisible();
             await editor.whatsIncludedAddIcon.click();
-            
+
             await expect(await editor.whatsIncludedIconURL).toBeVisible();
             await expect(await editor.whatsIncludedIconLabel).toBeVisible();
-            
+
             await editor.whatsIncludedIconURL.fill(data.iconURL);
             await editor.whatsIncludedIconLabel.fill(data.iconLabel);
         });
 
         await test.step('step-6: Validate icon added to whats included', async () => {
             await expect(await individuals.cardWhatsIncludedIcon).toBeVisible();
-            await expect(await individuals.cardWhatsIncludedIcon).toHaveAttribute('src', data.iconURL);
-            await expect(await individuals.cardWhatsIncludedIconLabel).toHaveText(data.iconLabel);
+            await expect(
+                await individuals.cardWhatsIncludedIcon,
+            ).toHaveAttribute('src', data.iconURL);
+            await expect(
+                await individuals.cardWhatsIncludedIconLabel,
+            ).toHaveText(data.iconLabel);
         });
 
         await test.step('step-7: Remove whats included label field', async () => {
@@ -898,13 +916,19 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-8: Validate whats included label is removed', async () => {
             await expect(await editor.whatsIncludedLabel).toHaveValue('');
-            await expect(await individuals.cardWhatsIncludedLabel).not.toBeVisible();
+            await expect(
+                await individuals.cardWhatsIncludedLabel,
+            ).not.toBeVisible();
             await expect(await individuals.cardWhatsIncludedIcon).toBeVisible();
-            await expect(await individuals.cardWhatsIncludedIconLabel).toBeVisible();
+            await expect(
+                await individuals.cardWhatsIncludedIconLabel,
+            ).toBeVisible();
         });
 
         await test.step('step-9: Remove whats included icon', async () => {
-            await expect(await editor.whatsIncludedIconRemoveButton).toBeVisible();
+            await expect(
+                await editor.whatsIncludedIconRemoveButton,
+            ).toBeVisible();
             await editor.whatsIncludedIconRemoveButton.click();
         });
 
@@ -913,8 +937,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.whatsIncludedIconURL).not.toBeVisible();
             await expect(await editor.whatsIncludedIconLabel).not.toBeVisible();
             await expect(await individuals.cardWhatsIncluded).not.toBeVisible();
-            await expect(await individuals.cardWhatsIncludedIcon).not.toBeVisible();
-            await expect(await individuals.cardWhatsIncludedIconLabel).not.toBeVisible();
+            await expect(
+                await individuals.cardWhatsIncludedIcon,
+            ).not.toBeVisible();
+            await expect(
+                await individuals.cardWhatsIncludedIconLabel,
+            ).not.toBeVisible();
         });
     });
 

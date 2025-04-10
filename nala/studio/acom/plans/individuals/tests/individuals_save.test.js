@@ -250,7 +250,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-5: Verify badge change is saved', async () => {
             await expect(await editor.badge).toHaveValue(data.newBadge);
             await expect(
-                await clonedCard.locator(individuals.cardBadge),
+                await clonedCard.locator(individuals.cardBadgeLabel),
             ).toHaveText(data.newBadge);
         });
     });

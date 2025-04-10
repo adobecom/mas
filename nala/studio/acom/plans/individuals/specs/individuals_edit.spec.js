@@ -164,6 +164,10 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                startValue: '3',
+                newStartValue: '2',
+                stepValue: '1',
+                newStepValue: '2'
             },
             browserParams: '#query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',

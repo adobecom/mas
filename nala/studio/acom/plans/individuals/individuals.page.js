@@ -21,7 +21,7 @@ export default class ACOMPlansIndividualsPage {
         );
         this.cardCallout = page.locator('div[slot="callout-content"] > p');
         this.cardSecureTransaction = page.locator('.secure-transaction-label');
-        this.cardQuantitySelector = page.locator('div[slot="quantity-select"]');
+        this.cardQuantitySelector = page.locator('merch-quantity-select');
         this.cardWhatsIncluded = page.locator('div[slot="whats-included"]');
 
         // Plans individual card properties:

@@ -812,7 +812,30 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardQuantitySelector).toBeVisible();
         });
 
-        // add editign steps for quantity selector
+        await test.step('step-7: Edit quantity selector start value', async () => {
+            await expect(await editor.quantitySelectorStart).toBeVisible();
+            await expect(await editor.quantitySelectorStart).toHaveValue(data.startValue);
+            await editor.quantitySelectorStart.fill(data.newStartValue);
+            await expect(await editor.quantitySelectorStart).toHaveValue(data.newStartValue);
+        });
+
+        await test.step('step-8: Edit quantity selector step value', async () => {
+            await expect(await editor.quantitySelectorStep).toBeVisible();
+            await expect(await editor.quantitySelectorStep).toHaveValue(data.stepValue);
+            await editor.quantitySelectorStep.fill(data.newStepValue);
+            await expect(await editor.quantitySelectorStep).toHaveValue(data.newStepValue);
+        });
+
+        await test.step('step-10: Validate quantity selector step value on card', async () => {
+            await expect(await individuals.cardQuantitySelector).toHaveAttribute('step', data.newStepValue);
+            await expect(await individuals.cardQuantitySelector).toHaveAttribute('min', data.newStartValue);
+            // Test stepping through values
+            await individuals.cardQuantitySelector.click();
+            await individuals.cardQuantitySelector.press('ArrowDown');
+            await expect(await individuals.cardQuantitySelector).toContainText(
+                String(Number(data.newStartValue) + Number(data.newStepValue))
+            );
+        });
     });
 
     // @studio-plans-individuals-edit-whats-included - Validate edit whats included for plans individuals card in mas studio

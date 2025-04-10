@@ -47,10 +47,10 @@ export default class EditorPage {
         this.quantitySelectorTitle = this.panel.locator(
             'sp-field-group#quantitySelector #title-quantity input',
         );
-        this.quantityselectorStart = this.panel.locator(
+        this.quantitySelectorStart = this.panel.locator(
             'sp-field-group#quantitySelector #start-quantity input',
         );
-        this.quantityselectorStep = this.panel.locator(
+        this.quantitySelectorStep = this.panel.locator(
             'sp-field-group#quantitySelector #step-quantity input',
         );
         this.whatsIncluded = this.panel.locator('#whatsIncluded input');

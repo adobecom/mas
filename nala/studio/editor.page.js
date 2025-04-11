@@ -6,6 +6,7 @@ export default class EditorPage {
         this.panel = page.locator('editor-panel > #editor');
 
         // Editor panel fields
+        this.authorPath = page.locator('#author-path');
         this.variant = this.panel.locator('#card-variant');
         this.size = this.panel.locator('#card-size');
         this.title = this.panel.locator('#card-title input');

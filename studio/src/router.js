@@ -1,6 +1,5 @@
 import Store from './store.js';
 import { PAGE_NAMES } from './constants.js';
-import { getHashParam } from './utils.js';
 
 const originalUrl = window.location.href;
 
@@ -445,7 +444,7 @@ export function setupNavigationSubscriptions() {
             if (hashParams.toString() !== currentHash) {
                 window.location.hash = hashParams.toString();
             }
-            
+
             const newSearch = urlParams.toString();
             window.history.replaceState(
                 null,

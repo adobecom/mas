@@ -1,15 +1,5 @@
 import { PAGE_NAMES, WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
-import { FragmentStore } from './reactivity/fragment-store.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
-import {
-    deepCompare,
-    getHashParam,
-    getHashParams,
-    looseEquals,
-    setHashParams,
-} from './utils.js';
-
-const hasQuery = Boolean(getHashParam('query'));
 
 // Store definition with default values - no URL parsing here
 const Store = {
@@ -52,9 +42,11 @@ const Store = {
         selected: new ReactiveStore(null),
         editing: new ReactiveStore(null),
     },
+    profile: new ReactiveStore(),
+    userGroups: new ReactiveStore([]), // groups for the current user
+    selectedUserId: new ReactiveStore(null),
+    users: new ReactiveStore([]),
 };
-
-window.Store = Store; // TODO remove
 
 export default Store;
 
@@ -65,7 +57,7 @@ export default Store;
 function filtersValidator(value) {
     if (!value) return { locale: 'en_US', tags: '' };
     if (!value.locale) value.locale = 'en_US';
-    
+
     // Ensure tags is always a string
     if (value.tags === undefined || value.tags === null) {
         value.tags = '';
@@ -74,7 +66,7 @@ function filtersValidator(value) {
     } else if (typeof value.tags !== 'string') {
         value.tags = String(value.tags);
     }
-    
+
     return value;
 }
 

@@ -150,19 +150,29 @@ class MasToolbar extends LitElement {
         }
     }
 
+    update() {
+        if (Store.selectedUserId.value) {
+            this.filtersShown = true;
+        }
+        super.update();
+    }
+
     updateFilterCount() {
         const filters = Store.filters.get();
         if (!filters || !filters.tags) {
             this.filterCount = 0;
             return;
         }
-        
+
         if (typeof filters.tags === 'string') {
             this.filterCount = filters.tags.split(',').filter(Boolean).length;
         } else if (Array.isArray(filters.tags)) {
             this.filterCount = filters.tags.filter(Boolean).length;
         } else {
             this.filterCount = 0;
+        }
+        if (Store.selectedUserId.value) {
+            this.filterCount += 1;
         }
     }
 
@@ -213,7 +223,9 @@ class MasToolbar extends LitElement {
                     ? html`<sp-icon-filter-add
                           slot="icon"
                       ></sp-icon-filter-add>`
-                    : html`<div slot="icon" class="filters-badge">${this.filterCount}</div>`}
+                    : html`<div slot="icon" class="filters-badge">
+                          ${this.filterCount}
+                      </div>`}
                 Filter</sp-action-button
             >
             <sp-search

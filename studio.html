@@ -75,11 +75,10 @@
                     );
                 document.querySelector('sp-theme').appendChild(studio);
             }
+            const context = {
+                profile_filter: `{"findFirst":true,"fallbackToAA":true,"searchEntireCluster":true};isOwnedByOrg('3B962FB55F5F922E0A495C88@AdobeOrg')`,
+            };
             window.adobeid = {
-                api_parameters: {
-                    profile_filter:
-                        "isOwnedByOrg('3B962FB55F5F922E0A495C88@AdobeOrg')",
-                },
                 client_id: 'mas-studio',
                 environment: 'prod',
                 locale: 'en_US',
@@ -95,7 +94,7 @@
                         window.adobeIMS?.getAccessToken() ?? {};
                     if (token && (expire?.valueOf() ?? 0) > Date.now())
                         return token;
-                    window.adobeIMS?.signIn();
+                    window.adobeIMS?.signIn(context);
                 },
                 onError(error) {
                     console.error('[M@S Studio] IMS error: ', error);
@@ -110,7 +109,7 @@
                                 e,
                             );
                             console.info('[M@S Studio] Signing in');
-                            adobeIMS.signIn();
+                            adobeIMS.signIn(context);
                         });
                 },
             };

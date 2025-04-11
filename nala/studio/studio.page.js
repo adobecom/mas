@@ -16,7 +16,7 @@ export default class StudioPage {
         this.folderPicker = page.locator('mas-folder-picker sp-action-menu');
         this.renderView = page.locator('#render');
         this.quickActions = page.locator('.quick-actions');
-        this.editorPanel = page.locator('editor-panel > #editor');
+        // this.editorPanel = page.locator('editor-panel > #editor');
         this.confirmationDialog = page.locator(
             'sp-dialog[variant="confirmation"]',
         );
@@ -46,73 +46,16 @@ export default class StudioPage {
         this.ahTryBuyWidgetDoubleCard = page.locator(
             'merch-card[variant="ah-try-buy-widget"][size="double"]',
         );
-        // Editor panel fields
-        this.editorAuthorPath = page.locator('#author-path');
-        this.editorVariant = page.locator('#card-variant');
-        this.editorSize = page.locator('#card-size');
-        this.editorTitle = page.locator('#card-title input');
-        this.editorSubtitle = page.locator('#card-subtitle input');
-        this.editorBadge = page.locator('#card-badge input');
-        this.editorIconURL = page.locator('#icon input');
-        this.editorBackgroundImage = page.locator('#background-image input');
-        this.editorPrices = page.locator('sp-field-group#prices');
-        this.regularPrice = page.locator(
-            'span[is="inline-price"][data-template="price"]',
-        );
-        this.strikethroughPrice = page.locator(
-            'span[is="inline-price"][data-template="strikethrough"]',
-        );
-        this.editorFooter = page.locator('sp-field-group#ctas');
-        this.editorCTA = page.locator('sp-field-group#ctas a');
-        this.editorDescription = page.locator(
-            'sp-field-group#description div[contenteditable="true"]',
-        );
-        this.editorBorderColor = page.locator('sp-picker#border-color');
-        this.editorBackgroundColor = page.locator('sp-picker#backgroundColor');
-        this.editorOSI = page.locator('osi-field#osi');
-        this.editorOSIButton = page.locator('#offerSelectorToolButtonOSI');
-        this.editorTags = page.locator('aem-tag-picker-field[label="Tags"]');
-        this.editorCTAClassSecondary = page.locator(
-            'sp-field-group#ctas a.secondary',
-        );
+        this.plansCard = page.locator('merch-card[variant="plans"]');
         // Editor panel toolbar
         this.cloneCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="clone"]',
-        );
-        this.closeEditor = page.locator(
-            'div[id="editor-toolbar"] >> sp-action-button[value="close"]',
         );
         this.deleteCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="delete"]',
         );
         this.saveCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="save"]',
-        );
-        // RTE panel toolbar
-        this.linkEdit = page.locator('#linkEditorButton');
-        // Edit Link Panel
-        this.checkoutParameters = page.locator('#checkoutParameters input');
-        this.linkText = page.locator('#linkText input');
-        this.linkSave = page.locator('#saveButton');
-        this.linkVariant = page.locator('#linkVariant');
-        this.accentVariant = page.locator('sp-button[variant="accent"]');
-        this.primaryVariant = page.locator(
-            'sp-button[variant="primary]:not([treatment="outline"]])',
-        );
-        this.primaryOutlineVariant = page.locator(
-            'sp-button[variant="primary"][treatment="outline"]',
-        );
-        this.secondaryVariant = page.locator(
-            'sp-button[variant="secondary]:not([treatment="outline"]])',
-        );
-        this.secondaryOutlineVariant = page.locator(
-            'sp-button[variant="secondary"][treatment="outline"]',
-        );
-        this.primaryLinkVariant = page.locator(
-            'sp-link:has-text("Primary link")',
-        );
-        this.secondaryLinkVariant = page.locator(
-            'sp-link[variant="secondary"]',
         );
     }
 
@@ -125,7 +68,7 @@ export default class StudioPage {
             'ahtrybuywidget-triple': this.ahTryBuyWidgetTripleCard,
             'ahtrybuywidget-single': this.ahTryBuyWidgetSingleCard,
             'ahtrybuywidget-double': this.ahTryBuyWidgetDoubleCard,
-
+            plans: this.plansCard,
             empty: this.emptyCard,
         };
 
@@ -173,24 +116,5 @@ export default class StudioPage {
         await expect(await this.toastPositive).toHaveText(
             'Fragment successfully deleted.',
         );
-    }
-
-    async getLinkVariant(variant) {
-        const linkVariant = {
-            accent: this.accentVariant,
-            primary: this.primaryVariant,
-            'primary-outline': this.primaryOutlineVariant,
-            secondary: this.secondaryVariant,
-            'secondary-outline': this.secondaryOutlineVariant,
-            'primary-link': this.primaryLinkVariant,
-            'secondary-link': this.secondaryLinkVariant,
-        };
-
-        const link = linkVariant[variant];
-        if (!link) {
-            throw new Error(`Invalid link variant type: ${variant}`);
-        }
-
-        return this.linkVariant.locator(link);
     }
 }

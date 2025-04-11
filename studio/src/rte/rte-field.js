@@ -10,7 +10,7 @@ import {
     splitListItem,
     liftListItem,
 } from 'prosemirror-schema-list';
-import { baseKeymap, toggleMark } from 'prosemirror-commands';
+import { baseKeymap, toggleMark, setBlockType } from 'prosemirror-commands';
 import { history, undo, redo } from 'prosemirror-history';
 import {
     openOfferSelectorTool,
@@ -87,10 +87,11 @@ class RteField extends LitElement {
     static properties = {
         hasFocus: { type: Boolean, attribute: 'focused', reflect: true },
         inline: { type: Boolean, attribute: 'inline' },
+        styling: { type: Boolean, attribute: 'styling' },
+        list: { type: Boolean, attribute: 'list' },
         link: { type: Boolean, attribute: 'link' },
         icon: { type: Boolean, attribute: 'icon' },
         uptLink: { type: Boolean, attribute: 'upt-link' },
-        list: { type: Boolean, attribute: 'list' },
         isLinkSelected: { type: Boolean, state: true },
         priceSelected: { type: Boolean, state: true },
         readOnly: { type: Boolean, attribute: 'readonly' },
@@ -255,6 +256,35 @@ class RteField extends LitElement {
                     margin: 0;
                     padding-left: 24px;
                 }
+
+                div.ProseMirror p[class^='heading-'] {
+                    font-weight: bold;
+
+                    &.heading-xxxs {
+                        font-size: 14px;
+                        line-height: 18px;
+                    }
+
+                    &.heading-xxs {
+                        font-size: 16px;
+                        line-height: 20px;
+                    }
+
+                    &.heading-xs {
+                        font-size: 18px;
+                        line-height: 22.5px;
+                    }
+
+                    &.heading-s {
+                        font-size: 20px;
+                        line-height: 25px;
+                    }
+
+                    &.heading-m {
+                        font-size: 24px;
+                        line-height: 30px;
+                    }
+                }
             `,
             prosemirrorStyles,
         ];
@@ -274,6 +304,8 @@ class RteField extends LitElement {
         this.showLinkEditor = false;
         this.showIconEditor = false;
         this.inline = false;
+        this.styling = false;
+        this.list = false;
         this.link = false;
         this.uptLink = false;
         this.maxLength = 70;
@@ -326,10 +358,25 @@ class RteField extends LitElement {
     }
 
     #initEditorSchema() {
-        const basicNodes = this.list
+        let nodes = this.list
             ? addListNodes(schema.spec.nodes, 'paragraph block*', 'block')
             : schema.spec.nodes;
-        let nodes = basicNodes.addToStart('inlinePrice', {
+
+        if (this.styling) {
+            nodes = nodes.remove('heading').addBefore('code_block', 'heading', {
+                content: 'inline*',
+                group: 'block',
+                defining: true,
+                attrs: { class: { default: null } },
+                parseDOM: [{ tag: 'p[class^="heading-"]' }],
+                toDOM(node) {
+                    const { class: _class } = node.attrs;
+                    return ['p', { class: _class }, 0];
+                },
+            });
+        }
+
+        nodes = nodes.addToStart('inlinePrice', {
             group: 'inline',
             inline: true,
             atom: true,
@@ -816,6 +863,17 @@ class RteField extends LitElement {
         };
     }
 
+    #handleStylingAction(event) {
+        event.stopPropagation();
+        const stylingType = event.target.value;
+        const { state, dispatch } = this.editorView;
+        if (stylingType.startsWith('heading')) {
+            setBlockType(state.schema.nodes.heading, {
+                class: stylingType,
+            })(state, dispatch);
+        }
+    }
+
     #handleListAction(listType) {
         return () => {
             const { state, dispatch } = this.editorView;
@@ -1011,10 +1069,10 @@ class RteField extends LitElement {
         const lengthExceeded = this.length > this.maxLength;
         return html`
             <sp-action-group quiet size="m" aria-label="RTE toolbar actions">
-                ${this.#formatButtons} ${this.#listButtons}
-                ${this.#linkEditorButton} ${this.#unlinkEditorButton}
-                ${this.#offerSelectorToolButton} ${this.#iconsButton}
-                ${this.#uptLinkButton}
+                ${this.#formatButtons} ${this.stylingButton}
+                ${this.#listButtons} ${this.#linkEditorButton}
+                ${this.#unlinkEditorButton} ${this.#offerSelectorToolButton}
+                ${this.#iconsButton} ${this.#uptLinkButton}
             </sp-action-group>
             <div id="editor"></div>
             <p id="counter">
@@ -1103,6 +1161,21 @@ class RteField extends LitElement {
                 <sp-icon-underline slot="icon"></sp-icon-underline>
             </sp-action-button>
         `;
+    }
+
+    get stylingButton() {
+        if (!this.styling) return;
+        return html`<sp-action-menu
+            title="Styling"
+            @change=${this.#handleStylingAction}
+        >
+            <sp-icon-brush slot="icon"></sp-icon-brush>
+            <sp-menu-item value="heading-xxxs">Heading XXXS</sp-menu-item>
+            <sp-menu-item value="heading-xxs">Heading XXS</sp-menu-item>
+            <sp-menu-item value="heading-xs">Heading XS</sp-menu-item>
+            <sp-menu-item value="heading-s">Heading S</sp-menu-item>
+            <sp-menu-item value="heading-m">Heading M</sp-menu-item>
+        </sp-action-menu>`;
     }
 
     get #listButtons() {

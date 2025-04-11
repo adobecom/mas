@@ -186,25 +186,25 @@ export default class EditorPanel extends LitElement {
         const surface = Store.search.value.path.toUpperCase();
         switch (this.fragment?.model?.path) {
             case CARD_MODEL_PATH:
-                const props =  {
+                const props = {
                     cardTitle: this.fragment?.getField('cardTitle')?.values[0],
                     variantCode: this.fragment?.getField('variant')?.values[0],
-                    };
+                };
 
-                    VARIANTS.forEach((variant) => {
-                        if (variant.value === props.variantCode) {
-                            props.variantLabel = variant.label;
+                VARIANTS.forEach((variant) => {
+                    if (variant.value === props.variantCode) {
+                        props.variantLabel = variant.label;
                     }
                 });
                 fragmentParts = `${surface} / ${props.variantLabel} / ${props.cardTitle}`;
                 title = props.cardTitle;
-                break;  
+                break;
             case COLLECTION_MODEL_PATH:
                 title = this.fragment?.title;
                 fragmentParts = `${surface} / ${title}`;
                 break;
         }
-        return {fragmentParts, title};
+        return { fragmentParts, title };
     }
 
     showNegativeAlert() {
@@ -215,7 +215,7 @@ export default class EditorPanel extends LitElement {
     }
 
     generateCodeToUse() {
-        const {fragmentParts, title} = this.getFragmentPartsToUse();
+        const { fragmentParts, title } = this.getFragmentPartsToUse();
         const webComponentName =
             MODEL_WEB_COMPONENT_MAPPING[this.fragment?.model?.path];
         if (!webComponentName) {
@@ -224,23 +224,24 @@ export default class EditorPanel extends LitElement {
         }
 
         const code = `<${webComponentName}><aem-fragment fragment="${this.fragment?.id}" title="${title}"></aem-fragment></${webComponentName}>`;
+        const href = `https://mas.adobe.com/studio.html#page=${Store.page.value}&path=${Store.search.value.path}&query=${this.fragment?.id}`;
         const richText = `
-                <a href="https://mas.adobe.com/studio.html#content-type=${webComponentName}&page=${Store.page.value}&path=${Store.search.value.path}&query=${this.fragment?.id}">
+                <a href="${href}" target="_blank">
                     ${webComponentName}: ${fragmentParts}
                 </a>
             `;
-        return [code, richText];
+        return [code, richText, href];
     }
 
     async copyToUse() {
-        const [code, richText] = this.generateCodeToUse();
+        const [code, richText, href] = this.generateCodeToUse();
         if (!code || !richText) return;
 
         try {
             await navigator.clipboard.write([
                 /* global ClipboardItem */
                 new ClipboardItem({
-                    'text/plain': new Blob([code], { type: 'text/plain' }),
+                    'text/plain': new Blob([href], { type: 'text/plain' }),
                     'text/html': new Blob([richText], { type: 'text/html' }),
                 }),
             ]);

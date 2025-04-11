@@ -8,6 +8,7 @@ import {
     addListNodes,
     wrapInList,
     splitListItem,
+    liftListItem,
 } from 'prosemirror-schema-list';
 import { baseKeymap, toggleMark, setBlockType } from 'prosemirror-commands';
 import { history, undo, redo } from 'prosemirror-history';
@@ -248,6 +249,11 @@ class RteField extends LitElement {
                     clip: rect(0, 0, 0, 0);
                     white-space: nowrap;
                     border: 0;
+                }
+
+                div.ProseMirror ul {
+                    margin: 0;
+                    padding-left: 24px;
                 }
 
                 .heading-icon {
@@ -849,9 +855,23 @@ class RteField extends LitElement {
     #handleListAction(listType) {
         return () => {
             const { state, dispatch } = this.editorView;
-            const node = this.#editorSchema.nodes[listType];
-            if (node) {
-                wrapInList(node)(state, dispatch);
+            let { $from } = state.selection;
+
+            let isInList = false;
+            const listItemNode = this.#editorSchema.nodes.list_item;
+            for (let level = $from.depth; level >= 0; level--) {
+                if ($from.node(level)?.type === listItemNode) {
+                    isInList = true;
+                    break;
+                }
+            }
+            if (isInList) {
+                liftListItem(listItemNode)(state, dispatch);
+            } else {
+                const listNode = this.#editorSchema.nodes[listType];
+                if (listNode) {
+                    wrapInList(listNode)(state, dispatch);
+                }
             }
         };
     }

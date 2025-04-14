@@ -367,11 +367,13 @@ class RteField extends LitElement {
                 content: 'inline*',
                 group: 'block',
                 defining: true,
-                attrs: { class: { default: null } },
-                parseDOM: [{ tag: 'p[class^="heading-"]' }],
+                attrs: {
+                    class: { default: null },
+                    'data-styling': { default: '' },
+                },
+                parseDOM: [{ tag: 'p[data-styling]' }],
                 toDOM(node) {
-                    const { class: _class } = node.attrs;
-                    return ['p', { class: _class }, 0];
+                    return ['p', { ...node.attrs }, 0];
                 },
             });
         }
@@ -867,11 +869,9 @@ class RteField extends LitElement {
         event.stopPropagation();
         const stylingType = event.target.value;
         const { state, dispatch } = this.editorView;
-        if (stylingType.startsWith('heading')) {
-            setBlockType(state.schema.nodes.heading, {
-                class: stylingType,
-            })(state, dispatch);
-        }
+        setBlockType(state.schema.nodes.heading, {
+            class: stylingType,
+        })(state, dispatch);
     }
 
     #handleListAction(listType) {
@@ -1175,6 +1175,8 @@ class RteField extends LitElement {
             <sp-menu-item value="heading-xs">Heading XS</sp-menu-item>
             <sp-menu-item value="heading-s">Heading S</sp-menu-item>
             <sp-menu-item value="heading-m">Heading M</sp-menu-item>
+            <sp-menu-divider></sp-menu-divider>
+            <sp-menu-item value="promo-text">Promo text</sp-menu-item>
         </sp-action-menu>`;
     }
 

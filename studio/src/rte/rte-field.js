@@ -666,6 +666,7 @@ class RteField extends LitElement {
         if (!selection.empty) {
             const text = state.doc.textBetween(selection.from, selection.to);
             // Check if selected text is a potential phone number
+            // NOTE: NOT supposed to be a 'catch-all' phone validator - just a check to see if the selected text is roughly a phone number
             linkType = /^\+?([0-9]{3})\)?([ .-]?)([0-9]{3})\2([0-9]{4})/.test(
                 text,
             )

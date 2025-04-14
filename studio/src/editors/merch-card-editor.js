@@ -432,7 +432,7 @@ class MerchCardEditor extends LitElement {
             <sp-field-group id="secureLabel" class="toggle">
             <secure-text-field
                 id="secure-text-field"
-                label="Secure Text Label"
+                label="Secure Transaction Label"
                 data-field="showSecureLabel"
                 value="${form.showSecureLabel?.values[0]}"
                 @input="${this.updateFragment}"

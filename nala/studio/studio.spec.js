@@ -94,7 +94,7 @@ export default {
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals',
         },
         {
-            tcid: '8',
+            tcid: '10',
             name: '@studio-promoted-plans-editor',
             path: '/studio.html',
             data: {
@@ -104,7 +104,7 @@ export default {
             tags: '@mas-studio @ahome @ahome-promoted-plans',
         },
         {
-            tcid: '9',
+            tcid: '11',
             name: '@studio-promoted-plans-gradient-border',
             path: '/studio.html',
             data: {
@@ -117,7 +117,7 @@ export default {
             tags: '@mas-studio @ahome @ahome-promoted-plans',
         },
         {
-            tcid: '10',
+            tcid: '12',
             name: '@studio-promoted-plans-acrobat-card',
             path: '/studio.html',
             data: {

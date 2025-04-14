@@ -23,6 +23,7 @@ class MerchCardEditor extends LitElement {
         availableSizes: { type: Array, state: true },
         availableColors: { type: Array, state: true },
         availableBorderColors: { type: Array, state: true },
+        availableBadgeColors: { type: Array, state: true },
         availableBackgroundColors: { type: Array, state: true },
         quantitySelectorValues: { type: String, state: true },
     };
@@ -35,6 +36,7 @@ class MerchCardEditor extends LitElement {
         this.availableSizes = [];
         this.availableColors = [];
         this.availableBorderColors = [];
+        this.availableBadgeColors = [];
         this.availableBackgroundColors = [];
         this.quantitySelectorValues = '';
     }
@@ -231,10 +233,13 @@ class MerchCardEditor extends LitElement {
                 'sp-field-group.toggle#border-color',
             );
             if (borderField) borderField.style.display = 'block';
-            this.availableBorderColors =
-                variant.allowedBorderColors || SPECTRUM_COLORS;
+        }
+        if (variant.borderColor || variant.badge?.tag) {
+            this.availableBorderColors = variant.allowedBorderColors || SPECTRUM_COLORS;
+            this.availableBadgeColors = variant.allowedBadgeColors || SPECTRUM_COLORS;
         } else {
             this.availableBorderColors = [];
+            this.availableBadgeColors = [];
         }
         this.availableColors = variant?.allowedColors || [];
     }
@@ -295,16 +300,6 @@ class MerchCardEditor extends LitElement {
                     @input="${this.updateFragment}"
                 ></sp-textfield>
             </sp-field-group>
-            <sp-field-group class="toggle" id="badge">
-                <sp-field-label for="card-badge">Badge</sp-field-label>
-                <sp-textfield
-                    placeholder="Enter badge text"
-                    id="card-badge"
-                    data-field="badge"
-                    value="${form.badge.values[0]}"
-                    @input="${this.updateFragment}"
-                ></sp-textfield>
-            </sp-field-group>
             <sp-field-group class="toggle" id="mnemonics">
                 <sp-field-label for="mnemonics">Mnemonics</sp-field-label>
                 <mas-multifield
@@ -319,8 +314,9 @@ class MerchCardEditor extends LitElement {
                 </mas-multifield>
             </sp-field-group>
             <sp-field-group class="toggle" id="whatsIncluded">
-                <sp-field-label for="whatsIncluded">What's included</sp-field-label>
+                <sp-field-label for="whatsIncludedLabel">What's included</sp-field-label>
                 <sp-textfield
+                    id="whatsIncludedLabel"
                     placeholder="Enter the label text"
                     value="${this.whatsIncluded.label}"
                     @input="${this.#updateWhatsIncluded}"
@@ -334,7 +330,18 @@ class MerchCardEditor extends LitElement {
                         <mas-included-field></mas-included-field>
                     </template>
                 </mas-multifield>                
-            </sp-field-group>            
+            </sp-field-group>
+            <sp-field-group class="toggle" id="badge">
+                <sp-field-label for="card-badge">Badge</sp-field-label>
+                <sp-textfield
+                    placeholder="Enter badge text"
+                    id="card-badge"
+                    data-field="badge"
+                    value="${this.badge.text}"
+                    @input="${this.#updateBadgeText}"
+                ></sp-textfield>
+                ${this.#renderBadgeColors()}
+            </sp-field-group>
             ${this.#renderColorPicker(
                 'border-color',
                 'Border Color',
@@ -411,6 +418,7 @@ class MerchCardEditor extends LitElement {
                     list
                     link
                     upt-link
+                    list
                     data-field="description"
                     default-link-style="secondary-link"
                     @change="${this.updateFragment}"
@@ -627,6 +635,98 @@ class MerchCardEditor extends LitElement {
             this.fragment.variant,
         );
         this.availableColors = variant?.allowedColors || [];
+        this.displayBadgeColorFields(this.badge.text);
+    }
+
+    displayBadgeColorFields(text) {
+        if (!this.isPlans) return;
+        document.querySelector('#badgeColor').style.display = text ? 'block' : 'none';
+        document.querySelector('#badgeBorderColor').style.display = text ? 'block' : 'none';
+    }
+
+    get badgeText() {
+        const badgeValues =
+            this.fragment.fields.find((f) => f.name === 'badge')
+                ?.values ?? [];
+        return badgeValues?.length ? badgeValues[0] : '';
+    }
+
+    get badgeElement() {
+        const badgeHtml = this.badgeText;
+
+        if (!badgeHtml) return undefined;
+
+        if (badgeHtml?.startsWith('<merch-badge')) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(badgeHtml, 'text/html');
+            return doc.querySelector('merch-badge');
+        }
+
+        return {
+            textContent: badgeHtml
+        }
+    }
+
+    get isPlans() {
+        return this.fragment.variant === 'plans';
+    }
+
+    get badge() {
+        if (!this.isPlans) {
+            return {
+                text: this.badgeText,
+            }
+        }
+
+        const text = this.badgeElement?.textContent || '';
+        const bgColorAttr = this.badgeElement?.getAttribute?.('background-color');
+        const bgColorSelected = document.querySelector('sp-picker[data-field="badgeColor"]')?.value
+        const bgColor = bgColorAttr?.toLowerCase() || bgColorSelected || 'spectrum-yellow-300';
+
+        const borderColorAttr = this.badgeElement?.getAttribute?.('border-color');
+        const borderColorSelected = document.querySelector('sp-picker[data-field="badgeBorderColor"]')?.value
+        const borderColor = borderColorAttr?.toLowerCase() || borderColorSelected;
+
+        return {
+            text,
+            bgColor,
+            borderColor,
+        }
+    }
+
+    createBadgeElement(text, bgColor, borderColor) {
+        if (!text) return;
+
+        const element = document.createElement('merch-badge');
+        element.setAttribute('background-color', bgColor);
+        if (bgColor === 'spectrum-green-900-plans' || bgColor === 'spectrum-gray-700-plans') element.setAttribute('color', '#fff');
+        element.setAttribute('border-color', borderColor);
+        element.setAttribute('variant', this.fragment.variant);
+        element.textContent = text;
+        return element;
+    }
+
+    #updateBadgeText(event) {
+        const text = event.target.value?.trim() || '';
+        if (this.isPlans) {
+            this.displayBadgeColorFields(text);
+            this.updateBadge(text, this.badge.bgColor, this.badge.borderColor);
+        } else {
+            this.fragmentStore.updateField('badge', [text]);
+        }
+    }
+
+    onBadgeColorChange(event) {
+        this.updateBadge(this.badge.text, event.target.value, this.badge.borderColor);
+    }
+
+    onBadgeBorderColorChange(event) {
+        this.updateBadge(this.badge.text, this.badge.bgColor, event.target.value);
+    }
+
+    updateBadge(text, bgColor, borderColor) {
+        const element = this.createBadgeElement(text, bgColor, borderColor);
+        this.fragmentStore.updateField('badge', [element?.outerHTML || '']);
     }
 
     async #updateBackgroundColors() {
@@ -643,29 +743,52 @@ class MerchCardEditor extends LitElement {
 
     #formatColorName(color) {
         return color
-            .replace(/(spectrum|global|color|-)/gi, ' ')
+            .replace(/(spectrum|global|color|plans|-)/gi, ' ')
             .replace(/\b\w/g, (l) => l.toUpperCase())
             .replace(/\s+/g, ' ')
             .trim();
     }
 
-    #renderColorPicker(id, label, colors, selectedValue, dataField) {
+    #renderBadgeColors() {
+        if (!this.isPlans) return;
+
+        return html`
+            ${this.#renderColorPicker(
+                'badgeColor',
+                'Badge Color',
+                this.availableBadgeColors,
+                this.badge.bgColor,
+                'badgeColor',
+                this.onBadgeColorChange,
+            )}
+            ${this.#renderColorPicker(
+                'badgeBorderColor',
+                'Badge Border Color',
+                this.availableBadgeColors,
+                this.badge.borderColor,
+                'badgeBorderColor',
+                this.onBadgeBorderColorChange,
+            )}
+        `;
+    }
+
+    #renderColorPicker(id, label, colors, selectedValue, dataField, onChange) {
         const isBackground = dataField === 'backgroundColor';
         const options = isBackground
             ? ['Default', ...colors]
-            : dataField === 'borderColor'
+            : dataField === 'borderColor' || dataField === 'badgeBorderColor'
               ? ['', ...colors]
               : colors;
 
         return html`
-            <sp-field-group class="toggle" id="${id}">
+            <sp-field-group class="${onChange ? '' : 'toggle'}" id="${id}">
                 <sp-field-label for="${id}">${label}</sp-field-label>
                 <sp-picker
                     id="${id}"
                     data-field="${dataField}"
                     value="${selectedValue || (isBackground ? 'Default' : '')}"
                     data-default-value="${isBackground ? 'Default' : ''}"
-                    @change="${this.updateFragment}"
+                    @change="${onChange ? onChange : this.updateFragment}"
                 >
                     ${options.map(
                         (color) => html`

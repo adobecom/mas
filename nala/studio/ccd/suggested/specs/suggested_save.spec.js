@@ -35,7 +35,7 @@ export default {
         },
         {
             tcid: '3',
-            name: '@studio-suggested-save-edit-title',
+            name: '@studio-suggested-save-edited-title',
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
@@ -47,7 +47,7 @@ export default {
         },
         {
             tcid: '4',
-            name: '@studio-suggested-save-edit-eyebrow',
+            name: '@studio-suggested-save-edited-eyebrow',
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
@@ -59,7 +59,7 @@ export default {
         },
         {
             tcid: '5',
-            name: '@studio-suggested-save-edit-mnemonic',
+            name: '@studio-suggested-save-edited-mnemonic',
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
@@ -73,7 +73,7 @@ export default {
         },
         {
             tcid: '6',
-            name: '@studio-suggested-save-edit-description',
+            name: '@studio-suggested-save-edited-description',
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
@@ -85,7 +85,7 @@ export default {
         },
         {
             tcid: '7',
-            name: '@studio-suggested-save-edit-image',
+            name: '@studio-suggested-save-edited-image',
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
@@ -97,7 +97,7 @@ export default {
         },
         {
             tcid: '8',
-            name: '@studio-suggested-save-edit-price',
+            name: '@studio-suggested-save-edited-price',
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
@@ -109,7 +109,7 @@ export default {
         },
         {
             tcid: '9',
-            name: '@studio-suggested-save-edit-cta-label',
+            name: '@studio-suggested-save-edited-cta-label',
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
@@ -121,7 +121,7 @@ export default {
         },
         {
             tcid: '10',
-            name: '@studio-suggested-save-edit-osi',
+            name: '@studio-suggested-save-edited-osi',
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
@@ -140,7 +140,7 @@ export default {
         },
         {
             tcid: '11',
-            name: '@studio-suggested-save-edit-cta-variant',
+            name: '@studio-suggested-save-edited-cta-variant',
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
@@ -160,7 +160,7 @@ export default {
         },
         {
             tcid: '12',
-            name: '@studio-suggested-save-edit-cta-checkout-params',
+            name: '@studio-suggested-save-edited-cta-checkout-params',
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',

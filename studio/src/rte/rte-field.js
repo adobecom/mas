@@ -92,6 +92,7 @@ class RteField extends LitElement {
         link: { type: Boolean, attribute: 'link' },
         icon: { type: Boolean, attribute: 'icon' },
         uptLink: { type: Boolean, attribute: 'upt-link' },
+        list: { type: Boolean, attribute: 'list' },
         isLinkSelected: { type: Boolean, state: true },
         priceSelected: { type: Boolean, state: true },
         readOnly: { type: Boolean, attribute: 'readonly' },

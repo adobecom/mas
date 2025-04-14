@@ -108,6 +108,18 @@ class RteField extends LitElement {
         return [
             css`
                 :host {
+                    --merch-color-green-promo: #2d9d78;
+                    --consonant-merch-card-promo-text-height: 14px;
+                    --consonant-merch-card-heading-xxxs-font-size: 14px;
+                    --consonant-merch-card-heading-xxxs-line-height: 18px;
+                    --consonant-merch-card-heading-xxs-font-size: 16px;
+                    --consonant-merch-card-heading-xxs-line-height: 20px;
+                    --consonant-merch-card-heading-xs-font-size: 18px;
+                    --consonant-merch-card-heading-xs-line-height: 22.5px;
+                    --consonant-merch-card-heading-s-font-size: 20px;
+                    --consonant-merch-card-heading-s-line-height: 25px;
+                    --consonant-merch-card-heading-m-font-size: 24px;
+                    --consonant-merch-card-heading-m-line-height: 30px;
                     display: flex;
                     gap: 8px;
                     flex-direction: column;
@@ -259,31 +271,65 @@ class RteField extends LitElement {
                 }
 
                 div.ProseMirror p[class^='heading-'] {
-                    font-weight: bold;
+                    font-weight: 700;
 
                     &.heading-xxxs {
-                        font-size: 14px;
-                        line-height: 18px;
+                        font-size: var(
+                            --consonant-merch-card-heading-xxxs-font-size
+                        );
+                        line-height: var(
+                            --consonant-merch-card-heading-xxxs-line-height
+                        );
                     }
 
                     &.heading-xxs {
-                        font-size: 16px;
-                        line-height: 20px;
+                        font-size: var(
+                            --consonant-merch-card-heading-xxs-font-size
+                        );
+                        line-height: var(
+                            --consonant-merch-card-heading-xxs-line-height
+                        );
                     }
 
                     &.heading-xs {
-                        font-size: 18px;
-                        line-height: 22.5px;
+                        font-size: var(
+                            --consonant-merch-card-heading-xs-font-size
+                        );
+                        line-height: var(
+                            --consonant-merch-card-heading-xs-line-height
+                        );
                     }
 
                     &.heading-s {
-                        font-size: 20px;
-                        line-height: 25px;
+                        font-size: var(
+                            --consonant-merch-card-heading-s-font-size
+                        );
+                        line-height: var(
+                            --consonant-merch-card-heading-s-line-height
+                        );
                     }
 
                     &.heading-m {
-                        font-size: 24px;
-                        line-height: 30px;
+                        font-size: var(
+                            --consonant-merch-card-heading-m-font-size
+                        );
+                        line-height: var(
+                            --consonant-merch-card-heading-m-line-height
+                        );
+                    }
+                }
+
+                div.ProseMirror p.promo-text {
+                    color: var(--merch-color-green-promo);
+                    font-size: var(--consonant-merch-card-promo-text-height);
+                    font-weight: 700;
+                    line-height: var(--consonant-merch-card-promo-text-height);
+                    margin: 0;
+                    min-height: var(--consonant-merch-card-promo-text-height);
+                    padding: 0;
+
+                    & a {
+                        color: inherit;
                     }
                 }
             `,
@@ -866,9 +912,13 @@ class RteField extends LitElement {
         };
     }
 
-    #handleStylingAction(event) {
+    #handleStylingSelection(event) {
         event.stopPropagation();
         const stylingType = event.target.value;
+        this.handleStylingAction(stylingType);
+    }
+
+    handleStylingAction(stylingType) {
         const { state, dispatch } = this.editorView;
         setBlockType(state.schema.nodes.heading, {
             class: stylingType,
@@ -1167,8 +1217,9 @@ class RteField extends LitElement {
     get stylingButton() {
         if (!this.styling) return;
         return html`<sp-action-menu
+            id="stylingMenu"
             title="Styling"
-            @change=${this.#handleStylingAction}
+            @change=${this.#handleStylingSelection}
         >
             <sp-icon-brush slot="icon"></sp-icon-brush>
             <sp-menu-item value="heading-xxxs">Heading XXXS</sp-menu-item>

@@ -79,6 +79,59 @@
                     });
                 });
 
+                describe('RTE Field: styling features', () => {
+                    let rte;
+                    const firstParagraph = () =>
+                        rte.shadowRoot.querySelector('.ProseMirror p');
+
+                    it('should render styling menu', async function () {
+                        rte = await createFromTemplate(
+                            'rte-styling',
+                            this.test.title,
+                        );
+                        const stylingMenu =
+                            rte.shadowRoot.querySelector('#stylingMenu');
+                        expect(stylingMenu).to.exist;
+                    });
+
+                    it('should apply heading styles', async function () {
+                        rte = await createFromTemplate(
+                            'rte-styling',
+                            this.test.title,
+                        );
+                        await selectWordsInTextNode(rte.editorView, 'Styling');
+
+                        rte.handleStylingAction('heading-m');
+                        await delay(100);
+
+                        let p = firstParagraph();
+                        expect(p.className).to.equal('heading-m');
+                        expect(p.hasAttribute('data-styling')).to.be.true;
+
+                        rte.handleStylingAction('heading-xxs');
+                        await delay(100);
+
+                        p = firstParagraph();
+                        expect(p.className).to.equal('heading-xxs');
+                        expect(p.hasAttribute('data-styling')).to.be.true;
+                    });
+
+                    it('should apply promo text styles', async function () {
+                        rte = await createFromTemplate(
+                            'rte-styling',
+                            this.test.title,
+                        );
+                        await selectWordsInTextNode(rte.editorView, 'Styling');
+
+                        rte.handleStylingAction('promo-text');
+                        await delay(100);
+
+                        let p = firstParagraph();
+                        expect(p.className).to.equal('promo-text');
+                        expect(p.hasAttribute('data-styling')).to.be.true;
+                    });
+                });
+
                 // Theses are not very stable in headless chrome. Enable them for localing.
                 describe('RTE Field: link features', () => {
                     let rte;
@@ -305,6 +358,11 @@
         <template id="rte">
             <rte-field link>
                 <p>Text only</p>
+            </rte-field>
+        </template>
+        <template id="rte-styling">
+            <rte-field styling>
+                <p>Styling</p>
             </rte-field>
         </template>
         <template id="rte-link">

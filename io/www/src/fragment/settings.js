@@ -1,5 +1,4 @@
 async function settings(context) {
-    console.log(context);
     if (context.body?.fields?.variant === "plans"){
         context.body.settings = {
             stockCheckboxLabel: '{{stock-checkbox-label}}',

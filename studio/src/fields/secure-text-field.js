@@ -77,7 +77,7 @@ export class SecureTextField extends LitElement {
                     .checked="${this.showSecureTextField}"
                     ?disabled="${!this.isEditable}"
                     @change="${this.#handleCheckbox}"
-                >Show Secure Text Label</sp-checkbox>
+                >Show Secure Transaction Label</sp-checkbox>
             </sp-field-group>
         `;
     }

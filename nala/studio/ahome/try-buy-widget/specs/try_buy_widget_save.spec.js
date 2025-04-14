@@ -3,7 +3,7 @@ export default {
     features: [
         {
             tcid: '0',
-            name: '@studio-try-buy-widget-save-edit-size',
+            name: '@studio-try-buy-widget-save-edited-size',
             path: '/studio.html',
             data: {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
@@ -14,7 +14,7 @@ export default {
         },
         {
             tcid: '1',
-            name: '@studio-try-buy-widget-save-variant-change-to-slice',
+            name: '@studio-try-buy-widget-save-edited-variant-change-to-slice',
             path: '/studio.html',
             data: {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
@@ -36,7 +36,7 @@ export default {
         },
         {
             tcid: '3',
-            name: '@studio-try-buy-widget-save-edit-osi',
+            name: '@studio-try-buy-widget-save-edited-osi',
             path: '/studio.html',
             data: {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
@@ -55,7 +55,7 @@ export default {
         },
         {
             tcid: '4',
-            name: '@studio-try-buy-widget-save-edit-cta-variant',
+            name: '@studio-try-buy-widget-save-edited-cta-variant',
             path: '/studio.html',
             data: {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
@@ -76,7 +76,7 @@ export default {
         },
         {
             tcid: '5',
-            name: '@studio-try-buy-widget-save-edit-cta-checkout-params',
+            name: '@studio-try-buy-widget-save-edited-cta-checkout-params',
             path: '/studio.html',
             data: {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',

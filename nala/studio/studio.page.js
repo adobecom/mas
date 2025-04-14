@@ -16,7 +16,7 @@ export default class StudioPage {
         this.folderPicker = page.locator('mas-folder-picker sp-action-menu');
         this.renderView = page.locator('#render');
         this.quickActions = page.locator('.quick-actions');
-        this.editorPanel = page.locator('editor-panel > #editor');
+        // this.editorPanel = page.locator('editor-panel > #editor');
         this.confirmationDialog = page.locator(
             'sp-dialog[variant="confirmation"]',
         );
@@ -85,9 +85,6 @@ export default class StudioPage {
         this.cloneCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="clone"]',
         );
-        this.closeEditor = page.locator(
-            'div[id="editor-toolbar"] >> sp-action-button[value="close"]',
-        );
         this.deleteCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="delete"]',
         );
@@ -134,6 +131,7 @@ export default class StudioPage {
             'ahtrybuywidget-triple': this.ahTryBuyWidgetTripleCard,
             'ahtrybuywidget-single': this.ahTryBuyWidgetSingleCard,
             'ahtrybuywidget-double': this.ahTryBuyWidgetDoubleCard,
+            plans: this.plansCard,
             'ah-promoted-plans': this.ahPromotedPlansCard,
             'ah-promoted-plans-gradient':
                 this.ahPromotedPlansCardGradientBorder,
@@ -184,24 +182,5 @@ export default class StudioPage {
         await expect(await this.toastPositive).toHaveText(
             'Fragment successfully deleted.',
         );
-    }
-
-    async getLinkVariant(variant) {
-        const linkVariant = {
-            accent: this.accentVariant,
-            primary: this.primaryVariant,
-            'primary-outline': this.primaryOutlineVariant,
-            secondary: this.secondaryVariant,
-            'secondary-outline': this.secondaryOutlineVariant,
-            'primary-link': this.primaryLinkVariant,
-            'secondary-link': this.secondaryLinkVariant,
-        };
-
-        const link = linkVariant[variant];
-        if (!link) {
-            throw new Error(`Invalid link variant type: ${variant}`);
-        }
-
-        return this.linkVariant.locator(link);
     }
 }

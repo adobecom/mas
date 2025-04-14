@@ -445,7 +445,7 @@ export function setupNavigationSubscriptions() {
             if (hashParams.toString() !== currentHash) {
                 window.location.hash = hashParams.toString();
             }
-            
+
             const newSearch = urlParams.toString();
             window.history.replaceState(
                 null,

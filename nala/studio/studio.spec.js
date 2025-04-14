@@ -65,13 +65,33 @@ export default {
         },
         {
             tcid: '7',
+            name: '@studio-try-buy-widget-editor',
+            path: '/studio.html',
+            data: {
+                cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @ahome-try-buy-widget',
+        },
+        {
+            tcid: '8',
             name: '@studio-card-dblclick-info',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ccd @ccd-suggested',
+            tags: '@mas-studio',
+        },
+        {
+            tcid: '9',
+            name: '@studio-plans-individuals-editor',
+            path: '/studio.html',
+            data: {
+                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals',
         },
     ],
 };

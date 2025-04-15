@@ -258,7 +258,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             searchOfferSelectorId,
             defaultPlaceholderOptions,
             offerSelectorPlaceholderOptions,
-            modalsAndEntitlements: ['acom', 'sandbox'].includes(
+            modalsAndEntitlements: ['acom', 'sandbox', 'nala'].includes(
                 Store.search.get().path,
             ),
             dialog: true,

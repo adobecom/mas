@@ -81,8 +81,8 @@
 
                 describe('RTE Field: styling features', () => {
                     let rte;
-                    const firstParagraph = () =>
-                        rte.shadowRoot.querySelector('.ProseMirror p');
+                    const firstStyledElement = () =>
+                        rte.shadowRoot.querySelector('.ProseMirror span');
 
                     it('should render styling menu', async function () {
                         rte = await createFromTemplate(
@@ -104,14 +104,14 @@
                         rte.handleStylingAction('heading-m');
                         await delay(100);
 
-                        let p = firstParagraph();
+                        let p = firstStyledElement();
                         expect(p.className).to.equal('heading-m');
                         expect(p.hasAttribute('data-styling')).to.be.true;
 
                         rte.handleStylingAction('heading-xxs');
                         await delay(100);
 
-                        p = firstParagraph();
+                        p = firstStyledElement();
                         expect(p.className).to.equal('heading-xxs');
                         expect(p.hasAttribute('data-styling')).to.be.true;
                     });
@@ -126,7 +126,7 @@
                         rte.handleStylingAction('promo-text');
                         await delay(100);
 
-                        let p = firstParagraph();
+                        let p = firstStyledElement();
                         expect(p.className).to.equal('promo-text');
                         expect(p.hasAttribute('data-styling')).to.be.true;
                     });

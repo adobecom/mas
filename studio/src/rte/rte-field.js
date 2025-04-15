@@ -412,7 +412,7 @@ class RteField extends LitElement {
             : schema.spec.nodes;
 
         if (this.styling) {
-            nodes = nodes.addToStart('styling', {
+            nodes = nodes.addBefore('heading', 'styling', {
                 content: 'inline*',
                 group: 'block',
                 defining: true,

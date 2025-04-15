@@ -4,6 +4,12 @@ import { Schema, DOMParser, DOMSerializer } from 'prosemirror-model';
 import { EditorView } from 'prosemirror-view';
 import { keymap } from 'prosemirror-keymap';
 import { schema } from 'prosemirror-schema-basic';
+import {
+    addListNodes,
+    wrapInList,
+    splitListItem,
+    liftListItem,
+} from 'prosemirror-schema-list';
 import { baseKeymap, toggleMark } from 'prosemirror-commands';
 import { history, undo, redo } from 'prosemirror-history';
 import {
@@ -11,7 +17,6 @@ import {
     attributeFilter,
     closeOfferSelectorTool,
 } from './ost.js';
-
 import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
 import throttle from '../utils/throttle.js';
@@ -85,6 +90,7 @@ class RteField extends LitElement {
         link: { type: Boolean, attribute: 'link' },
         icon: { type: Boolean, attribute: 'icon' },
         uptLink: { type: Boolean, attribute: 'upt-link' },
+        list: { type: Boolean, attribute: 'list' },
         isLinkSelected: { type: Boolean, state: true },
         priceSelected: { type: Boolean, state: true },
         readOnly: { type: Boolean, attribute: 'readonly' },
@@ -244,6 +250,11 @@ class RteField extends LitElement {
                     white-space: nowrap;
                     border: 0;
                 }
+
+                div.ProseMirror ul {
+                    margin: 0;
+                    padding-left: 24px;
+                }
             `,
             prosemirrorStyles,
         ];
@@ -315,7 +326,10 @@ class RteField extends LitElement {
     }
 
     #initEditorSchema() {
-        let nodes = schema.spec.nodes.addToStart('inlinePrice', {
+        const basicNodes = this.list
+            ? addListNodes(schema.spec.nodes, 'paragraph block*', 'block')
+            : schema.spec.nodes;
+        let nodes = basicNodes.addToStart('inlinePrice', {
             group: 'inline',
             inline: true,
             atom: true,
@@ -441,6 +455,9 @@ class RteField extends LitElement {
                 'Mod-z': undo,
                 'Mod-y': redo,
                 'Shift-Mod-z': redo,
+                ...(this.list && {
+                    Enter: splitListItem(this.#editorSchema.nodes.list_item),
+                }),
             }),
             keymap(baseKeymap),
         ];
@@ -802,6 +819,30 @@ class RteField extends LitElement {
         };
     }
 
+    #handleListAction(listType) {
+        return () => {
+            const { state, dispatch } = this.editorView;
+            let { $from } = state.selection;
+
+            let isInList = false;
+            const listItemNode = this.#editorSchema.nodes.list_item;
+            for (let level = $from.depth; level >= 0; level--) {
+                if ($from.node(level)?.type === listItemNode) {
+                    isInList = true;
+                    break;
+                }
+            }
+            if (isInList) {
+                liftListItem(listItemNode)(state, dispatch);
+            } else {
+                const listNode = this.#editorSchema.nodes[listType];
+                if (listNode) {
+                    wrapInList(listNode)(state, dispatch);
+                }
+            }
+        };
+    }
+
     #updateSelection(state) {
         const { selection } = state;
         this.isLinkSelected =
@@ -973,9 +1014,10 @@ class RteField extends LitElement {
         const lengthExceeded = this.length > this.maxLength;
         return html`
             <sp-action-group quiet size="m" aria-label="RTE toolbar actions">
-                ${this.#formatButtons} ${this.#linkEditorButton}
-                ${this.#unlinkEditorButton} ${this.#offerSelectorToolButton}
-                ${this.#iconsButton} ${this.#uptLinkButton}
+                ${this.#formatButtons} ${this.#listButtons}
+                ${this.#linkEditorButton} ${this.#unlinkEditorButton}
+                ${this.#offerSelectorToolButton} ${this.#iconsButton}
+                ${this.#uptLinkButton}
             </sp-action-group>
             <div id="editor"></div>
             <p id="counter">
@@ -1062,6 +1104,19 @@ class RteField extends LitElement {
                 @mousedown=${(e) => e.preventDefault()}
             >
                 <sp-icon-underline slot="icon"></sp-icon-underline>
+            </sp-action-button>
+        `;
+    }
+
+    get #listButtons() {
+        if (!this.list) return;
+        return html`
+            <sp-action-button
+                @click=${this.#handleListAction('bullet_list')}
+                @mousedown=${(e) => e.preventDefault()}
+                title="Unordered List"
+            >
+                <sp-icon-text-bulleted slot="icon"></sp-icon-text-bulleted>
             </sp-action-button>
         `;
     }

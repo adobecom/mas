@@ -418,8 +418,14 @@ class RteField extends LitElement {
                     class: { default: null },
                     'data-styling': { default: '' },
                 },
-                parseDOM: [{ tag: 'span[data-styling]' }],
+                parseDOM: [
+                    {
+                        tag: 'span[data-styling]',
+                        getAttrs: this.#collectDataAttributes,
+                    },
+                ],
                 toDOM(node) {
+                    console.log('hahaha', node);
                     return ['span', { ...node.attrs }, 0];
                 },
             });

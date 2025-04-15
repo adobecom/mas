@@ -18,8 +18,6 @@ class MerchCardEditor extends LitElement {
     static properties = {
         fragmentStore: { type: Object, attribute: false },
         updateFragment: { type: Function },
-        wide: { type: Boolean, state: true },
-        superWide: { type: Boolean, state: true },
         availableSizes: { type: Array, state: true },
         availableColors: { type: Array, state: true },
         availableBorderColors: { type: Array, state: true },
@@ -31,8 +29,6 @@ class MerchCardEditor extends LitElement {
     constructor() {
         super();
         this.updateFragment = null;
-        this.wide = false;
-        this.superWide = false;
         this.availableSizes = [];
         this.availableColors = [];
         this.availableBorderColors = [];
@@ -225,8 +221,6 @@ class MerchCardEditor extends LitElement {
             const field = this.querySelector(`sp-field-group.toggle#${key}`);
             if (field) field.style.display = 'block';
         });
-        this.wide = variant.size?.includes('wide');
-        this.superWide = variant.size?.includes('super-wide');
         this.showQuantityFields(this.quantitySelectorDisplayed);
         if (variant.borderColor) {
             const borderField = this.querySelector(
@@ -666,7 +660,7 @@ class MerchCardEditor extends LitElement {
     }
 
     get isPlans() {
-        return this.fragment.variant === 'plans';
+        return this.fragment.variant === 'plans' || this.fragment.variant === 'plans-edu';
     }
 
     get badge() {

@@ -7,13 +7,13 @@ application:
     packages:
       MerchAtScaleStudio:
         license: Apache-2.0
-        actions:      
+        actions:
           fragment:
             function: src/fragment/pipeline.js
             web: 'yes'
             runtime: nodejs:22
             annotations:
-              require-adobe-auth: false      
+              require-adobe-auth: false
               final: true
           ost-products-write:
             function: src/ost-products/write.js
@@ -37,5 +37,12 @@ application:
             runtime: nodejs:22
             annotations:
               require-adobe-auth: false
-
-              
+          user:
+            function: actions/user/index.js
+            web: 'yes'
+            runtime: nodejs:22
+            inputs:
+              LOG_LEVEL: debug
+            annotations:
+              require-adobe-auth: true
+              final: true

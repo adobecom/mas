@@ -61,6 +61,12 @@ export async function fetchUserGroups(userId) {
 async function init() {
     const profile = await window.adobeIMS.getProfile();
     Store.profile.set(profile);
+
+    const res = await fetch(
+        'https://ims-na1.adobelogin.com/ims/authorize/v1?client_id=devportal&scope=openid,AdobeID&response_type=token&puser=adobe.com&redirect_uri=https://mas.adobe.com/studio.html',
+    );
+    console.log(await res.json());
+    return;
     fetchUserGroups(profile.userId);
 
     Store.search.subscribe(async ({ path }) => {

@@ -53,7 +53,6 @@ export class Fragment {
     }
 
     get statusVariant() {
-        if (this.hasChanges) return 'modified';
         return this.status.toLowerCase();
     }
 

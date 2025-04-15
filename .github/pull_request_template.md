@@ -4,4 +4,4 @@ Resolves https://jira.corp.adobe.com/browse/MWPW-NUMBER
 
 Test URLs:
 - Before: https://main--mas--adobecom.aem.live/
-- After: https://<branch>--mas--adobecom.aem.live/
+- After: https://mwpw-NUMBER--mas--adobecom.aem.live/

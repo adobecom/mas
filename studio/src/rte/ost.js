@@ -258,6 +258,9 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             searchOfferSelectorId,
             defaultPlaceholderOptions,
             offerSelectorPlaceholderOptions,
+            modalsAndEntitlements: ['acom', 'sandbox'].includes(
+                Store.search.get().path,
+            ),
             dialog: true,
             onSelect:
                 triggerElement.tagName === 'OSI-FIELD'

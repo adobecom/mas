@@ -270,7 +270,7 @@ class RteField extends LitElement {
                     padding-left: 24px;
                 }
 
-                div.ProseMirror p[class^='heading-'] {
+                div.ProseMirror span[class^='heading-'] {
                     font-weight: 700;
 
                     &.heading-xxxs {
@@ -319,7 +319,7 @@ class RteField extends LitElement {
                     }
                 }
 
-                div.ProseMirror p.promo-text {
+                div.ProseMirror span.promo-text {
                     color: var(--merch-color-green-promo);
                     font-size: var(--consonant-merch-card-promo-text-height);
                     font-weight: 700;
@@ -410,7 +410,7 @@ class RteField extends LitElement {
             : schema.spec.nodes;
 
         if (this.styling) {
-            nodes = nodes.remove('heading').addBefore('code_block', 'heading', {
+            nodes = nodes.addToStart('styling', {
                 content: 'inline*',
                 group: 'block',
                 defining: true,
@@ -418,9 +418,9 @@ class RteField extends LitElement {
                     class: { default: null },
                     'data-styling': { default: '' },
                 },
-                parseDOM: [{ tag: 'p[data-styling]' }],
+                parseDOM: [{ tag: 'span[data-styling]' }],
                 toDOM(node) {
-                    return ['p', { ...node.attrs }, 0];
+                    return ['span', { ...node.attrs }, 0];
                 },
             });
         }
@@ -920,7 +920,7 @@ class RteField extends LitElement {
 
     handleStylingAction(stylingType) {
         const { state, dispatch } = this.editorView;
-        setBlockType(state.schema.nodes.heading, {
+        setBlockType(state.schema.nodes.styling, {
             class: stylingType,
         })(state, dispatch);
     }

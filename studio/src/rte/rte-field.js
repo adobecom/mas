@@ -10,7 +10,7 @@ import {
     splitListItem,
     liftListItem,
 } from 'prosemirror-schema-list';
-import { baseKeymap, toggleMark } from 'prosemirror-commands';
+import { baseKeymap, toggleMark, setBlockType } from 'prosemirror-commands';
 import { history, undo, redo } from 'prosemirror-history';
 import {
     openOfferSelectorTool,
@@ -87,6 +87,8 @@ class RteField extends LitElement {
     static properties = {
         hasFocus: { type: Boolean, attribute: 'focused', reflect: true },
         inline: { type: Boolean, attribute: 'inline' },
+        styling: { type: Boolean, attribute: 'styling' },
+        list: { type: Boolean, attribute: 'list' },
         link: { type: Boolean, attribute: 'link' },
         icon: { type: Boolean, attribute: 'icon' },
         uptLink: { type: Boolean, attribute: 'upt-link' },
@@ -106,6 +108,18 @@ class RteField extends LitElement {
         return [
             css`
                 :host {
+                    --merch-color-green-promo: #2d9d78;
+                    --consonant-merch-card-promo-text-height: 14px;
+                    --consonant-merch-card-heading-xxxs-font-size: 14px;
+                    --consonant-merch-card-heading-xxxs-line-height: 18px;
+                    --consonant-merch-card-heading-xxs-font-size: 16px;
+                    --consonant-merch-card-heading-xxs-line-height: 20px;
+                    --consonant-merch-card-heading-xs-font-size: 18px;
+                    --consonant-merch-card-heading-xs-line-height: 22.5px;
+                    --consonant-merch-card-heading-s-font-size: 20px;
+                    --consonant-merch-card-heading-s-line-height: 25px;
+                    --consonant-merch-card-heading-m-font-size: 24px;
+                    --consonant-merch-card-heading-m-line-height: 30px;
                     display: flex;
                     gap: 8px;
                     flex-direction: column;
@@ -255,6 +269,71 @@ class RteField extends LitElement {
                     margin: 0;
                     padding-left: 24px;
                 }
+
+                div.ProseMirror span[class^='heading-'] {
+                    font-weight: 700;
+                    display: block;
+
+                    &.heading-xxxs {
+                        font-size: var(
+                            --consonant-merch-card-heading-xxxs-font-size
+                        );
+                        line-height: var(
+                            --consonant-merch-card-heading-xxxs-line-height
+                        );
+                    }
+
+                    &.heading-xxs {
+                        font-size: var(
+                            --consonant-merch-card-heading-xxs-font-size
+                        );
+                        line-height: var(
+                            --consonant-merch-card-heading-xxs-line-height
+                        );
+                    }
+
+                    &.heading-xs {
+                        font-size: var(
+                            --consonant-merch-card-heading-xs-font-size
+                        );
+                        line-height: var(
+                            --consonant-merch-card-heading-xs-line-height
+                        );
+                    }
+
+                    &.heading-s {
+                        font-size: var(
+                            --consonant-merch-card-heading-s-font-size
+                        );
+                        line-height: var(
+                            --consonant-merch-card-heading-s-line-height
+                        );
+                    }
+
+                    &.heading-m {
+                        font-size: var(
+                            --consonant-merch-card-heading-m-font-size
+                        );
+                        line-height: var(
+                            --consonant-merch-card-heading-m-line-height
+                        );
+                    }
+                }
+
+                div.ProseMirror span.promo-text {
+                    display: block;
+                    color: var(--merch-color-green-promo);
+                    font-size: var(--consonant-merch-card-promo-text-height);
+                    font-weight: 700;
+                    line-height: var(--consonant-merch-card-promo-text-height);
+                    margin: 0;
+                    min-height: var(--consonant-merch-card-promo-text-height);
+                    padding: 0;
+
+                    & a {
+                        color: inherit;
+                    }
+                }
             `,
             prosemirrorStyles,
         ];
@@ -274,6 +353,8 @@ class RteField extends LitElement {
         this.showLinkEditor = false;
         this.showIconEditor = false;
         this.inline = false;
+        this.styling = false;
+        this.list = false;
         this.link = false;
         this.uptLink = false;
         this.maxLength = 70;
@@ -326,10 +407,32 @@ class RteField extends LitElement {
     }
 
     #initEditorSchema() {
-        const basicNodes = this.list
+        let nodes = this.list
             ? addListNodes(schema.spec.nodes, 'paragraph block*', 'block')
             : schema.spec.nodes;
-        let nodes = basicNodes.addToStart('inlinePrice', {
+
+        if (this.styling) {
+            nodes = nodes.addBefore('heading', 'styling', {
+                content: 'inline*',
+                group: 'block',
+                defining: true,
+                attrs: {
+                    class: { default: null },
+                    'data-styling': { default: '' },
+                },
+                parseDOM: [
+                    {
+                        tag: 'span[data-styling]',
+                        getAttrs: this.#collectDataAttributes,
+                    },
+                ],
+                toDOM(node) {
+                    return ['span', { ...node.attrs }, 0];
+                },
+            });
+        }
+
+        nodes = nodes.addToStart('inlinePrice', {
             group: 'inline',
             inline: true,
             atom: true,
@@ -816,6 +919,19 @@ class RteField extends LitElement {
         };
     }
 
+    #handleStylingSelection(event) {
+        event.stopPropagation();
+        const stylingType = event.target.value;
+        this.handleStylingAction(stylingType);
+    }
+
+    handleStylingAction(stylingType) {
+        const { state, dispatch } = this.editorView;
+        setBlockType(state.schema.nodes.styling, {
+            class: stylingType,
+        })(state, dispatch);
+    }
+
     #handleListAction(listType) {
         return () => {
             const { state, dispatch } = this.editorView;
@@ -1011,10 +1127,10 @@ class RteField extends LitElement {
         const lengthExceeded = this.length > this.maxLength;
         return html`
             <sp-action-group quiet size="m" aria-label="RTE toolbar actions">
-                ${this.#formatButtons} ${this.#listButtons}
-                ${this.#linkEditorButton} ${this.#unlinkEditorButton}
-                ${this.#offerSelectorToolButton} ${this.#iconsButton}
-                ${this.#uptLinkButton}
+                ${this.#formatButtons} ${this.stylingButton}
+                ${this.#listButtons} ${this.#linkEditorButton}
+                ${this.#unlinkEditorButton} ${this.#offerSelectorToolButton}
+                ${this.#iconsButton} ${this.#uptLinkButton}
             </sp-action-group>
             <div id="editor"></div>
             <p id="counter">
@@ -1103,6 +1219,24 @@ class RteField extends LitElement {
                 <sp-icon-underline slot="icon"></sp-icon-underline>
             </sp-action-button>
         `;
+    }
+
+    get stylingButton() {
+        if (!this.styling) return;
+        return html`<sp-action-menu
+            id="stylingMenu"
+            title="Styling"
+            @change=${this.#handleStylingSelection}
+        >
+            <sp-icon-brush slot="icon"></sp-icon-brush>
+            <sp-menu-item value="heading-xxxs">Heading XXXS</sp-menu-item>
+            <sp-menu-item value="heading-xxs">Heading XXS</sp-menu-item>
+            <sp-menu-item value="heading-xs">Heading XS</sp-menu-item>
+            <sp-menu-item value="heading-s">Heading S</sp-menu-item>
+            <sp-menu-item value="heading-m">Heading M</sp-menu-item>
+            <sp-menu-divider></sp-menu-divider>
+            <sp-menu-item value="promo-text">Promo text</sp-menu-item>
+        </sp-action-menu>`;
     }
 
     get #listButtons() {

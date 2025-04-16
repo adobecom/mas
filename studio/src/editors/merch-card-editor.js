@@ -660,7 +660,7 @@ class MerchCardEditor extends LitElement {
     }
 
     get isPlans() {
-        return this.fragment.variant === 'plans' || this.fragment.variant === 'plans-edu';
+        return this.fragment.variant === 'plans' || this.fragment.variant === 'plans-students';
     }
 
     get badge() {

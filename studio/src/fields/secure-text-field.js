@@ -22,7 +22,7 @@ export class SecureTextField extends LitElement {
 
     updated(changedProperties) {
         if (changedProperties.has('value')) {
-            if (!this.value || this.value === '') {
+            if (!this.value) {
                 this.isEditable = false;
                 this.showSecureTextField = true;
             } else {

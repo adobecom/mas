@@ -6,6 +6,7 @@ describe('settings transformer', () => {
 
     beforeEach(() => {
         context = {
+            locale: 'en_US',
             body: {
                 fields: {}
             }
@@ -19,7 +20,8 @@ describe('settings transformer', () => {
         expect(result.body.settings).to.deep.equal({
             stockCheckboxLabel: '{{stock-checkbox-label}}',
             stockOfferOsis: '',
-            secureLabel: '{{secure-label}}'
+            secureLabel: '{{secure-label}}',
+            displayPlanType: true
         });
     });
 
@@ -33,7 +35,8 @@ describe('settings transformer', () => {
         expect(result.body.settings).to.deep.equal({
             stockCheckboxLabel: '{{stock-checkbox-label}}',
             stockOfferOsis: '',
-            secureLabel: '{{secure-label}}'
+            secureLabel: '{{secure-label}}',
+            displayPlanType: true
         });
     });
 
@@ -46,7 +49,72 @@ describe('settings transformer', () => {
         const result = await settings(context);
         expect(result.body.settings).to.deep.equal({
             stockCheckboxLabel: '{{stock-checkbox-label}}',
-            stockOfferOsis: ''
+            stockOfferOsis: '',
+            displayPlanType: true
+        });
+    });
+
+    it('should handle references with plans variant', async () => {
+        context.body.references = {
+            ref1: {
+                type: 'content-fragment',
+                value: {
+                    fields: {
+                        variant: 'plans',
+                        showSecureLabel: true
+                    }
+                }
+            }
+        };
+        
+        const result = await settings(context);
+        expect(result.body.references.ref1.value.settings).to.deep.equal({
+            stockCheckboxLabel: '{{stock-checkbox-label}}',
+            stockOfferOsis: '',
+            secureLabel: '{{secure-label}}',
+            displayPlanType: true
+        });
+    });
+
+    it('should handle multiple references with different variants', async () => {
+        context.body.references = {
+            ref1: {
+                type: 'content-fragment',
+                value: {
+                    fields: {
+                        variant: 'plans'
+                    }
+                }
+            },
+            ref2: {
+                type: 'content-fragment',
+                value: {
+                    fields: {
+                        variant: 'other'
+                    }
+                }
+            }
+        };
+        
+        const result = await settings(context);
+        expect(result.body.references.ref1.value.settings).to.deep.equal({
+            stockCheckboxLabel: '{{stock-checkbox-label}}',
+            stockOfferOsis: '',
+            secureLabel: '{{secure-label}}',
+            displayPlanType: true
+        });
+        expect(result.body.references.ref2.value.settings).to.be.undefined;
+    });
+
+    it('should not add displayPlanType when locale is not en_US', async () => {
+        context.locale = 'fr_FR';
+        context.body.fields.variant = 'plans';
+        
+        const result = await settings(context);
+        expect(result.body.settings).to.deep.equal({
+            stockCheckboxLabel: '{{stock-checkbox-label}}',
+            stockOfferOsis: '',
+            secureLabel: '{{secure-label}}'
         });
     });
 
@@ -58,14 +126,35 @@ describe('settings transformer', () => {
     });
 
     it('should handle missing body', async () => {
-        context = {};
+        context = { locale: 'en_US' };
         
         const result = await settings(context);
         expect(result).to.deep.equal(context);
     });
 
     it('should handle missing fields', async () => {
-        context = { body: {} };
+        context = { 
+            locale: 'en_US',
+            body: {} 
+        };
+        
+        const result = await settings(context);
+        expect(result).to.deep.equal(context);
+    });
+
+    it('should handle invalid reference structure', async () => {
+        context.body.references = {
+            ref1: null,
+            ref2: {},
+            ref3: { type: 'content-fragment' }
+        };
+        
+        const result = await settings(context);
+        expect(result).to.deep.equal(context);
+    });
+
+    it('should handle empty references object', async () => {
+        context.body.references = {};
         
         const result = await settings(context);
         expect(result).to.deep.equal(context);

@@ -443,7 +443,7 @@ class MerchCardEditor extends LitElement {
                 label="Secure Transaction Label"
                 data-field="showSecureLabel"
                 value="${form.showSecureLabel?.values[0]}"
-                @input="${this.updateFragment}"
+                @change="${this.updateFragment}"
             >
             </secure-text-field>
             </sp-field-group>

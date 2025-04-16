@@ -415,10 +415,8 @@ class MerchCardEditor extends LitElement {
                 <rte-field
                     id="description"
                     styling
-                    list
                     link
                     upt-link
-                    list
                     data-field="description"
                     default-link-style="secondary-link"
                     @change="${this.updateFragment}"

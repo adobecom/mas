@@ -56,6 +56,11 @@ export class Fragment {
         return this.status.toLowerCase();
     }
 
+    getTagTitle(id) {
+        const tags = this.tags.filter((tag) => tag.id.includes(id));
+        return tags[0]?.title;
+    }
+
     refreshFrom(fragmentData) {
         Object.assign(this, fragmentData);
         this.initialValue = structuredClone(this);

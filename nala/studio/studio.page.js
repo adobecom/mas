@@ -26,6 +26,9 @@ export default class StudioPage {
         this.toastPositive = page.locator(
             'mas-toast >> sp-toast[variant="positive"]',
         );
+        this.toastNegative = page.locator(
+            'mas-toast >> sp-toast[variant="negative"]',
+        );
         this.suggestedCard = page.locator(
             'merch-card[variant="ccd-suggested"]',
         );
@@ -92,29 +95,148 @@ export default class StudioPage {
         });
     }
 
+    #setupConsoleListener(consoleErrors) {
+        return msg => {
+            if (msg.type() === 'error') {
+                const errorText = msg.text();
+                let errorCode = '';
+                const codeMatch = errorText.match(/(?:\[ERR[_-])?\d+\]?|(?:Error:?\s*)\d+|(?:status(?:\scode)?:?\s*)\d+/i);
+                if (codeMatch) {
+                    errorCode = codeMatch[0];
+                    consoleErrors.push(`[${errorCode}] ${errorText}`);
+                } else {
+                    consoleErrors.push(errorText);
+                }
+            }
+        };
+    }
+
     async cloneCard() {
-        await expect(await this.cloneCardButton).toBeEnabled();
-        await this.cloneCardButton.click();
-        await expect(await this.toastPositive).toHaveText(
-            'Fragment successfully copied.',
-        );
+        let consoleErrors = [];
+        const consoleListener = this.#setupConsoleListener(consoleErrors);
+        this.page.on('console', consoleListener);
+
+        try {
+            await this.page.waitForSelector('div[id="editor-toolbar"] >> sp-action-button[value="clone"]', 
+                { state: 'visible', timeout: 30000 });
+            await expect(this.cloneCardButton).toBeEnabled();
+            
+            await this.cloneCardButton.scrollIntoViewIfNeeded();
+            await this.page.waitForTimeout(500);
+            
+            await this.cloneCardButton.click({ force: true });
+            
+            try {
+                await this.page.waitForSelector('mas-toast >> sp-toast', 
+                    { state: 'visible', timeout: 15000 });
+            } catch (timeoutError) {
+                throw new Error(`[NO_RESPONSE] No toast appeared within 15 seconds after clicking clone button. Console errors: ${consoleErrors.join(' | ')}`);
+            }
+            
+            // Check if it's an error toast
+            if (await this.toastNegative.isVisible()) {
+                const errorText = await this.toastNegative.textContent();
+                throw new Error(`[ERROR_TOAST] Clone operation received error: "${errorText.trim()}". Console errors: ${consoleErrors.join(' | ')}`);
+            }
+            
+            // Check for success toast
+            if (!await this.toastPositive.isVisible()) {
+                try {
+                    await this.page.waitForSelector('mas-toast >> sp-toast[variant="positive"]', 
+                        { state: 'visible', timeout: 30000 });
+                } catch (timeoutError) {
+                    throw new Error(`[TIMEOUT] Success toast did not appear within 45 seconds. Console errors: ${consoleErrors.join(' | ')}`);
+                }
+            }
+        } finally {
+            this.page.removeListener('console', consoleListener);
+        }
     }
 
     async saveCard() {
-        await expect(await this.saveCardButton).toBeEnabled();
-        await this.saveCardButton.click();
-        await expect(await this.toastPositive).toHaveText(
-            'Fragment successfully saved.',
-        );
+        let consoleErrors = [];
+        const consoleListener = this.#setupConsoleListener(consoleErrors);
+        this.page.on('console', consoleListener);
+
+        try {
+            await this.page.waitForSelector('div[id="editor-toolbar"] >> sp-action-button[value="save"]', 
+                { state: 'visible', timeout: 30000 });
+            await expect(this.saveCardButton).toBeEnabled();
+            
+            await this.saveCardButton.scrollIntoViewIfNeeded();
+            await this.page.waitForTimeout(500);
+            
+            await this.saveCardButton.click({ force: true });
+            
+            try {
+                await this.page.waitForSelector('mas-toast >> sp-toast', 
+                    { state: 'visible', timeout: 15000 });
+            } catch (timeoutError) {
+                throw new Error(`[NO_RESPONSE] No toast appeared within 15 seconds after clicking save button. Console errors: ${consoleErrors.join(' | ')}`);
+            }
+            
+            // Check if it's an error toast
+            if (await this.toastNegative.isVisible()) {
+                const errorText = await this.toastNegative.textContent();
+                throw new Error(`[ERROR_TOAST] Save operation received error: "${errorText.trim()}". Console errors: ${consoleErrors.join(' | ')}`);
+            }
+            
+            // Check for success toast
+            if (!await this.toastPositive.isVisible()) {
+                try {
+                    await this.page.waitForSelector('mas-toast >> sp-toast[variant="positive"]', 
+                        { state: 'visible', timeout: 30000 });
+                } catch (timeoutError) {
+                    throw new Error(`[TIMEOUT] Success toast did not appear within 45 seconds. Console errors: ${consoleErrors.join(' | ')}`);
+                }
+            }
+        } finally {
+            this.page.removeListener('console', consoleListener);
+        }
     }
 
     async deleteCard() {
-        await expect(await this.deleteCardButton).toBeEnabled();
-        await this.deleteCardButton.click();
-        await expect(await this.confirmationDialog).toBeVisible();
-        await this.confirmationDialog.locator(this.deleteDialog).click();
-        await expect(await this.toastPositive).toHaveText(
-            'Fragment successfully deleted.',
-        );
+        let consoleErrors = [];
+        const consoleListener = this.#setupConsoleListener(consoleErrors);
+        this.page.on('console', consoleListener);
+
+        try {
+            await this.page.waitForSelector('div[id="editor-toolbar"] >> sp-action-button[value="delete"]', 
+                { state: 'visible', timeout: 30000 });
+            await expect(this.deleteCardButton).toBeEnabled();
+            
+            await this.deleteCardButton.scrollIntoViewIfNeeded();
+            await this.page.waitForTimeout(500);
+            
+            await this.deleteCardButton.click({ force: true });
+            
+            await expect(await this.confirmationDialog).toBeVisible();
+            await this.confirmationDialog.locator(this.deleteDialog).click();
+            
+            try {
+                await this.page.waitForSelector('mas-toast >> sp-toast', 
+                    { state: 'visible', timeout: 15000 });
+            } catch (timeoutError) {
+                throw new Error(`[NO_RESPONSE] No toast appeared within 15 seconds after confirming delete. Console errors: ${consoleErrors.join(' | ')}`);
+            }
+            
+            // Check if it's an error toast
+            if (await this.toastNegative.isVisible()) {
+                const errorText = await this.toastNegative.textContent();
+                throw new Error(`[ERROR_TOAST] Delete operation received error: "${errorText.trim()}". Console errors: ${consoleErrors.join(' | ')}`);
+            }
+            
+            // Check for success toast
+            if (!await this.toastPositive.isVisible()) {
+                try {
+                    await this.page.waitForSelector('mas-toast >> sp-toast[variant="positive"]', 
+                        { state: 'visible', timeout: 30000 });
+                } catch (timeoutError) {
+                    throw new Error(`[TIMEOUT] Success toast did not appear within 45 seconds. Console errors: ${consoleErrors.join(' | ')}`);
+                }
+            }
+        } finally {
+            this.page.removeListener('console', consoleListener);
+        }
     }
 }

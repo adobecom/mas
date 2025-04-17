@@ -67,17 +67,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'plans'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(data.cardid, 'plans', 'cloned');
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'plans');
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'plans',
+                'cloned',
+            );
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -87,7 +83,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Change variant and save card', async () => {
+        await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
             await editor.variant.locator('sp-picker').first().click();
             await page.getByRole('option', { name: 'suggested' }).click();
@@ -95,7 +91,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Verify variant change is saved', async () => {
+        await test.step('step-4: Verify variant change is saved', async () => {
             await expect(
                 await studio.getCard(data.clonedCardID, 'plans'),
             ).not.toBeVisible();
@@ -120,17 +116,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'plans'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(data.cardid, 'plans', 'cloned');
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'plans');
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'plans',
+                'cloned',
+            );
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -140,7 +132,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit size field', async () => {
+        await test.step('step-3: Edit size field', async () => {
             await expect(await editor.size).toBeVisible();
             await editor.size.click();
             await page
@@ -150,7 +142,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Verify size change is saved', async () => {
+        await test.step('step-4: Verify size change is saved', async () => {
             await expect(
                 await studio.getCard(data.clonedCardID, 'plans'),
             ).toHaveAttribute('size', 'wide');
@@ -172,17 +164,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'plans'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(data.cardid, 'plans', 'cloned');
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'plans');
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'plans',
+                'cloned',
+            );
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -192,13 +180,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit title field', async () => {
+        await test.step('step-3: Edit title field', async () => {
             await expect(await editor.title).toBeVisible();
             await editor.title.fill(data.newTitle);
             await studio.saveCard();
         });
 
-        await test.step('step-5: Verify title change is saved', async () => {
+        await test.step('step-4: Verify title change is saved', async () => {
             await expect(await editor.title).toHaveValue(data.newTitle);
             await expect(
                 await clonedCard.locator(individuals.cardTitle),
@@ -221,17 +209,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'plans'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(data.cardid, 'plans', 'cloned');
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'plans');
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'plans',
+                'cloned',
+            );
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -241,13 +225,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit badge field', async () => {
+        await test.step('step-3: Edit badge field', async () => {
             await expect(await editor.badge).toBeVisible();
             await editor.badge.fill(data.newBadge);
             await studio.saveCard();
         });
 
-        await test.step('step-5: Verify badge change is saved', async () => {
+        await test.step('step-4: Verify badge change is saved', async () => {
             await expect(await editor.badge).toHaveValue(data.newBadge);
             await expect(
                 await clonedCard.locator(individuals.cardBadgeLabel),
@@ -270,17 +254,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'plans'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(data.cardid, 'plans', 'cloned');
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'plans');
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'plans',
+                'cloned',
+            );
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -290,13 +270,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit description field', async () => {
+        await test.step('step-3: Edit description field', async () => {
             await expect(await editor.description).toBeVisible();
             await editor.description.fill(data.newDescription);
             await studio.saveCard();
         });
 
-        await test.step('step-5: Verify description change is saved', async () => {
+        await test.step('step-4: Verify description change is saved', async () => {
             await expect(await editor.description).toContainText(
                 data.newDescription,
             );
@@ -321,17 +301,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'plans'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(data.cardid, 'plans', 'cloned');
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'plans');
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'plans',
+                'cloned',
+            );
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -341,13 +317,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit mnemonic field and save card', async () => {
+        await test.step('step-3: Edit mnemonic field and save card', async () => {
             await expect(await editor.iconURL).toBeVisible();
             await editor.iconURL.fill(data.newIconURL);
             await studio.saveCard();
         });
 
-        await test.step('step-5: Verify mnemonic change is saved', async () => {
+        await test.step('step-4: Verify mnemonic change is saved', async () => {
             await expect(await editor.iconURL).toHaveValue(data.newIconURL);
             await expect(
                 await clonedCard.locator(individuals.cardIcon),
@@ -370,17 +346,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'plans'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(data.cardid, 'plans', 'cloned');
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'plans');
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'plans',
+                'cloned',
+            );
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -390,13 +362,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit callout field', async () => {
+        await test.step('step-3: Edit callout field', async () => {
             await expect(await editor.calloutRTE).toBeVisible();
             await editor.calloutRTE.fill(data.calloutText);
             await studio.saveCard();
         });
 
-        await test.step('step-5: Verify callout change is saved', async () => {
+        await test.step('step-4: Verify callout change is saved', async () => {
             await expect(await editor.calloutRTE).toContainText(
                 data.calloutText,
             );
@@ -421,17 +393,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'plans'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(data.cardid, 'plans', 'cloned');
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'plans');
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'plans',
+                'cloned',
+            );
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -441,13 +409,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit promo text field', async () => {
+        await test.step('step-3: Edit promo text field', async () => {
             await expect(await editor.promoText).toBeVisible();
             await editor.promoText.fill(data.promoText);
             await studio.saveCard();
         });
 
-        await test.step('step-5: Verify promo text change is saved', async () => {
+        await test.step('step-4: Verify promo text change is saved', async () => {
             await expect(await editor.promoText).toHaveValue(data.promoText);
             await expect(
                 await clonedCard.locator(individuals.cardPromoText),
@@ -470,17 +438,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'plans'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(data.cardid, 'plans', 'cloned');
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'plans');
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'plans',
+                'cloned',
+            );
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -490,7 +454,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit price field', async () => {
+        await test.step('step-3: Edit price field', async () => {
             await expect(await editor.prices).toBeVisible();
             await (await editor.prices.locator(editor.regularPrice)).dblclick();
             await expect(await ost.price).toBeVisible();
@@ -501,7 +465,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Verify price changes are saved', async () => {
+        await test.step('step-4: Verify price changes are saved', async () => {
             await expect(await editor.prices).toContainText(data.price);
             await expect(await editor.prices).not.toContainText(
                 data.strikethroughPrice,
@@ -530,17 +494,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'plans'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(data.cardid, 'plans', 'cloned');
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'plans');
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'plans',
+                'cloned',
+            );
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -550,7 +510,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Change OSI and save card', async () => {
+        await test.step('step-3: Change OSI and save card', async () => {
             await expect(await editor.OSI).toBeVisible();
             await expect(await editor.tags).toBeVisible();
             await editor.OSIButton.click();
@@ -562,7 +522,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Verify OSI changes are saved', async () => {
+        await test.step('step-4: Verify OSI changes are saved', async () => {
             await expect(await editor.OSI).toContainText(data.newosi);
             await expect(await editor.tags).toHaveAttribute(
                 'value',
@@ -606,17 +566,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'plans'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(data.cardid, 'plans', 'cloned');
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'plans');
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'plans',
+                'cloned',
+            );
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -626,13 +582,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Toggle stock checkbox', async () => {
+        await test.step('step-3: Toggle stock checkbox', async () => {
             await expect(await editor.showStockCheckbox).toBeVisible();
             await editor.showStockCheckbox.click();
             await studio.saveCard();
         });
 
-        await test.step('step-5: Verify stock checkbox change is saved', async () => {
+        await test.step('step-4: Verify stock checkbox change is saved', async () => {
             await expect(await editor.showStockCheckbox).toBeChecked();
             await expect(
                 await clonedCard.locator(individuals.cardStockCheckbox),
@@ -655,17 +611,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'plans'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(data.cardid, 'plans', 'cloned');
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'plans');
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'plans',
+                'cloned',
+            );
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -675,13 +627,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Toggle quantity selector', async () => {
+        await test.step('step-3: Toggle quantity selector', async () => {
             await expect(await editor.showQuantitySelector).toBeVisible();
             await editor.showQuantitySelector.click();
             await studio.saveCard();
         });
 
-        await test.step('step-5: Verify quantity selector change is saved', async () => {
+        await test.step('step-4: Verify quantity selector change is saved', async () => {
             await expect(await editor.showQuantitySelector).toBeChecked();
             await expect(
                 await clonedCard.locator(individuals.cardQuantitySelector),
@@ -704,17 +656,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'plans'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(data.cardid, 'plans', 'cloned');
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'plans');
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'plans',
+                'cloned',
+            );
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -724,13 +672,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit whats included field and save card', async () => {
+        await test.step('step-3: Edit whats included field and save card', async () => {
             await expect(await editor.whatsIncludedLabel).toBeVisible();
             await editor.whatsIncludedLabel.fill(data.whatsIncludedText);
             await studio.saveCard();
         });
 
-        await test.step('step-5: Verify whats included change is saved', async () => {
+        await test.step('step-4: Verify whats included change is saved', async () => {
             await expect(await editor.whatsIncludedLabel).toHaveValue(
                 data.whatsIncludedText,
             );
@@ -755,17 +703,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'plans'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(data.cardid, 'plans', 'cloned');
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'plans');
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'plans',
+                'cloned',
+            );
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -775,7 +719,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit badge color field and save card', async () => {
+        await test.step('step-3: Edit badge color field and save card', async () => {
             await expect(await editor.badgeColor).toBeVisible();
             await editor.badgeColor.click();
             await page
@@ -785,7 +729,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Verify badge color is updated', async () => {
+        await test.step('step-4: Verify badge color is updated', async () => {
             expect(
                 await webUtil.verifyCSS(
                     clonedCard.locator(individuals.cardBadge),
@@ -811,17 +755,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'plans'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(data.cardid, 'plans', 'cloned');
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'plans');
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'plans',
+                'cloned',
+            );
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -831,7 +771,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit badge border color field and save card', async () => {
+        await test.step('step-3: Edit badge border color field and save card', async () => {
             await expect(await editor.badgeBorderColor).toBeVisible();
             await expect(await editor.badgeBorderColor).toContainText(
                 data.color,
@@ -844,7 +784,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Verify badge border color is updated', async () => {
+        await test.step('step-4: Verify badge border color is updated', async () => {
             expect(
                 await webUtil.verifyCSS(
                     clonedCard.locator(individuals.cardBadge),
@@ -876,17 +816,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'plans'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(data.cardid, 'plans', 'cloned');
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'plans');
+            clonedCard = await studio.getCard(
+                data.cardid,
+                'plans',
+                'cloned',
+            );
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -896,7 +832,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit card border color field and save card', async () => {
+        await test.step('step-3: Edit card border color field and save card', async () => {
             await expect(await editor.cardBorderColor).toBeVisible();
             await expect(await editor.cardBorderColor).toContainText(
                 data.color,
@@ -909,7 +845,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Verify card border color is updated', async () => {
+        await test.step('step-4: Verify card border color is updated', async () => {
             expect(
                 await webUtil.verifyCSS(clonedCard, {
                     'border-color': data.newColorCSS,

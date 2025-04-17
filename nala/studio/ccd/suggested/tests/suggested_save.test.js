@@ -72,16 +72,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'suggested');
             let clonedCard = await studio.getCard(
                 data.cardid,
                 'suggested',
@@ -91,10 +83,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 .locator('aem-fragment')
                 .getAttribute('fragment');
             data.clonedCardID = await clonedCardID;
-            await expect(await clonedCard).toBeVisible();
-            await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
-            await studio.cloneCard();
+            await studio.cloneCard(clonedCardID, 'suggested');
 
             let clonedCardTwo = await studio.getCard(
                 data.cardid,
@@ -111,7 +100,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             data.clonedCardTwoID = clonedCardTwoID;
         });
 
-        await test.step('step-4: Delete cloned cards', async () => {
+        await test.step('step-3: Delete cloned cards', async () => {
             const clonedCard = await studio.getCard(
                 data.clonedCardID,
                 'suggested',
@@ -146,16 +135,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'suggested');
             let clonedCard = await studio.getCard(
                 data.cardid,
                 'suggested',
@@ -170,7 +151,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Change variant and save card', async () => {
+        await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
             await expect(await editor.variant).toHaveAttribute(
                 'default-value',
@@ -182,7 +163,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate variant change', async () => {
+        await test.step('step-4: Validate variant change', async () => {
             await expect(await editor.variant).toHaveAttribute(
                 'default-value',
                 'ccd-slice',
@@ -220,16 +201,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'suggested');
             let clonedCard = await studio.getCard(
                 data.cardid,
                 'suggested',
@@ -244,7 +217,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Change variant and save card', async () => {
+        await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
             await expect(await editor.variant).toHaveAttribute(
                 'default-value',
@@ -256,7 +229,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate variant change', async () => {
+        await test.step('step-4: Validate variant change', async () => {
             await expect(await editor.variant).toHaveAttribute(
                 'default-value',
                 'ah-try-buy-widget',
@@ -295,16 +268,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'suggested');
             clonedCard = await studio.getCard(
                 data.cardid,
                 'suggested',
@@ -319,14 +284,14 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit title and save card', async () => {
+        await test.step('step-3: Edit title and save card', async () => {
             await expect(await editor.title).toBeVisible();
             await expect(await editor.title).toHaveValue(data.title);
             await editor.title.fill(data.newTitle);
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate edited card title', async () => {
+        await test.step('step-4: Validate edited card title', async () => {
             await expect(await editor.title).toHaveValue(data.newTitle);
             await expect(
                 await clonedCard.locator(suggested.cardTitle),
@@ -349,16 +314,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'suggested');
             clonedCard = await studio.getCard(
                 data.cardid,
                 'suggested',
@@ -373,14 +330,14 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit eyebrow and save card', async () => {
+        await test.step('step-3: Edit eyebrow and save card', async () => {
             await expect(await editor.subtitle).toBeVisible();
             await expect(await editor.subtitle).toHaveValue(data.subtitle);
             await editor.subtitle.fill(data.newSubtitle);
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate edited card eyebrow', async () => {
+        await test.step('step-4: Validate edited card eyebrow', async () => {
             await expect(await editor.subtitle).toHaveValue(data.newSubtitle);
             await expect(
                 await clonedCard.locator(suggested.cardEyebrow),
@@ -403,16 +360,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'suggested');
             clonedCard = await studio.getCard(
                 data.cardid,
                 'suggested',
@@ -427,14 +376,14 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit mnemonic and save card', async () => {
+        await test.step('step-3: Edit mnemonic and save card', async () => {
             await expect(await editor.iconURL).toBeVisible();
             await expect(await editor.iconURL).toHaveValue(data.iconURL);
             await editor.iconURL.fill(data.newIconURL);
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate edited card mnemonic', async () => {
+        await test.step('step-4: Validate edited card mnemonic', async () => {
             await expect(await editor.iconURL).toHaveValue(data.newIconURL);
             await expect(
                 await clonedCard.locator(suggested.cardIcon),
@@ -457,16 +406,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'suggested');
             clonedCard = await studio.getCard(
                 data.cardid,
                 'suggested',
@@ -481,7 +422,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit description and save card', async () => {
+        await test.step('step-3: Edit description and save card', async () => {
             await expect(await editor.description).toBeVisible();
             await expect(await editor.description).toContainText(
                 data.description,
@@ -490,7 +431,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate edited card description', async () => {
+        await test.step('step-4: Validate edited card description', async () => {
             await expect(await editor.description).toContainText(
                 data.newDescription,
             );
@@ -515,16 +456,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'suggested');
             clonedCard = await studio.getCard(
                 data.cardid,
                 'suggested',
@@ -539,14 +472,14 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit fields and save card', async () => {
+        await test.step('step-3: Edit fields and save card', async () => {
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.backgroundImage).toHaveValue('');
             await editor.backgroundImage.fill(data.newBackgroundURL);
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate edited card image', async () => {
+        await test.step('step-4: Validate edited card image', async () => {
             await expect(await editor.backgroundImage).toHaveValue(
                 data.newBackgroundURL,
             );
@@ -572,16 +505,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'suggested');
             clonedCard = await studio.getCard(
                 data.cardid,
                 'suggested',
@@ -596,7 +521,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit price and save card', async () => {
+        await test.step('step-3: Edit price and save card', async () => {
             await expect(await editor.prices).toBeVisible();
             await expect(await editor.prices).toContainText(data.price);
             await expect(await editor.prices).toContainText(
@@ -611,7 +536,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate edited card price', async () => {
+        await test.step('step-4: Validate edited card price', async () => {
             await expect(await editor.prices).toContainText(data.price);
             await expect(await editor.prices).not.toContainText(
                 data.strikethroughPrice,
@@ -640,16 +565,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'suggested');
             clonedCard = await studio.getCard(
                 data.cardid,
                 'suggested',
@@ -664,7 +581,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit cta and save card', async () => {
+        await test.step('step-3: Edit cta and save card', async () => {
             await expect(await editor.CTA).toBeVisible();
             await expect(await editor.footer).toContainText(data.ctaText);
             await editor.CTA.click();
@@ -677,7 +594,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate edited card cta', async () => {
+        await test.step('step-4: Validate edited card cta', async () => {
             await expect(await editor.footer).toContainText(data.newCtaText);
             await expect(
                 await clonedCard.locator(suggested.cardCTA),
@@ -699,16 +616,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'suggested');
             let clonedCard = await studio.getCard(
                 data.cardid,
                 'suggested',
@@ -723,7 +632,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Change osi and save card', async () => {
+        await test.step('step-3: Change osi and save card', async () => {
             await expect(await editor.OSI).toBeVisible();
             await expect(await editor.OSI).toContainText(data.osi);
             await editor.OSIButton.click();
@@ -735,7 +644,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate osi change', async () => {
+        await test.step('step-4: Validate osi change', async () => {
             await expect(await editor.OSI).toContainText(data.newosi);
             await expect(await editor.tags).toHaveAttribute(
                 'value',
@@ -783,16 +692,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'suggested');
             clonedCard = await studio.getCard(
                 data.cardid,
                 'suggested',
@@ -807,7 +708,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit CTA variant and save card', async () => {
+        await test.step('step-3: Edit CTA variant and save card', async () => {
             await expect(
                 await editor.footer.locator(editor.linkEdit),
             ).toBeVisible();
@@ -831,7 +732,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate CTA variant change', async () => {
+        await test.step('step-4: Validate CTA variant change', async () => {
             await expect(await editor.CTA).toHaveClass(data.newVariant);
             await expect(await editor.CTA).not.toHaveClass(data.variant);
             expect(
@@ -864,16 +765,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'suggested')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid, 'suggested');
             clonedCard = await studio.getCard(
                 data.cardid,
                 'suggested',
@@ -888,7 +781,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit checkout params and save card', async () => {
+        await test.step('step-3: Edit checkout params and save card', async () => {
             await expect(await editor.CTA).toBeVisible();
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
@@ -906,7 +799,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate edited cta checkout params', async () => {
+        await test.step('step-4: Validate edited cta checkout params', async () => {
             await expect(
                 await clonedCard.locator(suggested.cardCTA),
             ).toHaveAttribute('data-wcs-osi', data.osi);

@@ -102,6 +102,9 @@ const OST_OPTION_ATTRIBUTE_MAPPING = {
     workflow: 'data-checkout-workflow',
     workflowStep: 'data-checkout-workflow-step',
     storedPromoOverride: 'data-promotion-code',
+    modal: 'data-modal',
+    entitlement: 'data-entitlement',
+    upgrade: 'data-upgrade',
 };
 
 export const OST_OPTION_ATTRIBUTE_MAPPING_REVERSE = Object.fromEntries(
@@ -236,6 +239,9 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 'checkoutType',
                 'workflowStep',
                 'country',
+                'modal',
+                'entitlement',
+                'upgrade',
             ].forEach((key) => {
                 const value = offerSelectorPlaceholderOptions[key];
                 if (value) searchParameters.append(key, value);
@@ -252,6 +258,9 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             searchOfferSelectorId,
             defaultPlaceholderOptions,
             offerSelectorPlaceholderOptions,
+            modalsAndEntitlements: ['acom', 'sandbox', 'nala'].includes(
+                Store.search.get().path,
+            ),
             dialog: true,
             onSelect:
                 triggerElement.tagName === 'OSI-FIELD'

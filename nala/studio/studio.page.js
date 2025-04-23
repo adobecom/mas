@@ -62,22 +62,10 @@ export default class StudioPage {
         );
     }
 
-    async getCard(id, cardType, cloned, secondID) {
-        const cardVariant = {
-            suggested: this.suggestedCard,
-            slice: this.sliceCard,
-            'slice-wide': this.sliceCardWide,
-            ahtrybuywidget: this.ahTryBuyWidgetCard,
-            'ahtrybuywidget-triple': this.ahTryBuyWidgetTripleCard,
-            'ahtrybuywidget-single': this.ahTryBuyWidgetSingleCard,
-            'ahtrybuywidget-double': this.ahTryBuyWidgetDoubleCard,
-            plans: this.plansCard,
-            empty: this.emptyCard,
-        };
-
-        const card = cardVariant[cardType];
+    async getCard(id, cloned, secondID) {
+        const card = this.page.locator('merch-card');
         if (!card) {
-            throw new Error(`Invalid card type: ${cardType}`);
+            throw new Error(`No merch card found`);
         }
 
         if (cloned) {
@@ -138,9 +126,9 @@ export default class StudioPage {
         }
     }
 
-    async cloneCard(cardId, cardType) {
-        if (!cardId || !cardType) {
-            throw new Error('cardId and cardType are required parameters for cloneCard');
+    async cloneCard(cardId) {
+        if (!cardId) {
+            throw new Error('cardId is required parameter for cloneCard');
         }
 
         const consoleErrors = [];
@@ -152,8 +140,8 @@ export default class StudioPage {
                 consoleErrors.length = 0; // Clear console errors at the start of each attempt
                 
                 // Ensure the original card is visible and open in editor
-                await expect(await this.getCard(cardId, cardType)).toBeVisible();
-                await (await this.getCard(cardId, cardType)).dblclick();
+                await expect(await this.getCard(cardId)).toBeVisible();
+                await (await this.getCard(cardId)).dblclick();
                 await expect(await this.page.locator('editor-panel > #editor')).toBeVisible();
 
                 // Wait for clone button and ensure it's enabled
@@ -265,12 +253,16 @@ export default class StudioPage {
         }
     }
 
-    async deleteCard() {
+    async deleteCard(cardId) {
         const consoleErrors = [];
         const consoleListener = this.#setupConsoleListener(consoleErrors);
         this.page.on('console', consoleListener);
 
         try {
+            await expect(await this.getCard(cardId)).toBeVisible();
+            await (await this.getCard(cardId)).dblclick();
+            await expect(await this.page.locator('editor-panel > #editor')).toBeVisible();
+
             await this.page.waitForSelector('div[id="editor-toolbar"] >> sp-action-button[value="delete"]', 
                 { state: 'visible', timeout: 30000 });
             await expect(this.deleteCardButton).toBeEnabled();

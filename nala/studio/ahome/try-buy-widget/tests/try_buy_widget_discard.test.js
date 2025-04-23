@@ -43,10 +43,10 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
+                await studio.getCard(data.cardid)
             ).toBeVisible();
             await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
+                await studio.getCard(data.cardid)
             ).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
@@ -78,7 +78,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 data.newPrice,
             );
             await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
+                await studio.getCard(data.cardid)
             ).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.prices).toContainText(data.price);
@@ -102,10 +102,10 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
+                await studio.getCard(data.cardid)
             ).toBeVisible();
             await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
+                await studio.getCard(data.cardid)
             ).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
@@ -126,13 +126,14 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
-            ).toBeVisible();
+                await studio.getCard(data.cardid)
+            ).toHaveAttribute('variant', 'ah-try-buy-widget');
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute('size', 'double');
             await expect(
-                await studio.getCard(data.cardid, 'slice'),
-            ).not.toBeVisible();
+                await studio.getCard(data.cardid),
+            ).not.toHaveAttribute('variant', 'ccd-slice');
             await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
+                await studio.getCard(data.cardid)
             ).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.variant).toHaveAttribute(
@@ -158,10 +159,10 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
+                await studio.getCard(data.cardid)
             ).toBeVisible();
             await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
+                await studio.getCard(data.cardid)
             ).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
@@ -186,7 +187,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-5: Open the editor and validate there are no changes', async () => {
             await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
+                await studio.getCard(data.cardid)
             ).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.OSI).toContainText(data.osi);
@@ -238,10 +239,10 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
+                await studio.getCard(data.cardid)
             ).toBeVisible();
             await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
+                await studio.getCard(data.cardid)
             ).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
@@ -271,7 +272,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-5: Open the editor and validate there are no changes', async () => {
             await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
+                await studio.getCard(data.cardid)
             ).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.CTA.first()).toBeVisible();
@@ -298,10 +299,10 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
+                await studio.getCard(data.cardid)
             ).toBeVisible();
             await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
+                await studio.getCard(data.cardid)
             ).dblclick();
             await expect(await editor.panel).toBeVisible();
         });

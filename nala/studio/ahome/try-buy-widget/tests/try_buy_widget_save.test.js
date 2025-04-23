@@ -38,20 +38,14 @@ test.beforeEach(async ({ page, browserName }) => {
 });
 
 test.afterEach(async ({ page }) => {
-    let cardToClean = page.locator('merch-card').filter({
-        has: page.locator(`aem-fragment[fragment="${clonedCardID}"]`),
-    });
-
     if (await editor.panel.isVisible()) {
         await editor.closeEditor.click();
         await expect(await editor.panel).not.toBeVisible();
     }
 
-    if (await cardToClean.isVisible()) {
-        await cardToClean.dblclick();
-        await expect(await editor.panel).toBeVisible();
-        await studio.deleteCard();
-        await expect(cardToClean).not.toBeVisible();
+    if (await (await studio.getCard(clonedCardID)).isVisible()) {
+        await studio.deleteCard(clonedCardID);
+        await expect(await studio.getCard(clonedCardID)).not.toBeVisible();
     }
 
     await page.close();
@@ -73,12 +67,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'ahtrybuywidget-double');
-            let clonedCard = await studio.getCard(
-                data.cardid,
-                'ahtrybuywidget-double',
-                'cloned',
-            );
+            await studio.cloneCard(data.cardid);
+            let clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -100,10 +90,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-5: Validate edited field on the card', async () => {
-            const clonedCard = await studio.getCard(
-                data.clonedCardID,
-                'ahtrybuywidget-triple',
-            );
+            const clonedCard = await studio.getCard(data.clonedCardID);
             await expect(clonedCard).toBeVisible();
             await expect(
                 await clonedCard.locator(trybuywidget.cardPrice),
@@ -129,12 +116,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'ahtrybuywidget');
-            let clonedCard = await studio.getCard(
-                data.cardid,
-                'ahtrybuywidget',
-                'cloned',
-            );
+            await studio.cloneCard(data.cardid);
+            let clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -162,18 +145,18 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 'ccd-slice',
             );
             await expect(
-                await studio.getCard(data.clonedCardID, 'ahtrybuywidget'),
-            ).not.toBeVisible();
+                await studio.getCard(data.clonedCardID)
+            ).not.toHaveAttribute('variant', 'ah-try-buy-widget');
             await expect(
-                await studio.getCard(data.clonedCardID, 'slice'),
-            ).toBeVisible();
+                await studio.getCard(data.clonedCardID)
+            ).toHaveAttribute('variant', 'ccd-slice');
             await expect(
-                await (await studio.getCard(data.clonedCardID, 'slice'))
+                await (await studio.getCard(data.clonedCardID))
                     .locator(slice.cardCTA)
                     .first(),
             ).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(
-                await (await studio.getCard(data.clonedCardID, 'slice'))
+                await (await studio.getCard(data.clonedCardID))
                     .locator(slice.cardCTA)
                     .first(),
             ).toHaveAttribute('is', 'checkout-button');
@@ -195,12 +178,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'ahtrybuywidget');
-            let clonedCard = await studio.getCard(
-                data.cardid,
-                'ahtrybuywidget',
-                'cloned',
-            );
+            await studio.cloneCard(data.cardid);
+            let clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -228,18 +207,18 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 'ccd-suggested',
             );
             await expect(
-                await studio.getCard(data.clonedCardID, 'suggested'),
-            ).toBeVisible();
+                await studio.getCard(data.clonedCardID)
+            ).toHaveAttribute('variant', 'ccd-suggested');
             await expect(
-                await studio.getCard(data.clonedCardID, 'ahtrybuywidget'),
-            ).not.toBeVisible();
+                await studio.getCard(data.clonedCardID)
+            ).not.toHaveAttribute('variant', 'ah-try-buy-widget');
             await expect(
-                await (await studio.getCard(data.clonedCardID, 'suggested'))
+                await (await studio.getCard(data.clonedCardID))
                     .locator(suggested.cardCTA)
                     .first(),
             ).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(
-                await (await studio.getCard(data.clonedCardID, 'suggested'))
+                await (await studio.getCard(data.clonedCardID))
                     .locator(suggested.cardCTA)
                     .first(),
             ).toHaveAttribute('is', 'checkout-button');
@@ -261,12 +240,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'ahtrybuywidget');
-            let clonedCard = await studio.getCard(
-                data.cardid,
-                'ahtrybuywidget',
-                'cloned',
-            );
+            await studio.cloneCard(data.cardid);
+            let clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -337,12 +312,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'ahtrybuywidget');
-            clonedCard = await studio.getCard(
-                data.cardid,
-                'ahtrybuywidget',
-                'cloned',
-            );
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -412,12 +383,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'ahtrybuywidget');
-            clonedCard = await studio.getCard(
-                data.cardid,
-                'ahtrybuywidget',
-                'cloned',
-            );
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');

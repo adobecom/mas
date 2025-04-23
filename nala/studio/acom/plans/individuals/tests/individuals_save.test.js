@@ -32,20 +32,14 @@ test.beforeEach(async ({ page, browserName }) => {
 });
 
 test.afterEach(async ({ page }) => {
-    let cardToClean = page.locator('merch-card').filter({
-        has: page.locator(`aem-fragment[fragment="${clonedCardID}"]`),
-    });
-
     if (await editor.panel.isVisible()) {
         await editor.closeEditor.click();
         await expect(await editor.panel).not.toBeVisible();
     }
 
-    if (await cardToClean.isVisible()) {
-        await cardToClean.dblclick();
-        await expect(await editor.panel).toBeVisible();
-        await studio.deleteCard();
-        await expect(cardToClean).not.toBeVisible();
+    if (await (await studio.getCard(clonedCardID)).isVisible()) {
+        await studio.deleteCard(clonedCardID);
+        await expect(await studio.getCard(clonedCardID)).not.toBeVisible();
     }
 
     await page.close();
@@ -68,10 +62,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'plans');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'plans',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -93,11 +86,11 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-4: Verify variant change is saved', async () => {
             await expect(
-                await studio.getCard(data.clonedCardID, 'plans'),
-            ).not.toBeVisible();
+                await studio.getCard(data.clonedCardID),
+            ).not.toHaveAttribute('variant', 'plans');
             await expect(
-                await studio.getCard(data.clonedCardID, 'suggested'),
-            ).toBeVisible();
+                await studio.getCard(data.clonedCardID),
+            ).toHaveAttribute('variant', 'ccd-suggested');
         });
     });
 
@@ -117,10 +110,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'plans');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'plans',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -144,7 +136,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-4: Verify size change is saved', async () => {
             await expect(
-                await studio.getCard(data.clonedCardID, 'plans'),
+                await studio.getCard(data.clonedCardID),
             ).toHaveAttribute('size', 'wide');
         });
     });
@@ -165,10 +157,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'plans');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'plans',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -210,10 +201,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'plans');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'plans',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -255,10 +245,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'plans');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'plans',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -302,10 +291,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'plans');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'plans',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -347,10 +335,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'plans');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'plans',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -394,10 +381,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'plans');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'plans',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -439,10 +425,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'plans');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'plans',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -495,10 +480,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'plans');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'plans',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -567,10 +551,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'plans');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'plans',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -612,10 +595,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'plans');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'plans',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -657,10 +639,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'plans');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'plans',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -704,10 +685,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'plans');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'plans',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -756,10 +736,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'plans');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'plans',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -817,10 +796,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'plans');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'plans',
                 'cloned',
             );
             clonedCardID = await clonedCard

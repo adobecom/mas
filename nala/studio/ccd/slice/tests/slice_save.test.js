@@ -38,20 +38,14 @@ test.beforeEach(async ({ page, browserName }) => {
 });
 
 test.afterEach(async ({ page }) => {
-    let cardToClean = page.locator('merch-card').filter({
-        has: page.locator(`aem-fragment[fragment="${clonedCardID}"]`),
-    });
-
     if (await editor.panel.isVisible()) {
         await editor.closeEditor.click();
         await expect(await editor.panel).not.toBeVisible();
     }
 
-    if (await cardToClean.isVisible()) {
-        await cardToClean.dblclick();
-        await expect(await editor.panel).toBeVisible();
-        await studio.deleteCard();
-        await expect(cardToClean).not.toBeVisible();
+    if (await (await studio.getCard(clonedCardID)).isVisible()) {
+        await studio.deleteCard(clonedCardID);
+        await expect(await studio.getCard(clonedCardID)).not.toBeVisible();
     }
 
     await page.close();
@@ -73,10 +67,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'slice-wide');
+            await studio.cloneCard(data.cardid);
             let clonedCard = await studio.getCard(
                 data.cardid,
-                'slice-wide',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -106,19 +99,19 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'ccd-suggested',
             );
             await expect(
-                await studio.getCard(data.clonedCardID, 'slice-wide'),
-            ).not.toBeVisible();
+                await studio.getCard(data.clonedCardID),
+            ).not.toHaveAttribute('variant', 'ccd-slice');
             await expect(
-                await studio.getCard(data.clonedCardID, 'suggested'),
-            ).toBeVisible();
+                await studio.getCard(data.clonedCardID),
+            ).toHaveAttribute('variant', 'ccd-suggested');
             await expect(
                 await (
-                    await studio.getCard(data.clonedCardID, 'suggested')
+                    await studio.getCard(data.clonedCardID)
                 ).locator(suggested.cardCTA),
             ).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(
                 await (
-                    await studio.getCard(data.clonedCardID, 'suggested')
+                    await studio.getCard(data.clonedCardID)
                 ).locator(suggested.cardCTA),
             ).toHaveAttribute('is', 'checkout-button');
         });
@@ -139,10 +132,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'slice-wide');
+            await studio.cloneCard(data.cardid);
             let clonedCard = await studio.getCard(
                 data.cardid,
-                'slice-wide',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -172,19 +164,19 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'ah-try-buy-widget',
             );
             await expect(
-                await studio.getCard(data.clonedCardID, 'slice-wide'),
-            ).not.toBeVisible();
+                await studio.getCard(data.clonedCardID),
+            ).not.toHaveAttribute('variant', 'ccd-slice');
             await expect(
-                await studio.getCard(data.clonedCardID, 'ahtrybuywidget'),
-            ).toBeVisible();
+                await studio.getCard(data.clonedCardID),
+            ).toHaveAttribute('variant', 'ah-try-buy-widget');
             await expect(
                 await (
-                    await studio.getCard(data.clonedCardID, 'ahtrybuywidget')
+                    await studio.getCard(data.clonedCardID)
                 ).locator(trybuywidget.cardCTA),
             ).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(
                 await (
-                    await studio.getCard(data.clonedCardID, 'ahtrybuywidget')
+                    await studio.getCard(data.clonedCardID)
                 ).locator(trybuywidget.cardCTA),
             ).toHaveAttribute('is', 'checkout-button');
         });
@@ -205,10 +197,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'slice-wide');
+            await studio.cloneCard(data.cardid);
             let clonedCard = await studio.getCard(
                 data.cardid,
-                'slice-wide',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -229,7 +220,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-4: Validate edited card size', async () => {
             await expect(
-                await studio.getCard(data.clonedCardID, 'slice'),
+                await studio.getCard(data.clonedCardID),
             ).not.toHaveAttribute('size', 'wide');
         });
     });
@@ -250,10 +241,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'slice-wide');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'slice-wide',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -300,10 +290,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'slice-wide');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'slice-wide',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -348,10 +337,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'slice-wide');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'slice-wide',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -394,10 +382,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'slice-wide');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'slice-wide',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -447,10 +434,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'slice-wide');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'slice-wide',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -508,10 +494,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'slice-wide');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'slice-wide',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -568,10 +553,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'slice-wide');
+            await studio.cloneCard(data.cardid);
             let clonedCard = await studio.getCard(
                 data.cardid,
-                'slice-wide',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -644,10 +628,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'slice-wide');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'slice-wide',
                 'cloned',
             );
             clonedCardID = await clonedCard
@@ -717,10 +700,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid, 'slice-wide');
+            await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(
                 data.cardid,
-                'slice-wide',
                 'cloned',
             );
             clonedCardID = await clonedCard

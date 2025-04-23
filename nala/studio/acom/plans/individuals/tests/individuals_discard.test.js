@@ -46,9 +46,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -68,12 +68,11 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).not.toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'plans');
+            await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('variant', 'ccd-suggested');
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.variant).toHaveAttribute(
                 'default-value',
@@ -98,9 +97,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -122,12 +121,11 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await expect(
-                await studio.getCard(data.cardid, 'plans'),
-            ).not.toHaveAttribute('size', 'wide');
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'plans');
+            await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('size', 'wide');
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.size).toHaveAttribute('value', 'Default');
         });
@@ -149,9 +147,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -169,7 +167,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-5: Validate title field not updated', async () => {
             await expect(await individuals.cardTitle).toHaveText(data.title);
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.title).toHaveValue(data.title);
         });
@@ -191,9 +189,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -213,7 +211,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardBadgeLabel).toHaveText(
                 data.badge,
             );
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.badge).toHaveValue(data.badge);
         });
@@ -235,9 +233,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -257,7 +255,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardDescription).toContainText(
                 data.description,
             );
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.description).toContainText(
                 data.description,
@@ -281,9 +279,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -304,7 +302,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 'src',
                 data.iconURL,
             );
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.iconURL).toHaveValue(data.iconURL);
         });
@@ -326,9 +324,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -348,7 +346,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardCallout).toContainText(
                 data.calloutText,
             );
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.calloutRTE).toContainText(
                 data.calloutText,
@@ -372,9 +370,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -394,7 +392,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardPromoText).toHaveText(
                 data.promoText,
             );
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.promoText).toHaveValue(data.promoText);
         });
@@ -416,9 +414,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -450,7 +448,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardPrice).not.toContainText(
                 data.newStrikethroughPrice,
             );
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.prices).toContainText(data.price);
             await expect(await editor.prices).toContainText(
@@ -479,9 +477,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -504,7 +502,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Open the editor and validate there are no changes', async () => {
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.OSI).toContainText(data.osi);
             await expect(await editor.OSI).not.toContainText(data.newosi);
@@ -551,9 +549,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -572,7 +570,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-5: Verify stock checkbox is unchecked', async () => {
             await expect(await individuals.cardStockCheckbox).toBeVisible();
             await expect(await individuals.cardStockCheckboxIcon).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.showStockCheckbox).toBeChecked();
         });
@@ -594,9 +592,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -614,7 +612,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-6: Verify quantity selector is unchanged', async () => {
             await expect(await individuals.cardQuantitySelector).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.showQuantitySelector).toBeChecked();
         });
@@ -636,9 +634,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -656,7 +654,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-6: Verify whats included text not updated', async () => {
             await expect(await individuals.cardWhatsIncluded).not.toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.whatsIncludedLabel).toHaveValue('');
         });
     });
@@ -669,7 +667,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const { data } = features[13];
         const testPage = `${baseURL}${features[13].path}${miloLibs}${features[13].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
-        const individualsCard = await studio.getCard(data.cardid, 'plans');
+        const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -678,9 +676,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -707,7 +705,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                     { 'background-color': data.colorCSS },
                 ),
             ).toBeTruthy();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.badgeColor).toContainText(data.color);
         });
@@ -721,7 +719,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const { data } = features[14];
         const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
-        const individualsCard = await studio.getCard(data.cardid, 'plans');
+        const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -730,9 +728,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -763,7 +761,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                     },
                 ),
             ).toBeTruthy();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.badgeBorderColor).toContainText(
                 data.color,
@@ -779,7 +777,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const { data } = features[15];
         const testPage = `${baseURL}${features[15].path}${miloLibs}${features[15].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
-        const individualsCard = await studio.getCard(data.cardid, 'plans');
+        const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -788,9 +786,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -816,7 +814,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                     'border-color': data.colorCSS,
                 }),
             ).toBeTruthy();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.cardBorderColor).toContainText(
                 data.color,

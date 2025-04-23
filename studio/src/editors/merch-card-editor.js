@@ -8,6 +8,7 @@ import './variant-picker.js';
 import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 import '../rte/osi-field.js';
 import { CARD_MODEL_PATH } from '../constants.js';
+import '../fields/secure-text-field.js';
 
 const merchCardCustomElementPromise = customElements.whenDefined('merch-card');
 
@@ -435,6 +436,16 @@ class MerchCardEditor extends LitElement {
                     ?readonly=${this.disabled}
                     >${unsafeHTML(form.callout?.values[0])}</rte-field
                 >
+            </sp-field-group>
+            <sp-field-group id="secureLabel" class="toggle">
+            <secure-text-field
+                id="secure-text-field"
+                label="Secure Transaction Label"
+                data-field="showSecureLabel"
+                value="${form.showSecureLabel?.values[0]}"
+                @change="${this.updateFragment}"
+            >
+            </secure-text-field>
             </sp-field-group>
             <sp-field-group class="toggle" id="stockOffer">
                 <sp-checkbox

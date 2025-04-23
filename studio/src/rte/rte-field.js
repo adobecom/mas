@@ -497,6 +497,9 @@ class RteField extends LitElement {
                     title: { default: null },
                     target: { default: null },
                     'data-analytics-id': { default: null },
+                    'data-modal': { default: null },
+                    'data-entitlement': { default: null },
+                    'data-upgrade': { default: null },
                 },
                 parseDOM: [
                     {

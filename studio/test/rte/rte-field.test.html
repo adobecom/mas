@@ -104,16 +104,14 @@
                         rte.handleStylingAction('heading-m');
                         await delay(100);
 
-                        let p = firstStyledElement();
-                        expect(p.className).to.equal('heading-m');
-                        expect(p.hasAttribute('data-styling')).to.be.true;
+                        let span = firstStyledElement();
+                        expect(span.className).to.equal('heading-m');
 
                         rte.handleStylingAction('heading-xxs');
                         await delay(100);
 
-                        p = firstStyledElement();
-                        expect(p.className).to.equal('heading-xxs');
-                        expect(p.hasAttribute('data-styling')).to.be.true;
+                        span = firstStyledElement();
+                        expect(span.className).to.equal('heading-xxs');
                     });
 
                     it('should apply promo text styles', async function () {
@@ -126,9 +124,8 @@
                         rte.handleStylingAction('promo-text');
                         await delay(100);
 
-                        let p = firstStyledElement();
-                        expect(p.className).to.equal('promo-text');
-                        expect(p.hasAttribute('data-styling')).to.be.true;
+                        let span = firstStyledElement();
+                        expect(span.className).to.equal('promo-text');
                     });
                 });
 

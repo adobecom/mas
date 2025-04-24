@@ -477,6 +477,8 @@ class RteField extends LitElement {
                     'data-entitlement': { default: null },
                     'data-upgrade': { default: null },
                 },
+                // Disallow styling marks inside links (they can still wrap them)
+                marks: 'em strong strikethrough underline',
                 parseDOM: [
                     {
                         tag: 'a',

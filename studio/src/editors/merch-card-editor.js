@@ -58,7 +58,9 @@ class MerchCardEditor extends LitElement {
         const whatsIncludedValues =
             this.fragment.fields.find((f) => f.name === WHAT_IS_INCLUDED)
                 ?.values ?? [];
-        const whatsIncludedHtml = whatsIncludedValues?.length ? whatsIncludedValues[0] : '';
+        const whatsIncludedHtml = whatsIncludedValues?.length
+            ? whatsIncludedValues[0]
+            : '';
 
         if (!whatsIncludedHtml) return undefined;
 
@@ -68,21 +70,29 @@ class MerchCardEditor extends LitElement {
     }
 
     get whatsIncluded() {
-        const label = this.whatsIncludedElement?.querySelector('[slot="heading"]')?.textContent || '';
+        const label =
+            this.whatsIncludedElement?.querySelector('[slot="heading"]')
+                ?.textContent || '';
         const values = [];
-        this.whatsIncludedElement?.querySelectorAll('merch-mnemonic-list').forEach((listEl) => {
-            const icon = listEl.querySelector('merch-icon')?.getAttribute('src') || '';
-            const text = listEl.querySelector('[slot="description"]')?.textContent || '';
-            values.push({
-                icon,
-                text,
+        this.whatsIncludedElement
+            ?.querySelectorAll('merch-mnemonic-list')
+            .forEach((listEl) => {
+                const icon =
+                    listEl.querySelector('merch-icon')?.getAttribute('src') ||
+                    '';
+                const text =
+                    listEl.querySelector('[slot="description"]')?.textContent ||
+                    '';
+                values.push({
+                    icon,
+                    text,
+                });
             });
-        });
 
         return {
             label,
             values,
-        }
+        };
     }
 
     get mnemonics() {
@@ -236,8 +246,10 @@ class MerchCardEditor extends LitElement {
             if (borderField) borderField.style.display = 'block';
         }
         if (variant.borderColor || variant.badge?.tag) {
-            this.availableBorderColors = variant.allowedBorderColors || SPECTRUM_COLORS;
-            this.availableBadgeColors = variant.allowedBadgeColors || SPECTRUM_COLORS;
+            this.availableBorderColors =
+                variant.allowedBorderColors || SPECTRUM_COLORS;
+            this.availableBadgeColors =
+                variant.allowedBadgeColors || SPECTRUM_COLORS;
         } else {
             this.availableBorderColors = [];
             this.availableBadgeColors = [];
@@ -315,13 +327,15 @@ class MerchCardEditor extends LitElement {
                 </mas-multifield>
             </sp-field-group>
             <sp-field-group class="toggle" id="whatsIncluded">
-                <sp-field-label for="whatsIncludedLabel">What's included</sp-field-label>
+                <sp-field-label for="whatsIncludedLabel"
+                    >What's included</sp-field-label
+                >
                 <sp-textfield
                     id="whatsIncludedLabel"
                     placeholder="Enter the label text"
                     value="${this.whatsIncluded.label}"
                     @input="${this.#updateWhatsIncluded}"
-                ></sp-textfield>                
+                ></sp-textfield>
                 <mas-multifield
                     .value="${this.whatsIncluded.values}"
                     @change="${this.#updateWhatsIncluded}"
@@ -330,7 +344,7 @@ class MerchCardEditor extends LitElement {
                     <template>
                         <mas-included-field></mas-included-field>
                     </template>
-                </mas-multifield>                
+                </mas-multifield>
             </sp-field-group>
             <sp-field-group class="toggle" id="badge">
                 <sp-field-label for="card-badge">Badge</sp-field-label>
@@ -438,14 +452,14 @@ class MerchCardEditor extends LitElement {
                 >
             </sp-field-group>
             <sp-field-group id="secureLabel" class="toggle">
-            <secure-text-field
-                id="secure-text-field"
-                label="Secure Transaction Label"
-                data-field="showSecureLabel"
-                value="${form.showSecureLabel?.values[0]}"
-                @change="${this.updateFragment}"
-            >
-            </secure-text-field>
+                <secure-text-field
+                    id="secure-text-field"
+                    label="Secure Transaction Label"
+                    data-field="showSecureLabel"
+                    value="${form.showSecureLabel?.values[0]}"
+                    @change="${this.updateFragment}"
+                >
+                </secure-text-field>
             </sp-field-group>
             <sp-field-group class="toggle" id="stockOffer">
                 <sp-checkbox
@@ -593,7 +607,8 @@ class MerchCardEditor extends LitElement {
         if (Array.isArray(event.target.value)) {
             event.target.value.forEach(({ icon, text }) => {
                 values.push({
-                    icon, text,
+                    icon,
+                    text,
                 });
             });
             label = this.whatsIncluded.label;
@@ -602,7 +617,9 @@ class MerchCardEditor extends LitElement {
             values = this.whatsIncluded.values;
         }
         const element = this.createIncludedElement(label, values);
-        this.fragmentStore.updateField(WHAT_IS_INCLUDED, [element?.outerHTML || '']);
+        this.fragmentStore.updateField(WHAT_IS_INCLUDED, [
+            element?.outerHTML || '',
+        ]);
     }
 
     #updateMnemonics(event) {
@@ -649,14 +666,17 @@ class MerchCardEditor extends LitElement {
 
     displayBadgeColorFields(text) {
         if (!this.isPlans) return;
-        document.querySelector('#badgeColor').style.display = text ? 'block' : 'none';
-        document.querySelector('#badgeBorderColor').style.display = text ? 'block' : 'none';
+        document.querySelector('#badgeColor').style.display = text
+            ? 'block'
+            : 'none';
+        document.querySelector('#badgeBorderColor').style.display = text
+            ? 'block'
+            : 'none';
     }
 
     get badgeText() {
         const badgeValues =
-            this.fragment.fields.find((f) => f.name === 'badge')
-                ?.values ?? [];
+            this.fragment.fields.find((f) => f.name === 'badge')?.values ?? [];
         return badgeValues?.length ? badgeValues[0] : '';
     }
 
@@ -672,35 +692,48 @@ class MerchCardEditor extends LitElement {
         }
 
         return {
-            textContent: badgeHtml
-        }
+            textContent: badgeHtml,
+        };
     }
 
     get isPlans() {
-        return this.fragment.variant === 'plans';
+        return (
+            this.fragment.variant === 'plans' ||
+            this.fragment.variant === 'plans-education'
+        );
     }
 
     get badge() {
         if (!this.isPlans) {
             return {
                 text: this.badgeText,
-            }
+            };
         }
 
         const text = this.badgeElement?.textContent || '';
-        const bgColorAttr = this.badgeElement?.getAttribute?.('background-color');
-        const bgColorSelected = document.querySelector('sp-picker[data-field="badgeColor"]')?.value
-        const bgColor = bgColorAttr?.toLowerCase() || bgColorSelected || 'spectrum-yellow-300';
+        const bgColorAttr =
+            this.badgeElement?.getAttribute?.('background-color');
+        const bgColorSelected = document.querySelector(
+            'sp-picker[data-field="badgeColor"]',
+        )?.value;
+        const bgColor =
+            bgColorAttr?.toLowerCase() ||
+            bgColorSelected ||
+            'spectrum-yellow-300';
 
-        const borderColorAttr = this.badgeElement?.getAttribute?.('border-color');
-        const borderColorSelected = document.querySelector('sp-picker[data-field="badgeBorderColor"]')?.value
-        const borderColor = borderColorAttr?.toLowerCase() || borderColorSelected;
+        const borderColorAttr =
+            this.badgeElement?.getAttribute?.('border-color');
+        const borderColorSelected = document.querySelector(
+            'sp-picker[data-field="badgeBorderColor"]',
+        )?.value;
+        const borderColor =
+            borderColorAttr?.toLowerCase() || borderColorSelected;
 
         return {
             text,
             bgColor,
             borderColor,
-        }
+        };
     }
 
     createBadgeElement(text, bgColor, borderColor) {
@@ -708,7 +741,11 @@ class MerchCardEditor extends LitElement {
 
         const element = document.createElement('merch-badge');
         element.setAttribute('background-color', bgColor);
-        if (bgColor === 'spectrum-green-900-plans' || bgColor === 'spectrum-gray-700-plans') element.setAttribute('color', '#fff');
+        if (
+            bgColor === 'spectrum-green-900-plans' ||
+            bgColor === 'spectrum-gray-700-plans'
+        )
+            element.setAttribute('color', '#fff');
         element.setAttribute('border-color', borderColor);
         element.setAttribute('variant', this.fragment.variant);
         element.textContent = text;
@@ -726,11 +763,19 @@ class MerchCardEditor extends LitElement {
     }
 
     onBadgeColorChange(event) {
-        this.updateBadge(this.badge.text, event.target.value, this.badge.borderColor);
+        this.updateBadge(
+            this.badge.text,
+            event.target.value,
+            this.badge.borderColor,
+        );
     }
 
     onBadgeBorderColorChange(event) {
-        this.updateBadge(this.badge.text, this.badge.bgColor, event.target.value);
+        this.updateBadge(
+            this.badge.text,
+            this.badge.bgColor,
+            event.target.value,
+        );
     }
 
     updateBadge(text, bgColor, borderColor) {

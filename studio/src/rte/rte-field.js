@@ -10,7 +10,7 @@ import {
     splitListItem,
     liftListItem,
 } from 'prosemirror-schema-list';
-import { baseKeymap, toggleMark, setBlockType } from 'prosemirror-commands';
+import { baseKeymap, toggleMark } from 'prosemirror-commands';
 import { history, undo, redo } from 'prosemirror-history';
 import {
     openOfferSelectorTool,
@@ -23,7 +23,6 @@ import throttle from '../utils/throttle.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
-const CUSTOM_ELEMENT_UPT_LINK = 'upt-link';
 
 // Function to check if a node is a checkout link
 const isNodeCheckoutLink = (node) => {
@@ -272,7 +271,6 @@ class RteField extends LitElement {
 
                 div.ProseMirror span[class^='heading-'] {
                     font-weight: 700;
-                    display: block;
 
                     &.heading-xxxs {
                         font-size: var(
@@ -321,7 +319,6 @@ class RteField extends LitElement {
                 }
 
                 div.ProseMirror span.promo-text {
-                    display: block;
                     color: var(--merch-color-green-promo);
                     font-size: var(--consonant-merch-card-promo-text-height);
                     font-weight: 700;
@@ -410,27 +407,6 @@ class RteField extends LitElement {
         let nodes = this.list
             ? addListNodes(schema.spec.nodes, 'paragraph block*', 'block')
             : schema.spec.nodes;
-
-        if (this.styling) {
-            nodes = nodes.addBefore('heading', 'styling', {
-                content: 'inline*',
-                group: 'block',
-                defining: true,
-                attrs: {
-                    class: { default: null },
-                    'data-styling': { default: '' },
-                },
-                parseDOM: [
-                    {
-                        tag: 'span[data-styling]',
-                        getAttrs: this.#collectDataAttributes,
-                    },
-                ],
-                toDOM(node) {
-                    return ['span', { ...node.attrs }, 0];
-                },
-            });
-        }
 
         nodes = nodes.addToStart('inlinePrice', {
             group: 'inline',
@@ -525,6 +501,66 @@ class RteField extends LitElement {
                 underline: {
                     parseDOM: [{ tag: 'u' }],
                     toDOM: () => ['u', 0],
+                },
+                'heading-xxxs': {
+                    attrs: { class: { default: null } },
+                    parseDOM: [
+                        {
+                            tag: 'span.heading-xxxs',
+                            getAttrs: this.#collectDataAttributes,
+                        },
+                    ],
+                    toDOM: () => ['span', { class: 'heading-xxxs' }, 0],
+                },
+                'heading-xxs': {
+                    attrs: { class: { default: null } },
+                    parseDOM: [
+                        {
+                            tag: 'span.heading-xxs',
+                            getAttrs: this.#collectDataAttributes,
+                        },
+                    ],
+                    toDOM: () => ['span', { class: 'heading-xxs' }, 0],
+                },
+                'heading-xs': {
+                    attrs: { class: { default: null } },
+                    parseDOM: [
+                        {
+                            tag: 'span.heading-xs',
+                            getAttrs: this.#collectDataAttributes,
+                        },
+                    ],
+                    toDOM: () => ['span', { class: 'heading-xs' }, 0],
+                },
+                'heading-s': {
+                    attrs: { class: { default: null } },
+                    parseDOM: [
+                        {
+                            tag: 'span.heading-s',
+                            getAttrs: this.#collectDataAttributes,
+                        },
+                    ],
+                    toDOM: () => ['span', { class: 'heading-s' }, 0],
+                },
+                'heading-m': {
+                    attrs: { class: { default: null } },
+                    parseDOM: [
+                        {
+                            tag: 'span.heading-m',
+                            getAttrs: this.#collectDataAttributes,
+                        },
+                    ],
+                    toDOM: () => ['span', { class: 'heading-m' }, 0],
+                },
+                'promo-text': {
+                    attrs: { class: { default: null } },
+                    parseDOM: [
+                        {
+                            tag: 'span.promo-text',
+                            getAttrs: this.#collectDataAttributes,
+                        },
+                    ],
+                    toDOM: () => ['span', { class: 'promo-text' }, 0],
                 },
             });
 
@@ -930,9 +966,7 @@ class RteField extends LitElement {
 
     handleStylingAction(stylingType) {
         const { state, dispatch } = this.editorView;
-        setBlockType(state.schema.nodes.styling, {
-            class: stylingType,
-        })(state, dispatch);
+        toggleMark(state.schema.marks[stylingType])(state, dispatch);
     }
 
     #handleListAction(listType) {

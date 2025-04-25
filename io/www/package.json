@@ -18,7 +18,12 @@
     "esm": "^3.2.25",
     "mocha": "^10.2.0",
     "nock": "^13.0.0",
-    "nyc": "^15.1.0"
+    "nyc": "^15.1.0",
+    "rollup": "^3.29.4",
+    "@rollup/plugin-commonjs": "^25.0.4",
+    "@rollup/plugin-node-resolve": "^15.2.1",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-json": "^6.1.0"
   },
   "scripts": {
     "test": "nyc --check-coverage --lines=99 --functions=99 --branches=99 --statements=99 mocha --recursive ./test",
@@ -26,7 +31,8 @@
     "test:file": "mocha --watch --recursive --grep",
     "test:coverage": "nyc --reporter=lcov --reporter=text-summary --check-coverage --lines=99 --functions=99 --branches=99 --statements=99 npm run test",
     "lint": "eslint --ignore-pattern web-src --no-error-on-unmatched-pattern test src actions",
-    "lint:fix": "npm run lint -- --fix"
+    "lint:fix": "npm run lint -- --fix",
+    "build:client": "rollup -c rollup.config.cjs"
   },
   "engines": {
     "node": ">=22"

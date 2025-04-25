@@ -4,8 +4,13 @@ const DICTIONARY_ID_PATH = 'dictionary/index';
 const PH_REGEXP = /{{(\s*([\w\-]+)\s*)}}/gi;
 
 async function getDictionaryId(context) {
-    const { surface, locale } = context;
-    const dictionaryPath = odinPath(surface, locale, DICTIONARY_ID_PATH);
+    const { surface, locale, preview } = context;
+    const dictionaryPath = odinPath(
+        surface,
+        locale,
+        DICTIONARY_ID_PATH,
+        preview,
+    );
     const response = await fetch(dictionaryPath, context);
     if (response.status == 200) {
         const { items } = await response.json();
@@ -29,7 +34,10 @@ async function getDictionary(context) {
     if (!id) {
         return null;
     }
-    const response = await fetch(odinReferences(id, true), context);
+    const response = await fetch(
+        odinReferences(id, true, context.preview),
+        context,
+    );
     if (response.status == 200) {
         const raw = await response.json();
         const dictionary = {};

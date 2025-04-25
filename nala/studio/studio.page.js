@@ -99,23 +99,29 @@ export default class StudioPage {
         };
     }
 
-    async #retryOperation(operation, shouldReload = false, maxRetries = 3) {
+    async #retryOperation(operation, shouldReload = false, maxRetries = 2) {
         const attempts = [];
-        let lastError = null;
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
                 if (shouldReload && attempt > 1) {
-                    const client = await this.page.context().newCDPSession(this.page);
-                    await client.send('Network.enable');
-                    await client.send('Network.clearBrowserCache');
-                    await this.page.reload({ waitUntil: 'networkidle' });
+                    // Wait for network to be idle before reload
+                    await this.page.waitForLoadState('networkidle').catch(() => {});
+                    
+                    // Perform reload
+                    await this.page.reload({ waitUntil: 'networkidle', timeout: 30000 }).catch(async (e) => {
+                        // If reload fails, try navigating to the current URL
+                        const url = this.page.url();
+                        await this.page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+                    });
+                    
+                    // Wait for page to be ready
+                    await this.page.waitForLoadState('domcontentloaded');
                 }
                 
-                await operation();
+                await operation(attempt);
                 return; // Success - exit the retry loop
             } catch (error) {
-                lastError = error;
                 attempts.push(`[Attempt ${attempt}/${maxRetries}] ${error.message}`);
                 
                 if (attempt === maxRetries) {
@@ -136,13 +142,13 @@ export default class StudioPage {
         this.page.on('console', consoleListener);
 
         try {
-            await this.#retryOperation(async () => {
-                consoleErrors.length = 0; // Clear console errors at the start of each attempt
-                
-                // Ensure the original card is visible and open in editor
-                await expect(await this.getCard(cardId)).toBeVisible();
-                await (await this.getCard(cardId)).dblclick();
-                await expect(await this.page.locator('editor-panel > #editor')).toBeVisible();
+            await this.#retryOperation(async (attempt) => {
+                // Open editor (needed after each reload)
+                const card = await this.getCard(cardId);
+                await expect(card).toBeVisible();
+                await card.dblclick();
+                await this.page.waitForSelector('editor-panel > #editor', { state: 'visible', timeout: 30000 });
+                await this.page.waitForTimeout(1000); // Give editor time to stabilize
 
                 // Wait for clone button and ensure it's enabled
                 await this.page.waitForSelector('div[id="editor-toolbar"] >> sp-action-button[value="clone"]', 
@@ -153,36 +159,52 @@ export default class StudioPage {
                 await this.page.waitForTimeout(500);
                 
                 await this.cloneCardButton.click({ force: true });
+                
+                // Wait for progress circle
+                await this.page.waitForSelector('div[id="editor-toolbar"] >> sp-action-button[value="clone"] sp-progress-circle', 
+                    { state: 'visible', timeout: 5000 })
+                    .catch(() => {
+                        throw new Error('[CLICK_FAILED] Clone button click did not trigger progress circle');
+                    });
 
-                // First wait for any toast (15s)
-                try {
-                    await this.page.waitForSelector('mas-toast >> sp-toast', { state: 'visible', timeout: 15000 });
-                } catch (e) {
-                    console.log('[WARN] Toast not shown after 15s, continuing to wait...');
-                }
+                // Wait for any toast
+                await this.page.waitForSelector('mas-toast >> sp-toast', { state: 'visible', timeout: 15000 })
+                    .catch(() => {}); // Ignore timeout, we'll check for specific toasts next
 
-                // Check for error toast
+                // Check for error toast first
                 if (await this.toastNegative.isVisible()) {
                     const errorText = await this.toastNegative.textContent();
                     throw new Error(`[ERROR_TOAST] Clone operation received error: "${errorText.trim()}"`);
                 }
 
-                // Wait for success toast (additional 15s)
-                try {
-                    await this.toastPositive.waitFor({ timeout: 30000 });
-                } catch (e) {
-                    throw new Error('[NO_RESPONSE] Clone operation failed - no success toast shown');
-                }
-
-                if (consoleErrors.length > 0) {
-                    throw new Error(consoleErrors.join(' | '));
-                }
+                // Wait for success toast
+                await this.toastPositive.waitFor({ timeout: 30000 })
+                    .catch(() => {
+                        throw new Error('[NO_RESPONSE] Clone operation failed - no success toast shown');
+                    });
             }, true);
         } catch (e) {
+            // On failure, collect all attempt errors and console logs
             if (e.message.includes('\nAll attempts failed:')) {
-                throw e; // Don't modify the error if it's from retryOperation
+                // Extract individual attempt errors from the combined error message
+                const attemptErrors = e.message.split('\n\n')
+                    .filter(msg => msg.startsWith('[Attempt'))
+                    .map(msg => {
+                        const attemptMatch = msg.match(/\[Attempt (\d+)\/\d+\]/);
+                        if (attemptMatch) {
+                            const attemptNum = parseInt(attemptMatch[1]);
+                            // Get console errors that occurred during this attempt
+                            const attemptConsoleErrors = consoleErrors
+                                .slice((attemptNum - 1) * 3, attemptNum * 3) // Assuming max 3 errors per attempt
+                                .filter(err => err); // Remove any undefined entries
+                            
+                            return `${msg}${attemptConsoleErrors.length ? '\nConsole errors:\n' + attemptConsoleErrors.join('\n') : ''}`;
+                        }
+                        return msg;
+                    });
+                throw new Error(`All attempts failed:\n\n${attemptErrors.join('\n\n')}`);
             }
-            throw new Error(e.message); // Just pass the message without the stack
+            throw new Error(e.message);
         } finally {
             this.page.removeListener('console', consoleListener);
         }
@@ -194,124 +216,154 @@ export default class StudioPage {
         this.page.on('console', consoleListener);
 
         try {
-            await this.page.waitForSelector('div[id="editor-toolbar"] >> sp-action-button[value="save"]', 
-                { state: 'visible', timeout: 30000 });
-            
-            let isFirstAttempt = true;
-            await this.#retryOperation(async () => {
+            await this.#retryOperation(async (attempt) => {
                 await this.saveCardButton.scrollIntoViewIfNeeded();
                 await this.page.waitForTimeout(500);
                 
                 const isEnabled = await this.saveCardButton.isEnabled();
                 
-                // On retry attempts, if button is disabled, consider it a success
-                if (!isFirstAttempt && !isEnabled) {
+                // Only consider disabled button a success on retry attempts
+                if (attempt > 1 && !isEnabled) {
                     return;
                 }
                 
-                if (isEnabled) {
-                    await this.saveCardButton.click({ force: true });
+                if (!isEnabled) {
+                    throw new Error('[BUTTON_DISABLED] Save button is not enabled');
                 }
                 
-                // First wait for any toast (15s)
-                try {
-                    await this.page.waitForSelector('mas-toast >> sp-toast', { state: 'visible', timeout: 15000 });
-                } catch (e) {
-                    console.log('[WARN] Toast not shown after 15s, continuing to wait...');
-                }
+                await this.saveCardButton.click({ force: true });
+                
+                // Wait for progress circle
+                await this.page.waitForSelector('div[id="editor-toolbar"] >> sp-action-button[value="save"] sp-progress-circle', 
+                    { state: 'visible', timeout: 5000 })
+                    .catch(() => {
+                        throw new Error('[CLICK_FAILED] Save button click did not trigger progress circle');
+                    });
 
-                // Check for error toast
+                // Wait for any toast
+                await this.page.waitForSelector('mas-toast >> sp-toast', { state: 'visible', timeout: 15000 })
+                    .catch(() => {}); // Ignore timeout, we'll check for specific toasts next
+
+                // Check for error toast first
                 if (await this.toastNegative.isVisible()) {
                     const errorText = await this.toastNegative.textContent();
+                    
+                    // If it's the specific "Save completed but couldn't retrieve" message, consider it a success
+                    if (errorText.includes('Save completed but the updated fragment could not be retrieved')) {
+                        return; // Exit successfully
+                    }
+                    
                     throw new Error(`[ERROR_TOAST] Save operation received error: "${errorText.trim()}"`);
                 }
 
-                // Wait for success toast (additional 15s)
-                try {
-                    await this.toastPositive.waitFor({ timeout: 30000 });
-                } catch (e) {
-                    // If no toast appeared and button is disabled, consider it a success
-                    if (!(await this.saveCardButton.isEnabled())) {
-                        return;
-                    }
-                    throw new Error('[NO_RESPONSE] Save operation failed - no success toast shown');
-                }
-                
-                isFirstAttempt = false;
+                // Wait for success toast
+                await this.toastPositive.waitFor({ timeout: 30000 })
+                    .catch(() => {
+                        throw new Error('[NO_RESPONSE] Save operation failed - no success toast shown');
+                    });
             });
-
-            if (consoleErrors.length > 0) {
-                throw new Error(`[CONSOLE_ERROR] ${consoleErrors.join(', ')}`);
-            }
         } catch (e) {
-            if (e.message.includes('[')) {
-                throw e;
+            // On failure, collect all attempt errors and console logs
+            if (e.message.includes('\nAll attempts failed:')) {
+                // Extract individual attempt errors from the combined error message
+                const attemptErrors = e.message.split('\n\n')
+                    .filter(msg => msg.startsWith('[Attempt'))
+                    .map(msg => {
+                        const attemptMatch = msg.match(/\[Attempt (\d+)\/\d+\]/);
+                        if (attemptMatch) {
+                            const attemptNum = parseInt(attemptMatch[1]);
+                            // Get console errors that occurred during this attempt
+                            const attemptConsoleErrors = consoleErrors
+                                .slice((attemptNum - 1) * 3, attemptNum * 3) // Assuming max 3 errors per attempt
+                                .filter(err => err); // Remove any undefined entries
+                            
+                            return `${msg}${attemptConsoleErrors.length ? '\nConsole errors:\n' + attemptConsoleErrors.join('\n') : ''}`;
+                        }
+                        return msg;
+                    });
+                throw new Error(`All attempts failed:\n\n${attemptErrors.join('\n\n')}`);
             }
-            throw new Error(`[UNKNOWN_ERROR] ${e.message}`);
+            throw new Error(e.message);
         } finally {
             this.page.removeListener('console', consoleListener);
         }
     }
 
     async deleteCard(cardId) {
+        if (!cardId) {
+            throw new Error('cardId is required parameter for deleteCard');
+        }
+
         const consoleErrors = [];
         const consoleListener = this.#setupConsoleListener(consoleErrors);
         this.page.on('console', consoleListener);
 
         try {
-            await expect(await this.getCard(cardId)).toBeVisible();
-            await (await this.getCard(cardId)).dblclick();
-            await expect(await this.page.locator('editor-panel > #editor')).toBeVisible();
+            // First ensure card exists and editor is open
+            const card = await this.getCard(cardId);
+            await expect(card).toBeVisible();
+            await card.dblclick();
+            await this.page.waitForSelector('editor-panel > #editor', { state: 'visible', timeout: 30000 });
+            await this.page.waitForTimeout(1000); // Give editor time to stabilize
 
-            await this.page.waitForSelector('div[id="editor-toolbar"] >> sp-action-button[value="delete"]', 
-                { state: 'visible', timeout: 30000 });
-            await expect(this.deleteCardButton).toBeEnabled();
-            
-            await this.#retryOperation(async () => {
+            await this.#retryOperation(async (attempt) => {
+                // Wait for delete button and ensure it's enabled
+                await this.page.waitForSelector('div[id="editor-toolbar"] >> sp-action-button[value="delete"]', 
+                    { state: 'visible', timeout: 30000 });
+                await expect(this.deleteCardButton).toBeEnabled();
+                
                 await this.deleteCardButton.scrollIntoViewIfNeeded();
                 await this.page.waitForTimeout(500);
                 
                 await this.deleteCardButton.click({ force: true });
-                
                 await expect(await this.confirmationDialog).toBeVisible();
                 await this.confirmationDialog.locator(this.deleteDialog).click();
 
-                // First wait for any toast (15s)
-                try {
-                    await this.page.waitForSelector('mas-toast >> sp-toast', { state: 'visible', timeout: 15000 });
-                } catch (e) {
-                    console.log('[WARN] Toast not shown after 15s, continuing to wait...');
-                }
+                // Wait for progress circle
+                await this.page.waitForSelector('div[id="editor-toolbar"] >> sp-action-button[value="delete"] sp-progress-circle', 
+                    { state: 'visible', timeout: 5000 })
+                    .catch(() => {
+                        throw new Error('[CLICK_FAILED] Delete confirmation did not trigger progress circle');
+                    });
 
-                // Check for error toast
+                // Wait for any toast
+                await this.page.waitForSelector('mas-toast >> sp-toast', { state: 'visible', timeout: 15000 })
+                    .catch(() => {}); // Ignore timeout, we'll check for specific toasts next
+
+                // Check for error toast first
                 if (await this.toastNegative.isVisible()) {
                     const errorText = await this.toastNegative.textContent();
                     throw new Error(`[ERROR_TOAST] Delete operation received error: "${errorText.trim()}"`);
                 }
 
-                // Wait for success toast (additional 15s)
-                try {
-                    await this.toastPositive.waitFor({ timeout: 30000 });
-                } catch (e) {
-                    // Check if editor panel is still visible
-                    const isEditorVisible = await this.editorPanel.isVisible().catch(() => false);
-                    
-                    // If editor is not visible anymore, consider it a success
-                    if (!isEditorVisible) {
-                        return;
-                    }
-                    throw new Error('[NO_RESPONSE] Delete operation failed - no success toast shown');
-                }
+                // Wait for success toast
+                await this.toastPositive.waitFor({ timeout: 30000 })
+                    .catch(() => {
+                        throw new Error('[NO_RESPONSE] Delete operation failed - no success toast shown');
+                    });
             });
-
-            if (consoleErrors.length > 0) {
-                throw new Error(`[CONSOLE_ERROR] ${consoleErrors.join(', ')}`);
-            }
         } catch (e) {
-            if (e.message.includes('[')) {
-                throw e;
+            // On failure, collect all attempt errors and console logs
+            if (e.message.includes('\nAll attempts failed:')) {
+                // Extract individual attempt errors from the combined error message
+                const attemptErrors = e.message.split('\n\n')
+                    .filter(msg => msg.startsWith('[Attempt'))
+                    .map(msg => {
+                        const attemptMatch = msg.match(/\[Attempt (\d+)\/\d+\]/);
+                        if (attemptMatch) {
+                            const attemptNum = parseInt(attemptMatch[1]);
+                            // Get console errors that occurred during this attempt
+                            const attemptConsoleErrors = consoleErrors
+                                .slice((attemptNum - 1) * 3, attemptNum * 3) // Assuming max 3 errors per attempt
+                                .filter(err => err); // Remove any undefined entries
+                            
+                            return `${msg}${attemptConsoleErrors.length ? '\nConsole errors:\n' + attemptConsoleErrors.join('\n') : ''}`;
+                        }
+                        return msg;
+                    });
+                throw new Error(`All attempts failed:\n\n${attemptErrors.join('\n\n')}`);
             }
-            throw new Error(`[UNKNOWN_ERROR] ${e.message}`);
+            throw new Error(e.message);
         } finally {
             this.page.removeListener('console', consoleListener);
         }

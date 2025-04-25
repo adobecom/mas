@@ -253,8 +253,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
         ostRoot.style.display = 'block';
         closeFunction = window.ost.openOfferSelectorTool({
             ...ostDefaults,
-            country: masCommerceService.settings.country,
-            language: masCommerceService.settings.language,
+            ...masCommerceService.settings,
             rootElement: ostRoot,
             zIndex: 20,
             aosAccessToken,

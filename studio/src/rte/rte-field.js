@@ -943,7 +943,7 @@ class RteField extends LitElement {
                 (mark) => mark.type.spec.group === 'styling',
             );
             if (!stylingMark) return;
-            if (stylingMark.name !== stylingType) {
+            if (stylingMark.type.name !== stylingType) {
                 markTypeToRemove = stylingMark.type;
             }
         });

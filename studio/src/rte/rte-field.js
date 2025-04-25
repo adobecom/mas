@@ -271,6 +271,7 @@ class RteField extends LitElement {
 
                 div.ProseMirror span[class^='heading-'] {
                     font-weight: 700;
+                    display: block;
 
                     &.heading-xxxs {
                         font-size: var(
@@ -319,6 +320,7 @@ class RteField extends LitElement {
                 }
 
                 div.ProseMirror span.promo-text {
+                    display: block;
                     color: var(--merch-color-green-promo);
                     font-size: var(--consonant-merch-card-promo-text-height);
                     font-weight: 700;

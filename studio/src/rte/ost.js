@@ -20,9 +20,9 @@ export const ostDefaults = {
     aosApiKey: 'wcms-commerce-ims-user-prod',
     checkoutClientId: 'creative',
     country: 'US',
+    language: 'en',
     environment: 'PROD',
     landscape: 'PUBLISHED',
-    language: 'en',
     searchParameters: {},
     searchOfferSelectorId: null,
     defaultPlaceholderOptions: {
@@ -247,9 +247,14 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 if (value) searchParameters.append(key, value);
             });
         }
+        const masCommerceService = document.querySelector(
+            'mas-commerce-service',
+        );
         ostRoot.style.display = 'block';
         closeFunction = window.ost.openOfferSelectorTool({
             ...ostDefaults,
+            country: masCommerceService.settings.country,
+            language: masCommerceService.settings.language,
             rootElement: ostRoot,
             zIndex: 20,
             aosAccessToken,

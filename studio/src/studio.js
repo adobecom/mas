@@ -51,7 +51,7 @@ class MasStudio extends LitElement {
         baseUrl: { type: String, attribute: 'base-url' },
     };
 
-    #localeFilterSubscription;
+    #unsubscribeLocaleObserver;
 
     constructor() {
         super();
@@ -64,18 +64,19 @@ class MasStudio extends LitElement {
     }
 
     subscribeLocaleObserver() {
-        this.#localeFilterSubscription = Store.filters.subscribe(
-            (value, oldValue) => {
-                if (value.locale !== oldValue.locale) {
-                    this.renderCommerceService();
-                }
-            },
-        );
+        const subscription = (value, oldValue) => {
+            if (value.locale !== oldValue.locale) {
+                this.renderCommerceService();
+            }
+        };
+        Store.filters.subscribe(subscription);
+        this.#unsubscribeLocaleObserver = () =>
+            Store.filters.unsubscribe(subscription);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        this.#localeFilterSubscription.unsubscribe();
+        this.#unsubscribeLocaleObserver();
     }
 
     createRenderRoot() {

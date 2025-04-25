@@ -37,8 +37,8 @@ application:
             runtime: nodejs:22
             annotations:
               require-adobe-auth: false
-          user:
-            function: actions/user/index.js
+          group:
+            function: src/group/group.js
             web: 'yes'
             runtime: nodejs:22
             inputs:

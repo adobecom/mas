@@ -21,6 +21,7 @@ const {
     stringParameters,
     checkMissingRequestInputs,
 } = require('../../utils');
+const { Ims, ValidationCache, getToken } = require('@adobe/aio-lib-ims');
 
 // main function that will be executed by Adobe I/O Runtime
 async function main(params) {
@@ -52,11 +53,35 @@ async function main(params) {
         // extract the user Bearer token from the Authorization header
         const token = getBearerToken(params);
 
+        const CACHE_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes
+        const VALID_CACHE_ENTRIES = 10000;
+        const INVALID_CACHE_ENTRIES = 20000;
+        const cache = new ValidationCache(
+            CACHE_MAX_AGE_MS,
+            VALID_CACHE_ENTRIES,
+            INVALID_CACHE_ENTRIES,
+        );
+        const ims = new Ims('prod', cache);
+
+        const imsValidation = await ims.validateToken(token, 'mas-studio');
+        if (!imsValidation.valid) {
+            return new Error('Forbidden: This is not a valid IMS token!'); // Next time validateToken() is called with this token, a call to IMS will not be made while the cache is still fresh
+        }
+
+        const tenant = params.__ow_query?.tenant;
+        if (!tenant) {
+            return errorResponse(400, 'Tenant is required', logger);
+        }
         // replace this with the api you want to access
-        const apiEndpoint = 'https://adobeioruntime.net/api/v1';
+        const apiEndpoint = `https://azure-api.pe.corp.adobe.com/azureapi/v1/ldap/groups/GRP-ODIN-MAS-${tenant}-EDITORS/members?show_all=true`;
 
         // fetch content from external api endpoint
-        const res = await fetch(apiEndpoint);
+        const res = await fetch(apiEndpoint, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: 'application/json',
+            },
+        });
         if (!res.ok) {
             throw new Error(
                 'request to ' +

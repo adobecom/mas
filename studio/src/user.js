@@ -1,32 +1,15 @@
 import Store from './store.js';
 
-const SANDBOX = 'sandbox';
-
-const MAS_CONSUMER_GROUPS = {
-    mas: 805267566,
-    acom: 805679776,
-    'adobe-home': 805679786,
-    ccd: 805679796,
-    commerce: 860864926,
-    nala: 867883497,
-    [SANDBOX]: 867872193,
+const headers = {
+    Authorization: `Bearer ${window.adobeid?.authorize?.()}`,
+    accept: 'application/json',
 };
 
 let consumerName;
-
-const headers = {
-    Authorization: `Bearer ${window.adobeid?.authorize?.()}`,
-    'X-Api-Key': 'mas-studio',
-    'Content-Type': 'application/json',
-};
-
-export async function loadUsers(groupId) {
-    if (groupId === MAS_CONSUMER_GROUPS[SANDBOX]) {
-        Store.selectedUserId.set(Store.profile.value.userId);
-    }
+export async function loadUsers() {
     try {
         const response = await fetch(
-            `https://bps-il.adobe.io/jil-api/v2/organizations/3B962FB55F5F922E0A495C88@AdobeOrg/user-groups/${groupId}/users/?page=0&page_size=100&sort=FNAME_LNAME&sort_order=ASC&currentPage=1&filterQuery=`,
+            `https://localhost:9080/api/v1/web/MerchAtScaleStudio/group?tenant=${consumerName}`,
             {
                 headers,
             },
@@ -47,43 +30,21 @@ export async function loadUsers(groupId) {
  * @param {string} userId - The ID of the user to fetch details for
  * @returns {Promise<object|null>} - The user data or null if an error occurred
  */
-export async function fetchUserGroups(userId) {
-    const response = await fetch(
-        `https://bps-il.adobe.io/jil-api/v2/organizations/3B962FB55F5F922E0A495C88@AdobeOrg/users/${userId}`,
-        {
-            headers,
-        },
-    );
-    const { userGroups } = await response.json();
-    Store.userGroups.set(userGroups);
-}
+export async function fetchUserGroups(userId) {}
 
 async function init() {
     const profile = await window.adobeIMS.getProfile();
     Store.profile.set(profile);
-
-    const res = await fetch(
-        'https://ims-na1.adobelogin.com/ims/authorize/v1?client_id=devportal&scope=openid,AdobeID&response_type=token&puser=adobe.com&redirect_uri=https://mas.adobe.com/studio.html',
-    );
-    console.log(await res.json());
-    return;
     fetchUserGroups(profile.userId);
 
     Store.search.subscribe(async ({ path }) => {
         if (!path) return;
         if (path === consumerName) return;
         consumerName = path;
-        const groupId = MAS_CONSUMER_GROUPS[consumerName];
+        const uniqueEditors = await loadUsers();
+
         Store.users.set([]);
-        const [masEditors, consumerEditors] = await Promise.all([
-            loadUsers(MAS_CONSUMER_GROUPS.mas),
-            loadUsers(groupId),
-        ]);
-        const mergedEditors = [...masEditors, ...consumerEditors];
-        const uniqueEditors = mergedEditors.filter(
-            (user, index, self) =>
-                index === self.findIndex((t) => t.id === user.id),
-        );
+
         Store.users.set(uniqueEditors);
     });
 }

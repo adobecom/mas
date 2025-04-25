@@ -51,25 +51,31 @@ class MasStudio extends LitElement {
         baseUrl: { type: String, attribute: 'base-url' },
     };
 
+    #localeFilterSubscription;
+
     constructor() {
         super();
         this.bucket = 'e59433';
     }
 
-    toggleCommerce(env) {
-        const service = this.querySelector('mas-commerce-service');
-        const newService = service.cloneNode(true);
-        newService.setAttribute('env', env);
-        service.remove();
-        this.prepend(newService);
-    }
-
     connectedCallback() {
         super.connectedCallback();
+        this.subscribeLocaleObserver();
+    }
+
+    subscribeLocaleObserver() {
+        this.#localeFilterSubscription = Store.filters.subscribe(
+            (value, oldValue) => {
+                if (value.locale !== oldValue.locale) {
+                    this.renderCommerceService();
+                }
+            },
+        );
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        this.#localeFilterSubscription.unsubscribe();
     }
 
     createRenderRoot() {
@@ -111,13 +117,22 @@ class MasStudio extends LitElement {
         return html`<mas-recently-updated></mas-recently-updated>`;
     }
 
+    renderCommerceService() {
+        const commerceService = document.querySelector('mas-commerce-service');
+        const env =
+            this.commerceEnv.value === WCS_ENV_STAGE
+                ? WCS_ENV_STAGE
+                : WCS_ENV_PROD;
+        commerceService.outerHTML = `<mas-commerce-service env="${env}" locale="${Store.filters.value.locale}"></mas-commerce-service>`;
+    }
+
+    update() {
+        super.update();
+        this.renderCommerceService();
+    }
+
     render() {
         return html`
-            ${this.commerceEnv.value === WCS_ENV_STAGE
-                ? html`<mas-commerce-service
-                      env="${WCS_ENV_STAGE}"
-                  ></mas-commerce-service>`
-                : html`<mas-commerce-service></mas-commerce-service>`}
             <mas-top-nav aem-env="${this.aemEnv}"></mas-top-nav>
             <mas-repository
                 bucket="${this.bucket}"

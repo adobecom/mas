@@ -30,18 +30,20 @@ async function getFragment(params) {
     return decompress(await action.main(params));
 }
 
-function setupFragmentMocks({ id, path, fields = {} }) {
+function setupFragmentMocks({ id, path, fields = {} }, preview = false) {
+    const odinDomain = `https://${preview ? 'odinpreview.corp' : 'odin'}.adobe.com`;
+    const odinUriRoot = preview
+        ? '/adobe/sites/cf/fragments'
+        : '/adobe/sites/fragments';
     // english fragment by id
-    nock('https://odin.adobe.com')
-        .get(
-            `/adobe/sites/fragments/some-en-us-fragment?references=all-hydrated`,
-        )
+    nock(odinDomain)
+        .get(`${odinUriRoot}/some-en-us-fragment?references=all-hydrated`)
         .reply(200, FRAGMENT_RESPONSE_EN);
 
     // french fragment by path
-    nock('https://odin.adobe.com')
+    nock(odinDomain)
         .get(
-            '/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
+            `${odinUriRoot}?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app`,
         )
         .reply(200, {
             items: [
@@ -51,15 +53,13 @@ function setupFragmentMocks({ id, path, fields = {} }) {
             ],
         });
     // french fragment by id
-    nock('https://odin.adobe.com')
-        .get(
-            `/adobe/sites/fragments/some-fr-fr-fragment?references=all-hydrated`,
-        )
+    nock(odinDomain)
+        .get(`${odinUriRoot}/some-fr-fr-fragment?references=all-hydrated`)
         .reply(200, FRAGMENT_RESPONSE_FR);
 
     // dictionary by id
-    nock('https://odin.adobe.com')
-        .get('/adobe/sites/fragments/dictionary?references=all-hydrated')
+    nock(odinDomain)
+        .get(`${odinUriRoot}/dictionary?references=all-hydrated`)
         .reply(200, mockDictionary());
 }
 
@@ -107,6 +107,38 @@ describe('pipeline full use case', () => {
         const state = new MockState();
         const result = await getFragment({
             id: 'some-en-us-fragment',
+            state: state,
+            locale: 'fr_FR',
+        });
+        expect(result.statusCode).to.equal(200);
+        expect(result.body).to.deep.include(EXPECTED_BODY);
+        expect(result.headers).to.have.property('Last-Modified');
+        expect(result.headers).to.have.property('ETag');
+        expect(result.headers['ETag']).to.equal(EXPECTED_BODY_HASH);
+        expect(Object.keys(state.store).length).to.equal(1);
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR');
+        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR']);
+        delete json.lastModified; // removing the date to avoid flakiness
+        expect(json).to.deep.include({
+            dictionaryId: 'fr_FR_dictionary',
+            translatedId: 'some-fr-fr-fragment',
+            hash: EXPECTED_BODY_HASH,
+        });
+    });
+
+    it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment from preview too', async () => {
+        mockDictionary(true);
+        setupFragmentMocks(
+            {
+                id: 'some-en-us-fragment',
+                path: 'someFragment',
+            },
+            true,
+        );
+        const state = new MockState();
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            preview: true,
             state: state,
             locale: 'fr_FR',
         });

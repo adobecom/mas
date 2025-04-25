@@ -405,6 +405,22 @@ class RteField extends LitElement {
         clearInterval(this.updateLengthInterval);
     }
 
+    getStylingMark(stylingType) {
+        return {
+            [stylingType]: {
+                attrs: { class: { default: null } },
+                group: 'styling',
+                parseDOM: [
+                    {
+                        tag: `span.${stylingType}`,
+                        getAttrs: this.#collectDataAttributes,
+                    },
+                ],
+                toDOM: () => ['span', { class: stylingType }, 0],
+            },
+        };
+    }
+
     #initEditorSchema() {
         let nodes = this.list
             ? addListNodes(schema.spec.nodes, 'paragraph block*', 'block')
@@ -506,66 +522,14 @@ class RteField extends LitElement {
                     parseDOM: [{ tag: 'u' }],
                     toDOM: () => ['u', 0],
                 },
-                'heading-xxxs': {
-                    attrs: { class: { default: null } },
-                    parseDOM: [
-                        {
-                            tag: 'span.heading-xxxs',
-                            getAttrs: this.#collectDataAttributes,
-                        },
-                    ],
-                    toDOM: () => ['span', { class: 'heading-xxxs' }, 0],
-                },
-                'heading-xxs': {
-                    attrs: { class: { default: null } },
-                    parseDOM: [
-                        {
-                            tag: 'span.heading-xxs',
-                            getAttrs: this.#collectDataAttributes,
-                        },
-                    ],
-                    toDOM: () => ['span', { class: 'heading-xxs' }, 0],
-                },
-                'heading-xs': {
-                    attrs: { class: { default: null } },
-                    parseDOM: [
-                        {
-                            tag: 'span.heading-xs',
-                            getAttrs: this.#collectDataAttributes,
-                        },
-                    ],
-                    toDOM: () => ['span', { class: 'heading-xs' }, 0],
-                },
-                'heading-s': {
-                    attrs: { class: { default: null } },
-                    parseDOM: [
-                        {
-                            tag: 'span.heading-s',
-                            getAttrs: this.#collectDataAttributes,
-                        },
-                    ],
-                    toDOM: () => ['span', { class: 'heading-s' }, 0],
-                },
-                'heading-m': {
-                    attrs: { class: { default: null } },
-                    parseDOM: [
-                        {
-                            tag: 'span.heading-m',
-                            getAttrs: this.#collectDataAttributes,
-                        },
-                    ],
-                    toDOM: () => ['span', { class: 'heading-m' }, 0],
-                },
-                'promo-text': {
-                    attrs: { class: { default: null } },
-                    parseDOM: [
-                        {
-                            tag: 'span.promo-text',
-                            getAttrs: this.#collectDataAttributes,
-                        },
-                    ],
-                    toDOM: () => ['span', { class: 'promo-text' }, 0],
-                },
+                ...(this.styling && {
+                    ...this.getStylingMark('heading-xxxs'),
+                    ...this.getStylingMark('heading-xxs'),
+                    ...this.getStylingMark('heading-xs'),
+                    ...this.getStylingMark('heading-s'),
+                    ...this.getStylingMark('heading-m'),
+                    ...this.getStylingMark('promo-text'),
+                }),
             });
 
         if (this.inline) {
@@ -969,7 +933,25 @@ class RteField extends LitElement {
     }
 
     handleStylingAction(stylingType) {
-        const { state, dispatch } = this.editorView;
+        let { state, dispatch } = this.editorView;
+        const {
+            selection: { from, to },
+        } = state;
+        let markTypeToRemove = null;
+        state.doc.nodesBetween(from, to, (node) => {
+            const stylingMark = node.marks.find(
+                (mark) => mark.type.spec.group === 'styling',
+            );
+            if (!stylingMark) return;
+            if (stylingMark.name !== stylingType) {
+                markTypeToRemove = stylingMark.type;
+            }
+        });
+        if (markTypeToRemove) {
+            dispatch(state.tr.removeMark(from, to, markTypeToRemove));
+            // Reassign state for the next transaction
+            state = this.editorView.state;
+        }
         toggleMark(state.schema.marks[stylingType])(state, dispatch);
     }
 

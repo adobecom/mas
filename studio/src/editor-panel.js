@@ -183,12 +183,16 @@ export default class EditorPanel extends LitElement {
     getFragmentPartsToUse() {
         let fragmentParts = '';
         let title = '';
-        const surface = Store.search.value.path.toUpperCase();
+        const surface = Store.search.value.path?.toUpperCase();
         switch (this.fragment?.model?.path) {
             case CARD_MODEL_PATH:
                 const props =  {
-                    cardTitle: this.fragment?.getField('cardTitle')?.values[0],
-                    variantCode: this.fragment?.getField('variant')?.values[0],
+                        cardTitle: this.fragment?.getField('cardTitle')?.values[0],
+                        variantCode: this.fragment?.getField('variant')?.values[0],
+                        marketSegment: this.fragment?.getTagTitle('market_segment'),
+                        customerSegment: this.fragment?.getTagTitle('customer_segment'),
+                        product: this.fragment?.getTagTitle('mas:product/'),
+                        promotion: this.fragment?.getTagTitle('mas:promotion/'),
                     };
 
                     VARIANTS.forEach((variant) => {
@@ -196,7 +200,11 @@ export default class EditorPanel extends LitElement {
                             props.variantLabel = variant.label;
                     }
                 });
-                fragmentParts = `${surface} / ${props.variantLabel} / ${props.cardTitle}`;
+                const buildPart = ((part) => { 
+                    if(part) return ` / ${part}`;
+                    return '';
+                });
+                fragmentParts = `${surface}${buildPart(props.variantLabel)}${buildPart(props.customerSegment)}${buildPart(props.marketSegment)}${buildPart(props.product)}${buildPart(props.promotion)}`;
                 title = props.cardTitle;
                 break;  
             case COLLECTION_MODEL_PATH:
@@ -224,12 +232,13 @@ export default class EditorPanel extends LitElement {
         }
 
         const code = `<${webComponentName}><aem-fragment fragment="${this.fragment?.id}" title="${title}"></aem-fragment></${webComponentName}>`;
+        const authorPath = `${webComponentName}: ${fragmentParts}`;
         const richText = `
                 <a href="https://mas.adobe.com/studio.html#content-type=${webComponentName}&page=${Store.page.value}&path=${Store.search.value.path}&query=${this.fragment?.id}">
-                    ${webComponentName}: ${fragmentParts}
+                    ${authorPath}
                 </a>
             `;
-        return [code, richText];
+        return [code, richText, authorPath];
     }
 
     async copyToUse() {
@@ -633,6 +642,10 @@ export default class EditorPanel extends LitElement {
         `;
     }
 
+    get authorPath() {
+        return this.generateCodeToUse()[2];
+    }
+
     render() {
         if (!this.fragment) return nothing;
         if (this.fragment.loading)
@@ -660,7 +673,13 @@ export default class EditorPanel extends LitElement {
         }
         return html`
             <div id="editor">
-                ${this.fragmentEditorToolbar} ${editor}
+                ${this.fragmentEditorToolbar}
+                <sp-divider size="s"></sp-divider>
+                <div>
+                    <p id="author-path">${this.authorPath}</p>
+                </div>
+                <sp-divider size="s"></sp-divider>
+                ${editor}
                 <sp-divider size="s"></sp-divider>
                 ${this.fragmentEditor} ${this.deleteConfirmationDialog}
                 ${this.discardConfirmationDialog}

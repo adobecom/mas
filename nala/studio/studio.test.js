@@ -228,6 +228,7 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-3: Validate fields rendering', async () => {
+            await expect(await editor.authorPath).toBeVisible();
             await expect(await editor.variant).toBeVisible();
             await expect(await editor.variant).toHaveAttribute(
                 'default-value',

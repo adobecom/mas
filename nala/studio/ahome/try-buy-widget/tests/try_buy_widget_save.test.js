@@ -145,10 +145,10 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 'ccd-slice',
             );
             await expect(
-                await studio.getCard(data.clonedCardID)
+                await studio.getCard(data.clonedCardID),
             ).not.toHaveAttribute('variant', 'ah-try-buy-widget');
             await expect(
-                await studio.getCard(data.clonedCardID)
+                await studio.getCard(data.clonedCardID),
             ).toHaveAttribute('variant', 'ccd-slice');
             await expect(
                 await (await studio.getCard(data.clonedCardID))
@@ -207,10 +207,10 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 'ccd-suggested',
             );
             await expect(
-                await studio.getCard(data.clonedCardID)
+                await studio.getCard(data.clonedCardID),
             ).toHaveAttribute('variant', 'ccd-suggested');
             await expect(
-                await studio.getCard(data.clonedCardID)
+                await studio.getCard(data.clonedCardID),
             ).not.toHaveAttribute('variant', 'ah-try-buy-widget');
             await expect(
                 await (await studio.getCard(data.clonedCardID))

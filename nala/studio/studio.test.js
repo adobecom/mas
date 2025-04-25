@@ -59,10 +59,11 @@ test.describe('M@S Studio feature test suite', () => {
 
             const cards = await studio.renderView.locator('merch-card');
             expect(await cards.count()).toBe(1);
-            await expect(
-                await studio.getCard(data.cardid),
-            ).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'variant',
+                'ccd-suggested',
+            );
             await expect(page).toHaveURL(`${testPage}&page=content&path=nala`);
             expect(await studio.folderPicker).toHaveAttribute('value', 'nala');
         });
@@ -96,10 +97,11 @@ test.describe('M@S Studio feature test suite', () => {
             await page.waitForTimeout(2000);
             const searchResult = await studio.renderView.locator('merch-card');
             expect(await searchResult.count()).toBe(1);
-            await expect(
-                await studio.getCard(data.cardid),
-            ).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'variant',
+                'ccd-suggested',
+            );
         });
     });
 
@@ -170,10 +172,11 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid),
-            ).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'variant',
+                'ccd-suggested',
+            );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
@@ -220,11 +223,15 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid),
-            ).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('size', 'wide');
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'variant',
+                'ccd-slice',
+            );
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'size',
+                'wide',
+            );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
@@ -272,11 +279,15 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid),
-            ).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ah-try-buy-widget');
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('size', 'triple');
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'variant',
+                'ah-try-buy-widget',
+            );
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'size',
+                'triple',
+            );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
@@ -315,10 +326,11 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-2: Validate double-click message', async () => {
-            await expect(
-                await studio.getCard(data.cardid),
-            ).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'variant',
+                'ccd-suggested',
+            );
             await (await studio.getCard(data.cardid)).click();
             await expect(page.locator('sp-tooltip')).toHaveText(
                 'Double click the card to start editing.',
@@ -341,10 +353,11 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid),
-            ).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'plans');
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'variant',
+                'plans',
+            );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });

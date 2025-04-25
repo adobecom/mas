@@ -75,7 +75,11 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             data.clonedCardID = await clonedCardID;
             await studio.cloneCard(clonedCardID);
 
-            let clonedCardTwo = await studio.getCard(data.cardid, 'cloned', data.clonedCardID);
+            let clonedCardTwo = await studio.getCard(
+                data.cardid,
+                'cloned',
+                data.clonedCardID,
+            );
 
             await expect(await clonedCardTwo).toBeVisible();
 

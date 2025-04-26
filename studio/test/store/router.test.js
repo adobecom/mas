@@ -11,7 +11,6 @@ describe('Router URL parameter handling', async () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
-        sandbox.stub(window.history, 'pushState');
     });
 
     afterEach(() => {
@@ -19,37 +18,24 @@ describe('Router URL parameter handling', async () => {
     });
 
     it('should initialize store hash parameters', async () => {
-        const router = new Router(
-            { hash: '#page=placeholders' },
-            {
-                pushState: sandbox.stub(),
-            },
-        );
+        const router = new Router({ hash: '#page=placeholders' });
         const pageSetSpy = sandbox.spy(Store.page, 'set');
         router.linkStoreToHash(Store.page, 'page');
         expect(pageSetSpy.calledWith(PAGE_NAMES.PLACEHOLDERS)).to.be.true;
-        expect(router.history.pushState.called).to.be.false;
+        expect(router.location.hash).to.equal('#page=placeholders');
     });
 
     it('should link store with a dot in the key to hash parameters', async () => {
-        const router = new Router(
-            { hash: '#commerce.env=stage' },
-            {
-                pushState: sandbox.stub(),
-            },
-        );
+        const router = new Router({ hash: '#commerce.env=stage' });
         const testStore = new ReactiveStore();
         router.linkStoreToHash(testStore, 'commerce.env');
         expect(testStore.get()).to.equal('stage');
     });
 
     it('should link store to hash parameters', async () => {
-        const router = new Router(
-            { hash: '#path=/content/dam/test&tags=tag1%2Ctag2' },
-            {
-                pushState: sandbox.stub(),
-            },
-        );
+        const router = new Router({
+            hash: '#path=/content/dam/test&tags=tag1%2Ctag2',
+        });
         router.start();
         expect(Store.search.get()).to.deep.include({
             path: '/content/dam/test',
@@ -60,82 +46,53 @@ describe('Router URL parameter handling', async () => {
     });
 
     it('should update hash when store values change', async () => {
-        const router = new Router(
-            { pathname: '/', search: '', hash: '#test=initial' },
-            {
-                pushState: sandbox.stub(),
-            },
-        );
+        const router = new Router({
+            pathname: '/',
+            search: '',
+            hash: '#test=initial',
+        });
         router.start();
         const testStore = new ReactiveStore();
         router.linkStoreToHash(testStore, 'test');
         expect(testStore.get()).to.equal('initial');
         testStore.set('updated');
         await delay(30);
-        expect(
-            router.history.pushState.withArgs(null, '', '/#test=updated')
-                .called,
-        ).to.be.true;
+        expect(router.location.hash).to.equal('test=updated');
     });
 
     it('should set page parameter to content when query parameter exists', async () => {
-        const router = new Router(
-            { hash: '#page=content' },
-            {
-                pushState: sandbox.stub(),
-            },
-        );
+        const router = new Router({ hash: '#page=content' });
         router.start();
         expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
     });
 
-    it('should not update history when hash has not changed', async () => {
-        const router = new Router(
-            { pathname: '/', search: '', hash: '#test=value' },
-            {
-                pushState: sandbox.stub(),
-            },
-        );
-        router.currentParams = new URLSearchParams('test=value');
-        router.updateHistory();
-        expect(router.history.pushState.called).to.be.false;
-    });
-
     it('should use default values when parameters are not in hash', async () => {
-        const router = new Router(
-            { hash: '' },
-            {
-                pushState: sandbox.stub(),
-            },
-        );
+        const router = new Router({ hash: '' });
         const testStore = new ReactiveStore();
         router.linkStoreToHash(testStore, 'param', 'defaultValue');
         expect(testStore.get()).to.equal(undefined);
     });
 
     it('should remove hash parameters when store value is undefined', async () => {
-        const router = new Router(
-            { pathname: '/', search: '', hash: '#test=value' },
-            {
-                pushState: sandbox.stub(),
-            },
-        );
+        const router = new Router({
+            pathname: '/',
+            search: '',
+            hash: '#test=value',
+        });
         router.start();
         const testStore = new ReactiveStore('value');
         router.linkStoreToHash(testStore, 'test');
         testStore.set(undefined);
         await delay(30);
-        expect(router.history.pushState.withArgs(null, '', '/#').called).to.be
-            .true;
+        expect(router.location.hash).to.equal('');
     });
 
     it('should handle popstate events', async () => {
-        const router = new Router(
-            { pathname: '/', search: '', hash: '#test=initial' },
-            {
-                pushState: sandbox.stub(),
-            },
-        );
+        const router = new Router({
+            pathname: '/',
+            search: '',
+            hash: '#test=initial',
+        });
         const testStore = new ReactiveStore();
         const changeEventSpy = sandbox.spy();
 
@@ -154,12 +111,7 @@ describe('Router URL parameter handling', async () => {
     });
 
     it('should initialize all stores in start method', async () => {
-        const router = new Router(
-            { hash: '#page=content&commerce.env=stage' },
-            {
-                pushState: sandbox.stub(),
-            },
-        );
+        const router = new Router({ hash: '#page=content&commerce.env=stage' });
 
         const pageSetSpy = sandbox.spy(Store.page, 'set');
         const commerceEnvSetSpy = sandbox.spy(Store.commerceEnv, 'set');

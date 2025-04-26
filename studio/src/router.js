@@ -3,10 +3,9 @@ import Store from './store.js';
 import { debounce } from './utils.js';
 
 export class Router extends EventTarget {
-    constructor(location = window.location, history = window.history) {
+    constructor(location = window.location) {
         super();
         this.location = location;
-        this.history = history;
         this.updateHistory = debounce(this.updateHistory.bind(this), 20);
         this.linkedStores = [];
     }

@@ -156,13 +156,16 @@ class MasToolbar extends LitElement {
             this.filterCount = 0;
             return;
         }
-        
+
         if (typeof filters.tags === 'string') {
             this.filterCount = filters.tags.split(',').filter(Boolean).length;
         } else if (Array.isArray(filters.tags)) {
             this.filterCount = filters.tags.filter(Boolean).length;
         } else {
             this.filterCount = 0;
+        }
+        if (this.filterCount > 0) {
+            this.filtersShown = true;
         }
     }
 
@@ -213,7 +216,9 @@ class MasToolbar extends LitElement {
                     ? html`<sp-icon-filter-add
                           slot="icon"
                       ></sp-icon-filter-add>`
-                    : html`<div slot="icon" class="filters-badge">${this.filterCount}</div>`}
+                    : html`<div slot="icon" class="filters-badge">
+                          ${this.filterCount}
+                      </div>`}
                 Filter</sp-action-button
             >
             <sp-search

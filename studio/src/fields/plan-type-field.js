@@ -1,14 +1,24 @@
 import { css, html, LitElement } from 'lit';
 import { EVENT_INPUT } from '../constants.js';
 
-export class SecureTextField extends LitElement {
+export class PlanTypeField extends LitElement {
     static properties = {
         id: { type: String },
         label: { type: String },
         value: { type: String },
         isEditable: { type: Boolean, state: true },
-        showSecureTextField: { type: Boolean, state: true },
+        showPlanType: { type: Boolean, state: true },
     };
+
+    constructor() {
+        super();
+        this.id = '';
+        this.label = '';
+        this.value = '';
+        this.disabled = false;
+        this.isEditable = false;
+        this.showPlanType = true;
+    }
 
     static get styles() {
         return css`
@@ -25,24 +35,14 @@ export class SecureTextField extends LitElement {
         `;
     }
 
-    constructor() {
-        super();
-        this.id = '';
-        this.label = '';
-        this.value = '';
-        this.disabled = false;
-        this.isEditable = false;
-        this.showSecureTextField = true;
-    }
-
     updated(changedProperties) {
         if (changedProperties.has('value')) {
             if (!this.value) {
                 this.isEditable = false;
-                this.showSecureTextField = true;
+                this.showPlanType = true;
             } else {
                 this.isEditable = true;
-                this.showSecureTextField = this.value !== 'false';
+                this.showPlanType = this.value !== 'false';
             }
         }
     }
@@ -50,7 +50,7 @@ export class SecureTextField extends LitElement {
     #handleToggle(e) {
         this.isEditable = e.target.checked;
         if (this.isEditable) {
-            this.value = this.showSecureTextField ? '' : 'false';
+            this.value = this.showPlanType ? '' : 'false';
             this.dispatchInputEvent(this.value);
         } else {
             this.value = '';
@@ -59,7 +59,7 @@ export class SecureTextField extends LitElement {
     }
 
     #handleCheckbox(e) {
-        this.showSecureTextField = e.target.checked;
+        this.showPlanType = e.target.checked;
         if (this.isEditable) {
             this.value = e.target.checked ? '' : 'false';
             this.dispatchInputEvent(this.value);
@@ -91,14 +91,14 @@ export class SecureTextField extends LitElement {
                 </div>
                 <sp-checkbox
                     size="m"
-                    .checked="${this.showSecureTextField}"
+                    .checked="${this.showPlanType}"
                     ?disabled="${!this.isEditable}"
                     @change="${this.#handleCheckbox}"
-                    >Show Secure Transaction Label</sp-checkbox
+                    >Show Plan Type text</sp-checkbox
                 >
             </sp-field-group>
         `;
     }
 }
 
-customElements.define('secure-text-field', SecureTextField);
+customElements.define('mas-plan-type-field', PlanTypeField);

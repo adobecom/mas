@@ -17,13 +17,7 @@ import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
-import {
-    linkStoreToHash,
-    linkStoreToSearch,
-    initializeRouter,
-    setupNavigationSubscriptions,
-    initializeStoreFromUrl,
-} from './router.js';
+import router from './router.js';
 import { PAGE_NAMES, WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
 
 const BUCKET_TO_ENV = {
@@ -32,18 +26,7 @@ const BUCKET_TO_ENV = {
     e59433: 'prod',
 };
 
-initializeStoreFromUrl();
-
-linkStoreToHash(Store.search, ['path', 'query'], {});
-linkStoreToHash(Store.filters, ['locale'], {
-    locale: 'en_US',
-});
-
-linkStoreToSearch(Store.filters, ['tags'], {});
-linkStoreToSearch(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
-
-initializeRouter();
-setupNavigationSubscriptions();
+router.start();
 
 class MasStudio extends LitElement {
     static properties = {
@@ -52,6 +35,7 @@ class MasStudio extends LitElement {
     };
 
     #unsubscribeLocaleObserver;
+    #unsubscribeCommerceEnvObserver;
 
     constructor() {
         super();
@@ -61,6 +45,11 @@ class MasStudio extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         this.subscribeLocaleObserver();
+        this.subscribeCommerceEnvObserver();
+    }
+
+    get commerceService() {
+        return document.querySelector('mas-commerce-service');
     }
 
     subscribeLocaleObserver() {
@@ -74,9 +63,21 @@ class MasStudio extends LitElement {
             Store.filters.unsubscribe(subscription);
     }
 
+    subscribeCommerceEnvObserver() {
+        const subscription = (value, oldValue) => {
+            if (value !== oldValue) {
+                this.commerceService.refreshOffers();
+            }
+        };
+        Store.commerceEnv.subscribe(subscription);
+        this.#unsubscribeCommerceEnvObserver = () =>
+            Store.commerceEnv.unsubscribe(subscription);
+    }
+
     disconnectedCallback() {
         super.disconnectedCallback();
         this.#unsubscribeLocaleObserver();
+        this.#unsubscribeCommerceEnvObserver();
     }
 
     createRenderRoot() {
@@ -119,12 +120,11 @@ class MasStudio extends LitElement {
     }
 
     renderCommerceService() {
-        const commerceService = document.querySelector('mas-commerce-service');
         const env =
             this.commerceEnv.value === WCS_ENV_STAGE
                 ? WCS_ENV_STAGE
                 : WCS_ENV_PROD;
-        commerceService.outerHTML = `<mas-commerce-service env="${env}" locale="${Store.filters.value.locale}"></mas-commerce-service>`;
+        this.commerceService.outerHTML = `<mas-commerce-service env="${env}" locale="${Store.filters.value.locale}"></mas-commerce-service>`;
     }
 
     update() {

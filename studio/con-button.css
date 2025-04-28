@@ -30,11 +30,6 @@
     text-decoration: none;
 }
 
-a[is='checkout-link'].con-button > span {
-    display: inline-block;
-    min-width: 66px;
-}
-
 .con-button:hover {
     background-color: var(--color-black);
     border-color: var(--color-black);

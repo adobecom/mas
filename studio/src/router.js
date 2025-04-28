@@ -11,7 +11,12 @@ export class Router extends EventTarget {
     }
 
     updateHistory() {
-        this.location.hash = this.currentParams.toString();
+        // Sort the parameters by name
+        const sortedParams = new URLSearchParams();
+        Array.from(this.currentParams.entries())
+            .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+            .forEach(([key, value]) => sortedParams.append(key, value));
+        this.location.hash = sortedParams.toString();
         this.dispatchEvent(new Event('change'));
         this.currentParams = undefined;
     }

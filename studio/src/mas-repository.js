@@ -156,6 +156,7 @@ export class MasRepository extends LitElement {
                     ...prev,
                     path: folders.at(0),
                 }));
+            Store.fragments.list.data.set([]);
         } catch (error) {
             Store.fragments.list.loading.set(false);
             Store.fragments.recentlyUpdated.loading.set(false);

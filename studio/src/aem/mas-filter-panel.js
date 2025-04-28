@@ -143,7 +143,7 @@ class MasFilterPanel extends LitElement {
     #handleRefresh() {
         Store.search.set((prev) => ({
             ...prev,
-            tags: '',
+            query: '',
         }));
 
         Store.filters.set((prev) => ({

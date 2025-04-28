@@ -70,7 +70,9 @@ describe('Router URL parameter handling', async () => {
         const router = new Router({ hash: '' });
         const testStore = new ReactiveStore();
         router.linkStoreToHash(testStore, 'param', 'defaultValue');
-        expect(testStore.get()).to.equal(undefined);
+        await delay(60);
+        expect(router.location.hash).to.equal('');
+        expect(testStore.get()).to.equal('defaultValue');
     });
 
     it('should remove hash parameters when store value is undefined', async () => {

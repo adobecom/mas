@@ -51,9 +51,16 @@ export class Router extends EventTarget {
      * @param {any} currentValue - The current value of the store
      * @param {boolean} isObject - Whether the store value is an object
      * @param {string[]} keysArray - The keys to sync
+     * @param {any} defaultValue - The default value to use if the key is not in the hash
      * @returns {boolean} Whether the store was updated
      */
-    syncStoreFromHash(store, currentValue, isObject, keysArray) {
+    syncStoreFromHash(
+        store,
+        currentValue,
+        isObject,
+        keysArray,
+        defaultValue = undefined,
+    ) {
         this.currentParams ??= new URLSearchParams(this.location.hash.slice(1));
         let newValue = isObject ? structuredClone(currentValue) : currentValue;
         for (const key of keysArray) {
@@ -73,9 +80,9 @@ export class Router extends EventTarget {
                 }
             } else {
                 if (isObject) {
-                    newValue[key] = undefined;
+                    newValue[key] = defaultValue?.[key];
                 } else {
-                    newValue = undefined;
+                    newValue = defaultValue;
                 }
             }
         }
@@ -101,7 +108,13 @@ export class Router extends EventTarget {
         const newValue = store.get();
         const isObject = typeof newValue === 'object' && newValue !== null;
         // Initial sync from hash to store
-        this.syncStoreFromHash(store, newValue, isObject, keysArray);
+        this.syncStoreFromHash(
+            store,
+            newValue,
+            isObject,
+            keysArray,
+            defaultValue,
+        );
 
         const self = this;
         store.subscribe((value) => {
@@ -165,7 +178,7 @@ export class Router extends EventTarget {
         if (Store.search.value.query) {
             Store.page.set(PAGE_NAMES.CONTENT);
         }
-        window.addEventListener('popstate', () => {
+        window.addEventListener('hashchange', () => {
             /* fix hash when missing params(e.g: manual edit) */
             this.currentParams = new URLSearchParams(
                 this.location.hash.slice(1),
@@ -182,7 +195,7 @@ export class Router extends EventTarget {
                 this.currentParams.set('path', Store.search.value.path);
             }
             // Sync all linked stores from the current hash
-            this.linkedStores.forEach(({ store, keysArray }) => {
+            this.linkedStores.forEach(({ store, keysArray, defaultValue }) => {
                 const currentValue = store.get();
                 const isObject =
                     typeof currentValue === 'object' && currentValue !== null;
@@ -191,6 +204,7 @@ export class Router extends EventTarget {
                     currentValue,
                     isObject,
                     keysArray,
+                    defaultValue,
                 );
             });
         });

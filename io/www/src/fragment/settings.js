@@ -6,7 +6,6 @@ function applyPlansSettings(fragment, locale) {
     if (fragment?.fields?.showSecureLabel !== false) {
         fragment.settings.secureLabel = '{{secure-label}}';
     }
-    // loose comparison to include undefined
     if (fragment?.fields?.showPlanType != null) {
         fragment.settings.displayPlanType = fragment?.fields?.showPlanType;
     }

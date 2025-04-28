@@ -138,7 +138,9 @@ describe('pipeline full use case', () => {
         const state = new MockState();
         const result = await getFragment({
             id: 'some-en-us-fragment',
-            preview: true,
+            preview: {
+                url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+            },
             state: state,
             locale: 'fr_FR',
         });

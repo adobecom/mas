@@ -9,11 +9,18 @@ import { replace } from './fragment/replace.js';
 import { settings } from './fragment/settings.js';
 import { logError } from './fragment/common.js';
 
-export async function previewFragment(id, locale = 'en_US', surface = 'acom') {
+export async function previewFragment(id, options) {
+    const {
+        surface,
+        locale = 'en_US',
+        preview = {
+            url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+        },
+    } = options;
     let context = {
         id,
         status: 200,
-        preview: true,
+        preview,
         requestId: 'preview',
         api_key: 'n/a',
         translatedId: id,

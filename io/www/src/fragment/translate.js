@@ -6,7 +6,7 @@ const { fetch, log } = require('./common.js');
  * This transformer name is a bit abusive: it just fetches a translation if the locale is different from the source locale.
  */
 async function translate(context) {
-    const { body, locale, preview} = context;
+    const { body, locale, preview } = context;
     let translatedBody;
     const match = body?.path?.match(PATH_TOKENS);
     if (!match) {

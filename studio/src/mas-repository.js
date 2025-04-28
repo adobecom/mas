@@ -179,11 +179,10 @@ export class MasRepository extends LitElement {
 
     async searchFragments() {
         if (this.page.value !== PAGE_NAMES.CONTENT) return;
-        const path = this.search.value.path;
-        if (!path) return;
 
         Store.fragments.list.loading.set(true);
 
+        const path = this.search.value.path;
         const dataStore = Store.fragments.list.data;
         const query = this.search.value.query;
         
@@ -206,15 +205,6 @@ export class MasRepository extends LitElement {
 
         tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE));
 
-        if (
-            !looseEquals(dataStore.getMeta('path'), path) ||
-            !looseEquals(dataStore.getMeta('query'), query)
-        ) {
-            dataStore.set([]);
-            dataStore.removeMeta('path');
-            dataStore.removeMeta('query');
-        }
-
         const damPath = getDamPath(path);
         const localSearch = {
             ...this.search.value,
@@ -234,8 +224,15 @@ export class MasRepository extends LitElement {
                 this.#abortControllers.search.abort();
             this.#abortControllers.search = new AbortController();
 
-
             if (isUUID(this.search.value.query)) {
+                // Check if the fragment with this UUID is already the only one in the store
+                const [currentFragment] = dataStore.get() ?? [];
+                if (currentFragment?.value.id === this.search.value.query) {
+                    // Skip search if we already have exactly this fragment)
+                    Store.fragments.list.loading.set(false);
+                    return;
+                }
+                dataStore.set([]);
                 const fragmentData = await this.aem.sites.cf.fragments.getById(
                     localSearch.query,
                     this.#abortControllers.search,
@@ -259,12 +256,12 @@ export class MasRepository extends LitElement {
                     }
                 }
             } else {
+                dataStore.set([]);
                 const cursor = await this.aem.sites.cf.fragments.search(
                     localSearch,
                     null,
                     this.#abortControllers.search,
                 );
-                
                 const fragmentStores = [];
                 for await (const result of cursor) {
                     for await (const item of result) {

@@ -70,6 +70,8 @@
                 bucket && studio.setAttribute('aem-bucket', bucket);
                 document.querySelector('sp-theme').appendChild(studio);
             }
+            // Log the referrer information when the page loads
+            console.info('[M@S Studio] Referrer:', document.referrer);
             window.adobeid = {
                 api_parameters: {
                     profile_filter:

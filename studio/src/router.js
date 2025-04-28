@@ -45,12 +45,11 @@ export class Router extends EventTarget {
      * @returns {boolean} Whether the store was updated
      */
     syncStoreFromHash(store, currentValue, isObject, keysArray) {
-        const hash = this.location.hash.slice(1);
-        const params = new URLSearchParams(hash);
-        let newValue = currentValue;
+        this.currentParams ??= new URLSearchParams(this.location.hash.slice(1));
+        let newValue = isObject ? structuredClone(currentValue) : currentValue;
         for (const key of keysArray) {
-            if (params.has(key)) {
-                let value = params.get(key);
+            if (this.currentParams.has(key)) {
+                let value = this.currentParams.get(key);
                 let parsedValue;
                 try {
                     parsedValue = JSON.parse(value);
@@ -82,7 +81,7 @@ export class Router extends EventTarget {
      * @param {any} defaultValue - The default value to use if the key is not in the hash
      */
     linkStoreToHash(store, keys, defaultValue) {
-        if (!store) return;
+        store.set(defaultValue);
         const keysArray = Array.isArray(keys) ? keys : [keys];
 
         // Store the link configuration for later use with popstate
@@ -145,18 +144,32 @@ export class Router extends EventTarget {
     }
 
     start() {
+        this.currentParams = new URLSearchParams(this.location.hash.slice(1));
         this.linkStoreToHash(Store.page, 'page', PAGE_NAMES.WELCOME);
-        this.linkStoreToHash(Store.search, ['path', 'query'], {});
+        this.linkStoreToHash(Store.search, ['path', 'query'], { path: 'acom' });
         this.linkStoreToHash(Store.filters, ['locale', 'tags'], {
             locale: 'en_US',
         });
         this.linkStoreToHash(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
-        const params = new URLSearchParams(this.location.hash.slice(1));
-        if (params.has('query')) {
+        if (Store.search.value.query) {
             Store.page.set(PAGE_NAMES.CONTENT);
         }
         window.addEventListener('hashchange', () => {
-            console.log('hashchange', this.location.hash);
+            /* fix hash when missing params(e.g: manual edit) */
+            this.currentParams = new URLSearchParams(
+                this.location.hash.slice(1),
+            );
+            if (this.currentParams.has('query')) {
+                Store.page.set(PAGE_NAMES.CONTENT);
+            }
+            const page = this.currentParams.get('page');
+            if (!page && Store.page.value) {
+                this.currentParams.set('page', Store.page.value);
+            }
+            const path = this.currentParams.get('path');
+            if (!path && Store.search.value.path) {
+                this.currentParams.set('path', Store.search.value.path);
+            }
             // Sync all linked stores from the current hash
             this.linkedStores.forEach(({ store, keysArray }) => {
                 const currentValue = store.get();

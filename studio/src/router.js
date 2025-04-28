@@ -151,6 +151,10 @@ export class Router extends EventTarget {
             locale: 'en_US',
         });
         this.linkStoreToHash(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
+        const params = new URLSearchParams(this.location.hash.slice(1));
+        if (params.has('query')) {
+            Store.page.set(PAGE_NAMES.CONTENT);
+        }
         window.addEventListener('hashchange', () => {
             console.log('hashchange', this.location.hash);
             // Sync all linked stores from the current hash

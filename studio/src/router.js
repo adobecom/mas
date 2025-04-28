@@ -6,7 +6,7 @@ export class Router extends EventTarget {
     constructor(location = window.location) {
         super();
         this.location = location;
-        this.updateHistory = debounce(this.updateHistory.bind(this), 20);
+        this.updateHistory = debounce(this.updateHistory.bind(this), 50);
         this.linkedStores = [];
     }
 
@@ -16,8 +16,11 @@ export class Router extends EventTarget {
         Array.from(this.currentParams.entries())
             .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
             .forEach(([key, value]) => sortedParams.append(key, value));
-        this.location.hash = sortedParams.toString();
-        this.dispatchEvent(new Event('change'));
+        const newHash = sortedParams.toString();
+        if (newHash !== this.location.hash) {
+            this.location.hash = newHash;
+            this.dispatchEvent(new Event('change'));
+        }
         this.currentParams = undefined;
     }
 
@@ -34,6 +37,7 @@ export class Router extends EventTarget {
                 (await editorPanel.promptDiscardChanges());
             if (confirmed) {
                 Store.fragments.inEdit.set();
+                Store.fragments.list.data.set([]);
                 Store.search.set((prev) => ({ ...prev, query: undefined }));
                 Store.filters.set((prev) => ({ ...prev, tags: undefined }));
                 Store.page.set(value);
@@ -75,8 +79,10 @@ export class Router extends EventTarget {
                 }
             }
         }
-        store.set(newValue);
-        this.dispatchEvent(new Event('change'));
+        if (JSON.stringify(store.value) !== JSON.stringify(newValue)) {
+            store.set(newValue);
+            this.dispatchEvent(new Event('change'));
+        }
     }
 
     /**
@@ -159,7 +165,7 @@ export class Router extends EventTarget {
         if (Store.search.value.query) {
             Store.page.set(PAGE_NAMES.CONTENT);
         }
-        window.addEventListener('hashchange', () => {
+        window.addEventListener('popstate', () => {
             /* fix hash when missing params(e.g: manual edit) */
             this.currentParams = new URLSearchParams(
                 this.location.hash.slice(1),

@@ -56,7 +56,7 @@ describe('Router URL parameter handling', async () => {
         router.linkStoreToHash(testStore, 'test');
         expect(testStore.get()).to.equal('initial');
         testStore.set('updated');
-        await delay(30);
+        await delay(60);
         expect(router.location.hash).to.equal('test=updated');
     });
 
@@ -83,7 +83,7 @@ describe('Router URL parameter handling', async () => {
         const testStore = new ReactiveStore('value');
         router.linkStoreToHash(testStore, 'test');
         testStore.set(undefined);
-        await delay(30);
+        await delay(60);
         expect(router.location.hash).to.equal('');
     });
 

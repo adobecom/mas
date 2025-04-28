@@ -27,7 +27,7 @@ async function translate(context) {
         }
         const {
             items: [{ id } = {}],
-        } = await response.json();
+        } = response.body;
         if (id) {
             const translatedPath = odinReferences(id, true, preview);
             const response = await fetch(translatedPath, context);
@@ -37,7 +37,7 @@ async function translate(context) {
                     message: 'translation search failed',
                 };
             }
-            translatedBody = await response.json();
+            translatedBody = response.body;
             context.translatedId = id;
         } else {
             return {

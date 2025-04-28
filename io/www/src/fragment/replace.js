@@ -13,7 +13,7 @@ async function getDictionaryId(context) {
     );
     const response = await fetch(dictionaryPath, context);
     if (response.status == 200) {
-        const { items } = await response.json();
+        const { items } = response.body;
         if (items?.length > 0) {
             const id = items[0].id;
             context.dictionaryId = id;
@@ -39,10 +39,10 @@ async function getDictionary(context) {
         context,
     );
     if (response.status == 200) {
-        const raw = await response.json();
+        const references = response.body.references;
         const dictionary = {};
-        Object.keys(raw.references).forEach((id) => {
-            const ref = raw.references[id]?.value?.fields;
+        Object.keys(references).forEach((id) => {
+            const ref = references[id]?.value?.fields;
             if (ref?.key) {
                 //we just test truthy keys as we can have empty placeholders
                 //(treated different from absent ones)

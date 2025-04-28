@@ -8,10 +8,9 @@ async function fetchFragment(context) {
         const path = odinReferences(toFetchId, true, preview);
         const response = await fetch(path, context);
         if (response.status == 200) {
-            const body = await response.json();
             return {
                 ...context,
-                body,
+                body: response.body,
             };
         }
         return getErrorContext(response);

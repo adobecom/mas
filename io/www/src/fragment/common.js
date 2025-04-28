@@ -33,6 +33,22 @@ async function getErrorMessage(response) {
     return message;
 }
 
+async function computeBody(response, context) {
+    let body = await response.json();
+    if (context.preview && typeof body.fields === 'array') {
+        log('massaging old school schema for preview', context);
+        const { fields, id, tags } = body;
+        body = fields.reduce(
+            (acc, { name, multiple, values }) => {
+                acc.fields[name] = multiple ? values : values[0];
+                return acc;
+            },
+            { fields: {}, id, tags },
+        );
+    }
+    return body;
+}
+
 async function internalFetch(path, context) {
     try {
         const start = Date.now();
@@ -47,9 +63,16 @@ async function internalFetch(path, context) {
             success ? 'info' : 'error',
         );
         logDebug(
-            () => `response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`,
+            () =>
+                `response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`,
             context,
         );
+        if (response.status === 200) {
+            return {
+                status: 200,
+                body: await computeBody(response, context),
+            };
+        }
         return response;
     } catch (e) {
         logError(`[fetch] ${path} fetch error: ${e.message}`, context);

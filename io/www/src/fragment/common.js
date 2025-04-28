@@ -35,9 +35,9 @@ async function getErrorMessage(response) {
 
 async function computeBody(response, context) {
     let body = await response.json();
-    if (context.preview && typeof body.fields === 'array') {
+    if (context.preview && Array.isArray(body.fields)) {
         log('massaging old school schema for preview', context);
-        const { fields, id, tags } = body;
+        const { fields, id, tags, references } = body;
         body = fields.reduce(
             (acc, { name, multiple, values }) => {
                 acc.fields[name] = multiple ? values : values[0];
@@ -45,6 +45,29 @@ async function computeBody(response, context) {
             },
             { fields: {}, id, tags },
         );
+        body.references = references?.reduce((acc, ref) => {
+            const fields = ref.fields.reduce((fieldAcc, field) => {
+                if (field.name === 'key' || field.name === 'value') {
+                    fieldAcc[field.name] = field.values[0];
+                } else if (field.name === 'richTextValue') {
+                    fieldAcc[field.name] = {
+                        mimeType: field.mimeType || 'text/html',
+                    };
+                }
+                return fieldAcc;
+            }, {});
+
+            acc[ref.id] = {
+                type: ref.type,
+                value: {
+                    name: ref.name || '',
+                    id: ref.id,
+                    model: { id: ref.model.id },
+                    fields,
+                },
+            };
+            return acc;
+        }, {});
     }
     return body;
 }

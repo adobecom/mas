@@ -1,0 +1,91 @@
+{
+    "path": "/content/dam/mas/sandbox/en_US/ilyas-test-placeholders",
+    "title": "Ilyas Test Placeholders",
+    "description": "",
+    "id": "049231fd-0c45-4ef5-8792-7fa2dcd5005a",
+    "created": {
+        "at": "2025-03-28T11:10:32.871Z",
+        "by": "tuerkben@adobe.com",
+        "fullName": "tuerkben@adobe.com"
+    },
+    "modified": {
+        "at": "2025-04-28T08:35:20.83Z",
+        "by": "npeltier@adobe.com",
+        "fullName": "npeltier@adobe.com"
+    },
+    "published": {
+        "at": "2025-04-10T06:11:58.864Z",
+        "by": "npeltier@adobe.com",
+        "fullName": "npeltier@adobe.com"
+    },
+    "status": "MODIFIED",
+    "previewReplicationStatus": "NEVER_PUBLISHED",
+    "fields": [
+        {
+            "name": "variant",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": ["plans"]
+        },
+        {
+            "name": "badge",
+            "type": "long-text",
+            "multiple": false,
+            "locked": false,
+            "mimeType": "text/html",
+            "values": ["<merch-badge background-color=\"spectrum-yellow-300\" border-color=\"\" variant=\"plans\">Nico</merch-badge>"]
+        },
+        {
+            "name": "cardTitle",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": ["Photography  (1TB)"]
+        },
+        {
+            "name": "prices",
+            "type": "long-text",
+            "multiple": false,
+            "locked": false,
+            "mimeType": "text/html",
+            "values": ["<span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4\"></span>"]
+        },
+        {
+            "name": "description",
+            "type": "long-text",
+            "multiple": false,
+            "locked": false,
+            "mimeType": "text/html",
+            "values": ["<p>Edit and organize photos for Fred. Save&nbsp;25% for the first 6 months.&nbsp;Ends Feb 26.&nbsp;<a href=\"https://www.adobe.com/offer-terms/ccpp-1tb-terms.html\" target=\"_blank\">See terms.</a><br><a href=\"https://www.adobe.com/creativecloud/photography/compare-plans.html\">Compare photography plans</a><br><a class=\"modal-Link\" href=\"https://www.adobe.com/plans-fragments/modals/individual/modals-content-rich/photography1tb/master.html\" target=\"_blank\">See all plans &amp; pricing details</a></p>"]
+        },
+        {
+            "name": "ctas",
+            "type": "long-text",
+            "multiple": false,
+            "locked": false,
+            "mimeType": "text/html",
+            "values": ["<a class=\"accent\" data-wcs-osi=\"BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c\" data-template=\"checkoutUrl\" target=\"_self\" data-analytics-id=\"buy-now\">{{buy-now}}</a>"]
+        }
+    ],
+    "tags": [
+        {
+            "id": "mas:offer_type/base",
+            "title": "Base",
+            "i18n": [],
+            "titlePath": "Merch at Scale : Offer type / Base",
+            "name": "base",
+            "path": "/content/cq:tags/mas/offer_type/base"
+        },
+        {
+            "id": "mas:term/annual",
+            "title": "ANNUAL",
+            "i18n": [],
+            "titlePath": "Merch at Scale : TERM / ANNUAL",
+            "name": "annual",
+            "path": "/content/cq:tags/mas/term/annual",
+            "description": ""
+        }
+    ],
+    "status": 200
+} 

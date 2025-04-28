@@ -145,7 +145,7 @@
                         ).to.have.lengthOf(0);
 
                         const storeState = await Store.search.get();
-                        expect(storeState.tags).to.have.lengthOf(0);
+                        expect(storeState.tags).to.undefined;
                     });
 
                     it('Should maintain other tag types when one type changes', async function () {

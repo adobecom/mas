@@ -146,7 +146,7 @@ export class Router extends EventTarget {
     start() {
         this.currentParams = new URLSearchParams(this.location.hash.slice(1));
         this.linkStoreToHash(Store.page, 'page', PAGE_NAMES.WELCOME);
-        this.linkStoreToHash(Store.search, ['path', 'query'], { path: 'acom' });
+        this.linkStoreToHash(Store.search, ['path', 'query'], {});
         this.linkStoreToHash(Store.filters, ['locale', 'tags'], {
             locale: 'en_US',
         });

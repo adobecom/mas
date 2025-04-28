@@ -179,11 +179,12 @@ export class MasRepository extends LitElement {
 
     async searchFragments() {
         if (this.page.value !== PAGE_NAMES.CONTENT) return;
+        const path = this.search.value.path;
+        if (!path) return;
 
         Store.fragments.list.loading.set(true);
 
         const dataStore = Store.fragments.list.data;
-        const path = this.search.value.path;
         const query = this.search.value.query;
         
         let tags = [];

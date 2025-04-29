@@ -11,7 +11,6 @@ export default class CCDSlicePage {
         this.cardPriceSlot = page.locator('span[data-template="price"]');
         this.cardPrice = page
             .locator('span[data-template="price"] > .price-alternative');
-            // .first();
         this.cardPriceStrikethrough = page.locator(
             'span[data-template="price"] > .price-strikethrough',
         );

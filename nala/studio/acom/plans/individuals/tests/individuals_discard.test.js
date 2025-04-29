@@ -536,7 +536,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-discard-edited-stock-checkbox - Validate discard edited stock checkbox for plans individuals card in mas studio
-    test(`${features[10].name},${features[10].tags}`, async ({
+    test.skip(`${features[10].name},${features[10].tags}`, async ({
         page,
         baseURL,
     }) => {

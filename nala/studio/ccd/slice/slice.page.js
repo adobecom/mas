@@ -10,8 +10,8 @@ export default class CCDSlicePage {
         this.cardCTA = page.locator('div[slot="footer"] > button');
         this.cardPriceSlot = page.locator('span[data-template="price"]');
         this.cardPrice = page
-            .locator('span[data-template="price"] > .price')
-            .first();
+            .locator('span[data-template="price"] > .price-alternative');
+            // .first();
         this.cardPriceStrikethrough = page.locator(
             'span[data-template="price"] > .price-strikethrough',
         );

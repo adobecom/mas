@@ -1200,9 +1200,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Add phone link to the description', async () => {
             await expect(
-                await editor.description.locator(editor.linkEdit),
+                await editor.descriptionFieldGroup.locator(editor.linkEdit),
             ).toBeVisible();
-            await editor.description.locator(editor.linkEdit).click();
+            await editor.descriptionFieldGroup.locator(editor.linkEdit).click();
             await expect(editor.phoneLinkTab).toBeVisible();
             await editor.phoneLinkTab.click();
             await expect(await editor.phoneLinkText).toBeVisible();

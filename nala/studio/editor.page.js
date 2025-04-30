@@ -23,6 +23,9 @@ export default class EditorPage {
         this.prices = this.panel.locator('sp-field-group#prices');
         this.footer = this.panel.locator('sp-field-group#ctas');
         this.CTA = this.panel.locator('sp-field-group#ctas a');
+        this.descriptionFieldGroup = this.panel.locator(
+            'sp-field-group#description',
+        );
         this.description = this.panel.locator(
             'sp-field-group#description div[contenteditable="true"]',
         );

@@ -81,6 +81,9 @@ export default class EditorPage {
             'span[is="inline-price"][data-template="strikethrough"]',
         );
 
+        // RTE content
+        this.phoneLink = page.locator('a[href^="tel:"]');
+
         // RTE panel toolbar
         this.linkEdit = page.locator('#linkEditorButton');
         this.addIcon = page.locator('#addIconButton');
@@ -88,6 +91,8 @@ export default class EditorPage {
         // Edit Link Panel
         this.checkoutParameters = page.locator('#checkoutParameters input');
         this.linkText = page.locator('#linkText input');
+        this.phoneLinkTab = page.locator('#linkTypeNav sp-tab[value="phone"]');
+        this.phoneLinkText = page.locator('#phoneNumber input');
         this.linkSave = page.locator('#saveButton');
         this.linkVariant = page.locator('#linkVariant');
         this.accentVariant = page.locator('sp-button[variant="accent"]');

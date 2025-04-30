@@ -270,6 +270,7 @@ export class RteLinkEditor extends LitElement {
         return html`<sp-dialog close=${this.#handleClose}>
             <h2 slot="heading">Insert/Edit ${this.headingLinkLabel}</h2>
             <sp-tabs
+                id="linkTypeNav"
                 selected="${this.linkType}"
                 @change=${this.#handleTypeChange}
             >

@@ -1175,4 +1175,52 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             );
         });
     });
+
+    // @studio-plans-individuals-phone-number - Validate phone number for plans individuals card in mas studio
+    test(`${features[19].name},${features[19].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[19];
+        const testPage = `${baseURL}${features[19].path}${miloLibs}${features[19].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(
+                await studio.getCard(data.cardid, 'plans'),
+            ).toBeVisible();
+            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Add phone link to the description', async () => {
+            await expect(
+                await editor.description.locator(editor.linkEdit),
+            ).toBeVisible();
+            await editor.description.locator(editor.linkEdit).click();
+            await expect(editor.phoneLinkTab).toBeVisible();
+            await editor.phoneLinkTab.click();
+            await expect(await editor.phoneLinkText).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
+            await editor.phoneLinkText.fill(data.phoneNumber);
+            await editor.linkSave.click();
+        });
+
+        await test.step('step-4: Validate phone link addition in Editor panel', async () => {
+            await expect(
+                await editor.description.locator(editor.phoneLink),
+            ).toHaveText(data.phoneNumber);
+        });
+
+        await test.step('step-5: Validate phone link addition on the card', async () => {
+            await expect(await individuals.cardPhoneLink).toHaveText(
+                data.phoneNumber,
+            );
+        });
+    });
 });

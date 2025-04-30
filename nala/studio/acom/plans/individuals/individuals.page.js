@@ -9,6 +9,7 @@ export default class ACOMPlansIndividualsPage {
         this.cardBadgeLabel = page.locator('.plans-badge');
         this.cardDescription = page.locator('div[slot="body-xs"] p');
         this.cardLegalLink = page.locator('a.modal-Link');
+        this.cardPhoneLink = page.locator('a[href^="tel:"]');
         this.cardPrice = page.locator('p[slot="heading-m"]');
         this.cardPriceStrikethrough = page.locator(
             'p[slot="heading-m"] span.price-strikethrough',

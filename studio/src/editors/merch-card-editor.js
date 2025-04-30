@@ -266,19 +266,10 @@ class MerchCardEditor extends LitElement {
             if (borderField) borderField.style.display = 'block';
         }
         if (variant.borderColor || variant.badge?.tag) {
-            if (variant.borderColor.specialValues) {
-                this.availableBorderColors = [
-                    ...Object.keys(variant.borderColor.specialValues),
-                    ...SPECTRUM_COLORS,
-                ];
-            } else {
-                this.availableBorderColors =
-                    variant.allowedBorderColors || SPECTRUM_COLORS;
-            }
-            if (variant.badge?.tag) {
-                this.availableBadgeColors =
-                    variant.allowedBadgeColors || SPECTRUM_COLORS;
-            }
+            this.availableBorderColors =
+                variant.allowedBorderColors || SPECTRUM_COLORS;
+            this.availableBadgeColors =
+                variant.allowedBadgeColors || SPECTRUM_COLORS;
         } else {
             this.availableBorderColors = [];
             this.availableBadgeColors = [];
@@ -311,7 +302,7 @@ class MerchCardEditor extends LitElement {
                     data-field="size"
                     value="${form.size.values[0] || 'Default'}"
                     data-default-value="Default"
-                    @change="${this.updateFragment}"
+                    @change="${this.#handleFragmentUpdate}"
                 >
                     ${(this.availableSizes || []).map(
                         (size) => html`
@@ -329,7 +320,7 @@ class MerchCardEditor extends LitElement {
                     id="card-title"
                     data-field="cardTitle"
                     value="${form.cardTitle.values[0]}"
-                    @input="${this.updateFragment}"
+                    @input="${this.#handleFragmentUpdate}"
                 ></sp-textfield>
             </sp-field-group>
             <sp-field-group class="toggle" id="subtitle">
@@ -339,7 +330,7 @@ class MerchCardEditor extends LitElement {
                     id="card-subtitle"
                     data-field="subtitle"
                     value="${form.subtitle.values[0]}"
-                    @input="${this.updateFragment}"
+                    @input="${this.#handleFragmentUpdate}"
                 ></sp-textfield>
             </sp-field-group>
             <sp-field-group class="toggle" id="mnemonics">
@@ -407,7 +398,7 @@ class MerchCardEditor extends LitElement {
                     id="background-image"
                     data-field="backgroundImage"
                     value="${form.backgroundImage.values[0]}"
-                    @input="${this.updateFragment}"
+                    @input="${this.#handleFragmentUpdate}"
                 ></sp-textfield>
                 <sp-field-label for="background-image-alt-text"
                     >Background Image Alt Text</sp-field-label
@@ -417,7 +408,7 @@ class MerchCardEditor extends LitElement {
                     id="background-image-alt-text"
                     data-field="backgroundImageAltText"
                     value="${form.backgroundImageAltText.values[0]}"
-                    @input="${this.updateFragment}"
+                    @input="${this.#handleFragmentUpdate}"
                 ></sp-textfield>
             </sp-field-group>
             <sp-field-group class="toggle" id="prices">
@@ -428,7 +419,7 @@ class MerchCardEditor extends LitElement {
                     link
                     data-field="prices"
                     default-link-style="primary-outline"
-                    @change="${this.updateFragment}"
+                    @change="${this.#handleFragmentUpdate}"
                     >${unsafeHTML(form.prices.values[0])}</rte-field
                 >
             </sp-field-group>
@@ -439,7 +430,7 @@ class MerchCardEditor extends LitElement {
                     id="promo-code"
                     data-field="promoCode"
                     value="${form.promoCode?.values[0]}"
-                    @input="${this.updateFragment}"
+                    @input="${this.#handleFragmentUpdate}"
                     ?disabled=${this.disabled}
                 ></sp-textfield>
             </sp-field-group>
@@ -450,7 +441,7 @@ class MerchCardEditor extends LitElement {
                     id="promo-text"
                     data-field="promoText"
                     value="${form.promoText?.values[0]}"
-                    @input="${this.updateFragment}"
+                    @input="${this.#handleFragmentUpdate}"
                     ?disabled=${this.disabled}
                 ></sp-textfield>
             </sp-field-group>
@@ -463,7 +454,7 @@ class MerchCardEditor extends LitElement {
                     list
                     data-field="description"
                     default-link-style="secondary-link"
-                    @change="${this.updateFragment}"
+                    @change="${this.#handleFragmentUpdate}"
                     >${unsafeHTML(form.description.values[0])}</rte-field
                 >
             </sp-field-group>
@@ -475,20 +466,20 @@ class MerchCardEditor extends LitElement {
                     icon
                     data-field="callout"
                     default-link-style="secondary-link"
-                    @change="${this.updateFragment}"
+                    @change="${this.#handleFragmentUpdate}"
                     ?readonly=${this.disabled}
                     >${unsafeHTML(form.callout?.values[0])}</rte-field
                 >
             </sp-field-group>
             <sp-field-group id="secureLabel" class="toggle">
-            <secure-text-field
-                id="secure-text-field"
-                label="Secure Transaction Label"
-                data-field="showSecureLabel"
-                value="${form.showSecureLabel?.values[0]}"
-                @change="${this.updateFragment}"
-            >
-            </secure-text-field>
+                <secure-text-field
+                    id="secure-text-field"
+                    label="Secure Transaction Label"
+                    data-field="showSecureLabel"
+                    value="${form.showSecureLabel?.values[0]}"
+                    @change="${this.#handleFragmentUpdate}"
+                >
+                </secure-text-field>
             </sp-field-group>
             <sp-field-group class="toggle" id="stockOffer">
                 <sp-checkbox
@@ -496,7 +487,7 @@ class MerchCardEditor extends LitElement {
                     data-field="showStockCheckbox"
                     value="${form.showStockCheckbox?.values[0]}"
                     .checked="${form.showStockCheckbox?.values[0]}"
-                    @change="${this.updateFragment}"
+                    @change="${this.#handleFragmentUpdate}"
                     ?disabled=${this.disabled}
                     >Stock Checkbox</sp-checkbox
                 >
@@ -557,7 +548,7 @@ class MerchCardEditor extends LitElement {
                     inline
                     data-field="ctas"
                     default-link-style="primary-outline"
-                    @change="${this.updateFragment}"
+                    @change="${this.#handleFragmentUpdate}"
                     >${unsafeHTML(form.ctas.values[0])}</rte-field
                 >
             </sp-field-group>
@@ -567,8 +558,8 @@ class MerchCardEditor extends LitElement {
                     id="osi"
                     data-field="osi"
                     .value=${form.osi.values[0]}
-                    @input="${this.updateFragment}"
-                    @change="${this.updateFragment}"
+                    @input="${this.#handleFragmentUpdate}"
+                    @change="${this.#handleFragmentUpdate}"
                 ></osi-field>
             </sp-field-group>
             <aem-tag-picker-field
@@ -582,7 +573,7 @@ class MerchCardEditor extends LitElement {
     }
 
     #handleVariantChange(e) {
-        this.updateFragment(e);
+        this.#handleFragmentUpdate(e);
         this.#updateAvailableSizes();
         this.#updateAvailableColors();
         this.#updateBackgroundColors();
@@ -690,10 +681,10 @@ class MerchCardEditor extends LitElement {
             this.fragment.variant,
         );
         this.availableColors = variant?.allowedColors || [];
-        this.displayBadgeColorFields(this.badge.text);
+        this.#displayBadgeColorFields(this.badge.text);
     }
 
-    displayBadgeColorFields(text) {
+    #displayBadgeColorFields(text) {
         if (!this.isPlans) return;
         document.querySelector('#badgeColor').style.display = text
             ? 'block'
@@ -762,7 +753,7 @@ class MerchCardEditor extends LitElement {
         };
     }
 
-    createBadgeElement(text, bgColor, borderColor) {
+    #createBadgeElement(text, bgColor, borderColor) {
         if (!text) return;
 
         const element = document.createElement('merch-badge');
@@ -781,33 +772,33 @@ class MerchCardEditor extends LitElement {
     #updateBadgeText(event) {
         const text = event.target.value?.trim() || '';
         if (this.isPlans) {
-            this.displayBadgeColorFields(text);
-            this.updateBadge(text, this.badge.bgColor, this.badge.borderColor);
+            this.#displayBadgeColorFields(text);
+            this.#updateBadge(text, this.badge.bgColor, this.badge.borderColor);
         } else {
             this.fragmentStore.updateField('badge', [text]);
         }
     }
 
-    onBadgeColorChange(event) {
-        this.updateBadge(
+    #onBadgeColorChange = (event) => {
+        this.#updateBadge(
             this.badge.text,
             event.target.value,
             this.badge.borderColor,
         );
-    }
+    };
 
-    onBadgeBorderColorChange(event) {
-        this.updateBadge(
+    #onBadgeBorderColorChange = (event) => {
+        this.#updateBadge(
             this.badge.text,
             this.badge.bgColor,
             event.target.value,
         );
-    }
+    };
 
-    updateBadge(text, bgColor, borderColor) {
-        const element = this.createBadgeElement(text, bgColor, borderColor);
+    #updateBadge = (text, bgColor, borderColor) => {
+        const element = this.#createBadgeElement(text, bgColor, borderColor);
         this.fragmentStore.updateField('badge', [element?.outerHTML || '']);
-    }
+    };
 
     async #updateBackgroundColors() {
         if (!this.fragment) return;
@@ -839,7 +830,7 @@ class MerchCardEditor extends LitElement {
                 this.availableBadgeColors,
                 this.badge.bgColor,
                 'badgeColor',
-                this.onBadgeColorChange,
+                this.#onBadgeColorChange,
             )}
             ${this.#renderColorPicker(
                 'badgeBorderColor',
@@ -847,10 +838,16 @@ class MerchCardEditor extends LitElement {
                 this.availableBadgeColors,
                 this.badge.borderColor,
                 'badgeBorderColor',
-                this.onBadgeBorderColorChange,
+                this.#onBadgeBorderColorChange,
             )}
         `;
     }
+
+    #handleFragmentUpdate = (event) => {
+        if (this.updateFragment) {
+            this.updateFragment(event);
+        }
+    };
 
     #renderColorPicker(id, label, colors, selectedValue, dataField, onChange) {
         const isBackground = dataField === 'backgroundColor';
@@ -911,7 +908,7 @@ class MerchCardEditor extends LitElement {
                     value="${displaySelectedValue ||
                     (isBackground ? 'Default' : '')}"
                     data-default-value="${isBackground ? 'Default' : ''}"
-                    @change="${handleChange}"
+                    @change="${onChange || this.#handleFragmentUpdate}"
                 >
                     ${options.map(
                         (color) => html`
@@ -994,7 +991,7 @@ class MerchCardEditor extends LitElement {
                     data-field="${dataField}"
                     value="${selectedValue || 'Default'}"
                     data-default-value="${selectedValue || 'Default'}"
-                    @change="${this.updateFragment}"
+                    @change="${this.#handleFragmentUpdate}"
                 >
                     ${Object.entries(options)
                         .sort(([a], [b]) =>

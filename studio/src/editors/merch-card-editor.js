@@ -97,9 +97,7 @@ class MerchCardEditor extends LitElement {
         this.whatsIncludedElement
             ?.querySelectorAll('merch-mnemonic-list')
             .forEach((listEl) => {
-                const icon =
-                    listEl.querySelector('merch-icon')?.getAttribute('src') ||
-                    '';
+                const icon = listEl.querySelector('merch-icon')?.src || '';
                 const text =
                     listEl.querySelector('[slot="description"]')?.textContent ||
                     '';

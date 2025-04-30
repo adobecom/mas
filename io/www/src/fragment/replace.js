@@ -85,9 +85,7 @@ async function replace(context) {
         if (dictionary && Object.keys(dictionary).length > 0) {
             bodyString = replaceValues(bodyString, dictionary, []);
             try {
-                console.log('bodyString 1', bodyString);
                 body = JSON.parse(bodyString);
-                console.log('bodyString 2', bodyString);
             } catch (e) {
                 /* istanbul ignore next */
                 logError(`[replace] ${e.message}`, context);

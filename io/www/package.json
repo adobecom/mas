@@ -26,6 +26,7 @@
     "@rollup/plugin-json": "^6.1.0"
   },
   "scripts": {
+
     "test": "nyc --check-coverage --lines=99 --functions=99 --branches=99 --statements=99 mocha --recursive ./test",
     "test:watch": "mocha --watch --recursive ./test",
     "test:file": "mocha --watch --recursive --grep",

@@ -1,5 +1,8 @@
 const { expect } = require('chai');
 const nock = require('nock');
+const { collectReferences } = require('../../src/fragment/common.js');
+const mockReferencedBody = require('../fragment/mocks/references.json');
+const expectedTree = require('../fragment/mocks/reference-tree.json');
 const mockFragment = require('../fragment/mocks/preview-fragment.json');
 const mockPlaceholders = require('../fragment/mocks/preview-placeholders.json');
 
@@ -44,6 +47,16 @@ describe('FragmentClient', () => {
             });
 
             expect(result).to.be.undefined;
+        });
+    });
+
+    describe('getReferenceTree', () => {
+        it('should build reference tree for content fragments with cards and tags', () => {
+            const tree = collectReferences(
+                mockReferencedBody.fields,
+                mockReferencedBody.references,
+            );
+            expect(tree).deep.equal(expectedTree);
         });
     });
 });

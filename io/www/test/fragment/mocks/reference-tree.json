@@ -1,0 +1,250 @@
+[
+    {
+      "fieldName": "collections",
+      "identifier": "d5b3180a-41e3-4df1-adb4-73daa8f392b5",
+      "referencesTree": [
+        {
+          "fieldName": "cards",
+          "identifier": "ec482607-bcf8-4d3e-b285-0033268b99d3",
+          "referencesTree": [
+            {
+              "fieldName": "tags",
+              "identifier": "mas:offer_type/base",
+              "referencesTree": []
+            },
+            {
+              "fieldName": "tags",
+              "identifier": "mas:product_family",
+              "referencesTree": []
+            }
+          ]
+        },
+        {
+          "fieldName": "cards",
+          "identifier": "d9998fc3-578e-44be-be4f-d8be1c45c75b",
+          "referencesTree": [
+            {
+              "fieldName": "tags",
+              "identifier": "mas:offer_type/base",
+              "referencesTree": []
+            },
+            {
+              "fieldName": "tags",
+              "identifier": "mas:product_family",
+              "referencesTree": []
+            }
+          ]
+        },
+        {
+          "fieldName": "cards",
+          "identifier": "0fea0932-c802-49e4-8589-f8bcf6bfe98c",
+          "referencesTree": [
+            {
+              "fieldName": "tags",
+              "identifier": "mas:offer_type/base",
+              "referencesTree": []
+            },
+            {
+              "fieldName": "tags",
+              "identifier": "mas:product_family",
+              "referencesTree": []
+            }
+          ]
+        },
+        {
+          "fieldName": "cards",
+          "identifier": "ca835d11-fe6b-40f8-96d1-50ac800c9f70",
+          "referencesTree": [
+            {
+              "fieldName": "tags",
+              "identifier": "mas:offer_type/base",
+              "referencesTree": []
+            },
+            {
+              "fieldName": "tags",
+              "identifier": "mas:product_family",
+              "referencesTree": []
+            }
+          ]
+        },
+        {
+          "fieldName": "cards",
+          "identifier": "54860b82-24e6-4ca7-a08d-577a3ad6ebda",
+          "referencesTree": [
+            {
+              "fieldName": "tags",
+              "identifier": "mas:product_family",
+              "referencesTree": []
+            },
+            {
+              "fieldName": "tags",
+              "identifier": "mas:offer_type/base",
+              "referencesTree": []
+            }
+          ]
+        },
+        {
+          "fieldName": "cards",
+          "identifier": "c6727147-7992-4ca4-b566-819c52b0a585",
+          "referencesTree": [
+            {
+              "fieldName": "tags",
+              "identifier": "mas:product/cc/lightroom",
+              "referencesTree": []
+            },
+            {
+              "fieldName": "tags",
+              "identifier": "mas:offer_type/base",
+              "referencesTree": []
+            }
+          ]
+        },
+        {
+          "fieldName": "cards",
+          "identifier": "049231fd-0c45-4ef5-8792-7fa2dcd5005a",
+          "referencesTree": [
+            {
+              "fieldName": "tags",
+              "identifier": "mas:offer_type/base",
+              "referencesTree": []
+            },
+            {
+              "fieldName": "tags",
+              "identifier": "mas:product/cc/lightroom",
+              "referencesTree": []
+            }
+          ]
+        },
+        {
+          "fieldName": "cards",
+          "identifier": "1828159b-93a3-4b8c-b737-5fbf83ca78ee",
+          "referencesTree": [
+            {
+              "fieldName": "tags",
+              "identifier": "mas:offer_type/base",
+              "referencesTree": []
+            },
+            {
+              "fieldName": "tags",
+              "identifier": "mas:product_family",
+              "referencesTree": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fieldName": "collections",
+      "identifier": "1c0b2890-567a-4771-933c-84b032c8e51d",
+      "referencesTree": [
+        {
+          "fieldName": "cards",
+          "identifier": "049231fd-0c45-4ef5-8792-7fa2dcd5005a",
+          "referencesTree": [
+            {
+              "fieldName": "tags",
+              "identifier": "mas:offer_type/base",
+              "referencesTree": []
+            },
+            {
+              "fieldName": "tags",
+              "identifier": "mas:product/cc/lightroom",
+              "referencesTree": []
+            }
+          ]
+        },
+        {
+          "fieldName": "cards",
+          "identifier": "c6727147-7992-4ca4-b566-819c52b0a585",
+          "referencesTree": [
+            {
+              "fieldName": "tags",
+              "identifier": "mas:product/cc/lightroom",
+              "referencesTree": []
+            },
+            {
+              "fieldName": "tags",
+              "identifier": "mas:offer_type/base",
+              "referencesTree": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fieldName": "collections",
+      "identifier": "d4c5c11e-ac39-4c91-9e00-6d1f26f76b95",
+      "referencesTree": [
+        {
+          "fieldName": "cards",
+          "identifier": "0fea0932-c802-49e4-8589-f8bcf6bfe98c",
+          "referencesTree": [
+            {
+              "fieldName": "tags",
+              "identifier": "mas:offer_type/base",
+              "referencesTree": []
+            },
+            {
+              "fieldName": "tags",
+              "identifier": "mas:product_family",
+              "referencesTree": []
+            }
+          ]
+        },
+        {
+          "fieldName": "cards",
+          "identifier": "ca835d11-fe6b-40f8-96d1-50ac800c9f70",
+          "referencesTree": [
+            {
+              "fieldName": "tags",
+              "identifier": "mas:offer_type/base",
+              "referencesTree": []
+            },
+            {
+              "fieldName": "tags",
+              "identifier": "mas:product_family",
+              "referencesTree": []
+            }
+          ]
+        },
+        {
+          "fieldName": "cards",
+          "identifier": "54860b82-24e6-4ca7-a08d-577a3ad6ebda",
+          "referencesTree": [
+            {
+              "fieldName": "tags",
+              "identifier": "mas:product_family",
+              "referencesTree": []
+            },
+            {
+              "fieldName": "tags",
+              "identifier": "mas:offer_type/base",
+              "referencesTree": []
+            }
+          ]
+        },
+        {
+          "fieldName": "collections",
+          "identifier": "799449c5-701a-4cb3-b486-13f0c0275f8d",
+          "referencesTree": [
+            {
+              "fieldName": "cards",
+              "identifier": "ca835d11-fe6b-40f8-96d1-50ac800c9f70",
+              "referencesTree": [
+                {
+                  "fieldName": "tags",
+                  "identifier": "mas:offer_type/base",
+                  "referencesTree": []
+                },
+                {
+                  "fieldName": "tags",
+                  "identifier": "mas:product_family",
+                  "referencesTree": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]

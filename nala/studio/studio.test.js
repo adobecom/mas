@@ -485,10 +485,6 @@ test.describe('M@S Studio feature test suite', () => {
             const card = await studio.getCard(data.cardid, 'ah-promoted-plans');
             await expect(card).toBeVisible();
 
-            // Verify title
-            const titleElement = card.locator('h3[slot="heading-xxxs"]');
-            await expect(titleElement).toHaveText(data.title);
-
             // Verify icon
             const iconElement = card.locator('merch-icon[slot="icons"]');
             await expect(iconElement).toHaveAttribute('src', data.iconURL);

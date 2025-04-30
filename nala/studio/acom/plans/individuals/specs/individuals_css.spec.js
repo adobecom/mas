@@ -109,7 +109,7 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
             },
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-css',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-css @nopr',
         },
         {
             tcid: '11',
@@ -119,7 +119,7 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
             },
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-css',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-css @nopr',
         },
     ],
 };

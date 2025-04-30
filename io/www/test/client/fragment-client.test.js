@@ -4,6 +4,8 @@ const { collectReferences } = require('../../src/fragment/common.js');
 const mockReferencedBody = require('../fragment/mocks/references.json');
 const expectedTree = require('../fragment/mocks/reference-tree.json');
 const mockFragment = require('../fragment/mocks/preview-fragment.json');
+const mockCollectionFragment = require('../fragment/mocks/preview-fullcollection.json');
+const expectedCollectionOutput = require('../fragment/mocks/preview-fullcollection-expected.json');
 const mockPlaceholders = require('../fragment/mocks/preview-placeholders.json');
 
 // Import the actual source file without coverage instrumentation
@@ -18,7 +20,7 @@ describe('FragmentClient', () => {
     });
 
     describe('previewFragment', () => {
-        it('should fetch and transform fragment for preview', async () => {
+        it('should fetch and transform card fragment for preview', async () => {
             nock(baseUrl)
                 .get(`/${mockFragment.id}?references=all-hydrated`)
                 .reply(200, mockFragment);

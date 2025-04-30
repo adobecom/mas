@@ -33,11 +33,31 @@ async function getErrorMessage(response) {
     return message;
 }
 
+const CF_REFERENCE_FIELDS = ['cards', 'collections', 'entries'];
+const REFERENCE_FIELDS = [...CF_REFERENCE_FIELDS, 'tags'];
+
 function transformFields(body) {
     const { fields, id, tags, references } = body;
+    const pathToIdMap = {};
+    if (references) {
+        references.forEach((reference) => {
+            const { type, path, id } = reference;
+            if (type === 'content-fragment') {
+                pathToIdMap[path] = id;
+            }
+        });
+    }
     const transformedBody = fields.reduce(
         (acc, { name, multiple, values }) => {
             acc.fields[name] = multiple ? values : values[0];
+            if (CF_REFERENCE_FIELDS.includes(name)) {
+                acc.fields[name] = values.map((value) => {
+                    if (typeof value === 'string') {
+                        return pathToIdMap[value] || value;
+                    }
+                    return value;
+                });
+            }
             return acc;
         },
         { fields: {}, id, tags, references },
@@ -45,7 +65,6 @@ function transformFields(body) {
     return transformedBody;
 }
 
-const REFERENCE_FIELDS = ['cards', 'collections', 'tags', 'entries'];
 function collectReferences(fields, references) {
     if (!fields) return [];
     const referencesTree = [];
@@ -58,7 +77,7 @@ function collectReferences(fields, references) {
                         fieldName,
                         identifier: id,
                         referencesTree: [],
-                    }
+                    };
                     const nestedRef = references[id];
                     if (nestedRef.type === 'content-fragment') {
                         ref.referencesTree = collectReferences(

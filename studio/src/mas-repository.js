@@ -570,34 +570,6 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Helper to update a specific field in a fragment fields array
-     * @param {Array} fields - The fields array
-     * @param {string} fieldName - Name of the field to update
-     * @param {Array} values - New values for the field
-     * @param {string} type - Field type
-     * @param {boolean} multiple - Whether field supports multiple values
-     * @returns {Array} - Updated fields array
-     */
-    updateFieldInFragment(fields, fieldName, values, type, multiple = false) {
-        return fields.map((field) => {
-            if (field.name === fieldName) {
-                return {
-                    name: fieldName,
-                    type: type || field.type || 'content-fragment',
-                    multiple: multiple || field.multiple || false,
-                    values,
-                };
-            }
-            return {
-                name: field.name,
-                type: field.type || 'text',
-                multiple: field.multiple || false,
-                values: field.values,
-            };
-        });
-    }
-
-    /**
      * Fetches a fragment by its path to get the latest version
      * @param {string} path - Path to the fragment
      * @returns {Promise<Object>} - The latest fragment data
@@ -636,6 +608,38 @@ export class MasRepository extends LitElement {
         }
 
         return await response.json();
+    }
+
+    /**
+     * Populates the store with addon placeholders by filtering fragments that start with 'addon-'
+     */
+    async loadAddonPlaceholders() {
+        if (Store.placeholders.addons.get().length > 1) return;
+        try {
+            const cursor = await this.aem.sites.cf.fragments.search(
+                {
+                    path: `${this.parentPath}/dictionary`,
+                },
+                null,
+                this.#abortControllers.search,
+            );
+
+            const result = await cursor.next();
+            const addonFragments = [];
+            for await (const item of result.value) {
+                const key = item.fields.find((field) => field.name === 'key')
+                    ?.values[0];
+                if (/^addon-/.test(key)) {
+                    addonFragments.push({ value: key, itemText: key });
+                }
+            }
+            Store.placeholders.addons.set((prev) => [
+                ...prev,
+                ...addonFragments,
+            ]);
+        } catch (error) {
+            this.processError(error, 'Could not load addon placeholders.');
+        }
     }
 
     render() {

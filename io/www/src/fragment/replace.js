@@ -19,9 +19,11 @@ async function getDictionaryId(context) {
 }
 
 function extractValue(ref) {
-    const value = ref.value || ref?.richTextValue?.value || '';
-    // Escape control characters before parsing
-    return value.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+    const value = ref.value || ref.richTextValue?.value || '';
+    // Escape control characters and double quotes before parsing
+    return value
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+        .replace(/"/g, '\\"');
 }
 
 async function getDictionary(context) {
@@ -83,7 +85,9 @@ async function replace(context) {
         if (dictionary && Object.keys(dictionary).length > 0) {
             bodyString = replaceValues(bodyString, dictionary, []);
             try {
+                console.log('bodyString 1', bodyString);
                 body = JSON.parse(bodyString);
+                console.log('bodyString 2', bodyString);
             } catch (e) {
                 /* istanbul ignore next */
                 logError(`[replace] ${e.message}`, context);

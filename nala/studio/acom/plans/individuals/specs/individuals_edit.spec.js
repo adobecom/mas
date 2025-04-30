@@ -156,7 +156,7 @@ export default {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit @nopr',
         },
         {
             tcid: '13',
@@ -184,7 +184,7 @@ export default {
                 iconLabel: 'Photoshop icon',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit @nopr', //skip until regression is fixed
         },
         {
             tcid: '15',

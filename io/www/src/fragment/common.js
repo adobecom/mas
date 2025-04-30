@@ -74,42 +74,12 @@ function collectReferences(fields, references) {
     return referencesTree;
 }
 
-function transformReferences(body) {
-    if (!body.references) return body;
-    const { references } = body;
-    body.references = references?.reduce((acc, ref) => {
-        const fields = ref.fields.reduce((fieldAcc, field) => {
-            if (field.name === 'key' || field.name === 'value') {
-                fieldAcc[field.name] = field.values[0];
-            } else if (field.name === 'richTextValue') {
-                fieldAcc[field.name] = {
-                    mimeType: field.mimeType || 'text/html',
-                };
-            }
-            return fieldAcc;
-        }, {});
-
-        acc[ref.id] = {
-            type: ref.type,
-            value: {
-                name: ref.name || '',
-                id: ref.id,
-                model: { id: ref.model.id },
-                fields,
-            },
-        };
-        return acc;
-    }, {});
-    body.referencesTree = collectReferences(body.fields, body.references);
-    return body;
-}
-
 async function computeBody(response, context) {
     let body = await response.json();
     if (context.preview && Array.isArray(body.fields)) {
         log('massaging old school schema for preview', context);
         body = transformFields(body);
-        body = transformReferences(body);
+        body = collectReferences(body.fields, body.references);
     }
     return body;
 }

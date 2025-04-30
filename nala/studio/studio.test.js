@@ -377,8 +377,8 @@ test.describe('M@S Studio feature test suite', () => {
         page,
         baseURL,
     }) => {
-        const { data } = features[8];
-        const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.cardid}`;
+        const { data } = features[10];
+        const testPage = `${baseURL}${features[10].path}${miloLibs}${features[10].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -426,8 +426,8 @@ test.describe('M@S Studio feature test suite', () => {
         page,
         baseURL,
     }) => {
-        const { data } = features[9];
-        const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}${data.cardid}`;
+        const { data } = features[11];
+        const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {

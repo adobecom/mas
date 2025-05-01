@@ -726,11 +726,19 @@ class MerchCardEditor extends LitElement {
     }
 
     onBadgeColorChange(event) {
-        this.updateBadge(this.badge.text, event.target.value, this.badge.borderColor);
+        this.updateBadge(
+            this.badge.text,
+            event.target.value,
+            this.badge.borderColor,
+        );
     }
 
     onBadgeBorderColorChange(event) {
-        this.updateBadge(this.badge.text, this.badge.bgColor, event.target.value);
+        this.updateBadge(
+            this.badge.text,
+            this.badge.bgColor,
+            event.target.value,
+        );
     }
 
     updateBadge(text, bgColor, borderColor) {

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import StudioPage from '../../../studio.page.js';
+import EditorPage from '../../../editor.page.js';
 import AHPromotedPlansSpec from '../specs/promoted_plans_discard.spec.js';
 import AHPromotedPlansPage from '../promoted-plans.page.js';
 import WebUtil from '../../../../libs/webutil.js';
@@ -8,6 +9,7 @@ const { features } = AHPromotedPlansSpec;
 const miloLibs = process.env.MILO_LIBS || '';
 
 let studio;
+let editor;
 let promotedplans;
 let webUtil;
 
@@ -19,6 +21,7 @@ test.beforeEach(async ({ page, browserName }) => {
         });
     }
     studio = new StudioPage(page);
+    editor = new EditorPage(page);
     promotedplans = new AHPromotedPlansPage(page);
     webUtil = new WebUtil(page);
 });
@@ -176,7 +179,7 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
             await expect(await studio.linkSave).toBeVisible();
 
             // Get the variant button and click it
-            const variantButton = await studio.getLinkVariant(data.newVariant);
+            const variantButton = await editor.getLinkVariant(data.newVariant);
             await expect(variantButton).toBeVisible();
             await variantButton.click();
 
@@ -194,7 +197,7 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
                 .click();
             await expect(await studio.linkVariant).toBeVisible();
 
-            const originalVariantButton = await studio.getLinkVariant(
+            const originalVariantButton = await editor.getLinkVariant(
                 data.variant,
             );
             await expect(originalVariantButton).toBeVisible();

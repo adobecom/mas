@@ -92,13 +92,13 @@ export default class EditorPage {
         this.linkVariant = page.locator('#linkVariant');
         this.accentVariant = page.locator('sp-button[variant="accent"]');
         this.primaryVariant = page.locator(
-            'sp-button[variant="primary]:not([treatment="outline"]])',
+            'sp-button[variant="primary"]:not([treatment="outline"])',
         );
         this.primaryOutlineVariant = page.locator(
             'sp-button[variant="primary"][treatment="outline"]',
         );
         this.secondaryVariant = page.locator(
-            'sp-button[variant="secondary]:not([treatment="outline"]])',
+            'sp-button[variant="secondary"]:not([treatment="outline"])',
         );
         this.secondaryOutlineVariant = page.locator(
             'sp-button[variant="secondary"][treatment="outline"]',

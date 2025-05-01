@@ -16,7 +16,7 @@ export default class StudioPage {
         this.folderPicker = page.locator('mas-folder-picker sp-action-menu');
         this.renderView = page.locator('#render');
         this.quickActions = page.locator('.quick-actions');
-        // this.editorPanel = page.locator('editor-panel > #editor');
+        this.editorPanel = page.locator('editor-panel > #editor');
         this.confirmationDialog = page.locator(
             'sp-dialog[variant="confirmation"]',
         );
@@ -45,6 +45,9 @@ export default class StudioPage {
         );
         this.ahTryBuyWidgetDoubleCard = page.locator(
             'merch-card[variant="ah-try-buy-widget"][size="double"]',
+        );
+        this.plansCard = page.locator(
+            'merch-card[variant="plans"]',
         );
         this.ahPromotedPlansCard = page.locator(
             'merch-card[variant="ah-promoted-plans"]',
@@ -93,6 +96,9 @@ export default class StudioPage {
         );
         this.discardCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="discard"]',
+        );
+        this.closeEditor = page.locator(
+            'div[id="editor-toolbar"] >> sp-action-button[value="close"]',
         );
         // RTE panel toolbar
         this.linkEdit = page.locator('#linkEditorButton');

@@ -862,6 +862,15 @@ class MerchCardEditor extends LitElement {
                 this.fragment.variant,
             );
             variantSpecialValues = variant?.borderColor?.specialValues || {};
+            if (
+                variantSpecialValues &&
+                Object.keys(variantSpecialValues).length > 0
+            ) {
+                const specialKeys = Object.keys(variantSpecialValues);
+                colorArray = colorArray.filter(
+                    (color) => !specialKeys.includes(color),
+                );
+            }
         }
 
         const isSpecialValue = (color) =>
@@ -881,7 +890,11 @@ class MerchCardEditor extends LitElement {
         const options = isBackground
             ? ['Default', ...colorArray]
             : dataField === 'borderColor' || dataField === 'badgeBorderColor'
-              ? ['', ...colorArray]
+              ? [
+                    '',
+                    ...(isBorder ? Object.keys(variantSpecialValues) : []),
+                    ...colorArray,
+                ]
               : colorArray;
 
         const handleChange = (e) => {
@@ -893,7 +906,7 @@ class MerchCardEditor extends LitElement {
                 fragment.updateField(dataField, [actualValue]);
                 this.fragmentStore.set(fragment);
             } else {
-                this.updateFragment(e);
+                this.#handleFragmentUpdate(e);
             }
         };
 
@@ -906,7 +919,9 @@ class MerchCardEditor extends LitElement {
                     value="${displaySelectedValue ||
                     (isBackground ? 'Default' : '')}"
                     data-default-value="${isBackground ? 'Default' : ''}"
-                    @change="${onChange || this.#handleFragmentUpdate}"
+                    @change="${isBorder
+                        ? handleChange
+                        : onChange || this.#handleFragmentUpdate}"
                 >
                     ${options.map(
                         (color) => html`

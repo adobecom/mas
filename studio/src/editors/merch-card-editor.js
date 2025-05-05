@@ -461,6 +461,16 @@ class MerchCardEditor extends LitElement {
                 >
                 </mas-plan-type-field>
             </sp-field-group>
+            <sp-field-group id="planType" class="toggle">
+                <mas-plan-type-field
+                    id="plan-type-field"
+                    label="Plan Type text"
+                    data-field="showPlanType"
+                    value="${form.showPlanType?.values[0]}"
+                    @change="${this.updateFragment}"
+                >
+                </mas-plan-type-field>
+            </sp-field-group>
             <sp-field-group id="addon" class="toggle">
                 <mas-addon-field
                     id="addon-field"

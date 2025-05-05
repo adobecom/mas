@@ -570,6 +570,34 @@ export class MasRepository extends LitElement {
     }
 
     /**
+     * Helper to update a specific field in a fragment fields array
+     * @param {Array} fields - The fields array
+     * @param {string} fieldName - Name of the field to update
+     * @param {Array} values - New values for the field
+     * @param {string} type - Field type
+     * @param {boolean} multiple - Whether field supports multiple values
+     * @returns {Array} - Updated fields array
+     */
+    updateFieldInFragment(fields, fieldName, values, type, multiple = false) {
+        return fields.map((field) => {
+            if (field.name === fieldName) {
+                return {
+                    name: fieldName,
+                    type: type || field.type || 'content-fragment',
+                    multiple: multiple || field.multiple || false,
+                    values,
+                };
+            }
+            return {
+                name: field.name,
+                type: field.type || 'text',
+                multiple: field.multiple || false,
+                values: field.values,
+            };
+        });
+    }
+
+    /**
      * Fetches a fragment by its path to get the latest version
      * @param {string} path - Path to the fragment
      * @returns {Promise<Object>} - The latest fragment data

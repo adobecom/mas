@@ -20,6 +20,7 @@ import {
 import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
 import throttle from '../utils/throttle.js';
+import './rte-mnemonic-editor.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
@@ -89,6 +90,7 @@ class RteField extends LitElement {
         inline: { type: Boolean, attribute: 'inline' },
         link: { type: Boolean, attribute: 'link' },
         icon: { type: Boolean, attribute: 'icon' },
+        mnemonic: { type: Boolean, attribute: 'mnemonic' },
         uptLink: { type: Boolean, attribute: 'upt-link' },
         list: { type: Boolean, attribute: 'list' },
         isLinkSelected: { type: Boolean, state: true },
@@ -96,6 +98,7 @@ class RteField extends LitElement {
         readOnly: { type: Boolean, attribute: 'readonly' },
         showLinkEditor: { type: Boolean, state: true },
         showIconEditor: { type: Boolean, state: true },
+        showMnemonicEditor: { type: Boolean, state: true },
         defaultLinkStyle: { type: String, attribute: 'default-link-style' },
         maxLength: { type: Number, attribute: 'max-length' },
         length: { type: Number, state: true },
@@ -231,6 +234,25 @@ class RteField extends LitElement {
                     text-decoration: line-through;
                 }
 
+                .ProseMirror span.mnemonic {
+                    display: flex;
+                    align-items: center;
+                    vertical-align: middle;
+                }
+
+                .ProseMirror span.mnemonic merch-icon {
+                    display: inline-flex;
+                    width: 20px;
+                    height: 20px;
+                    vertical-align: text-bottom;
+                }
+
+                .ProseMirror span.mnemonic img {
+                    width: 21px;
+                    height: 21px;
+                    display: block;
+                }
+
                 div.ProseMirror-focused
                     span[is='inline-price'].ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode,
@@ -238,6 +260,14 @@ class RteField extends LitElement {
                     outline: 2px dashed var(--spectrum-global-color-blue-500);
                     outline-offset: 2px;
                     border-radius: 16px;
+                }
+                
+                div.ProseMirror-focused span.mnemonic.ProseMirror-selectednode {
+                    outline: 2px dashed var(--spectrum-global-color-blue-500);
+                    outline-offset: 2px;
+                    display: inline-flex;
+                    width: 20px;
+                    height: 20px;
                 }
                 sr-only {
                     position: absolute;
@@ -273,9 +303,11 @@ class RteField extends LitElement {
         this.priceSelected = false;
         this.showLinkEditor = false;
         this.showIconEditor = false;
+        this.showMnemonicEditor = false;
         this.inline = false;
         this.link = false;
         this.uptLink = false;
+        this.mnemonic = false;
         this.maxLength = 70;
         this.length = 0;
         this.hideOfferSelector = false;
@@ -285,6 +317,7 @@ class RteField extends LitElement {
             addUptLink: this.#addUptLink.bind(this),
             linkSave: this.#handleLinkSave.bind(this),
             iconSave: this.#handleIconSave.bind(this),
+            mnemonicSave: this.#handleMnemonicSave.bind(this),
             focusout: this.#handleFocusout.bind(this),
             focus: this.#handleFocus.bind(this),
             doubleClickOn: this.#handleDoubleClickOn.bind(this),
@@ -372,6 +405,50 @@ class RteField extends LitElement {
                     },
                 ],
                 toDOM: this.#createIconElement.bind(this),
+            });
+        }
+
+        if (this.mnemonic) {
+            nodes = nodes.addToStart('mnemonic', {
+                group: 'inline',
+                atom: true,
+                inline: true,
+                attrs: {
+                    class: { default: 'mnemonic' },
+                    src: { default: null },
+                    alt: { default: null },
+                    size: { default: 'xs' },
+                },
+                parseDOM: [
+                    {
+                        tag: 'span.mnemonic',
+                        getAttrs: (dom) => {
+                            const merchIcon = dom.querySelector('merch-icon');
+                            if (merchIcon) {
+                                return {
+                                    src: merchIcon.getAttribute('src'),
+                                    alt: merchIcon.getAttribute('alt'),
+                                    size: merchIcon.getAttribute('size') || 'xs',
+                                    class: dom.getAttribute('class'),
+                                };
+                            }
+                            return this.#collectDataAttributes(dom);
+                        },
+                    },
+                    // Also directly parse merch-icon elements
+                    {
+                        tag: 'merch-icon',
+                        getAttrs: (dom) => {
+                            return {
+                                src: dom.getAttribute('src'),
+                                alt: dom.getAttribute('alt'),
+                                size: dom.getAttribute('size') || 'xs',
+                                class: 'mnemonic',
+                            };
+                        },
+                    },
+                ],
+                toDOM: this.#createMnemonicElement.bind(this),
             });
         }
 
@@ -493,6 +570,21 @@ class RteField extends LitElement {
         return icon;
     }
 
+    #createMnemonicElement(node) {
+        const span = document.createElement('span');
+        span.setAttribute('class', 'mnemonic');
+        if (node.attrs.src) {
+            const merchIcon = document.createElement('merch-icon');
+            merchIcon.setAttribute('src', node.attrs.src);
+            merchIcon.setAttribute('size', node.attrs.size || 'xs');
+            if (node.attrs.alt) {
+                merchIcon.setAttribute('alt', node.attrs.alt);
+            }
+            span.appendChild(merchIcon);
+        }
+        return span;
+    }
+
     #createInlinePriceElement(node) {
         const element = document.createElement('span', {
             is: CUSTOM_ELEMENT_INLINE_PRICE,
@@ -560,6 +652,15 @@ class RteField extends LitElement {
                     a.setAttribute('is', CUSTOM_ELEMENT_CHECKOUT_LINK);
                 }
             });
+            
+            // Ensure merch-icon elements inside spans are properly recognized
+            container.querySelectorAll('span merch-icon').forEach((icon) => {
+                const span = icon.parentElement;
+                if (!span.classList.contains('mnemonic')) {
+                    span.classList.add('mnemonic');
+                }
+            });
+            
             const parser = DOMParser.fromSchema(this.#editorSchema);
             const doc = parser.parse(container);
             const tr = this.editorView.state.tr.replaceWith(
@@ -760,7 +861,14 @@ class RteField extends LitElement {
     }
 
     #handleEscKey(event) {
-        if (!this.showLinkEditor && !this.showIconEditor) return;
+        if (
+            !this.showLinkEditor &&
+            !this.showIconEditor &&
+            !this.showMnemonicEditor
+        ) {
+            return;
+        }
+
         // Handle ESC key at the RteField level
         if (event.key === 'Escape') {
             event.stopPropagation(); // Stop propagation here
@@ -769,6 +877,9 @@ class RteField extends LitElement {
                 this.requestUpdate();
             } else if (this.showIconEditor) {
                 this.showIconEditor = false;
+                this.requestUpdate();
+            } else if (this.showMnemonicEditor) {
+                this.showMnemonicEditor = false;
                 this.requestUpdate();
             }
             closeOfferSelectorTool();
@@ -1002,12 +1113,27 @@ class RteField extends LitElement {
         ></rte-icon-editor>`;
     }
 
+    get mnemonicEditor() {
+        if (!this.showMnemonicEditor) return nothing;
+        return html`<rte-mnemonic-editor
+            dialog
+            @save="${this.#boundHandlers.mnemonicSave}"
+            @close="${() => {
+                this.showMnemonicEditor = false;
+            }}"
+        ></rte-mnemonic-editor>`;
+    }
+
     get linkEditorElement() {
         return this.shadowRoot.querySelector('rte-link-editor');
     }
 
     get iconEditorElement() {
         return this.shadowRoot.querySelector('rte-icon-editor');
+    }
+
+    get mnemonicEditorElement() {
+        return this.shadowRoot.querySelector('rte-mnemonic-editor');
     }
 
     render() {
@@ -1017,7 +1143,7 @@ class RteField extends LitElement {
                 ${this.#formatButtons} ${this.#listButtons}
                 ${this.#linkEditorButton} ${this.#unlinkEditorButton}
                 ${this.#offerSelectorToolButton} ${this.#iconsButton}
-                ${this.#uptLinkButton}
+                ${this.#mnemonicButton} ${this.#uptLinkButton}
             </sp-action-group>
             <div id="editor"></div>
             <p id="counter">
@@ -1025,7 +1151,7 @@ class RteField extends LitElement {
                     >${this.length}</span
                 >/${this.maxLength}
             </p>
-            ${this.linkEditor} ${this.iconEditor}
+            ${this.linkEditor} ${this.iconEditor} ${this.mnemonicEditor}
         `;
     }
 
@@ -1039,6 +1165,20 @@ class RteField extends LitElement {
                 title="Add Icon"
             >
                 <sp-icon-info slot="icon"></sp-icon-info>
+            </sp-action-button>
+        `;
+    }
+
+    get #mnemonicButton() {
+        if (!this.mnemonic) return nothing;
+        return html`
+            <sp-action-button
+                emphasized
+                id="addMnemonicButton"
+                @click=${this.openMnemonicEditor}
+                title="Add Icon"
+            >
+                <sp-icon-image slot="icon"></sp-icon-image>
             </sp-action-button>
         `;
     }
@@ -1119,6 +1259,33 @@ class RteField extends LitElement {
                 <sp-icon-text-bulleted slot="icon"></sp-icon-text-bulleted>
             </sp-action-button>
         `;
+    }
+
+    #handleMnemonicSave(event) {
+        const { imageUrl, altText } = event.detail;
+        const { state, dispatch } = this.editorView;
+        const { selection } = state;
+
+        // Create a new mnemonic node with the provided image URL
+        const node = state.schema.nodes.mnemonic.create({
+            src: imageUrl,
+            alt: altText || '',
+            size: 'xs',
+        });
+
+        // Insert the node at the current selection
+        const tr = selection.empty
+            ? state.tr.insert(selection.from, node)
+            : state.tr.replaceWith(selection.from, selection.to, node);
+
+        dispatch(tr);
+        this.showMnemonicEditor = false;
+    }
+
+    async openMnemonicEditor() {
+        this.showMnemonicEditor = true;
+        await this.updateComplete;
+        Object.assign(this.mnemonicEditorElement, { open: true });
     }
 }
 

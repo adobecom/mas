@@ -486,7 +486,7 @@ class MerchCardEditor extends LitElement {
                     label="Plan Type text"
                     data-field="showPlanType"
                     value="${form.showPlanType?.values[0]}"
-                    @change="${this.updateFragment}"
+                    @change="${this.#handleFragmentUpdate}"
                 >
                 </mas-plan-type-field>
             </sp-field-group>

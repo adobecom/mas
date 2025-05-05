@@ -9,6 +9,7 @@ import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 import '../rte/osi-field.js';
 import { CARD_MODEL_PATH } from '../constants.js';
 import '../fields/secure-text-field.js';
+import '../fields/plan-type-field.js';
 
 const merchCardCustomElementPromise = customElements.whenDefined('merch-card');
 
@@ -315,13 +316,15 @@ class MerchCardEditor extends LitElement {
                 </mas-multifield>
             </sp-field-group>
             <sp-field-group class="toggle" id="whatsIncluded">
-                <sp-field-label for="whatsIncludedLabel">What's included</sp-field-label>
+                <sp-field-label for="whatsIncludedLabel"
+                    >What's included</sp-field-label
+                >
                 <sp-textfield
                     id="whatsIncludedLabel"
                     placeholder="Enter the label text"
                     value="${this.whatsIncluded.label}"
                     @input="${this.#updateWhatsIncluded}"
-                ></sp-textfield>                
+                ></sp-textfield>
                 <mas-multifield
                     .value="${this.whatsIncluded.values}"
                     @change="${this.#updateWhatsIncluded}"
@@ -330,7 +333,7 @@ class MerchCardEditor extends LitElement {
                     <template>
                         <mas-included-field></mas-included-field>
                     </template>
-                </mas-multifield>                
+                </mas-multifield>
             </sp-field-group>
             <sp-field-group class="toggle" id="badge">
                 <sp-field-label for="card-badge">Badge</sp-field-label>
@@ -438,14 +441,24 @@ class MerchCardEditor extends LitElement {
                 >
             </sp-field-group>
             <sp-field-group id="secureLabel" class="toggle">
-            <secure-text-field
-                id="secure-text-field"
-                label="Secure Transaction Label"
-                data-field="showSecureLabel"
-                value="${form.showSecureLabel?.values[0]}"
-                @change="${this.updateFragment}"
-            >
-            </secure-text-field>
+                <secure-text-field
+                    id="secure-text-field"
+                    label="Secure Transaction Label"
+                    data-field="showSecureLabel"
+                    value="${form.showSecureLabel?.values[0]}"
+                    @change="${this.updateFragment}"
+                >
+                </secure-text-field>
+            </sp-field-group>
+            <sp-field-group id="planType" class="toggle">
+                <mas-plan-type-field
+                    id="plan-type-field"
+                    label="Plan Type text"
+                    data-field="showPlanType"
+                    value="${form.showPlanType?.values[0]}"
+                    @change="${this.updateFragment}"
+                >
+                </mas-plan-type-field>
             </sp-field-group>
             <sp-field-group class="toggle" id="stockOffer">
                 <sp-checkbox

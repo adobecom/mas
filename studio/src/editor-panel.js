@@ -240,11 +240,11 @@ export default class EditorPanel extends LitElement {
                     ${authorPath}
                 </a>
             `;
-        return [code, richText, href];
+        return { authorPath, code, richText, href };
     }
 
     async copyToUse() {
-        const [code, richText, href] = this.generateCodeToUse();
+        const { code, richText, href } = this.generateCodeToUse();
         if (!code || !richText || !href) return;
 
         try {
@@ -645,7 +645,7 @@ export default class EditorPanel extends LitElement {
     }
 
     get authorPath() {
-        return this.generateCodeToUse()[2];
+        return this.generateCodeToUse().authorPath;
     }
 
     render() {

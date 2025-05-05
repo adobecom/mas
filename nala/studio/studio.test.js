@@ -398,27 +398,16 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-3: Validate fields rendering', async () => {
-            await expect(
-                await editor.panel.locator(editor.variant),
-            ).toBeVisible();
-            await expect(
-                await editor.panel.locator(editor.variant),
-            ).toHaveAttribute('default-value', 'ah-promoted-plans');
-            await expect(
-                await editor.panel.locator(studio.editorTitle),
-            ).toBeVisible();
-            await expect(
-                await editor.panel.locator(editor.description),
-            ).toBeVisible();
-            await expect(
-                await editor.panel.locator(editor.borderColor),
-            ).toBeVisible();
-            await expect(
-                await editor.panel.locator(editor.prices),
-            ).toBeVisible();
-            await expect(
-                await editor.panel.locator(editor.footer),
-            ).toBeVisible();
+            await expect(await editor.variant).toBeVisible();
+            await expect(await editor.variant).toHaveAttribute(
+                'default-value',
+                'ah-promoted-plans',
+            );
+            await expect(await editor.title).toBeVisible();
+            await expect(await editor.description).toBeVisible();
+            await expect(await editor.borderColor).toBeVisible();
+            await expect(await editor.prices).toBeVisible();
+            await expect(await editor.footer).toBeVisible();
         });
     });
 
@@ -445,11 +434,9 @@ test.describe('M@S Studio feature test suite', () => {
             ).dblclick();
             await expect(await editor.panel).toBeVisible();
 
-            await expect(
-                await editor.panel.locator(editor.borderColor),
-            ).toBeVisible();
+            await expect(await editor.borderColor).toBeVisible();
 
-            await editor.panel.locator(editor.borderColor).click();
+            await editor.borderColor.click();
             await page
                 .getByRole('option', { name: data.gradientBorderColor })
                 .click();

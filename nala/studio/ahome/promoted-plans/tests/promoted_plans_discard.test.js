@@ -54,9 +54,7 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
         await test.step('step-3: Verify current title', async () => {
             await expect(await promotedplans.cardTitle).toBeVisible();
             await expect(await promotedplans.cardTitle).toHaveText(data.title);
-            await expect(await editor.title).toHaveValue(
-                data.title,
-            );
+            await expect(await editor.title).toHaveValue(data.title);
         });
 
         await test.step('step-4: Update the title', async () => {
@@ -157,7 +155,9 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
         });
 
         await test.step('step-3: Edit CTA variant', async () => {
-            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
+            await expect(
+                await editor.footer.locator(editor.linkEdit),
+            ).toBeVisible();
             await expect(await editor.CTA.nth(2)).toBeVisible();
             await expect(await editor.CTA.nth(2)).toHaveClass(data.variant);
             await editor.CTA.nth(1).click();
@@ -196,7 +196,9 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
             await editor.closeEditor.click();
             await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.confirmationDialog.locator(studio.discardDialog).click();
+            await studio.confirmationDialog
+                .locator(studio.discardDialog)
+                .click();
             await expect(await editor.panel).not.toBeVisible();
         });
 

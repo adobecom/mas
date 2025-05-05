@@ -134,7 +134,10 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
 
         await test.step('step-3: Verify current variant', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-promoted-plans');
+            await expect(await editor.variant).toHaveAttribute(
+                'default-value',
+                'ah-promoted-plans',
+            );
         });
 
         // This test verifies that the variant value is displayed correctly

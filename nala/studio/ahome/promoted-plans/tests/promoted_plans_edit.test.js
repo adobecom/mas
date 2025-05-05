@@ -56,7 +56,6 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
 
         await test.step('step-3: Validate fields rendering', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-promoted-plans');
             await expect(await editor.size).toBeVisible();
             await expect(await editor.title).toBeVisible();
             await expect(await editor.description).toBeVisible();
@@ -96,9 +95,7 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             await expect(await editor.title).toBeVisible();
             await editor.title.click();
             await page.waitForTimeout(2000);
-            await expect(await editor.title).toHaveValue(
-                data.oldTitle,
-            );
+            await expect(await editor.title).toHaveValue(data.oldTitle);
             await editor.title.fill(data.updatedTitle);
             await page.waitForTimeout(2000);
         });

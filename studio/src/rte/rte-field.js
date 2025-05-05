@@ -1,5 +1,10 @@
 import { LitElement, html, nothing, css } from 'lit';
-import { EditorState, NodeSelection } from 'prosemirror-state';
+import {
+    EditorState,
+    NodeSelection,
+    Plugin,
+    TextSelection,
+} from 'prosemirror-state';
 import { Schema, DOMParser, DOMSerializer } from 'prosemirror-model';
 import { EditorView } from 'prosemirror-view';
 import { keymap } from 'prosemirror-keymap';
@@ -79,6 +84,71 @@ class LinkNodeView {
 
     deselectNode() {
         this.dom.classList.remove('ProseMirror-selectednode');
+    }
+}
+
+class MnemonicNodeView {
+    constructor(node, view, getPos) {
+        this.node = node;
+        this.view = view;
+        this.getPos = getPos;
+
+        this.dom = document.createElement('span');
+        this.dom.classList.add('mnemonic');
+
+        if (node.attrs.src) {
+            const merchIcon = document.createElement('merch-icon');
+            merchIcon.setAttribute('src', node.attrs.src);
+            merchIcon.setAttribute('size', node.attrs.size || 'xs');
+            if (node.attrs.alt) {
+                merchIcon.setAttribute('alt', node.attrs.alt);
+            }
+            this.dom.appendChild(merchIcon);
+        }
+    }
+
+    update(node) {
+        if (node.type !== this.node.type) return false;
+        this.node = node;
+
+        const merchIcon = this.dom.querySelector('merch-icon');
+        if (merchIcon && node.attrs.src) {
+            merchIcon.setAttribute('src', node.attrs.src || '');
+            merchIcon.setAttribute('size', node.attrs.size || 'xs');
+            if (node.attrs.alt) {
+                merchIcon.setAttribute('alt', node.attrs.alt);
+            }
+        } else if (node.attrs.src && !merchIcon) {
+            // Re-create icon if needed
+            const newIcon = document.createElement('merch-icon');
+            newIcon.setAttribute('src', node.attrs.src);
+            newIcon.setAttribute('size', node.attrs.size || 'xs');
+            if (node.attrs.alt) {
+                newIcon.setAttribute('alt', node.attrs.alt);
+            }
+            // Clear any existing content
+            while (this.dom.firstChild) {
+                this.dom.removeChild(this.dom.firstChild);
+            }
+            this.dom.appendChild(newIcon);
+        }
+        return true;
+    }
+
+    selectNode() {
+        if (this.dom) {
+            this.dom.classList.add('ProseMirror-selectednode');
+        }
+    }
+
+    deselectNode() {
+        if (this.dom) {
+            this.dom.classList.remove('ProseMirror-selectednode');
+        }
+    }
+
+    ignoreMutation() {
+        return true;
     }
 }
 
@@ -235,9 +305,11 @@ class RteField extends LitElement {
                 }
 
                 .ProseMirror span.mnemonic {
-                    display: flex;
+                    display: inline-flex;
                     align-items: center;
                     vertical-align: middle;
+                    margin: 0 2px;
+                    line-height: normal;
                 }
 
                 .ProseMirror span.mnemonic merch-icon {
@@ -245,6 +317,20 @@ class RteField extends LitElement {
                     width: 20px;
                     height: 20px;
                     vertical-align: text-bottom;
+                }
+
+                .ProseMirror span.mnemonic-text {
+                    display: inline;
+                    color: #2c2c2c;
+                    font-size: 12px;
+                    margin-left: 2px;
+                    margin-right: 4px;
+                    padding: 0 2px;
+                    vertical-align: middle;
+                }
+
+                .ProseMirror span.mnemonic + span.mnemonic-text {
+                    margin-left: 0;
                 }
 
                 .ProseMirror span.mnemonic img {
@@ -261,7 +347,7 @@ class RteField extends LitElement {
                     outline-offset: 2px;
                     border-radius: 16px;
                 }
-                
+
                 div.ProseMirror-focused span.mnemonic.ProseMirror-selectednode {
                     outline: 2px dashed var(--spectrum-global-color-blue-500);
                     outline-offset: 2px;
@@ -284,6 +370,24 @@ class RteField extends LitElement {
                 div.ProseMirror ul {
                     margin: 0;
                     padding-left: 24px;
+                }
+
+                .ProseMirror {
+                    position: relative;
+                    word-wrap: break-word;
+                    white-space: pre-wrap;
+                    white-space: break-spaces;
+                    -webkit-font-variant-ligatures: none;
+                    font-variant-ligatures: none;
+                    font-feature-settings: 'liga' 0;
+                }
+
+                .ProseMirror p {
+                    margin-top: 1em;
+                }
+
+                .ProseMirror p:first-child {
+                    margin-top: 0;
                 }
             `,
             prosemirrorStyles,
@@ -428,7 +532,8 @@ class RteField extends LitElement {
                                 return {
                                     src: merchIcon.getAttribute('src'),
                                     alt: merchIcon.getAttribute('alt'),
-                                    size: merchIcon.getAttribute('size') || 'xs',
+                                    size:
+                                        merchIcon.getAttribute('size') || 'xs',
                                     class: dom.getAttribute('class'),
                                 };
                             }
@@ -448,7 +553,21 @@ class RteField extends LitElement {
                         },
                     },
                 ],
-                toDOM: this.#createMnemonicElement.bind(this),
+                toDOM: (node) => {
+                    const span = document.createElement('span');
+                    span.setAttribute('class', 'mnemonic');
+
+                    if (node.attrs.src) {
+                        const merchIcon = document.createElement('merch-icon');
+                        merchIcon.setAttribute('src', node.attrs.src);
+                        merchIcon.setAttribute('size', node.attrs.size || 'xs');
+                        if (node.attrs.alt) {
+                            merchIcon.setAttribute('alt', node.attrs.alt);
+                        }
+                        span.appendChild(merchIcon);
+                    }
+                    return span;
+                },
             });
         }
 
@@ -500,6 +619,13 @@ class RteField extends LitElement {
                     parseDOM: [{ tag: 'u' }],
                     toDOM: () => ['u', 0],
                 },
+                mnemonicText: {
+                    parseDOM: [{ tag: 'span.mnemonic-text' }],
+                    toDOM: () => ['span', { class: 'mnemonic-text' }, 0],
+                    spanning: false,
+                    inclusive: false,
+                    excludes: '_'
+                },
             });
 
         if (this.inline) {
@@ -537,6 +663,7 @@ class RteField extends LitElement {
                 }),
             }),
             keymap(baseKeymap),
+            this.#createMnemonicTextPlugin(),
         ];
 
         return EditorState.create({
@@ -546,10 +673,120 @@ class RteField extends LitElement {
         });
     }
 
+    #createMnemonicTextPlugin() {
+        return new Plugin({
+            appendTransaction: (transactions, oldState, newState) => {
+                if (!transactions.some((tr) => tr.docChanged)) return null;
+
+                const tr = newState.tr;
+                let modified = false;
+
+                newState.doc.forEach((node, pos) => {
+                    if (node.type.name !== 'paragraph') return;
+
+                    let textRanges = [];
+                    let currentMnemonicTextRange = null;
+
+                    node.content.forEach((child, offset) => {
+                        const absPos = pos + 1 + offset;
+
+                        if (child.type.name === 'mnemonic') {
+                            if (currentMnemonicTextRange) {
+                                currentMnemonicTextRange.to = absPos;
+                                textRanges.push(currentMnemonicTextRange);
+                                currentMnemonicTextRange = null;
+                            }
+
+                            currentMnemonicTextRange = {
+                                from: absPos + child.nodeSize,
+                                to: null,
+                            };
+                        } else if (child.isBlock || 
+                            child.isText && child.text.includes('\n')) {
+                            if (currentMnemonicTextRange) {
+                                currentMnemonicTextRange.to = absPos;
+                                textRanges.push(currentMnemonicTextRange);
+                                currentMnemonicTextRange = null;
+                            }
+                        }
+                    });
+
+                    if (currentMnemonicTextRange) {
+                        currentMnemonicTextRange.to = pos + node.nodeSize - 1;
+                        textRanges.push(currentMnemonicTextRange);
+                    }
+
+                    textRanges.forEach((range) => {
+                        if (range.from < range.to) {
+                            tr.addMark(
+                                range.from,
+                                range.to,
+                                newState.schema.marks.mnemonicText.create(),
+                            );
+                            modified = true;
+                        }
+                    });
+                });
+
+                return modified ? tr : null;
+            },
+
+            props: {
+                handleKeyDown: (view, event) => {
+                    if (
+                        event.ctrlKey ||
+                        event.metaKey ||
+                        event.key.length > 1
+                    ) {
+                        return false;
+                    }
+
+                    const { state } = view;
+                    const { selection } = state;
+                    const { $from } = selection;
+
+                    const node = $from.nodeBefore;
+                    const isPrecedingMnemonic =
+                        node && node.type.name === 'mnemonic';
+
+                    const marks = $from.marks();
+                    const hasMnemonicTextMark = marks.some(
+                        (mark) => mark.type.name === 'mnemonicText',
+                    );
+
+                    if (isPrecedingMnemonic || hasMnemonicTextMark) {
+                        const tr = state.tr.insertText(
+                            event.key,
+                            selection.from,
+                        );
+                        const mark = state.schema.marks.mnemonicText.create();
+                        const markRange = {
+                            from: selection.from,
+                            to: selection.from + 1,
+                        };
+                        tr.addMark(markRange.from, markRange.to, mark);
+                        tr.setSelection(
+                            TextSelection.create(tr.doc, selection.from + 1),
+                        );
+                        view.dispatch(tr);
+                        return true;
+                    }
+
+                    return false;
+                },
+            },
+        });
+    }
+
     #collectDataAttributes(dom) {
         const attrs = {};
         for (const name of dom.getAttributeNames()) {
-            if (attributeFilter(name)) {
+            if (
+                attributeFilter(name) ||
+                name === 'src' ||
+                name === 'alt' ||
+                name === 'size'
+            ) {
                 const value = dom.getAttribute(name);
                 if (value === null) continue;
                 attrs[name] = value;
@@ -568,21 +805,6 @@ class RteField extends LitElement {
             icon.setAttribute('title', tooltipText);
         }
         return icon;
-    }
-
-    #createMnemonicElement(node) {
-        const span = document.createElement('span');
-        span.setAttribute('class', 'mnemonic');
-        if (node.attrs.src) {
-            const merchIcon = document.createElement('merch-icon');
-            merchIcon.setAttribute('src', node.attrs.src);
-            merchIcon.setAttribute('size', node.attrs.size || 'xs');
-            if (node.attrs.alt) {
-                merchIcon.setAttribute('alt', node.attrs.alt);
-            }
-            span.appendChild(merchIcon);
-        }
-        return span;
     }
 
     #createInlinePriceElement(node) {
@@ -632,6 +854,8 @@ class RteField extends LitElement {
             nodeViews: {
                 link: (node, view, getPos) =>
                     new LinkNodeView(node, view, getPos),
+                mnemonic: (node, view, getPos) =>
+                    new MnemonicNodeView(node, view, getPos),
             },
         });
 
@@ -652,15 +876,26 @@ class RteField extends LitElement {
                     a.setAttribute('is', CUSTOM_ELEMENT_CHECKOUT_LINK);
                 }
             });
-            
-            // Ensure merch-icon elements inside spans are properly recognized
+
+            // Process mnemonic elements
             container.querySelectorAll('span merch-icon').forEach((icon) => {
                 const span = icon.parentElement;
                 if (!span.classList.contains('mnemonic')) {
                     span.classList.add('mnemonic');
                 }
+                if (span.classList.contains('mnemonic-text')) {
+                    span.classList.remove('mnemonic-text');
+                }
             });
             
+            // Clean up mnemonic-text elements
+            container.querySelectorAll('span.mnemonic-text').forEach((span) => {
+                if (span.querySelector('merch-icon')) {
+                    span.classList.remove('mnemonic-text');
+                    span.classList.add('mnemonic');
+                }
+            });
+
             const parser = DOMParser.fromSchema(this.#editorSchema);
             const doc = parser.parse(container);
             const tr = this.editorView.state.tr.replaceWith(
@@ -962,7 +1197,9 @@ class RteField extends LitElement {
     }
 
     #updateLength() {
-        this.length = this.editorView.dom.innerText.length;
+        if (this.editorView && this.editorView.dom) {
+            this.length = this.editorView.dom.innerText.length;
+        }
     }
 
     #addUptLink() {
@@ -1176,7 +1413,7 @@ class RteField extends LitElement {
                 emphasized
                 id="addMnemonicButton"
                 @click=${this.openMnemonicEditor}
-                title="Add Icon"
+                title="Add Inline Icon"
             >
                 <sp-icon-image slot="icon"></sp-icon-image>
             </sp-action-button>

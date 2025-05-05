@@ -107,7 +107,8 @@ class RteMnemonicEditor extends LitElement {
     get #editor() {
         return html`
             <sp-dialog close=${this.#handleClose}>
-                <h2 slot="heading">Add Icon</h2>
+                <h2 slot="heading">Add Inline Icon</h2>
+                <p>Add an icon that will appear inline with your text</p>
                 <form @submit=${this.#handleSubmit}>
                     <div class="form-field">
                         <sp-field-label for="imageUrl" required>

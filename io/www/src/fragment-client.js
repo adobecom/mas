@@ -4,12 +4,12 @@
  */
 
 // Import the modules
-import { fetchFragment } from './fragment/fetch.js';
-import { replace } from './fragment/replace.js';
-import { settings } from './fragment/settings.js';
-import { logError } from './fragment/common.js';
+const { fetchFragment } = require('./fragment/fetch.js');
+const { replace } = require('./fragment/replace.js');
+const { settings } = require('./fragment/settings.js');
+const { logError } = require('./fragment/common.js');
 
-export async function previewFragment(id, options) {
+async function previewFragment(id, options) {
     const {
         surface,
         locale = 'en_US',
@@ -45,3 +45,5 @@ export async function previewFragment(id, options) {
     }
     return context.body;
 }
+
+module.exports = { previewFragment };

@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const { transformBody } = require('./odinSchemaTransform.js');
 
 function logPrefix(context, type = 'info') {
     return `[${type}][${context.api_key}][${context.requestId}][${context.transformer}]`;
@@ -24,6 +25,7 @@ async function getErrorContext(response) {
         message: await getErrorMessage(response),
     };
 }
+
 async function getErrorMessage(response) {
     let message = 'nok';
     try {
@@ -33,102 +35,11 @@ async function getErrorMessage(response) {
     return message;
 }
 
-const CF_REFERENCE_FIELDS = ['cards', 'collections', 'entries'];
-const REFERENCE_FIELDS = [...CF_REFERENCE_FIELDS, 'tags'];
-
-function transformFields(body) {
-    const { fields, id, tags, references } = body;
-    const pathToIdMap = {};
-    if (references) {
-        references.forEach((reference) => {
-            const { type, path, id } = reference;
-            if (type === 'content-fragment') {
-                pathToIdMap[path] = id;
-            }
-        });
-    }
-    const transformedBody = fields.reduce(
-        (acc, { name, multiple, values }) => {
-            acc.fields[name] = multiple ? values : values[0];
-            if (CF_REFERENCE_FIELDS.includes(name)) {
-                acc.fields[name] = values.map((value) => {
-                    if (typeof value === 'string') {
-                        return pathToIdMap[value] || value;
-                    }
-                    return value;
-                });
-            }
-            return acc;
-        },
-        { fields: {}, id, tags, references },
-    );
-    return transformedBody;
-}
-
-function collectReferences(fields, references) {
-    if (!fields) return [];
-    const referencesTree = [];
-    for (const [fieldName, fieldValue] of Object.entries(fields)) {
-        // Handle array of references (like cards or collections)
-        if (REFERENCE_FIELDS.includes(fieldName) && Array.isArray(fieldValue)) {
-            fieldValue.forEach((id) => {
-                if (references[id]) {
-                    const ref = {
-                        fieldName,
-                        identifier: id,
-                        referencesTree: [],
-                    };
-                    const nestedRef = references[id];
-                    if (nestedRef.type === 'content-fragment') {
-                        ref.referencesTree = collectReferences(
-                            nestedRef.value.fields,
-                            references,
-                        );
-                    }
-                    referencesTree.push(ref);
-                }
-            });
-        }
-    }
-    return referencesTree;
-}
-
-function transformReferences(body) {
-    if (!body.references) return body;
-    const { references } = body;
-    body.references = references?.reduce((acc, ref) => {
-        const fields = ref.fields.reduce((fieldAcc, field) => {
-            if (field.name === 'key' || field.name === 'value') {
-                fieldAcc[field.name] = field.values[0];
-            } else if (field.name === 'richTextValue') {
-                fieldAcc[field.name] = {
-                    mimeType: field.mimeType || 'text/html',
-                };
-            }
-            return fieldAcc;
-        }, {});
-
-        acc[ref.id] = {
-            type: ref.type,
-            value: {
-                name: ref.name || '',
-                id: ref.id,
-                model: { id: ref.model.id },
-                fields,
-            },
-        };
-        return acc;
-    }, {});
-    body.referencesTree = collectReferences(body.fields, body.references);
-    return body;
-}
-
 async function computeBody(response, context) {
     let body = await response.json();
     if (context.preview && Array.isArray(body.fields)) {
         log('massaging old school schema for preview', context);
-        body = transformFields(body);
-        body = transformReferences(body);
+        body = transformBody(body);
     }
     return body;
 }
@@ -174,5 +85,4 @@ module.exports = {
     log,
     logDebug,
     logError,
-    collectReferences,
 };

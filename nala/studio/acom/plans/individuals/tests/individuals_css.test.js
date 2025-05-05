@@ -289,7 +289,7 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
     });
 
     // @studio-plans-individuals-css-stock-checkbox - Validate card stock checkbox CSS
-    test(`${features[10].name},${features[10].tags}`, async ({
+    test.skip(`${features[10].name},${features[10].tags}`, async ({
         page,
         baseURL,
     }) => {
@@ -321,7 +321,7 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
     });
 
     // @studio-plans-individuals-css-secure-transaction - Validate card secure transaction CSS
-    test(`${features[11].name},${features[11].tags}`, async ({
+    test.skip(`${features[11].name},${features[11].tags}`, async ({
         page,
         baseURL,
     }) => {

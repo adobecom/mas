@@ -2,107 +2,127 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { PAGE_NAMES } from '../../src/constants.js';
-import { initializeStoreFromUrl, linkStoreToHash } from '../../src/router.js';
+import { Router } from '../../src/router.js';
 import { ReactiveStore } from '../../src/reactivity/reactive-store.js';
+import { delay } from '../utils.js';
 
-describe('Router URL parameter handling', () => {
+describe('Router URL parameter handling', async () => {
     let sandbox;
-    let originalURLSearchParams;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
-        originalURLSearchParams = window.URLSearchParams;
     });
 
     afterEach(() => {
         sandbox.restore();
-        window.URLSearchParams = originalURLSearchParams;
     });
 
-    it('should initialize store from URL parameters', () => {
+    it('should initialize store hash parameters', async () => {
+        const router = new Router({ hash: '#page=placeholders' });
         const pageSetSpy = sandbox.spy(Store.page, 'set');
-        const mockSearchParams = {
-            get: sandbox.stub(),
-            has: sandbox.stub(),
-            entries: sandbox.stub().returns([]),
-            delete: sandbox.stub(),
-        };
-        mockSearchParams.get.withArgs('page').returns('placeholders');
-        mockSearchParams.has.withArgs('query').returns(false);
-        window.URLSearchParams = sandbox.stub().returns(mockSearchParams);
-        initializeStoreFromUrl();
+        router.linkStoreToHash(Store.page, 'page');
         expect(pageSetSpy.calledWith(PAGE_NAMES.PLACEHOLDERS)).to.be.true;
+        expect(router.location.hash).to.equal('#page=placeholders');
     });
 
-    it('should link store to hash parameters', () => {
-        const mockHashParams = {
-            has: sandbox.stub(),
-            get: sandbox.stub(),
-            set: sandbox.stub(),
-            delete: sandbox.stub(),
-            entries: sandbox.stub().returns([
-                ['path', '/content/dam/test'],
-                ['tags', '["tag1","tag2"]'],
-            ]),
-        };
-        mockHashParams.has.withArgs('path').returns(true);
-        mockHashParams.has.withArgs('tags').returns(true);
-        mockHashParams.has.withArgs('query').returns(false);
-        mockHashParams.has.withArgs('page').returns(false);
-        mockHashParams.get.withArgs('path').returns('/content/dam/test');
-        mockHashParams.get.withArgs('tags').returns('["tag1","tag2"]');
-        window.URLSearchParams = sandbox.stub().returns(mockHashParams);
-        sandbox.stub(window.history, 'replaceState');
-        const testStore = new ReactiveStore({});
-        linkStoreToHash(testStore, ['path', 'tags']);
-        expect(testStore.get()).to.deep.include({
+    it('should link store with a dot in the key to hash parameters', async () => {
+        const router = new Router({ hash: '#commerce.env=stage' });
+        const testStore = new ReactiveStore();
+        router.linkStoreToHash(testStore, 'commerce.env');
+        expect(testStore.get()).to.equal('stage');
+    });
+
+    it('should link store to hash parameters', async () => {
+        const router = new Router({
+            hash: '#path=/content/dam/test&tags=tag1%2Ctag2',
+        });
+        router.start();
+        expect(Store.search.get()).to.deep.include({
             path: '/content/dam/test',
-            tags: ['tag1', 'tag2'],
+        });
+        expect(Store.filters.get()).to.deep.include({
+            tags: 'tag1,tag2',
         });
     });
 
-    it('should update hash when store values change', () => {
-        const mockHashParams = {
-            has: sandbox.stub().returns(false),
-            get: sandbox.stub(),
-            set: sandbox.stub(),
-            delete: sandbox.stub(),
-            entries: sandbox.stub().returns([['test', 'updated']]),
-            toString: sandbox.stub().returns('test=updated'),
-        };
-        window.URLSearchParams = sandbox.stub().returns(mockHashParams);
-        const replaceStateStub = sandbox.stub(window.history, 'replaceState');
-        const testStore = new ReactiveStore({ test: 'initial' });
-        linkStoreToHash(testStore, 'test');
-        testStore.set({ test: 'updated' });
-        expect(replaceStateStub.called).to.be.true;
-        expect(mockHashParams.set.called).to.be.true;
+    it('should update hash when store values change', async () => {
+        const router = new Router({
+            pathname: '/',
+            search: '',
+            hash: '#test=initial',
+        });
+        router.start();
+        const testStore = new ReactiveStore();
+        router.linkStoreToHash(testStore, 'test');
+        expect(testStore.get()).to.equal('initial');
+        testStore.set('updated');
+        await delay(60);
+        expect(router.location.hash).to.equal('test=updated');
     });
 
-    it('should set page parameter to content when query parameter exists', () => {
-        const mockHashParams = {
-            has: sandbox.stub(),
-            get: sandbox.stub(),
-            set: sandbox.stub(),
-            delete: sandbox.stub(),
-            entries: () => [['query', 'test-query']],
-            toString: () => 'query=test-query',
-        };
-        mockHashParams.has.withArgs('query').returns(true);
-        mockHashParams.has.withArgs('page').returns(false);
-        
-        window.URLSearchParams = sandbox.stub().returns(mockHashParams);
-        sandbox.stub(window.history, 'replaceState');
-        
-        const testStore = new ReactiveStore({ query: null });
-        testStore.subscribe = (callback) => {
-            testStore.callback = callback;
-            return () => {};
-        };
-        
-        linkStoreToHash(testStore, ['query']);
-        testStore.callback({ query: 'test-query' }, { query: null });
-        
-        expect(mockHashParams.set.calledWith('page', PAGE_NAMES.CONTENT)).to.be.true;
+    it('should set page parameter to content when query parameter exists', async () => {
+        const router = new Router({ hash: '#page=content' });
+        router.start();
+        expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
+    });
+
+    it('should use default values when parameters are not in hash', async () => {
+        const router = new Router({ hash: '' });
+        const testStore = new ReactiveStore();
+        router.linkStoreToHash(testStore, 'param', 'defaultValue');
+        await delay(60);
+        expect(router.location.hash).to.equal('');
+        expect(testStore.get()).to.equal('defaultValue');
+    });
+
+    it('should remove hash parameters when store value is undefined', async () => {
+        const router = new Router({
+            pathname: '/',
+            search: '',
+            hash: '#test=value',
+        });
+        router.start();
+        const testStore = new ReactiveStore('value');
+        router.linkStoreToHash(testStore, 'test');
+        testStore.set(undefined);
+        await delay(60);
+        expect(router.location.hash).to.equal('');
+    });
+
+    it('should handle popstate events', async () => {
+        const router = new Router({
+            pathname: '/',
+            search: '',
+            hash: '#test=initial',
+        });
+        const testStore = new ReactiveStore();
+        const changeEventSpy = sandbox.spy();
+
+        router.addEventListener('change', changeEventSpy);
+        router.linkStoreToHash(testStore, 'test');
+        router.start();
+
+        // Mock hash change via popstate
+        const mockLocation = { hash: '#test=updated' };
+        router.location = mockLocation;
+
+        // Trigger popstate event
+        window.dispatchEvent(new Event('popstate'));
+
+        expect(changeEventSpy.called).to.be.true;
+    });
+
+    it('should initialize all stores in start method', async () => {
+        const router = new Router({ hash: '#page=content&commerce.env=stage' });
+
+        const pageSetSpy = sandbox.spy(Store.page, 'set');
+        const commerceEnvSetSpy = sandbox.spy(Store.commerceEnv, 'set');
+
+        router.start();
+
+        expect(pageSetSpy.called).to.be.true;
+        expect(commerceEnvSetSpy.called).to.be.true;
+        expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
+        expect(Store.commerceEnv.get()).to.equal('stage');
     });
 });

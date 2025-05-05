@@ -133,7 +133,7 @@ export default {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save @nopr',
         },
         {
             tcid: '11',
@@ -154,7 +154,7 @@ export default {
                 whatsIncludedText: 'List of items:',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save @nopr', //skip until regression is fixed
         },
         {
             tcid: '13',

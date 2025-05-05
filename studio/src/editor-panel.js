@@ -186,33 +186,34 @@ export default class EditorPanel extends LitElement {
         const surface = Store.search.value.path?.toUpperCase();
         switch (this.fragment?.model?.path) {
             case CARD_MODEL_PATH:
-                const props =  {
-                        cardTitle: this.fragment?.getField('cardTitle')?.values[0],
-                        variantCode: this.fragment?.getField('variant')?.values[0],
-                        marketSegment: this.fragment?.getTagTitle('market_segment'),
-                        customerSegment: this.fragment?.getTagTitle('customer_segment'),
-                        product: this.fragment?.getTagTitle('mas:product/'),
-                        promotion: this.fragment?.getTagTitle('mas:promotion/'),
-                    };
+                const props = {
+                    cardTitle: this.fragment?.getField('cardTitle')?.values[0],
+                    variantCode: this.fragment?.getField('variant')?.values[0],
+                    marketSegment: this.fragment?.getTagTitle('market_segment'),
+                    customerSegment:
+                        this.fragment?.getTagTitle('customer_segment'),
+                    product: this.fragment?.getTagTitle('mas:product/'),
+                    promotion: this.fragment?.getTagTitle('mas:promotion/'),
+                };
 
-                    VARIANTS.forEach((variant) => {
-                        if (variant.value === props.variantCode) {
-                            props.variantLabel = variant.label;
+                VARIANTS.forEach((variant) => {
+                    if (variant.value === props.variantCode) {
+                        props.variantLabel = variant.label;
                     }
                 });
-                const buildPart = ((part) => { 
-                    if(part) return ` / ${part}`;
+                const buildPart = (part) => {
+                    if (part) return ` / ${part}`;
                     return '';
-                });
+                };
                 fragmentParts = `${surface}${buildPart(props.variantLabel)}${buildPart(props.customerSegment)}${buildPart(props.marketSegment)}${buildPart(props.product)}${buildPart(props.promotion)}`;
                 title = props.cardTitle;
-                break;  
+                break;
             case COLLECTION_MODEL_PATH:
                 title = this.fragment?.title;
                 fragmentParts = `${surface} / ${title}`;
                 break;
         }
-        return {fragmentParts, title};
+        return { fragmentParts, title };
     }
 
     showNegativeAlert() {
@@ -223,7 +224,7 @@ export default class EditorPanel extends LitElement {
     }
 
     generateCodeToUse() {
-        const {fragmentParts, title} = this.getFragmentPartsToUse();
+        const { fragmentParts, title } = this.getFragmentPartsToUse();
         const webComponentName =
             MODEL_WEB_COMPONENT_MAPPING[this.fragment?.model?.path];
         if (!webComponentName) {
@@ -233,23 +234,20 @@ export default class EditorPanel extends LitElement {
 
         const code = `<${webComponentName}><aem-fragment fragment="${this.fragment?.id}" title="${title}"></aem-fragment></${webComponentName}>`;
         const authorPath = `${webComponentName}: ${fragmentParts}`;
-        const richText = `
-                <a href="https://mas.adobe.com/studio.html#content-type=${webComponentName}&page=${Store.page.value}&path=${Store.search.value.path}&query=${this.fragment?.id}">
-                    ${authorPath}
-                </a>
-            `;
-        return [code, richText, authorPath];
+        const href = `https://mas.adobe.com/studio.html#content-type=${webComponentName}&page=${Store.page.value}&path=${Store.search.value.path}&query=${this.fragment?.id}`;
+        const richText = `<a href="${href}" target="_blank">${authorPath}</a>`;
+        return { authorPath, code, richText, href };
     }
 
     async copyToUse() {
-        const [code, richText] = this.generateCodeToUse();
-        if (!code || !richText) return;
+        const { code, richText, href } = this.generateCodeToUse();
+        if (!code || !richText || !href) return;
 
         try {
             await navigator.clipboard.write([
                 /* global ClipboardItem */
                 new ClipboardItem({
-                    'text/plain': new Blob([code], { type: 'text/plain' }),
+                    'text/plain': new Blob([href], { type: 'text/plain' }),
                     'text/html': new Blob([richText], { type: 'text/html' }),
                 }),
             ]);
@@ -643,7 +641,7 @@ export default class EditorPanel extends LitElement {
     }
 
     get authorPath() {
-        return this.generateCodeToUse()[2];
+        return this.generateCodeToUse().authorPath;
     }
 
     render() {

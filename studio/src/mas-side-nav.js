@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import { navigateToPage } from './router.js';
+import router from './router.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import { PAGE_NAMES } from './constants.js';
@@ -81,7 +81,7 @@ class MasSideNav extends LitElement {
                 <sp-sidenav-item
                     label="Home"
                     value="home"
-                    @click="${navigateToPage(PAGE_NAMES.WELCOME)}"
+                    @click="${router.navigateToPage(PAGE_NAMES.WELCOME)}"
                     ?selected=${Store.page.get() === PAGE_NAMES.WELCOME}
                 >
                     <sp-icon-home slot="icon"></sp-icon-home>
@@ -89,7 +89,7 @@ class MasSideNav extends LitElement {
                 <sp-sidenav-item
                     label="Content"
                     value="content"
-                    @click="${navigateToPage(PAGE_NAMES.CONTENT)}"
+                    @click="${router.navigateToPage(PAGE_NAMES.CONTENT)}"
                     ?selected=${Store.page.get() === PAGE_NAMES.CONTENT}
                 >
                     <sp-icon-view-grid slot="icon"></sp-icon-view-grid>
@@ -97,7 +97,7 @@ class MasSideNav extends LitElement {
                 <sp-sidenav-item
                     label="Placeholders"
                     value="placeholders"
-                    @click="${navigateToPage(PAGE_NAMES.PLACEHOLDERS)}"
+                    @click="${router.navigateToPage(PAGE_NAMES.PLACEHOLDERS)}"
                     ?selected=${Store.page.get() === PAGE_NAMES.PLACEHOLDERS}
                 >
                     <sp-icon-cclibrary slot="icon"></sp-icon-cclibrary>

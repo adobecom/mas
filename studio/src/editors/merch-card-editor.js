@@ -9,6 +9,7 @@ import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 import '../rte/osi-field.js';
 import { CARD_MODEL_PATH } from '../constants.js';
 import '../fields/secure-text-field.js';
+import '../fields/plan-type-field.js';
 
 const merchCardCustomElementPromise = customElements.whenDefined('merch-card');
 
@@ -478,6 +479,16 @@ class MerchCardEditor extends LitElement {
                     @change="${this.#handleFragmentUpdate}"
                 >
                 </secure-text-field>
+            </sp-field-group>
+            <sp-field-group id="planType" class="toggle">
+                <mas-plan-type-field
+                    id="plan-type-field"
+                    label="Plan Type text"
+                    data-field="showPlanType"
+                    value="${form.showPlanType?.values[0]}"
+                    @change="${this.updateFragment}"
+                >
+                </mas-plan-type-field>
             </sp-field-group>
             <sp-field-group class="toggle" id="stockOffer">
                 <sp-checkbox

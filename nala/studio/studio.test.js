@@ -47,6 +47,7 @@ test.describe('M@S Studio feature test suite', () => {
     }) => {
         const { data } = features[1];
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
+        const expectedUrl = `${baseURL}${features[1].path}${miloLibs}#page=content&path=nala&query=${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -62,7 +63,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(
                 await studio.getCard(data.cardid, 'suggested'),
             ).toBeVisible();
-            await expect(page).toHaveURL(`${testPage}&page=content&path=nala`);
+            await expect(page).toHaveURL(expectedUrl);
             expect(await studio.folderPicker).toHaveAttribute('value', 'nala');
         });
     });

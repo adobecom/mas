@@ -244,7 +244,7 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
             await expect(originalVariantButton).toBeVisible();
             await originalVariantButton.click();
 
-            await studio.linkSave.click();
+            await editor.linkSave.click();
 
             await page.waitForTimeout(2000);
             await studio.saveCard();

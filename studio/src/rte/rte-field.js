@@ -4,6 +4,12 @@ import { Schema, DOMParser, DOMSerializer } from 'prosemirror-model';
 import { EditorView } from 'prosemirror-view';
 import { keymap } from 'prosemirror-keymap';
 import { schema } from 'prosemirror-schema-basic';
+import {
+    addListNodes,
+    wrapInList,
+    splitListItem,
+    liftListItem,
+} from 'prosemirror-schema-list';
 import { baseKeymap, toggleMark } from 'prosemirror-commands';
 import { history, undo, redo } from 'prosemirror-history';
 import {
@@ -11,7 +17,6 @@ import {
     attributeFilter,
     closeOfferSelectorTool,
 } from './ost.js';
-
 import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
 import throttle from '../utils/throttle.js';
@@ -85,6 +90,7 @@ class RteField extends LitElement {
         link: { type: Boolean, attribute: 'link' },
         icon: { type: Boolean, attribute: 'icon' },
         uptLink: { type: Boolean, attribute: 'upt-link' },
+        list: { type: Boolean, attribute: 'list' },
         isLinkSelected: { type: Boolean, state: true },
         priceSelected: { type: Boolean, state: true },
         readOnly: { type: Boolean, attribute: 'readonly' },
@@ -130,7 +136,8 @@ class RteField extends LitElement {
                     color: var(--spectrum-global-color-red-700);
                 }
 
-                rte-link-editor, rte-icon-editor {
+                rte-link-editor,
+                rte-icon-editor {
                     display: contents;
                 }
 
@@ -206,18 +213,18 @@ class RteField extends LitElement {
                     white-space: nowrap;
                     margin: 0 1px;
                 }
-                
+
                 .ProseMirror .icon-button {
                     position: relative;
                     top: 3px;
                 }
-                
+
                 .ProseMirror .icon-button:before {
                     display: inline-block;
                     content: '';
                     width: 18px;
                     height: 18px;
-                    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 0 18 18" width="18"><defs><style> .fill { fill: %23464646; } </style></defs><title>S Info 18 N</title><rect id="Canvas" fill="%23ff13dc" opacity="0" width="18" height="18" /><path class="fill" d="M9,1a8,8,0,1,0,8,8A8,8,0,0,0,9,1ZM8.85,3.15a1.359,1.359,0,0,1,1.43109,1.28286q.00352.06452.00091.12914A1.332,1.332,0,0,1,8.85,5.9935a1.3525,1.3525,0,0,1-1.432-1.432A1.3585,1.3585,0,0,1,8.72033,3.14907Q8.78516,3.14643,8.85,3.15ZM11,13.5a.5.5,0,0,1-.5.5h-3a.5.5,0,0,1-.5-.5v-1a.5.5,0,0,1,.5-.5H8V9H7.5A.5.5,0,0,1,7,8.5v-1A.5.5,0,0,1,7.5,7h2a.5.5,0,0,1,.5.5V12h.5a.5.5,0,0,1,.5.5Z" /></svg>')
+                    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 0 18 18" width="18"><defs><style> .fill { fill: %23464646; } </style></defs><title>S Info 18 N</title><rect id="Canvas" fill="%23ff13dc" opacity="0" width="18" height="18" /><path class="fill" d="M9,1a8,8,0,1,0,8,8A8,8,0,0,0,9,1ZM8.85,3.15a1.359,1.359,0,0,1,1.43109,1.28286q.00352.06452.00091.12914A1.332,1.332,0,0,1,8.85,5.9935a1.3525,1.3525,0,0,1-1.432-1.432A1.3585,1.3585,0,0,1,8.72033,3.14907Q8.78516,3.14643,8.85,3.15ZM11,13.5a.5.5,0,0,1-.5.5h-3a.5.5,0,0,1-.5-.5v-1a.5.5,0,0,1,.5-.5H8V9H7.5A.5.5,0,0,1,7,8.5v-1A.5.5,0,0,1,7.5,7h2a.5.5,0,0,1,.5.5V12h.5a.5.5,0,0,1,.5.5Z" /></svg>');
                 }
 
                 .price.price-strikethrough {
@@ -242,6 +249,11 @@ class RteField extends LitElement {
                     clip: rect(0, 0, 0, 0);
                     white-space: nowrap;
                     border: 0;
+                }
+
+                div.ProseMirror ul {
+                    margin: 0;
+                    padding-left: 24px;
                 }
             `,
             prosemirrorStyles,
@@ -314,7 +326,10 @@ class RteField extends LitElement {
     }
 
     #initEditorSchema() {
-        let nodes = schema.spec.nodes.addToStart('inlinePrice', {
+        const basicNodes = this.list
+            ? addListNodes(schema.spec.nodes, 'paragraph block*', 'block')
+            : schema.spec.nodes;
+        let nodes = basicNodes.addToStart('inlinePrice', {
             group: 'inline',
             inline: true,
             atom: true,
@@ -354,7 +369,7 @@ class RteField extends LitElement {
                     {
                         tag: '.icon-button',
                         getAttrs: this.#collectDataAttributes,
-                    }
+                    },
                 ],
                 toDOM: this.#createIconElement.bind(this),
             });
@@ -379,6 +394,9 @@ class RteField extends LitElement {
                     title: { default: null },
                     target: { default: null },
                     'data-analytics-id': { default: null },
+                    'data-modal': { default: null },
+                    'data-entitlement': { default: null },
+                    'data-upgrade': { default: null },
                 },
                 parseDOM: [
                     {
@@ -437,6 +455,9 @@ class RteField extends LitElement {
                 'Mod-z': undo,
                 'Mod-y': redo,
                 'Shift-Mod-z': redo,
+                ...(this.list && {
+                    Enter: splitListItem(this.#editorSchema.nodes.list_item),
+                }),
             }),
             keymap(baseKeymap),
         ];
@@ -461,7 +482,8 @@ class RteField extends LitElement {
     }
 
     #createIconElement(node) {
-        const tooltipText = node.content.content[0]?.text.trim() || node.attrs.title;
+        const tooltipText =
+            node.content.content[0]?.text.trim() || node.attrs.title;
 
         const icon = document.createElement('span');
         icon.setAttribute('class', 'icon-button');
@@ -663,8 +685,11 @@ class RteField extends LitElement {
         const { state, dispatch } = this.editorView;
         const { selection } = state;
 
-        const node = state.schema.nodes.icon.create({}, state.schema.text(tooltip || ' '));
-        const tr = state.tr.insert(selection.from, node)
+        const node = state.schema.nodes.icon.create(
+            {},
+            state.schema.text(tooltip || ' '),
+        );
+        const tr = state.tr.insert(selection.from, node);
         dispatch(tr);
 
         this.showIconEditor = false;
@@ -790,6 +815,30 @@ class RteField extends LitElement {
             const mark = this.#editorSchema.marks[markType];
             if (mark) {
                 toggleMark(mark)(state, dispatch);
+            }
+        };
+    }
+
+    #handleListAction(listType) {
+        return () => {
+            const { state, dispatch } = this.editorView;
+            let { $from } = state.selection;
+
+            let isInList = false;
+            const listItemNode = this.#editorSchema.nodes.list_item;
+            for (let level = $from.depth; level >= 0; level--) {
+                if ($from.node(level)?.type === listItemNode) {
+                    isInList = true;
+                    break;
+                }
+            }
+            if (isInList) {
+                liftListItem(listItemNode)(state, dispatch);
+            } else {
+                const listNode = this.#editorSchema.nodes[listType];
+                if (listNode) {
+                    wrapInList(listNode)(state, dispatch);
+                }
             }
         };
     }
@@ -965,9 +1014,9 @@ class RteField extends LitElement {
         const lengthExceeded = this.length > this.maxLength;
         return html`
             <sp-action-group quiet size="m" aria-label="RTE toolbar actions">
-                ${this.#formatButtons} ${this.#linkEditorButton}
-                ${this.#unlinkEditorButton} ${this.#offerSelectorToolButton}
-                ${this.#iconsButton}
+                ${this.#formatButtons} ${this.#listButtons}
+                ${this.#linkEditorButton} ${this.#unlinkEditorButton}
+                ${this.#offerSelectorToolButton} ${this.#iconsButton}
                 ${this.#uptLinkButton}
             </sp-action-group>
             <div id="editor"></div>
@@ -976,8 +1025,7 @@ class RteField extends LitElement {
                     >${this.length}</span
                 >/${this.maxLength}
             </p>
-            ${this.linkEditor}
-            ${this.iconEditor}
+            ${this.linkEditor} ${this.iconEditor}
         `;
     }
 
@@ -1056,6 +1104,19 @@ class RteField extends LitElement {
                 @mousedown=${(e) => e.preventDefault()}
             >
                 <sp-icon-underline slot="icon"></sp-icon-underline>
+            </sp-action-button>
+        `;
+    }
+
+    get #listButtons() {
+        if (!this.list) return;
+        return html`
+            <sp-action-button
+                @click=${this.#handleListAction('bullet_list')}
+                @mousedown=${(e) => e.preventDefault()}
+                title="Unordered List"
+            >
+                <sp-icon-text-bulleted slot="icon"></sp-icon-text-bulleted>
             </sp-action-button>
         `;
     }

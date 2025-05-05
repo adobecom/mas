@@ -1,26 +1,32 @@
-function applyPlansSettings(fragment, locale){
-
+function applyPlansSettings(fragment, locale) {
     fragment.settings = {
         stockCheckboxLabel: '{{stock-checkbox-label}}',
         stockOfferOsis: '',
     };
-    if (locale === 'en_US') {
-        fragment.settings.displayPlanType = true;
-    }
-    if(fragment?.fields?.showSecureLabel !== false){
+    if (fragment?.fields?.showSecureLabel !== false) {
         fragment.settings.secureLabel = '{{secure-label}}';
+    }
+    if (fragment?.fields?.showPlanType != null) {
+        fragment.settings.displayPlanType = fragment?.fields?.showPlanType;
+    }
+    if (locale === 'en_US') {
+        fragment.settings.displayPlanType ??= true;
     }
 }
 
 async function settings(context) {
     const { locale } = context;
-    if (context.body?.fields?.variant === "plans") {
+    if (context.body?.fields?.variant === 'plans') {
         applyPlansSettings(context.body, locale);
     }
-    
+
     if (context.body?.references) {
         Object.entries(context.body.references).forEach(([key, ref]) => {
-            if (ref && ref.type === 'content-fragment' && ref.value?.fields?.variant === "plans") {
+            if (
+                ref &&
+                ref.type === 'content-fragment' &&
+                ref.value?.fields?.variant === 'plans'
+            ) {
                 applyPlansSettings(ref.value, locale);
             }
         });

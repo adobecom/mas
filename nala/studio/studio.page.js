@@ -46,43 +46,12 @@ export default class StudioPage {
         this.ahTryBuyWidgetDoubleCard = page.locator(
             'merch-card[variant="ah-try-buy-widget"][size="double"]',
         );
-        this.plansCard = page.locator(
-            'merch-card[variant="plans"]',
-        );
+        this.plansCard = page.locator('merch-card[variant="plans"]');
         this.ahPromotedPlansCard = page.locator(
             'merch-card[variant="ah-promoted-plans"]',
         );
         this.ahPromotedPlansCardGradientBorder = page.locator(
             'merch-card[variant="ah-promoted-plans"][gradient-border="true"]',
-        );
-        // Editor panel fields
-        this.editorVariant = page.locator('#card-variant');
-        this.editorSize = page.locator('#card-size');
-        this.editorTitle = page.locator('#card-title input');
-        this.editorSubtitle = page.locator('#card-subtitle input');
-        this.editorBadge = page.locator('#card-badge input');
-        this.editorIconURL = page.locator('#icon input');
-        this.editorBackgroundImage = page.locator('#background-image input');
-        this.editorPrices = page.locator('sp-field-group#prices');
-        this.regularPrice = page.locator(
-            'span[is="inline-price"][data-template="price"]',
-        );
-        this.strikethroughPrice = page.locator(
-            'span[is="inline-price"][data-template="strikethrough"]',
-        );
-        this.editorFooter = page.locator('sp-field-group#ctas');
-        this.editorCTA = page.locator('sp-field-group#ctas a');
-        this.editorDescription = page.locator(
-            'sp-field-group#description div[contenteditable="true"]',
-        );
-        this.editorBorderColor = page.locator('sp-picker#border-color');
-        this.editorBackgroundColor = page.locator('sp-picker#backgroundColor');
-        this.editorPromoText = page.locator('sp-field-group#promoText');
-        this.editorOSI = page.locator('osi-field#osi');
-        this.editorOSIButton = page.locator('#offerSelectorToolButtonOSI');
-        this.editorTags = page.locator('aem-tag-picker-field[label="Tags"]');
-        this.editorCTAClassSecondary = page.locator(
-            'sp-field-group#ctas a.secondary',
         );
         // Editor panel toolbar
         this.cloneCardButton = page.locator(

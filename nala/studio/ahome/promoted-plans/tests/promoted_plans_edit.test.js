@@ -48,39 +48,37 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ah-promoted-plans')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Validate fields rendering', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorVariant),
+                await editor.panel.locator(editor.variant),
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorVariant),
+                await editor.panel.locator(editor.variant),
             ).toHaveAttribute('default-value', 'ah-promoted-plans');
+            await expect(await editor.panel.locator(editor.size)).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorSize),
+                await editor.panel.locator(editor.title),
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
+                await editor.panel.locator(editor.description),
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorDescription),
+                await editor.panel.locator(editor.borderColor),
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorBorderColor),
+                await editor.panel.locator(editor.backgroundColor),
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorBackgroundColor),
+                await editor.panel.locator(editor.promoText),
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorPromoText),
+                await editor.panel.locator(editor.prices),
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorPrices),
-            ).toBeVisible();
-            await expect(
-                await studio.editorPanel.locator(studio.editorFooter),
+                await editor.panel.locator(editor.footer),
             ).toBeVisible();
         });
     });
@@ -106,21 +104,19 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ah-promoted-plans')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Enter long string in title field', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
+                await editor.panel.locator(editor.title),
             ).toBeVisible();
-            await studio.editorPanel.locator(studio.editorTitle).click();
+            await editor.panel.locator(editor.title).click();
             await page.waitForTimeout(2000);
-            await expect(
-                await studio.editorPanel.locator(studio.editorTitle),
-            ).toHaveValue(data.oldTitle);
-            await studio.editorPanel
-                .locator(studio.editorTitle)
-                .fill(data.updatedTitle);
+            await expect(await editor.panel.locator(editor.title)).toHaveValue(
+                data.oldTitle,
+            );
+            await editor.panel.locator(editor.title).fill(data.updatedTitle);
             await page.waitForTimeout(2000);
         });
 
@@ -132,9 +128,7 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
         });
 
         await test.step('step-5: Edit the original title back', async () => {
-            await studio.editorPanel
-                .locator(studio.editorTitle)
-                .fill(data.oldTitle);
+            await editor.panel.locator(editor.title).fill(data.oldTitle);
             await page.waitForTimeout(2000);
         });
 
@@ -167,15 +161,15 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ah-promoted-plans')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Edit border color field to gradient', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorBorderColor),
+                await editor.panel.locator(editor.borderColor),
             ).toBeVisible();
 
-            await studio.editorPanel.locator(studio.editorBorderColor).click();
+            await editor.panel.locator(editor.borderColor).click();
             await page
                 .getByRole('option', { name: data.gradientBorderColor })
                 .click();
@@ -214,17 +208,17 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ah-promoted-plans')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Update description field', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorDescription),
+                await editor.panel.locator(editor.description),
             ).toBeVisible();
 
             // Get the current HTML from the editor
-            const currentHTML = await studio.editorPanel
-                .locator(studio.editorDescription)
+            const currentHTML = await editor.panel
+                .locator(editor.description)
                 .innerHTML();
 
             // Create updated HTML
@@ -234,8 +228,8 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             );
 
             // Set the updated HTML in the editor
-            await studio.editorPanel
-                .locator(studio.editorDescription)
+            await editor.panel
+                .locator(editor.description)
                 .evaluate((el, html) => {
                     el.innerHTML = html;
                     const event = new Event('change', { bubbles: true });
@@ -254,8 +248,8 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
 
         await test.step('step-5: Restore original description', async () => {
             // Get the current HTML from the editor
-            const currentHTML = await studio.editorPanel
-                .locator(studio.editorDescription)
+            const currentHTML = await editor.panel
+                .locator(editor.description)
                 .innerHTML();
 
             // Create restored HTML
@@ -265,8 +259,8 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             );
 
             // Set the restored HTML in the editor
-            await studio.editorPanel
-                .locator(studio.editorDescription)
+            await editor.panel
+                .locator(editor.description)
                 .evaluate((el, html) => {
                     el.innerHTML = html;
                     const event = new Event('change', { bubbles: true });

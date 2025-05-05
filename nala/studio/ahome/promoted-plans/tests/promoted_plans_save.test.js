@@ -51,7 +51,7 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ah-promoted-plans')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Verify initial gradient border', async () => {
@@ -62,10 +62,10 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
 
         await test.step('step-4: Change to transparent border', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorBorderColor),
+                await editor.panel.locator(editor.borderColor),
             ).toBeVisible();
 
-            await studio.editorPanel.locator(studio.editorBorderColor).click();
+            await editor.panel.locator(editor.borderColor).click();
             await page
                 .getByRole('option', { name: data.transparentBorderColor })
                 .click();
@@ -93,9 +93,9 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ah-promoted-plans')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
 
-            await studio.editorPanel.locator(studio.editorBorderColor).click();
+            await editor.panel.locator(editor.borderColor).click();
             await page
                 .getByRole('option', { name: data.initialBorderColor })
                 .click();
@@ -131,15 +131,15 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ah-promoted-plans')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Verify current variant', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorVariant),
+                await editor.panel.locator(editor.variant),
             ).toBeVisible();
             await expect(
-                await studio.editorPanel.locator(studio.editorVariant),
+                await editor.panel.locator(editor.variant),
             ).toHaveAttribute('default-value', 'ah-promoted-plans');
         });
 
@@ -151,7 +151,7 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
             ).toBeVisible();
 
             // Close the editor to return to normal view
-            await studio.editorPanel.locator(studio.closeEditor).click();
+            await editor.panel.locator(editor.closeEditor).click();
             await page.waitForTimeout(1000);
         });
     });
@@ -177,27 +177,27 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ah-promoted-plans')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Update button variant', async () => {
             await expect(
-                await studio.editorPanel.locator(studio.editorFooter),
+                await editor.panel.locator(editor.footer),
             ).toBeVisible();
 
             // Click on the CTA in the editor
-            await expect(await studio.editorCTA.nth(2)).toBeVisible();
-            await studio.editorCTA.nth(2).click();
+            await expect(await editor.CTA.nth(2)).toBeVisible();
+            await editor.CTA.nth(2).click();
 
             // Click the link edit button
-            await studio.editorPanel
-                .locator(studio.editorFooter)
-                .locator(studio.linkEdit)
+            await editor.panel
+                .locator(editor.footer)
+                .locator(editor.linkEdit)
                 .click();
 
             // Select the new variant
-            await expect(await studio.linkVariant).toBeVisible();
-            await expect(await studio.linkSave).toBeVisible();
+            await expect(await editor.linkVariant).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
 
             // Get the variant button and click it
             const variantButton = await editor.getLinkVariant(data.newVariant);
@@ -232,21 +232,21 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
             await (
                 await studio.getCard(data.cardid, 'ah-promoted-plans')
             ).dblclick();
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
 
             // Click on the CTA in the editor
-            await expect(await studio.editorCTA.nth(2)).toBeVisible();
-            await studio.editorCTA.nth(2).click();
+            await expect(await editor.CTA.nth(2)).toBeVisible();
+            await editor.CTA.nth(2).click();
 
             // Click the link edit button
-            await studio.editorPanel
-                .locator(studio.editorFooter)
-                .locator(studio.linkEdit)
+            await editor.panel
+                .locator(editor.footer)
+                .locator(editor.linkEdit)
                 .click();
 
             // Select the original variant
-            await expect(await studio.linkVariant).toBeVisible();
-            await expect(await studio.linkSave).toBeVisible();
+            await expect(await editor.linkVariant).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
 
             // Get the variant button and click it
             const originalVariantButton = await editor.getLinkVariant(

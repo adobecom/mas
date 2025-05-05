@@ -63,38 +63,6 @@ export default class StudioPage {
         this.saveCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="save"]',
         );
-        this.discardCardButton = page.locator(
-            'div[id="editor-toolbar"] >> sp-action-button[value="discard"]',
-        );
-        this.closeEditor = page.locator(
-            'div[id="editor-toolbar"] >> sp-action-button[value="close"]',
-        );
-        // RTE panel toolbar
-        this.linkEdit = page.locator('#linkEditorButton');
-        // Edit Link Panel
-        this.checkoutParameters = page.locator('#checkoutParameters input');
-        this.linkText = page.locator('#linkText input');
-        this.linkSave = page.locator('#saveButton');
-        this.linkVariant = page.locator('#linkVariant');
-        this.accentVariant = page.locator('sp-button[variant="accent"]');
-        this.primaryVariant = page.locator(
-            'sp-button[variant="primary"]:not([treatment="outline"])',
-        );
-        this.primaryOutlineVariant = page.locator(
-            'sp-button[variant="primary"][treatment="outline"]',
-        );
-        this.secondaryVariant = page.locator(
-            'sp-button[variant="secondary"]:not([treatment="outline"])',
-        );
-        this.secondaryOutlineVariant = page.locator(
-            'sp-button[variant="secondary"][treatment="outline"]',
-        );
-        this.primaryLinkVariant = page.locator(
-            'sp-link:has-text("Primary link")',
-        );
-        this.secondaryLinkVariant = page.locator(
-            'sp-link[variant="secondary"]',
-        );
     }
 
     async getCard(id, cardType, cloned, secondID) {

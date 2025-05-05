@@ -235,11 +235,7 @@ export default class EditorPanel extends LitElement {
         const code = `<${webComponentName}><aem-fragment fragment="${this.fragment?.id}" title="${title}"></aem-fragment></${webComponentName}>`;
         const authorPath = `${webComponentName}: ${fragmentParts}`;
         const href = `https://mas.adobe.com/studio.html#content-type=${webComponentName}&page=${Store.page.value}&path=${Store.search.value.path}&query=${this.fragment?.id}`;
-        const richText = `
-                <a href="${href}" target="_blank">
-                    ${authorPath}
-                </a>
-            `;
+        const richText = `<a href="${href}" target="_blank">${authorPath}</a>`;
         return { authorPath, code, richText, href };
     }
 

@@ -13,6 +13,10 @@ merch-card button {
     pointer-events: none;
 }
 
+merch-card [slot='price'] {
+    min-width: 21px;
+}
+
 merch-card:hover {
     background-color: var(--spectrum-background-base-color) !important;
 }

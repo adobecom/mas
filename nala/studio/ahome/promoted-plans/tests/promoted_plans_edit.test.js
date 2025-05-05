@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import StudioPage from '../../../studio.page.js';
+import EditorPage from '../../../editor.page.js';
 import AHPromotedPlansSpec from '../specs/promoted_plans_edit.spec.js';
 import AHPromotedPlansPage from '../promoted-plans.page.js';
 import OSTPage from '../../../ost.page.js';
@@ -9,6 +10,7 @@ const { features } = AHPromotedPlansSpec;
 const miloLibs = process.env.MILO_LIBS || '';
 
 let studio;
+let editor;
 let promotedplans;
 let ost;
 let webUtil;
@@ -21,6 +23,7 @@ test.beforeEach(async ({ page, browserName }) => {
         });
     }
     studio = new StudioPage(page);
+    editor = new EditorPage(page);
     promotedplans = new AHPromotedPlansPage(page);
     ost = new OSTPage(page);
     webUtil = new WebUtil(page);
@@ -52,34 +55,16 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
         });
 
         await test.step('step-3: Validate fields rendering', async () => {
-            await expect(
-                await editor.panel.locator(editor.variant),
-            ).toBeVisible();
-            await expect(
-                await editor.panel.locator(editor.variant),
-            ).toHaveAttribute('default-value', 'ah-promoted-plans');
-            await expect(await editor.panel.locator(editor.size)).toBeVisible();
-            await expect(
-                await editor.panel.locator(editor.title),
-            ).toBeVisible();
-            await expect(
-                await editor.panel.locator(editor.description),
-            ).toBeVisible();
-            await expect(
-                await editor.panel.locator(editor.borderColor),
-            ).toBeVisible();
-            await expect(
-                await editor.panel.locator(editor.backgroundColor),
-            ).toBeVisible();
-            await expect(
-                await editor.panel.locator(editor.promoText),
-            ).toBeVisible();
-            await expect(
-                await editor.panel.locator(editor.prices),
-            ).toBeVisible();
-            await expect(
-                await editor.panel.locator(editor.footer),
-            ).toBeVisible();
+            await expect(await editor.variant).toBeVisible();
+            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-promoted-plans');
+            await expect(await editor.size).toBeVisible();
+            await expect(await editor.title).toBeVisible();
+            await expect(await editor.description).toBeVisible();
+            await expect(await editor.borderColor).toBeVisible();
+            await expect(await editor.backgroundColor).toBeVisible();
+            await expect(await editor.promoText).toBeVisible();
+            await expect(await editor.prices).toBeVisible();
+            await expect(await editor.footer).toBeVisible();
         });
     });
 
@@ -108,15 +93,13 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
         });
 
         await test.step('step-3: Enter long string in title field', async () => {
-            await expect(
-                await editor.panel.locator(editor.title),
-            ).toBeVisible();
-            await editor.panel.locator(editor.title).click();
+            await expect(await editor.title).toBeVisible();
+            await editor.title.click();
             await page.waitForTimeout(2000);
-            await expect(await editor.panel.locator(editor.title)).toHaveValue(
+            await expect(await editor.title).toHaveValue(
                 data.oldTitle,
             );
-            await editor.panel.locator(editor.title).fill(data.updatedTitle);
+            await editor.title.fill(data.updatedTitle);
             await page.waitForTimeout(2000);
         });
 
@@ -128,7 +111,7 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
         });
 
         await test.step('step-5: Edit the original title back', async () => {
-            await editor.panel.locator(editor.title).fill(data.oldTitle);
+            await editor.title.fill(data.oldTitle);
             await page.waitForTimeout(2000);
         });
 
@@ -165,11 +148,9 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
         });
 
         await test.step('step-3: Edit border color field to gradient', async () => {
-            await expect(
-                await editor.panel.locator(editor.borderColor),
-            ).toBeVisible();
+            await expect(await editor.borderColor).toBeVisible();
 
-            await editor.panel.locator(editor.borderColor).click();
+            await editor.borderColor.click();
             await page
                 .getByRole('option', { name: data.gradientBorderColor })
                 .click();
@@ -212,14 +193,10 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
         });
 
         await test.step('step-3: Update description field', async () => {
-            await expect(
-                await editor.panel.locator(editor.description),
-            ).toBeVisible();
+            await expect(await editor.description).toBeVisible();
 
             // Get the current HTML from the editor
-            const currentHTML = await editor.panel
-                .locator(editor.description)
-                .innerHTML();
+            const currentHTML = await editor.description.innerHTML();
 
             // Create updated HTML
             let updatedHTML = currentHTML.replace(
@@ -228,13 +205,11 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             );
 
             // Set the updated HTML in the editor
-            await editor.panel
-                .locator(editor.description)
-                .evaluate((el, html) => {
-                    el.innerHTML = html;
-                    const event = new Event('change', { bubbles: true });
-                    el.dispatchEvent(event);
-                }, updatedHTML);
+            await editor.description.evaluate((el, html) => {
+                el.innerHTML = html;
+                const event = new Event('change', { bubbles: true });
+                el.dispatchEvent(event);
+            }, updatedHTML);
 
             await page.waitForTimeout(2000);
         });
@@ -248,9 +223,7 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
 
         await test.step('step-5: Restore original description', async () => {
             // Get the current HTML from the editor
-            const currentHTML = await editor.panel
-                .locator(editor.description)
-                .innerHTML();
+            const currentHTML = await editor.description.innerHTML();
 
             // Create restored HTML
             let restoredHTML = currentHTML.replace(
@@ -259,13 +232,11 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             );
 
             // Set the restored HTML in the editor
-            await editor.panel
-                .locator(editor.description)
-                .evaluate((el, html) => {
-                    el.innerHTML = html;
-                    const event = new Event('change', { bubbles: true });
-                    el.dispatchEvent(event);
-                }, restoredHTML);
+            await editor.description.evaluate((el, html) => {
+                el.innerHTML = html;
+                const event = new Event('change', { bubbles: true });
+                el.dispatchEvent(event);
+            }, restoredHTML);
 
             await page.waitForTimeout(2000);
         });

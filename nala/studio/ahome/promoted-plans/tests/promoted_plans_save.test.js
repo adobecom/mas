@@ -61,11 +61,9 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
         });
 
         await test.step('step-4: Change to transparent border', async () => {
-            await expect(
-                await editor.panel.locator(editor.borderColor),
-            ).toBeVisible();
+            await expect(await editor.borderColor).toBeVisible();
 
-            await editor.panel.locator(editor.borderColor).click();
+            await editor.borderColor.click();
             await page
                 .getByRole('option', { name: data.transparentBorderColor })
                 .click();
@@ -95,7 +93,7 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
             ).dblclick();
             await expect(await editor.panel).toBeVisible();
 
-            await editor.panel.locator(editor.borderColor).click();
+            await editor.borderColor.click();
             await page
                 .getByRole('option', { name: data.initialBorderColor })
                 .click();
@@ -135,12 +133,8 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
         });
 
         await test.step('step-3: Verify current variant', async () => {
-            await expect(
-                await editor.panel.locator(editor.variant),
-            ).toBeVisible();
-            await expect(
-                await editor.panel.locator(editor.variant),
-            ).toHaveAttribute('default-value', 'ah-promoted-plans');
+            await expect(await editor.variant).toBeVisible();
+            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-promoted-plans');
         });
 
         // This test verifies that the variant value is displayed correctly
@@ -151,7 +145,7 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
             ).toBeVisible();
 
             // Close the editor to return to normal view
-            await editor.panel.locator(editor.closeEditor).click();
+            await editor.closeEditor.click();
             await page.waitForTimeout(1000);
         });
     });
@@ -181,19 +175,14 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
         });
 
         await test.step('step-3: Update button variant', async () => {
-            await expect(
-                await editor.panel.locator(editor.footer),
-            ).toBeVisible();
+            await expect(await editor.footer).toBeVisible();
 
             // Click on the CTA in the editor
             await expect(await editor.CTA.nth(2)).toBeVisible();
             await editor.CTA.nth(2).click();
 
             // Click the link edit button
-            await editor.panel
-                .locator(editor.footer)
-                .locator(editor.linkEdit)
-                .click();
+            await editor.footer.locator(editor.linkEdit).click();
 
             // Select the new variant
             await expect(await editor.linkVariant).toBeVisible();
@@ -239,10 +228,7 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
             await editor.CTA.nth(2).click();
 
             // Click the link edit button
-            await editor.panel
-                .locator(editor.footer)
-                .locator(editor.linkEdit)
-                .click();
+            await editor.footer.locator(editor.linkEdit).click();
 
             // Select the original variant
             await expect(await editor.linkVariant).toBeVisible();

@@ -54,13 +54,13 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
         await test.step('step-3: Verify current title', async () => {
             await expect(await promotedplans.cardTitle).toBeVisible();
             await expect(await promotedplans.cardTitle).toHaveText(data.title);
-            await expect(await editor.panel.locator(editor.title)).toHaveValue(
+            await expect(await editor.title).toHaveValue(
                 data.title,
             );
         });
 
         await test.step('step-4: Update the title', async () => {
-            await editor.panel.locator(editor.title).fill(data.newTitle);
+            await editor.title.fill(data.newTitle);
             await page.waitForTimeout(2000);
 
             await expect(await promotedplans.cardTitle).toHaveText(
@@ -69,7 +69,7 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
         });
 
         await test.step('step-5: Discard changes', async () => {
-            await editor.panel.locator(editor.closeEditor).click();
+            await editor.closeEditor.click();
             await expect(await studio.confirmationDialog).toBeVisible();
             await studio.confirmationDialog
                 .locator(studio.discardDialog)
@@ -107,11 +107,9 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
         });
 
         await test.step('step-3: Change to Transparent border', async () => {
-            await expect(
-                await editor.panel.locator(editor.borderColor),
-            ).toBeVisible();
+            await expect(await editor.borderColor).toBeVisible();
 
-            await editor.panel.locator(editor.borderColor).click();
+            await editor.borderColor.click();
             await page
                 .getByRole('option', { name: data.transparentBorderColor })
                 .click();
@@ -119,7 +117,7 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
         });
 
         await test.step('step-4: Discard changes', async () => {
-            await editor.panel.locator(editor.closeEditor).click();
+            await editor.closeEditor.click();
             await expect(await studio.confirmationDialog).toBeVisible();
             await studio.confirmationDialog
                 .locator(studio.discardDialog)
@@ -159,18 +157,11 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
         });
 
         await test.step('step-3: Edit CTA variant', async () => {
-            await expect(
-                await editor.panel
-                    .locator(editor.footer)
-                    .locator(editor.linkEdit),
-            ).toBeVisible();
+            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
             await expect(await editor.CTA.nth(2)).toBeVisible();
             await expect(await editor.CTA.nth(2)).toHaveClass(data.variant);
             await editor.CTA.nth(1).click();
-            await editor.panel
-                .locator(editor.footer)
-                .locator(editor.linkEdit)
-                .click();
+            await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkVariant).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
 
@@ -185,10 +176,7 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
 
             // Revert back to original variant
             await editor.CTA.nth(1).click();
-            await editor.panel
-                .locator(editor.footer)
-                .locator(editor.linkEdit)
-                .click();
+            await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkVariant).toBeVisible();
 
             const originalVariantButton = await editor.getLinkVariant(
@@ -206,11 +194,9 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
-            await editor.panel.locator(editor.closeEditor).click();
-            await expect(
-                await editor.panel.locator(studio.confirmationDialog),
-            ).toBeVisible();
-            await editor.panel.locator(studio.discardDialog).click();
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.confirmationDialog.locator(studio.discardDialog).click();
             await expect(await editor.panel).not.toBeVisible();
         });
 
@@ -256,26 +242,20 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
         });
 
         await test.step('step-4: Update description', async () => {
-            await expect(
-                await editor.panel.locator(editor.description),
-            ).toBeVisible();
+            await expect(await editor.description).toBeVisible();
 
-            const currentHTML = await editor.panel
-                .locator(editor.description)
-                .innerHTML();
+            const currentHTML = await editor.description.innerHTML();
 
             const updatedHTML = currentHTML.replace(
                 data.description,
                 data.newDescription,
             );
 
-            await editor.panel
-                .locator(editor.description)
-                .evaluate((el, html) => {
-                    el.innerHTML = html;
-                    const event = new Event('change', { bubbles: true });
-                    el.dispatchEvent(event);
-                }, updatedHTML);
+            await editor.description.evaluate((el, html) => {
+                el.innerHTML = html;
+                const event = new Event('change', { bubbles: true });
+                el.dispatchEvent(event);
+            }, updatedHTML);
 
             await page.waitForTimeout(2000);
 
@@ -286,7 +266,7 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
         });
 
         await test.step('step-5: Discard changes', async () => {
-            await editor.panel.locator(editor.closeEditor).click();
+            await editor.closeEditor.click();
             await expect(await studio.confirmationDialog).toBeVisible();
             await studio.confirmationDialog
                 .locator(studio.discardDialog)

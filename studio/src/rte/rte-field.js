@@ -966,12 +966,16 @@ class RteField extends LitElement {
                 markTypeToRemove = stylingMark.type;
             }
         });
+
+        const markTypeToAdd = state.schema.marks[stylingType];
         if (markTypeToRemove) {
-            dispatch(state.tr.removeMark(from, to, markTypeToRemove));
-            // Reassign state for the next transaction
-            state = this.editorView.state;
+            const { tr } = state;
+            tr.removeMark(from, to, markTypeToRemove);
+            tr.addMark(from, to, markTypeToAdd.create());
+            dispatch(tr);
+        } else {
+            toggleMark(markTypeToAdd)(state, dispatch);
         }
-        toggleMark(state.schema.marks[stylingType])(state, dispatch);
     }
 
     #handleListAction(listType) {

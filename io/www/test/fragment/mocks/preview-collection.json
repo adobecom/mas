@@ -1312,10 +1312,10 @@
                             "multiple": true,
                             "locked": false,
                             "values": [
+                                "mas:offer_type/base",
                                 "mas:product_family",
                                 "mas:commitment/access_pass",
-                                "mas:plan_type/abm",
-                                "mas:offer_type/base"
+                                "mas:plan_type/abm"
                             ]
                         },
                         {
@@ -2512,10 +2512,11 @@
                             "multiple": true,
                             "locked": false,
                             "values": [
-                                "mas:plan_type/abm",
-                                "mas:commitment/access_pass",
+
+                                "mas:offer_type/base",
                                 "mas:product_family",
-                                "mas:offer_type/base"
+                                "mas:commitment/access_pass",
+                                "mas:plan_type/abm"
                             ]
                         },
                         {
@@ -2735,7 +2736,7 @@
                             "locked": false,
                             "mimeType": "text/html",
                             "values": [
-                                "<p>AI Assistant add-on available <span class=\"icon-button\" title=\"test tip\"></span></p>"
+                                "<p>AI Assistant add-on available <span class=\"icon-button\" title=\"ok\"></span></p>"
                             ]
                         },
                         {

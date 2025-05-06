@@ -17,6 +17,7 @@ import '@spectrum-web-components/help-text/sp-help-text.js';
 import '@spectrum-web-components/icon/sp-icon.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-add.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-bell.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-brush.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-campaign.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-cancel.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-chevron-down.js';

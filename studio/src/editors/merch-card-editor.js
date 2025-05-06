@@ -448,9 +448,9 @@ class MerchCardEditor extends LitElement {
                 <sp-field-label for="description">Description</sp-field-label>
                 <rte-field
                     id="description"
+                    styling
                     link
                     upt-link
-                    list
                     data-field="description"
                     default-link-style="secondary-link"
                     @change="${this.#handleFragmentUpdate}"

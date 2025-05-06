@@ -1,9 +1,10 @@
 import { LitElement, html } from 'lit';
 import { contentIcon } from './img/content-icon.js';
 import { ostIcon } from './img/ost-icon.js';
-import { navigateToPage } from './router.js';
+import router from './router.js';
 import './mas-recently-updated.js';
 import { openOfferSelectorTool } from './rte/ost.js';
+import { PAGE_NAMES } from './constants.js';
 
 class MasSplashScreen extends LitElement {
     static properties = {
@@ -38,7 +39,7 @@ class MasSplashScreen extends LitElement {
                 <div class="actions-grid">
                     <div
                         class="quick-action-card"
-                        @click=${navigateToPage('content')}
+                        @click=${router.navigateToPage(PAGE_NAMES.CONTENT)}
                         heading="Go to Content"
                     >
                         <div slot="cover-photo">${contentIcon}</div>

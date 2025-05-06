@@ -16,7 +16,7 @@ export default class StudioPage {
         this.folderPicker = page.locator('mas-folder-picker sp-action-menu');
         this.renderView = page.locator('#render');
         this.quickActions = page.locator('.quick-actions');
-        // this.editorPanel = page.locator('editor-panel > #editor');
+        this.editorPanel = page.locator('editor-panel > #editor');
         this.confirmationDialog = page.locator(
             'sp-dialog[variant="confirmation"]',
         );
@@ -47,6 +47,12 @@ export default class StudioPage {
             'merch-card[variant="ah-try-buy-widget"][size="double"]',
         );
         this.plansCard = page.locator('merch-card[variant="plans"]');
+        this.ahPromotedPlansCard = page.locator(
+            'merch-card[variant="ah-promoted-plans"]',
+        );
+        this.ahPromotedPlansCardGradientBorder = page.locator(
+            'merch-card[variant="ah-promoted-plans"][gradient-border="true"]',
+        );
         // Editor panel toolbar
         this.cloneCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="clone"]',
@@ -69,6 +75,9 @@ export default class StudioPage {
             'ahtrybuywidget-single': this.ahTryBuyWidgetSingleCard,
             'ahtrybuywidget-double': this.ahTryBuyWidgetDoubleCard,
             plans: this.plansCard,
+            'ah-promoted-plans': this.ahPromotedPlansCard,
+            'ah-promoted-plans-gradient':
+                this.ahPromotedPlansCardGradientBorder,
             empty: this.emptyCard,
         };
 

@@ -16,7 +16,7 @@ export default {
                 standardBorderCSSColor: 'var(--spectrum-gray-200)',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-save',
+            tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-save @nopr',
         },
         {
             tcid: '1',

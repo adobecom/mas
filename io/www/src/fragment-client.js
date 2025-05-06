@@ -4,10 +4,10 @@
  */
 
 // Import the modules
-const { fetchFragment } = require('./fragment/fetch.js');
-const { replace } = require('./fragment/replace.js');
-const { settings } = require('./fragment/settings.js');
-const { logError } = require('./fragment/common.js');
+import { fetchFragment } from './fragment/fetch.js';
+import { replace } from './fragment/replace.js';
+import { settings } from './fragment/settings.js';
+import { logError } from './fragment/common.js';
 
 async function previewFragment(id, options) {
     const {
@@ -46,4 +46,4 @@ async function previewFragment(id, options) {
     return context.body;
 }
 
-module.exports = { previewFragment };
+export { previewFragment };

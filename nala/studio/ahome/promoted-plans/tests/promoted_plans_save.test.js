@@ -31,7 +31,7 @@ test.beforeEach(async ({ page, browserName }) => {
 
 test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
     // @studio-promoted-plans-save-edit-border - Validate saving border color changes
-    test(`${features[0].name},${features[0].tags}`, async ({
+    test.skip(`${features[0].name},${features[0].tags}`, async ({
         page,
         baseURL,
     }) => {

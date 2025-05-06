@@ -23,6 +23,9 @@ export default class EditorPage {
         this.prices = this.panel.locator('sp-field-group#prices');
         this.footer = this.panel.locator('sp-field-group#ctas');
         this.CTA = this.panel.locator('sp-field-group#ctas a');
+        this.descriptionFieldGroup = this.panel.locator(
+            'sp-field-group#description',
+        );
         this.description = this.panel.locator(
             'sp-field-group#description div[contenteditable="true"]',
         );
@@ -81,6 +84,9 @@ export default class EditorPage {
             'span[is="inline-price"][data-template="strikethrough"]',
         );
 
+        // RTE content
+        this.phoneLink = page.locator('a[href^="tel:"]');
+
         // RTE panel toolbar
         this.linkEdit = page.locator('#linkEditorButton');
         this.addIcon = page.locator('#addIconButton');
@@ -88,6 +94,8 @@ export default class EditorPage {
         // Edit Link Panel
         this.checkoutParameters = page.locator('#checkoutParameters input');
         this.linkText = page.locator('#linkText input');
+        this.phoneLinkTab = page.locator('#linkTypeNav sp-tab[value="phone"]');
+        this.phoneLinkText = page.locator('#phoneNumber input');
         this.linkSave = page.locator('#saveButton');
         this.linkVariant = page.locator('#linkVariant');
         this.accentVariant = page.locator('sp-button[variant="accent"]');

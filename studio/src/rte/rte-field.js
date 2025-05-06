@@ -30,6 +30,12 @@ const isNodeCheckoutLink = (node) => {
     return node.type.name === 'link' && node.attrs['data-wcs-osi'] !== null;
 };
 
+// Function to check if a node is a phone link
+const isNodePhoneLink = (node) => {
+    if (!node) return false;
+    return node.type.name === 'link' && node.attrs.href.startsWith('tel:');
+};
+
 class LinkNodeView {
     constructor(node, view, getPos) {
         this.node = node;
@@ -738,6 +744,8 @@ class RteField extends LitElement {
         const { selection } = state;
 
         const isCheckoutLink = isNodeCheckoutLink(selection.node);
+        const isPhoneLink = isNodePhoneLink(selection.node);
+        let linkType = isPhoneLink ? 'phone' : 'web';
 
         let checkoutParameters = undefined;
         if (isCheckoutLink) {
@@ -754,6 +762,7 @@ class RteField extends LitElement {
 
         if (selection.node?.type.name === 'link') {
             return {
+                linkType,
                 href: selection.node.attrs.href,
                 title: selection.node.attrs.title || '',
                 text: selection.node.textContent || '',
@@ -765,10 +774,19 @@ class RteField extends LitElement {
         }
 
         if (!selection.empty) {
+            const text = state.doc.textBetween(selection.from, selection.to);
+            // Check if selected text is a potential phone number
+            // NOTE: NOT supposed to be a 'catch-all' phone validator - just a check to see if the selected text is roughly a phone number
+            linkType = /^\+?([0-9]{3})\)?([ .-]?)([0-9]{3})\2([0-9]{4})/.test(
+                text,
+            )
+                ? 'phone'
+                : linkType;
             return {
+                linkType,
                 href: '',
                 title: '',
-                text: state.doc.textBetween(selection.from, selection.to),
+                text,
                 target: '_self',
                 variant: this.defaultLinkStyle,
                 analyticsId: '',
@@ -777,6 +795,7 @@ class RteField extends LitElement {
         }
 
         return {
+            linkType,
             href: '',
             title: '',
             text: '',

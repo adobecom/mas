@@ -387,7 +387,7 @@ export class MasRepository extends LitElement {
             this.operation.set();
             return new FragmentStore(fragment);
         } catch (error) {
-            if (error.message.includes('409 Conflict')) {
+            if (error.message.includes(': 409')) {
                 throw error;
             } else {
                 this.processError(error, 'Failed to create fragment.');

@@ -1576,8 +1576,8 @@ class RteField extends LitElement {
                 ${this.#formatButtons} ${this.stylingButton}
                 ${this.#listButtons} ${this.#linkEditorButton}
                 ${this.#unlinkEditorButton} ${this.#offerSelectorToolButton}
-                ${this.#iconsButton} ${this.#mnemonicButton}
-                ${this.#uptLinkButton}
+                ${this.#iconsButton} ${this.#uptLinkButton}
+                ${this.#mnemonicButton}
             </sp-action-group>
             <div id="editor"></div>
             <p id="counter">

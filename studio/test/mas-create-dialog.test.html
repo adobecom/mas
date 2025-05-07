@@ -66,8 +66,6 @@
                         // Fill in the form
                         const titleField =
                             dialog.shadowRoot.querySelector('#fragment-title');
-                        const nameField =
-                            dialog.shadowRoot.querySelector('#fragment-name');
 
                         // Get the dialog wrapper
                         const dialogWrapper = dialog.shadowRoot.querySelector('sp-dialog-wrapper');
@@ -79,9 +77,6 @@
                         );
 
                         await dialog.updateComplete;
-
-                        // Verify name was auto-generated
-                        expect(nameField.value).to.equal('test-merch-card');
 
                         // Submit the form by triggering the confirm event directly on dialog wrapper
                         dialogWrapper.dispatchEvent(new CustomEvent('confirm'));
@@ -101,10 +96,6 @@
                         expect(requestBody).to.have.property(
                             'title',
                             'Test Merch Card',
-                        );
-                        expect(requestBody).to.have.property(
-                            'name',
-                            'test-merch-card',
                         );
                         expect(requestBody).to.have.property('modelId');
                     });

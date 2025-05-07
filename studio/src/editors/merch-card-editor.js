@@ -723,7 +723,6 @@ class MerchCardEditor extends LitElement {
     get badgeText() {
         const badgeValues =
             this.fragment.fields.find((f) => f.name === 'badge')?.values ?? [];
-            this.fragment.fields.find((f) => f.name === 'badge')?.values ?? [];
         return badgeValues?.length ? badgeValues[0] : '';
     }
 
@@ -1024,7 +1023,6 @@ class MerchCardEditor extends LitElement {
                 this.fragment.variant,
             );
             variantSpecialValues = variant?.borderColor?.specialValues || {};
-
             if (
                 variantSpecialValues &&
                 Object.keys(variantSpecialValues).length > 0

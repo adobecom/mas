@@ -481,7 +481,6 @@ class MerchCardEditor extends LitElement {
                     data-field="callout"
                     default-link-style="secondary-link"
                     @change="${this.#handleFragmentUpdate}"
-                    @change="${this.#handleFragmentUpdate}"
                     ?readonly=${this.disabled}
                     >${unsafeHTML(form.callout?.values[0])}</rte-field
                 >

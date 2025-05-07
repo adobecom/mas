@@ -387,7 +387,11 @@ export class MasRepository extends LitElement {
             this.operation.set();
             return new FragmentStore(fragment);
         } catch (error) {
-            this.processError(error, 'Failed to create fragment.');
+            if (error.message.includes('409 Conflict')) {
+                throw error;
+            } else {
+                this.processError(error, 'Failed to create fragment.');
+            }
         }
     }
 
@@ -453,13 +457,19 @@ export class MasRepository extends LitElement {
     /**
      * @returns {Promise<boolean>} Whether or not it was successful
      */
-    async copyFragment() {
+    async copyFragment(updatedTitle) {
         try {
             this.operation.set(OPERATIONS.CLONE);
             const result = await this.aem.sites.cf.fragments.copy(
                 this.fragmentInEdit,
             );
-            const newFragment = await this.#addToCache(result);
+            let savedResult = result;
+            if (updatedTitle && updatedTitle !== result.title) {
+                result.title = updatedTitle;
+                savedResult = await this.aem.sites.cf.fragments.save(result);
+            }
+
+            const newFragment = await this.#addToCache(savedResult);
 
             const newFragmentStore = new FragmentStore(newFragment);
             Store.fragments.list.data.set((prev) => [

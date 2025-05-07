@@ -14,6 +14,7 @@ let editor;
 let promotedplans;
 let ost;
 let webUtil;
+let clonedCardID;
 
 test.beforeEach(async ({ page, browserName }) => {
     test.slow();
@@ -27,88 +28,72 @@ test.beforeEach(async ({ page, browserName }) => {
     promotedplans = new AHPromotedPlansPage(page);
     ost = new OSTPage(page);
     webUtil = new WebUtil(page);
+    clonedCardID = '';
+});
+
+test.afterEach(async ({ page }) => {
+    if (await editor.panel.isVisible()) {
+        await editor.closeEditor.click();
+        await expect(await editor.panel).not.toBeVisible();
+    }
+
+    if (await (await studio.getCard(clonedCardID)).isVisible()) {
+        await studio.deleteCard(clonedCardID);
+        await expect(await studio.getCard(clonedCardID)).not.toBeVisible();
+    }
+
+    await page.close();
 });
 
 test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
-    // @studio-promoted-plans-save-edit-border - Validate saving border color changes
-    test.skip(`${features[0].name},${features[0].tags}`, async ({
+    // @studio-promoted-plans-save-edited-border - Validate saving card after editing border
+    test(`${features[0].name},${features[0].tags}`, async ({
         page,
         baseURL,
     }) => {
         const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
+        let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'ah-promoted-plans'),
-            ).toBeVisible();
-            await (
-                await studio.getCard(data.cardid, 'ah-promoted-plans')
-            ).dblclick();
-            await expect(await editor.panel).toBeVisible();
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
+            clonedCardID = await clonedCard
+                .locator('aem-fragment')
+                .getAttribute('fragment');
+            data.clonedCardID = await clonedCardID;
+            await expect(await clonedCard).toBeVisible();
+            await clonedCard.dblclick();
+            await page.waitForTimeout(2000);
         });
 
-        await test.step('step-3: Verify initial gradient border', async () => {
-            const card = await studio.getCard(data.cardid, 'ah-promoted-plans');
-            const borderColor = await card.getAttribute('border-color');
-            expect(borderColor).toBe(data.initialBorderCSSColor);
-        });
-
-        await test.step('step-4: Change to transparent border', async () => {
+        await test.step('step-3: Change to Transparent border', async () => {
             await expect(await editor.borderColor).toBeVisible();
-
             await editor.borderColor.click();
             await page
                 .getByRole('option', { name: data.transparentBorderColor })
                 .click();
             await page.waitForTimeout(2000);
-        });
-
-        await test.step('step-5: Verify transparent border applied before save', async () => {
-            const card = await studio.getCard(data.cardid, 'ah-promoted-plans');
-            const borderColor = await card.getAttribute('border-color');
-            expect(borderColor).toBe(data.transparentBorderCSSColor);
-        });
-
-        await test.step('step-6: Save changes', async () => {
             await studio.saveCard();
-            await page.waitForTimeout(2000);
         });
 
-        await test.step('step-7: Verify border color saved', async () => {
-            const card = await studio.getCard(data.cardid, 'ah-promoted-plans');
-            const borderColor = await card.getAttribute('border-color');
-            expect(borderColor).toBe(data.transparentBorderCSSColor);
-        });
-
-        await test.step('step-8: Revert to initial border color', async () => {
-            await (
-                await studio.getCard(data.cardid, 'ah-promoted-plans')
-            ).dblclick();
-            await expect(await editor.panel).toBeVisible();
-
-            await editor.borderColor.click();
-            await page
-                .getByRole('option', { name: data.initialBorderColor })
-                .click();
-            await page.waitForTimeout(2000);
-
-            await studio.saveCard();
-            await page.waitForTimeout(2000);
-
-            const card = await studio.getCard(data.cardid, 'ah-promoted-plans');
-            const borderColor = await card.getAttribute('border-color');
-            expect(borderColor).toBe(data.initialBorderCSSColor);
+        await test.step('step-4: Verify border change is saved', async () => {
+            await expect(
+                await studio.getCard(data.clonedCardID),
+            ).toHaveAttribute('border-color', data.transparentBorderCSSColor);
+            await expect(await editor.borderColor).toContainText(
+                data.transparentBorderColor,
+            );
         });
     });
 
-    // @studio-promoted-plans-save-variant-change - Validate saving variant changes
+    // @studio-promoted-plans-save-variant-change - Validate saving card after variant change
     test(`${features[1].name},${features[1].tags}`, async ({
         page,
         baseURL,
@@ -116,145 +101,97 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
         const { data } = features[1];
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
+        let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'ah-promoted-plans'),
-            ).toBeVisible();
-            await (
-                await studio.getCard(data.cardid, 'ah-promoted-plans')
-            ).dblclick();
-            await expect(await editor.panel).toBeVisible();
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
+            clonedCardID = await clonedCard
+                .locator('aem-fragment')
+                .getAttribute('fragment');
+            data.clonedCardID = await clonedCardID;
+            await expect(await clonedCard).toBeVisible();
+            await clonedCard.dblclick();
+            await page.waitForTimeout(2000);
         });
 
-        await test.step('step-3: Verify current variant', async () => {
+        await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute(
-                'default-value',
-                'ah-promoted-plans',
-            );
+            await editor.variant.locator('sp-picker').first().click();
+            await page.getByRole('option', { name: 'slice' }).click();
+            await page.waitForTimeout(2000);
+            await studio.saveCard();
         });
 
-        // This test verifies that the variant value is displayed correctly
-        // We don't attempt to save without changes as the save button would be disabled
-        await test.step('step-4: Verify variant is displayed in UI', async () => {
+        await test.step('step-4: Verify variant change is saved', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'ah-promoted-plans'),
-            ).toBeVisible();
-
-            // Close the editor to return to normal view
-            await editor.closeEditor.click();
-            await page.waitForTimeout(1000);
+                await studio.getCard(data.clonedCardID),
+            ).toHaveAttribute('variant', 'ccd-slice');
+            await expect(
+                await studio.getCard(data.clonedCardID),
+            ).not.toHaveAttribute('variant', 'ah-promoted-plans');
         });
     });
 
-    // @studio-promoted-plans-save-edit-cta-variant - Validate saving CTA variant changes
-    test(`${features[3].name},${features[3].tags}`, async ({
+    // @studio-promoted-plans-save-edited-cta-variant - Validate saving CTA variant changes
+    test(`${features[2].name},${features[2].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[3];
-        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
+        const { data } = features[2];
+        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
+        let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
+            clonedCardID = await clonedCard
+                .locator('aem-fragment')
+                .getAttribute('fragment');
+            data.clonedCardID = await clonedCardID;
+            await expect(await clonedCard).toBeVisible();
+            await clonedCard.dblclick();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-3: Edit CTA variant and save card', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'ah-promoted-plans'),
+                await editor.footer.locator(editor.linkEdit),
             ).toBeVisible();
-            await (
-                await studio.getCard(data.cardid, 'ah-promoted-plans')
-            ).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Update button variant', async () => {
-            await expect(await editor.footer).toBeVisible();
-
-            // Click on the CTA in the editor
             await expect(await editor.CTA.nth(2)).toBeVisible();
+            await expect(await editor.CTA.nth(2)).toHaveClass(data.variant);
             await editor.CTA.nth(2).click();
-
-            // Click the link edit button
             await editor.footer.locator(editor.linkEdit).click();
-
-            // Select the new variant
             await expect(await editor.linkVariant).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-
-            // Get the variant button and click it
-            const variantButton = await editor.getLinkVariant(data.newVariant);
-            await expect(variantButton).toBeVisible();
-            await variantButton.click();
-
+            await expect(
+                await editor.getLinkVariant(data.newVariant),
+            ).toBeVisible();
+            await (await editor.getLinkVariant(data.newVariant)).click();
             await editor.linkSave.click();
-
-            await page.waitForTimeout(2000);
-
-            const buyNowButton = await promotedplans.buyNowButton;
-            await expect(buyNowButton).toBeVisible();
-        });
-
-        await test.step('step-4: Save changes', async () => {
             await studio.saveCard();
-            await page.waitForTimeout(2000);
         });
 
-        await test.step('step-5: Verify button variant saved', async () => {
-            const buyNowButton = await promotedplans.buyNowButton;
-            await expect(buyNowButton).toBeVisible();
-
-            const buttonClass = await buyNowButton.getAttribute('class');
-
-            expect(buttonClass).toContain(
-                `spectrum-Button--${data.newVariant}`,
-            );
-        });
-
-        await test.step('step-6: Restore original button variant', async () => {
-            await (
-                await studio.getCard(data.cardid, 'ah-promoted-plans')
-            ).dblclick();
-            await expect(await editor.panel).toBeVisible();
-
-            // Click on the CTA in the editor
-            await expect(await editor.CTA.nth(2)).toBeVisible();
-            await editor.CTA.nth(2).click();
-
-            // Click the link edit button
-            await editor.footer.locator(editor.linkEdit).click();
-
-            // Select the original variant
-            await expect(await editor.linkVariant).toBeVisible();
-            await expect(await editor.linkSave).toBeVisible();
-
-            // Get the variant button and click it
-            const originalVariantButton = await editor.getLinkVariant(
-                data.variant,
-            );
-            await expect(originalVariantButton).toBeVisible();
-            await originalVariantButton.click();
-
-            await editor.linkSave.click();
-
-            await page.waitForTimeout(2000);
-            await studio.saveCard();
-
-            const buyNowButton = await promotedplans.buyNowButton;
-            await expect(buyNowButton).toBeVisible();
-
-            const buttonClass = await buyNowButton.getAttribute('class');
-
-            expect(buttonClass).toContain(`spectrum-Button--${data.variant}`);
+        await test.step('step-4: Validate CTA variant change', async () => {
+            await expect(await editor.CTA.nth(2)).toHaveClass(data.newVariant);
+            await expect(await editor.CTA.nth(2)).not.toHaveClass(data.variant);
+            await expect(
+                await clonedCard.locator(promotedplans.buyNowButton),
+            ).toHaveAttribute('data-wcs-osi', data.osi);
+            await expect(
+                await clonedCard.locator(promotedplans.buyNowButton),
+            ).toHaveAttribute('is', 'checkout-button');
         });
     });
 });

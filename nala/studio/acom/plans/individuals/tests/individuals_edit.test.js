@@ -1010,7 +1010,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(individualsCard).toBeVisible();
             await expect(individualsCard).toHaveAttribute('variant', 'plans');
             await individualsCard.dblclick();
             await expect(await editor.panel).toBeVisible();

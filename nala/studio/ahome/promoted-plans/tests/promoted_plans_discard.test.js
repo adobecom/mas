@@ -27,7 +27,7 @@ test.beforeEach(async ({ page, browserName }) => {
 });
 
 test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
-    // @studio-promoted-plans-discard-title - Validate discarding title changes for promoted plans card
+    // @studio-promoted-plans-discard-edited-title - Validate discarding title changes for promoted plans card
     test(`${features[0].name},${features[0].tags}`, async ({
         page,
         baseURL,
@@ -42,45 +42,32 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'ah-promoted-plans'),
-            ).toBeVisible();
-            await (
-                await studio.getCard(data.cardid, 'ah-promoted-plans')
-            ).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
-        await test.step('step-3: Verify current title', async () => {
-            await expect(await promotedplans.cardTitle).toBeVisible();
-            await expect(await promotedplans.cardTitle).toHaveText(data.title);
-            await expect(await editor.title).toHaveValue(data.title);
-        });
-
-        await test.step('step-4: Update the title', async () => {
+        await test.step('step-3: Edit title field', async () => {
+            await expect(await editor.title).toBeVisible();
             await editor.title.fill(data.newTitle);
-            await page.waitForTimeout(2000);
-
-            await expect(await promotedplans.cardTitle).toHaveText(
-                data.newTitle,
-            );
         });
 
-        await test.step('step-5: Discard changes', async () => {
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
             await editor.closeEditor.click();
             await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.confirmationDialog
-                .locator(studio.discardDialog)
-                .click();
-            await page.waitForTimeout(2000);
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
         });
 
-        await test.step('step-6: Verify title reverted', async () => {
+        await test.step('step-5: Validate title field not updated', async () => {
             await expect(await promotedplans.cardTitle).toHaveText(data.title);
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.title).toHaveValue(data.title);
         });
     });
 
-    // @studio-promoted-plans-discard-gradient-border - Validate discarding gradient border changes
+    // @studio-promoted-plans-discard-edited-gradient-border - Validate discarding gradient border changes
     test(`${features[1].name},${features[1].tags}`, async ({
         page,
         baseURL,
@@ -95,18 +82,13 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'ah-promoted-plans'),
-            ).toBeVisible();
-            await (
-                await studio.getCard(data.cardid, 'ah-promoted-plans')
-            ).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Change to Transparent border', async () => {
             await expect(await editor.borderColor).toBeVisible();
-
             await editor.borderColor.click();
             await page
                 .getByRole('option', { name: data.transparentBorderColor })
@@ -114,23 +96,76 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Discard changes', async () => {
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
             await editor.closeEditor.click();
             await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.confirmationDialog
-                .locator(studio.discardDialog)
-                .click();
-            await page.waitForTimeout(2000);
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
         });
 
         await test.step('step-5: Verify border reverted', async () => {
-            const card = await studio.getCard(data.cardid, 'ah-promoted-plans');
-            const borderColor = await card.getAttribute('border-color');
-            expect(borderColor).toBe(data.gradientBorderCSSColor);
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'border-color',
+                data.standardBorderCSSColor,
+            );
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.borderColor).toContainText(
+                data.standardBorderColor,
+            );
         });
     });
 
-    // @studio-promoted-plans-discard-edit-cta-variant - Validate discarding CTA variant changes
+    // @studio-promoted-plans-discard-edited-edit-cta-variant - Validate discarding CTA variant changes
+    test(`${features[2].name},${features[2].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[2];
+        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA variant', async () => {
+            await expect(
+                await editor.footer.locator(editor.linkEdit),
+            ).toBeVisible();
+            await expect(await editor.CTA.nth(2)).toBeVisible();
+            await editor.CTA.nth(2).click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.linkVariant).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
+            await (await editor.getLinkVariant(data.newVariant)).click();
+            await editor.linkSave.click();
+        });
+
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-5: Open the editor and validate there are no changes', async () => {
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.CTA.nth(2)).toBeVisible();
+            await expect(await editor.CTA.nth(2)).not.toHaveClass(data.newVariant);
+            await expect(await editor.CTA.nth(2)).toHaveClass(data.variant);
+        });
+    });
+
+    // @studio-promoted-plans-discard-edited-edit-description - Validate discarding description changes
     test(`${features[3].name},${features[3].tags}`, async ({
         page,
         baseURL,
@@ -145,142 +180,32 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'ah-promoted-plans'),
-            ).toBeVisible();
-            await (
-                await studio.getCard(data.cardid, 'ah-promoted-plans')
-            ).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
-        await test.step('step-3: Edit CTA variant', async () => {
-            await expect(
-                await editor.footer.locator(editor.linkEdit),
-            ).toBeVisible();
-            await expect(await editor.CTA.nth(2)).toBeVisible();
-            await expect(await editor.CTA.nth(2)).toHaveClass(data.variant);
-            await editor.CTA.nth(1).click();
-            await editor.footer.locator(editor.linkEdit).click();
-            await expect(await editor.linkVariant).toBeVisible();
-            await expect(await editor.linkSave).toBeVisible();
-
-            // Get the variant button and click it
-            const variantButton = await editor.getLinkVariant(data.newVariant);
-            await expect(variantButton).toBeVisible();
-            await variantButton.click();
-
-            await editor.linkSave.click();
-            await page.waitForTimeout(5000);
-            await expect(await editor.CTA.nth(1)).toHaveClass(data.newVariant);
-
-            // Revert back to original variant
-            await editor.CTA.nth(1).click();
-            await editor.footer.locator(editor.linkEdit).click();
-            await expect(await editor.linkVariant).toBeVisible();
-
-            const originalVariantButton = await editor.getLinkVariant(
-                data.variant,
-            );
-            await expect(originalVariantButton).toBeVisible();
-            await originalVariantButton.click();
-
-            await editor.linkSave.click();
-            await page.waitForTimeout(5000);
-            await expect(await editor.CTA.nth(2)).toHaveClass(data.variant);
-            await expect(await editor.CTA.nth(2)).not.toHaveClass(
-                data.newVariant,
-            );
+        await test.step('step-4: Edit description field', async () => {
+            await expect(await editor.description).toBeVisible();
+            await editor.description.fill(data.newDescription);
         });
 
-        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+        await test.step('step-5: Close the editor and verify discard is triggered', async () => {
             await editor.closeEditor.click();
             await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.confirmationDialog
-                .locator(studio.discardDialog)
-                .click();
+            await studio.discardDialog.click();
             await expect(await editor.panel).not.toBeVisible();
         });
 
-        await test.step('step-5: Open the editor and validate there are no changes', async () => {
-            await (
-                await studio.getCard(data.cardid, 'ah-promoted-plans')
-            ).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.CTA.nth(2)).toBeVisible();
-            await expect(await editor.CTA.nth(2)).toHaveClass(data.variant);
-        });
-    });
-
-    // @studio-promoted-plans-discard-edit-description - Validate discarding description changes
-    test(`${features[4].name},${features[4].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
-        const { data } = features[4];
-        const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
-
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'ah-promoted-plans'),
-            ).toBeVisible();
-            await (
-                await studio.getCard(data.cardid, 'ah-promoted-plans')
-            ).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Verify current description', async () => {
-            await expect(await promotedplans.cardDescription).toBeVisible();
-            const descriptionText =
-                await promotedplans.cardDescription.textContent();
-            expect(descriptionText.trim()).toBe(data.description);
-        });
-
-        await test.step('step-4: Update description', async () => {
-            await expect(await editor.description).toBeVisible();
-
-            const currentHTML = await editor.description.innerHTML();
-
-            const updatedHTML = currentHTML.replace(
+        await test.step('step-6: Open the editor and validate there are no changes', async () => {
+            await expect(await promotedplans.cardDescription).toContainText(
                 data.description,
-                data.newDescription,
             );
-
-            await editor.description.evaluate((el, html) => {
-                el.innerHTML = html;
-                const event = new Event('change', { bubbles: true });
-                el.dispatchEvent(event);
-            }, updatedHTML);
-
-            await page.waitForTimeout(2000);
-
-            await expect(await promotedplans.cardDescription).toBeVisible();
-            const updatedDescriptionText =
-                await promotedplans.cardDescription.textContent();
-            expect(updatedDescriptionText.trim()).toBe(data.newDescription);
-        });
-
-        await test.step('step-5: Discard changes', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.confirmationDialog
-                .locator(studio.discardDialog)
-                .click();
-            await page.waitForTimeout(2000);
-        });
-
-        await test.step('step-6: Verify description reverted', async () => {
-            await expect(await promotedplans.cardDescription).toBeVisible();
-            const descriptionText =
-                await promotedplans.cardDescription.textContent();
-            expect(descriptionText.trim()).toBe(data.description);
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.description).toContainText(
+                data.description,
+            );
         });
     });
 });

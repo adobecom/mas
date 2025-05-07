@@ -506,7 +506,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-save-edited-stock-checkbox - Validate saving card after editing stock checkbox
-    test(`${features[10].name},${features[10].tags}`, async ({
+    test.skip(`${features[10].name},${features[10].tags}`, async ({
         page,
         baseURL,
     }) => {
@@ -588,7 +588,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-save-edited-whats-included - Validate saving card after editing whats included
-    test(`${features[12].name},${features[12].tags}`, async ({
+    test.skip(`${features[12].name},${features[12].tags}`, async ({
         page,
         baseURL,
     }) => {

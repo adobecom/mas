@@ -42,6 +42,7 @@ export class MasFolderPicker extends LitElement {
 
     _handleSelection(selectedValue) {
         Store.search.set((prev) => ({ ...prev, path: selectedValue }));
+        Store.fragments.list.data.set([]);
     }
 
     render() {

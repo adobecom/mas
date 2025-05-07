@@ -282,7 +282,25 @@ mas-content {
     overflow: hidden;
 }
 
-#content #render {
+sp-table-cell {
+    &.product-name {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+
+        & img {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        }
+    }
+
+    &.offer-id {
+        word-break: break-all;
+    }
+}
+
+sp-table-cell #content #render {
     width: 100%;
     display: flex;
     flex-wrap: wrap;

@@ -10,8 +10,7 @@ import '../rte/osi-field.js';
 import { CARD_MODEL_PATH } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
-
-const merchCardCustomElementPromise = customElements.whenDefined('merch-card');
+import { getFragmentMapping } from '../utils.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -241,14 +240,11 @@ class MerchCardEditor extends LitElement {
 
     async toggleFields() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await merchCardCustomElementPromise;
-        if (!merchCardCustomElement) return;
+        const variant = await getFragmentMapping(this.fragment.variant);
+        if (!variant) return;
         this.querySelectorAll('sp-field-group.toggle').forEach((field) => {
             field.style.display = 'none';
         });
-        const variant = merchCardCustomElement.getFragmentMapping(
-            this.fragment.variant,
-        );
         if (!variant) return;
         Object.entries(variant).forEach(([key, value]) => {
             if (Array.isArray(value) && value.length === 0) return;

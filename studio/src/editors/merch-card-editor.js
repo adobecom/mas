@@ -9,6 +9,7 @@ import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 import '../rte/osi-field.js';
 import { CARD_MODEL_PATH } from '../constants.js';
 import '../fields/secure-text-field.js';
+import '../fields/plan-type-field.js';
 
 const merchCardCustomElementPromise = customElements.whenDefined('merch-card');
 
@@ -460,6 +461,7 @@ class MerchCardEditor extends LitElement {
                 <sp-field-label for="description">Description</sp-field-label>
                 <rte-field
                     id="description"
+                    styling
                     link
                     upt-link
                     list
@@ -479,6 +481,7 @@ class MerchCardEditor extends LitElement {
                     data-field="callout"
                     default-link-style="secondary-link"
                     @change="${this.#handleFragmentUpdate}"
+                    @change="${this.#handleFragmentUpdate}"
                     ?readonly=${this.disabled}
                     >${unsafeHTML(form.callout?.values[0])}</rte-field
                 >
@@ -492,6 +495,16 @@ class MerchCardEditor extends LitElement {
                     @change="${this.#handleFragmentUpdate}"
                 >
                 </secure-text-field>
+            </sp-field-group>
+            <sp-field-group id="planType" class="toggle">
+                <mas-plan-type-field
+                    id="plan-type-field"
+                    label="Plan Type text"
+                    data-field="showPlanType"
+                    value="${form.showPlanType?.values[0]}"
+                    @change="${this.#handleFragmentUpdate}"
+                >
+                </mas-plan-type-field>
             </sp-field-group>
             <sp-field-group class="toggle" id="stockOffer">
                 <sp-checkbox
@@ -709,6 +722,7 @@ class MerchCardEditor extends LitElement {
 
     get badgeText() {
         const badgeValues =
+            this.fragment.fields.find((f) => f.name === 'badge')?.values ?? [];
             this.fragment.fields.find((f) => f.name === 'badge')?.values ?? [];
         return badgeValues?.length ? badgeValues[0] : '';
     }
@@ -1039,7 +1053,11 @@ class MerchCardEditor extends LitElement {
         const options = isBackground
             ? ['Default', ...colorArray]
             : dataField === 'borderColor' || dataField === 'badgeBorderColor'
-              ? ['', ...colorArray]
+              ? [
+                    '',
+                    ...(isBorder ? Object.keys(variantSpecialValues) : []),
+                    ...colorArray,
+                ]
               : colorArray;
 
         const handleChange = (e) => {
@@ -1051,7 +1069,7 @@ class MerchCardEditor extends LitElement {
                 fragment.updateField(dataField, [actualValue]);
                 this.fragmentStore.set(fragment);
             } else {
-                this.updateFragment(e);
+                this.#handleFragmentUpdate(e);
             }
         };
 
@@ -1064,7 +1082,9 @@ class MerchCardEditor extends LitElement {
                     value="${displaySelectedValue ||
                     (isBackground ? 'Default' : '')}"
                     data-default-value="${isBackground ? 'Default' : ''}"
-                    @change="${onChange || this.#handleFragmentUpdate}"
+                    @change="${isBorder
+                        ? handleChange
+                        : onChange || this.#handleFragmentUpdate}"
                 >
                     ${options.map(
                         (color) => html`

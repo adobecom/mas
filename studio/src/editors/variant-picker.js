@@ -14,6 +14,11 @@ export const VARIANTS = [
         surface: 'adobe-home',
     },
     {
+        label: 'Promoted Plans',
+        value: 'ah-promoted-plans',
+        surface: 'adobe-home',
+    },
+    {
         label: 'Fries',
         value: 'fries',
         surface: 'commerce',

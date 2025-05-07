@@ -123,21 +123,12 @@
                             document.getElementById('card-title');
                         triggerInput(titleField(), 'test title');
                         await editorPanel.updateComplete;
-                        const clipboardContent =
-                            editorPanel.generateCodeToUse();
-                        expect(clipboardContent[0]).to.equal(
-                            '<merch-card><aem-fragment fragment="cc-all-apps" title="test title"></aem-fragment></merch-card>',
-                        );
-                        expect(
-                            clipboardContent[1].includes(
-                                'https://mas.adobe.com/studio.html#path=ccd&fragment=fragment-cc-all-apps',
-                            ),
-                        );
-                        expect(
-                            clipboardContent[1].includes(
-                                'merch-card: CCD / Slice / test title',
-                            ),
-                        );
+                        const { authorPath, href, richText } = editorPanel.generateCodeToUse();
+                        const normalizedExpected = '<ahref="https://mas.adobe.com/studio.html#content-type=merch-card&page=welcome&path=acom&query=cc-all-apps"target="_blank">merch-card:ACOM/Slice/CreativeCloudAllApps</a>';
+                        const normalizedActual = richText.replace(/\s+/g, '');
+                        expect(normalizedActual).to.equal(normalizedExpected);
+                        expect(authorPath).to.equal('merch-card: ACOM / Slice / Creative Cloud All Apps');
+                        expect(href).to.equal('https://mas.adobe.com/studio.html#content-type=merch-card&page=welcome&path=acom&query=cc-all-apps');
                     });
                 });
             });

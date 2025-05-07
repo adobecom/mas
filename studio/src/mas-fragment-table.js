@@ -36,6 +36,7 @@ class MasFragmentTable extends LitElement {
         const service = getService();
         const priceOptions = service.collectPriceOptions({ wcsOsi });
         const [offersPromise] = service.resolveOfferSelectors(priceOptions);
+        if (!offersPromise) return;
         const [offer] = await offersPromise;
         this.offerData = offer;
     }

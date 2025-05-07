@@ -7,6 +7,9 @@ class RteMnemonicEditor extends LitElement {
     static properties = {
         open: { type: Boolean, reflect: true },
         dialog: { type: Boolean, reflect: true },
+        imageUrl: { type: String, reflect: true },
+        altText: { type: String, reflect: true },
+        size: { type: String, reflect: true },
     };
 
     static get styles() {
@@ -62,6 +65,9 @@ class RteMnemonicEditor extends LitElement {
         super();
         this.dialog = false;
         this.open = false;
+        this.imageUrl = '';
+        this.altText = '';
+        this.size = 'xs';
 
         // Prevent events from propagating outside the component
         this.addEventListener('change', (e) => {
@@ -72,6 +78,19 @@ class RteMnemonicEditor extends LitElement {
     firstUpdated() {
         this.imageUrlInput = this.shadowRoot.querySelector('#imageUrl');
         this.altTextInput = this.shadowRoot.querySelector('#altText');
+        this.sizeSelect = this.shadowRoot.querySelector('#size');
+    }
+
+    updated(changedProperties) {
+        if (changedProperties.has('imageUrl') && this.imageUrlInput) {
+            this.imageUrlInput.value = this.imageUrl;
+        }
+        if (changedProperties.has('altText') && this.altTextInput) {
+            this.altTextInput.value = this.altText;
+        }
+        if (changedProperties.has('size') && this.sizeSelect) {
+            this.sizeSelect.value = this.size;
+        }
     }
 
     #handleClose() {
@@ -85,6 +104,7 @@ class RteMnemonicEditor extends LitElement {
         e.preventDefault();
         const imageUrl = this.imageUrlInput.value;
         const altText = this.altTextInput.value;
+        const size = this.sizeSelect.value;
 
         if (!imageUrl.trim()) {
             return;
@@ -97,6 +117,7 @@ class RteMnemonicEditor extends LitElement {
                 detail: {
                     imageUrl,
                     altText,
+                    size,
                 },
             }),
         );
@@ -105,10 +126,11 @@ class RteMnemonicEditor extends LitElement {
     }
 
     get #editor() {
+        const isEditing = !!this.imageUrl;
         return html`
             <sp-dialog close=${this.#handleClose}>
-                <h2 slot="heading">Add Inline Icon</h2>
-                <p>Add an icon that will appear inline with your text</p>
+                <h2 slot="heading">${isEditing ? 'Edit' : 'Add'} Inline Icon</h2>
+                <p>${isEditing ? 'Edit the' : 'Add an'} icon that will appear inline with your text</p>
                 <form @submit=${this.#handleSubmit}>
                     <div class="form-field">
                         <sp-field-label for="imageUrl" required>
@@ -117,6 +139,7 @@ class RteMnemonicEditor extends LitElement {
                         <sp-textfield
                             id="imageUrl"
                             placeholder="https://example.com/icon.svg"
+                            .value=${this.imageUrl}
                         ></sp-textfield>
                     </div>
                     <div class="form-field">
@@ -124,7 +147,17 @@ class RteMnemonicEditor extends LitElement {
                         <sp-textfield
                             id="altText"
                             placeholder="Descriptive text for accessibility"
+                            .value=${this.altText}
                         ></sp-textfield>
+                    </div>
+                    <div class="form-field">
+                        <sp-field-label for="size">Size</sp-field-label>
+                        <sp-picker id="size" .value=${this.size}>
+                            <sp-menu-item value="xs">Extra Small</sp-menu-item>
+                            <sp-menu-item value="s">Small</sp-menu-item>
+                            <sp-menu-item value="m">Medium</sp-menu-item>
+                            <sp-menu-item value="l">Large</sp-menu-item>
+                        </sp-picker>
                     </div>
                 </form>
                 <sp-button
@@ -143,7 +176,7 @@ class RteMnemonicEditor extends LitElement {
                     variant="accent"
                     @click=${this.#handleSubmit}
                 >
-                    Add Icon
+                    ${isEditing ? 'Update' : 'Add'} Icon
                 </sp-button>
             </sp-dialog>
         `;

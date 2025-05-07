@@ -117,6 +117,8 @@ class MnemonicNodeView {
             merchIcon.setAttribute('size', node.attrs.size || 'xs');
             if (node.attrs.alt) {
                 merchIcon.setAttribute('alt', node.attrs.alt);
+            } else {
+                merchIcon.removeAttribute('alt');
             }
         } else if (node.attrs.src && !merchIcon) {
             // Re-create icon if needed
@@ -624,7 +626,7 @@ class RteField extends LitElement {
                     toDOM: () => ['span', { class: 'mnemonic-text' }, 0],
                     spanning: false,
                     inclusive: false,
-                    excludes: '_'
+                    excludes: '_',
                 },
             });
 
@@ -701,8 +703,10 @@ class RteField extends LitElement {
                                 from: absPos + child.nodeSize,
                                 to: null,
                             };
-                        } else if (child.isBlock || 
-                            child.isText && child.text.includes('\n')) {
+                        } else if (
+                            child.isBlock ||
+                            (child.isText && child.text.includes('\n'))
+                        ) {
                             if (currentMnemonicTextRange) {
                                 currentMnemonicTextRange.to = absPos;
                                 textRanges.push(currentMnemonicTextRange);
@@ -887,7 +891,7 @@ class RteField extends LitElement {
                     span.classList.remove('mnemonic-text');
                 }
             });
-            
+
             // Clean up mnemonic-text elements
             container.querySelectorAll('span.mnemonic-text').forEach((span) => {
                 if (span.querySelector('merch-icon')) {
@@ -1326,10 +1330,43 @@ class RteField extends LitElement {
 
     #handleDoubleClickOn(view, pos, node, nodePos, event) {
         const dom = event.target.closest('[data-wcs-osi]');
-        if (!dom) return;
-        ostRteFieldSource = this;
-        this.showOfferSelector = true;
-        this.handleOpenOfferSelector(null, dom);
+        if (dom) {
+            ostRteFieldSource = this;
+            this.showOfferSelector = true;
+            this.handleOpenOfferSelector(null, dom);
+            return true;
+        }
+
+        // Handle double-click on mnemonic elements
+        const mnemonicEl = event.target.closest('.mnemonic');
+        if (mnemonicEl && node.type.name === 'mnemonic') {
+            this.selectMnemonic(nodePos);
+            this.openMnemonicEditorForExisting(node);
+            return true;
+        }
+
+        return false;
+    }
+
+    selectMnemonic(pos) {
+        const { state } = this.editorView;
+        const resolvedPos = state.doc.resolve(pos);
+        const selection = NodeSelection.create(state.doc, resolvedPos.pos);
+        const tr = state.tr.setSelection(selection);
+        this.editorView.dispatch(tr);
+    }
+
+    async openMnemonicEditorForExisting(node) {
+        this.showMnemonicEditor = true;
+        await this.updateComplete;
+
+        // Populate the editor with the existing mnemonic's properties
+        Object.assign(this.mnemonicEditorElement, {
+            open: true,
+            imageUrl: node.attrs.src || '',
+            altText: node.attrs.alt || '',
+            size: node.attrs.size || 'xs',
+        });
     }
 
     get linkEditor() {
@@ -1499,21 +1536,29 @@ class RteField extends LitElement {
     }
 
     #handleMnemonicSave(event) {
-        const { imageUrl, altText } = event.detail;
+        const { imageUrl, altText, size } = event.detail;
         const { state, dispatch } = this.editorView;
         const { selection } = state;
 
-        // Create a new mnemonic node with the provided image URL
-        const node = state.schema.nodes.mnemonic.create({
+        // Attributes for the mnemonic node
+        const attrs = {
             src: imageUrl,
             alt: altText || '',
-            size: 'xs',
-        });
+            size: size || 'xs',
+        };
 
-        // Insert the node at the current selection
-        const tr = selection.empty
-            ? state.tr.insert(selection.from, node)
-            : state.tr.replaceWith(selection.from, selection.to, node);
+        let tr;
+        if (selection.node && selection.node.type.name === 'mnemonic') {
+            // Update existing mnemonic
+            const newNode = state.schema.nodes.mnemonic.create(attrs);
+            tr = state.tr.replaceWith(selection.from, selection.to, newNode);
+        } else {
+            // Create a new mnemonic node
+            const node = state.schema.nodes.mnemonic.create(attrs);
+            tr = selection.empty
+                ? state.tr.insert(selection.from, node)
+                : state.tr.replaceWith(selection.from, selection.to, node);
+        }
 
         dispatch(tr);
         this.showMnemonicEditor = false;
@@ -1522,7 +1567,13 @@ class RteField extends LitElement {
     async openMnemonicEditor() {
         this.showMnemonicEditor = true;
         await this.updateComplete;
-        Object.assign(this.mnemonicEditorElement, { open: true });
+        // Reset the editor values for a new mnemonic
+        Object.assign(this.mnemonicEditorElement, {
+            open: true,
+            imageUrl: '',
+            altText: '',
+            size: 'xs',
+        });
     }
 }
 

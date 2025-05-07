@@ -375,6 +375,19 @@ class MerchCardEditor extends LitElement {
                 ></sp-textfield>
                 ${this.#renderBadgeColors()}
             </sp-field-group>
+            <sp-field-group class="toggle" id="trialBadge">
+                <sp-field-label for="card-trial-badge"
+                    >Trial Badge</sp-field-label
+                >
+                <sp-textfield
+                    placeholder="Enter trial badge text"
+                    id="card-trial-badge"
+                    data-field="trialBadge"
+                    value="${this.trialBadge.text}"
+                    @input="${this.#updateTrialBadgeText}"
+                ></sp-textfield>
+                ${this.#renderTrialBadgeColors()}
+            </sp-field-group>
             ${this.#renderColorPicker(
                 'border-color',
                 'Border Color',
@@ -681,6 +694,7 @@ class MerchCardEditor extends LitElement {
         );
         this.availableColors = variant?.allowedColors || [];
         this.#displayBadgeColorFields(this.badge.text);
+        this.#displayTrialBadgeColorFields(this.trialBadge.text);
     }
 
     #displayBadgeColorFields(text) {
@@ -720,7 +734,10 @@ class MerchCardEditor extends LitElement {
     }
 
     get supportsBadgeColors() {
-        return this.fragment.variant === 'plans' || this.fragment.variant === 'fries';
+        return (
+            this.fragment.variant === 'plans' ||
+            this.fragment.variant === 'fries'
+        );
     }
 
     get badge() {
@@ -745,6 +762,62 @@ class MerchCardEditor extends LitElement {
             this.badgeElement?.getAttribute?.('border-color');
         const borderColorSelected = document.querySelector(
             'sp-picker[data-field="badgeBorderColor"]',
+        )?.value;
+        const borderColor =
+            borderColorAttr?.toLowerCase() || borderColorSelected;
+
+        return {
+            text,
+            bgColor,
+            borderColor,
+        };
+    }
+
+    get trialBadgeText() {
+        const trialBadgeValues =
+            this.fragment.fields.find((f) => f.name === 'trialBadge')?.values ??
+            [];
+        return trialBadgeValues?.length ? trialBadgeValues[0] : '';
+    }
+
+    get trialBadgeElement() {
+        const trialBadgeHtml = this.trialBadgeText;
+
+        if (!trialBadgeHtml) return undefined;
+
+        if (trialBadgeHtml?.startsWith('<merch-badge')) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(trialBadgeHtml, 'text/html');
+            return doc.querySelector('merch-badge');
+        }
+
+        return {
+            textContent: trialBadgeHtml,
+        };
+    }
+
+    get trialBadge() {
+        if (!this.supportsBadgeColors) {
+            return {
+                text: this.trialBadgeText,
+            };
+        }
+
+        const text = this.trialBadgeElement?.textContent || '';
+        const bgColorAttr =
+            this.trialBadgeElement?.getAttribute?.('background-color');
+        const bgColorSelected = document.querySelector(
+            'sp-picker[data-field="trialBadgeColor"]',
+        )?.value;
+        const bgColor =
+            bgColorAttr?.toLowerCase() ||
+            bgColorSelected ||
+            'spectrum-yellow-300';
+
+        const borderColorAttr =
+            this.trialBadgeElement?.getAttribute?.('border-color');
+        const borderColorSelected = document.querySelector(
+            'sp-picker[data-field="trialBadgeBorderColor"]',
         )?.value;
         const borderColor =
             borderColorAttr?.toLowerCase() || borderColorSelected;
@@ -782,6 +855,20 @@ class MerchCardEditor extends LitElement {
         }
     }
 
+    #updateTrialBadgeText(event) {
+        const text = event.target.value?.trim() || '';
+        if (this.supportsBadgeColors) {
+            this.#displayTrialBadgeColorFields(text);
+            this.#updateTrialBadge(
+                text,
+                this.trialBadge.bgColor,
+                this.trialBadge.borderColor,
+            );
+        } else {
+            this.fragmentStore.updateField('trialBadge', [text]);
+        }
+    }
+
     #onBadgeColorChange = (event) => {
         this.#updateBadge(
             this.badge.text,
@@ -798,10 +885,43 @@ class MerchCardEditor extends LitElement {
         );
     };
 
+    #onTrialBadgeColorChange = (event) => {
+        this.#updateTrialBadge(
+            this.trialBadge.text,
+            event.target.value,
+            this.trialBadge.borderColor,
+        );
+    };
+
+    #onTrialBadgeBorderColorChange = (event) => {
+        this.#updateTrialBadge(
+            this.trialBadge.text,
+            this.trialBadge.bgColor,
+            event.target.value,
+        );
+    };
+
     #updateBadge = (text, bgColor, borderColor) => {
         const element = this.#createBadgeElement(text, bgColor, borderColor);
         this.fragmentStore.updateField('badge', [element?.outerHTML || '']);
     };
+
+    #updateTrialBadge = (text, bgColor, borderColor) => {
+        const element = this.#createBadgeElement(text, bgColor, borderColor);
+        this.fragmentStore.updateField('trialBadge', [
+            element?.outerHTML || '',
+        ]);
+    };
+
+    #displayTrialBadgeColorFields(text) {
+        if (!this.supportsBadgeColors) return;
+        document.querySelector('#trialBadgeColor').style.display = text
+            ? 'block'
+            : 'none';
+        document.querySelector('#trialBadgeBorderColor').style.display = text
+            ? 'block'
+            : 'none';
+    }
 
     async #updateBackgroundColors() {
         if (!this.fragment) return;
@@ -842,6 +962,29 @@ class MerchCardEditor extends LitElement {
                 this.badge.borderColor,
                 'badgeBorderColor',
                 this.#onBadgeBorderColorChange,
+            )}
+        `;
+    }
+
+    #renderTrialBadgeColors() {
+        if (!this.supportsBadgeColors) return;
+
+        return html`
+            ${this.#renderColorPicker(
+                'trialBadgeColor',
+                'Trial Badge Color',
+                this.availableBadgeColors,
+                this.trialBadge.bgColor,
+                'trialBadgeColor',
+                this.#onTrialBadgeColorChange,
+            )}
+            ${this.#renderColorPicker(
+                'trialBadgeBorderColor',
+                'Trial Badge Border Color',
+                this.availableBadgeColors,
+                this.trialBadge.borderColor,
+                'trialBadgeBorderColor',
+                this.#onTrialBadgeBorderColorChange,
             )}
         `;
     }

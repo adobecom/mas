@@ -666,26 +666,53 @@ class RteField extends LitElement {
                 },
                 parseDOM: [
                     {
+                        tag: 'overlay-trigger',
+                        getAttrs: (domNode) => {
+                            const triggerIcon = domNode.querySelector(
+                                'merch-icon[slot="trigger"]',
+                            );
+                            const tooltipContent = domNode.querySelector(
+                                'sp-tooltip[slot="hover-content"]',
+                            );
+
+                            if (!triggerIcon) return false;
+
+                            let textFromTooltip = tooltipContent
+                                ? tooltipContent.textContent.trim()
+                                : null;
+                            let textFromAriaLabel =
+                                triggerIcon.getAttribute('aria-label');
+
+                            let parsedTooltipText =
+                                textFromTooltip || textFromAriaLabel || null;
+
+                            return {
+                                src: triggerIcon.getAttribute('src'),
+                                alt: triggerIcon.getAttribute('alt'),
+                                size: triggerIcon.getAttribute('size') || 'xs',
+                                class: 'mnemonic',
+                                tooltipText: parsedTooltipText,
+                                tooltipPlacement:
+                                    domNode.getAttribute('placement') || 'top',
+                            };
+                        },
+                    },
+                    {
                         tag: 'merch-icon',
                         getAttrs: (domNode) => {
-                            const src = domNode.getAttribute('src');
-                            if (!src) return false;
-
-                            let tooltipTextContent = null;
-                            let tooltipPlacementValue = null;
-
-                            const spTooltipChild =
-                                domNode.querySelector('sp-tooltip');
-                            if (spTooltipChild) {
-                                tooltipTextContent =
-                                    spTooltipChild.textContent.trim() || null;
-                                tooltipPlacementValue =
-                                    spTooltipChild.getAttribute('placement') ||
-                                    (tooltipTextContent ? 'top' : null);
+                            if (
+                                domNode.getAttribute('slot') === 'trigger' &&
+                                domNode.parentElement?.tagName.toLowerCase() ===
+                                    'overlay-trigger'
+                            ) {
+                                return false;
+                            }
+                            if (domNode.querySelector('sp-tooltip')) {
+                                return false;
                             }
 
                             return {
-                                src: src,
+                                src: domNode.getAttribute('src'),
                                 alt: domNode.getAttribute('alt'),
                                 size: domNode.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
@@ -701,15 +728,21 @@ class RteField extends LitElement {
                         tag: 'merch-icon[data-tooltip]',
                         priority: 40,
                         getAttrs: (domNode) => {
-                            if (domNode.querySelector('sp-tooltip')) {
+                            if (
+                                domNode.getAttribute('slot') === 'trigger' &&
+                                domNode.parentElement?.tagName.toLowerCase() ===
+                                    'overlay-trigger'
+                            )
                                 return false;
-                            }
+                            if (domNode.querySelector('sp-tooltip'))
+                                return false;
                             return {
                                 src: domNode.getAttribute('src'),
                                 alt: domNode.getAttribute('alt'),
                                 size: domNode.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
-                                tooltipText: domNode.getAttribute('data-tooltip'),
+                                tooltipText:
+                                    domNode.getAttribute('data-tooltip'),
                                 tooltipPlacement: domNode.getAttribute(
                                     'data-tooltip-placement',
                                 ),
@@ -722,9 +755,13 @@ class RteField extends LitElement {
                         getAttrs: (domNode) => {
                             const icon = domNode.querySelector('merch-icon');
                             if (!icon) return false;
-                            if (icon.querySelector('sp-tooltip')) {
+                            if (
+                                icon.getAttribute('slot') === 'trigger' &&
+                                domNode.parentElement?.tagName.toLowerCase() ===
+                                    'overlay-trigger'
+                            )
                                 return false;
-                            }
+                            if (icon.querySelector('sp-tooltip')) return false;
                             return {
                                 src: icon.getAttribute('src'),
                                 alt: icon.getAttribute('alt'),
@@ -741,24 +778,40 @@ class RteField extends LitElement {
                 toDOM: (node) => {
                     const { src, alt, size, tooltipText, tooltipPlacement } =
                         node.attrs;
-                    const iconAttrs = {
-                        src: src || '',
-                        alt: alt || undefined,
-                        size: size || 'xs',
-                    };
-                    if (!iconAttrs.alt) delete iconAttrs.alt;
 
                     if (tooltipText && tooltipText.trim() !== '') {
-                        const tooltipDOMAttrs = {
+                        const overlayAttrs = {
                             placement: tooltipPlacement || 'top',
-                            'self-managed': ''
                         };
+                        const iconAttrs = {
+                            src: src || '',
+                            size: size || 'xs',
+                            slot: 'trigger',
+                            'aria-label': tooltipText.trim(),
+                        };
+                        if (alt) {
+                            iconAttrs.alt = alt;
+                        }
+
+                        const tooltipDOMAttrs = {
+                            slot: 'hover-content',
+                            dir: 'ltr',
+                        };
+
                         return [
-                            'merch-icon',
-                            iconAttrs,
+                            'overlay-trigger',
+                            overlayAttrs,
+                            ['merch-icon', iconAttrs],
                             ['sp-tooltip', tooltipDOMAttrs, tooltipText.trim()],
                         ];
                     } else {
+                        const iconAttrs = {
+                            src: src || '',
+                            size: size || 'xs',
+                        };
+                        if (alt) {
+                            iconAttrs.alt = alt;
+                        }
                         return ['merch-icon', iconAttrs];
                     }
                 },

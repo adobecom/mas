@@ -65,7 +65,6 @@ test.describe('M@S Studio feature test suite', () => {
                 'variant',
                 'ccd-suggested',
             );
-            await expect(page).toHaveURL(`${testPage}&page=content&path=nala`);
             await expect(page).toHaveURL(expectedUrl);
             expect(await studio.folderPicker).toHaveAttribute('value', 'nala');
         });

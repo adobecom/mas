@@ -16,7 +16,7 @@ export default class ACOMPlansIndividualsPage {
         this.cardPriceStrikethrough = page.locator(
             'p[slot="heading-m"] span.price-strikethrough',
         );
-        // this.cardCTA = page.locator('div[slot="footer"] > a[is="checkout-link"]');
+        this.cardCTA = page.locator('div[slot="footer"] > a[is="checkout-link"]');
         this.cardPromoText = page.locator('p[slot="promo-text"]');
         this.cardStockCheckbox = page.locator('[id="stock-checkbox"]');
         this.cardStockCheckboxIcon = page.locator(

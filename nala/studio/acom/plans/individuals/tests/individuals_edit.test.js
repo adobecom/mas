@@ -1230,9 +1230,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(
-                await studio.getCard(data.cardid, 'plans'),
+                await studio.getCard(data.cardid),
             ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'plans')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -1258,6 +1258,408 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-5: Validate phone link addition on the card', async () => {
             await expect(await individuals.cardPhoneLink).toHaveText(
                 data.phoneNumber,
+            );
+        });
+    });
+
+    // @studio-plans-individuals-edit-cta-variant - Validate edit CTA variant for plans individuals card in mas studio
+    test(`${features[20].name},${features[20].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[20];
+        const testPage = `${baseURL}${features[20].path}${miloLibs}${features[20].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'variant',
+                'plans',
+            );
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA variant', async () => {
+            await expect(
+                await editor.footer.locator(editor.linkEdit),
+            ).toBeVisible();
+            await expect(await editor.CTA).toBeVisible();
+            await expect(await editor.CTA).toHaveClass(data.variant);
+            expect(
+                await webUtil.verifyCSS(await individuals.cardCTA, data.ctaCSS),
+            ).toBeTruthy();
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.linkVariant).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
+            await expect(
+                await editor.getLinkVariant(data.newVariant),
+            ).toBeVisible();
+            await (await editor.getLinkVariant(data.newVariant)).click();
+            await editor.linkSave.click();
+        });
+
+        await test.step('step-4: Validate edited CTA variant in Editor panel', async () => {
+            await expect(await editor.CTA).toHaveClass(data.newVariant);
+            await expect(await editor.CTA).not.toHaveClass(data.variant);
+        });
+
+        await test.step('step-5: Validate edited CTA on the card', async () => {
+            expect(
+                await webUtil.verifyCSS(
+                    await individuals.cardCTA,
+                    data.newCtaCSS,
+                ),
+            ).toBeTruthy();
+            await expect(await individuals.cardCTA).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(await individuals.cardCTA).toHaveAttribute(
+                'is',
+                'checkout-link',
+            );
+        });
+    });
+
+    // @studio-plans-individuals-edit-cta-checkout-params - Validate edit CTA checkout params for plans individuals card in mas studio
+    test(`${features[21].name},${features[21].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[21];
+        const testPage = `${baseURL}${features[21].path}${miloLibs}${features[21].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'variant',
+                'plans',
+            );
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA checkout params', async () => {
+            await expect(
+                await editor.footer.locator(editor.linkEdit),
+            ).toBeVisible();
+            await expect(await editor.CTA).toBeVisible();
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.checkoutParameters).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
+
+            const checkoutParamsString = Object.keys(data.checkoutParams)
+                .map(
+                    (key) =>
+                        `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`,
+                )
+                .join('&');
+            await editor.checkoutParameters.fill(checkoutParamsString);
+            await editor.linkSave.click();
+        });
+
+        await test.step('step-4: Validate edited CTA on the card', async () => {
+            await expect(await individuals.cardCTA).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(await individuals.cardCTA).toHaveAttribute(
+                'is',
+                'checkout-link',
+            );
+            const CTAhref = await individuals.cardCTA.getAttribute('href');
+            let searchParams = new URLSearchParams(
+                decodeURI(CTAhref).split('?')[1],
+            );
+            expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
+            // expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
+            expect(searchParams.get('promoid')).toBe(
+                data.checkoutParams.promoid,
+            );
+            expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
+        });
+    });
+
+    // @studio-plans-individuals-edit-cta-ost - Validate edit CTA for plans individuals card in mas studio
+    test(`${features[22].name},${features[22].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[22];
+        const testPage = `${baseURL}${features[22].path}${miloLibs}${features[22].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'variant',
+                'plans',
+            );
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA in OST', async () => {
+            await expect(await editor.footer).toBeVisible();
+            await expect(await editor.footer).toContainText(data.ctaText);
+
+            await (await editor.CTA).dblclick();
+            await expect(await ost.checkoutTab).toBeVisible();
+            await expect(await ost.workflowMenu).toBeVisible();
+            await expect(await ost.ctaTextMenu).toBeEnabled();
+            await expect(await ost.checkoutLinkUse).toBeVisible();
+            await expect(async () => {
+                await ost.ctaTextMenu.click();
+                await expect(
+                    page.locator('div[role="option"]', {
+                        hasText: `${data.newCtaText}`,
+                    }),
+                ).toBeVisible({
+                    timeout: 500,
+                });
+            }).toPass();
+            await page
+                .locator('div[role="option"]', {
+                    hasText: `${data.newCtaText}`,
+                })
+                .click();
+            await ost.checkoutLinkUse.click();
+        });
+
+        await test.step('step-4: Validate edited CTA in Editor panel', async () => {
+            await expect(await editor.footer).toContainText(data.newCtaText);
+        });
+
+        await test.step('step-5: Validate edited CTA on the card', async () => {
+            await expect(await individuals.cardCTA).toContainText(
+                data.newCtaText,
+            );
+            await expect(await individuals.cardCTA).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(await individuals.cardCTA).toHaveAttribute(
+                'is',
+                'checkout-link',
+            );
+
+            const CTAhref = await individuals.cardCTA.getAttribute('href');
+            let workflowStep = decodeURI(CTAhref).split('?')[0];
+            let searchParams = new URLSearchParams(
+                decodeURI(CTAhref).split('?')[1],
+            );
+
+            expect(workflowStep).toContain(data.ucv3);
+            expect(searchParams.get('co')).toBe(data.country);
+            expect(searchParams.get('ctx')).toBe(data.ctx);
+            expect(searchParams.get('lang')).toBe(data.lang);
+            expect(searchParams.get('cli')).toBe(data.client);
+            expect(searchParams.get('apc')).toBe(data.promo);
+        });
+    });
+
+    // @studio-plans-individuals-edit-cta-label - Validate edit CTA label for plans individuals card in mas studio
+    test(`${features[23].name},${features[23].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[23];
+        const testPage = `${baseURL}${features[23].path}${miloLibs}${features[23].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'variant',
+                'plans',
+            );
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA label', async () => {
+            await expect(
+                await editor.footer.locator(editor.linkEdit),
+            ).toBeVisible();
+            await expect(await editor.CTA).toBeVisible();
+            await expect(await editor.footer).toContainText(data.ctaText);
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.linkText).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
+            await expect(await editor.linkText).toHaveValue(data.ctaText);
+            await editor.linkText.fill(data.newCtaText);
+            await editor.linkSave.click();
+        });
+
+        await test.step('step-4: Validate edited CTA label in Editor panel', async () => {
+            await expect(await editor.footer).toContainText(data.newCtaText);
+        });
+
+        await test.step('step-5: Validate edited CTA on the card', async () => {
+            await expect(await individuals.cardCTA).toContainText(
+                data.newCtaText,
+            );
+            await expect(await individuals.cardCTA).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
+            );
+            await expect(await individuals.cardCTA).toHaveAttribute(
+                'is',
+                'checkout-link',
+            );
+        });
+    });
+
+    // @studio-plans-individuals-edit-cta-promo - Validate edit cta promo for plans individuals card in mas studio
+    test(`${features[24].name},${features[24].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[24];
+        const testPage = `${baseURL}${features[24].path}${miloLibs}${features[24].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'variant',
+                'plans',
+            );
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA promo field', async () => {
+            await expect(await editor.CTA).toHaveAttribute(
+                'data-promotion-code',
+                data.promo,
+            );
+            await expect(await individuals.cardCTA).toHaveAttribute(
+                'data-promotion-code',
+                data.promo,
+            );
+
+            const CTAhref = await individuals.cardCTA.getAttribute('href');
+            let workflowStep = decodeURI(CTAhref).split('?')[0];
+            let searchParams = new URLSearchParams(
+                decodeURI(CTAhref).split('?')[1],
+            );
+
+            expect(workflowStep).toContain(data.ucv3);
+            expect(searchParams.get('co')).toBe(data.country);
+            expect(searchParams.get('ctx')).toBe(data.ctx);
+            expect(searchParams.get('lang')).toBe(data.lang);
+            expect(searchParams.get('cli')).toBe(data.client);
+            expect(searchParams.get('apc')).toBe(data.promo);
+
+            await (await editor.CTA).dblclick();
+            await expect(await ost.checkoutTab).toBeVisible();
+            await expect(await ost.promoField).toBeVisible();
+            await expect(await ost.promoLabel).toBeVisible();
+            await expect(await ost.promoLabel).toContainText(data.promo);
+            await expect(await ost.promoField).toHaveValue(data.promo);
+
+            await ost.promoField.fill(data.newPromo);
+            expect(await ost.promoLabel).toContainText(data.newPromo);
+            await expect(await ost.promoField).toHaveValue(data.newPromo);
+            await ost.checkoutLinkUse.click();
+        });
+
+        await test.step('step-4: Validate edited CTA promo in Editor panel', async () => {
+            await expect(await editor.CTA).toHaveAttribute(
+                'data-promotion-code',
+                data.newPromo,
+            );
+        });
+
+        await test.step('step-5: Validate edited CTA promo on the card', async () => {
+            const newCTA = await individuals.cardCTA;
+            await expect(newCTA).toHaveAttribute(
+                'data-promotion-code',
+                data.newPromo,
+            );
+            await expect(newCTA).toHaveAttribute(
+                'href',
+                new RegExp(`${data.ucv3}`),
+            );
+            await expect(newCTA).toHaveAttribute(
+                'href',
+                new RegExp(`co=${data.country}`),
+            );
+            await expect(newCTA).toHaveAttribute(
+                'href',
+                new RegExp(`ctx=${data.ctx}`),
+            );
+            await expect(newCTA).toHaveAttribute(
+                'href',
+                new RegExp(`lang=${data.lang}`),
+            );
+            await expect(newCTA).toHaveAttribute(
+                'href',
+                new RegExp(`cli=${data.client}`),
+            );
+            await expect(newCTA).toHaveAttribute(
+                'href',
+                new RegExp(`apc=${data.newPromo}`),
+            );
+        });
+
+        await test.step('step-6: Remove promo', async () => {
+            await (await editor.CTA).dblclick();
+            await expect(await ost.checkoutTab).toBeVisible();
+            await expect(await ost.promoField).toBeVisible();
+            await expect(await ost.promoLabel).toBeVisible();
+
+            await ost.promoField.fill('');
+            expect(await ost.promoLabel).toContainText('no promo');
+            await expect(await ost.promoField).toHaveValue('');
+            await ost.checkoutLinkUse.click();
+        });
+
+        await test.step('step-7: Validate promo removed in Editor panel', async () => {
+            await expect(await editor.CTA).not.toHaveAttribute(
+                'data-promotion-code',
+            );
+        });
+
+        await test.step('step-8: Validate CTA promo removed from the card', async () => {
+            await expect(await individuals.cardCTA).not.toHaveAttribute(
+                'data-promotion-code',
+            );
+            await expect(await individuals.cardCTA).not.toHaveAttribute(
+                'href',
+                /apc=/,
             );
         });
     });

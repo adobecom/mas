@@ -797,4 +797,212 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             );
         });
     });
+
+    // @studio-plans-individuals-discard-edited-cta-ost - Validate discard edited CTA for plans individuals card in mas studio
+    test(`${features[16].name},${features[16].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[16];
+        const testPage = `${baseURL}${features[16].path}${miloLibs}${features[16].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA in OST', async () => {
+            await expect(await editor.footer).toBeVisible();
+            await (await editor.CTA).dblclick();
+            await expect(await ost.checkoutTab).toBeVisible();
+            await expect(await ost.workflowMenu).toBeVisible();
+            await expect(await ost.ctaTextMenu).toBeEnabled();
+            await expect(await ost.checkoutLinkUse).toBeVisible();
+            await expect(async () => {
+                await ost.ctaTextMenu.click();
+                await expect(
+                    page.locator('div[role="option"]', {
+                        hasText: `${data.newCtaText}`,
+                    }),
+                ).toBeVisible({
+                    timeout: 500,
+                });
+            }).toPass();
+            await page
+                .locator('div[role="option"]', {
+                    hasText: `${data.newCtaText}`,
+                })
+                .click();
+            await ost.checkoutLinkUse.click();
+        });
+
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-5: Verify there is no changes of the card', async () => {
+            await expect(await individuals.cardCTA).toContainText(data.ctaText);
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.footer).toContainText(data.ctaText);
+        });
+    });
+
+    // @studio-plans-individuals-discard-edited-cta-label - Validate discard edited CTA label for plans individuals card in mas studio
+    test(`${features[17].name},${features[17].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[17];
+        const testPage = `${baseURL}${features[17].path}${miloLibs}${features[17].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA label', async () => {
+            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
+            await expect(await editor.CTA).toBeVisible();
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.linkText).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
+            await editor.linkText.fill(data.newCtaText);
+            await editor.linkSave.click();
+        });
+
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-5: Verify there is no changes of the card', async () => {
+            await expect(await individuals.cardCTA).toContainText(data.ctaText);
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.footer).toContainText(data.ctaText);
+        });
+    });
+
+    // @studio-plans-individuals-discard-edited-cta-variant - Validate changing CTA variant for plans individuals card in mas studio
+    test(`${features[18].name},${features[18].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[18];
+        const testPage = `${baseURL}${features[18].path}${miloLibs}${features[18].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA variant', async () => {
+            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
+            await expect(await editor.CTA).toBeVisible();
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.linkVariant).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
+            await expect(await editor.getLinkVariant(data.newVariant)).toBeVisible();
+            await (await editor.getLinkVariant(data.newVariant)).click();
+            await editor.linkSave.click();
+        });
+
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-5: Open the editor and validate there are no changes', async () => {
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.CTA).toBeVisible();
+            await expect(await editor.CTA).not.toHaveClass(data.newVariant);
+            await expect(await editor.CTA).toHaveClass(data.variant);
+        });
+    });
+
+    // @studio-plans-individuals-discard-edited-cta-checkout-params - Validate discard edited CTA checkout params for plans individuals card in mas studio
+    test(`${features[19].name},${features[19].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[19];
+        const testPage = `${baseURL}${features[19].path}${miloLibs}${features[19].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit CTA checkout params', async () => {
+            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
+            await expect(await editor.CTA).toBeVisible();
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.checkoutParameters).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
+
+            const checkoutParamsString = Object.keys(data.checkoutParams)
+                .map(
+                    (key) =>
+                        `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`,
+                )
+                .join('&');
+            await editor.checkoutParameters.fill(checkoutParamsString);
+            await editor.linkSave.click();
+        });
+
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-5: Verify there is no changes of the card', async () => {
+            const changedCTAhref = await individuals.cardCTA.getAttribute('href');
+            let noSearchParams = new URLSearchParams(
+                decodeURI(changedCTAhref).split('?')[1],
+            );
+            expect(noSearchParams).toBeNull;
+        });
+    });
 });

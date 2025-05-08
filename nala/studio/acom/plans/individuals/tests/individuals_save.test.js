@@ -786,4 +786,158 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             );
         });
     });
+
+    // @studio-plans-individuals-save-edited-cta-label - Validate saving card after editing card cta label
+    test(`${features[16].name},${features[16].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[16];
+        const testPage = `${baseURL}${features[16].path}${miloLibs}${features[16].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+        let clonedCard;
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
+            clonedCardID = await clonedCard
+                .locator('aem-fragment')
+                .getAttribute('fragment');
+            data.clonedCardID = await clonedCardID;
+            await expect(await clonedCard).toBeVisible();
+            await clonedCard.dblclick();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-3: Edit cta and save card', async () => {
+            await expect(await editor.CTA).toBeVisible();
+            await expect(await editor.footer).toContainText(data.ctaText);
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.linkText).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
+            await expect(await editor.linkText).toHaveValue(data.ctaText);
+            await editor.linkText.fill(data.newCtaText);
+            await editor.linkSave.click();
+            await studio.saveCard();
+        });
+
+        await test.step('step-4: Validate edited card cta', async () => {
+            await expect(await editor.footer).toContainText(data.newCtaText);
+            await expect(await clonedCard.locator(individuals.cardCTA)).toContainText(data.newCtaText);
+        });
+    });
+
+    // @studio-plans-individuals-save-edited-cta-variant - Validate saving card after editing card cta variant
+    test(`${features[17].name},${features[17].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[17];
+        const testPage = `${baseURL}${features[17].path}${miloLibs}${features[17].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+        let clonedCard;
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
+            clonedCardID = await clonedCard
+                .locator('aem-fragment')
+                .getAttribute('fragment');
+            data.clonedCardID = await clonedCardID;
+            await expect(await clonedCard).toBeVisible();
+            await clonedCard.dblclick();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-3: Edit CTA variant and save card', async () => {
+            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
+            await expect(await editor.CTA).toBeVisible();
+            await expect(await editor.CTA).toHaveClass(data.variant);
+            expect(await webUtil.verifyCSS(await clonedCard.locator(individuals.cardCTA), data.ctaCSS)).toBeTruthy();
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.linkVariant).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
+            await expect(await editor.getLinkVariant(data.newVariant)).toBeVisible();
+            await (await editor.getLinkVariant(data.newVariant)).click();
+            await editor.linkSave.click();
+            await studio.saveCard();
+        });
+
+        await test.step('step-4: Validate CTA variant change', async () => {
+            await expect(await editor.CTA).toHaveClass(data.newVariant);
+            await expect(await editor.CTA).not.toHaveClass(data.variant);
+            expect(await webUtil.verifyCSS(await clonedCard.locator(individuals.cardCTA), data.newCtaCSS)).toBeTruthy();
+            await expect(await clonedCard.locator(individuals.cardCTA)).toHaveAttribute('data-wcs-osi', data.osi);
+            await expect(await clonedCard.locator(individuals.cardCTA)).toHaveAttribute('is', 'checkout-link');
+        });
+    });
+
+    // @studio-plans-individuals-save-edited-cta-checkout-params - Validate saving card after editing card cta checkout params
+    test(`${features[18].name},${features[18].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[18];
+        const testPage = `${baseURL}${features[18].path}${miloLibs}${features[18].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+        let clonedCard;
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
+            clonedCardID = await clonedCard
+                .locator('aem-fragment')
+                .getAttribute('fragment');
+            data.clonedCardID = await clonedCardID;
+            await expect(await clonedCard).toBeVisible();
+            await clonedCard.dblclick();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-3: Edit checkout params and save card', async () => {
+            await expect(await editor.CTA).toBeVisible();
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.checkoutParameters).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
+
+            const checkoutParamsString = Object.keys(data.checkoutParams)
+                .map(
+                    (key) =>
+                        `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`,
+                )
+                .join('&');
+            await editor.checkoutParameters.fill(checkoutParamsString);
+            await editor.linkSave.click();
+            await studio.saveCard();
+        });
+
+        await test.step('step-4: Validate edited cta checkout params', async () => {
+            await expect(await clonedCard.locator(individuals.cardCTA)).toHaveAttribute('data-wcs-osi', data.osi);
+            await expect(await clonedCard.locator(individuals.cardCTA)).toHaveAttribute('is', 'checkout-link');
+            const CTAhref = await clonedCard.locator(individuals.cardCTA).getAttribute('href');
+            let searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
+            expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
+            // expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
+            expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
+            expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
+        });
+    });
 });

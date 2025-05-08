@@ -126,11 +126,20 @@ class MerchCardEditor extends LitElement {
         const mnemonicLink =
             this.fragment.fields.find((f) => f.name === 'mnemonicLink')
                 ?.values ?? [];
+        const mnemonicTooltipText =
+            this.fragment.fields.find((f) => f.name === 'mnemonicTooltipText')
+                ?.values ?? [];
+        const mnemonicTooltipPlacement =
+            this.fragment.fields.find(
+                (f) => f.name === 'mnemonicTooltipPlacement',
+            )?.values ?? [];
         return (
             mnemonicIcon?.map((icon, index) => ({
                 icon,
                 alt: mnemonicAlt[index] ?? '',
                 link: mnemonicLink[index] ?? '',
+                tooltipText: mnemonicTooltipText[index] ?? '',
+                tooltipPlacement: mnemonicTooltipPlacement[index] ?? 'top',
             })) ?? []
         );
     }
@@ -670,15 +679,26 @@ class MerchCardEditor extends LitElement {
         const mnemonicIcon = [];
         const mnemonicAlt = [];
         const mnemonicLink = [];
-        event.target.value.forEach(({ icon, alt, link }) => {
-            mnemonicIcon.push(icon ?? '');
-            mnemonicAlt.push(alt ?? '');
-            mnemonicLink.push(link ?? '');
-        });
+        const mnemonicTooltipText = [];
+        const mnemonicTooltipPlacement = [];
+        event.target.value.forEach(
+            ({ icon, alt, link, tooltipText, tooltipPlacement }) => {
+                mnemonicIcon.push(icon ?? '');
+                mnemonicAlt.push(alt ?? '');
+                mnemonicLink.push(link ?? '');
+                mnemonicTooltipText.push(tooltipText ?? '');
+                mnemonicTooltipPlacement.push(tooltipPlacement ?? 'top');
+            },
+        );
         const fragment = this.fragmentStore.get();
         fragment.updateField('mnemonicIcon', mnemonicIcon);
         fragment.updateField('mnemonicAlt', mnemonicAlt);
         fragment.updateField('mnemonicLink', mnemonicLink);
+        fragment.updateField('mnemonicTooltipText', mnemonicTooltipText);
+        fragment.updateField(
+            'mnemonicTooltipPlacement',
+            mnemonicTooltipPlacement,
+        );
         this.fragmentStore.set(fragment);
     }
 

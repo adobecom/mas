@@ -19,7 +19,7 @@ It will also fallback to last successfully loaded offers for the same OSI if ava
 ⚠️ Safari does not support customized built-in elements. Therefore, you need to load the following polyfill before `mas.js` for browser compatibility (not required for in-app usage).
 ```html
 <script
-    src="https://www.adobe.comlibs/deps/custom-elements.js"
+    src="https://www.adobe.com/mas/dist/custom-elements.js"
 ></script>
 ```
 
@@ -27,7 +27,7 @@ To add `mas.js` to your page or application, include it as shown below:
 
 ```html
 <script
-    src="https://www.adobe.com/libs/features/mas/dist/mas.js"
+    src="https://www.adobe.com/mas/dist/mas.js"
     type="module"
 ></script>
 ```

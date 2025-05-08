@@ -2,7 +2,7 @@
 
 ## 1. Import polyfills, if required
 ```html
-<script src="https://www.adobe.comlibs/deps/custom-elements.js"></script>
+<script src="https://www.adobe.com/mas/dist/custom-elements.js"></script>
 ```
 Example how to load polyfill only if required:
 ```js
@@ -13,13 +13,13 @@ document.createElement('div', {
   },
 });
 if (!isSupported) {
-  await import('https://www.adobe.com/libs/deps/custom-elements.js');
+  await import('https://www.adobe.com/mas/dist/custom-elements.js');
 }
 ```
 
 ## 2. Import mas.js
 ```html
-<script src="https://www.adobe.com/libs/features/mas/dist/mas.js" type="module"></script>
+<script src="https://www.adobe.com/mas/dist/mas.js" type="module"></script>
 ```
 
 ## 3. Add `<mas-commerce-service>` element

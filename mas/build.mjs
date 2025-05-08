@@ -1,7 +1,7 @@
 import { writeFileSync, readFileSync } from 'node:fs';
 import { build } from 'esbuild';
 
-const outfolder = '../../deps/mas';
+const outfolder = './dist';
 
 const defaults = {
     bundle: true,
@@ -105,7 +105,7 @@ function rewriteImportsToLibsFolder() {
         setup(build) {
             build.onResolve({ filter: /^lit(\/.*)?$/ }, () => {
                 return {
-                    path: '/libs/deps/lit-all.min.js',
+                    path: '/mas/dist/lit-all.min.js',
                     external: true,
                 };
             });

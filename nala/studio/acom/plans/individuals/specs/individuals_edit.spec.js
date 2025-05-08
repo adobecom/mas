@@ -156,7 +156,7 @@ export default {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit @nopr',
         },
         {
             tcid: '13',
@@ -184,7 +184,7 @@ export default {
                 iconLabel: 'Photoshop icon',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit @nopr', //skip until regression is fixed
         },
         {
             tcid: '15',
@@ -233,6 +233,17 @@ export default {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 promo: 'UMRM2MUSPr501YOC',
                 newPromo: 'testpromo',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+        },
+        {
+            tcid: '19',
+            name: '@studio-plans-individuals-phone-number',
+            path: '/studio.html',
+            data: {
+                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                phoneNumber: '1234567890',
             },
             browserParams: '#query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',

@@ -174,6 +174,9 @@ class MasToolbar extends LitElement {
         if (Store.selectedUserId.value) {
             this.filterCount += 1;
         }
+        if (this.filterCount > 0) {
+            this.filtersShown = true;
+        }
     }
 
     handleRenderModeChange(ev) {

@@ -162,6 +162,7 @@ export class MasRepository extends LitElement {
                     ...prev,
                     path: folders.at(0),
                 }));
+            Store.fragments.list.data.set([]);
         } catch (error) {
             Store.fragments.list.loading.set(false);
             Store.fragments.recentlyUpdated.loading.set(false);
@@ -188,8 +189,8 @@ export class MasRepository extends LitElement {
 
         Store.fragments.list.loading.set(true);
 
-        const dataStore = Store.fragments.list.data;
         const path = this.search.value.path;
+        const dataStore = Store.fragments.list.data;
         const query = this.search.value.query;
 
         let tags = [];
@@ -214,23 +215,6 @@ export class MasRepository extends LitElement {
 
         tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE));
 
-        if (
-            !looseEquals(dataStore.getMeta('path'), path) ||
-            !looseEquals(dataStore.getMeta('query'), query)
-        ) {
-            dataStore.set([]);
-            dataStore.removeMeta('path');
-            dataStore.removeMeta('query');
-        }
-
-        let createdBy = null;
-        const selectedUserId = Store.selectedUserId.value;
-        if (selectedUserId) {
-            createdBy = Store.users
-                .get()
-                .find((user) => user.id === selectedUserId)?.email;
-        }
-
         const damPath = getDamPath(path);
         const localSearch = {
             ...this.search.value,
@@ -253,6 +237,14 @@ export class MasRepository extends LitElement {
             this.#abortControllers.search = new AbortController();
 
             if (isUUID(this.search.value.query)) {
+                // Check if the fragment with this UUID is already the only one in the store
+                const [currentFragment] = dataStore.get() ?? [];
+                if (currentFragment?.value.id === this.search.value.query) {
+                    // Skip search if we already have exactly this fragment)
+                    Store.fragments.list.loading.set(false);
+                    return;
+                }
+                dataStore.set([]);
                 const fragmentData = await this.aem.sites.cf.fragments.getById(
                     localSearch.query,
                     this.#abortControllers.search,
@@ -276,12 +268,12 @@ export class MasRepository extends LitElement {
                     }
                 }
             } else {
+                dataStore.set([]);
                 const cursor = await this.aem.sites.cf.fragments.search(
                     localSearch,
                     null,
                     this.#abortControllers.search,
                 );
-
                 const fragmentStores = [];
                 for await (const result of cursor) {
                     for await (const item of result) {

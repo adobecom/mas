@@ -56,6 +56,9 @@ describe('onPlaceholderSelect', () => {
         const type = 'checkoutUrl';
         const offer = {};
         const options = {
+            modal: 'twp',
+            entitlement: true,
+            upgrade: true,
             ctaText: 'buy-now',
         };
         const promoOverride = null;
@@ -74,6 +77,9 @@ describe('onPlaceholderSelect', () => {
             is: 'checkout-link',
             text: 'Buy now',
             'data-analytics-id': 'buy-now',
+            'data-modal': 'twp',
+            'data-entitlement': true,
+            'data-upgrade': true,
         };
 
         expect(dispatchEventStub.calledOnce).to.be.true;

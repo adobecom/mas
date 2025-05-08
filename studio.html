@@ -68,11 +68,6 @@
                 const studio = document.createElement('mas-studio');
                 studio.setAttribute('base-url', baseUrl);
                 bucket && studio.setAttribute('aem-bucket', bucket);
-                params.get('commerce.env') &&
-                    studio.setAttribute(
-                        'commerce-env',
-                        params.get('commerce.env'),
-                    );
                 document.querySelector('sp-theme').appendChild(studio);
             }
             const context = {
@@ -117,6 +112,7 @@
         <script src="https://www.adobe.com/libs/deps/imslib.min.js"></script>
     </head>
     <body class="spectrum spectrum--medium spectrum--light">
+        <mas-commerce-service></mas-commerce-service>
         <main>
             <sp-theme color="light" scale="medium"> </sp-theme>
         </main>

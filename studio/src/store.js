@@ -1,4 +1,4 @@
-import { PAGE_NAMES, WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
+import { PAGE_NAMES, WCS_ENV_PROD } from './constants.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
 
 // Store definition with default values - no URL parsing here
@@ -26,14 +26,14 @@ const Store = {
         data: new ReactiveStore([]),
     },
     search: new ReactiveStore({}),
-    filters: new ReactiveStore({ locale: 'en_US', tags: '' }, filtersValidator),
+    filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
     renderMode: new ReactiveStore(
         localStorage.getItem('mas-render-mode') || 'render',
     ),
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
-    commerceEnv: new ReactiveStore(WCS_ENV_PROD, commerceEnvValidator),
+    commerceEnv: new ReactiveStore(WCS_ENV_PROD),
     placeholders: {
         list: {
             data: new ReactiveStore([]),
@@ -48,25 +48,22 @@ const Store = {
     users: new ReactiveStore([]),
 };
 
-export default Store;
-
 /**
  * @param {object} value
  * @returns {object}
  */
 function filtersValidator(value) {
-    if (!value) return { locale: 'en_US', tags: '' };
+    if (!value) return { locale: 'en_US', tags: undefined };
     if (!value.locale) value.locale = 'en_US';
 
     // Ensure tags is always a string
-    if (value.tags === undefined || value.tags === null) {
-        value.tags = '';
+    if (!value.tags) {
+        value.tags = undefined;
     } else if (Array.isArray(value.tags)) {
         value.tags = value.tags.join(',');
     } else if (typeof value.tags !== 'string') {
         value.tags = String(value.tags);
     }
-
     return value;
 }
 
@@ -81,15 +78,6 @@ function pageValidator(value) {
         PAGE_NAMES.PLACEHOLDERS,
     ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
-}
-
-/**
- * @param {string} value
- * @returns {string}
- */
-function commerceEnvValidator(value) {
-    if (value === WCS_ENV_STAGE) return value;
-    return WCS_ENV_PROD;
 }
 
 const editorPanel = () => document.querySelector('editor-panel');
@@ -115,3 +103,5 @@ export function editFragment(store, x = 0) {
     }
     editorPanel()?.editFragment(store, x);
 }
+
+export default Store;

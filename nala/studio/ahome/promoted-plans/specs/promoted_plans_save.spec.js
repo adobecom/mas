@@ -1,0 +1,102 @@
+export default {
+    FeatureName: 'M@S Studio AHome Promoted Plans',
+    features: [
+        {
+            tcid: '0',
+            name: '@studio-promoted-plans-save-edit-border',
+            path: '/studio.html',
+            data: {
+                cardid: '031e2f50-5cbc-4e4b-af9b-c63f0e4f2a93',
+                initialBorderColor: 'gradient',
+                initialBorderCSSColor:
+                    'linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%)',
+                transparentBorderColor: 'Transparent',
+                transparentBorderCSSColor: 'Transparent',
+                standardBorderColor: 'spectrum-gray-200',
+                standardBorderCSSColor: 'var(--spectrum-gray-200)',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-save @nopr',
+        },
+        {
+            tcid: '1',
+            name: '@studio-promoted-plans-save-variant-change',
+            path: '/studio.html',
+            data: {
+                cardid: '031e2f50-5cbc-4e4b-af9b-c63f0e4f2a93',
+                osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-save',
+        },
+        {
+            tcid: '2',
+            name: '@studio-promoted-plans-save-edit-osi',
+            path: '/studio.html',
+            data: {
+                cardid: '031e2f50-5cbc-4e4b-af9b-c63f0e4f2a93',
+                osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
+                productCodeTag: 'product_code/ccsn',
+                offerTypeTag: 'offer_type/base',
+                marketSegmentsTag: 'market_segments/com',
+                planTypeTag: 'plan_type/abm',
+                newosi: 'eCnyzS8MdPPGcIRelbXn_qGjQlg0nFjtPDPmS4pDf6A',
+                newPlanTypeTag: 'plan_type/puf',
+                newOfferTypeTag: 'offer_type/trial',
+                newMarketSegmentsTag: 'market_segments/edu',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-save',
+        },
+        {
+            tcid: '3',
+            name: '@studio-promoted-plans-save-edit-cta-variant',
+            path: '/studio.html',
+            data: {
+                cardid: '031e2f50-5cbc-4e4b-af9b-c63f0e4f2a93',
+                osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
+                variant: 'accent',
+                ctaCSS: {
+                    'background-color': 'rgb(20, 115, 230)',
+                    color: 'rgb(255, 255, 255)',
+                },
+                newVariant: 'primary',
+                newCtaCSS: {
+                    'background-color': 'rgb(34, 34, 34)',
+                    color: 'rgb(255, 255, 255)',
+                },
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-save',
+        },
+        {
+            tcid: '4',
+            name: '@studio-promoted-plans-save-edit-cta-checkout-params',
+            path: '/studio.html',
+            data: {
+                cardid: '031e2f50-5cbc-4e4b-af9b-c63f0e4f2a93',
+                osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
+                checkoutParams: {
+                    mv: '1',
+                    cs: 'individual',
+                    promoid: 'ABC123',
+                    mv2: '2',
+                },
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-save',
+        },
+        {
+            tcid: '5',
+            name: '@studio-promoted-plans-save-edit-promo-text',
+            path: '/studio.html',
+            data: {
+                cardid: '031e2f50-5cbc-4e4b-af9b-c63f0e4f2a93',
+                promoText: 'Limited time offer',
+                newPromoText: 'Special discount',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-save',
+        },
+    ],
+};

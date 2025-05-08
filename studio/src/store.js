@@ -41,6 +41,9 @@ const Store = {
         },
         selected: new ReactiveStore(null),
         editing: new ReactiveStore(null),
+        addons: new ReactiveStore([
+            { value: 'disabled', itemText: 'disabled' },
+        ]),
     },
 };
 

@@ -160,7 +160,9 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.CTA.nth(2)).toBeVisible();
-            await expect(await editor.CTA.nth(2)).not.toHaveClass(data.newVariant);
+            await expect(await editor.CTA.nth(2)).not.toHaveClass(
+                data.newVariant,
+            );
             await expect(await editor.CTA.nth(2)).toHaveClass(data.variant);
         });
     });

@@ -264,7 +264,6 @@ export default {
                     color: 'rgb(44, 44, 44)',
                 },
                 newVariant: 'primary-outline',
-
             },
             browserParams: '#query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',

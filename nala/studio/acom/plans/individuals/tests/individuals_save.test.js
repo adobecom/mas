@@ -829,7 +829,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-4: Validate edited card cta', async () => {
             await expect(await editor.footer).toContainText(data.newCtaText);
-            await expect(await clonedCard.locator(individuals.cardCTA)).toContainText(data.newCtaText);
+            await expect(
+                await clonedCard.locator(individuals.cardCTA),
+            ).toContainText(data.newCtaText);
         });
     });
 
@@ -861,15 +863,24 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-3: Edit CTA variant and save card', async () => {
-            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
+            await expect(
+                await editor.footer.locator(editor.linkEdit),
+            ).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
             await expect(await editor.CTA).toHaveClass(data.variant);
-            expect(await webUtil.verifyCSS(await clonedCard.locator(individuals.cardCTA), data.ctaCSS)).toBeTruthy();
+            expect(
+                await webUtil.verifyCSS(
+                    await clonedCard.locator(individuals.cardCTA),
+                    data.ctaCSS,
+                ),
+            ).toBeTruthy();
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkVariant).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-            await expect(await editor.getLinkVariant(data.newVariant)).toBeVisible();
+            await expect(
+                await editor.getLinkVariant(data.newVariant),
+            ).toBeVisible();
             await (await editor.getLinkVariant(data.newVariant)).click();
             await editor.linkSave.click();
             await studio.saveCard();
@@ -878,9 +889,18 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-4: Validate CTA variant change', async () => {
             await expect(await editor.CTA).toHaveClass(data.newVariant);
             await expect(await editor.CTA).not.toHaveClass(data.variant);
-            expect(await webUtil.verifyCSS(await clonedCard.locator(individuals.cardCTA), data.newCtaCSS)).toBeTruthy();
-            await expect(await clonedCard.locator(individuals.cardCTA)).toHaveAttribute('data-wcs-osi', data.osi);
-            await expect(await clonedCard.locator(individuals.cardCTA)).toHaveAttribute('is', 'checkout-link');
+            expect(
+                await webUtil.verifyCSS(
+                    await clonedCard.locator(individuals.cardCTA),
+                    data.newCtaCSS,
+                ),
+            ).toBeTruthy();
+            await expect(
+                await clonedCard.locator(individuals.cardCTA),
+            ).toHaveAttribute('data-wcs-osi', data.osi);
+            await expect(
+                await clonedCard.locator(individuals.cardCTA),
+            ).toHaveAttribute('is', 'checkout-link');
         });
     });
 
@@ -930,13 +950,23 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-4: Validate edited cta checkout params', async () => {
-            await expect(await clonedCard.locator(individuals.cardCTA)).toHaveAttribute('data-wcs-osi', data.osi);
-            await expect(await clonedCard.locator(individuals.cardCTA)).toHaveAttribute('is', 'checkout-link');
-            const CTAhref = await clonedCard.locator(individuals.cardCTA).getAttribute('href');
-            let searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
+            await expect(
+                await clonedCard.locator(individuals.cardCTA),
+            ).toHaveAttribute('data-wcs-osi', data.osi);
+            await expect(
+                await clonedCard.locator(individuals.cardCTA),
+            ).toHaveAttribute('is', 'checkout-link');
+            const CTAhref = await clonedCard
+                .locator(individuals.cardCTA)
+                .getAttribute('href');
+            let searchParams = new URLSearchParams(
+                decodeURI(CTAhref).split('?')[1],
+            );
             expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
             // expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
-            expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
+            expect(searchParams.get('promoid')).toBe(
+                data.checkoutParams.promoid,
+            );
             expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
         });
     });

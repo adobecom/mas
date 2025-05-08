@@ -879,7 +879,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-3: Edit CTA label', async () => {
-            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
+            await expect(
+                await editor.footer.locator(editor.linkEdit),
+            ).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
@@ -925,13 +927,17 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-3: Edit CTA variant', async () => {
-            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
+            await expect(
+                await editor.footer.locator(editor.linkEdit),
+            ).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkVariant).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-            await expect(await editor.getLinkVariant(data.newVariant)).toBeVisible();
+            await expect(
+                await editor.getLinkVariant(data.newVariant),
+            ).toBeVisible();
             await (await editor.getLinkVariant(data.newVariant)).click();
             await editor.linkSave.click();
         });
@@ -973,7 +979,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-3: Edit CTA checkout params', async () => {
-            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
+            await expect(
+                await editor.footer.locator(editor.linkEdit),
+            ).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
@@ -998,7 +1006,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            const changedCTAhref = await individuals.cardCTA.getAttribute('href');
+            const changedCTAhref =
+                await individuals.cardCTA.getAttribute('href');
             let noSearchParams = new URLSearchParams(
                 decodeURI(changedCTAhref).split('?')[1],
             );

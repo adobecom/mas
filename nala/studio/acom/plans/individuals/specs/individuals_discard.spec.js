@@ -261,8 +261,8 @@ export default {
                     mv: '1',
                     cs: 'individual',
                     promoid: 'ABC123',
-                    mv2: '2'
-                }
+                    mv2: '2',
+                },
             },
             browserParams: '#query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',

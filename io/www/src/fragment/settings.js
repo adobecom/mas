@@ -3,11 +3,14 @@ function applyPlansSettings(fragment, locale) {
         stockCheckboxLabel: '{{stock-checkbox-label}}',
         stockOfferOsis: '',
     };
-    if (locale === 'en_US') {
-        fragment.settings.displayPlanType = true;
-    }
     if (fragment?.fields?.showSecureLabel !== false) {
         fragment.settings.secureLabel = '{{secure-label}}';
+    }
+    if (fragment?.fields?.showPlanType != null) {
+        fragment.settings.displayPlanType = fragment?.fields?.showPlanType;
+    }
+    if (locale === 'en_US') {
+        fragment.settings.displayPlanType ??= true;
     }
 }
 

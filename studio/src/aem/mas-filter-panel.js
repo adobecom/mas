@@ -1,7 +1,7 @@
 import { html, css, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
-import Events from '../events.js';
+import router from '../router.js';
 
 function pathToTagId(path) {
     return `mas:${path.replace('/content/cq:tags/mas/', '')}`;
@@ -55,15 +55,22 @@ class MasFilterPanel extends LitElement {
         this.#initializeTagFilters();
     }
 
+    connectedCallback() {
+        super.connectedCallback();
+        router.addEventListener('change', () => this.#initializeTagFilters());
+    }
+
     disconnectedCallback() {
         super.disconnectedCallback();
-
-        if (this.filtersSubscription) {
-            this.filtersSubscription.unsubscribe();
-        }
+        router.removeEventListener('change', () =>
+            this.#initializeTagFilters(),
+        );
     }
 
     #initializeTagFilters() {
+        this.tagsByType = {
+            ...EMPTY_TAGS,
+        };
         const filters = Store.filters.get();
         if (!filters.tags) return;
         this.tagsByType = filters.tags.split(',').reduce(
@@ -136,7 +143,7 @@ class MasFilterPanel extends LitElement {
     #handleRefresh() {
         Store.search.set((prev) => ({
             ...prev,
-            tags: '',
+            query: '',
         }));
 
         Store.filters.set((prev) => ({

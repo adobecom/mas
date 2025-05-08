@@ -323,7 +323,7 @@ export class RteLinkEditor extends LitElement {
                                 >
                             </sp-menu>
                         </sp-picker>
-                        ${this.#analyticsIdField} ${this.#linkVariants}
+                        ${this.#analyticsIdField}
                     </div>
                 </sp-tab-panel>
                 <sp-tab-panel value="phone">
@@ -346,11 +346,10 @@ export class RteLinkEditor extends LitElement {
                             .value=${this.title}
                             @input=${(e) => (this.title = e.target.value)}
                         ></sp-textfield>
-
-                        ${this.#linkVariants}
                     </div>
                 </sp-tab-panel>
             </sp-tabs>
+            ${this.#linkVariants}
             <sp-button
                 id="cancelButton"
                 slot="button"

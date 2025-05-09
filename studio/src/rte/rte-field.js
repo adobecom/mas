@@ -840,6 +840,7 @@ class RteField extends LitElement {
                     'data-modal': { default: null },
                     'data-entitlement': { default: null },
                     'data-upgrade': { default: null },
+                    'data-cta-toggle-text': { default: null },
                 },
                 // Disallow styling marks inside links (they can still wrap them)
                 marks: 'em strong strikethrough underline',
@@ -1252,6 +1253,7 @@ class RteField extends LitElement {
                 variant: selection.node.attrs.class || '',
                 analyticsId: selection.node.attrs['data-analytics-id'] || '',
                 checkoutParameters,
+                ctaToggleText: selection.node.attrs['data-cta-toggle-text'] || '',
             };
         }
 
@@ -1273,6 +1275,7 @@ class RteField extends LitElement {
                 variant: this.defaultLinkStyle,
                 analyticsId: '',
                 checkoutParameters,
+                ctaToggleText: '',
             };
         }
 
@@ -1285,6 +1288,7 @@ class RteField extends LitElement {
             variant: this.defaultLinkStyle,
             analyticsId: '',
             checkoutParameters,
+            ctaToggleText: '',
         };
     }
 
@@ -1304,7 +1308,7 @@ class RteField extends LitElement {
     }
 
     #handleLinkSave(event) {
-        const { href, text, title, target, variant, analyticsId } =
+        const { href, text, title, target, variant, analyticsId, ctaToggleText } =
             event.detail;
 
         let { checkoutParameters } = event.detail;
@@ -1334,6 +1338,7 @@ class RteField extends LitElement {
             tabIndex: '0',
             'data-extra-options': checkoutParameters || null,
             'data-analytics-id': analyticsId || null,
+            'data-cta-toggle-text': ctaToggleText || null,
         };
 
         const content = state.schema.text(text || selection.node.textContent);

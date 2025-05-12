@@ -37,7 +37,7 @@ describe('FragmentClient', () => {
             expect(result?.fields?.variant).to.equal('plans');
         });
 
-        it.only('should fetch and transform collection fragment for preview', async () => {
+        it('should fetch and transform collection fragment for preview', async () => {
             nock(baseUrl)
                 .get(`/${mockCollectionData.id}?references=all-hydrated`)
                 .reply(200, mockCollectionData);

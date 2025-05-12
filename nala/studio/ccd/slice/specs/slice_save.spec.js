@@ -116,7 +116,7 @@ export default {
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-                productCodeTag: 'product_code/phsp',
+                productCodeTag: 'product_code/PHSP',
                 offerTypeTag: 'offer_type/base',
                 marketSegmentsTag: 'market_segments/com',
                 planTypeTag: 'plan_type/abm',

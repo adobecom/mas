@@ -36,7 +36,7 @@ export default {
             data: {
                 cardid: '031e2f50-5cbc-4e4b-af9b-c63f0e4f2a93',
                 osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
-                productCodeTag: 'product_code/ccsn',
+                productCodeTag: 'product_code/CCSN',
                 offerTypeTag: 'offer_type/base',
                 marketSegmentsTag: 'market_segments/com',
                 planTypeTag: 'plan_type/abm',

@@ -94,10 +94,33 @@ function transformReferences(body) {
                 description: ref.description || '',
                 path: ref.path || '',
                 id: ref.id,
-                model: { id: ref.model.id },
+                model: { id: ref.model?.id },
                 fields,
             },
         };
+
+        // If the current ref (e.g., a card) has associated tag objects, add them.
+        if (ref.tags && Array.isArray(ref.tags)) {
+            ref.tags.forEach((tag) => {
+                if (tag && tag.id && !references[tag.id]) { // Check if tag not already added
+                    references[tag.id] = {
+                        type: 'tag',
+                        value: {
+                            id: tag.id,
+                            name: tag.name || '',
+                            title: tag.title || '',
+                            path: tag.path || '',
+                            description:
+                                tag.description !== undefined
+                                    ? tag.description
+                                    : null,
+                            i18n: tag.i18n || [],
+                            titlePath: tag.titlePath || '',
+                        },
+                    };
+                }
+            });
+        }
     };
     if (body.references) {
         body.references = body.references.reduce((refs, ref) => {

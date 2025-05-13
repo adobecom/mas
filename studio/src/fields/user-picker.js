@@ -1,14 +1,19 @@
 import { html, css, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
+import ReactiveController from '../reactivity/reactive-controller.js';
 
 class MasUserPicker extends LitElement {
     static properties = {
-        search: { type: String },
-        label: { type: String },
-        users: { type: Array },
         currentUser: { type: Object },
-        selectedUser: { type: Object },
+        label: { type: String },
+        multiple: { type: Boolean },
+        search: { type: String },
+        selectedUsers: { type: Object },
+        users: { type: Object },
+        open: { type: Boolean, state: true },
     };
+
+    reactiveController = new ReactiveController(this, []);
 
     static styles = css`
         sp-popover {
@@ -56,42 +61,52 @@ class MasUserPicker extends LitElement {
     constructor() {
         super();
         this.search = '';
-        this.users = [];
+        this.multiple = false;
+        this.users = null;
         this.currentUser = null;
-        this.selectedUser = null;
+        this.selectedUsers = null;
+        this.open = false;
+    }
+
+    updated(changedProperties) {
+        const stores = ['users', 'currentUser', 'selectedUsers'];
+        if (stores.some((store) => changedProperties.has(store))) {
+            this.reactiveController.updateStores([
+                this.users,
+                this.currentUser,
+                this.selectedUsers,
+            ]);
+        }
     }
 
     get filteredUsers() {
-        if (!this.users) return [];
-
-        return [...this.users]
+        return [...this.users.value]
             .sort((a, b) => {
-                if (!this.currentUser) return a.id.localeCompare(b.id);
                 // If current user matches, put them first
-                if (a.id === this.currentUser.userId) return -1;
-                if (b.id === this.currentUser.userId) return 1;
-                return 0;
+                if (a.userPrincipalName === this.currentUser.value.email)
+                    return -1;
+                if (b.userPrincipalName === this.currentUser.value.email)
+                    return 1;
+                return a.displayName.localeCompare(b.displayName);
             })
             .filter((user) =>
-                user.firstName
+                user.displayName
                     .toLowerCase()
                     .includes(this.search.toLowerCase()),
             );
     }
 
     get selectedText() {
-        return this.selectedUser ? 'User selected' : 'No user selected';
+        const count = this.selectedUsers.value.length;
+        if (count === 0) return 'No users selected';
+        if (count === 1) return '1 user selected';
+        return `${count} users selected`;
     }
 
     resetSelection() {
-        this.selectedUser = null;
-        this.dispatchEvent(
-            new CustomEvent('change', {
-                detail: { user: null },
-                bubbles: true,
-                composed: true,
-            }),
-        );
+        this.shadowRoot.querySelectorAll('sp-checkbox').forEach((cb) => {
+            cb.checked = false;
+        });
     }
 
     handleSearchKeyDown(e) {
@@ -122,77 +137,107 @@ class MasUserPicker extends LitElement {
         }
     }
 
-    render() {
+    async applySelection() {
+        this.search = '';
+        this.requestUpdate();
+        await this.updateComplete;
+        const checkboxes = this.shadowRoot.querySelectorAll(
+            'sp-menu sp-checkbox',
+        );
+        const selectedUPNs = Array.from(checkboxes)
+            .filter((cb) => cb.checked)
+            .map((cb) => cb.getAttribute('value'));
+
+        const newSelection = this.users.value.filter((user) =>
+            selectedUPNs.includes(user.userPrincipalName),
+        );
+
+        this.selectedUsers.set([]);
+        await this.updateComplete;
+        this.selectedUsers.set(newSelection);
+
+        // Close the popover
+        const overlayTrigger = this.shadowRoot.querySelector('overlay-trigger');
+        if (overlayTrigger) {
+            overlayTrigger.open = undefined; // Setting 'open' to undefined closes it
+        }
+    }
+
+    handleCheckboxChange(e) {
+        const checkbox = e.target.firstElementChild;
+        checkbox.checked = !checkbox.checked;
+    }
+
+    get popoverContent() {
+        if (!this.open) return nothing;
         return html`
-            <overlay-trigger placement="bottom">
+            <sp-search
+                placeholder="Search Users"
+                .value="${this.search}"
+                @input="${this.handleSearchInput}"
+                @keydown="${this.handleSearchKeyDown}"
+                @change="${this.handleSearchChange}"
+            ></sp-search>
+
+            <sp-menu @keydown="${this.handleMenuKeyDown}">
+                ${repeat(
+                    this.filteredUsers,
+                    (user) => user.userPrincipalName,
+                    (user) => html`
+                        <sp-menu-item
+                            value="${user.userPrincipalName}"
+                            @click="${this.handleCheckboxChange}"
+                        >
+                            <sp-checkbox
+                                .checked=${this.selectedUsers.value.some(
+                                    (selected) =>
+                                        selected.userPrincipalName ===
+                                        user.userPrincipalName,
+                                )}
+                                value="${user.userPrincipalName}"
+                            >
+                                ${user.displayName}
+                                <span slot="description"
+                                    >${user.userPrincipalName}</span
+                                >
+                            </sp-checkbox>
+                        </sp-menu-item>
+                    `,
+                )}
+            </sp-menu>
+            <div id="footer">
+                <span>${this.selectedText}</span>
+                <sp-button
+                    size="s"
+                    @click=${this.resetSelection}
+                    variant="secondary"
+                    treatment="outline"
+                >
+                    Reset
+                </sp-button>
+                <sp-button size="s" @click=${this.applySelection}>
+                    Apply
+                </sp-button>
+            </div>
+        `;
+    }
+
+    render() {
+        if (!this.users?.value) return nothing;
+        if (!this.selectedUsers?.value) return nothing;
+        return html`
+            <overlay-trigger
+                placement="bottom"
+                @sp-opened=${() => (this.open = true)}
+                @sp-closed=${() => (this.open = false)}
+            >
                 <sp-action-button slot="trigger" dir="rtl" quiet>
                     ${this.label}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
 
                 <sp-popover slot="click-content">
-                    <sp-search
-                        placeholder="Search Users"
-                        .value="${this.search}"
-                        @input="${this.handleSearchInput}"
-                        @keydown="${this.handleSearchKeyDown}"
-                        @change="${this.handleSearchChange}"
-                    ></sp-search>
-
-                    ${this.loading
-                        ? html`
-                              <div class="loading-spinner">
-                                  <sp-progress-circle
-                                      indeterminate
-                                      size="m"
-                                  ></sp-progress-circle>
-                              </div>
-                          `
-                        : this.error
-                          ? html`<div class="error-message">${this.error}</div>`
-                          : html`
-                                <sp-menu
-                                    @keydown="${this.handleMenuKeyDown}"
-                                    @change="${this.handleChange}"
-                                >
-                                    ${repeat(
-                                        this.filteredUsers,
-                                        (user) => user.id,
-                                        (user) => html`
-                                            <sp-menu-item value="${user.id}">
-                                                <span
-                                                    >${user.firstName}
-                                                    ${user.lastName}</span
-                                                >
-                                                <span slot="description"
-                                                    >${user.email}</span
-                                                >
-                                                ${this.selectedUser?.id ===
-                                                user.id
-                                                    ? html`
-                                                          <sp-icon-checkmark-circle
-                                                              slot="icon"
-                                                              size="s"
-                                                          >
-                                                          </sp-icon-checkmark-circle>
-                                                      `
-                                                    : nothing}
-                                            </sp-menu-item>
-                                        `,
-                                    )}
-                                </sp-menu>
-                                <div id="footer">
-                                    <span>${this.selectedText}</span>
-                                    <sp-button
-                                        size="s"
-                                        @click=${this.resetSelection}
-                                        variant="secondary"
-                                        treatment="outline"
-                                    >
-                                        Reset
-                                    </sp-button>
-                                </div>
-                            `}
+                    ${this.popoverContent}
                 </sp-popover>
             </overlay-trigger>
         `;
@@ -204,24 +249,6 @@ class MasUserPicker extends LitElement {
 
     handleSearchChange(e) {
         e.stopPropagation();
-    }
-
-    handleChange(e) {
-        e.stopPropagation();
-        const selectedUserId = e.target.value;
-        const selectedUser = this.users.find(
-            (user) => user.id === selectedUserId,
-        );
-        this.selectedUser = selectedUser;
-        e.target.closest('overlay-trigger').open = false;
-
-        this.dispatchEvent(
-            new CustomEvent('change', {
-                detail: { user: selectedUser },
-                bubbles: true,
-                composed: true,
-            }),
-        );
     }
 }
 

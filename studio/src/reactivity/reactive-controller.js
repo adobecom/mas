@@ -25,6 +25,7 @@ export default class ReactiveController {
 
     #register() {
         for (const store of this.stores) {
+            if (!store) continue;
             store.subscribe(this.requestUpdate);
         }
     }
@@ -35,6 +36,7 @@ export default class ReactiveController {
 
     #unregister() {
         for (const store of this.stores) {
+            if (!store) continue;
             store.unsubscribe(this.requestUpdate);
         }
     }

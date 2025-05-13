@@ -43,8 +43,7 @@ const Store = {
         editing: new ReactiveStore(null),
     },
     profile: new ReactiveStore(),
-    userGroups: new ReactiveStore([]), // groups for the current user
-    selectedUserId: new ReactiveStore(null),
+    createdByUsers: new ReactiveStore([]),
     users: new ReactiveStore([]),
 };
 

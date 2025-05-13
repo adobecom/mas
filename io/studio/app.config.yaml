@@ -10,14 +10,14 @@ application:
         actions:
           fragment:
             function: src/fragment/pipeline.js
-            web: 'yes'
+            web: "yes"
             runtime: nodejs:22
             annotations:
               require-adobe-auth: false
               final: true
           ost-products-write:
             function: src/ost-products/write.js
-            web: 'yes'
+            web: "yes"
             runtime: nodejs:22
             inputs:
               AOS_URL: $AOS_URL
@@ -27,22 +27,27 @@ application:
               require-adobe-auth: false
           ost-products-read:
             function: src/ost-products/read.js
-            web: 'yes'
+            web: "yes"
             runtime: nodejs:22
             annotations:
               require-adobe-auth: false
           dictionary:
             function: src/dictionary/dictionary.js
-            web: 'yes'
+            web: "yes"
             runtime: nodejs:22
             annotations:
               require-adobe-auth: false
-          group:
-            function: src/group/group.js
-            web: 'yes'
+          updateMembers:
+            function: src/members/update.js
+            web: "yes"
             runtime: nodejs:22
-            inputs:
-              LOG_LEVEL: debug
             annotations:
               require-adobe-auth: true
-              final: true
+              final: false
+
+          listMembers:
+            function: src/members/list.js
+            web: "yes"
+            runtime: nodejs:22
+            inputs:
+              IMS_CLIENT_ID: $IMS_CLIENT_ID

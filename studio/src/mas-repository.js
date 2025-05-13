@@ -68,7 +68,7 @@ export class MasRepository extends LitElement {
         this.foldersLoaded = new StoreController(this, Store.folders.loaded);
         this.reactiveController = new ReactiveController(this, [
             Store.profile,
-            Store.selectedUserId,
+            Store.createdByUsers,
         ]);
         this.recentlyUpdatedLimit = new StoreController(
             this,
@@ -186,6 +186,7 @@ export class MasRepository extends LitElement {
 
     async searchFragments() {
         if (this.page.value !== PAGE_NAMES.CONTENT) return;
+        if (!Store.profile.value) return;
 
         Store.fragments.list.loading.set(true);
 
@@ -206,6 +207,10 @@ export class MasRepository extends LitElement {
                 );
             }
         }
+
+        const createdBy = Store.createdByUsers
+            .get()
+            .map((user) => user.userPrincipalName);
 
         let modelIds = tags
             .filter((tag) => tag.startsWith(TAG_STUDIO_CONTENT_TYPE))

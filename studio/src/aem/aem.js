@@ -124,9 +124,9 @@ class AEM {
         if (status) {
             filter.status = [status];
         }
-        if (createdBy) {
+        if (createdBy?.length > 0) {
             filter.created ??= {};
-            filter.created.by = [createdBy];
+            filter.created.by = createdBy;
         }
         const params = {
             query: JSON.stringify(searchQuery),

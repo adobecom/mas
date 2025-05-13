@@ -151,7 +151,7 @@ class MasToolbar extends LitElement {
     }
 
     update() {
-        if (Store.selectedUserId.value) {
+        if (Store.createdByUsers.value.length > 0) {
             this.filtersShown = true;
         }
         super.update();
@@ -171,7 +171,7 @@ class MasToolbar extends LitElement {
         } else {
             this.filterCount = 0;
         }
-        if (Store.selectedUserId.value) {
+        if (Store.createdByUsers.value.length > 0) {
             this.filterCount += 1;
         }
         if (this.filterCount > 0) {

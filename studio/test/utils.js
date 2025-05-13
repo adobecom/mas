@@ -152,3 +152,13 @@ export function initElementFromTemplate(templateId, title) {
     }
     return root;
 }
+
+export function oneEvent(element, eventName) {
+    return new Promise((resolve) => {
+        const listener = (event) => {
+            element.removeEventListener(eventName, listener);
+            resolve(event);
+        };
+        element.addEventListener(eventName, listener);
+    });
+}

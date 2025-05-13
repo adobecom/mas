@@ -47,7 +47,7 @@ class MasFilterPanel extends LitElement {
 
     reactiveController = new ReactiveController(this, [
         Store.profile,
-        Store.selectedUserId,
+        Store.createdByUsers,
         Store.users,
     ]);
 
@@ -158,7 +158,7 @@ class MasFilterPanel extends LitElement {
             tags: '',
         }));
 
-        Store.selectedUserId.set(null);
+        Store.createdByUsers.set([]);
 
         this.tagsByType = { ...EMPTY_TAGS };
         this.shadowRoot
@@ -179,18 +179,31 @@ class MasFilterPanel extends LitElement {
         this.#updateFiltersParams();
     }
 
-    #handleUserDelete() {
-        Store.selectedUserId.set(null);
+    #handleUserDelete(e) {
+        const value = e.target.value;
+        Store.createdByUsers.set(
+            Store.createdByUsers.value.filter(
+                (user) => user.userPrincipalName !== value,
+            ),
+        );
     }
 
-    #handleUserChange(e) {
-        Store.selectedUserId.set(e.detail?.user?.id);
-    }
-
-    get selectedUser() {
-        return Store.users
-            .get()
-            .find((user) => user.id === Store.selectedUserId.get());
+    get createdByUsersTags() {
+        return repeat(
+            Store.createdByUsers.value,
+            (user) => user.userPrincipalName,
+            (user) => html`
+                <sp-tag
+                    size="s"
+                    deletable
+                    @delete=${this.#handleUserDelete}
+                    .value=${user.userPrincipalName}
+                >
+                    ${user.displayName}
+                    <sp-icon-user slot="icon" size="s"></sp-icon-user>
+                </sp-tag>
+            `,
+        );
     }
 
     render() {
@@ -263,10 +276,9 @@ class MasFilterPanel extends LitElement {
 
                 <mas-user-picker
                     label="Created by"
-                    .currentUser=${Store.profile.get()}
-                    .users=${Store.users.get()}
-                    .selectedUser=${this.selectedUser}
-                    @change=${this.#handleUserChange}
+                    .currentUser=${Store.profile}
+                    .selectedUsers=${Store.createdByUsers}
+                    .users=${Store.users}
                 ></mas-user-picker>
 
                 <sp-action-button
@@ -294,18 +306,7 @@ class MasFilterPanel extends LitElement {
                         >
                     `,
                 )}
-                ${this.selectedUser
-                    ? html`
-                          <sp-tag
-                              size="s"
-                              deletable
-                              @delete=${this.#handleUserDelete}
-                              >${this.selectedUser.firstName}
-                              ${this.selectedUser.lastName}
-                              <sp-icon-user slot="icon" size="s"></sp-icon-user>
-                          </sp-tag>
-                      `
-                    : nothing}
+                ${this.createdByUsersTags}
             </sp-tags>
         `;
     }

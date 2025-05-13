@@ -420,6 +420,14 @@ export class MasRepository extends LitElement {
             throw new Error('No fragment provided for saving');
         }
 
+        if (!fragmentToSave.getField('osi')?.values[0]) {
+            Events.toast.emit({
+                variant: 'negative',
+                content: 'Please select offer',
+            });
+            return false;
+        }
+
         const isDictionaryFragment =
             fragmentToSave.path?.includes('/dictionary/');
         this.showToast('Saving fragment...');

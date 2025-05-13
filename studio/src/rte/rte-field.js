@@ -97,7 +97,6 @@ class RteField extends LitElement {
         link: { type: Boolean, attribute: 'link' },
         icon: { type: Boolean, attribute: 'icon' },
         uptLink: { type: Boolean, attribute: 'upt-link' },
-        list: { type: Boolean, attribute: 'list' },
         isLinkSelected: { type: Boolean, state: true },
         priceSelected: { type: Boolean, state: true },
         readOnly: { type: Boolean, attribute: 'readonly' },
@@ -107,6 +106,7 @@ class RteField extends LitElement {
         maxLength: { type: Number, attribute: 'max-length' },
         length: { type: Number, state: true },
         hideOfferSelector: { type: Boolean, attribute: 'hide-offer-selector' },
+        osi: { type: String },
     };
 
     static get styles() {
@@ -365,6 +365,7 @@ class RteField extends LitElement {
         this.maxLength = 70;
         this.length = 0;
         this.hideOfferSelector = false;
+        this.osi = '';
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
             ostEvent: this.#handleOstEvent.bind(this),
@@ -1056,6 +1057,11 @@ class RteField extends LitElement {
     handleOpenOfferSelector(event, element) {
         ostRteFieldSource = this;
         this.showOfferSelector = true;
+        if (!element && this.osi) {
+            element = document.createElement('span');
+            element.setAttribute('data-wcs-osi', this.osi);
+            element.isInlinePrice = true;
+        }
         openOfferSelectorTool(this, element);
     }
 

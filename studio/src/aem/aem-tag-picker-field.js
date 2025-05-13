@@ -165,6 +165,7 @@ class AemTagPickerField extends LitElement {
         const extractedOffer = {
             offer_type: offer.offer_type,
             planType: offer.planType,
+            customer_segment: offer.customer_segment,
             market_segments:
                 Array.isArray(offer.market_segments) &&
                 offer.market_segments.length > 0
@@ -180,6 +181,7 @@ class AemTagPickerField extends LitElement {
         const categoriesToUpdate = new Set([
             'offer_type',
             'plan_type',
+            'customer_segment',
             'market_segments',
         ]);
 
@@ -209,7 +211,9 @@ class AemTagPickerField extends LitElement {
         this.multiple = this.multiple ?? this.selection === SELECTION_CHECKBOX;
         this.#aem = new AEM(this.bucket, this.baseUrl);
         this.loadTags();
-        document.addEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelect);
+        if (!this.top) {
+            document.addEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelect);
+        }
     }
 
     disconnectedCallback() {

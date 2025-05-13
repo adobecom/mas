@@ -172,4 +172,75 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             );
         });
     });
+
+    // @studio-promoted-plans-edit-analytics-ids - Validate edit analytics IDs for promoted plans card in mas studio
+    test(`${features[3].name},${features[3].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[3];
+        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'variant',
+                'ah-promoted-plans',
+            );
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit analytics IDs', async () => {
+            await expect(
+                await editor.footer.locator(editor.linkEdit),
+            ).toBeVisible();
+            await expect(await editor.CTA).toBeVisible();
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.analyticsId).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
+
+            await expect(await editor.analyticsId).toContainText(
+                data.analyticsID,
+            );
+            await expect(await promotedplans.cardCTA).toHaveAttribute(
+                'data-analytics-id',
+                data.analyticsID,
+            );
+            await expect(await promotedplans.cardCTA).toHaveAttribute(
+                'daa-ll',
+                data.daaLL
+            );
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'daa-lh',
+                data.daaLH
+            );
+
+            await editor.analyticsId.click();
+            await page.getByRole('option', { name: data.newAnalyticsID }).click();
+            await editor.linkSave.click();
+        });
+
+        await test.step('step-4: Validate edited analytics IDs on the card', async () => {
+            await expect(await promotedplans.cardCTA).toHaveAttribute(
+                'data-analytics-id',
+                data.newAnalyticsID
+            );
+            await expect(await promotedplans.cardCTA).toHaveAttribute(
+                'daa-ll',
+                data.newDaaLL
+            );
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'daa-lh',
+                data.daaLH
+            );
+        });
+    });
 });

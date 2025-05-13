@@ -194,4 +194,76 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
             ).toHaveAttribute('is', 'checkout-button');
         });
     });
+
+    // @studio-promoted-plans-save-edited-analytics-ids - Validate saving card after editing analytics IDs
+    test(`${features[3].name},${features[3].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[3];
+        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+        let clonedCard;
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
+            clonedCardID = await clonedCard
+                .locator('aem-fragment')
+                .getAttribute('fragment');
+            data.clonedCardID = await clonedCardID;
+            await expect(await clonedCard).toBeVisible();
+            await clonedCard.dblclick();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-3: Edit analytics IDs and save card', async () => {
+            await expect(await editor.CTA).toBeVisible();
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.analyticsId).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
+
+            await expect(await editor.analyticsId).toContainText(
+                data.analyticsID,
+            );
+            await expect(await clonedCard.locator(promotedplans.cardCTA)).toHaveAttribute(
+                'data-analytics-id',
+                data.analyticsID,
+            );
+            await expect(await clonedCard.locator(promotedplans.cardCTA)).toHaveAttribute(
+                'daa-ll',
+                data.daaLL
+            );
+            await expect(await clonedCard).toHaveAttribute(
+                'daa-lh',
+                data.daaLH
+            );
+
+            await editor.analyticsId.click();
+            await page.getByRole('option', { name: data.newAnalyticsID }).click();
+            await editor.linkSave.click();
+            await studio.saveCard();
+        });
+
+        await test.step('step-4: Validate edited analytics IDs are saved', async () => {
+            await expect(await clonedCard.locator(promotedplans.cardCTA)).toHaveAttribute(
+                'data-analytics-id',
+                data.newAnalyticsID
+            );
+            await expect(await clonedCard.locator(promotedplans.cardCTA)).toHaveAttribute(
+                'daa-ll',
+                data.newDaaLL
+            );
+            await expect(await clonedCard).toHaveAttribute(
+                'daa-lh',
+                data.daaLH
+            );
+        });
+    });
 });

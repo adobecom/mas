@@ -53,5 +53,20 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-discard',
         },
+        {
+            tcid: '4',
+            name: '@studio-promoted-plans-discard-edited-analytics-ids',
+            path: '/studio.html',
+            data: {
+                cardid: '27f9c659-7c83-497f-86c2-34c711b9791d',
+                analyticsID: 'buy-now',
+                daaLL: 'buy-now-1',
+                daaLH: 'PHSP',
+                newAnalyticsID: 'save-now',
+                newDaaLL: 'save-now-1',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @promoted-plans @promoted-plans-discard',
+        },
     ],
 };

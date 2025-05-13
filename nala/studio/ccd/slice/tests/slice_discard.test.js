@@ -660,4 +660,80 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             expect(noSearchParams).toBeNull;
         });
     });
+
+    // @studio-slice-discard-edited-analytics-ids - Validate discard edited analytics IDs for slice card in mas studio
+    test(`${features[16].name},${features[16].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[16];
+        const testPage = `${baseURL}${features[16].path}${miloLibs}${features[16].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'variant',
+                'ccd-slice',
+            );
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'size',
+                'wide',
+            );
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit analytics IDs', async () => {
+            await expect(
+                await editor.footer.locator(editor.linkEdit),
+            ).toBeVisible();
+            await expect(await editor.CTA).toBeVisible();
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.analyticsId).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
+
+            await expect(await editor.analyticsId).toContainText(
+                data.analyticsID,
+            );
+            await editor.analyticsId.click();
+            await page.getByRole('option', { name: data.newAnalyticsID }).click();
+            await editor.linkSave.click();
+        });
+
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-5: Verify there is no changes of the card', async () => {
+            await expect(await slice.cardCTA).toHaveAttribute(
+                'data-analytics-id',
+                data.analyticsID
+            );
+            await expect(await slice.cardCTA).toHaveAttribute(
+                'daa-ll',
+                data.daaLL
+            );
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'daa-lh',
+                data.daaLH
+            );
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.analyticsId).toContainText(
+                data.analyticsID
+            );
+        });
+    });
 });

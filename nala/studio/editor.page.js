@@ -94,6 +94,7 @@ export default class EditorPage {
         // Edit Link Panel
         this.checkoutParameters = page.locator('#checkoutParameters input');
         this.linkText = page.locator('#linkText input');
+        this.analyticsId = page.locator('sp-picker#analyticsId');
         this.phoneLinkTab = page.locator('#linkTypeNav sp-tab[value="phone"]');
         this.phoneLinkText = page.locator('#phoneNumber input');
         this.linkSave = page.locator('#saveButton');

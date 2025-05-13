@@ -38,20 +38,14 @@ test.beforeEach(async ({ page, browserName }) => {
 });
 
 test.afterEach(async ({ page }) => {
-    let cardToClean = page.locator('merch-card').filter({
-        has: page.locator(`aem-fragment[fragment="${clonedCardID}"]`),
-    });
-
     if (await editor.panel.isVisible()) {
         await editor.closeEditor.click();
         await expect(await editor.panel).not.toBeVisible();
     }
 
-    if (await cardToClean.isVisible()) {
-        await cardToClean.dblclick();
-        await expect(await editor.panel).toBeVisible();
-        await studio.deleteCard();
-        await expect(cardToClean).not.toBeVisible();
+    if (await (await studio.getCard(clonedCardID)).isVisible()) {
+        await studio.deleteCard(clonedCardID);
+        await expect(await studio.getCard(clonedCardID)).not.toBeVisible();
     }
 
     await page.close();
@@ -72,21 +66,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            let clonedCard = await studio.getCard(
-                data.cardid,
-                'slice-wide',
-                'cloned',
-            );
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            let clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -96,7 +78,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Change variant and save card', async () => {
+        await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
             await expect(await editor.variant).toHaveAttribute(
                 'default-value',
@@ -108,25 +90,25 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate variant change', async () => {
+        await test.step('step-4: Validate variant change', async () => {
             await expect(await editor.variant).toHaveAttribute(
                 'default-value',
                 'ccd-suggested',
             );
             await expect(
-                await studio.getCard(data.clonedCardID, 'slice-wide'),
-            ).not.toBeVisible();
+                await studio.getCard(data.clonedCardID),
+            ).not.toHaveAttribute('variant', 'ccd-slice');
             await expect(
-                await studio.getCard(data.clonedCardID, 'suggested'),
-            ).toBeVisible();
+                await studio.getCard(data.clonedCardID),
+            ).toHaveAttribute('variant', 'ccd-suggested');
             await expect(
                 await (
-                    await studio.getCard(data.clonedCardID, 'suggested')
+                    await studio.getCard(data.clonedCardID)
                 ).locator(suggested.cardCTA),
             ).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(
                 await (
-                    await studio.getCard(data.clonedCardID, 'suggested')
+                    await studio.getCard(data.clonedCardID)
                 ).locator(suggested.cardCTA),
             ).toHaveAttribute('is', 'checkout-button');
         });
@@ -146,21 +128,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            let clonedCard = await studio.getCard(
-                data.cardid,
-                'slice-wide',
-                'cloned',
-            );
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            let clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -170,7 +140,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Change variant and save card', async () => {
+        await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
             await expect(await editor.variant).toHaveAttribute(
                 'default-value',
@@ -182,25 +152,25 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate variant change', async () => {
+        await test.step('step-4: Validate variant change', async () => {
             await expect(await editor.variant).toHaveAttribute(
                 'default-value',
                 'ah-try-buy-widget',
             );
             await expect(
-                await studio.getCard(data.clonedCardID, 'slice-wide'),
-            ).not.toBeVisible();
+                await studio.getCard(data.clonedCardID),
+            ).not.toHaveAttribute('variant', 'ccd-slice');
             await expect(
-                await studio.getCard(data.clonedCardID, 'ahtrybuywidget'),
-            ).toBeVisible();
+                await studio.getCard(data.clonedCardID),
+            ).toHaveAttribute('variant', 'ah-try-buy-widget');
             await expect(
                 await (
-                    await studio.getCard(data.clonedCardID, 'ahtrybuywidget')
+                    await studio.getCard(data.clonedCardID)
                 ).locator(trybuywidget.cardCTA),
             ).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(
                 await (
-                    await studio.getCard(data.clonedCardID, 'ahtrybuywidget')
+                    await studio.getCard(data.clonedCardID)
                 ).locator(trybuywidget.cardCTA),
             ).toHaveAttribute('is', 'checkout-button');
         });
@@ -220,21 +190,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            let clonedCard = await studio.getCard(
-                data.cardid,
-                'slice-wide',
-                'cloned',
-            );
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            let clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -244,16 +202,16 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit size and save card', async () => {
+        await test.step('step-3: Edit size and save card', async () => {
             await expect(await editor.size).toBeVisible();
             await editor.size.click();
             await page.getByRole('option', { name: 'default' }).click();
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate edited card size', async () => {
+        await test.step('step-4: Validate edited card size', async () => {
             await expect(
-                await studio.getCard(data.clonedCardID, 'slice'),
+                await studio.getCard(data.clonedCardID),
             ).not.toHaveAttribute('size', 'wide');
         });
     });
@@ -273,21 +231,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(
-                data.cardid,
-                'slice-wide',
-                'cloned',
-            );
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -297,7 +243,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit description and save card', async () => {
+        await test.step('step-3: Edit description and save card', async () => {
             await expect(await editor.description).toBeVisible();
             await expect(await editor.description).toContainText(
                 data.description,
@@ -306,7 +252,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate edited card description', async () => {
+        await test.step('step-4: Validate edited card description', async () => {
             await expect(await editor.description).toContainText(
                 data.newDescription,
             );
@@ -331,21 +277,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(
-                data.cardid,
-                'slice-wide',
-                'cloned',
-            );
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -355,13 +289,13 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit fields and save card', async () => {
+        await test.step('step-3: Edit badge and save card', async () => {
             await expect(await editor.badge).toBeVisible();
             await editor.badge.fill(data.newBadge);
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate edited card badge', async () => {
+        await test.step('step-4: Validate edited cardbadge', async () => {
             await expect(await editor.badge).toHaveValue(data.newBadge);
             await expect(
                 await clonedCard.locator(slice.cardBadge),
@@ -387,21 +321,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(
-                data.cardid,
-                'slice-wide',
-                'cloned',
-            );
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -411,14 +333,14 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit mnemonic and save card', async () => {
+        await test.step('step-3: Edit mnemonic and save card', async () => {
             await expect(await editor.iconURL).toBeVisible();
             await expect(await editor.iconURL).toHaveValue(data.iconURL);
             await editor.iconURL.fill(data.newIconURL);
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate edited card mnemonic', async () => {
+        await test.step('step-4: Validate edited card mnemonic', async () => {
             await expect(await editor.iconURL).toHaveValue(data.newIconURL);
             await expect(
                 await clonedCard.locator(slice.cardIcon),
@@ -441,21 +363,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(
-                data.cardid,
-                'slice-wide',
-                'cloned',
-            );
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -465,7 +375,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit background image and save card', async () => {
+        await test.step('step-3: Edit background image and save card', async () => {
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.backgroundImage).toHaveValue(
                 data.backgroundURL,
@@ -474,7 +384,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate edited card image', async () => {
+        await test.step('step-4: Validate edited card image', async () => {
             await expect(await editor.backgroundImage).toHaveValue(
                 data.newBackgroundURL,
             );
@@ -502,21 +412,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(
-                data.cardid,
-                'slice-wide',
-                'cloned',
-            );
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -526,7 +424,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit price and save card', async () => {
+        await test.step('step-3: Edit price and save card', async () => {
             await expect(await editor.description).toBeVisible();
             await expect(
                 await clonedCard.locator(slice.cardDescription),
@@ -542,7 +440,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate edited fields in Editor panel', async () => {
+        await test.step('step-4: Validate edited fields in Editor panel', async () => {
             await expect(await editor.description).toContainText(data.price);
             await expect(await editor.description).not.toContainText(
                 data.strikethroughPrice,
@@ -571,21 +469,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(
-                data.cardid,
-                'slice-wide',
-                'cloned',
-            );
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -595,7 +481,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit cta and save card', async () => {
+        await test.step('step-3: Edit cta and save card', async () => {
             await expect(
                 await editor.footer.locator(editor.linkEdit),
             ).toBeVisible();
@@ -611,7 +497,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate edited card cta', async () => {
+        await test.step('step-4: Validate edited card cta', async () => {
             await expect(await editor.footer).toContainText(data.newCtaText);
             await expect(await clonedCard.locator(slice.cardCTA)).toContainText(
                 data.newCtaText,
@@ -639,21 +525,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            let clonedCard = await studio.getCard(
-                data.cardid,
-                'slice-wide',
-                'cloned',
-            );
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            let clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -663,7 +537,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Change osi and save card', async () => {
+        await test.step('step-3: Change osi and save card', async () => {
             await expect(await editor.OSI).toBeVisible();
             await expect(await editor.OSI).toContainText(data.osi);
             await editor.OSIButton.click();
@@ -675,7 +549,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate osi change', async () => {
+        await test.step('step-4: Validate osi change', async () => {
             await expect(await editor.OSI).toContainText(data.newosi);
             await expect(await editor.tags).toHaveAttribute(
                 'value',
@@ -723,21 +597,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(
-                data.cardid,
-                'slice-wide',
-                'cloned',
-            );
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -747,7 +609,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit CTA variant and save card', async () => {
+        await test.step('step-3: Edit CTA variant and save card', async () => {
             await expect(
                 await editor.footer.locator(editor.linkEdit),
             ).toBeVisible();
@@ -771,7 +633,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate CTA variant change', async () => {
+        await test.step('step-4: Validate CTA variant change', async () => {
             await expect(await editor.CTA).toHaveClass(data.newVariant);
             await expect(await editor.CTA).not.toHaveClass(data.variant);
             expect(
@@ -804,21 +666,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Clone card and open editor', async () => {
-            await studio.cloneCard();
-            clonedCard = await studio.getCard(
-                data.cardid,
-                'slice-wide',
-                'cloned',
-            );
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard
                 .locator('aem-fragment')
                 .getAttribute('fragment');
@@ -828,7 +678,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Edit checkout params and save card', async () => {
+        await test.step('step-3: Edit checkout params and save card', async () => {
             await expect(await editor.CTA).toBeVisible();
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
@@ -846,7 +696,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await studio.saveCard();
         });
 
-        await test.step('step-5: Validate edited cta checkout params', async () => {
+        await test.step('step-4: Validate edited cta checkout params', async () => {
             await expect(
                 await clonedCard.locator(slice.cardCTA),
             ).toHaveAttribute('data-wcs-osi', data.osi);
@@ -865,6 +715,61 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 data.checkoutParams.promoid,
             );
             expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
+        });
+    });
+
+    // @studio-slice-save-edited-analytics-ids - Validate saving card after editing analytics IDs
+    test(`${features[12].name},${features[12].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[12];
+        const testPage = `${baseURL}${features[12].path}${miloLibs}${features[12].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+        let clonedCard;
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
+            clonedCardID = await clonedCard
+                .locator('aem-fragment')
+                .getAttribute('fragment');
+            data.clonedCardID = await clonedCardID;
+            await expect(await clonedCard).toBeVisible();
+            await clonedCard.dblclick();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-3: Edit analytics IDs and save card', async () => {
+            await expect(await editor.CTA).toBeVisible();
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.analyticsId).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
+            await editor.analyticsId.click();
+            await page
+                .getByRole('option', { name: data.newAnalyticsID })
+                .click();
+            await editor.linkSave.click();
+            await studio.saveCard();
+        });
+
+        await test.step('step-4: Validate edited analytics IDs are saved', async () => {
+            await expect(
+                await clonedCard.locator(slice.cardCTA),
+            ).toHaveAttribute('data-analytics-id', data.newAnalyticsID);
+            await expect(
+                await clonedCard.locator(slice.cardCTA),
+            ).toHaveAttribute('daa-ll', data.newDaaLL);
+            await expect(await clonedCard).toHaveAttribute(
+                'daa-lh',
+                data.daaLH,
+            );
         });
     });
 });

@@ -642,7 +642,8 @@ export class MasRepository extends LitElement {
      * Populates the store with addon placeholders by filtering fragments that start with 'addon-'
      */
     async loadAddonPlaceholders() {
-        if (Store.placeholders.addons.get().length > 1) return;
+        Store.placeholders.addons.loading.set(true);
+        if (Store.placeholders.addons.data.get().length > 1) return;
         try {
             const cursor = await this.aem.sites.cf.fragments.search(
                 {
@@ -661,12 +662,14 @@ export class MasRepository extends LitElement {
                     addonFragments.push({ value: key, itemText: key });
                 }
             }
-            Store.placeholders.addons.set((prev) => [
+            Store.placeholders.addons.data.set((prev) => [
                 ...prev,
                 ...addonFragments,
             ]);
         } catch (error) {
             this.processError(error, 'Could not load addon placeholders.');
+        } finally {
+            Store.placeholders.addons.loading.set(false);
         }
     }
 

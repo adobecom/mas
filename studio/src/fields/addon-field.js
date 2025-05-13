@@ -11,8 +11,12 @@ export class AddonField extends LitElement {
         editable: { type: Boolean, state: true },
     };
 
-    addons = Store.placeholders.addons;
-    reactiveController = new ReactiveController(this, [this.addons]);
+    addons = Store.placeholders.addons.data;
+    loading = Store.placeholders.addons.loading;
+    reactiveController = new ReactiveController(this, [
+        this.addons,
+        this.loading,
+    ]);
 
     constructor() {
         super();
@@ -90,7 +94,7 @@ export class AddonField extends LitElement {
         return html` <sp-combobox
             id="addon-field"
             .options="${this.addons.value}"
-            .pending="${this.addons.value.length === 1}"
+            .pending="${this.loading.value}"
             .value="${this.placeholderKey}"
             @change="${this.#handleChange}"
             placeholder="Select an addon placeholder"

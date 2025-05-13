@@ -154,3 +154,19 @@ export function normalizeKey(str) {
         .replace(/\s+/g, '-')
         .replace(/[^a-z0-9-]/g, '');
 }
+
+/**
+ * Returns the fragment mapping for a given variant
+ * @param {string} variant
+ * @returns {object}
+ */
+export async function getFragmentMapping(variant) {
+    const merchCardCustomElement =
+        await customElements.whenDefined('merch-card');
+    if (!merchCardCustomElement) return null;
+    return merchCardCustomElement.getFragmentMapping(variant);
+}
+
+export function getService() {
+    return document.querySelector('mas-commerce-service');
+}

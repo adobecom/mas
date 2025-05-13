@@ -173,7 +173,7 @@ export default class StudioPage {
                 // Wait for clone button and ensure it's enabled
                 await this.page.waitForSelector(
                     'div[id="editor-toolbar"] >> sp-action-button[value="clone"]',
-                    { state: 'visible', timeout: 30000 },
+                    { state: 'visible', timeout: 5000 },
                 );
                 await expect(this.cloneCardButton).toBeEnabled();
 
@@ -212,7 +212,7 @@ export default class StudioPage {
 
                 // Wait for success toast
                 await this.toastPositive
-                    .waitFor({ timeout: 30000 })
+                    .waitFor({ timeout: 15000 })
                     .catch(() => {
                         throw new Error(
                             '[NO_RESPONSE] Clone operation failed - no success toast shown',
@@ -316,7 +316,7 @@ export default class StudioPage {
 
                 // Wait for success toast
                 await this.toastPositive
-                    .waitFor({ timeout: 30000 })
+                    .waitFor({ timeout: 15000 })
                     .catch(() => {
                         throw new Error(
                             '[NO_RESPONSE] Save operation failed - no success toast shown',
@@ -379,7 +379,7 @@ export default class StudioPage {
                 // Wait for delete button and ensure it's enabled
                 await this.page.waitForSelector(
                     'div[id="editor-toolbar"] >> sp-action-button[value="delete"]',
-                    { state: 'visible', timeout: 30000 },
+                    { state: 'visible', timeout: 5000 },
                 );
                 await expect(this.deleteCardButton).toBeEnabled();
 
@@ -422,7 +422,7 @@ export default class StudioPage {
 
                 // Wait for success toast
                 await this.toastPositive
-                    .waitFor({ timeout: 30000 })
+                    .waitFor({ timeout: 15000 })
                     .catch(() => {
                         throw new Error(
                             '[NO_RESPONSE] Delete operation failed - no success toast shown',

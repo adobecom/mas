@@ -752,23 +752,23 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await editor.analyticsId).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
             await editor.analyticsId.click();
-            await page.getByRole('option', { name: data.newAnalyticsID }).click();
+            await page
+                .getByRole('option', { name: data.newAnalyticsID })
+                .click();
             await editor.linkSave.click();
             await studio.saveCard();
         });
 
         await test.step('step-4: Validate edited analytics IDs are saved', async () => {
-            await expect(await clonedCard.locator(slice.cardCTA)).toHaveAttribute(
-                'data-analytics-id',
-                data.newAnalyticsID
-            );
-            await expect(await clonedCard.locator(slice.cardCTA)).toHaveAttribute(
-                'daa-ll',
-                data.newDaaLL
-            );
+            await expect(
+                await clonedCard.locator(slice.cardCTA),
+            ).toHaveAttribute('data-analytics-id', data.newAnalyticsID);
+            await expect(
+                await clonedCard.locator(slice.cardCTA),
+            ).toHaveAttribute('daa-ll', data.newDaaLL);
             await expect(await clonedCard).toHaveAttribute(
                 'daa-lh',
-                data.daaLH
+                data.daaLH,
             );
         });
     });

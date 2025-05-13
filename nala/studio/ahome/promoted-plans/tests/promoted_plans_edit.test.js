@@ -220,18 +220,20 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             // );
             await expect(await studio.getCard(data.cardid)).toHaveAttribute(
                 'daa-lh',
-                data.daaLH
+                data.daaLH,
             );
 
             await editor.analyticsId.click();
-            await page.getByRole('option', { name: data.newAnalyticsID }).click();
+            await page
+                .getByRole('option', { name: data.newAnalyticsID })
+                .click();
             await editor.linkSave.click();
         });
 
         await test.step('step-4: Validate edited analytics IDs on the card', async () => {
             await expect(await promotedplans.cardCTA.nth(1)).toHaveAttribute(
                 'data-analytics-id',
-                data.newAnalyticsID
+                data.newAnalyticsID,
             );
             // await expect(await promotedplans.cardCTA.nth(1)).toHaveAttribute(
             //     'daa-ll',
@@ -239,7 +241,7 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             // );
             await expect(await studio.getCard(data.cardid)).toHaveAttribute(
                 'daa-lh',
-                data.daaLH
+                data.daaLH,
             );
         });
     });

@@ -667,9 +667,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardPrice).not.toContainText(
                 data.newStrikethroughPrice,
             );
-            await expect(await individuals.cardPrice).toContainText(
-                data.price,
-            );
+            await expect(await individuals.cardPrice).toContainText(data.price);
             await expect(await individuals.cardPrice).toContainText(
                 data.strikethroughPrice,
             );
@@ -1172,9 +1170,10 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(
                 await editor.prices.locator(editor.regularPrice),
             ).toHaveAttribute('data-promotion-code', data.promo);
-            await expect(
-                await individuals.cardPrice,
-            ).toHaveAttribute('data-promotion-code', data.promo);
+            await expect(await individuals.cardPrice).toHaveAttribute(
+                'data-promotion-code',
+                data.promo,
+            );
             await (await editor.prices.locator(editor.regularPrice)).dblclick();
 
             await expect(await ost.promoField).toBeVisible();
@@ -1195,9 +1194,10 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Validate edited price promo on the card', async () => {
-            await expect(
-                await individuals.cardPrice,
-            ).toHaveAttribute('data-promotion-code', data.newPromo);
+            await expect(await individuals.cardPrice).toHaveAttribute(
+                'data-promotion-code',
+                data.newPromo,
+            );
         });
 
         await test.step('step-6: Remove promo', async () => {

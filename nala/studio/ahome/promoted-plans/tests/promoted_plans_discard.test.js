@@ -244,7 +244,9 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
                 data.analyticsID,
             );
             await editor.analyticsId.click();
-            await page.getByRole('option', { name: data.newAnalyticsID }).click();
+            await page
+                .getByRole('option', { name: data.newAnalyticsID })
+                .click();
             await editor.linkSave.click();
         });
 
@@ -258,7 +260,7 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(await promotedplans.cardCTA.nth(1)).toHaveAttribute(
                 'data-analytics-id',
-                data.analyticsID
+                data.analyticsID,
             );
             // await expect(await promotedplans.cardCTA.nth(1)).toHaveAttribute(
             //     'daa-ll',
@@ -266,14 +268,14 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
             // );
             await expect(await studio.getCard(data.cardid)).toHaveAttribute(
                 'daa-lh',
-                data.daaLH
+                data.daaLH,
             );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await editor.CTA.nth(2).click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.analyticsId).toContainText(
-                data.analyticsID
+                data.analyticsID,
             );
         });
     });

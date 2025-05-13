@@ -694,7 +694,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 data.analyticsID,
             );
             await editor.analyticsId.click();
-            await page.getByRole('option', { name: data.newAnalyticsID }).click();
+            await page
+                .getByRole('option', { name: data.newAnalyticsID })
+                .click();
             await editor.linkSave.click();
         });
 
@@ -708,22 +710,22 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(await slice.cardCTA).toHaveAttribute(
                 'data-analytics-id',
-                data.analyticsID
+                data.analyticsID,
             );
             await expect(await slice.cardCTA).toHaveAttribute(
                 'daa-ll',
-                data.daaLL
+                data.daaLL,
             );
             await expect(await studio.getCard(data.cardid)).toHaveAttribute(
                 'daa-lh',
-                data.daaLH
+                data.daaLH,
             );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.analyticsId).toContainText(
-                data.analyticsID
+                data.analyticsID,
             );
         });
     });

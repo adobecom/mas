@@ -1195,30 +1195,32 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             );
             await expect(await slice.cardCTA).toHaveAttribute(
                 'daa-ll',
-                data.daaLL
+                data.daaLL,
             );
             await expect(await studio.getCard(data.cardid)).toHaveAttribute(
                 'daa-lh',
-                data.daaLH
+                data.daaLH,
             );
 
             await editor.analyticsId.click();
-            await page.getByRole('option', { name: data.newAnalyticsID }).click();
+            await page
+                .getByRole('option', { name: data.newAnalyticsID })
+                .click();
             await editor.linkSave.click();
         });
 
         await test.step('step-4: Validate edited analytics IDs on the card', async () => {
             await expect(await slice.cardCTA).toHaveAttribute(
                 'data-analytics-id',
-                data.newAnalyticsID
+                data.newAnalyticsID,
             );
             await expect(await slice.cardCTA).toHaveAttribute(
                 'daa-ll',
-                data.newDaaLL
+                data.newDaaLL,
             );
             await expect(await studio.getCard(data.cardid)).toHaveAttribute(
                 'daa-lh',
-                data.daaLH
+                data.daaLH,
             );
         });
     });

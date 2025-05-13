@@ -50,10 +50,10 @@ export default {
             data: {
                 cardid: '27f9c659-7c83-497f-86c2-34c711b9791d',
                 analyticsID: 'buy-now',
-                daaLL: 'buy-now-1',
-                daaLH: 'PHSP',
+                daaLL: 'buy-now-2',
+                daaLH: 'CCSN',
                 newAnalyticsID: 'save-now',
-                newDaaLL: 'save-now-1',
+                newDaaLL: 'save-now-2',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ahome @promoted-plans @promoted-plans-edit',

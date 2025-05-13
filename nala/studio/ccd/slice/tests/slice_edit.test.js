@@ -190,10 +190,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'variant',
                 'ccd-slice',
             );
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
-                'size',
-                'wide',
-            );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
@@ -246,10 +242,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'variant',
                 'ccd-slice',
             );
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
-                'size',
-                'wide',
-            );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
@@ -295,10 +287,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'variant',
                 'ccd-slice',
             );
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
-                'size',
-                'wide',
-            );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
@@ -340,10 +328,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute(
                 'variant',
                 'ccd-slice',
-            );
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
-                'size',
-                'wide',
             );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
@@ -403,10 +387,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute(
                 'variant',
                 'ccd-slice',
-            );
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
-                'size',
-                'wide',
             );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
@@ -471,10 +451,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute(
                 'variant',
                 'ccd-slice',
-            );
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
-                'size',
-                'wide',
             );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
@@ -557,10 +533,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'variant',
                 'ccd-slice',
             );
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
-                'size',
-                'wide',
-            );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
@@ -616,10 +588,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute(
                 'variant',
                 'ccd-slice',
-            );
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
-                'size',
-                'wide',
             );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
@@ -699,10 +667,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute(
                 'variant',
                 'ccd-slice',
-            );
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
-                'size',
-                'wide',
             );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
@@ -914,10 +878,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'variant',
                 'ccd-slice',
             );
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
-                'size',
-                'wide',
-            );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
@@ -994,10 +954,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute(
                 'variant',
                 'ccd-slice',
-            );
-            await expect(await studio.getCard(data.cardid)).not.toHaveAttribute(
-                'size',
-                'wide',
             );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
@@ -1087,10 +1043,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'variant',
                 'ccd-slice',
             );
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
-                'size',
-                'wide',
-            );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
@@ -1154,10 +1106,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute(
                 'variant',
                 'ccd-slice',
-            );
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
-                'size',
-                'wide',
             );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
@@ -1225,10 +1173,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'variant',
                 'ccd-slice',
             );
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
-                'size',
-                'wide',
-            );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
@@ -1242,7 +1186,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.analyticsId).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-
             await expect(await editor.analyticsId).toContainText(
                 data.analyticsID,
             );

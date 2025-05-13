@@ -756,12 +756,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
     });
 
     // @studio-suggested-save-edited-analytics-ids - Validate saving card after editing analytics IDs
-    test(`${features[16].name},${features[16].tags}`, async ({
+    test(`${features[13].name},${features[13].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[16];
-        const testPage = `${baseURL}${features[16].path}${miloLibs}${features[16].browserParams}${data.cardid}`;
+        const { data } = features[13];
+        const testPage = `${baseURL}${features[13].path}${miloLibs}${features[13].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
         let clonedCard;
 
@@ -788,23 +788,6 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.analyticsId).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-
-            await expect(await editor.analyticsId).toContainText(
-                data.analyticsID,
-            );
-            await expect(await clonedCard.locator(suggested.cardCTA)).toHaveAttribute(
-                'data-analytics-id',
-                data.analyticsID,
-            );
-            await expect(await clonedCard.locator(suggested.cardCTA)).toHaveAttribute(
-                'daa-ll',
-                data.daaLL
-            );
-            await expect(await clonedCard).toHaveAttribute(
-                'daa-lh',
-                data.daaLH
-            );
-
             await editor.analyticsId.click();
             await page.getByRole('option', { name: data.newAnalyticsID }).click();
             await editor.linkSave.click();

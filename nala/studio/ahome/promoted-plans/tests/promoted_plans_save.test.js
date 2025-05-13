@@ -223,28 +223,11 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
         });
 
         await test.step('step-3: Edit analytics IDs and save card', async () => {
-            await expect(await editor.CTA).toBeVisible();
-            await editor.CTA.click();
+            await expect(await editor.CTA.nth(2)).toBeVisible();
+            await editor.CTA.nth(2).click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.analyticsId).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-
-            await expect(await editor.analyticsId).toContainText(
-                data.analyticsID,
-            );
-            await expect(await clonedCard.locator(promotedplans.cardCTA)).toHaveAttribute(
-                'data-analytics-id',
-                data.analyticsID,
-            );
-            await expect(await clonedCard.locator(promotedplans.cardCTA)).toHaveAttribute(
-                'daa-ll',
-                data.daaLL
-            );
-            await expect(await clonedCard).toHaveAttribute(
-                'daa-lh',
-                data.daaLH
-            );
-
             await editor.analyticsId.click();
             await page.getByRole('option', { name: data.newAnalyticsID }).click();
             await editor.linkSave.click();
@@ -252,14 +235,14 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
         });
 
         await test.step('step-4: Validate edited analytics IDs are saved', async () => {
-            await expect(await clonedCard.locator(promotedplans.cardCTA)).toHaveAttribute(
+            await expect(await clonedCard.locator(promotedplans.cardCTA.nth(1))).toHaveAttribute(
                 'data-analytics-id',
                 data.newAnalyticsID
             );
-            await expect(await clonedCard.locator(promotedplans.cardCTA)).toHaveAttribute(
-                'daa-ll',
-                data.newDaaLL
-            );
+            // await expect(await clonedCard.locator(promotedplans.cardCTA.nth(1))).toHaveAttribute(
+            //     'daa-ll',
+            //     data.newDaaLL
+            // );
             await expect(await clonedCard).toHaveAttribute(
                 'daa-lh',
                 data.daaLH

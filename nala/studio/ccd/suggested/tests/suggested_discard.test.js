@@ -642,12 +642,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
     });
 
     // @studio-suggested-discard-edited-analytics-ids - Validate discard edited analytics IDs for suggested card in mas studio
-    test(`${features[16].name},${features[16].tags}`, async ({
+    test(`${features[12].name},${features[12].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[16];
-        const testPage = `${baseURL}${features[16].path}${miloLibs}${features[16].browserParams}${data.cardid}`;
+        const { data } = features[12];
+        const testPage = `${baseURL}${features[12].path}${miloLibs}${features[12].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -670,7 +670,6 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.analyticsId).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-
             await expect(await editor.analyticsId).toContainText(
                 data.analyticsID,
             );

@@ -160,7 +160,7 @@ export default {
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
-            tcid: '16',
+            tcid: '12',
             name: '@studio-suggested-discard-edited-analytics-ids',
             path: '/studio.html',
             data: {

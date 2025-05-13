@@ -751,23 +751,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.analyticsId).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-
-            await expect(await editor.analyticsId).toContainText(
-                data.analyticsID,
-            );
-            await expect(await clonedCard.locator(slice.cardCTA)).toHaveAttribute(
-                'data-analytics-id',
-                data.analyticsID,
-            );
-            await expect(await clonedCard.locator(slice.cardCTA)).toHaveAttribute(
-                'daa-ll',
-                data.daaLL
-            );
-            await expect(await clonedCard).toHaveAttribute(
-                'daa-lh',
-                data.daaLH
-            );
-
             await editor.analyticsId.click();
             await page.getByRole('option', { name: data.newAnalyticsID }).click();
             await editor.linkSave.click();

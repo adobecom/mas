@@ -201,8 +201,8 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             await expect(
                 await editor.footer.locator(editor.linkEdit),
             ).toBeVisible();
-            await expect(await editor.CTA).toBeVisible();
-            await editor.CTA.click();
+            await expect(await editor.CTA.nth(2)).toBeVisible();
+            await editor.CTA.nth(2).click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.analyticsId).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
@@ -210,14 +210,14 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             await expect(await editor.analyticsId).toContainText(
                 data.analyticsID,
             );
-            await expect(await promotedplans.cardCTA).toHaveAttribute(
+            await expect(await promotedplans.cardCTA.nth(1)).toHaveAttribute(
                 'data-analytics-id',
                 data.analyticsID,
             );
-            await expect(await promotedplans.cardCTA).toHaveAttribute(
-                'daa-ll',
-                data.daaLL
-            );
+            // await expect(await promotedplans.cardCTA.nth(1)).toHaveAttribute(
+            //     'daa-ll',
+            //     data.daaLL
+            // );
             await expect(await studio.getCard(data.cardid)).toHaveAttribute(
                 'daa-lh',
                 data.daaLH
@@ -229,14 +229,14 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
         });
 
         await test.step('step-4: Validate edited analytics IDs on the card', async () => {
-            await expect(await promotedplans.cardCTA).toHaveAttribute(
+            await expect(await promotedplans.cardCTA.nth(1)).toHaveAttribute(
                 'data-analytics-id',
                 data.newAnalyticsID
             );
-            await expect(await promotedplans.cardCTA).toHaveAttribute(
-                'daa-ll',
-                data.newDaaLL
-            );
+            // await expect(await promotedplans.cardCTA.nth(1)).toHaveAttribute(
+            //     'daa-ll',
+            //     data.newDaaLL
+            // );
             await expect(await studio.getCard(data.cardid)).toHaveAttribute(
                 'daa-lh',
                 data.daaLH

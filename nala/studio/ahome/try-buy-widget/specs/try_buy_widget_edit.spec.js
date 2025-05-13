@@ -211,9 +211,9 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
-                analyticsID: 'buy-now',
-                daaLL: 'buy-now-1',
-                daaLH: 'PHSP',
+                analyticsID: 'free-trial',
+                daaLL: 'free-trial-1',
+                daaLH: 'CCSN',
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-1',
             },

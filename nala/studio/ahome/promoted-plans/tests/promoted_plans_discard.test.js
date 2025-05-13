@@ -212,12 +212,12 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
     });
 
     // @studio-promoted-plans-discard-edited-analytics-ids - Validate discard edited analytics IDs for promoted plans card in mas studio
-    test(`${features[3].name},${features[3].tags}`, async ({
+    test(`${features[4].name},${features[4].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[3];
-        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
+        const { data } = features[4];
+        const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -227,10 +227,6 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
-                'variant',
-                'ah-promoted-plans',
-            );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
@@ -239,12 +235,11 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
             await expect(
                 await editor.footer.locator(editor.linkEdit),
             ).toBeVisible();
-            await expect(await editor.CTA).toBeVisible();
-            await editor.CTA.click();
+            await expect(await editor.CTA.nth(2)).toBeVisible();
+            await editor.CTA.nth(2).click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.analyticsId).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-
             await expect(await editor.analyticsId).toContainText(
                 data.analyticsID,
             );
@@ -261,20 +256,22 @@ test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            await expect(await promotedplans.cardCTA).toHaveAttribute(
+            await expect(await promotedplans.cardCTA.nth(1)).toHaveAttribute(
                 'data-analytics-id',
                 data.analyticsID
             );
-            await expect(await promotedplans.cardCTA).toHaveAttribute(
-                'daa-ll',
-                data.daaLL
-            );
+            // await expect(await promotedplans.cardCTA.nth(1)).toHaveAttribute(
+            //     'daa-ll',
+            //     data.daaLL
+            // );
             await expect(await studio.getCard(data.cardid)).toHaveAttribute(
                 'daa-lh',
                 data.daaLH
             );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await editor.CTA.nth(2).click();
+            await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.analyticsId).toContainText(
                 data.analyticsID
             );

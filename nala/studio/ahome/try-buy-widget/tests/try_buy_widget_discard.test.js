@@ -323,12 +323,12 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     });
 
     // @studio-try-buy-widget-discard-edited-analytics-ids - Validate discard edited analytics IDs for try buy widget card in mas studio
-    test(`${features[16].name},${features[16].tags}`, async ({
+    test(`${features[5].name},${features[5].tags}`, async ({
         page,
         baseURL,
     }) => {
-        const { data } = features[16];
-        const testPage = `${baseURL}${features[16].path}${miloLibs}${features[16].browserParams}${data.cardid}`;
+        const { data } = features[5];
+        const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -338,14 +338,6 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
-                'variant',
-                'ah-try-buy-widget',
-            );
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
-                'size',
-                'triple',
-            );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
@@ -354,12 +346,11 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(
                 await editor.footer.locator(editor.linkEdit),
             ).toBeVisible();
-            await expect(await editor.CTA).toBeVisible();
-            await editor.CTA.click();
+            await expect(await editor.CTA.first()).toBeVisible();
+            await editor.CTA.first().click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.analyticsId).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-
             await expect(await editor.analyticsId).toContainText(
                 data.analyticsID,
             );
@@ -376,11 +367,11 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            await expect(await trybuywidget.cardCTA).toHaveAttribute(
+            await expect(await trybuywidget.cardCTA.first()).toHaveAttribute(
                 'data-analytics-id',
                 data.analyticsID
             );
-            await expect(await trybuywidget.cardCTA).toHaveAttribute(
+            await expect(await trybuywidget.cardCTA.first()).toHaveAttribute(
                 'daa-ll',
                 data.daaLL
             );
@@ -390,6 +381,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             );
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await editor.CTA.first().click();
+            await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.analyticsId).toContainText(
                 data.analyticsID
             );

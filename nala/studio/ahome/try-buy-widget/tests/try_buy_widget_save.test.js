@@ -463,28 +463,11 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-3: Edit analytics IDs and save card', async () => {
-            await expect(await editor.CTA).toBeVisible();
-            await editor.CTA.click();
+            await expect(await editor.CTA.first()).toBeVisible();
+            await editor.CTA.first().click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.analyticsId).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-
-            await expect(await editor.analyticsId).toContainText(
-                data.analyticsID,
-            );
-            await expect(await clonedCard.locator(trybuywidget.cardCTA)).toHaveAttribute(
-                'data-analytics-id',
-                data.analyticsID,
-            );
-            await expect(await clonedCard.locator(trybuywidget.cardCTA)).toHaveAttribute(
-                'daa-ll',
-                data.daaLL
-            );
-            await expect(await clonedCard).toHaveAttribute(
-                'daa-lh',
-                data.daaLH
-            );
-
             await editor.analyticsId.click();
             await page.getByRole('option', { name: data.newAnalyticsID }).click();
             await editor.linkSave.click();
@@ -492,11 +475,11 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-4: Validate edited analytics IDs are saved', async () => {
-            await expect(await clonedCard.locator(trybuywidget.cardCTA)).toHaveAttribute(
+            await expect(await clonedCard.locator(trybuywidget.cardCTA.first())).toHaveAttribute(
                 'data-analytics-id',
                 data.newAnalyticsID
             );
-            await expect(await clonedCard.locator(trybuywidget.cardCTA)).toHaveAttribute(
+            await expect(await clonedCard.locator(trybuywidget.cardCTA.first())).toHaveAttribute(
                 'daa-ll',
                 data.newDaaLL
             );

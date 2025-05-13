@@ -42,12 +42,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
-            ).toBeVisible();
-            await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
-            ).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -77,9 +73,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await trybuywidget.cardPrice).not.toContainText(
                 data.newPrice,
             );
-            await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
-            ).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.prices).toContainText(data.price);
             await expect(await editor.prices).not.toContainText(data.newPrice);
@@ -101,12 +95,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
-            ).toBeVisible();
-            await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
-            ).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -125,15 +115,19 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
-            ).toBeVisible();
-            await expect(
-                await studio.getCard(data.cardid, 'slice'),
-            ).not.toBeVisible();
-            await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
-            ).dblclick();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'variant',
+                'ah-try-buy-widget',
+            );
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'size',
+                'double',
+            );
+            await expect(await studio.getCard(data.cardid)).not.toHaveAttribute(
+                'variant',
+                'ccd-slice',
+            );
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.variant).toHaveAttribute(
                 'default-value',
@@ -157,12 +151,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
-            ).toBeVisible();
-            await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
-            ).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -185,9 +175,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-5: Open the editor and validate there are no changes', async () => {
-            await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
-            ).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.OSI).toContainText(data.osi);
             await expect(await editor.OSI).not.toContainText(data.newosi);
@@ -237,12 +225,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
-            ).toBeVisible();
-            await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
-            ).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -270,9 +254,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-5: Open the editor and validate there are no changes', async () => {
-            await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
-            ).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.CTA.first()).toBeVisible();
             await expect(await editor.CTA.first()).toHaveClass(data.variant);
@@ -297,12 +279,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double'),
-            ).toBeVisible();
-            await (
-                await studio.getCard(data.cardid, 'ahtrybuywidget-double')
-            ).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -341,6 +319,75 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 decodeURI(changedCTAhref).split('?')[1],
             );
             expect(noSearchParams).toBeNull;
+        });
+    });
+
+    // @studio-try-buy-widget-discard-edited-analytics-ids - Validate discard edited analytics IDs for try buy widget card in mas studio
+    test(`${features[5].name},${features[5].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[5];
+        const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit analytics IDs', async () => {
+            await expect(
+                await editor.footer.locator(editor.linkEdit),
+            ).toBeVisible();
+            await expect(await editor.CTA.first()).toBeVisible();
+            await editor.CTA.first().click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.analyticsId).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
+            await expect(await editor.analyticsId).toContainText(
+                data.analyticsID,
+            );
+            await editor.analyticsId.click();
+            await page
+                .getByRole('option', { name: data.newAnalyticsID })
+                .click();
+            await editor.linkSave.click();
+        });
+
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-5: Verify there is no changes of the card', async () => {
+            await expect(await trybuywidget.cardCTA.first()).toHaveAttribute(
+                'data-analytics-id',
+                data.analyticsID,
+            );
+            await expect(await trybuywidget.cardCTA.first()).toHaveAttribute(
+                'daa-ll',
+                data.daaLL,
+            );
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'daa-lh',
+                data.daaLH,
+            );
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await editor.CTA.first().click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.analyticsId).toContainText(
+                data.analyticsID,
+            );
         });
     });
 });

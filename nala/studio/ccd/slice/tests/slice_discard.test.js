@@ -42,10 +42,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -55,9 +53,10 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await editor.size.click();
             await page.getByRole('option', { name: 'default' }).click();
             await page.waitForTimeout(2000);
-            await expect(
-                await studio.getCard(data.cardid, 'slice'),
-            ).not.toHaveAttribute('size', 'wide');
+            await expect(await studio.getCard(data.cardid)).not.toHaveAttribute(
+                'size',
+                'wide',
+            );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -68,10 +67,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.size).toHaveAttribute('value', 'wide');
         });
@@ -92,10 +89,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -116,7 +111,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(await slice.cardBadge).toHaveText(data.badge);
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.badge).toHaveValue(data.badge);
         });
@@ -137,10 +132,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -160,7 +153,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await slice.cardDescription).toContainText(
                 data.description,
             );
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.description).toContainText(
                 data.description,
@@ -183,10 +176,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -207,7 +198,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'src',
                 data.iconURL,
             );
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.iconURL).toHaveValue(data.iconURL);
         });
@@ -228,10 +219,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -253,7 +242,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 'src',
                 data.backgroundURL,
             );
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.backgroundImage).toHaveValue(
                 data.backgroundURL,
@@ -276,10 +265,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -319,7 +306,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                     slice.cardPriceStrikethrough,
                 ),
             ).not.toContainText(data.newStrikethroughPrice);
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.description).toContainText(data.price);
             await expect(await editor.description).toContainText(
@@ -349,10 +336,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -390,7 +375,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(await slice.cardCTA).toContainText(data.ctaText);
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.footer).toContainText(data.ctaText);
         });
@@ -411,10 +396,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -440,7 +423,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(await slice.cardCTA).toContainText(data.ctaText);
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.footer).toContainText(data.ctaText);
         });
@@ -461,10 +444,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -483,13 +464,15 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await expect(
-                await studio.getCard(data.cardid, 'suggested'),
-            ).not.toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'variant',
+                'ccd-slice',
+            );
+            await expect(await studio.getCard(data.cardid)).not.toHaveAttribute(
+                'variant',
+                'ccd-suggested',
+            );
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.variant).toHaveAttribute(
                 'default-value',
@@ -513,10 +496,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice')).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -539,7 +520,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-5: Open the editor and validate there are no changes', async () => {
-            await (await studio.getCard(data.cardid, 'slice')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.OSI).toContainText(data.osi);
             await expect(await editor.OSI).not.toContainText(data.newosi);
@@ -589,10 +570,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -617,7 +596,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-5: Open the editor and validate there are no changes', async () => {
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
             await expect(await editor.CTA).not.toHaveClass(data.newVariant);
@@ -640,10 +619,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(
-                await studio.getCard(data.cardid, 'slice-wide'),
-            ).toBeVisible();
-            await (await studio.getCard(data.cardid, 'slice-wide')).dblclick();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
 
@@ -681,6 +658,75 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 decodeURI(changedCTAhref).split('?')[1],
             );
             expect(noSearchParams).toBeNull;
+        });
+    });
+
+    // @studio-slice-discard-edited-analytics-ids - Validate discard edited analytics IDs for slice card in mas studio
+    test(`${features[12].name},${features[12].tags}`, async ({
+        page,
+        baseURL,
+    }) => {
+        const { data } = features[12];
+        const testPage = `${baseURL}${features[12].path}${miloLibs}${features[12].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit analytics IDs', async () => {
+            await expect(
+                await editor.footer.locator(editor.linkEdit),
+            ).toBeVisible();
+            await expect(await editor.CTA).toBeVisible();
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.analyticsId).toBeVisible();
+            await expect(await editor.linkSave).toBeVisible();
+            await expect(await editor.analyticsId).toContainText(
+                data.analyticsID,
+            );
+            await editor.analyticsId.click();
+            await page
+                .getByRole('option', { name: data.newAnalyticsID })
+                .click();
+            await editor.linkSave.click();
+        });
+
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-5: Verify there is no changes of the card', async () => {
+            await expect(await slice.cardCTA).toHaveAttribute(
+                'data-analytics-id',
+                data.analyticsID,
+            );
+            await expect(await slice.cardCTA).toHaveAttribute(
+                'daa-ll',
+                data.daaLL,
+            );
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
+                'daa-lh',
+                data.daaLH,
+            );
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.analyticsId).toContainText(
+                data.analyticsID,
+            );
         });
     });
 });

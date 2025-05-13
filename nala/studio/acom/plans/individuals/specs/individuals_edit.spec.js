@@ -126,6 +126,7 @@ export default {
                 strikethroughPrice: 'US$34.49/mo',
                 newPrice: 'US$17.24/moper license',
                 newStrikethroughPrice: 'US$34.49/moper license',
+                legalText: 'per license',
             },
             browserParams: '#query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',

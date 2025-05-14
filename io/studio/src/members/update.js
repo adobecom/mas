@@ -29,7 +29,7 @@ async function main(params) {
             return errorResponse(400, errorMessage, logger);
         }
 
-        const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60; // 7 days
+        const CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60; // 30 days
         const CACHE_KEY = 'mas-users';
         const method = (params.__ow_method || '').toUpperCase(); // POST should be explicit
         const state = await init();

@@ -44,7 +44,7 @@ export default class EditorPage {
         this.calloutRTEIcon = this.panel.locator(
             'sp-field-group#callout .icon-button',
         );
-        this.showStockCheckbox = this.panel.locator('#stockOffer #input');
+        this.showAddOn = this.panel.locator('#addon-field #input');
         this.showQuantitySelector = this.panel.locator(
             '#quantitySelect sp-checkbox input',
         );

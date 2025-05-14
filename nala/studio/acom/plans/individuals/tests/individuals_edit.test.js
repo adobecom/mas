@@ -91,7 +91,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.whatsIncludedLabel).not.toBeVisible();
             await expect(await editor.promoText).not.toBeVisible();
             await expect(await editor.callout).not.toBeVisible();
-            await expect(await editor.showStockCheckbox).not.toBeVisible();
+            await expect(await editor.showAddOn).not.toBeVisible();
             await expect(await editor.showQuantitySelector).not.toBeVisible();
             await expect(await editor.OSI).toBeVisible();
         });
@@ -112,7 +112,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardWhatsIncluded).not.toBeVisible();
             await expect(await individuals.cardPromoText).not.toBeVisible();
             await expect(await individuals.cardCallout).not.toBeVisible();
-            await expect(await individuals.cardStockCheckbox).not.toBeVisible();
+            await expect(await individuals.showAddOn).not.toBeVisible();
             await expect(
                 await individuals.cardQuantitySelector,
             ).not.toBeVisible();
@@ -174,7 +174,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.whatsIncludedLabel).not.toBeVisible();
             await expect(await editor.promoText).not.toBeVisible();
             await expect(await editor.callout).not.toBeVisible();
-            await expect(await editor.showStockCheckbox).not.toBeVisible();
+            await expect(await editor.showAddOn).not.toBeVisible();
             await expect(await editor.showQuantitySelector).not.toBeVisible();
             await expect(await editor.OSI).toBeVisible();
         });
@@ -260,7 +260,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.whatsIncludedLabel).not.toBeVisible();
             await expect(await editor.promoText).not.toBeVisible();
             await expect(await editor.callout).not.toBeVisible();
-            await expect(await editor.showStockCheckbox).not.toBeVisible();
+            await expect(await editor.showAddOn).not.toBeVisible();
             await expect(await editor.showQuantitySelector).not.toBeVisible();
             await expect(await editor.OSI).toBeVisible();
         });

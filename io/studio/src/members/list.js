@@ -19,7 +19,7 @@ async function main(params) {
 
         // check for missing request input parameters and headers
         const requiredHeaders = ['Authorization'];
-        const requiredParams = ['IMS_CLIENT_ID']; // Add IMS_CLIENT_ID to required params
+        const requiredParams = [];
         const errorMessage = checkMissingRequestInputs(
             params,
             requiredParams,
@@ -38,7 +38,7 @@ async function main(params) {
                 const ims = new Ims('prod'); // Use 'prod' environment
                 const imsValidation = await ims.validateToken(
                     token,
-                    params.IMS_CLIENT_ID, // Use env var
+                    'mas-studio',
                 );
                 if (!imsValidation || !imsValidation.valid) {
                     logger.warn('IMS token validation failed');

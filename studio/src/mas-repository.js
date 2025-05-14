@@ -348,8 +348,12 @@ export class MasRepository extends LitElement {
             .filter(([key, value]) => value !== undefined)
             .reduce(
                 (fields, [key, value]) => {
-                    const type = key === 'locReady' ? 'boolean' : 'text';
-                    fields.push({ name: key, type, values: [value] });
+                    if (key === 'tags') {
+                        fields.push({ name: key, type: 'tag', values: value });
+                    } else {
+                        const type = key === 'locReady' ? 'boolean' : 'text';
+                        fields.push({ name: key, type, values: [value] });
+                    }
                     return fields;
                 },
                 [...existingFields],
@@ -377,7 +381,12 @@ export class MasRepository extends LitElement {
                 fields,
                 parentPath: fragmentData.parentPath || this.parentPath,
             });
-            const latest = await this.aem.sites.cf.fragments.getById(result.id);
+            let latest = await this.aem.sites.cf.fragments.getById(result.id);
+            if (fragmentData.data?.tags?.length) {
+                latest.newTags = fragmentData.data.tags;
+                await this.aem.saveTags(latest);
+                latest = await this.aem.sites.cf.fragments.getById(result.id);
+            }
             const fragment = await this.#addToCache(latest);
 
             if (!isPlaceholder) {

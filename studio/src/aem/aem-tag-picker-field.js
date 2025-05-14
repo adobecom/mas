@@ -166,6 +166,7 @@ class AemTagPickerField extends LitElement {
             offer_type: offer.offer_type,
             planType: offer.planType,
             customer_segment: offer.customer_segment,
+            product_code: offer.product_code,
             market_segments:
                 Array.isArray(offer.market_segments) &&
                 offer.market_segments.length > 0
@@ -183,6 +184,7 @@ class AemTagPickerField extends LitElement {
             'plan_type',
             'customer_segment',
             'market_segments',
+            'product_code',
         ]);
 
         const existingTags = this.value.filter((tagPath) => {
@@ -228,6 +230,10 @@ class AemTagPickerField extends LitElement {
 
     // Returns the cached data for this namespace (if loaded)
     get #data() {
+        return namespaces[this.namespace];
+    }
+
+    get allTags() {
         return namespaces[this.namespace];
     }
 

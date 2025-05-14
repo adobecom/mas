@@ -24,9 +24,11 @@ async function getDictionaryId(context) {
 }
 
 function extractValue(ref) {
-    const value = ref.value || ref?.richTextValue?.value || '';
-    // Escape control characters before parsing
-    return value.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+    const value = ref.value || ref.richTextValue?.value || '';
+    // Escape control characters and double quotes before parsing
+    return value
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+        .replace(/"/g, '\\"');
 }
 
 async function getDictionary(context) {

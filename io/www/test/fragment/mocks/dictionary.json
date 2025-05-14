@@ -146,6 +146,17 @@
                 }
             }
         },
+        "richTextWithQuotes": {
+            "value": {
+                "fields": {
+                    "key": "rich-text-with-quotes",
+                    "richTextValue": {
+                        "value": "<p>i am \"rich\"</p>",
+                        "mimeType": "text/html"
+                    }
+                }
+            }
+        },
         "learn-more": {
             "value": {
                 "fields": {

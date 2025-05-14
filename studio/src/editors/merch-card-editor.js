@@ -10,6 +10,7 @@ import '../rte/osi-field.js';
 import { CARD_MODEL_PATH } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
+import '../fields/addon-field.js';
 
 const merchCardCustomElementPromise = customElements.whenDefined('merch-card');
 
@@ -490,16 +491,25 @@ class MerchCardEditor extends LitElement {
                 >
                 </mas-plan-type-field>
             </sp-field-group>
-            <sp-field-group class="toggle" id="stockOffer">
-                <sp-checkbox
-                    size="m"
-                    data-field="showStockCheckbox"
-                    value="${form.showStockCheckbox?.values[0]}"
-                    .checked="${form.showStockCheckbox?.values[0]}"
-                    @change="${this.#handleFragmentUpdate}"
-                    ?disabled=${this.disabled}
-                    >Stock Checkbox</sp-checkbox
+            <sp-field-group id="planType" class="toggle">
+                <mas-plan-type-field
+                    id="plan-type-field"
+                    label="Plan Type text"
+                    data-field="showPlanType"
+                    value="${form.showPlanType?.values[0]}"
+                    @change="${this.updateFragment}"
                 >
+                </mas-plan-type-field>
+            </sp-field-group>
+            <sp-field-group id="addon" class="toggle">
+                <mas-addon-field
+                    id="addon-field"
+                    label="Addon"
+                    data-field="addon"
+                    .value="${form.addon?.values[0]}"
+                    @change="${this.updateFragment}"
+                >
+                </mas-addon-field>
             </sp-field-group>
             <sp-field-group class="toggle" id="quantitySelect">
                 <sp-checkbox

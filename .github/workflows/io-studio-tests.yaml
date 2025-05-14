@@ -1,0 +1,67 @@
+name: IO Studio Deploy
+on:
+  pull_request:
+    types:
+      - closed
+    paths:
+      - 'io/studio/**'
+    branches:
+      - main
+
+jobs:
+  deploy-to-stage:
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: io/studio
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22.x'
+        cache: 'npm'
+        cache-dependency-path: io/studio/package.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests with coverage
+      run: npm test
+
+    - name: Install AIO CLI
+      if: success()
+      run: npm install -g @adobe/aio-cli
+
+    - name: Deploy action
+      if: success() && github.event_name == 'pull_request'
+      env:
+        AIO_runtime_namespace: ${{ secrets.AIO_NS_STAGE }}
+        AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
+        AIO_runtime_auth: ${{ secrets.AIO_AUTH_STAGE }}
+        IMS_CLIENT_ID: ${{ secrets.IMS_CLIENT_ID }}
+      run: |
+        # Check for missing secrets
+        missing_secrets=()
+        
+        [ -z "$AIO_runtime_namespace" ] && missing_secrets+=("AIO_runtime_namespace")
+        [ -z "$AIO_APIHOST" ] && missing_secrets+=("AIO_APIHOST")
+        [ -z "$AIO_runtime_auth" ] && missing_secrets+=("AIO_runtime_auth")
+        [ -z "$IMS_CLIENT_ID" ] && missing_secrets+=("IMS_CLIENT_ID")
+        
+        if [ ${#missing_secrets[@]} -ne 0 ]; then
+          echo "Error: The following required secrets are empty:"
+          printf '%s\n' "${missing_secrets[@]}"
+          exit 1
+        fi
+
+        # Configure and deploy
+        aio config set AIO_runtime_namespace "$AIO_runtime_namespace"
+        aio config set AIO_runtime_auth "$AIO_runtime_auth"
+        aio config set AIO_APIHOST "$AIO_APIHOST"
+        aio config set IMS_CLIENT_ID "$IMS_CLIENT_ID"
+        aio app deploy

@@ -1,9 +1,16 @@
 import Store from './store.js';
 
-let consumerName;
 export async function loadUsers() {
+    const urlParams = new URLSearchParams(window.location.search);
+    let masIoStudioBase = urlParams.get('mas-io-studio-base');
+    if (!masIoStudioBase) {
+        masIoStudioBase = 'https://mas.adobe.com/io';
+    }
+    if (!masIoStudioBase.endsWith('/')) {
+        masIoStudioBase += '/';
+    }
     try {
-        const response = await fetch(`http://mas.adobe.com/io/listMembers`, {
+        const response = await fetch(`${masIoStudioBase}listMembers`, {
             headers: {
                 Authorization: `Bearer ${window.adobeid?.authorize?.()}`,
                 accept: 'application/json',
@@ -25,7 +32,9 @@ async function init() {
     const profile = await window.adobeIMS.getProfile();
     Store.profile.set(profile);
     const uniqueEditors = await loadUsers();
-    Store.users.set(uniqueEditors);
+    if (uniqueEditors.length > 0) {
+        Store.users.set(uniqueEditors);
+    }
 
     Store.search.subscribe(async ({ path }) => {
         if (path !== 'sandbox') return;

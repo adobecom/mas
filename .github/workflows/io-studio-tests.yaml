@@ -1,4 +1,4 @@
-name: IO Studio Deploy
+name: IO Studio Deploy to Stage
 on:
   pull_request:
     types:

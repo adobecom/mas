@@ -184,10 +184,7 @@ class MasUserPicker extends LitElement {
                     this.filteredUsers,
                     (user) => user.userPrincipalName,
                     (user) => html`
-                        <sp-menu-item
-                            value="${user.userPrincipalName}"
-                            @click="${this.handleCheckboxChange}"
-                        >
+                        <sp-menu-item @click="${this.handleCheckboxChange}">
                             <sp-checkbox
                                 .checked=${this.selectedUsers.value.some(
                                     (selected) =>
@@ -197,9 +194,6 @@ class MasUserPicker extends LitElement {
                                 value="${user.userPrincipalName}"
                             >
                                 ${user.displayName}
-                                <span slot="description"
-                                    >${user.userPrincipalName}</span
-                                >
                             </sp-checkbox>
                         </sp-menu-item>
                     `,
@@ -224,7 +218,6 @@ class MasUserPicker extends LitElement {
 
     render() {
         if (!this.users?.value) return nothing;
-        if (!this.selectedUsers?.value) return nothing;
         return html`
             <overlay-trigger
                 placement="bottom"

@@ -90,15 +90,18 @@
                         });
                         picker.selectedUsers = new ReactiveStore([]);
                         await picker.updateComplete;
-                        await delay(20);
+                        await delay(10);
                         const actionButton =
                             picker.shadowRoot.querySelector('sp-action-button');
                         actionButton.click();
+                        picker.open = true;
                         await picker.updateComplete;
                         await delay(200);
-                        const menuItem =
-                            picker.shadowRoot.querySelector('sp-menu-item');
-                        expect(menuItem.innerText).to.equal('Alex Johnson');
+                        const checkbox =
+                            picker.shadowRoot.querySelector('sp-checkbox');
+                        expect(checkbox.innerText.trim()).to.equal(
+                            'Alex Johnson',
+                        );
                     });
                 });
             });

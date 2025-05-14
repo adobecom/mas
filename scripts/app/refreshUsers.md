@@ -1,6 +1,6 @@
 # refreshUsers.mjs Documentation
 
-This script fetches users from LDAP, deduplicates them, and sends them to a target endpoint to keep a user list synchronized.
+This script fetches users from LDAP, deduplicates them, and sends them to a target endpoint to keep a user list synchronized in MAS Studio.
 
 ## Core Functionality
 

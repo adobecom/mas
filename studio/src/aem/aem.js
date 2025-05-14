@@ -126,7 +126,10 @@ class AEM {
         }
         if (createdBy?.length > 0) {
             filter.created ??= {};
-            filter.created.by = createdBy;
+            filter.created.by = createdBy.reduce((acc, curr) => {
+                acc.push(curr, curr.toUpperCase());
+                return acc;
+            }, []);
         }
         const params = {
             query: JSON.stringify(searchQuery),

@@ -646,6 +646,41 @@ export class MasRepository extends LitElement {
         return await response.json();
     }
 
+    /**
+     * Populates the store with addon placeholders by filtering fragments that start with 'addon-'
+     */
+    async loadAddonPlaceholders() {
+        Store.placeholders.addons.loading.set(true);
+        if (Store.placeholders.addons.data.get().length > 1) return;
+        try {
+            const cursor = await this.aem.sites.cf.fragments.search(
+                {
+                    path: `${this.parentPath}/dictionary`,
+                },
+                null,
+                this.#abortControllers.search,
+            );
+
+            const result = await cursor.next();
+            const addonFragments = [];
+            for await (const item of result.value) {
+                const key = item.fields.find((field) => field.name === 'key')
+                    ?.values[0];
+                if (/^addon-/.test(key)) {
+                    addonFragments.push({ value: key, itemText: key });
+                }
+            }
+            Store.placeholders.addons.data.set((prev) => [
+                ...prev,
+                ...addonFragments,
+            ]);
+        } catch (error) {
+            this.processError(error, 'Could not load addon placeholders.');
+        } finally {
+            Store.placeholders.addons.loading.set(false);
+        }
+    }
+
     render() {
         return nothing;
     }

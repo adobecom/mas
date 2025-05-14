@@ -10,7 +10,7 @@ on:
 
 jobs:
   deploy-to-stage:
-    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    if: "!contains(github.event.pull_request.labels.*.name, 'do not merge')" # Run only if the label "do not merge" is not present
     runs-on: ubuntu-latest
     defaults:
       run:

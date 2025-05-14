@@ -98,34 +98,7 @@ export default {
             name: '@studio-promoted-plans-editor',
             path: '/studio.html',
             data: {
-                cardid: '031e2f50-5cbc-4e4b-af9b-c63f0e4f2a93',
-            },
-            browserParams: '#query=',
-            tags: '@mas-studio @ahome @ahome-promoted-plans',
-        },
-        {
-            tcid: '11',
-            name: '@studio-promoted-plans-gradient-border',
-            path: '/studio.html',
-            data: {
-                cardid: '031e2f50-5cbc-4e4b-af9b-c63f0e4f2a93',
-                gradientBorderColor: 'gradient',
-                gradientBorderCSSColor:
-                    'linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%)',
-            },
-            browserParams: '#query=',
-            tags: '@mas-studio @ahome @ahome-promoted-plans',
-        },
-        {
-            tcid: '12',
-            name: '@studio-promoted-plans-acrobat-card',
-            path: '/studio.html',
-            data: {
-                cardid: 'c802c222-a573-42ed-a217-301daf2e05d2',
-                title: 'Adobe Acrobat',
-                iconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/acrobat.svg',
-                borderColor: 'spectrum-gray-200',
+                cardid: '2cf0ed0e-84ea-4bd4-8e89-ddf527a7a75b',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-promoted-plans',

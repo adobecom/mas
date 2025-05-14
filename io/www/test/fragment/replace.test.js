@@ -21,15 +21,18 @@ const odinResponse = (description, cta = '{{buy-now}}') => ({
     },
 });
 
-const mockDictionary = () => {
-    nock('https://odin.adobe.com')
-        .get('/adobe/sites/fragments')
+const mockDictionary = (preview = false) => {
+    const odinDomain = `https://${preview ? 'odinpreview.corp' : 'odin'}.adobe.com`;
+    const odinUriRoot = preview
+        ? '/adobe/sites/cf/fragments'
+        : '/adobe/sites/fragments';
+    nock(odinDomain)
+        .get(odinUriRoot)
         .query({ path: '/content/dam/mas/sandbox/fr_FR/dictionary/index' })
         .reply(200, DICTIONARY_CF_RESPONSE);
-    
     // Use the new URL format with ?references=all-hydrated
-    nock('https://odin.adobe.com')
-        .get('/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated')
+    nock(odinDomain)
+        .get(`${odinUriRoot}/fr_FR_dictionary?references=all-hydrated`)
         .reply(200, DICTIONARY_RESPONSE);
 };
 
@@ -181,7 +184,9 @@ describe('replace', () => {
                 })
                 .reply(200, DICTIONARY_CF_RESPONSE);
             nock('https://odin.adobe.com')
-                .get('/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated')
+                .get(
+                    '/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated',
+                )
                 .replyWithError('fetch error');
             const context = await replace(FAKE_CONTEXT);
             const dictionaryId = 'fr_FR_dictionary';
@@ -195,7 +200,9 @@ describe('replace', () => {
                 })
                 .reply(200, DICTIONARY_CF_RESPONSE);
             nock('https://odin.adobe.com')
-                .get('/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated')
+                .get(
+                    '/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated',
+                )
                 .reply(500, 'server error');
             const context = await replace(FAKE_CONTEXT);
             const dictionaryId = 'fr_FR_dictionary';

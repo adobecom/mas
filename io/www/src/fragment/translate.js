@@ -6,7 +6,7 @@ const { fetch, log } = require('./common.js');
  * This transformer name is a bit abusive: it just fetches a translation if the locale is different from the source locale.
  */
 async function translate(context) {
-    const { body, locale } = context;
+    const { body, locale, preview } = context;
     let translatedBody;
     const match = body?.path?.match(PATH_TOKENS);
     if (!match) {
@@ -17,7 +17,7 @@ async function translate(context) {
     }
     const { surface, parsedLocale, fragmentPath } = match.groups;
     if (locale && parsedLocale !== locale) {
-        const translatedPath = odinPath(surface, locale, fragmentPath);
+        const translatedPath = odinPath(surface, locale, fragmentPath, preview);
         const response = await fetch(translatedPath, context);
         if (response.status != 200) {
             return {
@@ -27,9 +27,9 @@ async function translate(context) {
         }
         const {
             items: [{ id } = {}],
-        } = await response.json();
+        } = response.body;
         if (id) {
-            const translatedPath = odinReferences(id, true);
+            const translatedPath = odinReferences(id, true, preview);
             const response = await fetch(translatedPath, context);
             if (response.status != 200) {
                 return {
@@ -37,7 +37,7 @@ async function translate(context) {
                     message: 'translation search failed',
                 };
             }
-            translatedBody = await response.json();
+            translatedBody = response.body;
             context.translatedId = id;
         } else {
             return {

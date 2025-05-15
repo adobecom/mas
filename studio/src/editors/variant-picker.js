@@ -14,6 +14,11 @@ export const VARIANTS = [
         value: 'ah-try-buy-widget',
         surface: 'adobe-home',
     },
+    {
+        label: 'Promoted Plans',
+        value: 'ah-promoted-plans',
+        surface: 'adobe-home',
+    },
 ];
 
 class VariantPicker extends LitElement {

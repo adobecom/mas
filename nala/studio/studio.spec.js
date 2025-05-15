@@ -93,5 +93,15 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals',
         },
+        {
+            tcid: '10',
+            name: '@studio-promoted-plans-editor',
+            path: '/studio.html',
+            data: {
+                cardid: '2cf0ed0e-84ea-4bd4-8e89-ddf527a7a75b',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @ahome-promoted-plans',
+        },
     ],
 };

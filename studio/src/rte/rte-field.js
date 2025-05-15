@@ -23,12 +23,17 @@ import throttle from '../utils/throttle.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
-const CUSTOM_ELEMENT_UPT_LINK = 'upt-link';
 
 // Function to check if a node is a checkout link
 const isNodeCheckoutLink = (node) => {
     if (!node) return false;
     return node.type.name === 'link' && node.attrs['data-wcs-osi'] !== null;
+};
+
+// Function to check if a node is a phone link
+const isNodePhoneLink = (node) => {
+    if (!node) return false;
+    return node.type.name === 'link' && node.attrs.href.startsWith('tel:');
 };
 
 class LinkNodeView {
@@ -87,6 +92,8 @@ class RteField extends LitElement {
     static properties = {
         hasFocus: { type: Boolean, attribute: 'focused', reflect: true },
         inline: { type: Boolean, attribute: 'inline' },
+        styling: { type: Boolean, attribute: 'styling' },
+        list: { type: Boolean, attribute: 'list' },
         link: { type: Boolean, attribute: 'link' },
         icon: { type: Boolean, attribute: 'icon' },
         uptLink: { type: Boolean, attribute: 'upt-link' },
@@ -106,6 +113,18 @@ class RteField extends LitElement {
         return [
             css`
                 :host {
+                    --merch-color-green-promo: #2d9d78;
+                    --consonant-merch-card-promo-text-height: 14px;
+                    --consonant-merch-card-heading-xxxs-font-size: 14px;
+                    --consonant-merch-card-heading-xxxs-line-height: 18px;
+                    --consonant-merch-card-heading-xxs-font-size: 16px;
+                    --consonant-merch-card-heading-xxs-line-height: 20px;
+                    --consonant-merch-card-heading-xs-font-size: 18px;
+                    --consonant-merch-card-heading-xs-line-height: 22.5px;
+                    --consonant-merch-card-heading-s-font-size: 20px;
+                    --consonant-merch-card-heading-s-line-height: 25px;
+                    --consonant-merch-card-heading-m-font-size: 24px;
+                    --consonant-merch-card-heading-m-line-height: 30px;
                     display: flex;
                     gap: 8px;
                     flex-direction: column;
@@ -255,6 +274,71 @@ class RteField extends LitElement {
                     margin: 0;
                     padding-left: 24px;
                 }
+
+                div.ProseMirror span[class^='heading-'] {
+                    font-weight: 700;
+                    display: block;
+
+                    &.heading-xxxs {
+                        font-size: var(
+                            --consonant-merch-card-heading-xxxs-font-size
+                        );
+                        line-height: var(
+                            --consonant-merch-card-heading-xxxs-line-height
+                        );
+                    }
+
+                    &.heading-xxs {
+                        font-size: var(
+                            --consonant-merch-card-heading-xxs-font-size
+                        );
+                        line-height: var(
+                            --consonant-merch-card-heading-xxs-line-height
+                        );
+                    }
+
+                    &.heading-xs {
+                        font-size: var(
+                            --consonant-merch-card-heading-xs-font-size
+                        );
+                        line-height: var(
+                            --consonant-merch-card-heading-xs-line-height
+                        );
+                    }
+
+                    &.heading-s {
+                        font-size: var(
+                            --consonant-merch-card-heading-s-font-size
+                        );
+                        line-height: var(
+                            --consonant-merch-card-heading-s-line-height
+                        );
+                    }
+
+                    &.heading-m {
+                        font-size: var(
+                            --consonant-merch-card-heading-m-font-size
+                        );
+                        line-height: var(
+                            --consonant-merch-card-heading-m-line-height
+                        );
+                    }
+                }
+
+                div.ProseMirror span.promo-text {
+                    display: block;
+                    color: var(--merch-color-green-promo);
+                    font-size: var(--consonant-merch-card-promo-text-height);
+                    font-weight: 700;
+                    line-height: var(--consonant-merch-card-promo-text-height);
+                    margin: 0;
+                    min-height: var(--consonant-merch-card-promo-text-height);
+                    padding: 0;
+
+                    & a {
+                        color: inherit;
+                    }
+                }
             `,
             prosemirrorStyles,
         ];
@@ -274,6 +358,8 @@ class RteField extends LitElement {
         this.showLinkEditor = false;
         this.showIconEditor = false;
         this.inline = false;
+        this.styling = false;
+        this.list = false;
         this.link = false;
         this.uptLink = false;
         this.maxLength = 70;
@@ -325,11 +411,28 @@ class RteField extends LitElement {
         clearInterval(this.updateLengthInterval);
     }
 
+    getStylingMark(stylingType) {
+        return {
+            [stylingType]: {
+                attrs: { class: { default: null } },
+                group: 'styling',
+                parseDOM: [
+                    {
+                        tag: `span.${stylingType}`,
+                        getAttrs: this.#collectDataAttributes,
+                    },
+                ],
+                toDOM: () => ['span', { class: stylingType }, 0],
+            },
+        };
+    }
+
     #initEditorSchema() {
-        const basicNodes = this.list
+        let nodes = this.list
             ? addListNodes(schema.spec.nodes, 'paragraph block*', 'block')
             : schema.spec.nodes;
-        let nodes = basicNodes.addToStart('inlinePrice', {
+
+        nodes = nodes.addToStart('inlinePrice', {
             group: 'inline',
             inline: true,
             atom: true,
@@ -398,6 +501,8 @@ class RteField extends LitElement {
                     'data-entitlement': { default: null },
                     'data-upgrade': { default: null },
                 },
+                // Disallow styling marks inside links (they can still wrap them)
+                marks: 'em strong strikethrough underline',
                 parseDOM: [
                     {
                         tag: 'a',
@@ -423,6 +528,14 @@ class RteField extends LitElement {
                     parseDOM: [{ tag: 'u' }],
                     toDOM: () => ['u', 0],
                 },
+                ...(this.styling && {
+                    ...this.getStylingMark('heading-xxxs'),
+                    ...this.getStylingMark('heading-xxs'),
+                    ...this.getStylingMark('heading-xs'),
+                    ...this.getStylingMark('heading-s'),
+                    ...this.getStylingMark('heading-m'),
+                    ...this.getStylingMark('promo-text'),
+                }),
             });
 
         if (this.inline) {
@@ -631,6 +744,8 @@ class RteField extends LitElement {
         const { selection } = state;
 
         const isCheckoutLink = isNodeCheckoutLink(selection.node);
+        const isPhoneLink = isNodePhoneLink(selection.node);
+        let linkType = isPhoneLink ? 'phone' : 'web';
 
         let checkoutParameters = undefined;
         if (isCheckoutLink) {
@@ -647,6 +762,7 @@ class RteField extends LitElement {
 
         if (selection.node?.type.name === 'link') {
             return {
+                linkType,
                 href: selection.node.attrs.href,
                 title: selection.node.attrs.title || '',
                 text: selection.node.textContent || '',
@@ -658,10 +774,19 @@ class RteField extends LitElement {
         }
 
         if (!selection.empty) {
+            const text = state.doc.textBetween(selection.from, selection.to);
+            // Check if selected text is a potential phone number
+            // NOTE: NOT supposed to be a 'catch-all' phone validator - just a check to see if the selected text is roughly a phone number
+            linkType = /^\+?([0-9]{3})\)?([ .-]?)([0-9]{3})\2([0-9]{4})/.test(
+                text,
+            )
+                ? 'phone'
+                : linkType;
             return {
+                linkType,
                 href: '',
                 title: '',
-                text: state.doc.textBetween(selection.from, selection.to),
+                text,
                 target: '_self',
                 variant: this.defaultLinkStyle,
                 analyticsId: '',
@@ -670,6 +795,7 @@ class RteField extends LitElement {
         }
 
         return {
+            linkType,
             href: '',
             title: '',
             text: '',
@@ -817,6 +943,39 @@ class RteField extends LitElement {
                 toggleMark(mark)(state, dispatch);
             }
         };
+    }
+
+    #handleStylingSelection(event) {
+        event.stopPropagation();
+        const stylingType = event.target.value;
+        this.handleStylingAction(stylingType);
+    }
+
+    handleStylingAction(stylingType) {
+        let { state, dispatch } = this.editorView;
+        const {
+            selection: { from, to },
+        } = state;
+        let markTypeToRemove = null;
+        state.doc.nodesBetween(from, to, (node) => {
+            const stylingMark = node.marks.find(
+                (mark) => mark.type.spec.group === 'styling',
+            );
+            if (!stylingMark) return;
+            if (stylingMark.type.name !== stylingType) {
+                markTypeToRemove = stylingMark.type;
+            }
+        });
+
+        const markTypeToAdd = state.schema.marks[stylingType];
+        if (markTypeToRemove) {
+            const { tr } = state;
+            tr.removeMark(from, to, markTypeToRemove);
+            tr.addMark(from, to, markTypeToAdd.create());
+            dispatch(tr);
+        } else {
+            toggleMark(markTypeToAdd)(state, dispatch);
+        }
     }
 
     #handleListAction(listType) {
@@ -1014,10 +1173,10 @@ class RteField extends LitElement {
         const lengthExceeded = this.length > this.maxLength;
         return html`
             <sp-action-group quiet size="m" aria-label="RTE toolbar actions">
-                ${this.#formatButtons} ${this.#listButtons}
-                ${this.#linkEditorButton} ${this.#unlinkEditorButton}
-                ${this.#offerSelectorToolButton} ${this.#iconsButton}
-                ${this.#uptLinkButton}
+                ${this.#formatButtons} ${this.stylingButton}
+                ${this.#listButtons} ${this.#linkEditorButton}
+                ${this.#unlinkEditorButton} ${this.#offerSelectorToolButton}
+                ${this.#iconsButton} ${this.#uptLinkButton}
             </sp-action-group>
             <div id="editor"></div>
             <p id="counter">
@@ -1106,6 +1265,24 @@ class RteField extends LitElement {
                 <sp-icon-underline slot="icon"></sp-icon-underline>
             </sp-action-button>
         `;
+    }
+
+    get stylingButton() {
+        if (!this.styling) return;
+        return html`<sp-action-menu
+            id="stylingMenu"
+            title="Styling"
+            @change=${this.#handleStylingSelection}
+        >
+            <sp-icon-brush slot="icon"></sp-icon-brush>
+            <sp-menu-item value="heading-xxxs">Heading XXXS</sp-menu-item>
+            <sp-menu-item value="heading-xxs">Heading XXS</sp-menu-item>
+            <sp-menu-item value="heading-xs">Heading XS</sp-menu-item>
+            <sp-menu-item value="heading-s">Heading S</sp-menu-item>
+            <sp-menu-item value="heading-m">Heading M</sp-menu-item>
+            <sp-menu-divider></sp-menu-divider>
+            <sp-menu-item value="promo-text">Promo text</sp-menu-item>
+        </sp-action-menu>`;
     }
 
     get #listButtons() {

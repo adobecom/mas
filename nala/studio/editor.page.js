@@ -23,6 +23,9 @@ export default class EditorPage {
         this.prices = this.panel.locator('sp-field-group#prices');
         this.footer = this.panel.locator('sp-field-group#ctas');
         this.CTA = this.panel.locator('sp-field-group#ctas a');
+        this.descriptionFieldGroup = this.panel.locator(
+            'sp-field-group#description',
+        );
         this.description = this.panel.locator(
             'sp-field-group#description div[contenteditable="true"]',
         );
@@ -41,7 +44,7 @@ export default class EditorPage {
         this.calloutRTEIcon = this.panel.locator(
             'sp-field-group#callout .icon-button',
         );
-        this.showStockCheckbox = this.panel.locator('#stockOffer #input');
+        this.showAddOn = this.panel.locator('#addon-field #input');
         this.showQuantitySelector = this.panel.locator(
             '#quantitySelect sp-checkbox input',
         );
@@ -81,6 +84,9 @@ export default class EditorPage {
             'span[is="inline-price"][data-template="strikethrough"]',
         );
 
+        // RTE content
+        this.phoneLink = page.locator('a[href^="tel:"]');
+
         // RTE panel toolbar
         this.linkEdit = page.locator('#linkEditorButton');
         this.addIcon = page.locator('#addIconButton');
@@ -88,17 +94,20 @@ export default class EditorPage {
         // Edit Link Panel
         this.checkoutParameters = page.locator('#checkoutParameters input');
         this.linkText = page.locator('#linkText input');
+        this.analyticsId = page.locator('sp-picker#analyticsId');
+        this.phoneLinkTab = page.locator('#linkTypeNav sp-tab[value="phone"]');
+        this.phoneLinkText = page.locator('#phoneNumber input');
         this.linkSave = page.locator('#saveButton');
         this.linkVariant = page.locator('#linkVariant');
         this.accentVariant = page.locator('sp-button[variant="accent"]');
         this.primaryVariant = page.locator(
-            'sp-button[variant="primary]:not([treatment="outline"]])',
+            'sp-button[variant="primary"]:not([treatment="outline"])',
         );
         this.primaryOutlineVariant = page.locator(
             'sp-button[variant="primary"][treatment="outline"]',
         );
         this.secondaryVariant = page.locator(
-            'sp-button[variant="secondary]:not([treatment="outline"]])',
+            'sp-button[variant="secondary"]:not([treatment="outline"])',
         );
         this.secondaryOutlineVariant = page.locator(
             'sp-button[variant="secondary"][treatment="outline"]',

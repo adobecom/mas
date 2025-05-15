@@ -32,14 +32,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         const { data } = features[0];
         const singleCardPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.singleCardID}`;
         const doubleCardPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.doubleCardID}`;
-        const singleSliceCard = await studio.getCard(
-            data.singleCardID,
-            'slice',
-        );
-        const doubleSliceCard = await studio.getCard(
-            data.doubleCardID,
-            'slice-wide',
-        );
+        const singleSliceCard = await studio.getCard(data.singleCardID);
+        const doubleSliceCard = await studio.getCard(data.doubleCardID);
 
         await test.step('step-1: Go to single card test page', async () => {
             console.info('[Test Page]: ', singleCardPage);
@@ -76,14 +70,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         const { data } = features[1];
         const singleCardPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.singleCardID}`;
         const doubleCardPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.doubleCardID}`;
-        const singleSliceCard = await studio.getCard(
-            data.singleCardID,
-            'slice',
-        );
-        const doubleSliceCard = await studio.getCard(
-            data.doubleCardID,
-            'slice-wide',
-        );
+        const singleSliceCard = await studio.getCard(data.singleCardID);
+        const doubleSliceCard = await studio.getCard(data.doubleCardID);
 
         await test.step('step-1: Go to single card test page', async () => {
             console.info('[Test Page]: ', singleCardPage);
@@ -126,14 +114,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         const { data } = features[2];
         const singleCardPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.singleCardID}`;
         const doubleCardPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.doubleCardID}`;
-        const singleSliceCard = await studio.getCard(
-            data.singleCardID,
-            'slice',
-        );
-        const doubleSliceCard = await studio.getCard(
-            data.doubleCardID,
-            'slice-wide',
-        );
+        const singleSliceCard = await studio.getCard(data.singleCardID);
+        const doubleSliceCard = await studio.getCard(data.doubleCardID);
 
         await test.step('step-1: Go to single card test page', async () => {
             console.info('[Test Page]: ', singleCardPage);
@@ -182,14 +164,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         const { data } = features[3];
         const singleCardPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.singleCardID}`;
         const doubleCardPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.doubleCardID}`;
-        const singleSliceCard = await studio.getCard(
-            data.singleCardID,
-            'slice',
-        );
-        const doubleSliceCard = await studio.getCard(
-            data.doubleCardID,
-            'slice-wide',
-        );
+        const singleSliceCard = await studio.getCard(data.singleCardID);
+        const doubleSliceCard = await studio.getCard(data.doubleCardID);
 
         await test.step('step-1: Go to single card test page', async () => {
             console.info('[Test Page]: ', singleCardPage);
@@ -232,14 +208,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         const { data } = features[4];
         const singleCardPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.singleCardID}`;
         const doubleCardPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.doubleCardID}`;
-        const singleSliceCard = await studio.getCard(
-            data.singleCardID,
-            'slice',
-        );
-        const doubleSliceCard = await studio.getCard(
-            data.doubleCardID,
-            'slice-wide',
-        );
+        const singleSliceCard = await studio.getCard(data.singleCardID);
+        const doubleSliceCard = await studio.getCard(data.doubleCardID);
 
         await test.step('step-1: Go to single card test page', async () => {
             console.info('[Test Page]: ', singleCardPage);
@@ -282,14 +252,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         const { data } = features[5];
         const singleCardPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.singleCardID}`;
         const doubleCardPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.doubleCardID}`;
-        const singleSliceCard = await studio.getCard(
-            data.singleCardID,
-            'slice',
-        );
-        const doubleSliceCard = await studio.getCard(
-            data.doubleCardID,
-            'slice-wide',
-        );
+        const singleSliceCard = await studio.getCard(data.singleCardID);
+        const doubleSliceCard = await studio.getCard(data.doubleCardID);
 
         await test.step('step-1: Go to single card test page', async () => {
             console.info('[Test Page]: ', singleCardPage);
@@ -332,14 +296,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         const { data } = features[6];
         const singleCardPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.singleCardID}`;
         const doubleCardPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.doubleCardID}`;
-        const singleSliceCard = await studio.getCard(
-            data.singleCardID,
-            'slice',
-        );
-        const doubleSliceCard = await studio.getCard(
-            data.doubleCardID,
-            'slice-wide',
-        );
+        const singleSliceCard = await studio.getCard(data.singleCardID);
+        const doubleSliceCard = await studio.getCard(data.doubleCardID);
 
         await test.step('step-1: Go to single card test page', async () => {
             console.info('[Test Page]: ', singleCardPage);
@@ -382,14 +340,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         const { data } = features[7];
         const singleCardPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.singleCardID}`;
         const doubleCardPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.doubleCardID}`;
-        const singleSliceCard = await studio.getCard(
-            data.singleCardID,
-            'slice',
-        );
-        const doubleSliceCard = await studio.getCard(
-            data.doubleCardID,
-            'slice-wide',
-        );
+        const singleSliceCard = await studio.getCard(data.singleCardID);
+        const doubleSliceCard = await studio.getCard(data.doubleCardID);
 
         await test.step('step-1: Go to single card test page', async () => {
             console.info('[Test Page]: ', singleCardPage);
@@ -432,14 +384,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         const { data } = features[8];
         const singleCardPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.singleCardID}`;
         const doubleCardPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.doubleCardID}`;
-        const singleSliceCard = await studio.getCard(
-            data.singleCardID,
-            'slice',
-        );
-        const doubleSliceCard = await studio.getCard(
-            data.doubleCardID,
-            'slice-wide',
-        );
+        const singleSliceCard = await studio.getCard(data.singleCardID);
+        const doubleSliceCard = await studio.getCard(data.doubleCardID);
 
         await test.step('step-1: Go to single card test page', async () => {
             console.info('[Test Page]: ', singleCardPage);

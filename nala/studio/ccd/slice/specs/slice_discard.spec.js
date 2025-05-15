@@ -159,5 +159,20 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
         },
+        {
+            tcid: '12',
+            name: '@studio-slice-discard-edited-analytics-ids',
+            path: '/studio.html',
+            data: {
+                cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+                analyticsID: 'buy-now',
+                daaLL: 'buy-now-1',
+                daaLH: 'PHSP',
+                newAnalyticsID: 'save-now',
+                newDaaLL: 'save-now-1',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
+        },
     ],
 };

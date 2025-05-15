@@ -4,11 +4,16 @@ const DICTIONARY_ID_PATH = 'dictionary/index';
 const PH_REGEXP = /{{(\s*([\w\-]+)\s*)}}/gi;
 
 async function getDictionaryId(context) {
-    const { surface, locale } = context;
-    const dictionaryPath = odinPath(surface, locale, DICTIONARY_ID_PATH);
+    const { surface, locale, preview } = context;
+    const dictionaryPath = odinPath(
+        surface,
+        locale,
+        DICTIONARY_ID_PATH,
+        preview,
+    );
     const response = await fetch(dictionaryPath, context);
     if (response.status == 200) {
-        const { items } = await response.json();
+        const { items } = response.body;
         if (items?.length > 0) {
             const id = items[0].id;
             context.dictionaryId = id;
@@ -19,22 +24,27 @@ async function getDictionaryId(context) {
 }
 
 function extractValue(ref) {
-    const value = ref.value || ref?.richTextValue?.value || '';
-    // Escape control characters before parsing
-    return value.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+    const value = ref.value || ref.richTextValue?.value || '';
+    // Escape control characters and double quotes before parsing
+    return value
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+        .replace(/"/g, '\\"');
 }
 
 async function getDictionary(context) {
-    const id = context.dictionaryId || (await getDictionaryId(context));
+    const id = context.dictionaryId ?? (await getDictionaryId(context));
     if (!id) {
         return null;
     }
-    const response = await fetch(odinReferences(id, true), context);
+    const response = await fetch(
+        odinReferences(id, true, context.preview),
+        context,
+    );
     if (response.status == 200) {
-        const raw = await response.json();
+        const references = response.body.references;
         const dictionary = {};
-        Object.keys(raw.references).forEach((id) => {
-            const ref = raw.references[id]?.value?.fields;
+        Object.keys(references).forEach((id) => {
+            const ref = references[id]?.value?.fields;
             if (ref?.key) {
                 //we just test truthy keys as we can have empty placeholders
                 //(treated different from absent ones)

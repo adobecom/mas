@@ -14,6 +14,7 @@ export default class PromotedPlansPage {
         );
         this.priceRecurrenceText = page.locator('p[slot="price"] em');
         this.termsLink = page.locator('div[slot="cta"] a.spectrum-Link');
+        this.cardCTA = page.locator('div[slot="cta"] button');
         this.freeTrialButton = page.locator(
             'div[slot="cta"] button[data-analytics-id="free-trial"]',
         );

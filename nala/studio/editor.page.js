@@ -44,7 +44,7 @@ export default class EditorPage {
         this.calloutRTEIcon = this.panel.locator(
             'sp-field-group#callout .icon-button',
         );
-        this.showStockCheckbox = this.panel.locator('#stockOffer #input');
+        this.showAddOn = this.panel.locator('#addon-field #input');
         this.showQuantitySelector = this.panel.locator(
             '#quantitySelect sp-checkbox input',
         );
@@ -94,6 +94,7 @@ export default class EditorPage {
         // Edit Link Panel
         this.checkoutParameters = page.locator('#checkoutParameters input');
         this.linkText = page.locator('#linkText input');
+        this.analyticsId = page.locator('sp-picker#analyticsId');
         this.phoneLinkTab = page.locator('#linkTypeNav sp-tab[value="phone"]');
         this.phoneLinkText = page.locator('#phoneNumber input');
         this.linkSave = page.locator('#saveButton');

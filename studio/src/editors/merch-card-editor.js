@@ -709,12 +709,10 @@ class MerchCardEditor extends LitElement {
 
     #displayBadgeColorFields(text) {
         if (!this.isPlans) return;
-        document.querySelector('#badgeColor').style.display = text
-            ? 'block'
-            : 'none';
-        document.querySelector('#badgeBorderColor').style.display = text
-            ? 'block'
-            : 'none';
+        const badgeColorEl = document.querySelector('#badgeColor');
+        if (badgeColorEl) badgeColorEl.style.display = text ? 'block' : 'none';
+        const badgeBorderColorEl = document.querySelector('#badgeBorderColor');
+        if (badgeBorderColorEl) badgeBorderColorEl.style.display = text ? 'block' : 'none';
     }
 
     get badgeText() {
@@ -831,7 +829,7 @@ class MerchCardEditor extends LitElement {
         );
         this.availableBackgroundColors = {
             Default: undefined,
-            ...(variant.allowedColors ?? []),
+            ...(variant?.allowedColors ?? []),
         };
     }
 

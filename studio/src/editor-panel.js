@@ -8,10 +8,13 @@ import {
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
     EVENT_KEYDOWN,
+    EVENT_OST_OFFER_SELECT,
     OPERATIONS,
 } from './constants.js';
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
+import './rte/osi-field.js';
+import './aem/aem-tag-picker-field.js';
 
 export const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
@@ -105,6 +108,8 @@ export default class EditorPanel extends LitElement {
         // Used to resolve the discard confirmation promise.
         this.#discardPromiseResolver = null;
         this.updatedTitle = '';
+        this.tags = [];
+        this.osiCloned = null;
 
         // Bind methods
         this.handleClose = this.handleClose.bind(this);
@@ -298,9 +303,9 @@ export default class EditorPanel extends LitElement {
     }
 
     async confirmClone() {
-        this.showCloneDialog = false;
+        this.cancelClone();
         try {
-            await this.repository.copyFragment(this.updatedTitle);
+            await this.repository.copyFragment(this.updatedTitle, this.osiCloned, this.tags);
             await this.closeEditor();
         } catch (error) {
             console.error('Error cloning fragment:', error);
@@ -313,6 +318,7 @@ export default class EditorPanel extends LitElement {
 
     cancelClone() {
         this.showCloneDialog = false;
+        document.removeEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelectClone);
     }
 
     showClone() {
@@ -390,6 +396,16 @@ export default class EditorPanel extends LitElement {
     #handleLocReady() {
         const value = !this.fragment.getField('locReady').values[0];
         this.fragmentStore.updateField('locReady', [value]);
+    }
+
+    #handeTagsChange(e) {
+        const value = e.target.getAttribute('value');
+        this.tags = value ? value.split(',') : [];
+    }
+
+    _onOstSelectClone = ({ detail: { offerSelectorId, offer } }) => {
+        if (!offer) return;
+        this.osiCloned = offerSelectorId;
     }
 
     get fragmentEditorToolbar() {
@@ -625,11 +641,14 @@ export default class EditorPanel extends LitElement {
 
     get cloneConfirmationDialog() {
         if (!this.showCloneDialog) return nothing;
+        document.addEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelectClone);
+        const osiValues = this.fragment.getField('osi')?.values;
         return html`
             <sp-underlay open @click="${this.cancelClone}"></sp-underlay>
             <sp-dialog
                 open
                 variant="confirmation"
+                class="clone-dialog"
                 @sp-dialog-confirm="${this.confirmClone}"
                 @sp-dialog-dismiss="${this.cancelClone}"
             >
@@ -644,6 +663,25 @@ export default class EditorPanel extends LitElement {
                     value="${this.fragment.title}"
                     @input=${this.#updateCloneFragmentInternal}
                 ></sp-textfield>
+                ${this.fragment.model.path === CARD_MODEL_PATH
+                    ? html`
+                        <sp-field-group>
+                            <sp-field-label for="osi">OSI Search</sp-field-label>
+                            <osi-field
+                                id="osi"
+                                .value=${osiValues?.length ? osiValues[0] : null}
+                                data-field="osi"
+                            ></osi-field>
+                        </sp-field-group>
+                        <aem-tag-picker-field
+                            label="Tags"
+                            namespace="/content/cq:tags/mas"
+                            multiple
+                            value="${this.fragment.tags.map((tag) => tag.id).join(',')}"
+                            @change=${this.#handeTagsChange}
+                        ></aem-tag-picker-field>
+                        `
+                    : nothing}
                 <sp-button
                     slot="button"
                     variant="secondary"

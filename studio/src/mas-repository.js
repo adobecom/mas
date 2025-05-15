@@ -474,18 +474,32 @@ export class MasRepository extends LitElement {
     /**
      * @returns {Promise<boolean>} Whether or not it was successful
      */
-    async copyFragment(updatedTitle) {
+    async copyFragment(updatedTitle, osi, tags = []) {
         try {
             this.operation.set(OPERATIONS.CLONE);
             const result = await this.aem.sites.cf.fragments.copy(
                 this.fragmentInEdit,
             );
             let savedResult = result;
-            if (updatedTitle && updatedTitle !== result.title) {
-                result.title = updatedTitle;
+            if ((updatedTitle && updatedTitle !== result.title) || tags.length) {
+                if (updatedTitle) result.title = updatedTitle;
+                if (tags.length) {
+                    result.fields.forEach((field) => {
+                        if (field.name === 'tags') {
+                            field.values = tags;
+                        }
+                        if (osi && field.name === 'osi') {
+                            field.values = [osi];
+                        }
+                    });
+                }
                 savedResult = await this.aem.sites.cf.fragments.save(result);
             }
-
+            if (tags.length) {
+                savedResult.newTags = tags;
+                await this.aem.saveTags(savedResult);
+                savedResult = await this.aem.sites.cf.fragments.getById(savedResult.id);
+            }
             const newFragment = await this.#addToCache(savedResult);
 
             const newFragmentStore = new FragmentStore(newFragment);

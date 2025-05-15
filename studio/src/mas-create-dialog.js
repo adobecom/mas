@@ -24,10 +24,6 @@ export class MasCreateDialog extends LitElement {
         sp-textfield {
             width: 100%;
         }
-        
-        aem-tag-picker-field {
-            display: none;
-        }
     `;
 
     constructor() {

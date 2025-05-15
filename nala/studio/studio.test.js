@@ -203,7 +203,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await editor.whatsIncludedLabel).not.toBeVisible();
             await expect(await editor.promoText).not.toBeVisible();
             await expect(await editor.callout).not.toBeVisible();
-            await expect(await editor.showStockCheckbox).not.toBeVisible();
+            await expect(await editor.showAddOn).not.toBeVisible();
             await expect(await editor.showQuantitySelector).not.toBeVisible();
             await expect(await editor.OSI).toBeVisible();
         });
@@ -259,7 +259,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await editor.whatsIncludedLabel).not.toBeVisible();
             await expect(await editor.promoText).not.toBeVisible();
             await expect(await editor.callout).not.toBeVisible();
-            await expect(await editor.showStockCheckbox).not.toBeVisible();
+            await expect(await editor.showAddOn).not.toBeVisible();
             await expect(await editor.showQuantitySelector).not.toBeVisible();
             await expect(await editor.OSI).toBeVisible();
         });
@@ -384,7 +384,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await editor.whatsIncludedLabel).toBeVisible();
             await expect(await editor.promoText).toBeVisible();
             await expect(await editor.callout).toBeVisible();
-            await expect(await editor.showStockCheckbox).toBeVisible();
+            await expect(await editor.showAddOn).toBeVisible();
             await expect(await editor.showQuantitySelector).toBeVisible();
             await expect(await editor.OSI).toBeVisible();
         });

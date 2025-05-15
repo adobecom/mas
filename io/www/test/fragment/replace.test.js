@@ -111,6 +111,12 @@ describe('replace', () => {
             expectedResponse('look! <p>i am <strong>rich</strong></p>'),
         );
     });
+    it('returns 200 & manages rich text with double quotes', async () => {
+        const response = await getResponse('look! {{rich-text-with-quotes}}');
+        expect(response).to.deep.equal(
+            expectedResponse('look! <p>i am "rich"</p>'),
+        );
+    });
     describe('corner cases', () => {
         beforeEach(() => {
             nock.cleanAll();

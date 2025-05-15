@@ -174,46 +174,52 @@ export class RteLinkEditor extends LitElement {
         return html`
             <sp-field-label for="linkVariant">Variant</sp-field-label>
             <sp-button-group id="linkVariant">
-                <sp-button
-                    class=${classMap({ selected: this.variant === 'accent' })}
-                    @click=${() => (this.variant = 'accent')}
-                    variant="accent"
-                    >Accent</sp-button
-                >
-                <sp-button
-                    @click=${() => (this.variant = 'primary')}
-                    class=${classMap({
-                        selected: this.variant === 'primary',
-                    })}
-                    variant="primary"
-                    >Primary</sp-button
-                >
-                <sp-button
-                    @click=${() => (this.variant = 'primary-outline')}
-                    class=${classMap({
-                        selected: this.variant === 'primary-outline',
-                    })}
-                    treatment="outline"
-                    variant="primary"
-                    >Primary outline</sp-button
-                >
-                <sp-button
-                    class=${classMap({
-                        selected: this.variant === 'secondary',
-                    })}
-                    @click=${() => (this.variant = 'secondary')}
-                    variant="secondary"
-                    >Secondary</sp-button
-                >
-                <sp-button
-                    @click=${() => (this.variant = 'secondary-outline')}
-                    class=${classMap({
-                        selected: this.variant === 'secondary-outline',
-                    })}
-                    treatment="outline"
-                    variant="secondary"
-                    >Secondary outline</sp-button
-                >
+                ${this.linkType === 'web'
+                    ? html`<sp-button
+                              class=${classMap({
+                                  selected: this.variant === 'accent',
+                              })}
+                              @click=${() => (this.variant = 'accent')}
+                              variant="accent"
+                              >Accent</sp-button
+                          >
+                          <sp-button
+                              @click=${() => (this.variant = 'primary')}
+                              class=${classMap({
+                                  selected: this.variant === 'primary',
+                              })}
+                              variant="primary"
+                              >Primary</sp-button
+                          >
+                          <sp-button
+                              @click=${() => (this.variant = 'primary-outline')}
+                              class=${classMap({
+                                  selected: this.variant === 'primary-outline',
+                              })}
+                              treatment="outline"
+                              variant="primary"
+                              >Primary outline</sp-button
+                          >
+                          <sp-button
+                              class=${classMap({
+                                  selected: this.variant === 'secondary',
+                              })}
+                              @click=${() => (this.variant = 'secondary')}
+                              variant="secondary"
+                              >Secondary</sp-button
+                          >
+                          <sp-button
+                              @click=${() =>
+                                  (this.variant = 'secondary-outline')}
+                              class=${classMap({
+                                  selected:
+                                      this.variant === 'secondary-outline',
+                              })}
+                              treatment="outline"
+                              variant="secondary"
+                              >Secondary outline</sp-button
+                          >`
+                    : ''}
                 <sp-link
                     class=${classMap({
                         selected: this.variant === 'primary-link',
@@ -225,7 +231,6 @@ export class RteLinkEditor extends LitElement {
                     href="#"
                     >Primary link</sp-link
                 >
-
                 <sp-link
                     class=${classMap({
                         selected: this.variant === 'secondary-link',
@@ -318,7 +323,7 @@ export class RteLinkEditor extends LitElement {
                                 >
                             </sp-menu>
                         </sp-picker>
-                        ${this.#analyticsIdField} ${this.#linkVariants}
+                        ${this.#analyticsIdField}
                     </div>
                 </sp-tab-panel>
                 <sp-tab-panel value="phone">
@@ -344,6 +349,7 @@ export class RteLinkEditor extends LitElement {
                     </div>
                 </sp-tab-panel>
             </sp-tabs>
+            ${this.#linkVariants}
             <sp-button
                 id="cancelButton"
                 slot="button"

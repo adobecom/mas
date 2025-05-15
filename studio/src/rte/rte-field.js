@@ -873,10 +873,18 @@ class RteField extends LitElement {
                 ...linkAttrs,
                 class: classValue,
             };
-            const updatedNode = linkNodeType.create(mergedAttributes, content);
+            const updatedNode = linkNodeType.create(
+                mergedAttributes,
+                content,
+                selection.node?.marks,
+            );
             tr = tr.replaceWith(selection.from, selection.to, updatedNode);
         } else {
-            const linkNode = linkNodeType.create(linkAttrs, content);
+            let marks;
+            state.doc.nodesBetween(selection.from, selection.to, (node) => {
+                if (node.type === state.schema.nodes.text) marks = node.marks;
+            });
+            const linkNode = linkNodeType.create(linkAttrs, content, marks);
             tr = selection.empty
                 ? tr.insert(selection.from, linkNode)
                 : tr.replaceWith(selection.from, selection.to, linkNode);

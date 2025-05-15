@@ -63,6 +63,10 @@
                         Store.search.set({ path: 'sandbox' });
                         Store.filters.set({ locale: 'en_US' });
 
+                        dialog._onOstSelect({
+                            detail: { offerSelectorId : 'ABC123', offer : {} }
+                        });
+
                         // Fill in the form
                         const titleField =
                             dialog.shadowRoot.querySelector('#fragment-title');

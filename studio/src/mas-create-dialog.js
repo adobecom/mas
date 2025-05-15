@@ -179,6 +179,7 @@ export class MasCreateDialog extends LitElement {
     close() {
         // Reset form
         this.title = '';
+        this.osi = '';
         this.dispatchEvent(new CustomEvent('close'));
     }
 

@@ -1,15 +1,13 @@
-import { LitElement, html, css } from 'lit';
-import { EVENT_KEYDOWN, TAG_MODEL_ID_MAPPING } from './constants.js';
-import { FragmentStore } from './reactivity/fragment-store.js';
+import { LitElement, html, css, nothing } from 'lit';
+import { EVENT_KEYDOWN, EVENT_OST_OFFER_SELECT, TAG_MODEL_ID_MAPPING } from './constants.js';
 import { editFragment } from './store.js';
-import { Fragment } from './aem/fragment.js';
+import './rte/osi-field.js';
+import './aem/aem-tag-picker-field.js';
 
 export class MasCreateDialog extends LitElement {
     static properties = {
         type: { type: String, reflect: true },
         title: { state: true },
-        name: { state: true },
-        nameModified: { state: true },
     };
 
     static styles = css`
@@ -32,13 +30,11 @@ export class MasCreateDialog extends LitElement {
         super();
         this.type = 'merch-card';
         this.title = '';
-        this.name = '';
-        this.nameModified = false;
+        this.osi = '';
+        this.tags = [];
 
         // Bind methods to ensure correct 'this' context
         this.handleTitleChange = this.handleTitleChange.bind(this);
-        this.handleNameChange = this.handleNameChange.bind(this);
-        this.handleNameFocus = this.handleNameFocus.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
         this.close = this.close.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -47,11 +43,13 @@ export class MasCreateDialog extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         document.addEventListener(EVENT_KEYDOWN, this.handleKeyDown);
+        document.addEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelect);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         document.removeEventListener(EVENT_KEYDOWN, this.handleKeyDown);
+        document.removeEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelect);
     }
 
     handleKeyDown(event) {
@@ -91,19 +89,47 @@ export class MasCreateDialog extends LitElement {
 
     handleTitleChange(value) {
         this.title = value;
-        // Only update name if it hasn't been modified by the user
-        if (!this.nameModified) {
-            this.name = this.normalizeFragmentName(value);
+    }
+
+    _onOstSelect = ({ detail: { offerSelectorId, offer } }) => {
+        if (!offer) return;
+        this.osi = offerSelectorId;
+    }
+
+    #handeTagsChange(e) {
+        const value = e.target.getAttribute('value');
+        this.tags = value ? value.split(',') : [];
+    }
+
+    async createFragment(masRepository, fragmentData) {
+        const fragmentStore = await masRepository.createFragment(fragmentData);
+        fragmentStore.new = true;
+        editFragment(fragmentStore, 0);
+        this.close();
+    }
+
+    async tryToCreateFragment(masRepository, fragmentData) {
+        try {
+            await this.createFragment(masRepository, fragmentData);
+            return true;
+        } catch (error) {
+            console.error(
+                `${error.message} Will try to create again`,
+                error.stack,
+            );
+            return false;
         }
     }
 
-    handleNameChange(value) {
-        this.name = value;
-        this.nameModified = !!value;
-    }
-
-    handleNameFocus() {
-        this.nameModified = true;
+    getSuffix(offset) {
+        let suffix = '';
+        const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        const charactersLength = characters.length;
+        const length = offset + 3;
+        for (let i = 0; i < length; i++) {
+            suffix += characters.charAt(Math.floor(Math.random() * charactersLength));
+        }
+        return suffix;
     }
 
     async handleSubmit(event) {
@@ -112,7 +138,11 @@ export class MasCreateDialog extends LitElement {
         }
 
         // Validate form
-        if (!this.title || !this.name) {
+        if (!this.title) {
+            return;
+        }
+
+        if (this.type === 'merch-card' && !this.osi) {
             return;
         }
 
@@ -128,20 +158,28 @@ export class MasCreateDialog extends LitElement {
         const fragmentData = {
             modelId,
             title: this.title,
-            name: this.name || this.normalizeFragmentName(this.title),
+            name: this.normalizeFragmentName(this.title),
         };
+        if (this.type === 'merch-card') {
+            fragmentData.data = {
+                osi: this.osi,
+                tags: this.tags,
+            };
+        }
+
         const masRepository = document.querySelector('mas-repository');
-        const fragmentStore = await masRepository.createFragment(fragmentData);
-        fragmentStore.new = true;
-        editFragment(fragmentStore, 0);
-        this.close();
+        const firstName = fragmentData.name;
+        let nmbOfTries = 0;
+        while (!(await this.tryToCreateFragment(masRepository, fragmentData)) && nmbOfTries < 10) {
+            nmbOfTries += 1;
+            fragmentData.name = `${firstName}-${this.getSuffix(nmbOfTries)}`;
+        }
     }
 
     close() {
         // Reset form
         this.title = '';
-        this.name = '';
-        this.nameModified = false;
+        this.osi = '';
         this.dispatchEvent(new CustomEvent('close'));
     }
 
@@ -174,26 +212,29 @@ export class MasCreateDialog extends LitElement {
                                 id="fragment-title"
                                 placeholder="Enter internal fragment title"
                                 value=${this.title}
-                                @input=${(e) =>
-                                    this.handleTitleChange(e.target.value)}
+                                @input=${(e) => this.handleTitleChange(e.target.value)}
                                 required
                             ></sp-textfield>
                         </div>
-                        <div class="form-field">
-                            <sp-field-label for="fragment-name" required
-                                >Name</sp-field-label
-                            >
-                            <sp-textfield
-                                id="fragment-name"
-                                placeholder="Fragment name"
-                                value=${this.name}
-                                @input=${(e) =>
-                                    this.handleNameChange(e.target.value)}
-                                @focus=${this.handleNameFocus}
-                                required
-                                helptext="Auto-generated from title if not modified"
-                            ></sp-textfield>
-                        </div>
+                        ${this.type === 'merch-card'
+                            ? html`
+                                <div class="form-field">
+                                    <sp-field-label for="osi" required
+                                        >OSI Search</sp-field-label
+                                    >
+                                    <osi-field
+                                        id="osi"
+                                        data-field="osi"
+                                    ></osi-field>
+                                </div>
+                                <aem-tag-picker-field
+                                    label="Tags"
+                                    namespace="/content/cq:tags/mas"
+                                    multiple
+                                    @change=${this.#handeTagsChange}
+                                ></aem-tag-picker-field>
+                                `
+                            : nothing}
                     </form>
                 </div>
             </sp-dialog-wrapper>

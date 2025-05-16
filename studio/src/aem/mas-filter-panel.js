@@ -16,6 +16,7 @@ const EMPTY_TAGS = {
     plan_type: [],
     market_segments: [],
     customer_segment: [],
+    product_code: [],
     status: [],
     'studio/content-type': [],
 };
@@ -98,13 +99,35 @@ class MasFilterPanel extends LitElement {
                     values.length > 0
                         ? values[values.length - 1].toUpperCase()
                         : '';
+
+                const picker = this.shadowRoot.querySelector(`aem-tag-picker-field[top="${type}"]`);
+                picker?.allTags.then?.(() => { // when tags are loaded
+                    this.tagsByType[type].forEach((displayedTag) => {
+                        picker?.selectedTags.forEach((selTag) => {
+                            if (displayedTag.path === selTag.path) {
+                                displayedTag.title = selTag.title;
+                            }
+                        })
+                    })
+                    this.tagsByType = {
+                        ...this.tagsByType,
+                    };
+                });
+
+                let selectedTagTitle = '';
+                picker?.selectedTags.forEach((selectedTag) => {
+                    if (selectedTag.name.toLowerCase() === title.toLowerCase()) {
+                        selectedTagTitle = selectedTag.title;
+                    }
+                });
+
                 return {
                     ...acc,
                     [type]: [
                         ...(acc[type] || []),
                         {
                             path: fullPath,
-                            title,
+                            title : selectedTagTitle || title,
                             top: type,
                         },
                     ],
@@ -213,6 +236,16 @@ class MasFilterPanel extends LitElement {
                     label="Customer Segment"
                     selection="checkbox"
                     value=${pathsToTagIds(this.tagsByType.customer_segment)}
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
+
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="product_code"
+                    multiple
+                    label="Product Code"
+                    selection="checkbox"
+                    value=${pathsToTagIds(this.tagsByType.product_code)}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 

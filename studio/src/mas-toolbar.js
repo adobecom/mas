@@ -84,6 +84,7 @@ class MasToolbar extends LitElement {
         }
 
         .filters-button:not(.shown) {
+            background-color: #fff;
             color: var(--spectrum-gray-700);
         }
 
@@ -94,6 +95,10 @@ class MasToolbar extends LitElement {
 
         .filters-button.shown:hover {
             background-color: var(--spectrum-blue-200);
+        }
+        
+        .filters-button:not(.shown):hover {
+            background-color: var(--spectrum-actionbutton-background-color-hover);
         }
 
         .filters-badge {
@@ -203,12 +208,17 @@ class MasToolbar extends LitElement {
         }
     }
 
+    onShowFilter() {
+        this.filtersShown = !this.filtersShown;
+        this.shadowRoot.querySelector('mas-filter-panel').style.display = this.filtersShown ? 'flex' : 'none';
+    }
+
     get searchAndFilterControls() {
         return html`<div id="read">
             <sp-action-button
                 toggles
                 label="Filter"
-                @click=${() => (this.filtersShown = !this.filtersShown)}
+                @click="${this.onShowFilter}"
                 ?quiet=${!this.filtersShown}
                 class="filters-button ${this.filtersShown ? 'shown' : ''}"
             >
@@ -281,7 +291,6 @@ class MasToolbar extends LitElement {
     }
 
     get filtersPanel() {
-        if (!this.filtersShown) return nothing;
         return html`<mas-filter-panel></mas-filter-panel>`;
     }
 

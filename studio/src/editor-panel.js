@@ -65,7 +65,6 @@ export default class EditorPanel extends LitElement {
         showDiscardDialog: { type: Boolean, state: true },
         showCloneDialog: { type: Boolean, state: true },
         showEditor: { type: Boolean, state: true }, // Used to force re-rendering of the editor
-        updatedTitle: { type: String, state: true },
     };
 
     static styles = css`
@@ -107,9 +106,9 @@ export default class EditorPanel extends LitElement {
         this.showEditor = true;
         // Used to resolve the discard confirmation promise.
         this.#discardPromiseResolver = null;
-        this.updatedTitle = '';
-        this.tags = [];
-        this.osiCloned = null;
+        this.titleClone = '';
+        this.tagsClone = [];
+        this.osiClone = null;
 
         // Bind methods
         this.handleClose = this.handleClose.bind(this);
@@ -274,7 +273,7 @@ export default class EditorPanel extends LitElement {
     }
 
     #updateCloneFragmentInternal(event) {
-        this.updatedTitle = event.target.value;
+        this.titleClone = event.target.value;
     }
 
     updateFragment({ target, detail, values }) {
@@ -305,7 +304,7 @@ export default class EditorPanel extends LitElement {
     async confirmClone() {
         this.cancelClone();
         try {
-            await this.repository.copyFragment(this.updatedTitle, this.osiCloned, this.tags);
+            await this.repository.copyFragment(this.titleClone, this.osiClone, this.tagsClone);
             await this.closeEditor();
         } catch (error) {
             console.error('Error cloning fragment:', error);
@@ -398,14 +397,14 @@ export default class EditorPanel extends LitElement {
         this.fragmentStore.updateField('locReady', [value]);
     }
 
-    #handeTagsChange(e) {
+    #handleTagsChangeOnClone(e) {
         const value = e.target.getAttribute('value');
-        this.tags = value ? value.split(',') : [];
+        this.tagsClone = value ? value.split(',') : [];
     }
 
     _onOstSelectClone = ({ detail: { offerSelectorId, offer } }) => {
         if (!offer) return;
-        this.osiCloned = offerSelectorId;
+        this.osiClone = offerSelectorId;
     }
 
     get fragmentEditorToolbar() {
@@ -678,7 +677,7 @@ export default class EditorPanel extends LitElement {
                             namespace="/content/cq:tags/mas"
                             multiple
                             value="${this.fragment.tags.map((tag) => tag.id).join(',')}"
-                            @change=${this.#handeTagsChange}
+                            @change=${this.#handleTagsChangeOnClone}
                         ></aem-tag-picker-field>
                         `
                     : nothing}

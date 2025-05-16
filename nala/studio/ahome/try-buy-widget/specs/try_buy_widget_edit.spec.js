@@ -213,7 +213,7 @@ export default {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
                 analyticsID: 'free-trial',
                 daaLL: 'free-trial-1',
-                daaLH: 'CCSN',
+                daaLH: 'ccsn',
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-1',
             },

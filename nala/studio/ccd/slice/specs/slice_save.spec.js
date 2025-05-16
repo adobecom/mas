@@ -173,7 +173,7 @@ export default {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
                 analyticsID: 'buy-now',
                 daaLL: 'buy-now-1',
-                daaLH: 'PHSP',
+                daaLH: 'phsp',
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-1',
             },

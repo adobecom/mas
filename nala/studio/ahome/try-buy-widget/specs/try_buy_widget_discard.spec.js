@@ -79,7 +79,7 @@ export default {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
                 analyticsID: 'free-trial',
                 daaLL: 'free-trial-1',
-                daaLH: 'CCSN',
+                daaLH: 'ccsn',
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-1',
             },

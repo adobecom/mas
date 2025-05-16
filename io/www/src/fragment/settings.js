@@ -16,7 +16,7 @@ function applyPlansSettings(fragment, locale) {
 
 async function settings(context) {
     const { locale } = context;
-    if (context.body?.fields?.variant === 'plans') {
+    if (context.body?.fields?.variant?.startsWith('plans')) {
         applyPlansSettings(context.body, locale);
     }
 
@@ -25,7 +25,7 @@ async function settings(context) {
             if (
                 ref &&
                 ref.type === 'content-fragment' &&
-                ref.value?.fields?.variant === 'plans'
+                ref.value?.fields?.variant?.startsWith('plans')
             ) {
                 applyPlansSettings(ref.value, locale);
             }

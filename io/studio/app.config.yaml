@@ -7,17 +7,10 @@ application:
     packages:
       MerchAtScaleStudio:
         license: Apache-2.0
-        actions:      
-          fragment:
-            function: src/fragment/pipeline.js
-            web: 'yes'
-            runtime: nodejs:22
-            annotations:
-              require-adobe-auth: false      
-              final: true
+        actions:
           ost-products-write:
             function: src/ost-products/write.js
-            web: 'yes'
+            web: "yes"
             runtime: nodejs:22
             inputs:
               AOS_URL: $AOS_URL
@@ -27,15 +20,19 @@ application:
               require-adobe-auth: false
           ost-products-read:
             function: src/ost-products/read.js
-            web: 'yes'
+            web: "yes"
             runtime: nodejs:22
             annotations:
               require-adobe-auth: false
-          dictionary:
-            function: src/dictionary/dictionary.js
-            web: 'yes'
+          updateMembers:
+            function: src/members/update.js
+            web: "yes"
             runtime: nodejs:22
             annotations:
-              require-adobe-auth: false
+              require-adobe-auth: true
+              final: false
 
-              
+          listMembers:
+            function: src/members/list.js
+            web: "yes"
+            runtime: nodejs:22

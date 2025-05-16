@@ -6,6 +6,7 @@ export const VARIANTS = [
     { label: 'Catalog', value: 'catalog', surface: 'acom' },
     { label: 'Plans', value: 'plans', surface: 'acom' },
     { label: 'Plans Students', value: 'plans-students', surface: 'acom' },
+    { label: 'Plans Education', value: 'plans-education', surface: 'acom' },
     { label: 'Slice', value: 'ccd-slice', surface: 'ccd' },
     { label: 'Special offers', value: 'special-offers', surface: 'acom' },
     { label: 'Suggested', value: 'ccd-suggested', surface: 'ccd' },

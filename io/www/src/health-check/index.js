@@ -55,6 +55,7 @@ async function main(params) {
     );
     body.wcsCDN = await checkEndpoint(WCS_CDN_ENDPOINT, () => true);
     body.wcsOrigin = await checkEndpoint(WCS_ORIGIN_ENDPOINT, () => true);
+    body.test = 'test';
 
     if (
         [
@@ -62,6 +63,7 @@ async function main(params) {
             body.odinOrigin?.status,
             body.wcsCDN?.status,
             body.wcsOrigin?.status,
+            body.test,
         ].includes(FAIL)
     ) {
         body.status = ERROR;

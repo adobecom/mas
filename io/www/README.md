@@ -66,4 +66,4 @@ You can generate this file using the command `aio app use`.
 
 ### `app.config.yaml`
 
-Main configuration file that defines an application's implementation. test 1
+Main configuration file that defines an application's implementation.

@@ -126,7 +126,7 @@ export default {
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-                productCodeTag: 'product_code/PHSP',
+                productCodeTag: 'product_code/phsp',
                 offerTypeTag: 'offer_type/base',
                 marketSegmentsTag: 'market_segments/com',
                 planTypeTag: 'plan_type/abm',
@@ -183,7 +183,7 @@ export default {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
                 analyticsID: 'buy-now',
                 daaLL: 'buy-now-1',
-                daaLH: 'PHSP',
+                daaLH: 'phsp',
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-1',
             },

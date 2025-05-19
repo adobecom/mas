@@ -466,6 +466,19 @@ class MerchCardEditor extends LitElement {
                     ?disabled=${this.disabled}
                 ></sp-textfield>
             </sp-field-group>
+            <sp-field-group class="toggle" id="addonConfirmation">
+                <sp-field-label for="addon-confirmation"
+                    >Addon Confirmation</sp-field-label
+                >
+                <sp-textfield
+                    placeholder="Enter addon confirmation text"
+                    id="addon-confirmation"
+                    data-field="addonConfirmation"
+                    value="${form.addonConfirmation?.values[0]}"
+                    @input="${this.#handleFragmentUpdate}"
+                    ?disabled=${this.disabled}
+                ></sp-textfield>
+            </sp-field-group>
             <sp-field-group class="toggle" id="description">
                 <sp-field-label for="description">Description</sp-field-label>
                 <rte-field

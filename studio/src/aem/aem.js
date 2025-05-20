@@ -482,7 +482,6 @@ class AEM {
 
     async listFolders(path) {
         const name = path?.replace(/^\/content\/dam/, '');
-        console.log(`${this.baseUrl}/bin/querybuilder.json?path=${path}&path.flat=true&type=sling:Folder&p.limit=-1`);
         const response = await fetch(
             `${this.baseUrl}/bin/querybuilder.json?path=${path}&path.flat=true&type=sling:Folder&p.limit=-1`,
             {

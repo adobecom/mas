@@ -5,6 +5,9 @@ This project is a library of web components providing merchandising content to v
 - Preview: https://main--mas--adobecom.aem.page/
 - Live: https://main--mas--adobecom.aem.live/
 
+## Feature branch name
+Feature branches need to have the name in format `MWPW-XXXXXX` where `XXXXXX` is the ticket number in Jira, otherwise IMS client regex check will fail and user will not be able to sign in.
+
 ## Installation
 
 ```sh

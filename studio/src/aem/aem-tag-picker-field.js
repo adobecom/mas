@@ -2,6 +2,7 @@ import { LitElement, html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { AEM } from './aem.js';
 import { EVENT_OST_OFFER_SELECT } from '../constants.js';
+import { VARIANTS } from '../editors/variant-picker.js';
 
 const AEM_TAG_PATTERN = /^[a-zA-Z][a-zA-Z0-9]*:/;
 const namespaces = {};
@@ -246,6 +247,20 @@ class AemTagPickerField extends LitElement {
         this.tempValue = [];
     }
 
+    addVariantTags() {
+        if (this.top !== 'variant' || this.flatTags.length) return;
+        VARIANTS.forEach((variant) => {
+            if (variant.value === 'all') return;
+            const tagPath = `/content/cq:tags/mas/variant/${variant.value}`;
+            this.flatTags.push(tagPath);
+            this.#data.set(tagPath, {
+                name: variant.value,
+                title: variant.label,
+                path: tagPath,
+            });
+        });
+    }
+
     async loadTags() {
         if (!this.#data) {
             // Not loaded yet, create a placeholder Promise
@@ -279,6 +294,7 @@ class AemTagPickerField extends LitElement {
                     }),
                 )
                 .map((tag) => tag.path);
+            this.addVariantTags();
         } else {
             // Otherwise build a hierarchical structure
             this.hierarchicalTags = this.buildHierarchy(allTags);

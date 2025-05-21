@@ -178,6 +178,11 @@ export class MasRepository extends LitElement {
         return this.fragmentStoreInEdit?.get();
     }
 
+    skipVariant(variants, item) {
+        const variant = item.fields.find((field) => field.name === 'variant')?.values?.[0];
+        return variants.length && !variants.includes(variant);
+    }
+
     async searchFragments() {
         if (this.page.value !== PAGE_NAMES.CONTENT) return;
 
@@ -186,6 +191,7 @@ export class MasRepository extends LitElement {
         const path = this.search.value.path;
         const dataStore = Store.fragments.list.data;
         const query = this.search.value.query;
+        const TAG_VARIANT_PREFIX = 'mas:variant/';
 
         let tags = [];
         if (this.filters.value.tags) {
@@ -207,7 +213,8 @@ export class MasRepository extends LitElement {
 
         if (modelIds.length === 0) modelIds = EDITABLE_FRAGMENT_MODEL_IDS;
 
-        tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE));
+        const variants = tags.filter((tag) => tag.startsWith(TAG_VARIANT_PREFIX)).map((tag) => tag.replace(TAG_VARIANT_PREFIX, ''));
+        tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE) && !tag.startsWith(TAG_VARIANT_PREFIX));
 
         const damPath = getDamPath(path);
         const localSearch = {
@@ -269,6 +276,7 @@ export class MasRepository extends LitElement {
                 const fragmentStores = [];
                 for await (const result of cursor) {
                     for await (const item of result) {
+                        if (this.skipVariant(variants, item)) continue;
                         const fragment = await this.#addToCache(item);
                         fragmentStores.push(new FragmentStore(fragment));
                     }

@@ -32,7 +32,6 @@ const contentTypes = [
 
 class MasToolbar extends LitElement {
     static properties = {
-        filtersShown: { state: true },
         createDialogOpen: { state: true },
         selectedContentType: { state: true },
         filterCount: { state: true },
@@ -81,6 +80,7 @@ class MasToolbar extends LitElement {
         .filters-button {
             border: none;
             font-weight: bold;
+            cursor: default;
         }
 
         .filters-button:not(.shown) {
@@ -125,7 +125,6 @@ class MasToolbar extends LitElement {
 
     constructor() {
         super();
-        this.filtersShown = false;
         this.createDialogOpen = false;
         this.selectedContentType = 'merch-card';
         this.filterCount = 0;
@@ -169,9 +168,6 @@ class MasToolbar extends LitElement {
         } else {
             this.filterCount = 0;
         }
-        if (this.filterCount > 0) {
-            this.filtersShown = true;
-        }
     }
 
     handleRenderModeChange(ev) {
@@ -208,21 +204,15 @@ class MasToolbar extends LitElement {
         }
     }
 
-    onShowFilter() {
-        this.filtersShown = !this.filtersShown;
-        this.shadowRoot.querySelector('mas-filter-panel').style.display = this.filtersShown ? 'flex' : 'none';
-    }
-
     get searchAndFilterControls() {
         return html`<div id="read">
             <sp-action-button
                 toggles
                 label="Filter"
                 @click="${this.onShowFilter}"
-                ?quiet=${!this.filtersShown}
-                class="filters-button ${this.filtersShown ? 'shown' : ''}"
+                class="filters-button ${this.filterCount > 0 ? 'shown' : ''}"
             >
-                ${!this.filtersShown
+                ${!this.filterCount > 0
                     ? html`<sp-icon-filter-add
                           slot="icon"
                       ></sp-icon-filter-add>`

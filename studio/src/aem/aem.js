@@ -97,7 +97,7 @@ class AEM {
      * @returns A generator function that fetches all the matching data using a cursor that is returned by the search API
      */
     async *searchFragment(
-        { path, query = '', tags = [], modelIds = [], sort, status },
+        { path, query = '', tags = [], modelIds = [], sort, status, createdBy },
         limit,
         abortController,
     ) {
@@ -123,6 +123,13 @@ class AEM {
         }
         if (status) {
             filter.status = [status];
+        }
+        if (createdBy?.length > 0) {
+            filter.created ??= {};
+            filter.created.by = createdBy.reduce((acc, curr) => {
+                acc.push(curr, curr.toUpperCase());
+                return acc;
+            }, []);
         }
         const params = {
             query: JSON.stringify(searchQuery),

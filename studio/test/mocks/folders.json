@@ -1,0 +1,57 @@
+{
+    "success": true,
+    "results": 8,
+    "total": 8,
+    "more": false,
+    "offset": 0,
+    "hits": [
+        {
+            "path": "/content/dam/mas/acom",
+            "excerpt": "",
+            "name": "acom",
+            "title": "Adobe.com"
+        },
+        {
+            "path": "/content/dam/mas/adobe-home",
+            "excerpt": "",
+            "name": "adobe-home",
+            "title": "Adobe Home"
+        },
+        {
+            "path": "/content/dam/mas/ccd",
+            "excerpt": "",
+            "name": "ccd",
+            "title": "CCD"
+        },
+        {
+            "path": "/content/dam/mas/commerce",
+            "excerpt": "",
+            "name": "commerce",
+            "title": "Commerce"
+        },
+        {
+            "path": "/content/dam/mas/docs",
+            "excerpt": "",
+            "name": "docs",
+            "title": "Docs"
+        },
+        {
+            "path": "/content/dam/mas/images",
+            "excerpt": "",
+            "name": "images",
+            "title": "images"
+        },
+        {
+            "path": "/content/dam/mas/nala",
+            "excerpt": "",
+            "name": "nala",
+            "title": "Nala"
+        },
+        {
+            "path": "/content/dam/mas/sandbox",
+            "excerpt": "",
+            "name": "sandbox",
+            "title": "Sandbox"
+        }
+    ]
+}

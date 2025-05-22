@@ -59,11 +59,11 @@
                 ).then((res) => res.json());
                 window.fetch = async function (args) {
                     const { pathname } = new URL(args);
-                    if (/querybuilder.json/.test(pathname)) {
+                    if (/querybuilder.json?path=\/content\/cq:tags\/mas/.test(pathname)) {
                         return originalFetch('/test/mocks/tags.json');
                     }
-                    if (/mas.json/.test(pathname)) {
-                        return originalFetch('/test/mocks/api/assets/mas.json');
+                    if (/querybuilder.json?path=\/content\/dam\/mas/.test(pathname)) {
+                        return originalFetch('/test/mocks/folders.json');
                     }
                     return originalFetch(...arguments);
                 };

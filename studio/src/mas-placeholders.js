@@ -1542,10 +1542,11 @@ class MasPlaceholders extends LitElement {
                   <div class="rte-container">
                       <rte-field
                           id="placeholder-rich-value"
-                          inline
+                          styling
                           link
+                          list
                           hide-offer-selector
-                          .maxLength=${500}
+                          .maxLength=${2000}
                           @change=${this.handleNewPlaceholderRteChange}
                       ></rte-field>
                   </div>
@@ -2434,10 +2435,11 @@ class MasPlaceholders extends LitElement {
                             ? html`
                                   <div class="rte-container">
                                       <rte-field
-                                          inline
+                                          styling
                                           link
+                                          list
                                           hide-offer-selector
-                                          .maxLength=${500}
+                                          .maxLength=${2000}
                                           @change=${this.handleRteValueChange}
                                       ></rte-field>
                                   </div>

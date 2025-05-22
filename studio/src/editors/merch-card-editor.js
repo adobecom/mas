@@ -412,6 +412,7 @@ class MerchCardEditor extends LitElement {
                     inline
                     link
                     data-field="prices"
+                    .osi=${form.osi.values[0]}
                     default-link-style="primary-outline"
                     @change="${this.#handleFragmentUpdate}"
                     >${unsafeHTML(form.prices.values[0])}</rte-field
@@ -447,6 +448,7 @@ class MerchCardEditor extends LitElement {
                     link
                     upt-link
                     data-field="description"
+                    .osi=${form.osi.values[0]}
                     default-link-style="secondary-link"
                     @change="${this.#handleFragmentUpdate}"
                     >${unsafeHTML(form.description.values[0])}</rte-field
@@ -459,6 +461,7 @@ class MerchCardEditor extends LitElement {
                     link
                     icon
                     data-field="callout"
+                    .osi=${form.osi.values[0]}
                     default-link-style="secondary-link"
                     @change="${this.#handleFragmentUpdate}"
                     ?readonly=${this.disabled}
@@ -560,6 +563,7 @@ class MerchCardEditor extends LitElement {
                     link
                     inline
                     data-field="ctas"
+                    .osi=${form.osi.values[0]}
                     default-link-style="primary-outline"
                     @change="${this.#handleFragmentUpdate}"
                     >${unsafeHTML(form.ctas.values[0])}</rte-field
@@ -699,12 +703,10 @@ class MerchCardEditor extends LitElement {
 
     #displayBadgeColorFields(text) {
         if (!this.isPlans) return;
-        document.querySelector('#badgeColor').style.display = text
-            ? 'block'
-            : 'none';
-        document.querySelector('#badgeBorderColor').style.display = text
-            ? 'block'
-            : 'none';
+        const badgeColorEl = document.querySelector('#badgeColor');
+        if (badgeColorEl) badgeColorEl.style.display = text ? 'block' : 'none';
+        const badgeBorderColorEl = document.querySelector('#badgeBorderColor');
+        if (badgeBorderColorEl) badgeBorderColorEl.style.display = text ? 'block' : 'none';
     }
 
     get badgeText() {
@@ -821,7 +823,7 @@ class MerchCardEditor extends LitElement {
         );
         this.availableBackgroundColors = {
             Default: undefined,
-            ...(variant.allowedColors ?? []),
+            ...(variant?.allowedColors ?? []),
         };
     }
 

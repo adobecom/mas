@@ -89,7 +89,7 @@ export class Fragment {
         this.fields
             .filter((field) => field.name === fieldName)
             .forEach((field) => {
-                const encodedValues = value.map(v => {
+                const encodedValues = value.map((v) => {
                     if (typeof v === 'string') {
                         return v.normalize('NFC');
                     }

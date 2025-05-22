@@ -509,6 +509,16 @@ class RteField extends LitElement {
                         color: inherit;
                     }
                 }
+
+                .ProseMirror span.mnemonic-text {
+                    display: inline;
+                    color: #2c2c2c;
+                    font-size: 12px;
+                    margin-left: 2px;
+                    margin-right: 4px;
+                    padding: 0 2px;
+                    vertical-align: middle;
+                }
             `,
             prosemirrorStyles,
         ];
@@ -869,13 +879,6 @@ class RteField extends LitElement {
                     parseDOM: [{ tag: 'u' }],
                     toDOM: () => ['u', 0],
                 },
-                mnemonicText: {
-                    parseDOM: [{ tag: 'merch-icon-text' }],
-                    toDOM: () => ['span', { class: 'mnemonic-text' }, 0],
-                    spanning: false,
-                    inclusive: false,
-                    excludes: '_',
-                },
                 ...(this.styling && {
                     ...this.getStylingMark('heading-xxxs'),
                     ...this.getStylingMark('heading-xxs'),
@@ -883,6 +886,7 @@ class RteField extends LitElement {
                     ...this.getStylingMark('heading-s'),
                     ...this.getStylingMark('heading-m'),
                     ...this.getStylingMark('promo-text'),
+                    ...this.getStylingMark('mnemonic-text'),
                 }),
             });
 
@@ -921,120 +925,12 @@ class RteField extends LitElement {
                 }),
             }),
             keymap(baseKeymap),
-            this.#createMnemonicTextPlugin(),
         ];
 
         return EditorState.create({
             schema: this.#editorSchema,
             doc,
             plugins,
-        });
-    }
-
-    #createMnemonicTextPlugin() {
-        return new Plugin({
-            appendTransaction: (transactions, oldState, newState) => {
-                if (!transactions.some((tr) => tr.docChanged)) return null;
-
-                const tr = newState.tr;
-                let modified = false;
-
-                newState.doc.forEach((node, pos) => {
-                    if (node.type.name !== 'paragraph') return;
-
-                    let textRanges = [];
-                    let currentMnemonicTextRange = null;
-
-                    node.content.forEach((child, offset) => {
-                        const absPos = pos + 1 + offset;
-
-                        if (child.type.name === 'mnemonic') {
-                            if (currentMnemonicTextRange) {
-                                currentMnemonicTextRange.to = absPos;
-                                textRanges.push(currentMnemonicTextRange);
-                                currentMnemonicTextRange = null;
-                            }
-
-                            currentMnemonicTextRange = {
-                                from: absPos + child.nodeSize,
-                                to: null,
-                            };
-                        } else if (
-                            child.isBlock ||
-                            (child.isText && child.text.includes('\n'))
-                        ) {
-                            if (currentMnemonicTextRange) {
-                                currentMnemonicTextRange.to = absPos;
-                                textRanges.push(currentMnemonicTextRange);
-                                currentMnemonicTextRange = null;
-                            }
-                        }
-                    });
-
-                    if (currentMnemonicTextRange) {
-                        currentMnemonicTextRange.to = pos + node.nodeSize - 1;
-                        textRanges.push(currentMnemonicTextRange);
-                    }
-
-                    textRanges.forEach((range) => {
-                        if (range.from < range.to) {
-                            tr.addMark(
-                                range.from,
-                                range.to,
-                                newState.schema.marks.mnemonicText.create(),
-                            );
-                            modified = true;
-                        }
-                    });
-                });
-
-                return modified ? tr : null;
-            },
-
-            props: {
-                handleKeyDown: (view, event) => {
-                    if (
-                        event.ctrlKey ||
-                        event.metaKey ||
-                        event.key.length > 1
-                    ) {
-                        return false;
-                    }
-
-                    const { state } = view;
-                    const { selection } = state;
-                    const { $from } = selection;
-
-                    const node = $from.nodeBefore;
-                    const isPrecedingMnemonic =
-                        node && node.type.name === 'mnemonic';
-
-                    const marks = $from.marks();
-                    const hasMnemonicTextMark = marks.some(
-                        (mark) => mark.type.name === 'mnemonicText',
-                    );
-
-                    if (isPrecedingMnemonic || hasMnemonicTextMark) {
-                        const tr = state.tr.insertText(
-                            event.key,
-                            selection.from,
-                        );
-                        const mark = state.schema.marks.mnemonicText.create();
-                        const markRange = {
-                            from: selection.from,
-                            to: selection.from + 1,
-                        };
-                        tr.addMark(markRange.from, markRange.to, mark);
-                        tr.setSelection(
-                            TextSelection.create(tr.doc, selection.from + 1),
-                        );
-                        view.dispatch(tr);
-                        return true;
-                    }
-
-                    return false;
-                },
-            },
         });
     }
 
@@ -1148,14 +1044,6 @@ class RteField extends LitElement {
                 }
             });
 
-            // Clean up mnemonic-text elements
-            container.querySelectorAll('merch-icon-text').forEach((span) => {
-                if (span.querySelector('merch-icon')) {
-                    span.classList.remove('mnemonic-text');
-                    span.classList.add('mnemonic');
-                }
-            });
-
             const parser = DOMParser.fromSchema(this.#editorSchema);
             const doc = parser.parse(container);
             const tr = this.editorView.state.tr.replaceWith(
@@ -1253,7 +1141,8 @@ class RteField extends LitElement {
                 variant: selection.node.attrs.class || '',
                 analyticsId: selection.node.attrs['data-analytics-id'] || '',
                 checkoutParameters,
-                ctaToggleText: selection.node.attrs['data-cta-toggle-text'] || '',
+                ctaToggleText:
+                    selection.node.attrs['data-cta-toggle-text'] || '',
             };
         }
 
@@ -1308,8 +1197,15 @@ class RteField extends LitElement {
     }
 
     #handleLinkSave(event) {
-        const { href, text, title, target, variant, analyticsId, ctaToggleText } =
-            event.detail;
+        const {
+            href,
+            text,
+            title,
+            target,
+            variant,
+            analyticsId,
+            ctaToggleText,
+        } = event.detail;
 
         let { checkoutParameters } = event.detail;
         const { state, dispatch } = this.editorView;
@@ -1855,6 +1751,7 @@ class RteField extends LitElement {
             <sp-menu-item value="heading-m">Heading M</sp-menu-item>
             <sp-menu-divider></sp-menu-divider>
             <sp-menu-item value="promo-text">Promo text</sp-menu-item>
+            <sp-menu-item value="mnemonic-text">Mnemonic Text</sp-menu-item>
         </sp-action-menu>`;
     }
 

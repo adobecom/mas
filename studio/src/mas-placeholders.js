@@ -21,6 +21,11 @@ import {
 import { normalizeKey } from './utils.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 
+const typeMap = {
+    richTextValue: 'long-text',
+    locReady: 'boolean',
+};
+
 function withLoadingState(fn) {
     return async function (...args) {
         try {
@@ -128,8 +133,6 @@ class MasPlaceholders extends LitElement {
         }
 
         this.handleClickOutside = this.handleClickOutside.bind(this);
-        this.handleCreateModalClickOutside =
-            this.handleCreateModalClickOutside.bind(this);
         this.handleFolderChange = this.handleFolderChange.bind(this);
         this.handleLocaleChange = this.handleLocaleChange.bind(this);
         this.handleRteValueChange = this.handleRteValueChange.bind(this);
@@ -216,7 +219,6 @@ class MasPlaceholders extends LitElement {
     async connectedCallback() {
         super.connectedCallback();
         document.addEventListener('click', this.handleClickOutside);
-        document.addEventListener('click', this.handleCreateModalClickOutside);
 
         const currentPage = Store.page.get();
         if (currentPage !== PAGE_NAMES.PLACEHOLDERS) {
@@ -240,10 +242,6 @@ class MasPlaceholders extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         document.removeEventListener('click', this.handleClickOutside);
-        document.removeEventListener(
-            'click',
-            this.handleCreateModalClickOutside,
-        );
     }
 
     handleFolderChange() {
@@ -346,7 +344,12 @@ class MasPlaceholders extends LitElement {
                 description: `Placeholder for ${this.newPlaceholder.key}`,
                 data: {
                     key: this.newPlaceholder.key,
-                    value: this.newPlaceholder.value,
+                    value: this.newPlaceholder.isRichText
+                        ? ''
+                        : this.newPlaceholder.value,
+                    richTextValue: this.newPlaceholder.isRichText
+                        ? this.newPlaceholder.value
+                        : '',
                     locReady: true,
                 },
             };
@@ -432,22 +435,20 @@ class MasPlaceholders extends LitElement {
             updatedFragment.newTags = [TAG_STATUS_DRAFT];
 
             const fieldUpdates = [
-                ['key', [this.editedKey], 'text'],
-                ['value', [this.editedValue], 'text'],
-                ['locReady', [true], 'boolean'],
-                ['status', [newStatus], 'text'],
+                ['key', [this.editedKey]],
+                ['value', [this.editedRichText ? '' : this.editedValue]],
+                [
+                    'richTextValue',
+                    [this.editedRichText ? this.editedValue : ''],
+                ],
+                ['locReady', [true]],
             ];
 
-            fieldUpdates.reduce(
-                (fields, [name, values, type]) =>
-                    repository.updateFieldInFragment(
-                        fields,
-                        name,
-                        values,
-                        type,
-                    ),
-                updatedFragment.fields,
-            );
+            fieldUpdates.forEach(([name, values]) => {
+                updatedFragment.fields.find(
+                    (field) => field.name === name,
+                ).values = values;
+            });
 
             const savedFragment = await repository.saveFragment(
                 updatedFragment,
@@ -462,8 +463,7 @@ class MasPlaceholders extends LitElement {
 
             await repository.aem.saveTags(updatedFragment);
 
-            const containsHtml = /<\/?[a-z][\s\S]*>/i.test(this.editedValue);
-            const displayValue = containsHtml
+            const displayValue = this.editedRichText
                 ? this.editedValue.replace(/<[^>]*>/g, '')
                 : this.editedValue;
 
@@ -477,7 +477,7 @@ class MasPlaceholders extends LitElement {
                 key: this.editedKey,
                 value: this.editedValue,
                 displayValue,
-                isRichText: containsHtml,
+                isRichText: this.editedRichText,
                 fragment: savedFragment,
                 updatedAt: new Date().toLocaleString(),
                 status: newStatus,
@@ -843,6 +843,7 @@ class MasPlaceholders extends LitElement {
 
         const key = getFragmentFieldValue(fragment, 'key');
         const value = getFragmentFieldValue(fragment, 'value');
+        const richTextValue = getFragmentFieldValue(fragment, 'richTextValue');
         const locReady = getFragmentFieldValue(fragment, 'locReady', false);
 
         const isInPublishedIndex =
@@ -860,18 +861,18 @@ class MasPlaceholders extends LitElement {
             statusInfo = this.detectFragmentStatus(fragment);
         }
 
-        const containsHtml = /<\/?[a-z][\s\S]*>/i.test(value);
-        const displayValue = containsHtml
-            ? value.replace(/<[^>]*>/g, '')
+        const isRichText = !!richTextValue;
+        const displayValue = isRichText
+            ? richTextValue.replace(/<[^>]*>/g, '')
             : value;
         const existingPlaceholder = existingPlaceholders[fragment.id];
 
         const updatedPlaceholder = {
             id: fragment.id,
             key,
-            value,
+            value: isRichText ? richTextValue : value,
             displayValue,
-            isRichText: containsHtml,
+            isRichText,
             locale,
             state: locReady ? 'Ready' : 'Not Ready',
             status: statusInfo.status,
@@ -946,7 +947,7 @@ class MasPlaceholders extends LitElement {
                     if (value !== undefined) {
                         createPayload.fields.push({
                             name: key,
-                            type: key === 'locReady' ? 'boolean' : 'text',
+                            type: typeMap[key] ?? 'text',
                             values: [value],
                         });
                     }
@@ -997,9 +998,10 @@ class MasPlaceholders extends LitElement {
             const locale = this.selectedLocale || 'en_US';
             const key = fragmentData.data.key;
             const value = fragmentData.data.value;
-            const containsHtml = /<\/?[a-z][\s\S]*>/i.test(value);
-            const displayValue = containsHtml
-                ? value.replace(/<[^>]*>/g, '')
+            const richTextValue = fragmentData.data.richTextValue;
+            const isRichText = !!richTextValue;
+            const displayValue = isRichText
+                ? richTextValue.replace(/<[^>]*>/g, '')
                 : value;
 
             const newPlaceholder = {
@@ -1007,7 +1009,7 @@ class MasPlaceholders extends LitElement {
                 key: key,
                 value: value,
                 displayValue: displayValue,
-                isRichText: containsHtml,
+                isRichText: isRichText,
                 locale: locale,
                 state: 'Ready',
                 status: STATUS_DRAFT,
@@ -1213,19 +1215,6 @@ class MasPlaceholders extends LitElement {
         }
     }
 
-    handleCreateModalClickOutside(event) {
-        if (
-            this.showCreateModal &&
-            !event.target.closest('.create-modal-content') &&
-            !event.target.closest('.create-button')
-        ) {
-            if (event.target.closest('.create-modal-overlay')) {
-                return;
-            }
-            this.closeCreateModal();
-        }
-    }
-
     closeCreateModal() {
         this.showCreateModal = false;
         this.clearRteInitializedFlags();
@@ -1254,12 +1243,7 @@ class MasPlaceholders extends LitElement {
             locale: currentLocale,
             isRichText: false,
         };
-
-        setTimeout(() => {
-            if (!this.showCreateModal) {
-                this.showCreateModal = true;
-            }
-        }, 100);
+        this.requestUpdate();
     }
 
     updateTableSelection(event) {
@@ -1408,7 +1392,12 @@ class MasPlaceholders extends LitElement {
 
         const columns = [
             { key: 'key', label: 'Key', sortable: true },
-            { key: 'value', label: 'Value', sortable: true },
+            {
+                key: 'value',
+                label: 'Value',
+                sortable: true,
+                style: 'min-width: 300px;',
+            },
             { key: 'status', label: 'Status', sortable: true, priority: true },
             { key: 'locale', label: 'Locale', sortable: true, align: 'right' },
             {
@@ -1492,133 +1481,95 @@ class MasPlaceholders extends LitElement {
         };
     }
 
-    renderFormGroup(id, label, isRequired, component) {
-        return html`
-            <div class="form-group">
-                <label for=${id}>
-                    ${label}
-                    ${isRequired
-                        ? html`<span class="required">*</span>`
-                        : nothing}
-                </label>
-                ${component}
-            </div>
-        `;
-    }
-
     renderCreateModal() {
         if (!this.showCreateModal) return nothing;
 
-        const keyField = html`
-            <sp-textfield
-                id="placeholder-key"
-                placeholder="Key"
-                .value=${this.newPlaceholder.key}
-                @input=${this.handleNewPlaceholderKeyChange}
-            ></sp-textfield>
-        `;
-
-        const localeField = html`
-            <mas-locale-picker
-                id="placeholder-locale"
-                @locale-changed=${this.handleNewPlaceholderLocaleChange}
-            ></mas-locale-picker>
-        `;
-
-        const richTextToggle = html`
-            <div class="rich-text-toggle">
-                <sp-switch
-                    id="rich-text-toggle"
-                    @change=${this.handleRichTextToggle}
-                    .checked=${this.newPlaceholder.isRichText}
-                >
-                    Rich Text
-                </sp-switch>
-            </div>
-        `;
-
-        const valueField = this.newPlaceholder.isRichText
-            ? html`
-                  <div class="rte-container">
-                      <rte-field
-                          id="placeholder-rich-value"
-                          styling
-                          link
-                          list
-                          hide-offer-selector
-                          .maxLength=${2000}
-                          @change=${this.handleNewPlaceholderRteChange}
-                      ></rte-field>
-                  </div>
-              `
-            : html`
-                  <sp-textfield
-                      id="placeholder-value"
-                      placeholder="Value"
-                      .value=${this.newPlaceholder.value}
-                      @input=${this.handleNewPlaceholderValueChange}
-                  ></sp-textfield>
-              `;
-
-        setTimeout(() => {
-            if (this.newPlaceholder.isRichText) {
-                const rteField = this.shadowRoot.querySelector(
-                    '#placeholder-rich-value',
-                );
-                if (rteField) {
-                    rteField.innerHTML = this.newPlaceholder.value || '';
-                }
-            }
-        }, 0);
-
         return html`
-            <div
-                class="create-modal-overlay"
-                @click=${(e) => e.stopPropagation()}
+            <sp-dialog-wrapper
+                type="modal"
+                headline="Create New Placeholder"
+                underlay
+                confirm-label="Create"
+                cancel-label="Cancel"
+                open
+                @close=${this.closeCreateModal}
+                @confirm=${this.createPlaceholder}
+                @cancel=${this.closeCreateModal}
             >
-                <div class="create-modal" @click=${(e) => e.stopPropagation()}>
-                    <div class="create-modal-content">
-                        <h2 class="create-modal-title">Create Placeholder</h2>
-
-                        <div class="create-modal-form">
-                            ${this.renderFormGroup(
-                                'placeholder-key',
-                                'Enter Key',
-                                true,
-                                keyField,
-                            )}
-                            ${this.renderFormGroup(
-                                'placeholder-locale',
-                                'Choose Locale',
-                                true,
-                                localeField,
-                            )}
-                            ${richTextToggle}
-                            ${this.renderFormGroup(
-                                'placeholder-value',
-                                'Enter Value',
-                                true,
-                                valueField,
-                            )}
+                <div class="dialog-content">
+                    <form
+                        @submit=${(e) => {
+                            e.preventDefault();
+                            this.createPlaceholder();
+                        }}
+                    >
+                        <div class="form-field">
+                            <sp-field-label for="placeholder-key" required>
+                                Key
+                            </sp-field-label>
+                            <sp-textfield
+                                id="placeholder-key"
+                                placeholder="Enter key"
+                                .value=${this.newPlaceholder.key}
+                                @input=${this.handleNewPlaceholderKeyChange}
+                                required
+                            ></sp-textfield>
                         </div>
 
-                        <div class="create-modal-actions">
-                            <sp-button
-                                variant="secondary"
-                                @click=${this.closeCreateModal}
-                            >
-                                Cancel
-                            </sp-button>
-                            <sp-button
-                                variant="accent"
-                                @click=${this.createPlaceholder}
-                            >
-                                Create
-                            </sp-button>
+                        <div class="form-field">
+                            <sp-field-label for="placeholder-locale" required>
+                                Locale
+                            </sp-field-label>
+                            <mas-locale-picker
+                                id="placeholder-locale"
+                                @locale-changed=${this
+                                    .handleNewPlaceholderLocaleChange}
+                            ></mas-locale-picker>
                         </div>
-                    </div>
+
+                        <div class="form-field">
+                            <sp-field-label for="rich-text-toggle">
+                                Rich Text
+                            </sp-field-label>
+                            <sp-switch
+                                id="rich-text-toggle"
+                                @change=${this.handleRichTextToggle}
+                                .checked=${this.newPlaceholder.isRichText}
+                            >
+                                Enable Rich Text
+                            </sp-switch>
+                        </div>
+
+                        <div class="form-field">
+                            <sp-field-label for="placeholder-value" required>
+                                Value
+                            </sp-field-label>
+                            ${this.newPlaceholder.isRichText
+                                ? html`
+                                      <div class="rte-container">
+                                          <rte-field
+                                              id="placeholder-rich-value"
+                                              link
+                                              .maxLength=${500}
+                                              @change=${this
+                                                  .handleNewPlaceholderRteChange}
+                                          ></rte-field>
+                                      </div>
+                                  `
+                                : html`
+                                      <sp-textfield
+                                          id="placeholder-value"
+                                          placeholder="Enter value"
+                                          .value=${this.newPlaceholder.value}
+                                          @input=${this
+                                              .handleNewPlaceholderValueChange}
+                                          required
+                                      ></sp-textfield>
+                                  `}
+                        </div>
+                    </form>
                 </div>
-            </div>
+            </sp-dialog-wrapper>
         `;
     }
 
@@ -2387,12 +2338,13 @@ class MasPlaceholders extends LitElement {
      * @param {string} content - Cell content
      * @returns {TemplateResult} - HTML template
      */
-    renderTableCell(content, align = '') {
+    renderTableCell(content, align = '', className = '') {
         const value = content || '';
         const needsTooltip = value.length > 50;
 
         return html`
             <sp-table-cell
+                class=${className}
                 style="${align === 'right' ? 'text-align: right;' : ''}"
             >
                 ${needsTooltip
@@ -2412,7 +2364,7 @@ class MasPlaceholders extends LitElement {
     renderKeyCell(placeholder) {
         if (this.editingPlaceholder === placeholder.key) {
             return html`
-                <sp-table-cell class="editing-cell">
+                <sp-table-cell class="editing-cell key">
                     <div class="edit-field-container">
                         <sp-textfield
                             placeholder="Key"
@@ -2423,24 +2375,22 @@ class MasPlaceholders extends LitElement {
                 </sp-table-cell>
             `;
         }
-        return this.renderTableCell(placeholder.key);
+        return this.renderTableCell(placeholder.key, '', 'key');
     }
 
     renderValueCell(placeholder) {
         if (this.editingPlaceholder === placeholder.key) {
             return html`
-                <sp-table-cell class="editing-cell">
+                <sp-table-cell class="editing-cell value">
                     <div class="edit-field-container">
                         ${this.editedRichText
                             ? html`
                                   <div class="rte-container">
                                       <rte-field
-                                          styling
                                           link
-                                          list
-                                          hide-offer-selector
-                                          .maxLength=${2000}
+                                          .maxLength=${500}
                                           @change=${this.handleRteValueChange}
+                                          @click=${(e) => e.stopPropagation()}
                                       ></rte-field>
                                   </div>
                               `
@@ -2456,7 +2406,7 @@ class MasPlaceholders extends LitElement {
 
         if (placeholder.isRichText) {
             return html`
-                <sp-table-cell>
+                <sp-table-cell class="value">
                     <div
                         class="rich-text-cell"
                         .innerHTML=${placeholder.value}
@@ -2465,7 +2415,7 @@ class MasPlaceholders extends LitElement {
             `;
         }
 
-        return this.renderTableCell(placeholder.displayValue);
+        return this.renderTableCell(placeholder.displayValue, '', 'value');
     }
 
     renderTableHeader(columns) {
@@ -2474,6 +2424,7 @@ class MasPlaceholders extends LitElement {
                 ${columns.map(
                     ({ key, label, sortable, align }) => html`
                         <sp-table-head-cell
+                            class=${key}
                             ?sortable=${sortable}
                             @click=${sortable
                                 ? () => this.handleSort(key)

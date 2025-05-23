@@ -58,6 +58,16 @@ class MerchCardEditor extends LitElement {
         this.availableBadgeColors = [];
         this.availableBackgroundColors = [];
         this.quantitySelectorValues = '';
+        this.merchCardElement = null;
+    }
+
+    get currentVariantMapping() {
+        const merchCardElement =
+            this.merchCardElement || customElements.get('merch-card');
+        if (!this.fragment || !merchCardElement) {
+            return null;
+        }
+        return merchCardElement.getFragmentMapping(this.fragment.variant);
     }
 
     createRenderRoot() {
@@ -235,6 +245,19 @@ class MerchCardEditor extends LitElement {
         if (element) element.style.display = show ? 'block' : 'none';
     }
 
+    async #ensureMerchCardElement() {
+        if (!this.merchCardElement) {
+            try {
+                this.merchCardElement = await merchCardCustomElementPromise;
+            } catch (error) {
+                console.error(
+                    'Failed to get merch-card custom element:',
+                    error,
+                );
+            }
+        }
+    }
+
     updated(changedProperties) {
         super.updated(changedProperties);
         if (changedProperties.has('fragmentStore')) {
@@ -247,14 +270,12 @@ class MerchCardEditor extends LitElement {
 
     async toggleFields() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await merchCardCustomElementPromise;
-        if (!merchCardCustomElement) return;
+        await this.#ensureMerchCardElement();
+        if (!this.merchCardElement) return;
         this.querySelectorAll('sp-field-group.toggle').forEach((field) => {
             field.style.display = 'none';
         });
-        const variant = merchCardCustomElement.getFragmentMapping(
-            this.fragment.variant,
-        );
+        const variant = this.currentVariantMapping;
         if (!variant) return;
         Object.entries(variant).forEach(([key, value]) => {
             if (Array.isArray(value) && value.length === 0) return;
@@ -728,19 +749,23 @@ class MerchCardEditor extends LitElement {
 
     async #updateAvailableSizes() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await merchCardCustomElementPromise;
-        const variant = merchCardCustomElement?.getFragmentMapping(
-            this.fragment.variant,
-        );
+        await this.#ensureMerchCardElement();
+        if (!this.merchCardElement) {
+            this.availableSizes = ['Default'];
+            return;
+        }
+        const variant = this.currentVariantMapping;
         this.availableSizes = ['Default', ...(variant?.size || ['Default'])];
     }
 
     async #updateAvailableColors() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await merchCardCustomElementPromise;
-        const variant = merchCardCustomElement?.getFragmentMapping(
-            this.fragment.variant,
-        );
+        await this.#ensureMerchCardElement();
+        if (!this.merchCardElement) {
+            this.availableColors = [];
+            return;
+        }
+        const variant = this.currentVariantMapping;
         this.availableColors = variant?.allowedColors || [];
         this.#displayBadgeColorFields(this.badge.text);
         this.#displayTrialBadgeColorFields(this.trialBadge.text);
@@ -783,9 +808,15 @@ class MerchCardEditor extends LitElement {
     }
 
     get supportsBadgeColors() {
-        return (
-            this.fragment.variant === 'plans' ||
-            this.fragment.variant === 'fries'
+        if (!this.fragment) {
+            return false;
+        }
+        const variantMapping = this.currentVariantMapping;
+        return !!(
+            variantMapping &&
+            variantMapping.badge &&
+            typeof variantMapping.badge === 'object' &&
+            variantMapping.badge.tag
         );
     }
 
@@ -974,10 +1005,12 @@ class MerchCardEditor extends LitElement {
 
     async #updateBackgroundColors() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await merchCardCustomElementPromise;
-        const variant = merchCardCustomElement?.getFragmentMapping(
-            this.fragment.variant,
-        );
+        await this.#ensureMerchCardElement();
+        if (!this.merchCardElement) {
+            this.availableBackgroundColors = { Default: undefined };
+            return;
+        }
+        const variant = this.currentVariantMapping;
         this.availableBackgroundColors = {
             Default: undefined,
             ...(variant.allowedColors ?? []),
@@ -1054,10 +1087,7 @@ class MerchCardEditor extends LitElement {
 
         let variantSpecialValues = {};
         if (this.fragment && isBorder) {
-            const merchCardCustomElement = customElements.get('merch-card');
-            const variant = merchCardCustomElement?.getFragmentMapping(
-                this.fragment.variant,
-            );
+            const variant = this.currentVariantMapping;
             variantSpecialValues = variant?.borderColor?.specialValues || {};
             if (
                 variantSpecialValues &&

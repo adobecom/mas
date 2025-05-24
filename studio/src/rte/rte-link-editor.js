@@ -23,11 +23,6 @@ export class RteLinkEditor extends LitElement {
             attribute: 'data-analytics-id',
             reflect: true,
         },
-        ctaToggleText: {
-            type: String,
-            attribute: 'data-cta-toggle-text',
-            reflect: true,
-        },
     };
 
     static styles = css`
@@ -104,7 +99,6 @@ export class RteLinkEditor extends LitElement {
             // changes in the dialog should not propagate to outside
             e.stopImmediatePropagation();
         });
-        this.ctaToggleText = '';
     }
 
     get #checkoutParametersField() {
@@ -300,17 +294,6 @@ export class RteLinkEditor extends LitElement {
                             @input=${(e) => (this.text = e.target.value)}
                         ></sp-textfield>
 
-                        <sp-field-label for="ctaToggleText"
-                            >CTA Toggle Text</sp-field-label
-                        >
-                        <sp-textfield
-                            id="ctaToggleText"
-                            placeholder="Text to toggle on click"
-                            .value=${this.ctaToggleText}
-                            @input=${(e) =>
-                                (this.ctaToggleText = e.target.value)}
-                        ></sp-textfield>
-
                         <sp-field-label for="linkTitle">Title</sp-field-label>
                         <sp-textfield
                             id="linkTitle"
@@ -417,7 +400,6 @@ export class RteLinkEditor extends LitElement {
             target: this.target,
             variant: this.variant,
             analyticsId: this.analyticsId,
-            ctaToggleText: this.ctaToggleText,
         };
         if (this.checkoutParameters !== undefined) {
             delete data.href;

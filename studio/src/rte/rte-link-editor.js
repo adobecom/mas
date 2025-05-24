@@ -307,7 +307,8 @@ export class RteLinkEditor extends LitElement {
                             id="ctaToggleText"
                             placeholder="Text to toggle on click"
                             .value=${this.ctaToggleText}
-                            @input=${(e) => (this.ctaToggleText = e.target.value)}
+                            @input=${(e) =>
+                                (this.ctaToggleText = e.target.value)}
                         ></sp-textfield>
 
                         <sp-field-label for="linkTitle">Title</sp-field-label>

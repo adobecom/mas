@@ -3,6 +3,8 @@ import StudioPage from '../../../studio.page.js';
 import CCDFriesSpec from '../specs/fries_css.spec.js';
 import CCDFries from '../fries.page.js';
 import WebUtil from '../../../../libs/webutil.js';
+import EditorPage from '../../../editor.page.js';
+import OSTPage from '../../../ost.page.js';
 
 const { features } = CCDFriesSpec;
 const miloLibs = process.env.MILO_LIBS || '';

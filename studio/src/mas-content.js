@@ -116,7 +116,9 @@ class MasContent extends LitElement {
                 <sp-table-head-cell sortable>Price</sp-table-head-cell>
                 <sp-table-head-cell sortable>Offer ID</sp-table-head-cell>
                 <slot name="headers"></slot>
-                <sp-table-head-cell sortable>Status</sp-table-head-cell>
+                <sp-table-head-cell sortable class="status"
+                    >Status</sp-table-head-cell
+                >
             </sp-table-head>
             <sp-table-body>
                 ${repeat(

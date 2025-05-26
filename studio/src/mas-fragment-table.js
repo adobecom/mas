@@ -86,7 +86,9 @@ class MasFragmentTable extends LitElement {
                 >${this.offerData?.offerId}</sp-table-cell
             >
             ${this.customRender?.(data)}
-            <sp-table-cell>${data.status}</sp-table-cell></sp-table-row
+            <sp-table-cell class="status"
+                >${data.status}</sp-table-cell
+            ></sp-table-row
         >`;
     }
 }

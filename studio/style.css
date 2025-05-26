@@ -282,6 +282,13 @@ mas-content {
     overflow: hidden;
 }
 
+#content #render {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
 sp-table-cell {
     &.product-name {
         display: flex;
@@ -298,13 +305,16 @@ sp-table-cell {
     &.offer-id {
         word-break: break-all;
     }
+
+    &.status {
+        text-align: end;
+    }
 }
 
-sp-table-cell #content #render {
-    width: 100%;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
+sp-table-head-cell {
+    &.status {
+        text-align: end;
+    }
 }
 
 /* Splash styles */

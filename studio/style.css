@@ -304,17 +304,29 @@ sp-table-cell {
     }
 
     &.offer-id {
-        word-break: break-all;
+        flex-grow: 1.2;
+        overflow: hidden;
+
+        & span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
     }
 
     &.status {
         justify-content: end;
+        flex-grow: 0.8;
     }
 }
 
 sp-table-head-cell {
+    &.offer-id {
+        flex-grow: 1.2;
+    }
+
     &.status {
         text-align: end;
+        flex-grow: 0.8;
     }
 }
 

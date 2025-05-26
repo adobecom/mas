@@ -160,13 +160,20 @@ export function normalizeKey(str) {
 }
 
 /**
+ * Returns the merch-card element when defined
+ * @returns {Promise<CustomElementConstructor>}
+ */
+export function getMerchCardElement() {
+    return customElements.whenDefined('merch-card');
+}
+
+/**
  * Returns the fragment mapping for a given variant
  * @param {string} variant
- * @returns {object}
+ * @returns {Promise<object | null>}
  */
 export async function getFragmentMapping(variant) {
-    const merchCardCustomElement =
-        await customElements.whenDefined('merch-card');
+    const merchCardCustomElement = await getMerchCardElement();
     if (!merchCardCustomElement) return null;
     return merchCardCustomElement.getFragmentMapping(variant);
 }
@@ -174,8 +181,6 @@ export async function getFragmentMapping(variant) {
 export function getService() {
     return document.querySelector('mas-commerce-service');
 }
-
-// Author name
 
 const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',

@@ -10,7 +10,7 @@ import '../rte/osi-field.js';
 import { CARD_MODEL_PATH } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
-import { getFragmentMapping } from '../utils.js';
+import { getFragmentMapping, getMerchCardElement } from '../utils.js';
 import '../fields/addon-field.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
@@ -676,7 +676,7 @@ class MerchCardEditor extends LitElement {
 
     async #updateAvailableSizes() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await merchCardCustomElementPromise;
+        const merchCardCustomElement = await getMerchCardElement();
         const variant = merchCardCustomElement?.getFragmentMapping(
             this.fragment.variant,
         );
@@ -685,7 +685,7 @@ class MerchCardEditor extends LitElement {
 
     async #updateAvailableColors() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await merchCardCustomElementPromise;
+        const merchCardCustomElement = await getMerchCardElement();
         const variant = merchCardCustomElement?.getFragmentMapping(
             this.fragment.variant,
         );
@@ -811,7 +811,7 @@ class MerchCardEditor extends LitElement {
 
     async #updateBackgroundColors() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await merchCardCustomElementPromise;
+        const merchCardCustomElement = await getMerchCardElement();
         const variant = merchCardCustomElement?.getFragmentMapping(
             this.fragment.variant,
         );

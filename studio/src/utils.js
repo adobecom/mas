@@ -218,7 +218,6 @@ function getFragmentPartsToUse(fragment, path) {
 }
 
 export function generateCodeToUse(fragment, path, page, failMessage) {
-    console.log(fragment, path, page, 'wolololoooo');
     const { fragmentParts, title } = getFragmentPartsToUse(fragment, path);
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
     if (!webComponentName) {

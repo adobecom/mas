@@ -78,15 +78,17 @@ class MasFragmentTable extends LitElement {
     render() {
         const data = this.fragmentStore.value;
         return html`<sp-table-row value="${data.id}"
-            ><sp-table-cell class="product-name">
+            ><sp-table-cell class="name">
                 ${this.icon} ${this.name}
             </sp-table-cell>
-            <sp-table-cell>${data.title}</sp-table-cell>
-            <sp-table-cell>${this.offerData?.offerType}</sp-table-cell>
-            <sp-table-cell>${this.price}</sp-table-cell>
-            <sp-table-cell class="offer-id" title=${this.offerData?.offerId}
-                ><span>${this.offerData?.offerId} </span></sp-table-cell
+            <sp-table-cell class="title">${data.title}</sp-table-cell>
+            <sp-table-cell class="offer-type"
+                >${this.offerData?.offerType}</sp-table-cell
             >
+            <sp-table-cell class="price">${this.price}</sp-table-cell>
+            <sp-table-cell class="offer-id" title=${this.offerData?.offerId}
+                >${this.offerData?.offerId}
+            </sp-table-cell>
             ${this.customRender?.(data)}
             <sp-table-cell class="status"
                 >${data.status}</sp-table-cell

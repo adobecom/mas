@@ -109,10 +109,18 @@ class MasContent extends LitElement {
             @change=${this.updateTableSelection}
         >
             <sp-table-head>
-                <sp-table-head-cell sortable>Name</sp-table-head-cell>
-                <sp-table-head-cell sortable>Title</sp-table-head-cell>
-                <sp-table-head-cell sortable>Offer type</sp-table-head-cell>
-                <sp-table-head-cell sortable>Price</sp-table-head-cell>
+                <sp-table-head-cell sortable class="name"
+                    >Name</sp-table-head-cell
+                >
+                <sp-table-head-cell sortable class="title"
+                    >Title</sp-table-head-cell
+                >
+                <sp-table-head-cell sortable class="offer-type"
+                    >Offer type</sp-table-head-cell
+                >
+                <sp-table-head-cell sortable class="price"
+                    >Price</sp-table-head-cell
+                >
                 <sp-table-head-cell sortable class="offer-id"
                     >Offer ID</sp-table-head-cell
                 >

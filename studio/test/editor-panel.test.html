@@ -44,12 +44,11 @@
             import { Fragment } from '../src/aem/fragment.js';
             import { FragmentStore } from '../src/reactivity/fragment-store.js';
             import Store from '../src/store.js';
-
+            import { generateCodeToUse } from '../src/utils.js';
             import {
                 createFromTemplate,
                 delay,
                 triggerInput,
-                generateCodeToUse,
             } from './utils.js';
 
             runTests(async () => {

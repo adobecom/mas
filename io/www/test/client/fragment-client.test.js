@@ -42,6 +42,20 @@ describe('FragmentClient', () => {
                 .get(`/${mockCollectionData.id}?references=all-hydrated`)
                 .reply(200, mockCollectionData);
             nock(baseUrl)
+                .get('?path=/content/dam/mas/sandbox/en_US/dictionary/index')
+                .reply(200, {
+                    items: [
+                        {
+                            id: mockPlaceholders.id,
+                            type: 'dictionary',
+                            fields: {
+                                name: 'Dictionary',
+                                description: 'Dictionary description',
+                            },
+                        },
+                    ],
+                });
+            nock(baseUrl)
                 .get(`/${mockPlaceholders.id}?references=all-hydrated`)
                 .reply(200, mockPlaceholders);
             const output = await previewFragment(mockCollectionData.id, {

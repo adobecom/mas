@@ -290,10 +290,11 @@ mas-content {
 }
 
 sp-table-cell {
+    display: flex;
+    align-items: center;
+
     &.product-name {
-        display: flex;
         gap: 8px;
-        align-items: center;
 
         & img {
             width: 24px;
@@ -307,7 +308,7 @@ sp-table-cell {
     }
 
     &.status {
-        text-align: end;
+        justify-content: end;
     }
 }
 

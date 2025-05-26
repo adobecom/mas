@@ -1,3 +1,7 @@
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from './constants.js';
+import { VARIANTS } from './editors/variant-picker.js';
+import Events from './events.js';
+
 /**
  * @param {string} input
  * @returns {string}
@@ -169,4 +173,66 @@ export async function getFragmentMapping(variant) {
 
 export function getService() {
     return document.querySelector('mas-commerce-service');
+}
+
+// Author name
+
+const MODEL_WEB_COMPONENT_MAPPING = {
+    [CARD_MODEL_PATH]: 'merch-card',
+    [COLLECTION_MODEL_PATH]: 'merch-card-collection',
+};
+
+function getFragmentPartsToUse(fragment, path) {
+    let fragmentParts = '';
+    let title = '';
+    const surface = path?.toUpperCase();
+    switch (fragment?.model?.path) {
+        case CARD_MODEL_PATH:
+            const props = {
+                cardTitle: fragment?.getField('cardTitle')?.values[0],
+                variantCode: fragment?.getField('variant')?.values[0],
+                marketSegment: fragment?.getTagTitle('market_segment'),
+                customerSegment: fragment?.getTagTitle('customer_segment'),
+                product: fragment?.getTagTitle('mas:product/'),
+                promotion: fragment?.getTagTitle('mas:promotion/'),
+            };
+
+            VARIANTS.forEach((variant) => {
+                if (variant.value === props.variantCode) {
+                    props.variantLabel = variant.label;
+                }
+            });
+            const buildPart = (part) => {
+                if (part) return ` / ${part}`;
+                return '';
+            };
+            fragmentParts = `${surface}${buildPart(props.variantLabel)}${buildPart(props.customerSegment)}${buildPart(props.marketSegment)}${buildPart(props.product)}${buildPart(props.promotion)}`;
+            title = props.cardTitle;
+            break;
+        case COLLECTION_MODEL_PATH:
+            title = fragment?.title;
+            fragmentParts = `${surface} / ${title}`;
+            break;
+    }
+    return { fragmentParts, title };
+}
+
+export function generateCodeToUse(fragment, path, page, failMessage) {
+    console.log(fragment, path, page, 'wolololoooo');
+    const { fragmentParts, title } = getFragmentPartsToUse(fragment, path);
+    const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
+    if (!webComponentName) {
+        if (failMessage)
+            Events.toast.emit({
+                variant: 'negative',
+                content: 'Failed to copy code to clipboard',
+            });
+        return [];
+    }
+
+    const code = `<${webComponentName}><aem-fragment fragment="${fragment?.id}" title="${title}"></aem-fragment></${webComponentName}>`;
+    const authorPath = `${webComponentName}: ${fragmentParts}`;
+    const href = `https://mas.adobe.com/studio.html#content-type=${webComponentName}&page=${page}&path=${path}&query=${fragment?.id}`;
+    const richText = `<a href="${href}" target="_blank">${authorPath}</a>`;
+    return { authorPath, code, richText, href };
 }

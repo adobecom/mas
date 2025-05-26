@@ -1,7 +1,7 @@
 import { LitElement, html } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { COLLECTION_MODEL_PATH } from './constants.js';
-import { getFragmentMapping, getService } from './utils.js';
+import { generateCodeToUse, getService } from './utils.js';
+import Store from './store.js';
 
 class MasFragmentTable extends LitElement {
     static properties = {
@@ -57,9 +57,12 @@ class MasFragmentTable extends LitElement {
         />`;
     }
 
-    get productName() {
-        const isCollection = this.data.model?.path === COLLECTION_MODEL_PATH;
-        return this.data.getFieldValue(isCollection ? 'label' : 'cardTitle');
+    get name() {
+        return generateCodeToUse(
+            this.data,
+            Store.search.get().path,
+            Store.page.get(),
+        ).authorPath;
     }
 
     get price() {
@@ -76,10 +79,9 @@ class MasFragmentTable extends LitElement {
         const data = this.fragmentStore.value;
         return html`<sp-table-row value="${data.id}"
             ><sp-table-cell class="product-name">
-                ${this.icon} ${this.productName}
+                ${this.icon} ${this.name}
             </sp-table-cell>
             <sp-table-cell>${data.title}</sp-table-cell>
-            <sp-table-cell>${data.name}</sp-table-cell>
             <sp-table-cell>${this.offerData?.offerType}</sp-table-cell>
             <sp-table-cell>${this.price}</sp-table-cell>
             <sp-table-cell class="offer-id"

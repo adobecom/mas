@@ -195,5 +195,55 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
+        {
+            tcid: '16',
+            name: '@studio-plans-individuals-save-edited-cta-label',
+            path: '/studio.html',
+            data: {
+                cardid: '6f189be0-d64b-468f-b340-92888206cce8',
+                ctaText: 'Buy now',
+                newCtaText: 'New CTA Text',
+                osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
+        },
+        {
+            tcid: '17',
+            name: '@studio-plans-individuals-save-edited-cta-variant',
+            path: '/studio.html',
+            data: {
+                cardid: '6f189be0-d64b-468f-b340-92888206cce8',
+                osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
+                variant: 'accent',
+                ctaCSS: {
+                    'background-color': 'rgb(59, 99, 251)',
+                    color: 'rgb(255, 255, 255)',
+                },
+                newCtaCSS: {
+                    color: 'rgb(44, 44, 44)',
+                },
+                newVariant: 'primary-outline',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
+        },
+        {
+            tcid: '18',
+            name: '@studio-plans-individuals-save-edited-cta-checkout-params',
+            path: '/studio.html',
+            data: {
+                cardid: '6f189be0-d64b-468f-b340-92888206cce8',
+                osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
+                checkoutParams: {
+                    mv: '1',
+                    cs: 'individual',
+                    promoid: 'ABC123',
+                    mv2: '2',
+                },
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
+        },
     ],
 };

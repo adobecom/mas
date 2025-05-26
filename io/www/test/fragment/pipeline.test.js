@@ -30,6 +30,13 @@ async function getFragment(params) {
     return decompress(await action.main(params));
 }
 
+const EXPECTED_HEADERS = {
+    'Access-Control-Expose-Headers':
+        'X-Request-Id,Etag,Last-Modified,server-timing',
+    'Content-Encoding': 'br',
+    'Content-Type': 'application/json',
+};
+
 function setupFragmentMocks({ id, path, fields = {} }, preview = false) {
     const odinDomain = `https://${preview ? 'odinpreview.corp' : 'odin'}.adobe.com`;
     const odinUriRoot = preview
@@ -194,10 +201,7 @@ describe('pipeline corner cases', () => {
             state: new MockState(),
         });
         expect(result).to.deep.equal({
-            headers: {
-                'Content-Encoding': 'br',
-                'Content-Type': 'application/json',
-            },
+            headers: EXPECTED_HEADERS,
             body: {
                 message: 'requested parameters are not present',
             },
@@ -218,10 +222,7 @@ describe('pipeline corner cases', () => {
 
         expect(result).to.deep.equal({
             statusCode: 500,
-            headers: {
-                'Content-Encoding': 'br',
-                'Content-Type': 'application/json',
-            },
+            headers: EXPECTED_HEADERS,
             body: {
                 message: 'nok',
             },
@@ -250,10 +251,7 @@ describe('pipeline corner cases', () => {
 
         expect(result).to.deep.equal({
             statusCode: 404,
-            headers: {
-                'Content-Encoding': 'br',
-                'Content-Type': 'application/json',
-            },
+            headers: EXPECTED_HEADERS,
             body: {
                 message: 'nok',
             },

@@ -732,7 +732,7 @@ class MerchCardEditor extends LitElement {
     }
 
     get isPlans() {
-        return this.fragment.variant.startsWith('plans');
+        return this.fragment.variant?.startsWith('plans');
     }
 
     get badge() {

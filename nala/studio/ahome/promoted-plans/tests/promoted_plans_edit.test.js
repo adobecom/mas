@@ -114,8 +114,12 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
                 data.standardBorderCSSColor,
             );
             await editor.borderColor.click();
+            await page.waitForSelector(`sp-menu-item[value="${data.gradientBorderValue}"]`, {
+                state: 'visible',
+            });
             await page
-                .getByRole('option', { name: data.gradientBorderColor })
+                .locator(`sp-menu-item[value="${data.gradientBorderValue}"]`)
+                .first()
                 .click();
             await page.waitForTimeout(2000);
         });

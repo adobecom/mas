@@ -58,6 +58,16 @@ class MerchCardEditor extends LitElement {
         this.availableBadgeColors = [];
         this.availableBackgroundColors = [];
         this.quantitySelectorValues = '';
+        this.merchCardElement = null;
+    }
+
+    get currentVariantMapping() {
+        const merchCardElement =
+            this.merchCardElement || customElements.get('merch-card');
+        if (!this.fragment || !merchCardElement) {
+            return null;
+        }
+        return merchCardElement.getFragmentMapping(this.fragment.variant);
     }
 
     createRenderRoot() {
@@ -123,11 +133,20 @@ class MerchCardEditor extends LitElement {
         const mnemonicLink =
             this.fragment.fields.find((f) => f.name === 'mnemonicLink')
                 ?.values ?? [];
+        const mnemonicTooltipText =
+            this.fragment.fields.find((f) => f.name === 'mnemonicTooltipText')
+                ?.values ?? [];
+        const mnemonicTooltipPlacement =
+            this.fragment.fields.find(
+                (f) => f.name === 'mnemonicTooltipPlacement',
+            )?.values ?? [];
         return (
             mnemonicIcon?.map((icon, index) => ({
                 icon,
                 alt: mnemonicAlt[index] ?? '',
                 link: mnemonicLink[index] ?? '',
+                tooltipText: mnemonicTooltipText[index] ?? '',
+                tooltipPlacement: mnemonicTooltipPlacement[index] ?? 'top',
             })) ?? []
         );
     }
@@ -226,6 +245,19 @@ class MerchCardEditor extends LitElement {
         if (element) element.style.display = show ? 'block' : 'none';
     }
 
+    async #ensureMerchCardElement() {
+        if (!this.merchCardElement) {
+            try {
+                this.merchCardElement = await merchCardCustomElementPromise;
+            } catch (error) {
+                console.error(
+                    'Failed to get merch-card custom element:',
+                    error,
+                );
+            }
+        }
+    }
+
     updated(changedProperties) {
         super.updated(changedProperties);
         if (changedProperties.has('fragmentStore')) {
@@ -238,14 +270,12 @@ class MerchCardEditor extends LitElement {
 
     async toggleFields() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await merchCardCustomElementPromise;
-        if (!merchCardCustomElement) return;
+        await this.#ensureMerchCardElement();
+        if (!this.merchCardElement) return;
         this.querySelectorAll('sp-field-group.toggle').forEach((field) => {
             field.style.display = 'none';
         });
-        const variant = merchCardCustomElement.getFragmentMapping(
-            this.fragment.variant,
-        );
+        const variant = this.currentVariantMapping;
         if (!variant) return;
         Object.entries(variant).forEach(([key, value]) => {
             if (Array.isArray(value) && value.length === 0) return;
@@ -371,6 +401,19 @@ class MerchCardEditor extends LitElement {
                 ></sp-textfield>
                 ${this.#renderBadgeColors()}
             </sp-field-group>
+            <sp-field-group class="toggle" id="trialBadge">
+                <sp-field-label for="card-trial-badge"
+                    >Trial Badge</sp-field-label
+                >
+                <sp-textfield
+                    placeholder="Enter trial badge text"
+                    id="card-trial-badge"
+                    data-field="trialBadge"
+                    value="${this.trialBadge.text}"
+                    @input="${this.#updateTrialBadgeText}"
+                ></sp-textfield>
+                ${this.#renderTrialBadgeColors()}
+            </sp-field-group>
             ${this.#renderColorPicker(
                 'border-color',
                 'Border Color',
@@ -439,6 +482,19 @@ class MerchCardEditor extends LitElement {
                     ?disabled=${this.disabled}
                 ></sp-textfield>
             </sp-field-group>
+            <sp-field-group class="toggle" id="addonConfirmation">
+                <sp-field-label for="addon-confirmation"
+                    >Addon Confirmation</sp-field-label
+                >
+                <sp-textfield
+                    placeholder="Enter addon confirmation text"
+                    id="addon-confirmation"
+                    data-field="addonConfirmation"
+                    value="${form.addonConfirmation?.values[0]}"
+                    @input="${this.#handleFragmentUpdate}"
+                    ?disabled=${this.disabled}
+                ></sp-textfield>
+            </sp-field-group>
             <sp-field-group class="toggle" id="description">
                 <sp-field-label for="description">Description</sp-field-label>
                 <rte-field
@@ -446,6 +502,8 @@ class MerchCardEditor extends LitElement {
                     styling
                     link
                     upt-link
+                    list
+                    mnemonic
                     data-field="description"
                     default-link-style="secondary-link"
                     @change="${this.#handleFragmentUpdate}"
@@ -659,15 +717,26 @@ class MerchCardEditor extends LitElement {
         const mnemonicIcon = [];
         const mnemonicAlt = [];
         const mnemonicLink = [];
-        event.target.value.forEach(({ icon, alt, link }) => {
-            mnemonicIcon.push(icon ?? '');
-            mnemonicAlt.push(alt ?? '');
-            mnemonicLink.push(link ?? '');
-        });
+        const mnemonicTooltipText = [];
+        const mnemonicTooltipPlacement = [];
+        event.target.value.forEach(
+            ({ icon, alt, link, tooltipText, tooltipPlacement }) => {
+                mnemonicIcon.push(icon ?? '');
+                mnemonicAlt.push(alt ?? '');
+                mnemonicLink.push(link ?? '');
+                mnemonicTooltipText.push(tooltipText ?? '');
+                mnemonicTooltipPlacement.push(tooltipPlacement ?? 'top');
+            },
+        );
         const fragment = this.fragmentStore.get();
         fragment.updateField('mnemonicIcon', mnemonicIcon);
         fragment.updateField('mnemonicAlt', mnemonicAlt);
         fragment.updateField('mnemonicLink', mnemonicLink);
+        fragment.updateField('mnemonicTooltipText', mnemonicTooltipText);
+        fragment.updateField(
+            'mnemonicTooltipPlacement',
+            mnemonicTooltipPlacement,
+        );
         this.fragmentStore.set(fragment);
     }
 
@@ -680,25 +749,30 @@ class MerchCardEditor extends LitElement {
 
     async #updateAvailableSizes() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await merchCardCustomElementPromise;
-        const variant = merchCardCustomElement?.getFragmentMapping(
-            this.fragment.variant,
-        );
+        await this.#ensureMerchCardElement();
+        if (!this.merchCardElement) {
+            this.availableSizes = ['Default'];
+            return;
+        }
+        const variant = this.currentVariantMapping;
         this.availableSizes = ['Default', ...(variant?.size || ['Default'])];
     }
 
     async #updateAvailableColors() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await merchCardCustomElementPromise;
-        const variant = merchCardCustomElement?.getFragmentMapping(
-            this.fragment.variant,
-        );
+        await this.#ensureMerchCardElement();
+        if (!this.merchCardElement) {
+            this.availableColors = [];
+            return;
+        }
+        const variant = this.currentVariantMapping;
         this.availableColors = variant?.allowedColors || [];
         this.#displayBadgeColorFields(this.badge.text);
+        this.#displayTrialBadgeColorFields(this.trialBadge.text);
     }
 
     #displayBadgeColorFields(text) {
-        if (!this.isPlans) return;
+        if (!this.supportsBadgeColors) return;
         document.querySelector('#badgeColor').style.display = text
             ? 'block'
             : 'none';
@@ -733,8 +807,21 @@ class MerchCardEditor extends LitElement {
         return this.fragment.variant.startsWith('plans');
     }
 
+    get supportsBadgeColors() {
+        if (!this.fragment) {
+            return false;
+        }
+        const variantMapping = this.currentVariantMapping;
+        return !!(
+            variantMapping &&
+            variantMapping.badge &&
+            typeof variantMapping.badge === 'object' &&
+            variantMapping.badge.tag
+        );
+    }
+
     get badge() {
-        if (!this.isPlans) {
+        if (!this.supportsBadgeColors) {
             return {
                 text: this.badgeText,
             };
@@ -766,6 +853,62 @@ class MerchCardEditor extends LitElement {
         };
     }
 
+    get trialBadgeText() {
+        const trialBadgeValues =
+            this.fragment.fields.find((f) => f.name === 'trialBadge')?.values ??
+            [];
+        return trialBadgeValues?.length ? trialBadgeValues[0] : '';
+    }
+
+    get trialBadgeElement() {
+        const trialBadgeHtml = this.trialBadgeText;
+
+        if (!trialBadgeHtml) return undefined;
+
+        if (trialBadgeHtml?.startsWith('<merch-badge')) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(trialBadgeHtml, 'text/html');
+            return doc.querySelector('merch-badge');
+        }
+
+        return {
+            textContent: trialBadgeHtml,
+        };
+    }
+
+    get trialBadge() {
+        if (!this.supportsBadgeColors) {
+            return {
+                text: this.trialBadgeText,
+            };
+        }
+
+        const text = this.trialBadgeElement?.textContent || '';
+        const bgColorAttr =
+            this.trialBadgeElement?.getAttribute?.('background-color');
+        const bgColorSelected = document.querySelector(
+            'sp-picker[data-field="trialBadgeColor"]',
+        )?.value;
+        const bgColor =
+            bgColorAttr?.toLowerCase() ||
+            bgColorSelected ||
+            'spectrum-yellow-300';
+
+        const borderColorAttr =
+            this.trialBadgeElement?.getAttribute?.('border-color');
+        const borderColorSelected = document.querySelector(
+            'sp-picker[data-field="trialBadgeBorderColor"]',
+        )?.value;
+        const borderColor =
+            borderColorAttr?.toLowerCase() || borderColorSelected;
+
+        return {
+            text,
+            bgColor,
+            borderColor,
+        };
+    }
+
     #createBadgeElement(text, bgColor, borderColor) {
         if (!text) return;
 
@@ -784,11 +927,25 @@ class MerchCardEditor extends LitElement {
 
     #updateBadgeText(event) {
         const text = event.target.value?.trim() || '';
-        if (this.isPlans) {
+        if (this.supportsBadgeColors) {
             this.#displayBadgeColorFields(text);
             this.#updateBadge(text, this.badge.bgColor, this.badge.borderColor);
         } else {
             this.fragmentStore.updateField('badge', [text]);
+        }
+    }
+
+    #updateTrialBadgeText(event) {
+        const text = event.target.value?.trim() || '';
+        if (this.supportsBadgeColors) {
+            this.#displayTrialBadgeColorFields(text);
+            this.#updateTrialBadge(
+                text,
+                this.trialBadge.bgColor,
+                this.trialBadge.borderColor,
+            );
+        } else {
+            this.fragmentStore.updateField('trialBadge', [text]);
         }
     }
 
@@ -808,17 +965,52 @@ class MerchCardEditor extends LitElement {
         );
     };
 
+    #onTrialBadgeColorChange = (event) => {
+        this.#updateTrialBadge(
+            this.trialBadge.text,
+            event.target.value,
+            this.trialBadge.borderColor,
+        );
+    };
+
+    #onTrialBadgeBorderColorChange = (event) => {
+        this.#updateTrialBadge(
+            this.trialBadge.text,
+            this.trialBadge.bgColor,
+            event.target.value,
+        );
+    };
+
     #updateBadge = (text, bgColor, borderColor) => {
         const element = this.#createBadgeElement(text, bgColor, borderColor);
         this.fragmentStore.updateField('badge', [element?.outerHTML || '']);
     };
 
+    #updateTrialBadge = (text, bgColor, borderColor) => {
+        const element = this.#createBadgeElement(text, bgColor, borderColor);
+        this.fragmentStore.updateField('trialBadge', [
+            element?.outerHTML || '',
+        ]);
+    };
+
+    #displayTrialBadgeColorFields(text) {
+        if (!this.supportsBadgeColors) return;
+        document.querySelector('#trialBadgeColor').style.display = text
+            ? 'block'
+            : 'none';
+        document.querySelector('#trialBadgeBorderColor').style.display = text
+            ? 'block'
+            : 'none';
+    }
+
     async #updateBackgroundColors() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await merchCardCustomElementPromise;
-        const variant = merchCardCustomElement?.getFragmentMapping(
-            this.fragment.variant,
-        );
+        await this.#ensureMerchCardElement();
+        if (!this.merchCardElement) {
+            this.availableBackgroundColors = { Default: undefined };
+            return;
+        }
+        const variant = this.currentVariantMapping;
         this.availableBackgroundColors = {
             Default: undefined,
             ...(variant.allowedColors ?? []),
@@ -834,7 +1026,7 @@ class MerchCardEditor extends LitElement {
     }
 
     #renderBadgeColors() {
-        if (!this.isPlans) return;
+        if (!this.supportsBadgeColors) return;
 
         return html`
             ${this.#renderColorPicker(
@@ -856,6 +1048,29 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
+    #renderTrialBadgeColors() {
+        if (!this.supportsBadgeColors) return;
+
+        return html`
+            ${this.#renderColorPicker(
+                'trialBadgeColor',
+                'Trial Badge Color',
+                this.availableBadgeColors,
+                this.trialBadge.bgColor,
+                'trialBadgeColor',
+                this.#onTrialBadgeColorChange,
+            )}
+            ${this.#renderColorPicker(
+                'trialBadgeBorderColor',
+                'Trial Badge Border Color',
+                this.availableBadgeColors,
+                this.trialBadge.borderColor,
+                'trialBadgeBorderColor',
+                this.#onTrialBadgeBorderColorChange,
+            )}
+        `;
+    }
+
     #handleFragmentUpdate = (event) => {
         if (this.updateFragment) {
             this.updateFragment(event);
@@ -872,19 +1087,16 @@ class MerchCardEditor extends LitElement {
 
         let variantSpecialValues = {};
         if (this.fragment && isBorder) {
-            const merchCardCustomElement = customElements.get('merch-card');
-            const variant = merchCardCustomElement?.getFragmentMapping(
-                this.fragment.variant,
-            );
+            const variant = this.currentVariantMapping;
             variantSpecialValues = variant?.borderColor?.specialValues || {};
             if (
                 variantSpecialValues &&
                 Object.keys(variantSpecialValues).length > 0
             ) {
-                const specialKeys = Object.keys(variantSpecialValues);
-                colorArray = colorArray.filter(
-                    (color) => !specialKeys.includes(color),
-                );
+                colorArray = [
+                    ...colorArray,
+                    ...Object.keys(variantSpecialValues),
+                ];
             }
         }
 

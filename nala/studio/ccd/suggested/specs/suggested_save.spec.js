@@ -175,5 +175,20 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
         },
+        {
+            tcid: '13',
+            name: '@studio-suggested-save-edited-analytics-ids',
+            path: '/studio.html',
+            data: {
+                cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
+                analyticsID: 'buy-now',
+                daaLL: 'buy-now-1',
+                daaLH: 'phsp',
+                newAnalyticsID: 'save-now',
+                newDaaLL: 'save-now-1',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
+        },
     ],
 };

@@ -115,6 +115,8 @@ async function main(params) {
     }
     returnValue.headers = {
         ...returnValue.headers,
+        'Access-Control-Expose-Headers':
+            'X-Request-Id,Etag,Last-Modified,server-timing',
         'Content-Type': 'application/json',
         'Content-Encoding': 'br',
     };

@@ -32,10 +32,6 @@ import { runNALATestWithFixes } from './nala-test-runner.js';
 
 // Get card types dynamically from the source
 const dynamicCardTypes = getSimplifiedCardTypes();
-console.error(
-    `Loaded ${dynamicCardTypes.length} card types from source:`,
-    dynamicCardTypes,
-);
 
 const CardConfigSchema = z.object({
     cardType: z.enum(dynamicCardTypes),
@@ -893,23 +889,25 @@ server.tool(
             const finalBrowserParams = browserParams || '#query=';
             const url = `${baseUrl}${finalPath}${finalBrowserParams}${cardId}`;
 
-            console.error(`Opening browser and navigating to: ${url}`);
+            // Note: Console output disabled to prevent MCP JSON parsing issues
+            // console.error(`Opening browser and navigating to: ${url}`);
 
             const browser = await chromium.launch({ headless });
-            
+
             // Try to use existing auth state if available
             const authFile = join(process.cwd(), 'nala/.auth/user.json');
             let context;
-            
+
             if (existsSync(authFile)) {
-                console.error('Using existing authentication state...');
+                // Note: Console output disabled to prevent MCP JSON parsing issues
+                // console.error('Using existing authentication state...');
                 context = await browser.newContext({
                     storageState: authFile,
                 });
             } else {
                 context = await browser.newContext();
             }
-            
+
             const page = await context.newPage();
 
             try {
@@ -922,15 +920,15 @@ server.tool(
                 // Check if card exists first - try multiple selectors
                 let cardLocator = null;
                 let cardExists = 0;
-                
+
                 // Try direct ID selector
                 cardLocator = page.locator(`merch-card[id="${cardId}"]`);
                 cardExists = await cardLocator.count();
-                
+
                 // Try finding card containing aem-fragment
                 if (cardExists === 0) {
-                    cardLocator = page.locator('merch-card').filter({ 
-                        has: page.locator(`aem-fragment[fragment="${cardId}"]`) 
+                    cardLocator = page.locator('merch-card').filter({
+                        has: page.locator(`aem-fragment[fragment="${cardId}"]`),
                     });
                     cardExists = await cardLocator.count();
                 }
@@ -942,16 +940,22 @@ server.tool(
                 }
 
                 // Wait for card to be visible and loaded
-                await cardLocator.first().waitFor({ state: 'visible', timeout: 20000 });
+                await cardLocator
+                    .first()
+                    .waitFor({ state: 'visible', timeout: 20000 });
 
                 // Wait for card to have the 'loaded' attribute or timeout
                 await page
                     .waitForFunction(
                         (cardId) => {
                             // Find the card using the same logic as extraction script
-                            let card = document.querySelector(`merch-card[id="${cardId}"]`);
+                            let card = document.querySelector(
+                                `merch-card[id="${cardId}"]`,
+                            );
                             if (!card) {
-                                const fragment = document.querySelector(`aem-fragment[fragment="${cardId}"]`);
+                                const fragment = document.querySelector(
+                                    `aem-fragment[fragment="${cardId}"]`,
+                                );
                                 if (fragment) {
                                     card = fragment.closest('merch-card');
                                 }
@@ -965,31 +969,32 @@ server.tool(
                         cardId,
                         { timeout: 10000 },
                     )
-                    .catch(() => {
-                        // Continue even if loaded attribute check fails
-                        console.error(
-                            'Card loaded attribute check timed out, continuing anyway...',
-                        );
-                    });
+                    .catch(() => {});
 
                 // Additional wait for card content to be fully rendered
                 await page.waitForTimeout(2000);
 
                 // Use the new LiveCardExtractor for precise extraction
-                const { LiveCardExtractor } = await import('./utils/live-card-extractor.js');
+                const { LiveCardExtractor } = await import(
+                    './utils/live-card-extractor.js'
+                );
                 const liveExtractor = new LiveCardExtractor();
-                
+
                 // Close the browser first since LiveCardExtractor will open its own
                 await browser.close();
-                
+
                 // Use dynamic extraction - auto-detect card type
-                const result = await liveExtractor.extractActualCSSProperties(cardId, milolibs);
+                const result = await liveExtractor.extractActualCSSProperties(
+                    cardId,
+                    milolibs,
+                );
 
                 if (result.error) {
                     throw new Error(result.error);
                 }
 
-                const cssProps = liveExtractor.generateCSSPropertyObject(result);
+                const cssProps =
+                    liveExtractor.generateCSSPropertyObject(result);
                 const detectedCardType = result.cardType || 'unknown';
 
                 let response = `# Dynamically Extracted Card Properties\n\n`;
@@ -1120,10 +1125,14 @@ server.tool(
                     backgroundImage: { selector: '.card-background' },
                 },
                 metadata: {
-                    path: milolibs === 'local' ? '/studio.html?milolibs=local' : '/studio.html',
-                    browserParams: milolibs === 'local' 
-                        ? '#page=content&path=nala&query=' 
-                        : '#query=',
+                    path:
+                        milolibs === 'local'
+                            ? '/studio.html?milolibs=local'
+                            : '/studio.html',
+                    browserParams:
+                        milolibs === 'local'
+                            ? '#page=content&path=nala&query='
+                            : '#query=',
                     tags: [`@${cardTypeDetected}-${testType}`],
                     milolibs: milolibs,
                 },
@@ -1381,7 +1390,9 @@ server.tool(
         milolibs: z
             .string()
             .optional()
-            .describe("Milolibs branch (e.g., 'MWPW-170520' or 'local' for localhost)"),
+            .describe(
+                "Milolibs branch (e.g., 'MWPW-170520' or 'local' for localhost)",
+            ),
         headless: z
             .boolean()
             .optional()
@@ -1416,9 +1427,10 @@ server.tool(
             const startTime = Date.now();
 
             // Step 1: Generate tests
-            console.error(
-                `🔧 Generating ${testType} tests for ${cardType} card ${cardId}...`,
-            );
+            // Note: Console output disabled to prevent MCP JSON parsing issues
+            // console.error(
+            //     `🔧 Generating ${testType} tests for ${cardType} card ${cardId}...`,
+            // );
 
             const config = {
                 cardType: cardType,
@@ -1435,10 +1447,14 @@ server.tool(
                     backgroundImage: { selector: '.card-background' },
                 },
                 metadata: {
-                    path: milolibs === 'local' ? '/studio.html?milolibs=local' : '/studio.html',
-                    browserParams: milolibs === 'local' 
-                        ? '#page=content&path=nala&query=' 
-                        : '#query=',
+                    path:
+                        milolibs === 'local'
+                            ? '/studio.html?milolibs=local'
+                            : '/studio.html',
+                    browserParams:
+                        milolibs === 'local'
+                            ? '#page=content&path=nala&query='
+                            : '#query=',
                     tags: [`@${cardType}-${testType}`],
                     milolibs: milolibs,
                 },
@@ -1458,10 +1474,12 @@ server.tool(
                 testType,
             );
 
-            console.error(`✅ Generated and saved test files`);
+            // Note: Console output disabled to prevent MCP JSON parsing issues
+            // console.error(`✅ Generated and saved test files`);
 
             // Step 2: Run complete test suite (validation + execution)
-            console.error(`🧪 Running complete test suite...`);
+            // Note: Console output disabled to prevent MCP JSON parsing issues
+            // console.error(`🧪 Running complete test suite...`);
 
             const testResult = await runCompleteTestSuite(cardType, testType, {
                 headless,
@@ -1493,7 +1511,7 @@ server.tool(
             if (testResult.success) {
                 response += `\n🎉 **All tests generated and ${validateOnly ? 'validated' : 'executed'} successfully!**\n`;
                 response += `\nYour NALA tests are ready to use in the existing test infrastructure.`;
-                
+
                 if (milolibs === 'local') {
                     response += `\n\n**Note**: Tests are configured for localhost testing with milolibs=local.`;
                     response += `\nTo run manually: \`LOCAL_TEST_LIVE_URL="http://localhost:3000" npx playwright test nala/studio/${fileSummary.surface}/${cardType}/tests/${cardType}_${testType}.test.js --project=mas-live-chromium --headed\``;
@@ -1540,7 +1558,9 @@ server.tool(
         milolibs: z
             .string()
             .optional()
-            .describe("Milolibs branch (e.g., 'MWPW-170520' or 'local' for localhost)"),
+            .describe(
+                "Milolibs branch (e.g., 'MWPW-170520' or 'local' for localhost)",
+            ),
         headless: z
             .boolean()
             .optional()
@@ -1619,7 +1639,7 @@ server.tool(
                 console.error(
                     `📝 Test files not found. Generating tests first...`,
                 );
-                
+
                 // Generate the tests with proper metadata including milolibs
                 const config = {
                     cardType: cardType,
@@ -1636,16 +1656,21 @@ server.tool(
                         backgroundImage: { selector: '.card-background' },
                     },
                     metadata: {
-                        path: milolibs === 'local' ? '/studio.html?milolibs=local' : '/studio.html',
-                        browserParams: milolibs === 'local' 
-                            ? '#page=content&path=nala&query=' 
-                            : '#query=',
+                        path:
+                            milolibs === 'local'
+                                ? '/studio.html?milolibs=local'
+                                : '/studio.html',
+                        browserParams:
+                            milolibs === 'local'
+                                ? '#page=content&path=nala&query='
+                                : '#query=',
                         tags: [`@${cardType}-${testType}`],
                         milolibs: milolibs,
                     },
                 };
 
-                const pageObject = pageObjectGenerator.generatePageObject(config);
+                const pageObject =
+                    pageObjectGenerator.generatePageObject(config);
                 const spec = specGenerator.generateSpecFile(config, testType);
                 const test = testGenerator.generateTestFile(config, testType);
 
@@ -1826,7 +1851,7 @@ server.tool(
                     response += `✨ **Fixes Applied**: ${allFixesApplied.length} issues were automatically resolved.\n`;
                 }
                 response += `\nYour NALA tests are ready to use in the existing test infrastructure.`;
-                
+
                 if (milolibs === 'local') {
                     response += `\n\n**Note**: Tests are configured for localhost testing with milolibs=local.`;
                     response += `\nTo run manually: \`LOCAL_TEST_LIVE_URL="http://localhost:3000" npx playwright test nala/studio/${surface}/${cardType}/tests/${cardType}_${testType}.test.js --project=mas-live-chromium --headed\``;
@@ -1871,7 +1896,9 @@ server.tool(
     'run-nala-test-standard',
     'Run NALA tests using standard npm command and automatically fix locator issues',
     {
-        testTag: z.string().describe('NALA test tag (e.g., @studio-fries-css-card)'),
+        testTag: z
+            .string()
+            .describe('NALA test tag (e.g., @studio-fries-css-card)'),
         cardType: z.enum(dynamicCardTypes).describe('Type of card'),
         cardId: z.string().describe('The ID of the merch card'),
         branch: z
@@ -1901,9 +1928,10 @@ server.tool(
         maxAttempts = 3,
     }) => {
         try {
-            console.error(
-                `🚀 Running NALA test with automatic fixing: ${testTag}`,
-            );
+            // Note: Console output disabled to prevent MCP JSON parsing issues
+            // console.error(
+            //     `🚀 Running NALA test with automatic fixing: ${testTag}`,
+            // );
 
             const result = await runNALATestWithFixes({
                 testTag,
@@ -1926,20 +1954,20 @@ server.tool(
             if (result.success) {
                 response += `## ✅ Success!\n\n`;
                 response += `The test passed after ${result.attempts} attempt(s).\n\n`;
-                
+
                 if (result.attempts > 1) {
                     response += `### Fixes Applied\n`;
                     response += `The following issues were automatically fixed:\n`;
                     response += `- Updated CSS properties in page object\n`;
                     response += `- Fixed element selectors based on live card\n\n`;
                 }
-                
+
                 response += `### Run Manually\n`;
                 response += `To run this test manually, use:\n`;
                 response += `\`\`\`bash\n`;
                 response += `npm run nala branch ${branch} ${testTag} mode=${mode} milolibs=${milolibs}\n`;
                 response += `\`\`\`\n`;
-                
+
                 if (milolibs === 'local') {
                     response += `\nOr with explicit localhost URL:\n`;
                     response += `\`\`\`bash\n`;
@@ -1949,7 +1977,7 @@ server.tool(
             } else {
                 response += `## ❌ Failed\n\n`;
                 response += `The test failed after ${result.attempts} attempts.\n\n`;
-                
+
                 if (result.lastError && result.lastError.length > 0) {
                     response += `### Last Errors\n`;
                     result.lastError.forEach((error) => {
@@ -1963,7 +1991,7 @@ server.tool(
                     });
                     response += `\n`;
                 }
-                
+
                 response += `### Next Steps\n`;
                 response += `1. Check if localhost:3000 is running\n`;
                 response += `2. Verify the card exists with ID: ${cardId}\n`;
@@ -1995,10 +2023,12 @@ server.tool(
 async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.error('NALA Test Generator MCP Server running on stdio');
+    // Note: Console output disabled to prevent MCP JSON parsing issues
+    // console.error('NALA Test Generator MCP Server running on stdio');
 }
 
 main().catch((error) => {
-    console.error('Fatal error in main():', error);
+    // Note: Console output disabled to prevent MCP JSON parsing issues
+    // console.error('Fatal error in main():', error);
     process.exit(1);
 });

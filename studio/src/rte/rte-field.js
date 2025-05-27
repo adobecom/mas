@@ -411,10 +411,10 @@ class RteField extends LitElement {
         clearInterval(this.updateLengthInterval);
     }
 
-    getStylingMark(stylingType) {
+    getStylingMark(stylingType, ariaLevel) {
         return {
             [stylingType]: {
-                attrs: { class: { default: null } },
+                attrs: { class: { default: null }, role: { default: null }, 'aria-level': { default: null } },
                 group: 'styling',
                 parseDOM: [
                     {
@@ -422,7 +422,7 @@ class RteField extends LitElement {
                         getAttrs: this.#collectDataAttributes,
                     },
                 ],
-                toDOM: () => ['span', { class: stylingType }, 0],
+                toDOM: () => ['span', { class: stylingType, role: ariaLevel ? 'heading' : null, 'aria-level': ariaLevel }, 0],
             },
         };
     }
@@ -529,11 +529,11 @@ class RteField extends LitElement {
                     toDOM: () => ['u', 0],
                 },
                 ...(this.styling && {
-                    ...this.getStylingMark('heading-xxxs'),
-                    ...this.getStylingMark('heading-xxs'),
-                    ...this.getStylingMark('heading-xs'),
-                    ...this.getStylingMark('heading-s'),
-                    ...this.getStylingMark('heading-m'),
+                    ...this.getStylingMark('heading-xxxs', '6'),
+                    ...this.getStylingMark('heading-xxs', '5'),
+                    ...this.getStylingMark('heading-xs', '4'),
+                    ...this.getStylingMark('heading-s', '3'),
+                    ...this.getStylingMark('heading-m', '2'),
                     ...this.getStylingMark('promo-text'),
                 }),
             });

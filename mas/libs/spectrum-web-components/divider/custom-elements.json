@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "sp-divider.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-divider",
+          "declaration": {
+            "name": "Divider",
+            "module": "/src/Divider.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/Divider.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "Divider",
+          "members": [
+            {
+              "kind": "field",
+              "name": "vertical",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "vertical",
+              "reflects": true
+            }
+          ],
+          "attributes": [
+            {
+              "name": "vertical",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "vertical"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "SizedMixin",
+              "package": "@spectrum-web-components/base"
+            }
+          ],
+          "superclass": {
+            "name": "SpectrumElement",
+            "package": "@spectrum-web-components/base"
+          },
+          "tagName": "sp-divider",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "Divider",
+          "declaration": {
+            "name": "Divider",
+            "module": "src/Divider.js"
+          }
+        }
+      ]
+    }
+  ]
+}

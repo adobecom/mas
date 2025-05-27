@@ -1,0 +1,1055 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "sp-tab-panel.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-tab-panel",
+          "declaration": {
+            "name": "TabPanel",
+            "module": "/src/TabPanel.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "sp-tab.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-tab",
+          "declaration": {
+            "name": "Tab",
+            "module": "/src/Tab.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "sp-tabs-overflow.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-tabs-overflow",
+          "declaration": {
+            "name": "TabsOverflow",
+            "module": "/src/TabsOverflow.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "sp-tabs.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-tabs",
+          "declaration": {
+            "name": "Tabs",
+            "module": "/src/Tabs.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/Tab.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "Tab",
+          "slots": [
+            {
+              "description": "text label of the Tab",
+              "name": ""
+            },
+            {
+              "description": "The icon that appears on the left of the label",
+              "name": "icon"
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "hasIcon",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "protected",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "hasLabel",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "protected",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "disabled",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "disabled",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "attribute": "label",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "selected",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "selected",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "vertical",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "vertical",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "value",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "attribute": "value",
+              "reflects": true
+            }
+          ],
+          "attributes": [
+            {
+              "name": "disabled",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "disabled"
+            },
+            {
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "fieldName": "label"
+            },
+            {
+              "name": "selected",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "selected"
+            },
+            {
+              "name": "vertical",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "vertical"
+            },
+            {
+              "name": "value",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "fieldName": "value"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "FocusVisiblePolyfillMixin",
+              "package": "@spectrum-web-components/shared/src/focus-visible.js"
+            },
+            {
+              "name": "ObserveSlotText",
+              "package": "@spectrum-web-components/shared/src/observe-slot-text.js"
+            },
+            {
+              "name": "ObserveSlotPresence",
+              "package": "@spectrum-web-components/shared/src/observe-slot-presence.js"
+            }
+          ],
+          "superclass": {
+            "name": "SpectrumElement",
+            "package": "@spectrum-web-components/base"
+          },
+          "tagName": "sp-tab",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "Tab",
+          "declaration": {
+            "name": "Tab",
+            "module": "src/Tab.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/TabPanel.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "TabPanel",
+          "slots": [
+            {
+              "description": "content of the Tab Panel",
+              "name": ""
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "selected",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "selected",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "value",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "attribute": "value",
+              "reflects": true
+            },
+            {
+              "kind": "method",
+              "name": "handleFocusin",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleFocusout",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            }
+          ],
+          "attributes": [
+            {
+              "name": "selected",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "selected"
+            },
+            {
+              "name": "value",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "fieldName": "value"
+            }
+          ],
+          "superclass": {
+            "name": "SpectrumElement",
+            "package": "@spectrum-web-components/base"
+          },
+          "tagName": "sp-tab-panel",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "TabPanel",
+          "declaration": {
+            "name": "TabPanel",
+            "module": "src/TabPanel.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/Tabs.js",
+      "declarations": [
+        {
+          "kind": "variable",
+          "name": "ScaledIndicator",
+          "type": {
+            "text": "object"
+          },
+          "default": "{\n    baseSize: 100 as const,\n    noSelectionStyle: 'transform: translateX(0px) scaleX(0) scaleY(0)',\n\n    transformX(left: number, width: number): string {\n        const scale = width / this.baseSize;\n        return `transform: translateX(${left}px) scaleX(${scale});`;\n    },\n\n    transformY(top: number, height: number): string {\n        const scale = height / this.baseSize;\n        return `transform: translateY(${top}px) scaleY(${scale});`;\n    },\n\n    baseStyles(): CSSResult {\n        return css`\n            :host([direction='vertical-right']) #selection-indicator,\n            :host([direction='vertical']) #selection-indicator {\n                height: ${this.baseSize}px;\n            }\n            :host([dir][direction='horizontal']) #selection-indicator {\n                width: ${this.baseSize}px;\n            }\n        `;\n    },\n}"
+        },
+        {
+          "kind": "function",
+          "name": "calculateScrollTargetForRightSide",
+          "return": {
+            "type": {
+              "text": "number"
+            }
+          },
+          "parameters": [
+            {
+              "name": "index",
+              "type": {
+                "text": "number"
+              }
+            },
+            {
+              "name": "direction",
+              "type": {
+                "text": "'rtl' | 'ltr'"
+              }
+            },
+            {
+              "name": "tabs",
+              "type": {
+                "text": "Tab[]"
+              }
+            },
+            {
+              "name": "container",
+              "type": {
+                "text": "HTMLDivElement"
+              }
+            }
+          ],
+          "description": "Given that the scroll needs to be on the right side of the viewport.\nReturns the coordonate x it needs to scroll so that the tab with given index is visible."
+        },
+        {
+          "kind": "function",
+          "name": "calculateScrollTargetForLeftSide",
+          "return": {
+            "type": {
+              "text": "number"
+            }
+          },
+          "parameters": [
+            {
+              "name": "index",
+              "type": {
+                "text": "number"
+              }
+            },
+            {
+              "name": "direction",
+              "type": {
+                "text": "'rtl' | 'ltr'"
+              }
+            },
+            {
+              "name": "tabs",
+              "type": {
+                "text": "Tab[]"
+              }
+            },
+            {
+              "name": "container",
+              "type": {
+                "text": "HTMLDivElement"
+              }
+            }
+          ],
+          "description": "Given that the scroll needs to be on the left side of the viewport.\nReturns the coordonate x it needs to scroll so that the tab with given index is visible."
+        },
+        {
+          "kind": "class",
+          "description": "",
+          "name": "Tabs",
+          "cssParts": [
+            {
+              "description": "Container element for the slotted sp-tab elements",
+              "name": "tablist"
+            }
+          ],
+          "slots": [
+            {
+              "description": "Tab elements to manage as a group",
+              "name": ""
+            },
+            {
+              "description": "Tab Panel elements related to the listed Tab elements",
+              "name": "tab-panel"
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "auto",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Whether to activate a tab on keyboard focus or not.\n\nBy default a tab is activated via a \"click\" interaction. This is specifically intended for when\ntab content cannot be displayed instantly, e.g. not all of the DOM content is available, etc.\nTo learn more about \"Deciding When to Make Selection Automatically Follow Focus\", visit:\nhttps://w3c.github.io/aria-practices/#kbd_selection_follows_focus",
+              "attribute": "auto"
+            },
+            {
+              "kind": "field",
+              "name": "compact",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "The tab items are displayed closer together.",
+              "attribute": "compact",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "dir",
+              "type": {
+                "text": "'ltr' | 'rtl'"
+              },
+              "privacy": "public",
+              "attribute": "dir",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "direction",
+              "type": {
+                "text": "'vertical' | 'vertical-right' | 'horizontal'"
+              },
+              "privacy": "public",
+              "default": "'horizontal'",
+              "attribute": "direction",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "emphasized",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "emphasized",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "attribute": "label"
+            },
+            {
+              "kind": "field",
+              "name": "enableTabsScroll",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "enableTabsScroll"
+            },
+            {
+              "kind": "field",
+              "name": "quiet",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "The tab list is displayed without a border.",
+              "attribute": "quiet",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "selectionIndicatorStyle",
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "shouldAnimate",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "slotEl",
+              "type": {
+                "text": "HTMLSlotElement"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "tabList",
+              "type": {
+                "text": "HTMLDivElement"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "selected",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "attribute": "selected",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "tabs",
+              "privacy": "private",
+              "type": {
+                "text": "Tab[]"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "_tabs",
+              "type": {
+                "text": "Tab[]"
+              },
+              "privacy": "private",
+              "default": "[]"
+            },
+            {
+              "kind": "field",
+              "name": "resizeController",
+              "privacy": "protected",
+              "default": "new ResizeController(this, {\n        callback: () => {\n            this.updateSelectionIndicator();\n        },\n    })"
+            },
+            {
+              "kind": "field",
+              "name": "rovingTabindexController",
+              "default": "new RovingTabindexController<Tab>(this, {\n        focusInIndex: (elements) => {\n            let focusInIndex = 0;\n            const firstFocusableElement = elements.find((el, index) => {\n                const focusInElement = this.selected\n                    ? !el.disabled && el.value === this.selected\n                    : !el.disabled;\n                focusInIndex = index;\n                return focusInElement;\n            });\n            return firstFocusableElement ? focusInIndex : -1;\n        },\n        direction: () => 'both',\n        elementEnterAction: (el) => {\n            if (!this.auto) return;\n\n            this.shouldAnimate = true;\n            this.selectTarget(el);\n        },\n        elements: () => this.tabs,\n        isFocusableElement: (el) => !el.disabled,\n        listenerScope: () => this.tabList,\n    })"
+            },
+            {
+              "kind": "field",
+              "name": "focusElement",
+              "type": {
+                "text": "Tab | this"
+              },
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "scrollTabs",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "delta",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "behavior",
+                  "default": "'smooth'",
+                  "type": {
+                    "text": "ScrollBehavior"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "scrollState",
+              "type": {
+                "text": "Record<string, boolean>"
+              },
+              "privacy": "public",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "getUpdateComplete",
+              "return": {
+                "type": {
+                  "text": "Promise<boolean>"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "getNecessaryAutoScroll",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "number"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "index",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "scrollToSelection",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "Promise<void>"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "managePanels",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "{\n        target,\n    }",
+                  "type": {
+                    "text": "Event & { target: HTMLSlotElement }"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "onTabsScroll",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "onClick",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "onKeyDown",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "selectTarget",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "target",
+                  "type": {
+                    "text": "HTMLElement"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "onSlotChange",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "updateCheckedState",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "updateSelectionIndicator",
+              "privacy": "private"
+            }
+          ],
+          "events": [
+            {
+              "name": "change",
+              "type": {
+                "text": "Event"
+              },
+              "description": "The selected Tab child has changed."
+            }
+          ],
+          "attributes": [
+            {
+              "name": "auto",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether to activate a tab on keyboard focus or not.\n\nBy default a tab is activated via a \"click\" interaction. This is specifically intended for when\ntab content cannot be displayed instantly, e.g. not all of the DOM content is available, etc.\nTo learn more about \"Deciding When to Make Selection Automatically Follow Focus\", visit:\nhttps://w3c.github.io/aria-practices/#kbd_selection_follows_focus",
+              "fieldName": "auto"
+            },
+            {
+              "name": "compact",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "The tab items are displayed closer together.",
+              "fieldName": "compact"
+            },
+            {
+              "name": "dir",
+              "type": {
+                "text": "'ltr' | 'rtl'"
+              },
+              "fieldName": "dir"
+            },
+            {
+              "name": "direction",
+              "type": {
+                "text": "'vertical' | 'vertical-right' | 'horizontal'"
+              },
+              "default": "'horizontal'",
+              "fieldName": "direction"
+            },
+            {
+              "name": "emphasized",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "emphasized"
+            },
+            {
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "fieldName": "label"
+            },
+            {
+              "name": "enableTabsScroll",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "enableTabsScroll"
+            },
+            {
+              "name": "quiet",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "The tab list is displayed without a border.",
+              "fieldName": "quiet"
+            },
+            {
+              "name": "selected",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "fieldName": "selected"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "SizedMixin",
+              "package": "@spectrum-web-components/base"
+            }
+          ],
+          "superclass": {
+            "name": "Focusable",
+            "package": "@spectrum-web-components/shared"
+          },
+          "tagName": "sp-tabs",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "ScaledIndicator",
+          "declaration": {
+            "name": "ScaledIndicator",
+            "module": "src/Tabs.js"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "calculateScrollTargetForRightSide",
+          "declaration": {
+            "name": "calculateScrollTargetForRightSide",
+            "module": "src/Tabs.js"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "calculateScrollTargetForLeftSide",
+          "declaration": {
+            "name": "calculateScrollTargetForLeftSide",
+            "module": "src/Tabs.js"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "Tabs",
+          "declaration": {
+            "name": "Tabs",
+            "module": "src/Tabs.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/TabsOverflow.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "TabsOverflow",
+          "members": [
+            {
+              "kind": "field",
+              "name": "compact",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "compact",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "labelPrevious",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "'Scroll to previous tabs'",
+              "attribute": "label-previous"
+            },
+            {
+              "kind": "field",
+              "name": "labelNext",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "'Scroll to next tabs'",
+              "attribute": "label-next"
+            },
+            {
+              "kind": "field",
+              "name": "dir",
+              "type": {
+                "text": "'ltr' | 'rtl'"
+              },
+              "privacy": "public",
+              "attribute": "dir",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "overflowState",
+              "type": {
+                "text": "TabsOverflowState"
+              },
+              "privacy": "private",
+              "default": "{\n        canScrollLeft: false,\n        canScrollRight: false,\n    }"
+            },
+            {
+              "kind": "field",
+              "name": "scrollContent",
+              "type": {
+                "text": "Tabs[]"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "overflowContainer",
+              "type": {
+                "text": "HTMLDivElement"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "resizeController",
+              "type": {
+                "text": "ResizeController"
+              },
+              "default": "new ResizeController(this, {\n            target: this,\n            callback: (): void => {\n                this._updateScrollState();\n            },\n        })"
+            },
+            {
+              "kind": "method",
+              "name": "_handleSlotChange",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "Promise<void>"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "_updateScrollState",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "_handleScrollClick",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "MouseEvent"
+                  }
+                }
+              ]
+            }
+          ],
+          "attributes": [
+            {
+              "name": "compact",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "compact"
+            },
+            {
+              "name": "label-previous",
+              "type": {
+                "text": "string"
+              },
+              "default": "'Scroll to previous tabs'",
+              "fieldName": "labelPrevious"
+            },
+            {
+              "name": "label-next",
+              "type": {
+                "text": "string"
+              },
+              "default": "'Scroll to next tabs'",
+              "fieldName": "labelNext"
+            },
+            {
+              "name": "dir",
+              "type": {
+                "text": "'ltr' | 'rtl'"
+              },
+              "fieldName": "dir"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "SizedMixin",
+              "package": "@spectrum-web-components/base"
+            }
+          ],
+          "superclass": {
+            "name": "SpectrumElement",
+            "package": "@spectrum-web-components/base"
+          },
+          "tagName": "sp-tabs-overflow",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "TabsOverflow",
+          "declaration": {
+            "name": "TabsOverflow",
+            "module": "src/TabsOverflow.js"
+          }
+        }
+      ]
+    }
+  ]
+}

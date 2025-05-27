@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{DocumentOutlineIcon as l}from"../icons/DocumentOutline.js";import{setCustomTemplateLiteralTag as o}from"../custom-tag.js";export class IconDocumentOutline extends t{render(){return o(e),l({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconDocumentOutline.js.map

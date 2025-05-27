@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{GraphHistogramIcon as r}from"../icons/GraphHistogram.js";import{setCustomTemplateLiteralTag as o}from"../custom-tag.js";export class IconGraphHistogram extends t{render(){return o(e),r({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconGraphHistogram.js.map

@@ -1,13 +1,12 @@
 import Sinon from 'sinon';
-
-import '../../../utils/lana.js';
+import { expect } from '@esm-bundle/chai';
+import '../src/lana.js';
 import { Defaults } from '../src/defaults.js';
 import { TAG_NAME_SERVICE } from '../src/mas-commerce-service.js';
 
 import { mockFetch } from './mocks/fetch.js';
 import { mockIms, unmockIms } from './mocks/ims.js';
 import {
-    expect,
     initMasCommerceService,
     removeMasCommerceService,
 } from './utilities.js';

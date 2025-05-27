@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{FolderOpenOutlineIcon as l}from"../icons/FolderOpenOutline.js";import{setCustomTemplateLiteralTag as r}from"../custom-tag.js";export class IconFolderOpenOutline extends t{render(){return r(e),l({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconFolderOpenOutline.js.map

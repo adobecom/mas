@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{ImageMapPolygonIcon as o}from"../icons/ImageMapPolygon.js";import{setCustomTemplateLiteralTag as l}from"../custom-tag.js";export class IconImageMapPolygon extends t{render(){return l(e),o({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconImageMapPolygon.js.map

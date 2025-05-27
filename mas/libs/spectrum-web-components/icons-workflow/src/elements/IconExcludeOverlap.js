@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{ExcludeOverlapIcon as l}from"../icons/ExcludeOverlap.js";import{setCustomTemplateLiteralTag as r}from"../custom-tag.js";export class IconExcludeOverlap extends t{render(){return r(e),l({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconExcludeOverlap.js.map

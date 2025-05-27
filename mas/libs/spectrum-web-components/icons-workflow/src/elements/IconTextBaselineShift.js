@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{TextBaselineShiftIcon as l}from"../icons/TextBaselineShift.js";import{setCustomTemplateLiteralTag as r}from"../custom-tag.js";export class IconTextBaselineShift extends t{render(){return r(e),l({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconTextBaselineShift.js.map

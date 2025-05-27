@@ -1,0 +1,16 @@
+"use strict";import{tag as l}from"../custom-tag.js";export{setCustomTemplateLiteralTag}from"../custom-tag.js";export const TagUnderlineIcon=({width:e=24,height:t=24,hidden:r=!1,title:a="Tag Underline"}={})=>l`<svg
+    xmlns="http://www.w3.org/2000/svg"
+    height=${t}
+    viewBox="0 0 36 36"
+    width=${e}
+    aria-hidden=${r?"true":"false"}
+    role="img"
+    fill="currentColor"
+    aria-label=${a}
+  >
+    <rect height="2" rx=".5" ry=".5" width="22" x="7" y="30" />
+    <path
+      d="M22.5 4.012a.5.5 0 0 0-.5.5v13.5s.482 6.2-5 6.2c-5.459 0-5-6.2-5-6.2v-13.5a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5v13.5c0 1.412-.141 10 9 10S26 19 26 17.988V4.512a.5.5 0 0 0-.5-.5Z"
+    />
+  </svg>`;
+//# sourceMappingURL=TagUnderline.js.map

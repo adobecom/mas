@@ -1,0 +1,15 @@
+"use strict";import{tag as i}from"../custom-tag.js";export{setCustomTemplateLiteralTag}from"../custom-tag.js";export const DistributeRightEdgeIcon=({width:t=24,height:a=24,hidden:e=!1,title:r="Distribute Right Edge"}={})=>i`<svg
+    xmlns="http://www.w3.org/2000/svg"
+    height=${a}
+    viewBox="0 0 36 36"
+    width=${t}
+    aria-hidden=${e?"true":"false"}
+    role="img"
+    fill="currentColor"
+    aria-label=${r}
+  >
+    <path
+      d="M13.5 0h-1a.5.5 0 0 0-.5.5V6H5a1 1 0 0 0-1 1v22a1 1 0 0 0 1 1h7v5.5a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5V.5a.5.5 0 0 0-.5-.5ZM31.5 0h-1a.5.5 0 0 0-.5.5V10h-7a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h7v9.5a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5V.5a.5.5 0 0 0-.5-.5Z"
+    />
+  </svg>`;
+//# sourceMappingURL=DistributeRightEdge.js.map

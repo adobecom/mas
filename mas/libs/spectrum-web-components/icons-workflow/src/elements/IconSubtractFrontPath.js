@@ -1,0 +1,2 @@
+"use strict";import{html as t}from"@spectrum-web-components/base";import{IconBase as e}from"@spectrum-web-components/icon";import{SubtractFrontPathIcon as r}from"../icons/SubtractFrontPath.js";import{setCustomTemplateLiteralTag as o}from"../custom-tag.js";export class IconSubtractFrontPath extends e{render(){return o(t),r({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconSubtractFrontPath.js.map

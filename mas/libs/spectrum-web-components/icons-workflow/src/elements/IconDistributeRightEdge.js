@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{DistributeRightEdgeIcon as r}from"../icons/DistributeRightEdge.js";import{setCustomTemplateLiteralTag as i}from"../custom-tag.js";export class IconDistributeRightEdge extends t{render(){return i(e),r({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconDistributeRightEdge.js.map

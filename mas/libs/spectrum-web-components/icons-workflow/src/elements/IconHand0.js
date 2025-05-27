@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{Hand0Icon as r}from"../icons/Hand0.js";import{setCustomTemplateLiteralTag as l}from"../custom-tag.js";export class IconHand0 extends t{render(){return l(e),r({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconHand0.js.map

@@ -1,0 +1,91 @@
+
+> @adobecom/mas@0.3.1 test
+> wtr --config ./web-test-runner.config.mjs --coverage
+
+
+Chrome: |███▊                          | 0/39 test files | 0 passed, 0 failed
+
+Running tests...
+
+Running 39 test files...
+
+
+[2K[1A[2K[Gtest/checkout-button.test.js:
+
+ 🚧 Browser logs:
+      TypeError: Failed to fetch dynamically imported module: http://localhost:2023/test/checkout-button.test.js?wtr-session-id=hCMIhhSu9hGAaS7YqZOFL&wds-import-map=0&wds-import-map=0
+
+ ❌ Could not import your test module. Check the browser logs or open the browser in debug mode for more information. 
+
+test/build-checkout-url.test.js:
+
+ 🚧 Browser logs:
+      TypeError: Failed to fetch dynamically imported module: http://localhost:2023/test/build-checkout-url.test.js?wtr-session-id=rMLDIKIC1rKEy16keiU8B&wds-import-map=0
+
+ ❌ Could not import your test module. Check the browser logs or open the browser in debug mode for more information. 
+
+
+[2K[1A[2K[Gtest/checkout-link.test.js:
+
+ 🚧 Browser logs:
+      TypeError: Failed to fetch dynamically imported module: http://localhost:2023/test/checkout-link.test.js?wtr-session-id=EJY-oBH6jwLpzAJuEs_kz&wds-import-map=0&wds-import-map=0
+
+ ❌ Could not import your test module. Check the browser logs or open the browser in debug mode for more information. 
+
+
+[2K[1A[2K[Gtest/deeplink.test.js:
+
+ 🚧 Browser logs:
+      TypeError: Failed to fetch dynamically imported module: http://localhost:2023/test/deeplink.test.js?wtr-session-id=l9zfhOLCHprtxngdeTU7s&wds-import-map=0&wds-import-map=0
+
+ ❌ Could not import your test module. Check the browser logs or open the browser in debug mode for more information. 
+
+
+[2K[1A[2K[Gtest/hydrate.test.js:
+
+ 🚧 Browser logs:
+      TypeError: Failed to fetch dynamically imported module: http://localhost:2023/test/hydrate.test.js?wtr-session-id=RdSAmY0ddZcP2CuxigrTq&wds-import-map=0&wds-import-map=0
+
+ ❌ Could not import your test module. Check the browser logs or open the browser in debug mode for more information. 
+
+
+[2K[1A[2K[Gtest/ims.test.js:
+
+ 🚧 Browser logs:
+      TypeError: Failed to fetch dynamically imported module: http://localhost:2023/test/ims.test.js?wtr-session-id=7rtXnkaQi5RjRmgoS8vZQ&wds-import-map=0&wds-import-map=0
+
+ ❌ Could not import your test module. Check the browser logs or open the browser in debug mode for more information. 
+
+
+[2K[1A[2K[Gtest/lana.test.js:
+
+ 🚧 Browser logs:
+      TypeError: Failed to fetch dynamically imported module: http://localhost:2023/test/lana.test.js?wtr-session-id=AOg0uaAh_D6KMC_lxVM9c&wds-import-map=0&wds-import-map=0
+
+ ❌ Could not import your test module. Check the browser logs or open the browser in debug mode for more information. 
+
+
+[2K[1A[2K[Gtest/literals.test.js:
+
+ 🚧 Browser logs:
+      TypeError: Failed to fetch dynamically imported module: http://localhost:2023/test/literals.test.js?wtr-session-id=928quIcWCA952yGI2NZ1o&wds-import-map=0&wds-import-map=0
+
+ ❌ Could not import your test module. Check the browser logs or open the browser in debug mode for more information. 
+
+
+[2K[1A[2K[Gtest/mas-commerce-service.test.js:
+
+ 🚧 Browser logs:
+      TypeError: Failed to fetch dynamically imported module: http://localhost:2023/test/mas-commerce-service.test.js?wtr-session-id=Uni-EwCaP3DswcXLNSBcG&wds-import-map=0&wds-import-map=0
+
+ ❌ Could not import your test module. Check the browser logs or open the browser in debug mode for more information. 
+
+
+[2K[1A[2K[Gtest/mas-fetch.test.js:
+
+ 🚧 Browser logs:
+      TypeError: Failed to fetch dynamically imported module: http://localhost:2023/test/mas-fetch.test.js?wtr-session-id=-E54Zn4IOh8gE-izkjOBu&wds-import-map=0&wds-import-map=0
+
+ ❌ Could not import your test module. Check the browser logs or open the browser in debug mode for more information. 
+
+

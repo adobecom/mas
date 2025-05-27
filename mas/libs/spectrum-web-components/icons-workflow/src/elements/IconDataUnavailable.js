@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{DataUnavailableIcon as a}from"../icons/DataUnavailable.js";import{setCustomTemplateLiteralTag as l}from"../custom-tag.js";export class IconDataUnavailable extends t{render(){return l(e),a({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconDataUnavailable.js.map

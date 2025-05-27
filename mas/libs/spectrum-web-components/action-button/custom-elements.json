@@ -1,0 +1,361 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "sp-action-button.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-action-button",
+          "declaration": {
+            "name": "ActionButton",
+            "module": "/src/ActionButton.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/ActionButton.js",
+      "declarations": [
+        {
+          "kind": "variable",
+          "name": "LONGPRESS_DURATION",
+          "type": {
+            "text": "number"
+          },
+          "default": "300"
+        },
+        {
+          "kind": "class",
+          "description": "",
+          "name": "ActionButton",
+          "slots": [
+            {
+              "description": "text label of the Action Button",
+              "name": ""
+            },
+            {
+              "description": "The icon to use for Action Button",
+              "name": "icon"
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "emphasized",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "emphasized",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "holdAffordance",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "hold-affordance",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "quiet",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "quiet",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "role",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "'button'",
+              "attribute": "role",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "selected",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Whether an Action Button with `role='button'`\nshould also be `aria-pressed='true'`",
+              "attribute": "selected",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "toggles",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Whether to automatically manage the `selected`\nattribute on interaction and whether `aria-pressed=\"false\"`\nshould be used when `selected === false`",
+              "attribute": "toggles",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "static",
+              "type": {
+                "text": "'white' | 'black' | undefined"
+              },
+              "privacy": "public",
+              "attribute": "static",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "variant",
+              "type": {
+                "text": "'white' | 'black' | undefined"
+              },
+              "privacy": "public",
+              "attribute": "variant",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "value",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "attribute": "value"
+            },
+            {
+              "kind": "field",
+              "name": "_value",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "private",
+              "default": "''"
+            },
+            {
+              "kind": "field",
+              "name": "itemText",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "onClick",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "handlePointerdownHoldAffordance",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "PointerEvent"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "handlePointerupHoldAffordance",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleKeydown",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "KeyboardEvent"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "handleKeyup",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "KeyboardEvent"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "buttonContent",
+              "type": {
+                "text": "TemplateResult[]"
+              },
+              "privacy": "protected",
+              "readonly": true
+            }
+          ],
+          "events": [
+            {
+              "name": "longpress",
+              "type": {
+                "text": "CustomEvent"
+              },
+              "description": "Synthesizes a \"longpress\" interaction that signifies a `pointerdown` event that is >=300ms or a keyboard event wher code is `Space` or code is `ArrowDown` while `altKey===true`."
+            },
+            {
+              "description": "Announces a change in the `selected` property of an action button",
+              "name": "change"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "emphasized",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "emphasized"
+            },
+            {
+              "name": "hold-affordance",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "holdAffordance"
+            },
+            {
+              "name": "quiet",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "quiet"
+            },
+            {
+              "name": "role",
+              "type": {
+                "text": "string"
+              },
+              "default": "'button'",
+              "fieldName": "role"
+            },
+            {
+              "name": "selected",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether an Action Button with `role='button'`\nshould also be `aria-pressed='true'`",
+              "fieldName": "selected"
+            },
+            {
+              "name": "toggles",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether to automatically manage the `selected`\nattribute on interaction and whether `aria-pressed=\"false\"`\nshould be used when `selected === false`",
+              "fieldName": "toggles"
+            },
+            {
+              "name": "static",
+              "type": {
+                "text": "'white' | 'black' | undefined"
+              },
+              "fieldName": "static"
+            },
+            {
+              "name": "variant",
+              "type": {
+                "text": "'white' | 'black' | undefined"
+              },
+              "fieldName": "variant"
+            },
+            {
+              "name": "value",
+              "type": {
+                "text": "string"
+              },
+              "fieldName": "value"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "SizedMixin",
+              "package": "@spectrum-web-components/base"
+            }
+          ],
+          "superclass": {
+            "name": "ButtonBase",
+            "package": "@spectrum-web-components/button"
+          },
+          "tagName": "sp-action-button",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "LONGPRESS_DURATION",
+          "declaration": {
+            "name": "LONGPRESS_DURATION",
+            "module": "src/ActionButton.js"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "ActionButton",
+          "declaration": {
+            "name": "ActionButton",
+            "module": "src/ActionButton.js"
+          }
+        }
+      ]
+    }
+  ]
+}

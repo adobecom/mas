@@ -1,0 +1,178 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "sp-action-menu.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-action-menu",
+          "declaration": {
+            "name": "ActionMenu",
+            "module": "/src/ActionMenu.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "sync/sp-action-menu.js",
+      "declarations": [],
+      "exports": []
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/ActionMenu.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "ActionMenu",
+          "slots": [
+            {
+              "description": "menu items to be listed in the Action Menu",
+              "name": ""
+            },
+            {
+              "description": "The icon to use for Action Menu",
+              "name": "icon"
+            },
+            {
+              "description": "The label to use on for the Action Menu",
+              "name": "label"
+            },
+            {
+              "description": "The label to use for the Action Menu (no icon space reserved)",
+              "name": "label-only"
+            },
+            {
+              "description": "Tooltip to to be applied to the the Action Button",
+              "name": "tooltip"
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "selects",
+              "type": {
+                "text": "undefined | 'single'"
+              },
+              "privacy": "public",
+              "default": "undefined",
+              "attribute": "selects"
+            },
+            {
+              "kind": "field",
+              "name": "static",
+              "type": {
+                "text": "'white' | 'black' | undefined"
+              },
+              "privacy": "public",
+              "default": "undefined",
+              "attribute": "static",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "listRole",
+              "type": {
+                "text": "'listbox' | 'menu'"
+              },
+              "privacy": "protected",
+              "default": "'menu'"
+            },
+            {
+              "kind": "field",
+              "name": "itemRole",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "default": "'menuitem'"
+            },
+            {
+              "kind": "field",
+              "name": "hasLabel",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "labelOnly",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "handleSlottableRequest",
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "buttonContent",
+              "type": {
+                "text": "TemplateResult[]"
+              },
+              "privacy": "protected",
+              "readonly": true
+            }
+          ],
+          "attributes": [
+            {
+              "description": "By default `sp-action-menu` does not manage a selection. If you'd like for a selection to be held by the `sp-menu` that it presents in its overlay, use `selects=\"single\" to activate this functionality.",
+              "name": "selects",
+              "type": {
+                "text": "undefined | 'single'"
+              },
+              "default": "undefined",
+              "fieldName": "selects"
+            },
+            {
+              "name": "static",
+              "type": {
+                "text": "'white' | 'black' | undefined"
+              },
+              "default": "undefined",
+              "fieldName": "static"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "ObserveSlotPresence",
+              "package": "@spectrum-web-components/shared/src/observe-slot-presence.js"
+            },
+            {
+              "name": "ObserveSlotText",
+              "package": "@spectrum-web-components/shared/src/observe-slot-text.js"
+            }
+          ],
+          "superclass": {
+            "name": "PickerBase",
+            "package": "@spectrum-web-components/picker"
+          },
+          "tagName": "sp-action-menu",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "ActionMenu",
+          "declaration": {
+            "name": "ActionMenu",
+            "module": "src/ActionMenu.js"
+          }
+        }
+      ]
+    }
+  ]
+}

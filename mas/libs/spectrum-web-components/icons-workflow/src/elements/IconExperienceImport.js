@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{ExperienceImportIcon as r}from"../icons/ExperienceImport.js";import{setCustomTemplateLiteralTag as o}from"../custom-tag.js";export class IconExperienceImport extends t{render(){return o(e),r({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconExperienceImport.js.map

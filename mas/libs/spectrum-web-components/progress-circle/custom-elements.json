@@ -1,0 +1,185 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "sp-progress-circle.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-progress-circle",
+          "declaration": {
+            "name": "ProgressCircle",
+            "module": "/src/ProgressCircle.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/ProgressCircle.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "ProgressCircle",
+          "members": [
+            {
+              "kind": "field",
+              "name": "indeterminate",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "indeterminate",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "attribute": "label"
+            },
+            {
+              "kind": "field",
+              "name": "overBackground",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "over-background",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "static",
+              "type": {
+                "text": "'white' | undefined"
+              },
+              "privacy": "public",
+              "attribute": "static",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "progress",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "public",
+              "default": "0",
+              "attribute": "progress"
+            },
+            {
+              "kind": "field",
+              "name": "slotEl",
+              "type": {
+                "text": "HTMLSlotElement"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "makeRotation",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "string | undefined"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "rotation",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "handleSlotchange",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            }
+          ],
+          "attributes": [
+            {
+              "name": "indeterminate",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "indeterminate"
+            },
+            {
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "fieldName": "label"
+            },
+            {
+              "name": "over-background",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "overBackground"
+            },
+            {
+              "name": "static",
+              "type": {
+                "text": "'white' | undefined"
+              },
+              "fieldName": "static"
+            },
+            {
+              "name": "progress",
+              "type": {
+                "text": "number"
+              },
+              "default": "0",
+              "fieldName": "progress"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "SizedMixin",
+              "package": "@spectrum-web-components/base"
+            }
+          ],
+          "superclass": {
+            "name": "SpectrumElement",
+            "package": "@spectrum-web-components/base"
+          },
+          "tagName": "sp-progress-circle",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "ProgressCircle",
+          "declaration": {
+            "name": "ProgressCircle",
+            "module": "src/ProgressCircle.js"
+          }
+        }
+      ]
+    }
+  ]
+}

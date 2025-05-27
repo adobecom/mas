@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{TableMergeCellsIcon as l}from"../icons/TableMergeCells.js";import{setCustomTemplateLiteralTag as r}from"../custom-tag.js";export class IconTableMergeCells extends t{render(){return r(e),l({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconTableMergeCells.js.map

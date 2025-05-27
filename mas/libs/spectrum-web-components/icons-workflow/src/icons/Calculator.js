@@ -1,0 +1,15 @@
+"use strict";import{tag as m}from"../custom-tag.js";export{setCustomTemplateLiteralTag}from"../custom-tag.js";export const CalculatorIcon=({width:a=24,height:h=24,hidden:t=!1,title:e="Calculator"}={})=>m`<svg
+    xmlns="http://www.w3.org/2000/svg"
+    height=${h}
+    viewBox="0 0 36 36"
+    width=${a}
+    aria-hidden=${t?"true":"false"}
+    role="img"
+    fill="currentColor"
+    aria-label=${e}
+  >
+    <path
+      d="M29 2H5a1 1 0 0 0-1 1v30a1 1 0 0 0 1 1h24a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1ZM10 29.5a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5Zm0-6a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5Zm0-6a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5Zm6 12a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5Zm0-6a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5Zm0-6a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5Zm6 12a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5Zm0-6a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5Zm0-6a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5Zm6 12a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5Zm0-12a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5Zm0-8a.5.5 0 0 1-.5.5h-21a.5.5 0 0 1-.5-.5v-5a.5.5 0 0 1 .5-.5h21a.5.5 0 0 1 .5.5Z"
+    />
+  </svg>`;
+//# sourceMappingURL=Calculator.js.map

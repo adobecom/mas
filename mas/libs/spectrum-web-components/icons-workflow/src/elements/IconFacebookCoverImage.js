@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{FacebookCoverImageIcon as o}from"../icons/FacebookCoverImage.js";import{setCustomTemplateLiteralTag as r}from"../custom-tag.js";export class IconFacebookCoverImage extends t{render(){return r(e),o({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconFacebookCoverImage.js.map

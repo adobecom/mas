@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{LocationBasedDateIcon as o}from"../icons/LocationBasedDate.js";import{setCustomTemplateLiteralTag as a}from"../custom-tag.js";export class IconLocationBasedDate extends t{render(){return a(e),o({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconLocationBasedDate.js.map

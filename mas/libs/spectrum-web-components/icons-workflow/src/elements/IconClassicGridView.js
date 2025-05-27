@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{ClassicGridViewIcon as r}from"../icons/ClassicGridView.js";import{setCustomTemplateLiteralTag as l}from"../custom-tag.js";export class IconClassicGridView extends t{render(){return l(e),r({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconClassicGridView.js.map

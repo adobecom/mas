@@ -1,0 +1,15 @@
+"use strict";import{tag as l}from"../custom-tag.js";export{setCustomTemplateLiteralTag}from"../custom-tag.js";export const UserArrowIcon=({width:e=24,height:a=24,hidden:r=!1,title:t="User Arrow"}={})=>l`<svg
+    xmlns="http://www.w3.org/2000/svg"
+    height=${a}
+    viewBox="0 0 36 36"
+    width=${e}
+    aria-hidden=${r?"true":"false"}
+    role="img"
+    fill="currentColor"
+    aria-label=${t}
+  >
+    <path
+      d="M10.874 19.622a.5.5 0 0 0-.874.332V24H3a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h7v3.818a.5.5 0 0 0 .874.332L18 27ZM26.255 19.775a1.438 1.438 0 0 1-1.244-1.443v-2.083a1.441 1.441 0 0 1 .367-.93 11 11 0 0 0 2.5-6.866c0-5.2-2.756-8.1-6.919-8.1s-7 3.018-7 8.1a11.124 11.124 0 0 0 2.645 6.893 1.388 1.388 0 0 1 .344.9v2.126a1.4 1.4 0 0 1-1.368 1.394L22.569 27l-2.99 3h16.357l.011-1.526c0-2.163-1.478-7.865-9.692-8.699Z"
+    />
+  </svg>`;
+//# sourceMappingURL=UserArrow.js.map

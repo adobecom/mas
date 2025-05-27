@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{GraphBarHorizontalStackedIcon as r}from"../icons/GraphBarHorizontalStacked.js";import{setCustomTemplateLiteralTag as a}from"../custom-tag.js";export class IconGraphBarHorizontalStacked extends t{render(){return a(e),r({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconGraphBarHorizontalStacked.js.map

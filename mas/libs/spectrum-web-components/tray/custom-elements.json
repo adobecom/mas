@@ -1,0 +1,193 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "sp-tray.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-tray",
+          "declaration": {
+            "name": "Tray",
+            "module": "/src/Tray.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/Tray.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "Tray",
+          "slots": [
+            {
+              "description": "content to display within the Tray",
+              "name": ""
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "open",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "open",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "prefersMotion",
+              "privacy": "protected",
+              "default": "new MatchMediaController(\n        this,\n        '(prefers-reduced-motion: no-preference)'\n    )"
+            },
+            {
+              "kind": "field",
+              "name": "transitionPromise",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "resolveTransitionPromise",
+              "type": {
+                "text": "() => void"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "tray",
+              "type": {
+                "text": "HTMLDivElement"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "focus",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "animating",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false"
+            },
+            {
+              "kind": "method",
+              "name": "overlayWillCloseCallback",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "close",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "dispatchClosed",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleUnderlayTransitionend",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleTrayTransitionend",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "getUpdateComplete",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "Promise<boolean>"
+                }
+              },
+              "description": "Bind the open/close transition into the update complete lifecycle so\nthat the overlay system can wait for it to be \"visibly ready\" before\nattempting to throw focus into the content contained herein. Not\nwaiting for this can cause small amounts of page scroll to happen\nwhile opening the Tray when focusable content is included: e.g. Menu\nelements whose selected Menu Item is not the first Menu Item."
+            }
+          ],
+          "events": [
+            {
+              "name": "close",
+              "type": {
+                "text": "Event"
+              },
+              "description": "Announces that the Tray has been closed."
+            }
+          ],
+          "attributes": [
+            {
+              "name": "open",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "open"
+            }
+          ],
+          "superclass": {
+            "name": "SpectrumElement",
+            "package": "@spectrum-web-components/base"
+          },
+          "tagName": "sp-tray",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "Tray",
+          "declaration": {
+            "name": "Tray",
+            "module": "src/Tray.js"
+          }
+        }
+      ]
+    }
+  ]
+}

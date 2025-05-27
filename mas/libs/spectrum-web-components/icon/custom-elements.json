@@ -1,0 +1,276 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "sp-icon.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon",
+          "declaration": {
+            "name": "Icon",
+            "module": "/src/Icon.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/Icon.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "Icon",
+          "members": [
+            {
+              "kind": "field",
+              "name": "src",
+              "type": {
+                "text": "string | undefined"
+              },
+              "privacy": "public",
+              "attribute": "src"
+            },
+            {
+              "kind": "field",
+              "name": "name",
+              "type": {
+                "text": "string | undefined"
+              },
+              "privacy": "public",
+              "attribute": "name"
+            },
+            {
+              "kind": "field",
+              "name": "iconContainer",
+              "type": {
+                "text": "HTMLElement | undefined"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "updateIconPromise",
+              "type": {
+                "text": "Promise<void> | undefined"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "iconsetListener",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "announceIconImageSrcError",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "updateIcon",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "Promise<void>"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "parseIcon",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "{ iconset: string; icon: string }"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "icon",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "getUpdateComplete",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "Promise<boolean>"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "attribute": "label",
+              "inheritedFrom": {
+                "name": "IconBase",
+                "module": "src/IconBase.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "size",
+              "type": {
+                "text": "'xxs' | 'xs' | 's' | 'm' | 'l' | 'xl' | 'xxl' | undefined"
+              },
+              "privacy": "public",
+              "attribute": "size",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "IconBase",
+                "module": "src/IconBase.js"
+              }
+            }
+          ],
+          "events": [
+            {
+              "name": "error",
+              "type": {
+                "text": "Event"
+              }
+            }
+          ],
+          "attributes": [
+            {
+              "name": "src",
+              "type": {
+                "text": "string | undefined"
+              },
+              "fieldName": "src"
+            },
+            {
+              "name": "name",
+              "type": {
+                "text": "string | undefined"
+              },
+              "fieldName": "name"
+            },
+            {
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "fieldName": "label",
+              "inheritedFrom": {
+                "name": "IconBase",
+                "module": "src/IconBase.ts"
+              }
+            },
+            {
+              "name": "size",
+              "type": {
+                "text": "'xxs' | 'xs' | 's' | 'm' | 'l' | 'xl' | 'xxl' | undefined"
+              },
+              "fieldName": "size",
+              "inheritedFrom": {
+                "name": "IconBase",
+                "module": "src/IconBase.ts"
+              }
+            }
+          ],
+          "superclass": {
+            "name": "IconBase",
+            "module": "/src/IconBase.js"
+          },
+          "tagName": "sp-icon",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "Icon",
+          "declaration": {
+            "name": "Icon",
+            "module": "src/Icon.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/IconBase.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconBase",
+          "members": [
+            {
+              "kind": "field",
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "attribute": "label"
+            },
+            {
+              "kind": "field",
+              "name": "size",
+              "type": {
+                "text": "'xxs' | 'xs' | 's' | 'm' | 'l' | 'xl' | 'xxl' | undefined"
+              },
+              "privacy": "public",
+              "attribute": "size",
+              "reflects": true
+            }
+          ],
+          "attributes": [
+            {
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "fieldName": "label"
+            },
+            {
+              "name": "size",
+              "type": {
+                "text": "'xxs' | 'xs' | 's' | 'm' | 'l' | 'xl' | 'xxl' | undefined"
+              },
+              "fieldName": "size"
+            }
+          ],
+          "superclass": {
+            "name": "SpectrumElement",
+            "package": "@spectrum-web-components/base"
+          }
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconBase",
+          "declaration": {
+            "name": "IconBase",
+            "module": "src/IconBase.js"
+          }
+        }
+      ]
+    }
+  ]
+}

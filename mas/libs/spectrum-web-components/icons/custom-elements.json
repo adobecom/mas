@@ -1,0 +1,210 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "sp-icons-large.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icons-large",
+          "declaration": {
+            "name": "IconsLarge",
+            "module": "/src/IconsLarge.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "sp-icons-medium.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icons-medium",
+          "declaration": {
+            "name": "IconsMedium",
+            "module": "/src/IconsMedium.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/IconsLarge.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconsLarge",
+          "members": [
+            {
+              "kind": "method",
+              "name": "renderDefaultContent",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "TemplateResult"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "getSVGIconName",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "string"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "icon",
+                  "type": {
+                    "text": "string"
+                  }
+                },
+                {
+                  "name": "size"
+                }
+              ],
+              "description": "Overrides createIconName to make icon strings compatible with spectrum-icon id format"
+            },
+            {
+              "kind": "method",
+              "name": "getSanitizedIconName",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "string"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "icon",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "name",
+              "type": {
+                "text": "string"
+              },
+              "default": "'ui'"
+            }
+          ],
+          "superclass": {
+            "name": "IconsetSVG",
+            "package": "@spectrum-web-components/iconset/src/iconset-svg.js"
+          },
+          "tagName": "sp-icons-large",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconsLarge",
+          "declaration": {
+            "name": "IconsLarge",
+            "module": "src/IconsLarge.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/IconsMedium.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconsMedium",
+          "members": [
+            {
+              "kind": "method",
+              "name": "renderDefaultContent",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "TemplateResult"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "getSVGIconName",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "string"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "icon",
+                  "type": {
+                    "text": "string"
+                  }
+                },
+                {
+                  "name": "size"
+                }
+              ],
+              "description": "Overrides createIconName to make icon strings compatible with spectrum-icon id format"
+            },
+            {
+              "kind": "method",
+              "name": "getSanitizedIconName",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "string"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "icon",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "name",
+              "type": {
+                "text": "string"
+              },
+              "default": "'ui'"
+            }
+          ],
+          "superclass": {
+            "name": "IconsetSVG",
+            "package": "@spectrum-web-components/iconset/src/iconset-svg.js"
+          },
+          "tagName": "sp-icons-medium",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconsMedium",
+          "declaration": {
+            "name": "IconsMedium",
+            "module": "src/IconsMedium.js"
+          }
+        }
+      ]
+    }
+  ]
+}

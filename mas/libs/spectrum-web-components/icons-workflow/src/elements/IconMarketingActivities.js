@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{MarketingActivitiesIcon as r}from"../icons/MarketingActivities.js";import{setCustomTemplateLiteralTag as i}from"../custom-tag.js";export class IconMarketingActivities extends t{render(){return i(e),r({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconMarketingActivities.js.map

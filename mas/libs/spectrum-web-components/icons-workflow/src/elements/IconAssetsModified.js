@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{AssetsModifiedIcon as s}from"../icons/AssetsModified.js";import{setCustomTemplateLiteralTag as o}from"../custom-tag.js";export class IconAssetsModified extends t{render(){return o(e),s({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconAssetsModified.js.map

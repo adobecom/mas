@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{AutomatedSegmentIcon as m}from"../icons/AutomatedSegment.js";import{setCustomTemplateLiteralTag as o}from"../custom-tag.js";export class IconAutomatedSegment extends t{render(){return o(e),m({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconAutomatedSegment.js.map

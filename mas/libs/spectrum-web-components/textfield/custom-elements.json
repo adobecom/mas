@@ -1,0 +1,1529 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "sp-textfield.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-textfield",
+          "declaration": {
+            "name": "Textfield",
+            "module": "/src/Textfield.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/Textfield.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "TextfieldBase",
+          "members": [
+            {
+              "kind": "field",
+              "name": "appliedLabel",
+              "type": {
+                "text": "string | undefined"
+              },
+              "privacy": "protected"
+            },
+            {
+              "kind": "field",
+              "name": "allowedKeys",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "A regular expression outlining the keys that will be allowed to update the value of the form control.",
+              "attribute": "allowed-keys"
+            },
+            {
+              "kind": "field",
+              "name": "focused",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "attribute": "focused",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "inputElement",
+              "type": {
+                "text": "HTMLInputElement | HTMLTextAreaElement"
+              },
+              "privacy": "protected"
+            },
+            {
+              "kind": "field",
+              "name": "invalid",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Whether the `value` held by the form control is invalid.",
+              "attribute": "invalid",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "description": "A string applied via `aria-label` to the form control when a user visible label is not provided.",
+              "attribute": "label"
+            },
+            {
+              "kind": "field",
+              "name": "name",
+              "type": {
+                "text": "string | undefined"
+              },
+              "privacy": "public",
+              "description": "Name of the form control.",
+              "attribute": "name",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "placeholder",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "description": "Text that appears in the form control when it has no value set",
+              "attribute": "placeholder"
+            },
+            {
+              "kind": "field",
+              "name": "type",
+              "type": {
+                "text": "TextfieldType"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "_type",
+              "type": {
+                "text": "TextfieldType"
+              },
+              "privacy": "private",
+              "default": "'text'",
+              "attribute": "type",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "pattern",
+              "type": {
+                "text": "string | undefined"
+              },
+              "privacy": "public",
+              "description": "Pattern the `value` must match to be valid",
+              "attribute": "pattern"
+            },
+            {
+              "kind": "field",
+              "name": "grows",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Whether a form control delivered with the `multiline` attribute will change size\nvertically to accomodate longer input",
+              "attribute": "grows",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "maxlength",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "public",
+              "default": "-1",
+              "description": "Defines the maximum string length that the user can enter",
+              "attribute": "maxlength"
+            },
+            {
+              "kind": "field",
+              "name": "minlength",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "public",
+              "default": "-1",
+              "description": "Defines the minimum string length that the user can enter",
+              "attribute": "minlength"
+            },
+            {
+              "kind": "field",
+              "name": "multiline",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Whether the form control should accept a value longer than one line",
+              "attribute": "multiline",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "readonly",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Whether a user can interact with the value of the form control",
+              "attribute": "readonly",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "rows",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "public",
+              "default": "-1",
+              "description": "The specific number of rows the form control should provide in the user interface",
+              "attribute": "rows"
+            },
+            {
+              "kind": "field",
+              "name": "valid",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Whether the `value` held by the form control is valid.",
+              "attribute": "valid",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "value",
+              "privacy": "public",
+              "description": "The value held by the form control",
+              "type": {
+                "text": "string | number"
+              },
+              "attribute": "value"
+            },
+            {
+              "kind": "field",
+              "name": "_value",
+              "type": {
+                "text": "string | number"
+              },
+              "privacy": "protected",
+              "default": "''"
+            },
+            {
+              "kind": "field",
+              "name": "quiet",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Whether to display the form control with no visible background",
+              "attribute": "quiet",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Whether the form control will be found to be invalid when it holds no `value`",
+              "attribute": "required",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "autocomplete",
+              "type": {
+                "text": "| 'list'\n        | 'none'\n        | HTMLInputElement['autocomplete']\n        | HTMLTextAreaElement['autocomplete'] | undefined"
+              },
+              "privacy": "public",
+              "description": "What form of assistance should be provided when attempting to supply a value to the form control",
+              "attribute": "autocomplete",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "focusElement",
+              "type": {
+                "text": "HTMLInputElement | HTMLTextAreaElement"
+              },
+              "privacy": "public",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "setSelectionRange",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "selectionStart",
+                  "type": {
+                    "text": "number"
+                  },
+                  "description": "The 0-based index of the first selected character. An index greater than the length of the\nelement's value is treated as pointing to the end of the value."
+                },
+                {
+                  "name": "selectionEnd",
+                  "type": {
+                    "text": "number"
+                  },
+                  "description": "The 0-based index of the character after the last selected character. An index greater than\nthe length of the element's value is treated as pointing to the end of the value."
+                },
+                {
+                  "name": "selectionDirection",
+                  "default": "'none'",
+                  "type": {
+                    "text": "'forward' | 'backward' | 'none'"
+                  },
+                  "description": "A string indicating the direction in which the selection is considered to\nhave been performed.",
+                  "optional": true
+                }
+              ],
+              "description": "Sets the start and end positions of the current selection."
+            },
+            {
+              "kind": "method",
+              "name": "select",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Selects all the text."
+            },
+            {
+              "kind": "method",
+              "name": "handleInput",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "_event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "handleChange",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "onFocus",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "onBlur",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "_event",
+                  "type": {
+                    "text": "FocusEvent"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "handleInputElementPointerdown",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderStateIcons",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "TemplateResult | typeof nothing"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "displayValue",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "renderMultiline",
+              "type": {
+                "text": "TemplateResult"
+              },
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "renderInput",
+              "type": {
+                "text": "TemplateResult"
+              },
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "renderField",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "TemplateResult"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "checkValidity",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              }
+            }
+          ],
+          "events": [
+            {
+              "name": "change",
+              "type": {
+                "text": "Event"
+              },
+              "description": "An alteration to the value of the element has been committed by the user."
+            },
+            {
+              "description": "The value of the element has changed.",
+              "name": "input"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "allowed-keys",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "A regular expression outlining the keys that will be allowed to update the value of the form control.",
+              "fieldName": "allowedKeys"
+            },
+            {
+              "name": "focused",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "focused"
+            },
+            {
+              "name": "invalid",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether the `value` held by the form control is invalid.",
+              "fieldName": "invalid"
+            },
+            {
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "A string applied via `aria-label` to the form control when a user visible label is not provided.",
+              "fieldName": "label"
+            },
+            {
+              "name": "name",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Name of the form control.",
+              "fieldName": "name"
+            },
+            {
+              "name": "placeholder",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Text that appears in the form control when it has no value set",
+              "fieldName": "placeholder"
+            },
+            {
+              "name": "type",
+              "type": {
+                "text": "TextfieldType"
+              },
+              "default": "'text'",
+              "fieldName": "_type"
+            },
+            {
+              "name": "pattern",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Pattern the `value` must match to be valid",
+              "fieldName": "pattern"
+            },
+            {
+              "name": "grows",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether a form control delivered with the `multiline` attribute will change size\nvertically to accomodate longer input",
+              "fieldName": "grows"
+            },
+            {
+              "name": "maxlength",
+              "type": {
+                "text": "number"
+              },
+              "default": "-1",
+              "description": "Defines the maximum string length that the user can enter",
+              "fieldName": "maxlength"
+            },
+            {
+              "name": "minlength",
+              "type": {
+                "text": "number"
+              },
+              "default": "-1",
+              "description": "Defines the minimum string length that the user can enter",
+              "fieldName": "minlength"
+            },
+            {
+              "name": "multiline",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether the form control should accept a value longer than one line",
+              "fieldName": "multiline"
+            },
+            {
+              "name": "readonly",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether a user can interact with the value of the form control",
+              "fieldName": "readonly"
+            },
+            {
+              "name": "rows",
+              "type": {
+                "text": "number"
+              },
+              "default": "-1",
+              "description": "The specific number of rows the form control should provide in the user interface",
+              "fieldName": "rows"
+            },
+            {
+              "name": "valid",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether the `value` held by the form control is valid.",
+              "fieldName": "valid"
+            },
+            {
+              "name": "value",
+              "description": "The value held by the form control",
+              "type": {
+                "text": "string | number"
+              },
+              "fieldName": "value"
+            },
+            {
+              "name": "quiet",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether to display the form control with no visible background",
+              "fieldName": "quiet"
+            },
+            {
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether the form control will be found to be invalid when it holds no `value`",
+              "fieldName": "required"
+            },
+            {
+              "name": "autocomplete",
+              "type": {
+                "text": "| 'list'\n        | 'none'\n        | HTMLInputElement['autocomplete']\n        | HTMLTextAreaElement['autocomplete'] | undefined"
+              },
+              "description": "What form of assistance should be provided when attempting to supply a value to the form control",
+              "fieldName": "autocomplete"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "ManageHelpText",
+              "package": "@spectrum-web-components/help-text/src/manage-help-text.js"
+            },
+            {
+              "name": "SizedMixin",
+              "package": "@spectrum-web-components/base"
+            }
+          ],
+          "superclass": {
+            "name": "Focusable",
+            "package": "@spectrum-web-components/shared/src/focusable.js"
+          }
+        },
+        {
+          "kind": "class",
+          "description": "",
+          "name": "Textfield",
+          "slots": [
+            {
+              "description": "default or non-negative help text to associate to your form element",
+              "name": "help-text"
+            },
+            {
+              "description": "negative help text to associate to your form element when `invalid`",
+              "name": "negative-help-text"
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "value",
+              "privacy": "public",
+              "description": "The value held by the form control",
+              "type": {
+                "text": "string | number"
+              },
+              "attribute": "value",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "_value",
+              "type": {
+                "text": "string | number"
+              },
+              "privacy": "protected",
+              "default": "''",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "appliedLabel",
+              "type": {
+                "text": "string | undefined"
+              },
+              "privacy": "protected",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "allowedKeys",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "A regular expression outlining the keys that will be allowed to update the value of the form control.",
+              "attribute": "allowed-keys",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "focused",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "attribute": "focused",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "inputElement",
+              "type": {
+                "text": "HTMLInputElement | HTMLTextAreaElement"
+              },
+              "privacy": "protected",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "invalid",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Whether the `value` held by the form control is invalid.",
+              "attribute": "invalid",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "description": "A string applied via `aria-label` to the form control when a user visible label is not provided.",
+              "attribute": "label",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "name",
+              "type": {
+                "text": "string | undefined"
+              },
+              "privacy": "public",
+              "description": "Name of the form control.",
+              "attribute": "name",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "placeholder",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "description": "Text that appears in the form control when it has no value set",
+              "attribute": "placeholder",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "type",
+              "type": {
+                "text": "TextfieldType"
+              },
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "_type",
+              "type": {
+                "text": "TextfieldType"
+              },
+              "privacy": "private",
+              "default": "'text'",
+              "attribute": "type",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "pattern",
+              "type": {
+                "text": "string | undefined"
+              },
+              "privacy": "public",
+              "description": "Pattern the `value` must match to be valid",
+              "attribute": "pattern",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "grows",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Whether a form control delivered with the `multiline` attribute will change size\nvertically to accomodate longer input",
+              "attribute": "grows",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "maxlength",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "public",
+              "default": "-1",
+              "description": "Defines the maximum string length that the user can enter",
+              "attribute": "maxlength",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "minlength",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "public",
+              "default": "-1",
+              "description": "Defines the minimum string length that the user can enter",
+              "attribute": "minlength",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "multiline",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Whether the form control should accept a value longer than one line",
+              "attribute": "multiline",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "readonly",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Whether a user can interact with the value of the form control",
+              "attribute": "readonly",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "rows",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "public",
+              "default": "-1",
+              "description": "The specific number of rows the form control should provide in the user interface",
+              "attribute": "rows",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "valid",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Whether the `value` held by the form control is valid.",
+              "attribute": "valid",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "quiet",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Whether to display the form control with no visible background",
+              "attribute": "quiet",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Whether the form control will be found to be invalid when it holds no `value`",
+              "attribute": "required",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "autocomplete",
+              "type": {
+                "text": "| 'list'\n        | 'none'\n        | HTMLInputElement['autocomplete']\n        | HTMLTextAreaElement['autocomplete'] | undefined"
+              },
+              "privacy": "public",
+              "description": "What form of assistance should be provided when attempting to supply a value to the form control",
+              "attribute": "autocomplete",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "focusElement",
+              "type": {
+                "text": "HTMLInputElement | HTMLTextAreaElement"
+              },
+              "privacy": "public",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "setSelectionRange",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "selectionStart",
+                  "type": {
+                    "text": "number"
+                  },
+                  "description": "The 0-based index of the first selected character. An index greater than the length of the\nelement's value is treated as pointing to the end of the value."
+                },
+                {
+                  "name": "selectionEnd",
+                  "type": {
+                    "text": "number"
+                  },
+                  "description": "The 0-based index of the character after the last selected character. An index greater than\nthe length of the element's value is treated as pointing to the end of the value."
+                },
+                {
+                  "name": "selectionDirection",
+                  "default": "'none'",
+                  "type": {
+                    "text": "'forward' | 'backward' | 'none'"
+                  },
+                  "description": "A string indicating the direction in which the selection is considered to\nhave been performed.",
+                  "optional": true
+                }
+              ],
+              "description": "Sets the start and end positions of the current selection.",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "select",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Selects all the text.",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleInput",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "_event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleChange",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "onFocus",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "onBlur",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "_event",
+                  "type": {
+                    "text": "FocusEvent"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleInputElementPointerdown",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderStateIcons",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "TemplateResult | typeof nothing"
+                }
+              },
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "displayValue",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "renderMultiline",
+              "type": {
+                "text": "TemplateResult"
+              },
+              "privacy": "private",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "renderInput",
+              "type": {
+                "text": "TemplateResult"
+              },
+              "privacy": "private",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderField",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "TemplateResult"
+                }
+              },
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "checkValidity",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.js"
+              }
+            }
+          ],
+          "attributes": [
+            {
+              "name": "value",
+              "description": "The value held by the form control",
+              "type": {
+                "text": "string | number"
+              },
+              "fieldName": "value",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "name": "allowed-keys",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "A regular expression outlining the keys that will be allowed to update the value of the form control.",
+              "fieldName": "allowedKeys",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "name": "focused",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "focused",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "name": "invalid",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether the `value` held by the form control is invalid.",
+              "fieldName": "invalid",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "A string applied via `aria-label` to the form control when a user visible label is not provided.",
+              "fieldName": "label",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "name": "name",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Name of the form control.",
+              "fieldName": "name",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "name": "placeholder",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "description": "Text that appears in the form control when it has no value set",
+              "fieldName": "placeholder",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "name": "type",
+              "type": {
+                "text": "TextfieldType"
+              },
+              "default": "'text'",
+              "fieldName": "_type",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "name": "pattern",
+              "type": {
+                "text": "string | undefined"
+              },
+              "description": "Pattern the `value` must match to be valid",
+              "fieldName": "pattern",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "name": "grows",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether a form control delivered with the `multiline` attribute will change size\nvertically to accomodate longer input",
+              "fieldName": "grows",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "name": "maxlength",
+              "type": {
+                "text": "number"
+              },
+              "default": "-1",
+              "description": "Defines the maximum string length that the user can enter",
+              "fieldName": "maxlength",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "name": "minlength",
+              "type": {
+                "text": "number"
+              },
+              "default": "-1",
+              "description": "Defines the minimum string length that the user can enter",
+              "fieldName": "minlength",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "name": "multiline",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether the form control should accept a value longer than one line",
+              "fieldName": "multiline",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "name": "readonly",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether a user can interact with the value of the form control",
+              "fieldName": "readonly",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "name": "rows",
+              "type": {
+                "text": "number"
+              },
+              "default": "-1",
+              "description": "The specific number of rows the form control should provide in the user interface",
+              "fieldName": "rows",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "name": "valid",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether the `value` held by the form control is valid.",
+              "fieldName": "valid",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "name": "quiet",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether to display the form control with no visible background",
+              "fieldName": "quiet",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether the form control will be found to be invalid when it holds no `value`",
+              "fieldName": "required",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "name": "autocomplete",
+              "type": {
+                "text": "| 'list'\n        | 'none'\n        | HTMLInputElement['autocomplete']\n        | HTMLTextAreaElement['autocomplete'] | undefined"
+              },
+              "description": "What form of assistance should be provided when attempting to supply a value to the form control",
+              "fieldName": "autocomplete",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            }
+          ],
+          "superclass": {
+            "name": "TextfieldBase",
+            "module": "src/Textfield.ts"
+          },
+          "tagName": "sp-textfield",
+          "customElement": true,
+          "events": [
+            {
+              "name": "change",
+              "type": {
+                "text": "Event"
+              },
+              "description": "An alteration to the value of the element has been committed by the user.",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            },
+            {
+              "description": "The value of the element has changed.",
+              "name": "input",
+              "inheritedFrom": {
+                "name": "TextfieldBase",
+                "module": "src/Textfield.ts"
+              }
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "TextfieldBase",
+          "declaration": {
+            "name": "TextfieldBase",
+            "module": "src/Textfield.js"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "Textfield",
+          "declaration": {
+            "name": "Textfield",
+            "module": "src/Textfield.js"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+"use strict";import{tag as l}from"../custom-tag.js";export{setCustomTemplateLiteralTag}from"../custom-tag.js";export const ArticleIcon=({width:t=24,height:e=24,hidden:a=!1,title:r="Article"}={})=>l`<svg
+    xmlns="http://www.w3.org/2000/svg"
+    height=${e}
+    viewBox="0 0 36 36"
+    width=${t}
+    aria-hidden=${a?"true":"false"}
+    role="img"
+    fill="currentColor"
+    aria-label=${r}
+  >
+    <path
+      d="M20 10h10v2H20zM20 18h10v2H20zM6 22h12v2H6zM20 14h10v2H20zM20 22h10v2H20zM6 10h12v10H6z"
+    />
+    <path
+      d="M33 4H3a1 1 0 0 0-1 1v24a1 1 0 0 0 1 1h30a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1ZM4 28V6h28v22Z"
+    />
+  </svg>`;
+//# sourceMappingURL=Article.js.map

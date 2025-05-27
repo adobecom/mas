@@ -1,0 +1,294 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "sp-toast.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-toast",
+          "declaration": {
+            "name": "Toast",
+            "module": "/src/Toast.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/Toast.js",
+      "declarations": [
+        {
+          "kind": "variable",
+          "name": "toastVariants",
+          "type": {
+            "text": "ToastVariants[]"
+          },
+          "default": "[\n    'negative',\n    'positive',\n    'info',\n    'error',\n    'warning',\n]"
+        },
+        {
+          "kind": "class",
+          "description": "",
+          "name": "Toast",
+          "slots": [
+            {
+              "description": "The toast content",
+              "name": ""
+            },
+            {
+              "description": "button element surfacing an action in the Toast",
+              "name": "action"
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "open",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "open",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "timeout",
+              "privacy": "public",
+              "description": "When a timeout is provided it represents the number of milliseconds from when\nthe Toast was placed on the page before it will automatically dismiss itself.\nAccessibility concerns require that a Toast is available for at least 6000ms\nbefore being dismissed, so any timeout of less than 6000ms will be raised to\nthat baseline. It is suggested that messages longer than 120 words should\nreceive another 1000ms in their timeout for each additional 120 words in the\nmessage. E.G. 240 words = 7000ms, 360 words = 8000ms, etc.",
+              "parameters": [
+                {
+                  "name": "timeout",
+                  "type": {
+                    "text": "Number"
+                  }
+                }
+              ],
+              "type": {
+                "text": "number | null"
+              },
+              "attribute": "timeout"
+            },
+            {
+              "kind": "field",
+              "name": "_timeout",
+              "type": {
+                "text": "number | null"
+              },
+              "privacy": "public",
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "variant",
+              "privacy": "public",
+              "description": "The variant applies specific styling when set to `negative`, `positive`, `info`, `error`, or `warning`.\n`variant` attribute is removed when not matching one of the above.",
+              "parameters": [
+                {
+                  "name": "variant",
+                  "type": {
+                    "text": "String"
+                  }
+                }
+              ],
+              "type": {
+                "text": "ToastVariants"
+              },
+              "attribute": "variant"
+            },
+            {
+              "kind": "field",
+              "name": "_variant",
+              "type": {
+                "text": "ToastVariants"
+              },
+              "privacy": "private",
+              "default": "''"
+            },
+            {
+              "kind": "method",
+              "name": "renderIcon",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "TemplateResult"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "variant",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "countdownStart",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "private",
+              "default": "0"
+            },
+            {
+              "kind": "field",
+              "name": "nextCount",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "private",
+              "default": "-1"
+            },
+            {
+              "kind": "field",
+              "name": "doCountdown",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "countdown",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "holdCountdown",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "resumeCountdown",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "startCountdown",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "stopCountdown",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "shouldClose",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "close",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            }
+          ],
+          "events": [
+            {
+              "name": "close",
+              "type": {
+                "text": "CustomEvent"
+              },
+              "description": "Announces that the Toast has been closed by the user or by its timeout."
+            }
+          ],
+          "attributes": [
+            {
+              "name": "open",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "open"
+            },
+            {
+              "name": "timeout",
+              "description": "When a timeout is provided it represents the number of milliseconds from when\nthe Toast was placed on the page before it will automatically dismiss itself.\nAccessibility concerns require that a Toast is available for at least 6000ms\nbefore being dismissed, so any timeout of less than 6000ms will be raised to\nthat baseline. It is suggested that messages longer than 120 words should\nreceive another 1000ms in their timeout for each additional 120 words in the\nmessage. E.G. 240 words = 7000ms, 360 words = 8000ms, etc.",
+              "parameters": [
+                {
+                  "name": "timeout",
+                  "type": {
+                    "text": "Number"
+                  }
+                }
+              ],
+              "type": {
+                "text": "number | null"
+              },
+              "fieldName": "timeout"
+            },
+            {
+              "name": "variant",
+              "description": "The variant applies specific styling when set to `negative`, `positive`, `info`, `error`, or `warning`.\n`variant` attribute is removed when not matching one of the above.",
+              "parameters": [
+                {
+                  "name": "variant",
+                  "type": {
+                    "text": "String"
+                  }
+                }
+              ],
+              "type": {
+                "text": "ToastVariants"
+              },
+              "fieldName": "variant"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "FocusVisiblePolyfillMixin",
+              "package": "@spectrum-web-components/shared/src/focus-visible.js"
+            }
+          ],
+          "superclass": {
+            "name": "SpectrumElement",
+            "package": "@spectrum-web-components/base"
+          },
+          "tagName": "sp-toast",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "toastVariants",
+          "declaration": {
+            "name": "toastVariants",
+            "module": "src/Toast.js"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "Toast",
+          "declaration": {
+            "name": "Toast",
+            "module": "src/Toast.js"
+          }
+        }
+      ]
+    }
+  ]
+}

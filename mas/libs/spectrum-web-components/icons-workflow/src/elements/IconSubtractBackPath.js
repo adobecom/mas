@@ -1,0 +1,2 @@
+"use strict";import{html as t}from"@spectrum-web-components/base";import{IconBase as e}from"@spectrum-web-components/icon";import{SubtractBackPathIcon as r}from"../icons/SubtractBackPath.js";import{setCustomTemplateLiteralTag as a}from"../custom-tag.js";export class IconSubtractBackPath extends e{render(){return a(t),r({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconSubtractBackPath.js.map

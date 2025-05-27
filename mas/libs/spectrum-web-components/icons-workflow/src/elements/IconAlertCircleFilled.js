@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{AlertCircleFilledIcon as l}from"../icons/AlertCircleFilled.js";import{setCustomTemplateLiteralTag as r}from"../custom-tag.js";export class IconAlertCircleFilled extends t{render(){return r(e),l({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconAlertCircleFilled.js.map

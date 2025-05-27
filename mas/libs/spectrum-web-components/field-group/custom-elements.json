@@ -1,0 +1,157 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "sp-field-group.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-field-group",
+          "declaration": {
+            "name": "FieldGroup",
+            "module": "/src/FieldGroup.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/FieldGroup.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "FieldGroup",
+          "slots": [
+            {
+              "description": "the form controls that make up the group",
+              "name": ""
+            },
+            {
+              "description": "default or non-negative help text to associate to your form element",
+              "name": "help-text"
+            },
+            {
+              "description": "negative help text to associate to your form element when `invalid`",
+              "name": "negative-help-text"
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "horizontal",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "horizontal",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "invalid",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "invalid",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "attribute": "label"
+            },
+            {
+              "kind": "field",
+              "name": "vertical",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "vertical",
+              "reflects": true
+            },
+            {
+              "kind": "method",
+              "name": "handleSlotchange",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            }
+          ],
+          "attributes": [
+            {
+              "name": "horizontal",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "horizontal"
+            },
+            {
+              "name": "invalid",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "invalid"
+            },
+            {
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "fieldName": "label"
+            },
+            {
+              "name": "vertical",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "vertical"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "ManageHelpText",
+              "package": "@spectrum-web-components/help-text/src/manage-help-text.js"
+            }
+          ],
+          "superclass": {
+            "name": "SpectrumElement",
+            "package": "@spectrum-web-components/base"
+          },
+          "tagName": "sp-field-group",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "FieldGroup",
+          "declaration": {
+            "name": "FieldGroup",
+            "module": "src/FieldGroup.js"
+          }
+        }
+      ]
+    }
+  ]
+}

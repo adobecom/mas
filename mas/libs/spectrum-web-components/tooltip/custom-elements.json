@@ -1,0 +1,380 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "sp-tooltip.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-tooltip",
+          "declaration": {
+            "name": "Tooltip",
+            "module": "/src/Tooltip.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/Tooltip.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "TooltipOpenable",
+          "members": [
+            {
+              "kind": "method",
+              "name": "redispatchEvent",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "tooltip",
+              "type": {
+                "text": "Tooltip"
+              },
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "open",
+              "type": {
+                "text": "boolean"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "_open",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "placement",
+              "type": {
+                "text": "Placement"
+              },
+              "attribute": "placement"
+            },
+            {
+              "kind": "field",
+              "name": "_placement",
+              "type": {
+                "text": "Placement"
+              },
+              "privacy": "private",
+              "default": "'top'"
+            },
+            {
+              "kind": "field",
+              "name": "tipElement",
+              "type": {
+                "text": "HTMLElement"
+              },
+              "readonly": true
+            }
+          ],
+          "attributes": [
+            {
+              "name": "open"
+            },
+            {
+              "name": "placement",
+              "type": {
+                "text": "\"top\" | \"top-start\" | \"top-end\" | \"right\" | \"right-start\" | \"right-end\" | \"bottom\" | \"bottom-start\" | \"bottom-end\" | \"left\" | \"left-start\" | \"left-end\""
+              },
+              "fieldName": "placement"
+            }
+          ],
+          "superclass": {
+            "name": "HTMLElement"
+          },
+          "tagName": "sp-tooltip-openable",
+          "customElement": true
+        },
+        {
+          "kind": "class",
+          "description": "",
+          "name": "Tooltip",
+          "slots": [
+            {
+              "description": "the icon element appearing at the start of the label",
+              "name": "icon"
+            },
+            {
+              "description": "the text label of the Tooltip",
+              "name": ""
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "delayed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "A Tooltip that is `delayed` will its Overlay wait until a warm-up period of\n1000ms has completed before opening. Once the warmup period has completed, all\nsubsequent Overlays will open immediately. When no Overlays are opened, a\ncooldown period of 1000ms will begin. Once the cooldown has completed, the next\nOverlay to be opened will be subject to the warm-up period if provided that option.",
+              "attribute": "delayed"
+            },
+            {
+              "kind": "field",
+              "name": "dependencyManager",
+              "privacy": "private",
+              "default": "new DependencyManagerController(this)"
+            },
+            {
+              "kind": "field",
+              "name": "disabled",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether to prevent a self-managed Tooltip from responding to user input.",
+              "attribute": "disabled"
+            },
+            {
+              "kind": "field",
+              "name": "selfManaged",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Automatically bind to the parent element of the assigned `slot` or the parent element of the `sp-tooltip`.\nWithout this, you must provide your own `overlay-trigger`.",
+              "attribute": "self-managed"
+            },
+            {
+              "kind": "field",
+              "name": "offset",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "public",
+              "default": "0",
+              "attribute": "offset"
+            },
+            {
+              "kind": "field",
+              "name": "open",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "open",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "overlayElement",
+              "type": {
+                "text": "Overlay | undefined"
+              },
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "placement",
+              "type": {
+                "text": "\"top\" | \"top-start\" | \"top-end\" | \"right\" | \"right-start\" | \"right-end\" | \"bottom\" | \"bottom-start\" | \"bottom-end\" | \"left\" | \"left-start\" | \"left-end\""
+              },
+              "privacy": "public",
+              "attribute": "placement",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "tipElement",
+              "type": {
+                "text": "HTMLSpanElement"
+              },
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "tipPadding",
+              "type": {
+                "text": "number | undefined"
+              },
+              "privacy": "public",
+              "attribute": "tipPadding"
+            },
+            {
+              "kind": "field",
+              "name": "_variant",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "private",
+              "default": "''"
+            },
+            {
+              "kind": "field",
+              "name": "variant",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "attribute": "variant"
+            },
+            {
+              "kind": "field",
+              "name": "handleOpenOverlay",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "handleCloseOverlay",
+              "privacy": "protected"
+            },
+            {
+              "kind": "method",
+              "name": "forwardTransitionEvent",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "TransitionEvent"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "triggerElement",
+              "type": {
+                "text": "HTMLElement | null"
+              },
+              "privacy": "private",
+              "readonly": true
+            }
+          ],
+          "events": [
+            {
+              "type": {
+                "text": "TransitionEvent"
+              }
+            }
+          ],
+          "attributes": [
+            {
+              "name": "placement",
+              "type": {
+                "text": "\"top\" | \"top-start\" | \"top-end\" | \"right\" | \"right-start\" | \"right-end\" | \"bottom\" | \"bottom-start\" | \"bottom-end\" | \"left\" | \"left-start\" | \"left-end\""
+              },
+              "fieldName": "placement",
+              "attribute": "placement"
+            },
+            {
+              "name": "delayed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "A Tooltip that is `delayed` will its Overlay wait until a warm-up period of\n1000ms has completed before opening. Once the warmup period has completed, all\nsubsequent Overlays will open immediately. When no Overlays are opened, a\ncooldown period of 1000ms will begin. Once the cooldown has completed, the next\nOverlay to be opened will be subject to the warm-up period if provided that option.",
+              "fieldName": "delayed"
+            },
+            {
+              "name": "disabled",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Whether to prevent a self-managed Tooltip from responding to user input.",
+              "fieldName": "disabled"
+            },
+            {
+              "name": "self-managed",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Automatically bind to the parent element of the assigned `slot` or the parent element of the `sp-tooltip`.\nWithout this, you must provide your own `overlay-trigger`.",
+              "fieldName": "selfManaged"
+            },
+            {
+              "name": "offset",
+              "type": {
+                "text": "number"
+              },
+              "default": "0",
+              "fieldName": "offset"
+            },
+            {
+              "name": "open",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "open"
+            },
+            {
+              "name": "tipPadding",
+              "type": {
+                "text": "number | undefined"
+              },
+              "fieldName": "tipPadding"
+            },
+            {
+              "name": "variant",
+              "type": {
+                "text": "string"
+              },
+              "fieldName": "variant"
+            }
+          ],
+          "superclass": {
+            "name": "SpectrumElement",
+            "package": "@spectrum-web-components/base"
+          },
+          "tagName": "sp-tooltip",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-tooltip-openable",
+          "declaration": {
+            "name": "TooltipOpenable",
+            "module": "src/Tooltip.js"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "Tooltip",
+          "declaration": {
+            "name": "Tooltip",
+            "module": "src/Tooltip.js"
+          }
+        }
+      ]
+    }
+  ]
+}

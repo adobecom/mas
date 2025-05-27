@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{LayersSendToBackIcon as r}from"../icons/LayersSendToBack.js";import{setCustomTemplateLiteralTag as o}from"../custom-tag.js";export class IconLayersSendToBack extends t{render(){return o(e),r({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconLayersSendToBack.js.map

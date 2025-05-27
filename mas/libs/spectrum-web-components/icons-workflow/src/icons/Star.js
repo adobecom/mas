@@ -1,0 +1,15 @@
+"use strict";import{tag as r}from"../custom-tag.js";export{setCustomTemplateLiteralTag}from"../custom-tag.js";export const StarIcon=({width:t=24,height:a=24,hidden:e=!1,title:l="Star"}={})=>r`<svg
+    xmlns="http://www.w3.org/2000/svg"
+    height=${a}
+    viewBox="0 0 36 36"
+    width=${t}
+    aria-hidden=${e?"true":"false"}
+    role="img"
+    fill="currentColor"
+    aria-label=${l}
+  >
+    <path
+      d="M18.477.593 22.8 12.029l12.212.578a.51.51 0 0 1 .3.908l-9.54 7.646 3.224 11.793a.51.51 0 0 1-.772.561L18 26.805l-10.22 6.71a.51.51 0 0 1-.772-.561l3.224-11.793-9.54-7.646a.51.51 0 0 1 .3-.908l12.208-.578L17.523.593a.51.51 0 0 1 .954 0Z"
+    />
+  </svg>`;
+//# sourceMappingURL=Star.js.map

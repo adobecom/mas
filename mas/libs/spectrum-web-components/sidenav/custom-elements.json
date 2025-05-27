@@ -1,0 +1,593 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "sp-sidenav-heading.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-sidenav-heading",
+          "declaration": {
+            "name": "SideNavHeading",
+            "module": "/src/SidenavHeading.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "sp-sidenav-item.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-sidenav-item",
+          "declaration": {
+            "name": "SideNavItem",
+            "module": "/src/SidenavItem.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "sp-sidenav.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-sidenav",
+          "declaration": {
+            "name": "SideNav",
+            "module": "/src/Sidenav.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/Sidenav.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "SideNav",
+          "slots": [
+            {
+              "description": "the Sidenav Items to display",
+              "name": ""
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "items",
+              "privacy": "private",
+              "default": "new Set<SideNavItem>()"
+            },
+            {
+              "kind": "method",
+              "name": "startTrackingSelectionForItem",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "item",
+                  "type": {
+                    "text": "SideNavItem"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "stopTrackingSelectionForItem",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "item",
+                  "type": {
+                    "text": "SideNavItem"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "rovingTabindexController",
+              "default": "new RovingTabindexController<SideNavItem>(this, {\n        focusInIndex: (elements: SideNavItem[]) => {\n            let parentSideNavItem: SideNavItem | undefined;\n            let index = elements.findIndex((el) => {\n                // If the selected item's parent is collapsed, save it for later.\n                if (el.value === this.value && this.isDisabledChild(el)) {\n                    parentSideNavItem = el.closest(\n                        'sp-sidenav-item:not([expanded])'\n                    ) as SideNavItem;\n                }\n                return this.value\n                    ? !el.disabled &&\n                          !this.isDisabledChild(el) &&\n                          el.value === this.value\n                    : !el.disabled && !this.isDisabledChild(el);\n            });\n            // If the selected item's parent is collapsed, focus the collapsed parent.\n            if (index === -1 && parentSideNavItem) {\n                index = elements.findIndex((el) => el === parentSideNavItem);\n            }\n            return index;\n        },\n        direction: 'vertical',\n        elements: () =>\n            [...this.querySelectorAll('sp-sidenav-item')] as SideNavItem[],\n        isFocusableElement: (el: SideNavItem) =>\n            !el.disabled && !this.isDisabledChild(el),\n    })"
+            },
+            {
+              "kind": "field",
+              "name": "manageTabIndex",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "manage-tab-index",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "value",
+              "type": {
+                "text": "string | undefined"
+              },
+              "privacy": "public",
+              "default": "undefined",
+              "attribute": "value",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "variant",
+              "type": {
+                "text": "'multilevel' | undefined"
+              },
+              "privacy": "public",
+              "default": "undefined",
+              "description": "The multilevel variant will have multiple layers of hierarchical navigation items.",
+              "attribute": "variant",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "label",
+              "type": {
+                "text": "string | undefined | undefined"
+              },
+              "privacy": "public",
+              "default": "undefined",
+              "description": "An accessible label that describes the component,\nso that the side navigation can be distinguished\nfrom other navigation by screen reader users.\nIt will be applied to aria-label, but not visually rendered.",
+              "attribute": "label",
+              "reflects": true
+            },
+            {
+              "kind": "method",
+              "name": "handleSelect",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "CustomEvent<SidenavSelectDetail> & { target: SideNavItem }"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "focus",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "blur",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "click",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "focusElement",
+              "type": {
+                "text": "SideNavItem | SideNav"
+              },
+              "privacy": "public",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "isDisabledChild",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "child",
+                  "type": {
+                    "text": "SideNavItem"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "handleSlotchange",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            }
+          ],
+          "events": [
+            {
+              "name": "change",
+              "type": {
+                "text": "Event"
+              },
+              "description": "Announces a change in the `value` property of the navigation element. This change can be \"canceled\" via `event.preventDefault()`."
+            }
+          ],
+          "attributes": [
+            {
+              "name": "manage-tab-index",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "manageTabIndex"
+            },
+            {
+              "name": "value",
+              "type": {
+                "text": "string | undefined"
+              },
+              "default": "undefined",
+              "fieldName": "value"
+            },
+            {
+              "name": "variant",
+              "type": {
+                "text": "'multilevel' | undefined"
+              },
+              "default": "undefined",
+              "description": "The multilevel variant will have multiple layers of hierarchical navigation items.",
+              "fieldName": "variant"
+            },
+            {
+              "name": "label",
+              "type": {
+                "text": "string | undefined | undefined"
+              },
+              "default": "undefined",
+              "description": "An accessible label that describes the component,\nso that the side navigation can be distinguished\nfrom other navigation by screen reader users.\nIt will be applied to aria-label, but not visually rendered.",
+              "fieldName": "label"
+            }
+          ],
+          "superclass": {
+            "name": "Focusable",
+            "package": "@spectrum-web-components/shared"
+          },
+          "tagName": "sp-sidenav",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "SideNav",
+          "declaration": {
+            "name": "SideNav",
+            "module": "src/Sidenav.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/SidenavHeading.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "SideNavHeading",
+          "slots": [
+            {
+              "description": "the Sidenav Items to display in association with the heading",
+              "name": ""
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "attribute": "label",
+              "reflects": true
+            }
+          ],
+          "attributes": [
+            {
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "fieldName": "label"
+            }
+          ],
+          "superclass": {
+            "name": "SpectrumElement",
+            "package": "@spectrum-web-components/base"
+          },
+          "tagName": "sp-sidenav-heading",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "SideNavHeading",
+          "declaration": {
+            "name": "SideNavHeading",
+            "module": "src/SidenavHeading.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/SidenavItem.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "SideNavItem",
+          "slots": [
+            {
+              "description": "the Sidenav Items to display as children of this item",
+              "name": ""
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "value",
+              "type": {
+                "text": "string | undefined"
+              },
+              "privacy": "public",
+              "default": "undefined",
+              "attribute": "value"
+            },
+            {
+              "kind": "field",
+              "name": "selected",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "selected",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "expanded",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "expanded",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "parentSideNav",
+              "type": {
+                "text": "SideNav | undefined"
+              },
+              "privacy": "protected",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "_parentSidenav",
+              "type": {
+                "text": "SideNav | undefined"
+              },
+              "privacy": "protected"
+            },
+            {
+              "kind": "field",
+              "name": "hasChildren",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "protected",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "depth",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "protected",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "handleSideNavSelect",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "handleClick",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "optional": true,
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "announceSelected",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "value",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "click",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "focusElement",
+              "type": {
+                "text": "HTMLElement"
+              },
+              "privacy": "public",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "startTrackingSelection",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "Promise<void>"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "stopTrackingSelection",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            }
+          ],
+          "attributes": [
+            {
+              "name": "value",
+              "type": {
+                "text": "string | undefined"
+              },
+              "default": "undefined",
+              "fieldName": "value"
+            },
+            {
+              "name": "selected",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "selected"
+            },
+            {
+              "name": "expanded",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "expanded"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "LikeAnchor",
+              "package": "@spectrum-web-components/shared/src/like-anchor.js"
+            }
+          ],
+          "superclass": {
+            "name": "Focusable",
+            "package": "@spectrum-web-components/shared/src/focusable.js"
+          },
+          "tagName": "sp-sidenav-item",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "SideNavItem",
+          "declaration": {
+            "name": "SideNavItem",
+            "module": "src/SidenavItem.js"
+          }
+        }
+      ]
+    }
+  ]
+}

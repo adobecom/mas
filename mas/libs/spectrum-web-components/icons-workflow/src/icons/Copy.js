@@ -1,0 +1,33 @@
+"use strict";import{tag as i}from"../custom-tag.js";export{setCustomTemplateLiteralTag}from"../custom-tag.js";export const CopyIcon=({width:t=24,height:r=24,hidden:h=!1,title:e="Copy"}={})=>i`<svg
+    xmlns="http://www.w3.org/2000/svg"
+    height=${r}
+    viewBox="0 0 36 36"
+    width=${t}
+    aria-hidden=${h?"true":"false"}
+    role="img"
+    fill="currentColor"
+    aria-label=${e}
+  >
+    <rect height="2" rx=".5" ry=".5" width="2" x="32" y="22" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="32" y="18" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="32" y="14" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="32" y="10" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="32" y="6" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="32" y="2" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="28" y="2" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="24" y="2" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="20" y="2" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="16" y="2" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="12" y="2" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="12" y="6" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="12" y="10" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="12" y="14" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="12" y="18" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="12" y="22" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="16" y="22" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="20" y="22" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="24" y="22" />
+    <rect height="2" rx=".5" ry=".5" width="2" x="28" y="22" />
+    <path d="M10 12H3a1 1 0 0 0-1 1v20a1 1 0 0 0 1 1h20a1 1 0 0 0 1-1v-7H11a1 1 0 0 1-1-1Z" />
+  </svg>`;
+//# sourceMappingURL=Copy.js.map

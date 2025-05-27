@@ -1,0 +1,2 @@
+"use strict";import{html as t}from"@spectrum-web-components/base";import{IconBase as e}from"@spectrum-web-components/icon";import{LocationContributionIcon as o}from"../icons/LocationContribution.js";import{setCustomTemplateLiteralTag as r}from"../custom-tag.js";export class IconLocationContribution extends e{render(){return r(t),o({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconLocationContribution.js.map

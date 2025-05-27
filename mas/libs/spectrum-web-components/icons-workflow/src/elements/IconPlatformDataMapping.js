@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{PlatformDataMappingIcon as a}from"../icons/PlatformDataMapping.js";import{setCustomTemplateLiteralTag as r}from"../custom-tag.js";export class IconPlatformDataMapping extends t{render(){return r(e),a({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconPlatformDataMapping.js.map

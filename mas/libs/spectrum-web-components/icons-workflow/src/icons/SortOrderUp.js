@@ -1,0 +1,20 @@
+"use strict";import{tag as h}from"../custom-tag.js";export{setCustomTemplateLiteralTag}from"../custom-tag.js";export const SortOrderUpIcon=({width:t=24,height:e=24,hidden:r=!1,title:a="Sort Order Up"}={})=>h`<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width=${t}
+    height=${e}
+    viewBox="0 0 36 36"
+    aria-hidden=${r?"true":"false"}
+    role="img"
+    fill="currentColor"
+    aria-label=${a}
+  >
+    <g>
+      <rect x="2" y="8" width="12" height="4" rx="1" />
+      <rect x="2" y="16" width="16" height="4" rx="1" />
+      <rect x="2" y="24" width="20" height="4" rx="1" />
+      <path
+        d="M31.999 12h-2.006v15a.988.988 0 0 1-.987 1h-.992a1 1 0 0 1-1-.999L27.007 12h-2.006a.5.5 0 0 1-.501-.504.489.489 0 0 1 .147-.35l3.537-4.033a.5.5 0 0 1 .632 0l3.537 4.033a.489.489 0 0 1 .147.35.5.5 0 0 1-.501.504Z"
+      />
+    </g>
+  </svg>`;
+//# sourceMappingURL=SortOrderUp.js.map

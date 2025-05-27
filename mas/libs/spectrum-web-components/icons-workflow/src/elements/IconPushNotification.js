@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{PushNotificationIcon as o}from"../icons/PushNotification.js";import{setCustomTemplateLiteralTag as r}from"../custom-tag.js";export class IconPushNotification extends t{render(){return r(e),o({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconPushNotification.js.map

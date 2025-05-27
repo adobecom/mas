@@ -1,0 +1,2698 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "sp-menu-divider.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-menu-divider",
+          "declaration": {
+            "name": "MenuDivider",
+            "module": "/src/MenuDivider.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "sp-menu-group.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-menu-group",
+          "declaration": {
+            "name": "MenuGroup",
+            "module": "/src/MenuGroup.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "sp-menu-item.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-menu-item",
+          "declaration": {
+            "name": "MenuItem",
+            "module": "/src/MenuItem.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "sp-menu.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-menu",
+          "declaration": {
+            "name": "Menu",
+            "module": "/src/Menu.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/Menu.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "Spectrum Menu Component",
+          "name": "Menu",
+          "slots": [
+            {
+              "description": "menu items to be listed in the menu",
+              "name": ""
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "isSubmenu",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "attribute": "label",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "ignore",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "ignore",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "selects",
+              "type": {
+                "text": "undefined | 'inherit' | 'single' | 'multiple'"
+              },
+              "privacy": "public",
+              "attribute": "selects",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "value",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "attribute": "value"
+            },
+            {
+              "kind": "field",
+              "name": "valueSeparator",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "','",
+              "attribute": "value-separator"
+            },
+            {
+              "kind": "field",
+              "name": "selected",
+              "type": {
+                "text": "string[]"
+              },
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "_selected",
+              "privacy": "protected",
+              "default": "[]"
+            },
+            {
+              "kind": "field",
+              "name": "selectedItems",
+              "privacy": "public",
+              "default": "[]"
+            },
+            {
+              "kind": "field",
+              "name": "menuSlot",
+              "type": {
+                "text": "HTMLSlotElement"
+              },
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "childItemSet",
+              "privacy": "private",
+              "default": "new Set<MenuItem>()"
+            },
+            {
+              "kind": "field",
+              "name": "focusedItemIndex",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "public",
+              "default": "0"
+            },
+            {
+              "kind": "field",
+              "name": "focusInItemIndex",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "public",
+              "default": "0"
+            },
+            {
+              "kind": "field",
+              "name": "selectedItemsMap",
+              "privacy": "private",
+              "default": "new Map<MenuItem, boolean>()"
+            },
+            {
+              "kind": "field",
+              "name": "childItems",
+              "type": {
+                "text": "MenuItem[]"
+              },
+              "privacy": "public",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "cachedChildItems",
+              "type": {
+                "text": "MenuItem[] | undefined"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "updateCachedMenuItems",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "MenuItem[]"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "childRole",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "private",
+              "description": "Hide this getter from web-component-analyzer until\nhttps://github.com/runem/web-component-analyzer/issues/131\nhas been addressed.",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "ownRole",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "resolvedSelects",
+              "type": {
+                "text": "SelectsType | undefined"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "resolvedRole",
+              "type": {
+                "text": "RoleType | undefined"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "onFocusableItemAddedOrUpdated",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "MenuItemAddedOrUpdatedEvent"
+                  }
+                }
+              ],
+              "description": "When a descendant `<sp-menu-item>` element is added or updated it will dispatch\nthis event to announce its presence in the DOM. During the CAPTURE phase the first\nMenu based element that the event encounters will manage the focus state of the\ndispatching `<sp-menu-item>` element."
+            },
+            {
+              "kind": "method",
+              "name": "onSelectableItemAddedOrUpdated",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "MenuItemAddedOrUpdatedEvent"
+                  }
+                }
+              ],
+              "description": "When a descendant `<sp-menu-item>` element is added or updated it will dispatch\nthis event to announce its presence in the DOM. During the BUBBLE phase the first\nMenu based element that the event encounters that does not inherit selection will\nmanage the selection state of the dispatching `<sp-menu-item>` element."
+            },
+            {
+              "kind": "method",
+              "name": "addChildItem",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "item",
+                  "type": {
+                    "text": "MenuItem"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "removeChildItem",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "Promise<void>"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "item",
+                  "type": {
+                    "text": "MenuItem"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "focus",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "{ preventScroll }",
+                  "default": "{}",
+                  "type": {
+                    "text": "FocusOptions"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "pointerUpTarget",
+              "privacy": "private",
+              "default": "null"
+            },
+            {
+              "kind": "method",
+              "name": "handleClick",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "handlePointerup",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "handlePointerBasedSelection",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "handleFocusin",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "FocusEvent"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "startListeningToKeyboard",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleBlur",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "FocusEvent"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "stopListeningToKeyboard",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "descendentOverlays",
+              "privacy": "private",
+              "default": "new Map<Overlay, Overlay>()"
+            },
+            {
+              "kind": "method",
+              "name": "handleDescendentOverlayOpened",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "handleDescendentOverlayClosed",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "handleSubmenuClosed",
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "handleSubmenuOpened",
+              "privacy": "public"
+            },
+            {
+              "kind": "method",
+              "name": "selectOrToggleItem",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "Promise<void>"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "targetItem",
+                  "type": {
+                    "text": "MenuItem"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "navigateWithinMenu",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "KeyboardEvent"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "navigateBetweenRelatedMenus",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "KeyboardEvent"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "handleKeydown",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "KeyboardEvent"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "focusMenuItemByOffset",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "MenuItem"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "offset",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "prepareToCleanUp",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "_hasUpdatedSelectedItemIndex",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false"
+            },
+            {
+              "kind": "method",
+              "name": "updateSelectedItemIndex",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "_willUpdateItems",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false"
+            },
+            {
+              "kind": "method",
+              "name": "handleItemsChanged",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "updateCache",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "Promise<void>"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "updateItemFocus",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "closeDescendentOverlays",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "forwardFocusVisibleToItem",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "item",
+                  "type": {
+                    "text": "MenuItem"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "handleSlotchange",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "{\n        target,\n    }",
+                  "type": {
+                    "text": "Event & { target: HTMLSlotElement }"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "renderMenuItemSlot",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "TemplateResult"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "selectsChanged",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "childItemsUpdated",
+              "type": {
+                "text": "Promise<unknown[]>"
+              },
+              "privacy": "protected"
+            },
+            {
+              "kind": "field",
+              "name": "cacheUpdated",
+              "privacy": "protected"
+            },
+            {
+              "kind": "field",
+              "name": "resolveCacheUpdated",
+              "privacy": "protected"
+            },
+            {
+              "kind": "method",
+              "name": "getUpdateComplete",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "Promise<boolean>"
+                }
+              }
+            }
+          ],
+          "events": [
+            {
+              "name": "change",
+              "type": {
+                "text": "Event"
+              },
+              "description": "Announces that the `value` of the element has changed"
+            },
+            {
+              "name": "close",
+              "type": {
+                "text": "Event"
+              }
+            }
+          ],
+          "attributes": [
+            {
+              "description": "whether the element has a specific selection algorithm that it applies to its item descendants. `single` allows only one descendent to be selected at a time. `multiple` allows many descendants to be selected. `inherit` will be applied dynamically when an ancestor of this element is actively managing the selection of its descendents. When the `selects` attribute is not present a `value` will not be maintained and the Menu Item children of this Menu will not have their `selected` state managed.",
+              "name": "selects",
+              "type": {
+                "text": "undefined | 'inherit' | 'single' | 'multiple'"
+              },
+              "fieldName": "selects"
+            },
+            {
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "fieldName": "label"
+            },
+            {
+              "name": "ignore",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "ignore"
+            },
+            {
+              "name": "value",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "fieldName": "value"
+            },
+            {
+              "name": "value-separator",
+              "type": {
+                "text": "string"
+              },
+              "default": "','",
+              "fieldName": "valueSeparator"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "SizedMixin",
+              "package": "@spectrum-web-components/base"
+            }
+          ],
+          "superclass": {
+            "name": "SpectrumElement",
+            "package": "@spectrum-web-components/base"
+          },
+          "tagName": "sp-menu",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "Menu",
+          "declaration": {
+            "name": "Menu",
+            "module": "src/Menu.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/MenuDivider.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "MenuDivider",
+          "members": [],
+          "mixins": [
+            {
+              "name": "SizedMixin",
+              "package": "@spectrum-web-components/base"
+            }
+          ],
+          "superclass": {
+            "name": "SpectrumElement",
+            "package": "@spectrum-web-components/base"
+          },
+          "tagName": "sp-menu-divider",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "MenuDivider",
+          "declaration": {
+            "name": "MenuDivider",
+            "module": "src/MenuDivider.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/MenuGroup.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "MenuGroup",
+          "slots": [
+            {
+              "description": "headline of the menu group",
+              "name": "header"
+            },
+            {
+              "description": "menu items to be listed in the group",
+              "name": "",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.ts"
+              }
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "headerId",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "private",
+              "default": "''"
+            },
+            {
+              "kind": "field",
+              "name": "headerElements",
+              "type": {
+                "text": "NodeListOf<HTMLElement>"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "headerElement",
+              "type": {
+                "text": "HTMLElement | undefined"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "ownRole",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "protected",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "updateLabel",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "isSubmenu",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "attribute": "label",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "ignore",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "ignore",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "selects",
+              "type": {
+                "text": "undefined | 'inherit' | 'single' | 'multiple'"
+              },
+              "privacy": "public",
+              "attribute": "selects",
+              "reflects": true,
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "value",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "attribute": "value",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "valueSeparator",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "','",
+              "attribute": "value-separator",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "selected",
+              "type": {
+                "text": "string[]"
+              },
+              "privacy": "public",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "_selected",
+              "privacy": "protected",
+              "default": "[]",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "selectedItems",
+              "privacy": "public",
+              "default": "[]",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "menuSlot",
+              "type": {
+                "text": "HTMLSlotElement"
+              },
+              "privacy": "public",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "childItemSet",
+              "privacy": "private",
+              "default": "new Set<MenuItem>()",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "focusedItemIndex",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "public",
+              "default": "0",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "focusInItemIndex",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "public",
+              "default": "0",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "selectedItemsMap",
+              "privacy": "private",
+              "default": "new Map<MenuItem, boolean>()",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "childItems",
+              "type": {
+                "text": "MenuItem[]"
+              },
+              "privacy": "public",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "cachedChildItems",
+              "type": {
+                "text": "MenuItem[] | undefined"
+              },
+              "privacy": "private",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "updateCachedMenuItems",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "MenuItem[]"
+                }
+              },
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "childRole",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "private",
+              "description": "Hide this getter from web-component-analyzer until\nhttps://github.com/runem/web-component-analyzer/issues/131\nhas been addressed.",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "resolvedSelects",
+              "type": {
+                "text": "SelectsType | undefined"
+              },
+              "privacy": "private",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "resolvedRole",
+              "type": {
+                "text": "RoleType | undefined"
+              },
+              "privacy": "private",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "onFocusableItemAddedOrUpdated",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "MenuItemAddedOrUpdatedEvent"
+                  }
+                }
+              ],
+              "description": "When a descendant `<sp-menu-item>` element is added or updated it will dispatch\nthis event to announce its presence in the DOM. During the CAPTURE phase the first\nMenu based element that the event encounters will manage the focus state of the\ndispatching `<sp-menu-item>` element.",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "onSelectableItemAddedOrUpdated",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "MenuItemAddedOrUpdatedEvent"
+                  }
+                }
+              ],
+              "description": "When a descendant `<sp-menu-item>` element is added or updated it will dispatch\nthis event to announce its presence in the DOM. During the BUBBLE phase the first\nMenu based element that the event encounters that does not inherit selection will\nmanage the selection state of the dispatching `<sp-menu-item>` element.",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "addChildItem",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "item",
+                  "type": {
+                    "text": "MenuItem"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "removeChildItem",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "Promise<void>"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "item",
+                  "type": {
+                    "text": "MenuItem"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "focus",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "{ preventScroll }",
+                  "default": "{}",
+                  "type": {
+                    "text": "FocusOptions"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "pointerUpTarget",
+              "privacy": "private",
+              "default": "null",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleClick",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handlePointerup",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handlePointerBasedSelection",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleFocusin",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "FocusEvent"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "startListeningToKeyboard",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleBlur",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "FocusEvent"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "stopListeningToKeyboard",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "descendentOverlays",
+              "privacy": "private",
+              "default": "new Map<Overlay, Overlay>()",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleDescendentOverlayOpened",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleDescendentOverlayClosed",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "handleSubmenuClosed",
+              "privacy": "public",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "handleSubmenuOpened",
+              "privacy": "public",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "selectOrToggleItem",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "Promise<void>"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "targetItem",
+                  "type": {
+                    "text": "MenuItem"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "navigateWithinMenu",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "KeyboardEvent"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "navigateBetweenRelatedMenus",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "KeyboardEvent"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleKeydown",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "KeyboardEvent"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "focusMenuItemByOffset",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "MenuItem"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "offset",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "prepareToCleanUp",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "_hasUpdatedSelectedItemIndex",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "updateSelectedItemIndex",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "_willUpdateItems",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleItemsChanged",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "updateCache",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "Promise<void>"
+                }
+              },
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "updateItemFocus",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "closeDescendentOverlays",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "forwardFocusVisibleToItem",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "item",
+                  "type": {
+                    "text": "MenuItem"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleSlotchange",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "{\n        target,\n    }",
+                  "type": {
+                    "text": "Event & { target: HTMLSlotElement }"
+                  }
+                }
+              ],
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderMenuItemSlot",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "TemplateResult"
+                }
+              },
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "selectsChanged",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "childItemsUpdated",
+              "type": {
+                "text": "Promise<unknown[]>"
+              },
+              "privacy": "protected",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "cacheUpdated",
+              "privacy": "protected",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "resolveCacheUpdated",
+              "privacy": "protected",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "getUpdateComplete",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "Promise<boolean>"
+                }
+              },
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.js"
+              }
+            }
+          ],
+          "superclass": {
+            "name": "Menu",
+            "module": "/src/Menu.js"
+          },
+          "tagName": "sp-menu-group",
+          "customElement": true,
+          "attributes": [
+            {
+              "description": "whether the element has a specific selection algorithm that it applies to its item descendants. `single` allows only one descendent to be selected at a time. `multiple` allows many descendants to be selected. `inherit` will be applied dynamically when an ancestor of this element is actively managing the selection of its descendents. When the `selects` attribute is not present a `value` will not be maintained and the Menu Item children of this Menu will not have their `selected` state managed.",
+              "name": "selects",
+              "type": {
+                "text": "undefined | 'inherit' | 'single' | 'multiple'"
+              },
+              "fieldName": "selects",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.ts"
+              }
+            },
+            {
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "fieldName": "label",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.ts"
+              }
+            },
+            {
+              "name": "ignore",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "ignore",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.ts"
+              }
+            },
+            {
+              "name": "value",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "fieldName": "value",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.ts"
+              }
+            },
+            {
+              "name": "value-separator",
+              "type": {
+                "text": "string"
+              },
+              "default": "','",
+              "fieldName": "valueSeparator",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.ts"
+              }
+            }
+          ],
+          "events": [
+            {
+              "name": "change",
+              "type": {
+                "text": "Event"
+              },
+              "description": "Announces that the `value` of the element has changed",
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.ts"
+              }
+            },
+            {
+              "name": "close",
+              "type": {
+                "text": "Event"
+              },
+              "inheritedFrom": {
+                "name": "Menu",
+                "module": "src/Menu.ts"
+              }
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "MenuGroup",
+          "declaration": {
+            "name": "MenuGroup",
+            "module": "src/MenuGroup.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/MenuItem.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "MenuItemAddedOrUpdatedEvent",
+          "members": [
+            {
+              "kind": "method",
+              "name": "clear",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "item",
+                  "type": {
+                    "text": "MenuItem"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "menuCascade",
+              "default": "new WeakMap<HTMLElement, MenuCascadeItem>()"
+            },
+            {
+              "kind": "field",
+              "name": "item",
+              "type": {
+                "text": "MenuItem"
+              },
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "_item",
+              "type": {
+                "text": "MenuItem"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "currentAncestorWithSelects",
+              "type": {
+                "text": "Menu | undefined"
+              }
+            }
+          ],
+          "superclass": {
+            "name": "Event",
+            "module": "src/MenuItem.ts"
+          }
+        },
+        {
+          "kind": "class",
+          "description": "",
+          "name": "MenuItem",
+          "slots": [
+            {
+              "description": "text content to display within the Menu Item",
+              "name": ""
+            },
+            {
+              "description": "description to be placed below the label of the Menu Item",
+              "name": "description"
+            },
+            {
+              "description": "icon element to be placed at the start of the Menu Item",
+              "name": "icon"
+            },
+            {
+              "description": "content placed at the end of the Menu Item like values, keyboard shortcuts, etc.",
+              "name": "value"
+            },
+            {
+              "description": "content placed in a submenu",
+              "name": "submenu"
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "abortControllerSubmenu",
+              "type": {
+                "text": "AbortController"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "active",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "active",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "dependencyManager",
+              "privacy": "private",
+              "default": "new DependencyManagerController(this)"
+            },
+            {
+              "kind": "field",
+              "name": "focused",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "focused",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "selected",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "selected",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "value",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "attribute": "value"
+            },
+            {
+              "kind": "field",
+              "name": "_value",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "private",
+              "default": "''"
+            },
+            {
+              "kind": "field",
+              "name": "itemText",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "hasSubmenu",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "has-submenu",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "contentSlot",
+              "type": {
+                "text": "HTMLSlotElement"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "iconSlot",
+              "type": {
+                "text": "HTMLSlotElement"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "noWrap",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "no-wrap",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "anchorElement",
+              "type": {
+                "text": "HTMLAnchorElement"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "overlayElement",
+              "type": {
+                "text": "Overlay"
+              },
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "submenuElement",
+              "type": {
+                "text": "HTMLElement | undefined"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "focusElement",
+              "type": {
+                "text": "HTMLElement"
+              },
+              "privacy": "public",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "hasIcon",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "protected",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "itemChildren",
+              "type": {
+                "text": "MenuItemChildren"
+              },
+              "privacy": "public",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "_itemChildren",
+              "type": {
+                "text": "MenuItemChildren | undefined"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "open",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "open",
+              "reflects": true
+            },
+            {
+              "kind": "method",
+              "name": "click",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleClickCapture",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void | boolean"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "handleSlottableRequest",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "proxyFocus",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "shouldProxyClick",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "breakItemChildrenCache",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderSubmenu",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "TemplateResult"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "manageSubmenu",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event & { target: HTMLSlotElement }"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "handlePointerdown",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "PointerEvent"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "closeOverlaysForRoot",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleSubmenuClick",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "handleSubmenuFocus",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "handleBeforetoggle",
+              "privacy": "protected"
+            },
+            {
+              "kind": "method",
+              "name": "handlePointerenter",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "leaveTimeout",
+              "type": {
+                "text": "ReturnType<typeof setTimeout> | undefined"
+              },
+              "privacy": "protected"
+            },
+            {
+              "kind": "field",
+              "name": "recentlyLeftChild",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "protected",
+              "default": "false"
+            },
+            {
+              "kind": "method",
+              "name": "handlePointerleave",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleSubmenuChange",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ],
+              "description": "When there is a `change` event in the submenu for this item\nthen we \"click\" this item to cascade the selection up the\nmenu tree allowing all submenus between the initial selection\nand the root of the tree to have their selection changes and\nbe closed."
+            },
+            {
+              "kind": "method",
+              "name": "handleSubmenuPointerenter",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleSubmenuPointerleave",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "Promise<void>"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleSubmenuOpen",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "cleanup",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "openOverlay",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "Promise<void>"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "updateAriaSelected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "setRole",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "role",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "_parentElement",
+              "type": {
+                "text": "HTMLElement"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "willDispatchUpdate",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false"
+            },
+            {
+              "kind": "method",
+              "name": "triggerUpdate",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "Promise<void>"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "dispatchUpdate",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "menuData",
+              "type": {
+                "text": "{\n        focusRoot?: Menu;\n        parentMenu?: Menu;\n        selectionRoot?: Menu;\n        cleanupSteps: ((item: MenuItem) => void)[];\n    }"
+              },
+              "privacy": "public",
+              "default": "{\n        focusRoot: undefined,\n        parentMenu: undefined,\n        selectionRoot: undefined,\n        cleanupSteps: [],\n    }"
+            }
+          ],
+          "events": [
+            {
+              "type": {
+                "text": "MenuItemAddedOrUpdatedEvent"
+              }
+            },
+            {
+              "description": "announces the item has been added so a parent menu can take ownerships",
+              "name": "sp-menu-item-added"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "active",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "active"
+            },
+            {
+              "name": "focused",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "focused"
+            },
+            {
+              "name": "selected",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "selected"
+            },
+            {
+              "name": "value",
+              "type": {
+                "text": "string"
+              },
+              "fieldName": "value"
+            },
+            {
+              "name": "has-submenu",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "hasSubmenu"
+            },
+            {
+              "name": "no-wrap",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "noWrap"
+            },
+            {
+              "name": "open",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "open"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "LikeAnchor",
+              "package": "@spectrum-web-components/shared/src/like-anchor.js"
+            },
+            {
+              "name": "ObserveSlotText",
+              "package": "@spectrum-web-components/shared"
+            },
+            {
+              "name": "ObserveSlotPresence",
+              "package": "@spectrum-web-components/shared"
+            }
+          ],
+          "superclass": {
+            "name": "Focusable",
+            "package": "@spectrum-web-components/shared/src/focusable.js"
+          },
+          "tagName": "sp-menu-item",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "MenuItemAddedOrUpdatedEvent",
+          "declaration": {
+            "name": "MenuItemAddedOrUpdatedEvent",
+            "module": "src/MenuItem.js"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "MenuItem",
+          "declaration": {
+            "name": "MenuItem",
+            "module": "src/MenuItem.js"
+          }
+        }
+      ]
+    }
+  ]
+}

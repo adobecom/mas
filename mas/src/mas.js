@@ -1,7 +1,9 @@
-import '../../../utils/lana.js';
+import './lana.js';
 import './commerce.js';
 import './merch-card.js';
 import './merch-icon.js';
+import './merch-addon.js';
+import './merch-gradient.js';
 import './merch-mnemonic-list.js';
 import './merch-offer-select.js';
 import './merch-offer.js';
@@ -10,9 +12,6 @@ import './merch-badge.js';
 import './merch-whats-included.js';
 
 import { registerVariant } from './variants/variants.js';
-import { updateConfig } from './lana.js';
-
-updateConfig({ sampleRate: 1 });
 
 // Import ccd variants
 import {
@@ -32,9 +31,12 @@ import {
 
 //Import ah-promoted-plans
 import {
-  AH_PROMOTED_PLANS_AEM_FRAGMENT_MAPPING,
-  AHPromotedPlans,
-} from './variants/ah-promoted-plans.js'
+    AH_PROMOTED_PLANS_AEM_FRAGMENT_MAPPING,
+    AHPromotedPlans,
+} from './variants/ah-promoted-plans.js';
+
+//Import fries
+import { FRIES_AEM_FRAGMENT_MAPPING, FriesCard } from './variants/fries.js';
 
 // Register dynamic variants
 registerVariant(
@@ -56,8 +58,14 @@ registerVariant(
     AHTryBuyWidget.variantStyle,
 );
 registerVariant(
-  'ah-promoted-plans',
-  AHPromotedPlans,
-  AH_PROMOTED_PLANS_AEM_FRAGMENT_MAPPING,
-  AHPromotedPlans.variantStyle,
+    'ah-promoted-plans',
+    AHPromotedPlans,
+    AH_PROMOTED_PLANS_AEM_FRAGMENT_MAPPING,
+    AHPromotedPlans.variantStyle,
+);
+registerVariant(
+    'fries',
+    FriesCard,
+    FRIES_AEM_FRAGMENT_MAPPING,
+    FriesCard.variantStyle,
 );

@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{ImageMapRectangleIcon as a}from"../icons/ImageMapRectangle.js";import{setCustomTemplateLiteralTag as l}from"../custom-tag.js";export class IconImageMapRectangle extends t{render(){return l(e),a({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconImageMapRectangle.js.map

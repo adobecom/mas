@@ -59,16 +59,16 @@ export const appendMiloStyles = () => {
     const customStyles = document.querySelector('style');
     let style = document.createElement('link');
     style.rel = 'stylesheet';
-    style.href = `/__wds-outside-root__/2/styles/styles.css`;
+    style.href = `https://milo.adobe.com/libs/styles/styles.css`;
     document.head.insertBefore(style, customStyles);
 
     style = document.createElement('link');
     style.rel = 'stylesheet';
-    style.href = `/__wds-outside-root__/2/blocks/merch/merch.css`;
+    style.href = `https://milo.adobe.com/libs/blocks/merch/merch.css`;
 
     style = document.createElement('link');
     style.rel = 'stylesheet';
-    style.href = `/__wds-outside-root__/2/blocks/merch-card/merch-card.css`;
+    style.href = `https://milo.adobe.com/libs/blocks/merch-card/merch-card.css`;
     document.head.append(style, customStyles);
 };
 

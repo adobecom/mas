@@ -1,0 +1,283 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "sp-help-text.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-help-text",
+          "declaration": {
+            "name": "HelpText",
+            "module": "/src/HelpText.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/HelpText.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "HelpText",
+          "members": [
+            {
+              "kind": "field",
+              "name": "icon",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "icon",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "variant",
+              "type": {
+                "text": "HelpTextVariants"
+              },
+              "privacy": "public",
+              "default": "'neutral'",
+              "description": "The visual variant to apply to this help text.",
+              "attribute": "variant",
+              "reflects": true
+            }
+          ],
+          "attributes": [
+            {
+              "name": "icon",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "icon"
+            },
+            {
+              "name": "variant",
+              "type": {
+                "text": "HelpTextVariants"
+              },
+              "default": "'neutral'",
+              "description": "The visual variant to apply to this help text.",
+              "fieldName": "variant"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "SizedMixin",
+              "package": "@spectrum-web-components/base"
+            }
+          ],
+          "superclass": {
+            "name": "SpectrumElement",
+            "package": "@spectrum-web-components/base"
+          },
+          "tagName": "sp-help-text",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "HelpText",
+          "declaration": {
+            "name": "HelpText",
+            "module": "src/HelpText.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/HelpTextManagedElement.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "HelpTextManagedElement",
+          "slots": [
+            {
+              "description": "default or non-negative help text to associate to your form element",
+              "name": "help-text"
+            },
+            {
+              "description": "negative help text to associate to your form element when `invalid`",
+              "name": "negative-help-text"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "ManageHelpText",
+              "module": "/src/manage-help-text.js"
+            }
+          ],
+          "superclass": {
+            "name": "SpectrumElement",
+            "package": "@spectrum-web-components/base"
+          }
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "HelpTextManagedElement",
+          "declaration": {
+            "name": "HelpTextManagedElement",
+            "module": "src/HelpTextManagedElement.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/HelpTextManager.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "HelpTextManager",
+          "members": [
+            {
+              "kind": "field",
+              "name": "conditionId",
+              "type": {
+                "text": "() => void | undefined"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "host",
+              "type": {
+                "text": "HTMLElement"
+              },
+              "privacy": "private",
+              "default": "host"
+            },
+            {
+              "kind": "field",
+              "name": "id",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "`sp-help-text-${randomID()}`"
+            },
+            {
+              "kind": "field",
+              "name": "mode",
+              "type": {
+                "text": "'internal' | 'external'"
+              },
+              "privacy": "private",
+              "default": "mode"
+            },
+            {
+              "kind": "field",
+              "name": "previousTabindex",
+              "type": {
+                "text": "-1 | 0 | undefined | undefined"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "helpTextElement",
+              "type": {
+                "text": "Element"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "isInternal",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "addId",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "removeId",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "handleSlotchange",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "handleHelpText",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "target",
+                  "type": {
+                    "text": "HTMLSlotElement"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "handleNegativeHelpText",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "target",
+                  "type": {
+                    "text": "HTMLSlotElement"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "HelpTextManager",
+          "declaration": {
+            "name": "HelpTextManager",
+            "module": "src/HelpTextManager.js"
+          }
+        }
+      ]
+    }
+  ]
+}

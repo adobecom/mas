@@ -1,0 +1,4 @@
+"use strict";var i=Object.defineProperty;var m=Object.getOwnPropertyDescriptor;var a=(o,t,r,s)=>{for(var e=s>1?void 0:s?m(t,r):t,l=o.length-1,n;l>=0;l--)(n=o[l])&&(e=(s?n(t,r,e):n(e))||e);return s&&e&&i(t,r,e),e};import{html as p,SizedMixin as c,SpectrumElement as u}from"@spectrum-web-components/base";import{property as d}from"@spectrum-web-components/base/src/decorators.js";import S from"./button-group.css.js";export class ButtonGroup extends c(u,{noDefaultSize:!0}){constructor(){super(...arguments);this.vertical=!1}static get styles(){return[S]}handleSlotchange({target:r}){r.assignedElements().forEach(e=>{e.size=this.size})}render(){return p`
+            <slot @slotchange=${this.handleSlotchange}></slot>
+        `}}a([d({type:Boolean,reflect:!0})],ButtonGroup.prototype,"vertical",2);
+//# sourceMappingURL=ButtonGroup.js.map

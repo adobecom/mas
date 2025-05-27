@@ -1,0 +1,4 @@
+"use strict";var a=Object.defineProperty;var d=Object.getOwnPropertyDescriptor;var p=(i,r,t,l)=>{for(var e=l>1?void 0:l?d(r,t):r,s=i.length-1,o;s>=0;s--)(o=i[s])&&(e=(l?o(r,t,e):o(e))||e);return l&&e&&a(r,t,e),e};import{html as m,SpectrumElement as b}from"@spectrum-web-components/base";import{property as u}from"@spectrum-web-components/base/src/decorators.js";import c from"./icon.css.js";export class IconBase extends b{constructor(){super(...arguments);this.label=""}static get styles(){return[c]}update(t){t.has("label")&&(this.label?this.removeAttribute("aria-hidden"):this.setAttribute("aria-hidden","true")),super.update(t)}render(){return m`
+            <slot></slot>
+        `}}p([u()],IconBase.prototype,"label",2),p([u({reflect:!0})],IconBase.prototype,"size",2);
+//# sourceMappingURL=IconBase.js.map

@@ -1,0 +1,232 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "sp-alert-dialog.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-alert-dialog",
+          "declaration": {
+            "name": "AlertDialog",
+            "module": "/src/AlertDialog.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/AlertDialog.js",
+      "declarations": [
+        {
+          "kind": "variable",
+          "name": "alertDialogVariants",
+          "type": {
+            "text": "AlertDialogVariants[]"
+          },
+          "default": "[\n    'confirmation',\n    'information',\n    'warning',\n    'error',\n    'destructive',\n    'secondary',\n]"
+        },
+        {
+          "kind": "class",
+          "description": "",
+          "name": "AlertDialog",
+          "members": [
+            {
+              "kind": "field",
+              "name": "contentElement",
+              "type": {
+                "text": "HTMLDivElement"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "resizeController",
+              "privacy": "private",
+              "default": "new ResizeController(this, {\n        callback: () => {\n            this.shouldManageTabOrderForScrolling();\n        },\n    })"
+            },
+            {
+              "kind": "field",
+              "name": "_variant",
+              "type": {
+                "text": "AlertDialogVariants"
+              },
+              "privacy": "public",
+              "default": "''"
+            },
+            {
+              "kind": "field",
+              "name": "variant",
+              "privacy": "public",
+              "type": {
+                "text": "AlertDialogVariants"
+              },
+              "attribute": "variant",
+              "reflects": true
+            },
+            {
+              "kind": "method",
+              "name": "renderIcon",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "TemplateResult"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderHeading",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "TemplateResult"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderContent",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "TemplateResult"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "instanceCount",
+              "type": {
+                "text": "number"
+              },
+              "static": true,
+              "default": "0"
+            },
+            {
+              "kind": "field",
+              "name": "labelledbyId",
+              "privacy": "private",
+              "default": "`sp-dialog-label-${AlertDialog.instanceCount++}`"
+            },
+            {
+              "kind": "field",
+              "name": "conditionLabelledby",
+              "type": {
+                "text": "() => void | undefined"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "conditionDescribedby",
+              "type": {
+                "text": "() => void | undefined"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "onHeadingSlotchange",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "{\n        target,\n    }",
+                  "type": {
+                    "text": "Event & { target: HTMLSlotElement }"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "shouldManageTabOrderForScrolling",
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "describedbyId",
+              "privacy": "private",
+              "default": "`sp-dialog-description-${AlertDialog.instanceCount++}`"
+            },
+            {
+              "kind": "method",
+              "name": "onContentSlotChange",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "{\n        target,\n    }",
+                  "type": {
+                    "text": "Event & { target: HTMLSlotElement }"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "renderButtons",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "TemplateResult"
+                }
+              }
+            }
+          ],
+          "attributes": [
+            {
+              "name": "variant",
+              "type": {
+                "text": "AlertDialogVariants"
+              },
+              "fieldName": "variant"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "FocusVisiblePolyfillMixin",
+              "package": "@spectrum-web-components/shared/src/focus-visible.js"
+            }
+          ],
+          "superclass": {
+            "name": "SpectrumElement",
+            "package": "@spectrum-web-components/base"
+          },
+          "tagName": "sp-alert-dialog",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "alertDialogVariants",
+          "declaration": {
+            "name": "alertDialogVariants",
+            "module": "src/AlertDialog.js"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "AlertDialog",
+          "declaration": {
+            "name": "AlertDialog",
+            "module": "src/AlertDialog.js"
+          }
+        }
+      ]
+    }
+  ]
+}

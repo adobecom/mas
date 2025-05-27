@@ -36,6 +36,15 @@ export default {
             timeout: 10000, // timeout in milliseconds
         },
     },
+    middleware: [
+        function handle404Middleware(context, next) {
+            if (context.response.status === 404) {
+                context.response.status = 200;
+                context.response.body = '';
+            }
+            return next();
+        },
+    ],
     plugins: [
         importMapsPlugin({
             inject: {

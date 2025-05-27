@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{TextRomanLowercaseIcon as o}from"../icons/TextRomanLowercase.js";import{setCustomTemplateLiteralTag as r}from"../custom-tag.js";export class IconTextRomanLowercase extends t{render(){return r(e),o({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconTextRomanLowercase.js.map

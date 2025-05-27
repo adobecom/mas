@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{GraphBarVerticalAddIcon as r}from"../icons/GraphBarVerticalAdd.js";import{setCustomTemplateLiteralTag as a}from"../custom-tag.js";export class IconGraphBarVerticalAdd extends t{render(){return a(e),r({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconGraphBarVerticalAdd.js.map

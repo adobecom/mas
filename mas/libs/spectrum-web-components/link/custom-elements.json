@@ -1,0 +1,129 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "sp-link.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-link",
+          "declaration": {
+            "name": "Link",
+            "module": "/src/Link.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/Link.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "Link",
+          "members": [
+            {
+              "kind": "field",
+              "name": "anchorElement",
+              "type": {
+                "text": "HTMLAnchorElement"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "variant",
+              "type": {
+                "text": "'secondary' | undefined"
+              },
+              "privacy": "public",
+              "attribute": "variant",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "static",
+              "type": {
+                "text": "'black' | 'white' | undefined"
+              },
+              "privacy": "public",
+              "attribute": "static",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "quiet",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "description": "Uses quiet styles or not",
+              "attribute": "quiet",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "focusElement",
+              "type": {
+                "text": "HTMLElement"
+              },
+              "privacy": "public",
+              "readonly": true
+            }
+          ],
+          "attributes": [
+            {
+              "name": "variant",
+              "type": {
+                "text": "'secondary' | undefined"
+              },
+              "fieldName": "variant"
+            },
+            {
+              "name": "static",
+              "type": {
+                "text": "'black' | 'white' | undefined"
+              },
+              "fieldName": "static"
+            },
+            {
+              "name": "quiet",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Uses quiet styles or not",
+              "fieldName": "quiet"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "LikeAnchor",
+              "package": "@spectrum-web-components/shared/src/like-anchor.js"
+            }
+          ],
+          "superclass": {
+            "name": "Focusable",
+            "package": "@spectrum-web-components/shared/src/focusable.js"
+          },
+          "tagName": "sp-link",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "Link",
+          "declaration": {
+            "name": "Link",
+            "module": "src/Link.js"
+          }
+        }
+      ]
+    }
+  ]
+}

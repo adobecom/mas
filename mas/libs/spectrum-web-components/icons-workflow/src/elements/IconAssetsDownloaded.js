@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{AssetsDownloadedIcon as o}from"../icons/AssetsDownloaded.js";import{setCustomTemplateLiteralTag as s}from"../custom-tag.js";export class IconAssetsDownloaded extends t{render(){return s(e),o({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconAssetsDownloaded.js.map

@@ -1,0 +1,2113 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-arrow100.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-arrow100",
+          "declaration": {
+            "name": "IconArrow100",
+            "module": "/src/elements/IconArrow100.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-arrow200.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-arrow200",
+          "declaration": {
+            "name": "IconArrow200",
+            "module": "/src/elements/IconArrow200.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-arrow300.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-arrow300",
+          "declaration": {
+            "name": "IconArrow300",
+            "module": "/src/elements/IconArrow300.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-arrow400.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-arrow400",
+          "declaration": {
+            "name": "IconArrow400",
+            "module": "/src/elements/IconArrow400.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-arrow500.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-arrow500",
+          "declaration": {
+            "name": "IconArrow500",
+            "module": "/src/elements/IconArrow500.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-arrow600.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-arrow600",
+          "declaration": {
+            "name": "IconArrow600",
+            "module": "/src/elements/IconArrow600.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-arrow75.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-arrow75",
+          "declaration": {
+            "name": "IconArrow75",
+            "module": "/src/elements/IconArrow75.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-asterisk100.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-asterisk100",
+          "declaration": {
+            "name": "IconAsterisk100",
+            "module": "/src/elements/IconAsterisk100.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-asterisk200.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-asterisk200",
+          "declaration": {
+            "name": "IconAsterisk200",
+            "module": "/src/elements/IconAsterisk200.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-asterisk300.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-asterisk300",
+          "declaration": {
+            "name": "IconAsterisk300",
+            "module": "/src/elements/IconAsterisk300.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-asterisk75.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-asterisk75",
+          "declaration": {
+            "name": "IconAsterisk75",
+            "module": "/src/elements/IconAsterisk75.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-checkmark100.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-checkmark100",
+          "declaration": {
+            "name": "IconCheckmark100",
+            "module": "/src/elements/IconCheckmark100.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-checkmark200.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-checkmark200",
+          "declaration": {
+            "name": "IconCheckmark200",
+            "module": "/src/elements/IconCheckmark200.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-checkmark300.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-checkmark300",
+          "declaration": {
+            "name": "IconCheckmark300",
+            "module": "/src/elements/IconCheckmark300.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-checkmark400.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-checkmark400",
+          "declaration": {
+            "name": "IconCheckmark400",
+            "module": "/src/elements/IconCheckmark400.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-checkmark50.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-checkmark50",
+          "declaration": {
+            "name": "IconCheckmark50",
+            "module": "/src/elements/IconCheckmark50.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-checkmark500.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-checkmark500",
+          "declaration": {
+            "name": "IconCheckmark500",
+            "module": "/src/elements/IconCheckmark500.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-checkmark600.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-checkmark600",
+          "declaration": {
+            "name": "IconCheckmark600",
+            "module": "/src/elements/IconCheckmark600.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-checkmark75.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-checkmark75",
+          "declaration": {
+            "name": "IconCheckmark75",
+            "module": "/src/elements/IconCheckmark75.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-chevron100.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-chevron100",
+          "declaration": {
+            "name": "IconChevron100",
+            "module": "/src/elements/IconChevron100.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-chevron200.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-chevron200",
+          "declaration": {
+            "name": "IconChevron200",
+            "module": "/src/elements/IconChevron200.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-chevron300.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-chevron300",
+          "declaration": {
+            "name": "IconChevron300",
+            "module": "/src/elements/IconChevron300.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-chevron400.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-chevron400",
+          "declaration": {
+            "name": "IconChevron400",
+            "module": "/src/elements/IconChevron400.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-chevron50.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-chevron50",
+          "declaration": {
+            "name": "IconChevron50",
+            "module": "/src/elements/IconChevron50.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-chevron500.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-chevron500",
+          "declaration": {
+            "name": "IconChevron500",
+            "module": "/src/elements/IconChevron500.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-chevron600.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-chevron600",
+          "declaration": {
+            "name": "IconChevron600",
+            "module": "/src/elements/IconChevron600.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-chevron75.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-chevron75",
+          "declaration": {
+            "name": "IconChevron75",
+            "module": "/src/elements/IconChevron75.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-corner-triangle100.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-corner-triangle100",
+          "declaration": {
+            "name": "IconCornerTriangle100",
+            "module": "/src/elements/IconCornerTriangle100.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-corner-triangle200.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-corner-triangle200",
+          "declaration": {
+            "name": "IconCornerTriangle200",
+            "module": "/src/elements/IconCornerTriangle200.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-corner-triangle300.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-corner-triangle300",
+          "declaration": {
+            "name": "IconCornerTriangle300",
+            "module": "/src/elements/IconCornerTriangle300.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-corner-triangle75.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-corner-triangle75",
+          "declaration": {
+            "name": "IconCornerTriangle75",
+            "module": "/src/elements/IconCornerTriangle75.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-cross100.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-cross100",
+          "declaration": {
+            "name": "IconCross100",
+            "module": "/src/elements/IconCross100.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-cross200.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-cross200",
+          "declaration": {
+            "name": "IconCross200",
+            "module": "/src/elements/IconCross200.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-cross300.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-cross300",
+          "declaration": {
+            "name": "IconCross300",
+            "module": "/src/elements/IconCross300.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-cross400.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-cross400",
+          "declaration": {
+            "name": "IconCross400",
+            "module": "/src/elements/IconCross400.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-cross500.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-cross500",
+          "declaration": {
+            "name": "IconCross500",
+            "module": "/src/elements/IconCross500.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-cross600.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-cross600",
+          "declaration": {
+            "name": "IconCross600",
+            "module": "/src/elements/IconCross600.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-cross75.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-cross75",
+          "declaration": {
+            "name": "IconCross75",
+            "module": "/src/elements/IconCross75.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-dash100.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-dash100",
+          "declaration": {
+            "name": "IconDash100",
+            "module": "/src/elements/IconDash100.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-dash200.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-dash200",
+          "declaration": {
+            "name": "IconDash200",
+            "module": "/src/elements/IconDash200.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-dash300.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-dash300",
+          "declaration": {
+            "name": "IconDash300",
+            "module": "/src/elements/IconDash300.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-dash400.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-dash400",
+          "declaration": {
+            "name": "IconDash400",
+            "module": "/src/elements/IconDash400.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-dash50.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-dash50",
+          "declaration": {
+            "name": "IconDash50",
+            "module": "/src/elements/IconDash50.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-dash500.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-dash500",
+          "declaration": {
+            "name": "IconDash500",
+            "module": "/src/elements/IconDash500.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-dash600.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-dash600",
+          "declaration": {
+            "name": "IconDash600",
+            "module": "/src/elements/IconDash600.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-dash75.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-dash75",
+          "declaration": {
+            "name": "IconDash75",
+            "module": "/src/elements/IconDash75.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-double-gripper.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-double-gripper",
+          "declaration": {
+            "name": "IconDoubleGripper",
+            "module": "/src/elements/IconDoubleGripper.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-single-gripper.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-single-gripper",
+          "declaration": {
+            "name": "IconSingleGripper",
+            "module": "/src/elements/IconSingleGripper.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "icons/sp-icon-triple-gripper.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-icon-triple-gripper",
+          "declaration": {
+            "name": "IconTripleGripper",
+            "module": "/src/elements/IconTripleGripper.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconArrow100.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconArrow100",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-arrow100",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconArrow100",
+          "declaration": {
+            "name": "IconArrow100",
+            "module": "src/elements/IconArrow100.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconArrow200.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconArrow200",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-arrow200",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconArrow200",
+          "declaration": {
+            "name": "IconArrow200",
+            "module": "src/elements/IconArrow200.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconArrow300.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconArrow300",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-arrow300",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconArrow300",
+          "declaration": {
+            "name": "IconArrow300",
+            "module": "src/elements/IconArrow300.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconArrow400.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconArrow400",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-arrow400",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconArrow400",
+          "declaration": {
+            "name": "IconArrow400",
+            "module": "src/elements/IconArrow400.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconArrow500.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconArrow500",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-arrow500",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconArrow500",
+          "declaration": {
+            "name": "IconArrow500",
+            "module": "src/elements/IconArrow500.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconArrow600.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconArrow600",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-arrow600",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconArrow600",
+          "declaration": {
+            "name": "IconArrow600",
+            "module": "src/elements/IconArrow600.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconArrow75.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconArrow75",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-arrow75",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconArrow75",
+          "declaration": {
+            "name": "IconArrow75",
+            "module": "src/elements/IconArrow75.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconAsterisk100.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconAsterisk100",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-asterisk100",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconAsterisk100",
+          "declaration": {
+            "name": "IconAsterisk100",
+            "module": "src/elements/IconAsterisk100.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconAsterisk200.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconAsterisk200",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-asterisk200",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconAsterisk200",
+          "declaration": {
+            "name": "IconAsterisk200",
+            "module": "src/elements/IconAsterisk200.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconAsterisk300.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconAsterisk300",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-asterisk300",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconAsterisk300",
+          "declaration": {
+            "name": "IconAsterisk300",
+            "module": "src/elements/IconAsterisk300.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconAsterisk75.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconAsterisk75",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-asterisk75",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconAsterisk75",
+          "declaration": {
+            "name": "IconAsterisk75",
+            "module": "src/elements/IconAsterisk75.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCheckmark100.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCheckmark100",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-checkmark100",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCheckmark100",
+          "declaration": {
+            "name": "IconCheckmark100",
+            "module": "src/elements/IconCheckmark100.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCheckmark200.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCheckmark200",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-checkmark200",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCheckmark200",
+          "declaration": {
+            "name": "IconCheckmark200",
+            "module": "src/elements/IconCheckmark200.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCheckmark300.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCheckmark300",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-checkmark300",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCheckmark300",
+          "declaration": {
+            "name": "IconCheckmark300",
+            "module": "src/elements/IconCheckmark300.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCheckmark400.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCheckmark400",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-checkmark400",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCheckmark400",
+          "declaration": {
+            "name": "IconCheckmark400",
+            "module": "src/elements/IconCheckmark400.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCheckmark50.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCheckmark50",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-checkmark50",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCheckmark50",
+          "declaration": {
+            "name": "IconCheckmark50",
+            "module": "src/elements/IconCheckmark50.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCheckmark500.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCheckmark500",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-checkmark500",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCheckmark500",
+          "declaration": {
+            "name": "IconCheckmark500",
+            "module": "src/elements/IconCheckmark500.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCheckmark600.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCheckmark600",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-checkmark600",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCheckmark600",
+          "declaration": {
+            "name": "IconCheckmark600",
+            "module": "src/elements/IconCheckmark600.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCheckmark75.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCheckmark75",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-checkmark75",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCheckmark75",
+          "declaration": {
+            "name": "IconCheckmark75",
+            "module": "src/elements/IconCheckmark75.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconChevron100.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconChevron100",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-chevron100",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconChevron100",
+          "declaration": {
+            "name": "IconChevron100",
+            "module": "src/elements/IconChevron100.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconChevron200.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconChevron200",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-chevron200",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconChevron200",
+          "declaration": {
+            "name": "IconChevron200",
+            "module": "src/elements/IconChevron200.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconChevron300.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconChevron300",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-chevron300",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconChevron300",
+          "declaration": {
+            "name": "IconChevron300",
+            "module": "src/elements/IconChevron300.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconChevron400.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconChevron400",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-chevron400",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconChevron400",
+          "declaration": {
+            "name": "IconChevron400",
+            "module": "src/elements/IconChevron400.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconChevron50.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconChevron50",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-chevron50",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconChevron50",
+          "declaration": {
+            "name": "IconChevron50",
+            "module": "src/elements/IconChevron50.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconChevron500.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconChevron500",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-chevron500",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconChevron500",
+          "declaration": {
+            "name": "IconChevron500",
+            "module": "src/elements/IconChevron500.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconChevron600.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconChevron600",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-chevron600",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconChevron600",
+          "declaration": {
+            "name": "IconChevron600",
+            "module": "src/elements/IconChevron600.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconChevron75.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconChevron75",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-chevron75",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconChevron75",
+          "declaration": {
+            "name": "IconChevron75",
+            "module": "src/elements/IconChevron75.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCornerTriangle100.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCornerTriangle100",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-corner-triangle100",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCornerTriangle100",
+          "declaration": {
+            "name": "IconCornerTriangle100",
+            "module": "src/elements/IconCornerTriangle100.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCornerTriangle200.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCornerTriangle200",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-corner-triangle200",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCornerTriangle200",
+          "declaration": {
+            "name": "IconCornerTriangle200",
+            "module": "src/elements/IconCornerTriangle200.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCornerTriangle300.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCornerTriangle300",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-corner-triangle300",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCornerTriangle300",
+          "declaration": {
+            "name": "IconCornerTriangle300",
+            "module": "src/elements/IconCornerTriangle300.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCornerTriangle75.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCornerTriangle75",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-corner-triangle75",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCornerTriangle75",
+          "declaration": {
+            "name": "IconCornerTriangle75",
+            "module": "src/elements/IconCornerTriangle75.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCross100.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCross100",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-cross100",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCross100",
+          "declaration": {
+            "name": "IconCross100",
+            "module": "src/elements/IconCross100.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCross200.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCross200",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-cross200",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCross200",
+          "declaration": {
+            "name": "IconCross200",
+            "module": "src/elements/IconCross200.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCross300.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCross300",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-cross300",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCross300",
+          "declaration": {
+            "name": "IconCross300",
+            "module": "src/elements/IconCross300.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCross400.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCross400",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-cross400",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCross400",
+          "declaration": {
+            "name": "IconCross400",
+            "module": "src/elements/IconCross400.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCross500.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCross500",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-cross500",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCross500",
+          "declaration": {
+            "name": "IconCross500",
+            "module": "src/elements/IconCross500.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCross600.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCross600",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-cross600",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCross600",
+          "declaration": {
+            "name": "IconCross600",
+            "module": "src/elements/IconCross600.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconCross75.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconCross75",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-cross75",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconCross75",
+          "declaration": {
+            "name": "IconCross75",
+            "module": "src/elements/IconCross75.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconDash100.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconDash100",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-dash100",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconDash100",
+          "declaration": {
+            "name": "IconDash100",
+            "module": "src/elements/IconDash100.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconDash200.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconDash200",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-dash200",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconDash200",
+          "declaration": {
+            "name": "IconDash200",
+            "module": "src/elements/IconDash200.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconDash300.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconDash300",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-dash300",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconDash300",
+          "declaration": {
+            "name": "IconDash300",
+            "module": "src/elements/IconDash300.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconDash400.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconDash400",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-dash400",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconDash400",
+          "declaration": {
+            "name": "IconDash400",
+            "module": "src/elements/IconDash400.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconDash50.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconDash50",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-dash50",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconDash50",
+          "declaration": {
+            "name": "IconDash50",
+            "module": "src/elements/IconDash50.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconDash500.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconDash500",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-dash500",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconDash500",
+          "declaration": {
+            "name": "IconDash500",
+            "module": "src/elements/IconDash500.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconDash600.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconDash600",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-dash600",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconDash600",
+          "declaration": {
+            "name": "IconDash600",
+            "module": "src/elements/IconDash600.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconDash75.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconDash75",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-dash75",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconDash75",
+          "declaration": {
+            "name": "IconDash75",
+            "module": "src/elements/IconDash75.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconDoubleGripper.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconDoubleGripper",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-double-gripper",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconDoubleGripper",
+          "declaration": {
+            "name": "IconDoubleGripper",
+            "module": "src/elements/IconDoubleGripper.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconSingleGripper.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconSingleGripper",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-single-gripper",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconSingleGripper",
+          "declaration": {
+            "name": "IconSingleGripper",
+            "module": "src/elements/IconSingleGripper.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/elements/IconTripleGripper.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "IconTripleGripper",
+          "members": [],
+          "superclass": {
+            "name": "IconBase",
+            "package": "@spectrum-web-components/icon"
+          },
+          "tagName": "sp-icon-triple-gripper",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "IconTripleGripper",
+          "declaration": {
+            "name": "IconTripleGripper",
+            "module": "src/elements/IconTripleGripper.js"
+          }
+        }
+      ]
+    }
+  ]
+}

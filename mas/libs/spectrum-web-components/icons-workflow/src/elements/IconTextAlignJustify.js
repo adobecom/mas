@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{TextAlignJustifyIcon as l}from"../icons/TextAlignJustify.js";import{setCustomTemplateLiteralTag as r}from"../custom-tag.js";export class IconTextAlignJustify extends t{render(){return r(e),l({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconTextAlignJustify.js.map

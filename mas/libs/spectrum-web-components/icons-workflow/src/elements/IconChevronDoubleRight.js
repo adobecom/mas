@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{ChevronDoubleRightIcon as o}from"../icons/ChevronDoubleRight.js";import{setCustomTemplateLiteralTag as r}from"../custom-tag.js";export class IconChevronDoubleRight extends t{render(){return r(e),o({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconChevronDoubleRight.js.map

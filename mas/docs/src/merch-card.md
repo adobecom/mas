@@ -1,4 +1,4 @@
-<script type="module" src="../../spectrum-web-components/dist/button.js"></script>
+<script type="module" src="/libs/spectrum-web-components/button/sp-button.js"></script>
 
 # merch-card custom element
 

@@ -1,0 +1,15 @@
+"use strict";import{tag as r}from"../custom-tag.js";export{setCustomTemplateLiteralTag}from"../custom-tag.js";export const BellIcon=({width:e=24,height:t=24,hidden:l=!1,title:a="Bell"}={})=>r`<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width=${e}
+    height=${t}
+    viewBox="0 0 36 36"
+    aria-hidden=${l?"true":"false"}
+    role="img"
+    fill="currentColor"
+    aria-label=${a}
+  >
+    <path
+      d="M18 36a4.406 4.406 0 0 0 4-4h-8a4.406 4.406 0 0 0 4 4ZM27.143 11.385c0-3.437-3.206-4.891-7.143-5.268V3a1.079 1.079 0 0 0-1.143-1h-1.714A1.079 1.079 0 0 0 16 3v3.117c-3.937.377-7.143 1.831-7.143 5.268C8.857 26.8 4 26.111 4 28.154V30h28v-1.846C32 26 27.143 26.8 27.143 11.385Z"
+    />
+  </svg>`;
+//# sourceMappingURL=Bell.js.map

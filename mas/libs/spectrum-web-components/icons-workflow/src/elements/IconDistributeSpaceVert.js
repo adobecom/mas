@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{DistributeSpaceVertIcon as r}from"../icons/DistributeSpaceVert.js";import{setCustomTemplateLiteralTag as l}from"../custom-tag.js";export class IconDistributeSpaceVert extends t{render(){return l(e),r({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconDistributeSpaceVert.js.map

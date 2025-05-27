@@ -1,0 +1,15 @@
+"use strict";import{tag as r}from"../custom-tag.js";export{setCustomTemplateLiteralTag}from"../custom-tag.js";export const CampaignCloseIcon=({width:a=24,height:l=24,hidden:e=!1,title:t="Campaign Close"}={})=>r`<svg
+    xmlns="http://www.w3.org/2000/svg"
+    height=${l}
+    viewBox="0 0 36 36"
+    width=${a}
+    aria-hidden=${e?"true":"false"}
+    role="img"
+    fill="currentColor"
+    aria-label=${t}
+  >
+    <path
+      d="M4.227 20.311H0A16.172 16.172 0 0 0 13.688 34v-4.228a12.006 12.006 0 0 1-9.461-9.461ZM13.688 6.228V2A16.172 16.172 0 0 0 0 15.688h4.228a12.005 12.005 0 0 1 9.46-9.46ZM27.772 15.688H32A16.172 16.172 0 0 0 18.312 2v4.228a12.005 12.005 0 0 1 9.46 9.46ZM27 18.1a8.9 8.9 0 1 0 8.9 8.9 8.9 8.9 0 0 0-8.9-8.9Zm5.826 12.267a.5.5 0 0 1 0 .707l-1.752 1.752a.5.5 0 0 1-.707 0L27 29.459l-3.367 3.367a.5.5 0 0 1-.707 0l-1.752-1.752a.5.5 0 0 1 0-.707L24.541 27l-3.367-3.367a.5.5 0 0 1 0-.707l1.752-1.752a.5.5 0 0 1 .707 0L27 24.541l3.367-3.367a.5.5 0 0 1 .707 0l1.752 1.752a.5.5 0 0 1 0 .707L29.459 27ZM20.112 16.809a4.289 4.289 0 1 0-4.465 5.455 12.344 12.344 0 0 1 4.465-5.455Z"
+    />
+  </svg>`;
+//# sourceMappingURL=CampaignClose.js.map

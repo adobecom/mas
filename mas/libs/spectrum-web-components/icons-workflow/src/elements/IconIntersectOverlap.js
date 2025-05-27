@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{IntersectOverlapIcon as r}from"../icons/IntersectOverlap.js";import{setCustomTemplateLiteralTag as l}from"../custom-tag.js";export class IconIntersectOverlap extends t{render(){return l(e),r({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconIntersectOverlap.js.map

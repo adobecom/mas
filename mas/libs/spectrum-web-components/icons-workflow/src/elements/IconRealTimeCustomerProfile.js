@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{RealTimeCustomerProfileIcon as r}from"../icons/RealTimeCustomerProfile.js";import{setCustomTemplateLiteralTag as l}from"../custom-tag.js";export class IconRealTimeCustomerProfile extends t{render(){return l(e),r({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconRealTimeCustomerProfile.js.map

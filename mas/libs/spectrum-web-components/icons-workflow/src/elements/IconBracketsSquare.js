@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{BracketsSquareIcon as r}from"../icons/BracketsSquare.js";import{setCustomTemplateLiteralTag as a}from"../custom-tag.js";export class IconBracketsSquare extends t{render(){return a(e),r({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconBracketsSquare.js.map

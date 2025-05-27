@@ -1,0 +1,2 @@
+"use strict";import{html as e}from"@spectrum-web-components/base";import{IconBase as t}from"@spectrum-web-components/icon";import{EmailNotificationIcon as o}from"../icons/EmailNotification.js";import{setCustomTemplateLiteralTag as i}from"../custom-tag.js";export class IconEmailNotification extends t{render(){return i(e),o({hidden:!this.label,title:this.label})}}
+//# sourceMappingURL=IconEmailNotification.js.map

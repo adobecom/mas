@@ -1,0 +1,452 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "sp-radio-group.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-radio-group",
+          "declaration": {
+            "name": "RadioGroup",
+            "module": "/src/RadioGroup.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "sp-radio.js",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "sp-radio",
+          "declaration": {
+            "name": "Radio",
+            "module": "/src/Radio.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/Radio.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "Radio",
+          "slots": [
+            {
+              "description": "text label of the Radio button",
+              "name": ""
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "autofocus",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "description": "When this control is rendered, focus it automatically",
+              "attribute": "autofocus"
+            },
+            {
+              "kind": "field",
+              "name": "value",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "attribute": "value",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "checked",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "checked",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "disabled",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "disabled",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "emphasized",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "emphasized",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "invalid",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "invalid",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "readonly",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "public",
+              "default": "false",
+              "attribute": "readonly",
+              "reflects": true
+            },
+            {
+              "kind": "method",
+              "name": "click",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "manageAutoFocus",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "activate",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleKeyup",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "KeyboardEvent"
+                  }
+                }
+              ]
+            }
+          ],
+          "events": [
+            {
+              "name": "keydown",
+              "type": {
+                "text": "KeyboardEvent"
+              },
+              "description": "Trick :focus-visible polyfill into thinking keyboard based focus"
+            },
+            {
+              "name": "change",
+              "type": {
+                "text": "Event"
+              },
+              "description": "When the input is interacted with and its state is changed"
+            }
+          ],
+          "attributes": [
+            {
+              "description": "Uses the invalid style",
+              "name": "invalid",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "invalid"
+            },
+            {
+              "description": "Uses the disabled style",
+              "name": "disabled",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "disabled"
+            },
+            {
+              "description": "Represents when the input is checked",
+              "name": "checked",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "checked"
+            },
+            {
+              "description": "Identifies this radio button within its radio group",
+              "name": "value",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "fieldName": "value"
+            },
+            {
+              "name": "autofocus",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "When this control is rendered, focus it automatically",
+              "fieldName": "autofocus"
+            },
+            {
+              "name": "emphasized",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "emphasized"
+            },
+            {
+              "name": "readonly",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "readonly"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "SizedMixin",
+              "package": "@spectrum-web-components/base"
+            },
+            {
+              "name": "FocusVisiblePolyfillMixin",
+              "package": "@spectrum-web-components/shared/src/focus-visible.js"
+            }
+          ],
+          "superclass": {
+            "name": "SpectrumElement",
+            "package": "@spectrum-web-components/base"
+          },
+          "tagName": "sp-radio",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "Radio",
+          "declaration": {
+            "name": "Radio",
+            "module": "src/Radio.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/RadioGroup.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "RadioGroup",
+          "slots": [
+            {
+              "description": "The `sp-radio` elements to display/manage in the group.",
+              "name": ""
+            },
+            {
+              "description": "default or non-negative help text to associate to your form element",
+              "name": "help-text"
+            },
+            {
+              "description": "negative help text to associate to your form element when `invalid`",
+              "name": "negative-help-text"
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "name",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "attribute": "name"
+            },
+            {
+              "kind": "field",
+              "name": "defaultNodes",
+              "type": {
+                "text": "Node[]"
+              },
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "buttons",
+              "type": {
+                "text": "Radio[]"
+              },
+              "privacy": "public",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "rovingTabindexController",
+              "default": "new RovingTabindexController<Radio>(this, {\n        focusInIndex: (elements: Radio[]) => {\n            return elements.findIndex((el) => {\n                return this.selected\n                    ? !el.disabled && el.value === this.selected\n                    : !el.disabled;\n            });\n        },\n        elementEnterAction: (el: Radio) => {\n            this._setSelected(el.value);\n        },\n        elements: () => this.buttons,\n        isFocusableElement: (el: Radio) => !el.disabled,\n    })"
+            },
+            {
+              "kind": "method",
+              "name": "focus",
+              "privacy": "public",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "_setSelected",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "value",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "selected",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "public",
+              "default": "''",
+              "attribute": "selected",
+              "reflects": true
+            },
+            {
+              "kind": "method",
+              "name": "validateRadios",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "Promise<void>"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "handleSlotchange",
+              "privacy": "protected",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            }
+          ],
+          "events": [
+            {
+              "name": "change",
+              "type": {
+                "text": "Event"
+              },
+              "description": "An alteration to the value of the element has been committed by the user."
+            }
+          ],
+          "attributes": [
+            {
+              "name": "name",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "fieldName": "name"
+            },
+            {
+              "name": "selected",
+              "type": {
+                "text": "string"
+              },
+              "default": "''",
+              "fieldName": "selected"
+            }
+          ],
+          "mixins": [
+            {
+              "name": "FocusVisiblePolyfillMixin",
+              "package": "@spectrum-web-components/shared/src/focus-visible.js"
+            }
+          ],
+          "superclass": {
+            "name": "FieldGroup",
+            "package": "@spectrum-web-components/field-group"
+          },
+          "tagName": "sp-radio-group",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "RadioGroup",
+          "declaration": {
+            "name": "RadioGroup",
+            "module": "src/RadioGroup.js"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+"use strict";import{tag as r}from"../custom-tag.js";export{setCustomTemplateLiteralTag}from"../custom-tag.js";export const KeyClockIcon=({width:a=24,height:e=24,hidden:t=!1,title:l="Key Clock"}={})=>r`<svg
+    xmlns="http://www.w3.org/2000/svg"
+    height=${e}
+    viewBox="0 0 36 36"
+    width=${a}
+    aria-hidden=${t?"true":"false"}
+    role="img"
+    fill="currentColor"
+    aria-label=${l}
+  >
+    <path
+      d="M27 18.084a8.9 8.9 0 1 0 8.9 8.9 8.9 8.9 0 0 0-8.9-8.9Zm0 15.9a7 7 0 1 1 7-7 7 7 0 0 1-7 7Z"
+    />
+    <path
+      d="M27.905 26.517v-4.128a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v5.229l3.275 2.072a.5.5 0 0 0 .69-.155l.535-.845a.5.5 0 0 0-.155-.69ZM16.967 19.9c.52-.52 6.71-6.761 6.71-6.761l1.681 1.682a11.712 11.712 0 0 1 4.861.317l1.6-1.6-4.267-4.272 1.231-1.23 4.27 4.271 2.47-2.47a.75.75 0 0 0 0-1.061L29.06 2.313a1.5 1.5 0 0 0-2.122 0l-13.761 13.76A8.888 8.888 0 0 0 9 15a9 9 0 1 0 6.21 15.491c-1.241-4.201-.022-8.81 1.757-10.591ZM7.5 28.5a3 3 0 1 1 3-3 3 3 0 0 1-3 3Z"
+    />
+  </svg>`;
+//# sourceMappingURL=KeyClock.js.map

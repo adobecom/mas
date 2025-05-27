@@ -1,0 +1,38 @@
+# NALA Test Generator MCP Server
+
+This project provides an MCP (Model Context Protocol) server for automating NALA (Playwright) test generation for card components.
+
+## Available MCP Tools
+
+When this MCP server is running, you can use these tools:
+
+1. **create-suggested-card-example** - Get example configuration for suggested card
+2. **generate-page-object** - Generate NALA page object files
+3. **generate-test-spec** - Generate test specification files
+4. **generate-test-implementation** - Generate test implementation for specific types
+5. **generate-complete-test-suite** - Generate complete test suite
+
+## Usage Examples
+
+```
+Generate a complete test suite for a suggested card
+```
+
+```
+Create an example configuration for the suggested card
+```
+
+```
+Generate just the page object for this card configuration: [paste JSON]
+```
+
+## Card Types Supported
+- suggested, catalog, plans, segment, special-offers, twp, inline-heading, product, mini-compare-chart
+
+## Test Types Supported  
+- css, functional, edit, save, discard, interaction
+
+## Setup
+1. Run `npm install` to install dependencies
+2. Run `npm start` to start the MCP server
+3. Configure Cursor to use this MCP server (see CURSOR_SETUP.md) 

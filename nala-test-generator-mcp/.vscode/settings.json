@@ -1,0 +1,49 @@
+{
+  "mcpServers": {
+    "nala-test-generator": {
+      "command": "node",
+      "args": ["/Users/axelcurenobasurto/Web/mas/nala-test-generator-mcp/src/index.js"],
+      "cwd": "/Users/axelcurenobasurto/Web/mas/nala-test-generator-mcp",
+      "env": {}
+    }
+  },
+  "terminal.integrated.defaultProfile.osx": "bash",
+  "terminal.integrated.cwd": "${workspaceFolder}/nala-test-generator-mcp",
+  "files.associations": {
+    "*.mcp": "json",
+    "*.nala": "javascript"
+  },
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "javascript.preferences.includePackageJsonAutoImports": "auto",
+  "typescript.preferences.includePackageJsonAutoImports": "auto",
+  "emmet.includeLanguages": {
+    "javascript": "javascriptreact"
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/debug-screenshot.png": true,
+    "**/package-lock.json": true
+  },
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/debug-screenshot.png": true
+  },
+  "json.schemas": [
+    {
+      "fileMatch": ["*config.json", "*-config.json"],
+      "url": "./src/types.js"
+    }
+  ],
+  "workbench.colorCustomizations": {
+    "terminal.background": "#1e1e1e",
+    "terminal.foreground": "#d4d4d4"
+  },
+  "terminal.integrated.env.osx": {
+    "NALA_PROJECT_ROOT": "${workspaceFolder}/nala-test-generator-mcp"
+  }
+} 

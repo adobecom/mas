@@ -1,0 +1,327 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "NALA: Auto Extract Card Properties",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "cursor-integration.js",
+        "auto-extract",
+        "${input:cardId}",
+        "${input:branch}",
+        "${input:headless}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/nala-test-generator-mcp"
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "NALA: Generate Browser Extraction Script",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "cursor-integration.js",
+        "extract",
+        "${input:cardId}",
+        "${input:branch}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/nala-test-generator-mcp"
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "NALA: Generate Playwright Extraction Script",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "cursor-integration.js",
+        "playwright-extract",
+        "${input:cardId}",
+        "${input:branch}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/nala-test-generator-mcp"
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "NALA: Generate Complete Test Suite",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "cursor-integration.js",
+        "complete-suite",
+        "${input:configFile}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/nala-test-generator-mcp"
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "NALA: Extract and Generate Tests",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "cursor-integration.js",
+        "extract-and-generate",
+        "${input:cardId}",
+        "${input:branch}",
+        "${input:extractedDataFile}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/nala-test-generator-mcp"
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "NALA: Create Example Configuration",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "cursor-integration.js",
+        "example"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/nala-test-generator-mcp"
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "NALA: Generate Page Object",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "cursor-integration.js",
+        "page-object",
+        "${input:configFile}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/nala-test-generator-mcp"
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "NALA: Generate Test Specification",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "cursor-integration.js",
+        "test-spec",
+        "${input:configFile}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/nala-test-generator-mcp"
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "NALA: Generate Test Implementation",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "cursor-integration.js",
+        "test-impl",
+        "${input:configFile}",
+        "${input:testType}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/nala-test-generator-mcp"
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "NALA: Setup - Install Dependencies",
+      "type": "shell",
+      "command": "npm",
+      "args": ["install"],
+      "options": {
+        "cwd": "${workspaceFolder}/nala-test-generator-mcp"
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "NALA: Setup - Install Playwright",
+      "type": "shell",
+      "command": "npm",
+      "args": ["install", "playwright"],
+      "options": {
+        "cwd": "${workspaceFolder}/nala-test-generator-mcp"
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "NALA: Setup - Install Chromium",
+      "type": "shell",
+      "command": "npx",
+      "args": ["playwright", "install", "chromium"],
+      "options": {
+        "cwd": "${workspaceFolder}/nala-test-generator-mcp"
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "cardId",
+      "description": "Card ID to extract (e.g., 549f6981-f5c8-4512-b41c-313d60f375b2)",
+      "default": "",
+      "type": "promptString"
+    },
+    {
+      "id": "branch",
+      "description": "Branch name (e.g., main, feature-branch, dev)",
+      "default": "main",
+      "type": "promptString"
+    },
+    {
+      "id": "headless",
+      "description": "Run browser in headless mode? (true/false)",
+      "default": "true",
+      "type": "pickString",
+      "options": [
+        {
+          "label": "Headless (true)",
+          "value": "true"
+        },
+        {
+          "label": "Visible Browser (false)",
+          "value": "false"
+        }
+      ]
+    },
+    {
+      "id": "configFile",
+      "description": "Configuration file path (e.g., config.json, extracted-config.json)",
+      "default": "extracted-config.json",
+      "type": "promptString"
+    },
+    {
+      "id": "testType",
+      "description": "Test type to generate",
+      "default": "css",
+      "type": "pickString",
+      "options": [
+        {
+          "label": "CSS Tests",
+          "value": "css"
+        },
+        {
+          "label": "Functional Tests",
+          "value": "functional"
+        },
+        {
+          "label": "Edit Tests",
+          "value": "edit"
+        },
+        {
+          "label": "Save Tests",
+          "value": "save"
+        },
+        {
+          "label": "Discard Tests",
+          "value": "discard"
+        },
+        {
+          "label": "Interaction Tests",
+          "value": "interaction"
+        }
+      ]
+    },
+    {
+      "id": "extractedDataFile",
+      "description": "Extracted data file path (optional, leave empty for first run)",
+      "default": "",
+      "type": "promptString"
+    }
+  ]
+} 

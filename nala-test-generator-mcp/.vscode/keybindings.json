@@ -1,0 +1,32 @@
+[
+  {
+    "key": "cmd+shift+e",
+    "command": "workbench.action.tasks.runTask",
+    "args": "NALA: Auto Extract Card Properties",
+    "when": "editorTextFocus"
+  },
+  {
+    "key": "cmd+shift+g",
+    "command": "workbench.action.tasks.runTask",
+    "args": "NALA: Generate Complete Test Suite",
+    "when": "editorTextFocus"
+  },
+  {
+    "key": "cmd+shift+b",
+    "command": "workbench.action.tasks.runTask",
+    "args": "NALA: Generate Browser Extraction Script",
+    "when": "editorTextFocus"
+  },
+  {
+    "key": "cmd+shift+p",
+    "command": "workbench.action.tasks.runTask",
+    "args": "NALA: Generate Playwright Extraction Script",
+    "when": "editorTextFocus"
+  },
+  {
+    "key": "cmd+shift+x",
+    "command": "workbench.action.tasks.runTask",
+    "args": "NALA: Create Example Configuration",
+    "when": "editorTextFocus"
+  }
+] 

@@ -1,0 +1,101 @@
+{
+  "cardType": "suggested",
+  "cardId": "206a8742-0289-4196-92d4-ced99ec4191e",
+  "testSuite": "M@S Studio CCD Suggested",
+  "elements": {
+    "title": {
+      "selector": "h3[slot=\"heading-xs\"]",
+      "expectedText": "Sample Title",
+      "cssProperties": {
+        "color": "rgb(44, 44, 44)",
+        "font-size": "16px",
+        "font-weight": "700",
+        "line-height": "20px"
+      },
+      "interactions": [
+        {
+          "type": "edit",
+          "value": "New Title"
+        }
+      ]
+    },
+    "eyebrow": {
+      "selector": "h4[slot=\"detail-s\"]",
+      "expectedText": "Sample Eyebrow",
+      "cssProperties": {
+        "color": "rgb(110, 110, 110)",
+        "font-size": "11px",
+        "font-weight": "700",
+        "line-height": "14px"
+      },
+      "interactions": [
+        {
+          "type": "edit",
+          "value": "New Eyebrow"
+        }
+      ]
+    },
+    "description": {
+      "selector": "div[slot=\"body-xs\"] p",
+      "expectedText": "Sample description text",
+      "cssProperties": {
+        "color": "rgb(75, 75, 75)",
+        "font-size": "14px",
+        "font-weight": "400",
+        "line-height": "21px"
+      },
+      "interactions": [
+        {
+          "type": "edit",
+          "value": "New description"
+        }
+      ]
+    },
+    "price": {
+      "selector": "p[slot=\"price\"]",
+      "expectedText": "US$17.24/mo",
+      "cssProperties": {
+        "color": "rgb(34, 34, 34)",
+        "font-size": "14px",
+        "font-weight": "400",
+        "line-height": "21px"
+      }
+    },
+    "cta": {
+      "selector": "div[slot=\"cta\"] > button",
+      "expectedText": "Buy now",
+      "cssProperties": {
+        "color": "rgb(34, 34, 34)",
+        "font-size": "14px",
+        "font-weight": "700"
+      },
+      "interactions": [
+        {
+          "type": "click"
+        }
+      ]
+    }
+  },
+  "cssProperties": {
+    "card": {
+      "background-color": "rgb(245, 245, 245)",
+      "border-bottom-color": "rgb(225, 225, 225)",
+      "min-width": "270px",
+      "max-width": "305px",
+      "min-height": "205px"
+    }
+  },
+  "testTypes": [
+    "css",
+    "functional"
+  ],
+  "metadata": {
+    "tags": [
+      "@mas-studio",
+      "@ccd",
+      "@ccd-suggested"
+    ],
+    "browserParams": "#query=",
+    "path": "/studio.html"
+  }
+}

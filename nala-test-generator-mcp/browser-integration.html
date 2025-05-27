@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NALA Test Generator - Browser Integration Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            min-height: 600px;
+        }
+
+        .input-section {
+            padding: 30px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+        }
+
+        .output-section {
+            padding: 30px;
+            background: white;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        select, textarea, input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        select:focus, textarea:focus, input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 200px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .output-content {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 20px;
+            min-height: 400px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            overflow-y: auto;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .example-configs {
+            margin-top: 20px;
+        }
+
+        .example-config {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .example-config:hover {
+            background: #f0f0f0;
+        }
+
+        .example-config h4 {
+            margin: 0 0 5px 0;
+            color: #2c3e50;
+        }
+
+        .example-config p {
+            margin: 0;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .status-bar {
+            background: #2c3e50;
+            color: white;
+            padding: 10px 30px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #e74c3c;
+        }
+
+        .status-dot.connected {
+            background: #27ae60;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .input-section {
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button {
+                flex: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 NALA Test Generator</h1>
+            <p>Automated NALA (Playwright) test generation for card components</p>
+        </div>
+
+        <div class="main-content">
+            <div class="input-section">
+                <h2 class="section-title">Configuration Input</h2>
+                
+                <div class="form-group">
+                    <label for="cardType">Card Type:</label>
+                    <select id="cardType">
+                        <option value="suggested">Suggested</option>
+                        <option value="catalog">Catalog</option>
+                        <option value="plans">Plans</option>
+                        <option value="segment">Segment</option>
+                        <option value="special-offers">Special Offers</option>
+                        <option value="twp">TWP</option>
+                        <option value="inline-heading">Inline Heading</option>
+                        <option value="product">Product</option>
+                        <option value="mini-compare-chart">Mini Compare Chart</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="cardConfig">Card Configuration (JSON):</label>
+                    <textarea id="cardConfig" placeholder="Paste your card configuration JSON here..."></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="loadExample()">Load Example</button>
+                    <button class="btn-primary" onclick="generatePageObject()">Page Object</button>
+                    <button class="btn-primary" onclick="generateTestSpec()">Test Spec</button>
+                    <button class="btn-success" onclick="generateCompleteSuite()">Complete Suite</button>
+                </div>
+
+                <div class="example-configs">
+                    <h3>Example Configurations:</h3>
+                    <div class="example-config" onclick="loadSuggestedExample()">
+                        <h4>Suggested Card</h4>
+                        <p>Complete configuration with CSS tests and interactions</p>
+                    </div>
+                    <div class="example-config" onclick="loadCatalogExample()">
+                        <h4>Catalog Card</h4>
+                        <p>Basic catalog card with functional tests</p>
+                    </div>
+                    <div class="example-config" onclick="loadPlansExample()">
+                        <h4>Plans Card</h4>
+                        <p>Plans card with pricing and CTA tests</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="output-section">
+                <h2 class="section-title">Generated Output</h2>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Generating NALA tests...</p>
+                </div>
+
+                <div class="output-content" id="output">
+                    Welcome to the NALA Test Generator!
+
+This demo shows how the MCP server could be integrated into a web interface.
+
+To get started:
+1. Select a card type from the dropdown
+2. Load an example configuration or paste your own JSON
+3. Click one of the generation buttons to create NALA tests
+
+Note: This is a demo interface. In a real implementation, this would connect to the actual MCP server to generate the tests.
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">MCP Server: Disconnected (Demo Mode)</span>
+            </div>
+            <div>
+                <span>NALA Test Generator v1.0.0</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Example configurations
+        const exampleConfigs = {
+            suggested: {
+                cardType: 'suggested',
+                cardId: '206a8742-0289-4196-92d4-ced99ec4191e',
+                testSuite: 'M@S Studio CCD Suggested',
+                elements: {
+                    title: {
+                        selector: 'h3[slot="heading-xs"]',
+                        expectedText: 'Sample Title',
+                        cssProperties: {
+                            'color': 'rgb(44, 44, 44)',
+                            'font-size': '16px',
+                            'font-weight': '700',
+                            'line-height': '20px'
+                        },
+                        interactions: [{ type: 'edit', value: 'New Title' }]
+                    },
+                    eyebrow: {
+                        selector: 'h4[slot="detail-s"]',
+                        expectedText: 'Sample Eyebrow',
+                        cssProperties: {
+                            'color': 'rgb(110, 110, 110)',
+                            'font-size': '11px',
+                            'font-weight': '700',
+                            'line-height': '14px'
+                        },
+                        interactions: [{ type: 'edit', value: 'New Eyebrow' }]
+                    },
+                    description: {
+                        selector: 'div[slot="body-xs"] p',
+                        expectedText: 'Sample description text',
+                        cssProperties: {
+                            'color': 'rgb(75, 75, 75)',
+                            'font-size': '14px',
+                            'font-weight': '400',
+                            'line-height': '21px'
+                        },
+                        interactions: [{ type: 'edit', value: 'New description' }]
+                    },
+                    cta: {
+                        selector: 'div[slot="cta"] > button',
+                        expectedText: 'Buy now',
+                        cssProperties: {
+                            'color': 'rgb(34, 34, 34)',
+                            'font-size': '14px',
+                            'font-weight': '700'
+                        },
+                        interactions: [{ type: 'click' }]
+                    }
+                },
+                cssProperties: {
+                    card: {
+                        'background-color': 'rgb(245, 245, 245)',
+                        'border-color': 'rgb(225, 225, 225)',
+                        'min-width': '270px',
+                        'max-width': '305px',
+                        'min-height': '205px'
+                    }
+                },
+                testTypes: ['css', 'functional', 'edit', 'save'],
+                metadata: {
+                    tags: ['@mas-studio', '@ccd', '@ccd-suggested'],
+                    browserParams: '#query=',
+                    path: '/studio.html'
+                }
+            },
+            catalog: {
+                cardType: 'catalog',
+                cardId: 'catalog-example-123',
+                testSuite: 'M@S Studio CCD Catalog',
+                elements: {
+                    title: {
+                        selector: 'h3[slot="heading-m"]',
+                        expectedText: 'Catalog Item',
+                        interactions: [{ type: 'click' }]
+                    },
+                    price: {
+                        selector: 'span[slot="price"]',
+                        expectedText: '$29.99/mo'
+                    }
+                },
+                testTypes: ['css', 'functional'],
+                metadata: {
+                    tags: ['@mas-studio', '@ccd', '@ccd-catalog'],
+                    browserParams: '#query=',
+                    path: '/studio.html'
+                }
+            },
+            plans: {
+                cardType: 'plans',
+                cardId: 'plans-example-456',
+                testSuite: 'M@S Studio CCD Plans',
+                elements: {
+                    title: {
+                        selector: 'h2[slot="heading-l"]',
+                        expectedText: 'Creative Cloud All Apps'
+                    },
+                    price: {
+                        selector: 'span[slot="price"]',
+                        expectedText: '$52.99/mo'
+                    },
+                    cta: {
+                        selector: 'a[slot="cta"]',
+                        expectedText: 'Buy now',
+                        interactions: [{ type: 'click' }]
+                    }
+                },
+                testTypes: ['css', 'functional', 'interaction'],
+                metadata: {
+                    tags: ['@mas-studio', '@ccd', '@ccd-plans'],
+                    browserParams: '#query=',
+                    path: '/studio.html'
+                }
+            }
+        };
+
+        function loadExample() {
+            const cardType = document.getElementById('cardType').value;
+            const config = exampleConfigs[cardType] || exampleConfigs.suggested;
+            document.getElementById('cardConfig').value = JSON.stringify(config, null, 2);
+        }
+
+        function loadSuggestedExample() {
+            document.getElementById('cardType').value = 'suggested';
+            document.getElementById('cardConfig').value = JSON.stringify(exampleConfigs.suggested, null, 2);
+        }
+
+        function loadCatalogExample() {
+            document.getElementById('cardType').value = 'catalog';
+            document.getElementById('cardConfig').value = JSON.stringify(exampleConfigs.catalog, null, 2);
+        }
+
+        function loadPlansExample() {
+            document.getElementById('cardType').value = 'plans';
+            document.getElementById('cardConfig').value = JSON.stringify(exampleConfigs.plans, null, 2);
+        }
+
+        function showLoading() {
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('output').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('show');
+            document.getElementById('output').style.display = 'block';
+        }
+
+        function setOutput(content) {
+            document.getElementById('output').textContent = content;
+        }
+
+        async function generatePageObject() {
+            showLoading();
+            
+            try {
+                const config = JSON.parse(document.getElementById('cardConfig').value);
+                
+                // Simulate API call delay
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Mock generated page object
+                const pageObjectCode = `export default class CCD${config.cardType.charAt(0).toUpperCase() + config.cardType.slice(1)}Page {
+    constructor(page) {
+        this.page = page;
+
+        // Element selectors
+        ${Object.entries(config.elements).map(([name, element]) => 
+            `this.${name} = page.locator('${element.selector}');`
+        ).join('\n        ')}
+
+        // CSS properties
+        this.cssProp = ${JSON.stringify(config.cssProperties || {}, null, 12).replace(/"/g, "'")};
+    }
+}`;
+
+                setOutput(`Generated page object for ${config.cardType} card:
+
+${pageObjectCode}`);
+                
+            } catch (error) {
+                setOutput(`Error: ${error.message}`);
+            }
+            
+            hideLoading();
+        }
+
+        async function generateTestSpec() {
+            showLoading();
+            
+            try {
+                const config = JSON.parse(document.getElementById('cardConfig').value);
+                
+                // Simulate API call delay
+                await new Promise(resolve => setTimeout(resolve, 1200));
+                
+                // Mock generated test spec
+                const testSpec = {
+                    FeatureName: `M@S Studio CCD ${config.cardType.charAt(0).toUpperCase() + config.cardType.slice(1)}`,
+                    features: config.testTypes.map((testType, index) => ({
+                        tcid: index.toString(),
+                        name: `@studio-${config.cardType}-${testType}-test`,
+                        path: config.metadata?.path || '/studio.html',
+                        data: { cardid: config.cardId },
+                        browserParams: config.metadata?.browserParams || '#query=',
+                        tags: `${config.metadata?.tags?.join(' ') || ''} @ccd-${testType}`
+                    }))
+                };
+
+                setOutput(`Generated test specification for ${config.cardType} card:
+
+export default ${JSON.stringify(testSpec, null, 4)};`);
+                
+            } catch (error) {
+                setOutput(`Error: ${error.message}`);
+            }
+            
+            hideLoading();
+        }
+
+        async function generateCompleteSuite() {
+            showLoading();
+            
+            try {
+                const config = JSON.parse(document.getElementById('cardConfig').value);
+                
+                // Simulate API call delay
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                setOutput(`# Complete NALA Test Suite for ${config.cardType} Card
+
+## Page Object (${config.cardType}.page.js)
+
+\`\`\`javascript
+export default class CCD${config.cardType.charAt(0).toUpperCase() + config.cardType.slice(1)}Page {
+    constructor(page) {
+        this.page = page;
+        
+        // Generated selectors and CSS properties
+        // ... (full implementation would be here)
+    }
+}
+\`\`\`
+
+## Test Specifications (${config.cardType}_css.spec.js)
+
+\`\`\`javascript
+export default {
+    FeatureName: "M@S Studio CCD ${config.cardType.charAt(0).toUpperCase() + config.cardType.slice(1)}",
+    features: [
+        // Generated test cases for ${config.testTypes.join(', ')} tests
+    ]
+};
+\`\`\`
+
+## Test Implementations
+
+${config.testTypes.map(testType => `
+### ${testType.toUpperCase()} Tests (${config.cardType}_${testType}.test.js)
+
+\`\`\`javascript
+import { expect, test } from '@playwright/test';
+// Generated ${testType} test implementation
+\`\`\`
+`).join('')}
+
+✅ Complete test suite generated successfully!
+📁 Files ready for integration into NALA test framework
+🧪 ${config.testTypes.length} test types included
+🎯 ${Object.keys(config.elements).length} elements configured`);
+                
+            } catch (error) {
+                setOutput(`Error: ${error.message}`);
+            }
+            
+            hideLoading();
+        }
+
+        // Initialize with suggested example
+        window.onload = function() {
+            loadSuggestedExample();
+        };
+    </script>
+</body>
+</html> 

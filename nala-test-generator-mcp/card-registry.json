@@ -1,0 +1,83 @@
+{
+  "description": "Card Registry for NALA Test Generation - Update with your actual card IDs",
+  "lastUpdated": "2024-01-15",
+  "cards": {
+    "fries": {
+      "surface": "commerce",
+      "branches": {
+        "main": {
+          "css": "26f091c2-995d-4a96-a193-d62f6c73af2f",
+          "edit": "12345678-1234-1234-1234-123456789abc",
+          "save": "87654321-4321-4321-4321-cba987654321",
+          "discard": "abcdef12-3456-7890-abcd-ef1234567890",
+          "functional": "26f091c2-995d-4a96-a193-d62f6c73af2f",
+          "interaction": "26f091c2-995d-4a96-a193-d62f6c73af2f"
+        },
+        "MWPW-170520": {
+          "css": "98765432-8765-4321-8765-432187654321",
+          "edit": "11111111-2222-3333-4444-555555555555",
+          "save": "66666666-7777-8888-9999-000000000000",
+          "discard": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+        }
+      }
+    },
+    "plans": {
+      "surface": "acom",
+      "branches": {
+        "main": {
+          "css": "plans-css-card-id-here",
+          "edit": "plans-edit-card-id-here",
+          "save": "plans-save-card-id-here",
+          "discard": "plans-discard-card-id-here"
+        }
+      }
+    },
+    "catalog": {
+      "surface": "acom",
+      "branches": {
+        "main": {
+          "css": "catalog-css-card-id-here",
+          "edit": "catalog-edit-card-id-here",
+          "save": "catalog-save-card-id-here",
+          "discard": "catalog-discard-card-id-here"
+        }
+      }
+    },
+    "suggested": {
+      "surface": "ccd",
+      "branches": {
+        "main": {
+          "css": "suggested-css-card-id-here",
+          "edit": "suggested-edit-card-id-here",
+          "save": "suggested-save-card-id-here",
+          "discard": "suggested-discard-card-id-here"
+        }
+      }
+    },
+    "special-offers": {
+      "surface": "acom",
+      "branches": {
+        "main": {
+          "css": "special-offers-css-card-id-here",
+          "edit": "special-offers-edit-card-id-here",
+          "save": "special-offers-save-card-id-here",
+          "discard": "special-offers-discard-card-id-here"
+        }
+      }
+    }
+  },
+  "usage": {
+    "description": "How to use this registry",
+    "examples": [
+      "node cursor-integration.js single css \"${cards.fries.branches.main.css}\" fries main",
+      "node cursor-integration.js single edit \"${cards.plans.branches.main.edit}\" plans main",
+      "./generate-multi-card-tests.sh fries main"
+    ],
+    "notes": [
+      "Update card IDs when new cards are created",
+      "Coordinate with team when changing card configurations",
+      "Test card availability before generating tests",
+      "Use branch-specific cards for feature testing"
+    ]
+  }
+} 

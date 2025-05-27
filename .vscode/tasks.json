@@ -1,0 +1,310 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "NALA: Generate CSS Tests",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "nala-test-generator-mcp/cursor-integration.js",
+                "single",
+                "css",
+                "${input:cardId}",
+                "${input:cardType}",
+                "${input:branch}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "NALA: Generate Edit Tests",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "nala-test-generator-mcp/cursor-integration.js",
+                "single",
+                "edit",
+                "${input:cardId}",
+                "${input:cardType}",
+                "${input:branch}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "NALA: Generate Save Tests",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "nala-test-generator-mcp/cursor-integration.js",
+                "single",
+                "save",
+                "${input:cardId}",
+                "${input:cardType}",
+                "${input:branch}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "NALA: Generate Discard Tests",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "nala-test-generator-mcp/cursor-integration.js",
+                "single",
+                "discard",
+                "${input:cardId}",
+                "${input:cardType}",
+                "${input:branch}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "NALA: Auto-Detect Card Type",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "nala-test-generator-mcp/cursor-integration.js",
+                "extract",
+                "${input:cardId}",
+                "${input:branch}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "NALA: Generate Page Object",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "nala-test-generator-mcp/cursor-integration.js",
+                "page-object",
+                "${input:cardType}",
+                "${input:cardId}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "NALA: Generate Test Spec",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "nala-test-generator-mcp/cursor-integration.js",
+                "spec",
+                "${input:cardType}",
+                "${input:cardId}",
+                "${input:testType}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "NALA: Generate Test Implementation",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "nala-test-generator-mcp/cursor-integration.js",
+                "test",
+                "${input:cardType}",
+                "${input:cardId}",
+                "${input:testType}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "NALA: Generate Complete Test Suite",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "nala-test-generator-mcp/cursor-integration.js",
+                "complete",
+                "${input:cardType}",
+                "${input:cardId}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "NALA: Extract Card Properties",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "nala-test-generator-mcp/cursor-integration.js",
+                "extract",
+                "${input:cardId}",
+                "${input:branch}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "NALA: Auto-Extract with Playwright",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "nala-test-generator-mcp/cursor-integration.js",
+                "auto-extract",
+                "${input:cardId}",
+                "${input:branch}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "NALA: Create Example Config",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "nala-test-generator-mcp/cursor-integration.js",
+                "example"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "cardId",
+            "description": "Enter the card ID",
+            "default": "549f6981-f5c8-4512-b41c-313d60f375b2",
+            "type": "promptString"
+        },
+        {
+            "id": "cardType",
+            "description": "Select card type",
+            "type": "pickString",
+            "options": [
+                "suggested",
+                "catalog",
+                "plans",
+                "segment",
+                "special-offers",
+                "twp",
+                "inline-heading",
+                "product",
+                "mini-compare-chart"
+            ],
+            "default": "suggested"
+        },
+        {
+            "id": "testType",
+            "description": "Select test type",
+            "type": "pickString",
+            "options": [
+                "css",
+                "edit",
+                "save",
+                "discard",
+                "functional",
+                "interaction"
+            ],
+            "default": "css"
+        },
+        {
+            "id": "branch",
+            "description": "Enter branch name (or leave empty for 'main')",
+            "default": "main",
+            "type": "promptString"
+        }
+    ]
+} 

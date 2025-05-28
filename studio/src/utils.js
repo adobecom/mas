@@ -1,3 +1,5 @@
+import Events from './events.js';
+
 /**
  * @param {string} input
  * @returns {string}
@@ -153,4 +155,16 @@ export function normalizeKey(str) {
         .toLowerCase()
         .replace(/\s+/g, '-')
         .replace(/[^a-z0-9-]/g, '');
+}
+
+/**
+ * Helper method to show toast messages with consistent formatting
+ * @param {string} message - The message to display
+ * @param {string} variant - The toast variant (positive, negative, info)
+ */
+export function showToast(message, variant = 'info') {
+    Events.toast.emit({
+        variant,
+        content: message,
+    });
 }

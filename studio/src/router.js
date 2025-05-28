@@ -174,6 +174,10 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.filters, ['locale', 'tags'], {
             locale: 'en_US',
         });
+        this.linkStoreToHash(Store.sort, ['sortBy', 'sortDirection'], {
+            sortDirection: 'asc',
+        });
+        this.linkStoreToHash(Store.placeholders.search, 'search');
         this.linkStoreToHash(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
         if (Store.search.value.query) {
             Store.page.set(PAGE_NAMES.CONTENT);

@@ -22,6 +22,7 @@ export class Fragment {
         status,
         created,
         modified,
+        published,
         fields,
         tags,
         references,
@@ -36,6 +37,7 @@ export class Fragment {
         this.status = status;
         this.created = created;
         this.modified = modified;
+        this.published = published;
         this.tags = tags;
         this.fields = fields;
         this.references = references;
@@ -82,6 +84,11 @@ export class Fragment {
 
     getField(fieldName) {
         return this.fields.find((field) => field.name === fieldName);
+    }
+
+    getFieldValue(fieldName) {
+        const field = this.getField(fieldName);
+        return field?.values?.[0];
     }
 
     updateField(fieldName, value) {

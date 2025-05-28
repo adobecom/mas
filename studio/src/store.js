@@ -27,6 +27,7 @@ const Store = {
     },
     search: new ReactiveStore({}),
     filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
+    sort: new ReactiveStore({}, sortValidator),
     renderMode: new ReactiveStore(
         localStorage.getItem('mas-render-mode') || 'render',
     ),
@@ -35,11 +36,13 @@ const Store = {
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
     commerceEnv: new ReactiveStore(WCS_ENV_PROD),
     placeholders: {
+        search: new ReactiveStore(''),
         list: {
             data: new ReactiveStore([]),
-            loading: new ReactiveStore(false),
+            loading: new ReactiveStore(true),
         },
-        selected: new ReactiveStore(null),
+        index: new ReactiveStore(null),
+        selection: new ReactiveStore([]),
         editing: new ReactiveStore(null),
         addons: {
             loading: new ReactiveStore(false),
@@ -48,6 +51,7 @@ const Store = {
             ]),
         },
     },
+    confirmDialogOptions: new ReactiveStore(null),
 };
 
 /**
@@ -66,6 +70,14 @@ function filtersValidator(value) {
     } else if (typeof value.tags !== 'string') {
         value.tags = String(value.tags);
     }
+    return value;
+}
+
+function sortValidator(value) {
+    if (!value) return { sortBy: 'id', sortDirection: 'asc' };
+    if (!value.sortBy) value.sortBy = 'id';
+    if (value.sortDirection !== 'asc' && value.sortDirection !== 'desc')
+        value.sortDirection = 'asc';
     return value;
 }
 

@@ -1,4 +1,4 @@
-name: IO WWW Check
+name: IO WWW PR Check
 on:
   push:
     branches:
@@ -41,13 +41,13 @@ jobs:
 
     - name: Call Deploy Workflow
       if: success() && github.event_name == 'pull_request'
-      uses: io-deploy.yaml
+      uses: ./.github/workflows/io-deploy.yaml
       with:
         workspace: ${{ vars[format('AIO_NS_{0}', github.actor)] || secrets.AIO_NS_QA }}
         auth: ${{ vars[format('AIO_AUTH_{0}', github.actor)] || secrets.AIO_AUTH_QA }}
 
     - name: Run Tests against Workspace
       if: success() && github.event_name == 'pull_request'
-      uses: io-tests.yaml
+      uses: ./.github/workflows/io-tests.yaml
       with:
         workspace: ${{ vars[format('AIO_NS_{0}', github.actor)] || secrets.AIO_NS_QA }}

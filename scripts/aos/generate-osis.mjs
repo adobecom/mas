@@ -88,8 +88,6 @@ function getOffersOSIS(offers) {
                         sales_channel,
                         offer_type,
                         price_point,
-                        language: 'MULT',
-                        country: 'US',
                     });
                     console.log(
                         `Generating OSI for offer: ${offer_id} and body: ${body}`,

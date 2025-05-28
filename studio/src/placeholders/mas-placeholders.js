@@ -10,6 +10,7 @@ import { MasRepository } from '../mas-repository.js';
 import '../mas-selection-panel.js';
 import { showToast } from '../utils.js';
 import { confirmation } from '../mas-confirm-dialog.js';
+import { FragmentStore } from '../reactivity/fragment-store.js';
 
 class MasPlaceholders extends LitElement {
     static styles = styles;
@@ -85,6 +86,7 @@ class MasPlaceholders extends LitElement {
         return document.querySelector('mas-repository');
     }
 
+    /** @type {FragmentStore[]} */
     get placeholders() {
         return Store.placeholders.list.data.get();
     }
@@ -138,6 +140,7 @@ class MasPlaceholders extends LitElement {
 
     sortAndFilter() {
         // Filter
+        /** @type {FragmentStore[]} */
         let filtered = this.placeholders;
         if (this.searchTerm) {
             const removeFromSelection = [];
@@ -170,6 +173,7 @@ class MasPlaceholders extends LitElement {
             return this.sortDirection === 'asc' ? comparison : -comparison;
         });
 
+        if (sorted.length === 0) this.selects = undefined;
         this.internalPlaceholders = sorted;
         this.refresh();
     }
@@ -279,6 +283,7 @@ class MasPlaceholders extends LitElement {
      * Whenever some filtering happens (rows are added/removed) this needs to be called
      */
     async refresh() {
+        if (this.internalPlaceholders.length === 0) return;
         this.selects = undefined;
         await this.updateComplete;
         this.selects = 'multiple';
@@ -428,6 +433,11 @@ class MasPlaceholders extends LitElement {
                             `;
                         },
                     )}
+                    ${this.internalPlaceholders.length === 0
+                        ? html`<p class="no-placeholders-label">
+                              No placeholders found
+                          </p>`
+                        : nothing}
                 </sp-table-body>
             </sp-table>
         `;

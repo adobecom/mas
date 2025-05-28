@@ -92,6 +92,10 @@ export const styles = css`
         table-layout: fixed;
     }
 
+    .no-placeholders-label {
+        text-align: center;
+    }
+
     .placeholders-table sp-table-head {
         background-color: var(--spectrum-global-color-gray-100);
         border-bottom: 1px solid var(--spectrum-gray-200);

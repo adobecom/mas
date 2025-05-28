@@ -1,5 +1,6 @@
 import { PAGE_NAMES, WCS_ENV_PROD } from './constants.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
+import { getHashParam } from './utils.js';
 
 // Store definition with default values - no URL parsing here
 const Store = {
@@ -74,8 +75,10 @@ function filtersValidator(value) {
 }
 
 function sortValidator(value) {
-    if (!value) return { sortBy: 'id', sortDirection: 'asc' };
-    if (!value.sortBy) value.sortBy = 'id';
+    const page = getHashParam('page');
+    const defaultSortBy = page === 'placeholders' ? 'key' : 'id';
+    if (!value) return { sortBy: defaultSortBy, sortDirection: 'asc' };
+    if (!value.sortBy) value.sortBy = defaultSortBy;
     if (value.sortDirection !== 'asc' && value.sortDirection !== 'desc')
         value.sortDirection = 'asc';
     return value;

@@ -44,8 +44,8 @@ jobs:
     if: success() && github.event_name == 'pull_request'
     uses: ./.github/workflows/io-deploy.yaml
     secrets:
-      workspace: ${{ vars[format('AIO_NS_{0}', github.actor)] || vars.AIO_NS_QA }}
-      auth: ${{ vars[format('AIO_AUTH_{0}', github.actor)] || vars.AIO_AUTH_QA }}
+      workspace: ${{ secrets[format('AIO_NS_{0}', github.actor)] || secrets.AIO_NS_QA }}
+      auth: ${{ secrets[format('AIO_AUTH_{0}', github.actor)] || secrets.AIO_AUTH_QA }}
       AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
       AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
       AOS_URL: ${{ secrets.AOS_URL }}
@@ -60,4 +60,4 @@ jobs:
     if: success() && github.event_name == 'pull_request'
     uses: ./.github/workflows/io-tests.yaml
     secrets:
-      workspace: ${{ vars[format('AIO_NS_{0}', github.actor)] || vars.AIO_NS_QA }}
+      workspace: ${{ secrets[format('AIO_NS_{0}', github.actor)] || secrets.AIO_NS_QA }}

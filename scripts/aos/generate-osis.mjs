@@ -73,7 +73,7 @@ function getOffersOSIS(offers) {
                         commitment,
                         term,
                         customer_segment,
-                        market_segment,
+                        market_segments,
                         sales_channel,
                         offer_type,
                         price_point,
@@ -84,7 +84,7 @@ function getOffersOSIS(offers) {
                         commitment,
                         term,
                         customer_segment,
-                        market_segment,
+                        market_segment: market_segments[0] || 'COM',
                         sales_channel,
                         offer_type,
                         price_point,
@@ -108,7 +108,12 @@ function getOffersOSIS(offers) {
                         }
                         response
                             .json()
-                            .then(resolve)
+                            .then((data) => {
+                                resolve({
+                                    ...data,
+                                    offer_id,
+                                });
+                            })
                             .catch((error) => {
                                 console.error(
                                     `Error parsing JSON from OFFERS_SELECTORS_API:`,

@@ -39,15 +39,17 @@ jobs:
     - name: Run tests
       run: npm test
 
-    - name: Call Deploy Workflow
-      if: success() && github.event_name == 'pull_request'
-      uses: ./.github/workflows/io-deploy.yaml
-      with:
-        workspace: ${{ vars[format('AIO_NS_{0}', github.actor)] || secrets.AIO_NS_QA }}
-        auth: ${{ vars[format('AIO_AUTH_{0}', github.actor)] || secrets.AIO_AUTH_QA }}
+  deploy:
+    needs: tests
+    if: success() && github.event_name == 'pull_request'
+    uses: ./.github/workflows/io-deploy.yaml
+    with:
+      workspace: ${{ vars[format('AIO_NS_{0}', github.actor)] || secrets.AIO_NS_QA }}
+      auth: ${{ vars[format('AIO_AUTH_{0}', github.actor)] || secrets.AIO_AUTH_QA }}
 
-    - name: Run Tests against Workspace
-      if: success() && github.event_name == 'pull_request'
-      uses: ./.github/workflows/io-tests.yaml
-      with:
-        workspace: ${{ vars[format('AIO_NS_{0}', github.actor)] || secrets.AIO_NS_QA }}
+  test-deployed:
+    needs: deploy
+    if: success() && github.event_name == 'pull_request'
+    uses: ./.github/workflows/io-tests.yaml
+    with:
+      workspace: ${{ vars[format('AIO_NS_{0}', github.actor)] || secrets.AIO_NS_QA }}

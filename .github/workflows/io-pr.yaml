@@ -43,11 +43,11 @@ jobs:
       if: success() && github.event_name == 'pull_request'
       uses: ./.github/workflows/io-deploy.yaml
       with:
-        workspace: ${{ secrets.AIO_NS_${{ github.actor }} || secrets.AIO_NS_QA }}
-        auth: ${{ secrets.AIO_AUTH_${{ github.actor }} || secrets.AIO_AUTH_QA }}
+        workspace: ${{ vars[format('AIO_NS_{0}', github.actor)] || secrets.AIO_NS_QA }}
+        auth: ${{ vars[format('AIO_AUTH_{0}', github.actor)] || secrets.AIO_AUTH_QA }}
 
     - name: Run Tests against Workspace
       if: success() && github.event_name == 'pull_request'
       uses: ./.github/workflows/io-tests.yaml
       with:
-        workspace: ${{ secrets.AIO_NS_${{ github.actor }} || secrets.AIO_NS_QA }}
+        workspace: ${{ vars[format('AIO_NS_{0}', github.actor)] || secrets.AIO_NS_QA }}

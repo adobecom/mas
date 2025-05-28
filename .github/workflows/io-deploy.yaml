@@ -6,6 +6,22 @@ on:
         required: true
       auth:
         required: true
+      AIO_APIHOST:
+        required: true
+      AOS_API_KEY:
+        required: true
+      AOS_URL:
+        required: true
+      ODIN_CDN_ENDPOINT:
+        required: true
+      ODIN_ORIGIN_ENDPOINT:
+        required: true
+      OST_WRITE_API_KEY:
+        required: true
+      WCS_CDN_ENDPOINT:
+        required: true
+      WCS_ORIGIN_ENDPOINT:
+        required: true
 
 jobs:
   deploy:

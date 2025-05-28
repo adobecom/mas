@@ -1,16 +1,18 @@
 name: IO WWW Deploy
 on:
-  pull_request:
-    types:
-      - closed
-    paths:
-      - 'io/www/**'
-    branches:
-      - main
+  workflow_call:
+    inputs:
+      workspace:
+        required: true
+        type: string
+        description: 'Target workspace name'
+      auth:
+        required: true
+        type: string
+        description: 'Auth token for the workspace'
 
 jobs:
-  deploy-to-production:
-    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+  deploy:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -37,12 +39,11 @@ jobs:
       if: success()
       run: npm install -g @adobe/aio-cli
 
-    - name: Deploy action to Stage
-      if: success() && github.event_name == 'pull_request'
+    - name: Deploy action
       env:
-        AIO_runtime_namespace: ${{ secrets.AIO_NS_STAGE }}
+        AIO_runtime_namespace: ${{ inputs.workspace }}
         AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
-        AIO_runtime_auth: ${{ secrets.AIO_AUTH_STAGE }}
+        AIO_runtime_auth: ${{ inputs.auth }}
         AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
         AOS_URL: ${{ secrets.AOS_URL }}
         ODIN_CDN_ENDPOINT: ${{ secrets.ODIN_CDN_ENDPOINT }}
@@ -83,93 +84,3 @@ jobs:
         aio config set WCS_CDN_ENDPOINT "$WCS_CDN_ENDPOINT"
         aio config set WCS_ORIGIN_ENDPOINT "$WCS_ORIGIN_ENDPOINT"
         aio app deploy
-
-    - name: Run Playwright Tests
-      if: success() && github.event_name == 'pull_request'
-      env:
-        TEST_URL: https://stage--milo--adobecom.hlx.live/libs/features/mas/docs/ccd.html?mas-io-url=https://14257-merchatscale-Stage.adobeioruntime.net/api/v1/web/MerchAtScale
-        HEALTH_CHECK_URL: https://14257-merchatscale-Stage.adobeioruntime.net/api/v1/web/MerchAtScale/health-check
-      working-directory: nala/io
-      run: |
-        # Install Playwright and its test package
-        npm install -D @playwright/test playwright
-        sudo apt-get install xvfb
-        npx playwright install --with-deps
-
-        # Run health check test
-        echo "Running health check test"
-        npx playwright test ioAutomation.js --grep "@health" --config=playwright.config.js
-        
-        # Run default locale tests
-        echo "Running default locale tests"
-        xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test ioAutomation.js --grep "@e2e" --config=playwright.config.js
-        
-        # Run French locale tests
-        echo "Running French locale tests"
-        TEST_URL="${TEST_URL}&locale=fr_FR" xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test ioAutomation.js --grep "@e2e" --config=playwright.config.js
-
-    - name: Deploy action to Production
-      if: success() && github.event_name == 'pull_request'
-      env:
-        AIO_runtime_namespace: ${{ secrets.AIO_NS_PROD }}
-        AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
-        AIO_runtime_auth: ${{ secrets.AIO_AUTH_PROD }}
-        AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
-        AOS_URL: ${{ secrets.AOS_URL }}
-        ODIN_CDN_ENDPOINT: ${{ secrets.ODIN_CDN_ENDPOINT }}
-        ODIN_ORIGIN_ENDPOINT: ${{ secrets.ODIN_ORIGIN_ENDPOINT }}
-        OST_WRITE_API_KEY: ${{ secrets.OST_WRITE_API_KEY }}
-        WCS_CDN_ENDPOINT: ${{ secrets.WCS_CDN_ENDPOINT }}
-        WCS_ORIGIN_ENDPOINT: ${{ secrets.WCS_ORIGIN_ENDPOINT }}
-      run: |
-        # Check for missing secrets
-        missing_secrets=()
-        
-        [ -z "$AIO_runtime_namespace" ] && missing_secrets+=("AIO_runtime_namespace")
-        [ -z "$AIO_APIHOST" ] && missing_secrets+=("AIO_APIHOST")
-        [ -z "$AIO_runtime_auth" ] && missing_secrets+=("AIO_runtime_auth")
-        [ -z "$AOS_API_KEY" ] && missing_secrets+=("AOS_API_KEY")
-        [ -z "$AOS_URL" ] && missing_secrets+=("AOS_URL")
-        [ -z "$ODIN_CDN_ENDPOINT" ] && missing_secrets+=("ODIN_CDN_ENDPOINT")
-        [ -z "$ODIN_ORIGIN_ENDPOINT" ] && missing_secrets+=("ODIN_ORIGIN_ENDPOINT")
-        [ -z "$OST_WRITE_API_KEY" ] && missing_secrets+=("OST_WRITE_API_KEY")
-        [ -z "$WCS_CDN_ENDPOINT" ] && missing_secrets+=("WCS_CDN_ENDPOINT")
-        [ -z "$WCS_ORIGIN_ENDPOINT" ] && missing_secrets+=("WCS_ORIGIN_ENDPOINT")
-        
-        if [ ${#missing_secrets[@]} -ne 0 ]; then
-          echo "Error: The following required secrets are empty:"
-          printf '%s\n' "${missing_secrets[@]}"
-          exit 1
-        fi
-
-        # Configure and deploy
-        aio config set AIO_runtime_namespace "$AIO_runtime_namespace"
-        aio config set AIO_runtime_auth "$AIO_runtime_auth"
-        aio config set AIO_APIHOST "$AIO_APIHOST"
-        aio config set AOS_API_KEY "$AOS_API_KEY"
-        aio config set AOS_URL "$AOS_URL"
-        aio config set ODIN_CDN_ENDPOINT "$ODIN_CDN_ENDPOINT"
-        aio config set ODIN_ORIGIN_ENDPOINT "$ODIN_ORIGIN_ENDPOINT"
-        aio config set OST_WRITE_API_KEY "$OST_WRITE_API_KEY"
-        aio config set WCS_CDN_ENDPOINT "$WCS_CDN_ENDPOINT"
-        aio config set WCS_ORIGIN_ENDPOINT "$WCS_ORIGIN_ENDPOINT"
-        aio app deploy
-
-    - name: Run Playwright Tests Production
-      if: success() && github.event_name == 'pull_request'
-      env:
-        TEST_URL: https://stage--milo--adobecom.hlx.live/libs/features/mas/docs/ccd.html?mas-io-url=https://14257-merchatscale.adobeioruntime.net/api/v1/web/MerchAtScale
-        HEALTH_CHECK_URL: https://14257-merchatscale.adobeioruntime.net/api/v1/web/MerchAtScale/health-check
-      working-directory: nala/io
-      run: |
-        # Run health check test
-        echo "Running health check test"
-        npx playwright test ioAutomation.js --grep "@health" --config=playwright.config.js
-        
-        # Run default locale tests
-        echo "Running default locale tests"
-        xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test ioAutomation.js --grep "@e2e" --config=playwright.config.js
-        
-        # Run French locale tests
-        echo "Running French locale tests"
-        TEST_URL="${TEST_URL}&locale=fr_FR" xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test ioAutomation.js --grep "@e2e" --config=playwright.config.js

@@ -1,0 +1,50 @@
+name: IO WWW Merge
+on:
+  pull_request:
+    types: [closed]
+    paths:
+      - 'io/www/**'
+
+jobs:
+  deploy:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: io/www
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22.x'
+        cache: 'npm'
+        cache-dependency-path: io/www/package.json
+
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run tests
+      run: npm test
+
+    - name: Deploy to Stage
+      uses: ./.github/workflows/io-deploy.yaml
+      with:
+        workspace: ${{ secrets.AIO_NS_Stage }}
+        auth: ${{ secrets.AIO_AUTH_Stage }}
+
+    - name: Run Tests against Stage
+      if: success()
+      uses: ./.github/workflows/io-tests.yaml
+      with:
+        workspace: ${{ secrets.AIO_NS_Stage }}
+
+    - name: Deploy to Production
+      if: success()
+      uses: ./.github/workflows/io-deploy.yaml
+      with:
+        workspace: ${{ secrets.AIO_NS_PROD }}
+        auth: ${{ secrets.AIO_AUTH_PROD }}

@@ -1,0 +1,53 @@
+name: IO WWW Check
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'io/www/**'
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'io/www/**'
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: io/www
+
+    strategy:
+      matrix:
+        node-version: [22.x]
+        
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: io/www/package.json
+
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run tests
+      run: npm test
+
+    - name: Deploy to Workspace
+      if: success() && github.event_name == 'pull_request'
+      uses: ./.github/workflows/io-deploy.yaml
+      with:
+        workspace: ${{ secrets.AIO_NS_${{ github.actor }} || secrets.AIO_NS_QA }}
+        auth: ${{ secrets.AIO_AUTH_${{ github.actor }} || secrets.AIO_AUTH_QA }}
+
+    - name: Run Tests against Workspace
+      if: success() && github.event_name == 'pull_request'
+      uses: ./.github/workflows/io-tests.yaml
+      with:
+        workspace: ${{ secrets.AIO_NS_${{ github.actor }} || secrets.AIO_NS_QA }}

@@ -28,32 +28,48 @@ class MasContent extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         Events.fragmentAdded.subscribe(this.goToFragment);
+        Events.fragmentDeleted.subscribe(this.onFragmentDeleted);
 
         this.subscriptions.push(
             Store.fragments.list.data.subscribe(() => {
                 this.requestUpdate();
-            })
+            }),
         );
 
         this.subscriptions.push(
             Store.filters.subscribe(() => {
                 this.requestUpdate();
-            })
+            }),
         );
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         Events.fragmentAdded.unsubscribe(this.goToFragment);
+        Events.fragmentDeleted.unsubscribe(this.onFragmentDeleted);
 
         if (this.subscriptions && this.subscriptions.length) {
-            this.subscriptions.forEach(subscription => {
+            this.subscriptions.forEach((subscription) => {
                 if (subscription) {
                     subscription.unsubscribe();
                 }
             });
         }
         this.subscriptions = [];
+    }
+
+    onFragmentDeleted(fragment) {
+        Store.fragments.list.data.set((prev) => {
+            const result = [...prev];
+            const index = result.findIndex(
+                (fragmentStore) => fragmentStore.get().id === fragment.id,
+            );
+            if (index !== -1) {
+                result.splice(index, 1);
+            }
+            return result;
+        });
+        Store.fragments.inEdit.set(null);
     }
 
     async goToFragment(id, skipUpdate = false) {
@@ -82,7 +98,10 @@ class MasContent extends LitElement {
                             return false;
                         return true;
                     }),
-                    (fragmentStore) => fragmentStore.get()?.path || fragmentStore.id || Math.random(),
+                    (fragmentStore) =>
+                        fragmentStore.get()?.path ||
+                        fragmentStore.id ||
+                        Math.random(),
                     (fragmentStore) =>
                         html`<mas-fragment
                             .fragmentStore=${fragmentStore}

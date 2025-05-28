@@ -32,8 +32,6 @@ jobs:
         HEALTH_CHECK_URL: https://${{ secrets.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScale/health-check
       working-directory: nala/io
       run: |
-        echo "Running tests against workspace: ${{ secrets.workspace }}"
-
         # Install Playwright and its test package
         npm install -D @playwright/test playwright
         sudo apt-get install xvfb

@@ -1,15 +1,11 @@
 name: IO WWW Deploy
 on:
   workflow_call:
-    inputs:
+    secrets:
       workspace:
         required: true
-        type: string
-        description: 'Target workspace name'
       auth:
         required: true
-        type: string
-        description: 'Auth token for the workspace'
 
 jobs:
   deploy:
@@ -41,9 +37,9 @@ jobs:
 
     - name: Deploy action
       env:
-        AIO_runtime_namespace: ${{ inputs.workspace }}
+        AIO_runtime_namespace: ${{ secrets.workspace }}
         AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
-        AIO_runtime_auth: ${{ inputs.auth }}
+        AIO_runtime_auth: ${{ secrets.auth }}
         AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
         AOS_URL: ${{ secrets.AOS_URL }}
         ODIN_CDN_ENDPOINT: ${{ secrets.ODIN_CDN_ENDPOINT }}

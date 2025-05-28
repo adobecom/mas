@@ -1,11 +1,9 @@
 name: IO WWW Tests
 on:
   workflow_call:
-    inputs:
+    secrets:
       workspace:
         required: true
-        type: string
-        description: 'Target workspace name'
 
 jobs:
   test:
@@ -30,11 +28,11 @@ jobs:
 
     - name: Run Playwright Tests
       env:
-        TEST_URL: https://stage--milo--adobecom.hlx.live/libs/features/mas/docs/ccd.html?mas-io-url=https://${{ inputs.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScale
-        HEALTH_CHECK_URL: https://${{ inputs.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScale/health-check
+        TEST_URL: https://stage--milo--adobecom.hlx.live/libs/features/mas/docs/ccd.html?mas-io-url=https://${{ secrets.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScale
+        HEALTH_CHECK_URL: https://${{ secrets.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScale/health-check
       working-directory: nala/io
       run: |
-        echo "Running tests against workspace: ${{ inputs.workspace }}"
+        echo "Running tests against workspace: ${{ secrets.workspace }}"
 
         # Install Playwright and its test package
         npm install -D @playwright/test playwright

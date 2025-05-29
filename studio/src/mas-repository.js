@@ -647,47 +647,6 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Fetches a fragment by its path to get the latest version
-     * @param {string} path - Path to the fragment
-     * @returns {Promise<Object>} - The latest fragment data
-     */
-    async getFragmentByPath(path) {
-        if (!path) {
-            throw new Error('Fragment path is required');
-        }
-
-        if (path.includes('/dictionary/')) {
-            return {
-                path,
-                id: 'stub-fragment-id',
-                etag: 'stub-etag',
-                fields: [],
-                status: 'PUBLISHED',
-            };
-        }
-
-        if (!this.aem) {
-            throw new Error('AEM client not initialized');
-        }
-
-        const encodedPath = encodeURIComponent(path);
-        const url = `${this.aem.cfFragmentsUrl}/api/assets/${encodedPath}`;
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                ...(this.aem?.headers || {}),
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error(`Fragment not found at path: ${path}`);
-        }
-
-        return await response.json();
-    }
-
-    /**
      * Populates the store with addon placeholders by filtering fragments that start with 'addon-'
      */
     async loadAddonPlaceholders() {

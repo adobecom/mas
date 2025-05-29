@@ -13,6 +13,7 @@ import {
 } from './constants.js';
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
+import { generateCodeToUse } from './utils.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 
@@ -230,24 +231,13 @@ export default class EditorPanel extends LitElement {
         });
     }
 
-    generateCodeToUse() {
-        const { fragmentParts, title } = getFragmentPartsToUse(Store, this.fragment);
-        const webComponentName =
-            MODEL_WEB_COMPONENT_MAPPING[this.fragment?.model?.path];
-        if (!webComponentName) {
-            this.showNegativeAlert();
-            return [];
-        }
-
-        const code = `<${webComponentName}><aem-fragment fragment="${this.fragment?.id}" title="${title}"></aem-fragment></${webComponentName}>`;
-        const authorPath = `${webComponentName}: ${fragmentParts}`;
-        const href = `https://mas.adobe.com/studio.html#content-type=${webComponentName}&page=${Store.page.value}&path=${Store.search.value.path}&query=${this.fragment?.id}`;
-        const richText = `<a href="${href}" target="_blank">${authorPath}</a>`;
-        return { authorPath, code, richText, href };
-    }
-
     async copyToUse() {
-        const { code, richText, href } = this.generateCodeToUse();
+        const { code, richText, href } = generateCodeToUse(
+            this.fragment,
+            Store.search.get().path,
+            Store.page.get(),
+            'Failed to copy code to clipboard',
+        );
         if (!code || !richText || !href) return;
 
         try {
@@ -741,7 +731,11 @@ export default class EditorPanel extends LitElement {
     }
 
     get authorPath() {
-        return this.generateCodeToUse().authorPath;
+        return generateCodeToUse(
+            this.fragment,
+            Store.search.get().path,
+            Store.page.get(),
+        ).authorPath;
     }
 
     render() {

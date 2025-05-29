@@ -930,6 +930,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 new RegExp(`${data.planTypeTag}`),
             );
             await (await editor.OSIButton).click();
+            await ost.backButton.click();
+            await page.waitForTimeout(2000);
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.newosi);
             await (await ost.nextButton).click();
@@ -944,7 +946,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-5: Validate tags update', async () => {
             await expect(await editor.tags).toHaveAttribute(
                 'value',
-                new RegExp(`${data.productCodeTag}`),
+                new RegExp(`${data.newProductCodeTag}`),
             );
             await expect(await editor.tags).toHaveAttribute(
                 'value',
@@ -957,6 +959,10 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await editor.tags).toHaveAttribute(
                 'value',
                 new RegExp(`${data.newPlanTypeTag}`),
+            );
+            await expect(await editor.tags).not.toHaveAttribute(
+                'value',
+                new RegExp(`${data.productCodeTag}`),
             );
             await expect(await editor.tags).not.toHaveAttribute(
                 'value',

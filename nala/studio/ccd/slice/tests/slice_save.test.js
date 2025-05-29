@@ -541,6 +541,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await editor.OSI).toBeVisible();
             await expect(await editor.OSI).toContainText(data.osi);
             await editor.OSIButton.click();
+            await ost.backButton.click();
+            await page.waitForTimeout(2000);
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.newosi);
             await (await ost.nextButton).click();
@@ -553,7 +555,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await editor.OSI).toContainText(data.newosi);
             await expect(await editor.tags).toHaveAttribute(
                 'value',
-                new RegExp(`${data.productCodeTag}`),
+                new RegExp(`${data.newProductCodeTag}`),
             );
             await expect(await editor.tags).toHaveAttribute(
                 'value',

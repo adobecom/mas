@@ -468,6 +468,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.OSI).toBeVisible();
             await expect(await editor.tags).toBeVisible();
             await editor.OSIButton.click();
+            await ost.backButton.click();
+            await page.waitForTimeout(2000);
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.newosi);
             await (await ost.nextButton).click();

@@ -48,8 +48,12 @@ export const ostDefaults = {
 
         getSelectedText(searchParameters) {
             const ctaLabel = searchParameters.get('text');
-            const selectedText = this.ctaTexts.find(({ id, name }) =>
+            let selectedText;
+            if (ctaLabel)
+            selectedText = this.ctaTexts.find(({ id, name }) =>
                 [id, name].includes(ctaLabel),
+            ) || this.ctaTexts.find(({ id, name }) =>
+                [id, name].includes(ctaLabel.replace('{{' , '').replace('}}', '')),
             );
             if (selectedText) return selectedText.id;
             return ctaLabel || this.getDefaultText();
@@ -152,7 +156,7 @@ export function onPlaceholderSelect(
 
     const ctaText = CHECKOUT_CTA_TEXTS[options.ctaText]; // no placeholder key support.
     if (ctaText) {
-        attributes['text'] = ctaText;
+        attributes['text'] =  ['acom', 'sandbox', 'nala'].includes(Store.search.get().path) ? `{{${options.ctaText}}}` : ctaText;
         attributes['data-analytics-id'] = options.ctaText;
     }
 

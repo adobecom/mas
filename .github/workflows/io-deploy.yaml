@@ -1,16 +1,30 @@
 name: IO WWW Deploy
 on:
-  pull_request:
-    types:
-      - closed
-    paths:
-      - 'io/www/**'
-    branches:
-      - main
+  workflow_call:
+    secrets:
+      workspace:
+        required: true
+      auth:
+        required: true
+      AIO_APIHOST:
+        required: true
+      AOS_API_KEY:
+        required: true
+      AOS_URL:
+        required: true
+      ODIN_CDN_ENDPOINT:
+        required: true
+      ODIN_ORIGIN_ENDPOINT:
+        required: true
+      OST_WRITE_API_KEY:
+        required: true
+      WCS_CDN_ENDPOINT:
+        required: true
+      WCS_ORIGIN_ENDPOINT:
+        required: true
 
 jobs:
-  deploy-to-production:
-    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+  deploy:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -38,11 +52,10 @@ jobs:
       run: npm install -g @adobe/aio-cli
 
     - name: Deploy action
-      if: success() && github.event_name == 'pull_request'
       env:
-        AIO_runtime_namespace: ${{ secrets.AIO_NS_PROD }}
+        AIO_runtime_namespace: ${{ secrets.workspace }}
         AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
-        AIO_runtime_auth: ${{ secrets.AIO_AUTH_PROD }}
+        AIO_runtime_auth: ${{ secrets.auth }}
         AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
         AOS_URL: ${{ secrets.AOS_URL }}
         ODIN_CDN_ENDPOINT: ${{ secrets.ODIN_CDN_ENDPOINT }}

@@ -48,6 +48,9 @@ const Store = {
             ]),
         },
     },
+    profile: new ReactiveStore(),
+    createdByUsers: new ReactiveStore([]),
+    users: new ReactiveStore([]),
 };
 
 /**

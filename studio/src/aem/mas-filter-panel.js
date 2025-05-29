@@ -1,6 +1,7 @@
 import { html, css, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
+import ReactiveController from '../reactivity/reactive-controller.js';
 import router from '../router.js';
 
 function pathToTagId(path) {
@@ -43,6 +44,12 @@ class MasFilterPanel extends LitElement {
             flex-wrap: wrap;
         }
     `;
+
+    reactiveController = new ReactiveController(this, [
+        Store.profile,
+        Store.createdByUsers,
+        Store.users,
+    ]);
 
     constructor() {
         super();
@@ -151,6 +158,8 @@ class MasFilterPanel extends LitElement {
             tags: '',
         }));
 
+        Store.createdByUsers.set([]);
+
         this.tagsByType = { ...EMPTY_TAGS };
         this.shadowRoot
             .querySelectorAll('aem-tag-picker-field')
@@ -168,6 +177,33 @@ class MasFilterPanel extends LitElement {
             ),
         };
         this.#updateFiltersParams();
+    }
+
+    #handleUserDelete(e) {
+        const value = e.target.value;
+        Store.createdByUsers.set(
+            Store.createdByUsers.value.filter(
+                (user) => user.userPrincipalName !== value,
+            ),
+        );
+    }
+
+    get createdByUsersTags() {
+        return repeat(
+            Store.createdByUsers.value,
+            (user) => user.userPrincipalName,
+            (user) => html`
+                <sp-tag
+                    size="s"
+                    deletable
+                    @delete=${this.#handleUserDelete}
+                    .value=${user.userPrincipalName}
+                >
+                    ${user.displayName}
+                    <sp-icon-user slot="icon" size="s"></sp-icon-user>
+                </sp-tag>
+            `,
+        );
     }
 
     render() {
@@ -238,6 +274,13 @@ class MasFilterPanel extends LitElement {
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
+                <mas-user-picker
+                    label="Created by"
+                    .currentUser=${Store.profile}
+                    .selectedUsers=${Store.createdByUsers}
+                    .users=${Store.users}
+                ></mas-user-picker>
+
                 <sp-action-button
                     quiet
                     @click=${this.#handleRefresh}
@@ -263,6 +306,7 @@ class MasFilterPanel extends LitElement {
                         >
                     `,
                 )}
+                ${this.createdByUsersTags}
             </sp-tags>
         `;
     }

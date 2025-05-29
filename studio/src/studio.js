@@ -11,12 +11,14 @@ import './mas-repository.js';
 import './mas-toast.js';
 import './mas-splash-screen.js';
 import './filters/locale-picker.js';
+import './fields/user-picker.js';
 import './mas-placeholders.js';
 import './mas-recently-updated.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
-import StoreController from './reactivity/store-controller.js';
+import './users.js';
 import Store from './store.js';
+import StoreController from './reactivity/store-controller.js';
 import router from './router.js';
 import { PAGE_NAMES, WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
 

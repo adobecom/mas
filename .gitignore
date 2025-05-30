@@ -36,7 +36,7 @@ masStudio-*.json
 .cursor
 
 # mas specific
-!mas/dist
+!web-components/dist
 mas/commerce.json
 mas/mas.json
 mas/stats.json

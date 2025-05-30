@@ -32,13 +32,13 @@ class MasContent extends LitElement {
         this.subscriptions.push(
             Store.fragments.list.data.subscribe(() => {
                 this.requestUpdate();
-            })
+            }),
         );
 
         this.subscriptions.push(
             Store.filters.subscribe(() => {
                 this.requestUpdate();
-            })
+            }),
         );
     }
 
@@ -47,7 +47,7 @@ class MasContent extends LitElement {
         Events.fragmentAdded.unsubscribe(this.goToFragment);
 
         if (this.subscriptions && this.subscriptions.length) {
-            this.subscriptions.forEach(subscription => {
+            this.subscriptions.forEach((subscription) => {
                 if (subscription) {
                     subscription.unsubscribe();
                 }
@@ -82,7 +82,10 @@ class MasContent extends LitElement {
                             return false;
                         return true;
                     }),
-                    (fragmentStore) => fragmentStore.get()?.path || fragmentStore.id || Math.random(),
+                    (fragmentStore) =>
+                        fragmentStore.get()?.path ||
+                        fragmentStore.id ||
+                        Math.random(),
                     (fragmentStore) =>
                         html`<mas-fragment
                             .fragmentStore=${fragmentStore}

@@ -8,9 +8,11 @@ test('health check endpoint @health', async ({ request }) => {
 
 test('basic test @e2e', async ({ page }) => {
     const url = process.env.TEST_URL;
-    
+
     await page.goto(url);
-    let merchCardSlice = page.locator('//merch-card[@id="51c23f28-504f-450d-9764-0e60f1e279b2"]');
+    let merchCardSlice = page.locator(
+        '//merch-card[@id="51c23f28-504f-450d-9764-0e60f1e279b2"]',
+    );
     await expect(merchCardSlice).toBeVisible();
 
     let merchIcon = merchCardSlice.locator('//merch-icon');
@@ -18,8 +20,7 @@ test('basic test @e2e', async ({ page }) => {
     const iconSrc = await merchIcon.getAttribute('src');
     expect(iconSrc).toBeTruthy();
     expect(iconSrc.length).toBeGreaterThan(0);
-    
-    
+
     let imageDiv = merchCardSlice.locator('div[slot="image"]');
     await expect(imageDiv).toBeVisible();
     let image = imageDiv.locator('img');
@@ -29,15 +30,19 @@ test('basic test @e2e', async ({ page }) => {
     expect(imageSrc.length).toBeGreaterThan(0);
 
     let priceSpan = merchCardSlice.locator('span[class="price"]');
-    await expect(priceSpan).toBeVisible({timeout: 15000});
+    await expect(priceSpan).toBeVisible({ timeout: 15000 });
 
-    let currencySymbol = priceSpan.locator('span[class="price-currency-symbol"]');
+    let currencySymbol = priceSpan.locator(
+        'span[class="price-currency-symbol"]',
+    );
     await expect(currencySymbol).toBeVisible();
 
-    let priceInteger = priceSpan.locator('span[class="price-integer"]'); 
+    let priceInteger = priceSpan.locator('span[class="price-integer"]');
     await expect(priceInteger).toBeVisible();
 
-    let decimalsDelimiter = priceSpan.locator('span[class="price-decimals-delimiter"]');
+    let decimalsDelimiter = priceSpan.locator(
+        'span[class="price-decimals-delimiter"]',
+    );
     await expect(decimalsDelimiter).toBeVisible();
 
     let priceDecimals = priceSpan.locator('span[class="price-decimals"]');
@@ -45,7 +50,6 @@ test('basic test @e2e', async ({ page }) => {
 
     let priceRecurrence = priceSpan.locator('span[class="price-recurrence"]');
     await expect(priceRecurrence).toBeVisible();
-    
 
     if (url.includes('locale=fr_FR')) {
         const recurrenceText = await priceRecurrence.textContent();
@@ -66,7 +70,9 @@ test('basic test @e2e', async ({ page }) => {
 
     // Suggested Card
 
-    let merchCardSuggested = page.locator('//merch-card[@id="549f6981-f5c8-4512-b41c-313d60f375b2"]');
+    let merchCardSuggested = page.locator(
+        '//merch-card[@id="549f6981-f5c8-4512-b41c-313d60f375b2"]',
+    );
     await merchCardSuggested.scrollIntoViewIfNeeded();
     await expect(merchCardSuggested).toBeVisible();
     let merchIconSuggested = merchCardSuggested.locator('//merch-icon');
@@ -78,7 +84,7 @@ test('basic test @e2e', async ({ page }) => {
     let headingXs = merchCardSuggested.locator('h3[slot="heading-xs"]');
     await expect(headingXs).toBeVisible();
 
-    let detailS = merchCardSuggested.locator('h4[slot="detail-s"]'); 
+    let detailS = merchCardSuggested.locator('h4[slot="detail-s"]');
     await expect(detailS).toBeVisible();
 
     let bodyXS = merchCardSuggested.locator('div[slot="body-xs"]');
@@ -100,49 +106,72 @@ test('basic test @e2e', async ({ page }) => {
     await expect(priceSlotSuggested).toBeVisible();
 
     // Check strikethrough price span
-    let strikethroughPrice = priceSlotSuggested.locator('span[data-template="strikethrough"]');
+    let strikethroughPrice = priceSlotSuggested.locator(
+        'span[data-template="strikethrough"]',
+    );
     await expect(strikethroughPrice).toBeVisible();
 
-    let priceCurrencySymbolStrike = strikethroughPrice.locator('span[class="price-currency-symbol"]');
+    let priceCurrencySymbolStrike = strikethroughPrice.locator(
+        'span[class="price-currency-symbol"]',
+    );
     await expect(priceCurrencySymbolStrike).toBeVisible();
 
-    let priceIntegerStrike = strikethroughPrice.locator('span[class="price-integer"]');
+    let priceIntegerStrike = strikethroughPrice.locator(
+        'span[class="price-integer"]',
+    );
     await expect(priceIntegerStrike).toBeVisible();
 
-    let priceDecimalsDelimiterStrike = strikethroughPrice.locator('span[class="price-decimals-delimiter"]');
+    let priceDecimalsDelimiterStrike = strikethroughPrice.locator(
+        'span[class="price-decimals-delimiter"]',
+    );
     await expect(priceDecimalsDelimiterStrike).toBeVisible();
 
-    let priceDecimalsStrike = strikethroughPrice.locator('span[class="price-decimals"]');
+    let priceDecimalsStrike = strikethroughPrice.locator(
+        'span[class="price-decimals"]',
+    );
     await expect(priceDecimalsStrike).toBeVisible();
 
-    let priceRecurrenceStrike = strikethroughPrice.locator('span[class="price-recurrence"]');
+    let priceRecurrenceStrike = strikethroughPrice.locator(
+        'span[class="price-recurrence"]',
+    );
     await expect(priceRecurrenceStrike).toBeVisible();
 
     // Check regular price span
-    let regularPrice = priceSlotSuggested.locator('span[data-template="price"]');
+    let regularPrice = priceSlotSuggested.locator(
+        'span[data-template="price"]',
+    );
     await expect(regularPrice).toBeVisible();
 
-    let priceCurrencySymbolRegular = regularPrice.locator('span[class="price-currency-symbol"]');
+    let priceCurrencySymbolRegular = regularPrice.locator(
+        'span[class="price-currency-symbol"]',
+    );
     await expect(priceCurrencySymbolRegular).toBeVisible();
 
-    let priceIntegerRegular = regularPrice.locator('span[class="price-integer"]');
+    let priceIntegerRegular = regularPrice.locator(
+        'span[class="price-integer"]',
+    );
     await expect(priceIntegerRegular).toBeVisible();
 
-    let priceDecimalsDelimiterRegular = regularPrice.locator('span[class="price-decimals-delimiter"]');
+    let priceDecimalsDelimiterRegular = regularPrice.locator(
+        'span[class="price-decimals-delimiter"]',
+    );
     await expect(priceDecimalsDelimiterRegular).toBeVisible();
 
-    let priceDecimalsRegular = regularPrice.locator('span[class="price-decimals"]');
+    let priceDecimalsRegular = regularPrice.locator(
+        'span[class="price-decimals"]',
+    );
     await expect(priceDecimalsRegular).toBeVisible();
 
     let priceRecurrenceRegular = regularPrice.locator('span.price-recurrence');
     await expect(priceRecurrenceRegular).toBeVisible();
 
     // Check checkout button href
-    let checkoutButtonSuggested = merchCardSuggested.locator('button[is="checkout-button"]');
+    let checkoutButtonSuggested = merchCardSuggested.locator(
+        'button[is="checkout-button"]',
+    );
     await expect(checkoutButtonSuggested).toBeVisible();
-    const checkoutHrefSuggested = await checkoutButtonSuggested.getAttribute('data-href');
+    const checkoutHrefSuggested =
+        await checkoutButtonSuggested.getAttribute('data-href');
     expect(checkoutHrefSuggested).toBeTruthy();
     expect(checkoutHrefSuggested).toContain('commerce.adobe.com');
 });
-
-

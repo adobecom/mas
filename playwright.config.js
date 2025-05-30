@@ -51,11 +51,12 @@ const config = {
     /* Configure projects for major browsers */
     projects: [
         // Setup project
-        {   name: 'setup', 
+        {
+            name: 'setup',
             use: {
                 ...devices['Desktop Chrome'],
             },
-            testMatch: /.*\.setup\.cjs/, 
+            testMatch: /.*\.setup\.cjs/,
         },
 
         {

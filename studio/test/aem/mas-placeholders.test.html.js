@@ -21,13 +21,13 @@ function createObservable(initialValue) {
     const listeners = new Set();
     const stubSet = sinon.stub().callsFake((newValue) => {
         const oldValue = value;
-            if (typeof newValue === 'function') {
-                value = newValue(value);
-            } else {
-                value = newValue;
-            }
+        if (typeof newValue === 'function') {
+            value = newValue(value);
+        } else {
+            value = newValue;
+        }
         listeners.forEach((listener) => listener(value, oldValue));
-            return value;
+        return value;
     });
     return {
         value: initialValue, // Keep track for direct access if needed

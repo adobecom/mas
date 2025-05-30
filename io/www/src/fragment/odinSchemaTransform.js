@@ -102,7 +102,8 @@ function transformReferences(body) {
         // If the current ref (e.g., a card) has associated tag objects, add them.
         if (ref.tags && Array.isArray(ref.tags)) {
             ref.tags.forEach((tag) => {
-                if (tag && tag.id && !references[tag.id]) { // Check if tag not already added
+                if (tag && tag.id && !references[tag.id]) {
+                    // Check if tag not already added
                     references[tag.id] = {
                         type: 'tag',
                         value: {

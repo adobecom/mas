@@ -1,21 +1,21 @@
-import {css, html, LitElement} from 'lit';
+import { css, html, LitElement } from 'lit';
 
 export class RteIconEditor extends LitElement {
     static properties = {
         open: { type: Boolean },
         dialog: { type: Boolean },
         tooltip: { type: String },
-    }
+    };
 
     static styles = css`
         :host {
             display: block;
         }
-        
+
         sp-underlay:not([open]) + sp-dialog {
             display: none;
         }
-        
+
         sp-underlay + sp-dialog {
             position: fixed;
             top: 50%;
@@ -46,7 +46,7 @@ export class RteIconEditor extends LitElement {
                 placeholder="Enter the tooltip text"
                 .value=${this.tooltip}
                 @input=${(e) => (this.tooltip = e.target.value)}
-                ></sp-textfield>            
+            ></sp-textfield>
             <sp-button
                 id="cancelButton"
                 slot="button"

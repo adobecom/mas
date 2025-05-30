@@ -25,7 +25,7 @@ export default {
         },
         {
             tcid: '2',
-            name: '@studio-slice-save-edit-size',
+            name: '@studio-slice-save-edited-size',
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
@@ -35,7 +35,7 @@ export default {
         },
         {
             tcid: '3',
-            name: '@studio-slice-save-edit-description',
+            name: '@studio-slice-save-edited-description',
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
@@ -47,7 +47,7 @@ export default {
         },
         {
             tcid: '4',
-            name: '@studio-slice-save-edit-badge',
+            name: '@studio-slice-save-edited-badge',
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
@@ -58,7 +58,7 @@ export default {
         },
         {
             tcid: '5',
-            name: '@studio-slice-save-edit-mnemonic',
+            name: '@studio-slice-save-edited-mnemonic',
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
@@ -72,7 +72,7 @@ export default {
         },
         {
             tcid: '6',
-            name: '@studio-slice-save-edit-image',
+            name: '@studio-slice-save-edited-image',
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
@@ -86,7 +86,7 @@ export default {
         },
         {
             tcid: '7',
-            name: '@studio-slice-save-edit-price',
+            name: '@studio-slice-save-edited-price',
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
@@ -98,7 +98,7 @@ export default {
         },
         {
             tcid: '8',
-            name: '@studio-slice-save-edit-cta-label',
+            name: '@studio-slice-save-edited-cta-label',
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
@@ -111,7 +111,7 @@ export default {
 
         {
             tcid: '9',
-            name: '@studio-slice-save-edit-osi',
+            name: '@studio-slice-save-edited-osi',
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
@@ -130,7 +130,7 @@ export default {
         },
         {
             tcid: '10',
-            name: '@studio-slice-save-edit-cta-variant',
+            name: '@studio-slice-save-edited-cta-variant',
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
@@ -150,7 +150,7 @@ export default {
         },
         {
             tcid: '11',
-            name: '@studio-slice-save-edit-cta-checkout-params',
+            name: '@studio-slice-save-edited-cta-checkout-params',
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
@@ -161,6 +161,21 @@ export default {
                     promoid: 'ABC123',
                     mv2: '2',
                 },
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
+        },
+        {
+            tcid: '12',
+            name: '@studio-slice-save-edited-analytics-ids',
+            path: '/studio.html',
+            data: {
+                cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
+                analyticsID: 'buy-now',
+                daaLL: 'buy-now-1',
+                daaLH: 'phsp',
+                newAnalyticsID: 'save-now',
+                newDaaLL: 'save-now-1',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',

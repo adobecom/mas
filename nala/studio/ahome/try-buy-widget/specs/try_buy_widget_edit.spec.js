@@ -3,16 +3,6 @@ export default {
     features: [
         {
             tcid: '0',
-            name: '@studio-try-buy-widget-editor',
-            path: '/studio.html',
-            data: {
-                cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
-            },
-            browserParams: '#query=',
-            tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit nopr',
-        },
-        {
-            tcid: '1',
             name: '@studio-try-buy-widget-edit-title',
             path: '/studio.html',
             data: {
@@ -25,7 +15,7 @@ export default {
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
-            tcid: '2',
+            tcid: '1',
             name: '@studio-try-buy-widget-edit-bg-color',
             path: '/studio.html',
             data: {
@@ -37,7 +27,7 @@ export default {
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
-            tcid: '3',
+            tcid: '2',
             name: '@studio-try-buy-widget-edit-border-color',
             path: '/studio.html',
             data: {
@@ -51,7 +41,7 @@ export default {
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
-            tcid: '4',
+            tcid: '3',
             name: '@studio-try-buy-widget-edit-description',
             path: '/studio.html',
             data: {
@@ -63,7 +53,7 @@ export default {
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
-            tcid: '5',
+            tcid: '4',
             name: '@studio-try-buy-widget-edit-mnemonic',
             path: '/studio.html',
             data: {
@@ -77,7 +67,7 @@ export default {
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
-            tcid: '6',
+            tcid: '5',
             name: '@studio-try-buy-widget-edit-image',
             path: '/studio.html',
             data: {
@@ -91,7 +81,7 @@ export default {
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
-            tcid: '7',
+            tcid: '6',
             name: '@studio-try-buy-widget-edit-price',
             path: '/studio.html',
             data: {
@@ -104,7 +94,7 @@ export default {
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
-            tcid: '8',
+            tcid: '7',
             name: '@studio-try-buy-widget-edit-cta',
             path: '/studio.html',
             data: {
@@ -122,7 +112,7 @@ export default {
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
-            tcid: '9',
+            tcid: '8',
             name: '@studio-try-buy-widget-change-to-slice',
             path: '/studio.html',
             data: {
@@ -133,7 +123,7 @@ export default {
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
-            tcid: '10',
+            tcid: '9',
             name: '@studio-try-buy-widget-change-to-suggested',
             path: '/studio.html',
             data: {
@@ -144,7 +134,7 @@ export default {
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
-            tcid: '11',
+            tcid: '10',
             name: '@studio-try-buy-widget-add-osi',
             path: '/studio.html',
             data: {
@@ -159,7 +149,7 @@ export default {
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
-            tcid: '12',
+            tcid: '11',
             name: '@studio-try-buy-widget-edit-osi',
             path: '/studio.html',
             data: {
@@ -178,7 +168,7 @@ export default {
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
-            tcid: '13',
+            tcid: '12',
             name: '@studio-try-buy-widget-edit-cta-variant',
             path: '/studio.html',
             data: {
@@ -199,7 +189,7 @@ export default {
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
-            tcid: '14',
+            tcid: '13',
             name: '@studio-try-buy-widget-edit-cta-checkout-params',
             path: '/studio.html',
             data: {
@@ -214,6 +204,21 @@ export default {
             },
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
+        },
+        {
+            tcid: '14',
+            name: '@studio-try-buy-widget-edit-analytics-ids',
+            path: '/studio.html',
+            data: {
+                cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
+                analyticsID: 'free-trial',
+                daaLL: 'free-trial-1',
+                daaLH: 'ccsn',
+                newAnalyticsID: 'save-now',
+                newDaaLL: 'save-now-1',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @try-buy-widget @try-buy-widget-edit',
         },
     ],
 };

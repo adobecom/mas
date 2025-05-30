@@ -11,12 +11,7 @@ import {
     OPERATIONS,
 } from './constants.js';
 import Events from './events.js';
-import { VARIANTS } from './editors/variant-picker.js';
-
-const MODEL_WEB_COMPONENT_MAPPING = {
-    [CARD_MODEL_PATH]: 'merch-card',
-    [COLLECTION_MODEL_PATH]: 'merch-card-collection',
-};
+import { generateCodeToUse } from './utils.js';
 
 const MODELS_NEEDING_MASK = [CARD_MODEL_PATH];
 export default class EditorPanel extends LitElement {
@@ -180,67 +175,20 @@ export default class EditorPanel extends LitElement {
         e.stopPropagation();
     }
 
-    getFragmentPartsToUse() {
-        let fragmentParts = '';
-        let title = '';
-        const surface = Store.search.value.path.toUpperCase();
-        switch (this.fragment?.model?.path) {
-            case CARD_MODEL_PATH:
-                const props =  {
-                    cardTitle: this.fragment?.getField('cardTitle')?.values[0],
-                    variantCode: this.fragment?.getField('variant')?.values[0],
-                    };
-
-                    VARIANTS.forEach((variant) => {
-                        if (variant.value === props.variantCode) {
-                            props.variantLabel = variant.label;
-                    }
-                });
-                fragmentParts = `${surface} / ${props.variantLabel} / ${props.cardTitle}`;
-                title = props.cardTitle;
-                break;  
-            case COLLECTION_MODEL_PATH:
-                title = this.fragment?.title;
-                fragmentParts = `${surface} / ${title}`;
-                break;
-        }
-        return {fragmentParts, title};
-    }
-
-    showNegativeAlert() {
-        Events.toast.emit({
-            variant: 'negative',
-            content: 'Failed to copy code to clipboard',
-        });
-    }
-
-    generateCodeToUse() {
-        const {fragmentParts, title} = this.getFragmentPartsToUse();
-        const webComponentName =
-            MODEL_WEB_COMPONENT_MAPPING[this.fragment?.model?.path];
-        if (!webComponentName) {
-            this.showNegativeAlert();
-            return [];
-        }
-
-        const code = `<${webComponentName}><aem-fragment fragment="${this.fragment?.id}" title="${title}"></aem-fragment></${webComponentName}>`;
-        const richText = `
-                <a href="https://mas.adobe.com/studio.html#page=${Store.page.value}&path=${Store.search.value.path}&query=${this.fragment?.id}">
-                    ${webComponentName}: ${fragmentParts}
-                </a>
-            `;
-        return [code, richText];
-    }
-
     async copyToUse() {
-        const [code, richText] = this.generateCodeToUse();
-        if (!code || !richText) return;
+        const { code, richText, href } = generateCodeToUse(
+            this.fragment,
+            Store.search.get().path,
+            Store.page.get(),
+            'Failed to copy code to clipboard',
+        );
+        if (!code || !richText || !href) return;
 
         try {
             await navigator.clipboard.write([
                 /* global ClipboardItem */
                 new ClipboardItem({
-                    'text/plain': new Blob([code], { type: 'text/plain' }),
+                    'text/plain': new Blob([href], { type: 'text/plain' }),
                     'text/html': new Blob([richText], { type: 'text/html' }),
                 }),
             ]);
@@ -633,6 +581,14 @@ export default class EditorPanel extends LitElement {
         `;
     }
 
+    get authorPath() {
+        return generateCodeToUse(
+            this.fragment,
+            Store.search.get().path,
+            Store.page.get(),
+        ).authorPath;
+    }
+
     render() {
         if (!this.fragment) return nothing;
         if (this.fragment.loading)
@@ -660,7 +616,13 @@ export default class EditorPanel extends LitElement {
         }
         return html`
             <div id="editor">
-                ${this.fragmentEditorToolbar} ${editor}
+                ${this.fragmentEditorToolbar}
+                <sp-divider size="s"></sp-divider>
+                <div>
+                    <p id="author-path">${this.authorPath}</p>
+                </div>
+                <sp-divider size="s"></sp-divider>
+                ${editor}
                 <sp-divider size="s"></sp-divider>
                 ${this.fragmentEditor} ${this.deleteConfirmationDialog}
                 ${this.discardConfirmationDialog}

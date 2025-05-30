@@ -44,7 +44,7 @@
             import { Fragment } from '../src/aem/fragment.js';
             import { FragmentStore } from '../src/reactivity/fragment-store.js';
             import Store from '../src/store.js';
-
+            import { generateCodeToUse } from '../src/utils.js';
             import {
                 createFromTemplate,
                 delay,
@@ -59,11 +59,11 @@
                 ).then((res) => res.json());
                 window.fetch = async function (args) {
                     const { pathname } = new URL(args);
-                    if (/querybuilder.json/.test(pathname)) {
+                    if (/querybuilder.json?path=\/content\/cq:tags\/mas/.test(pathname)) {
                         return originalFetch('/test/mocks/tags.json');
                     }
-                    if (/mas.json/.test(pathname)) {
-                        return originalFetch('/test/mocks/api/assets/mas.json');
+                    if (/querybuilder.json?path=\/content\/dam\/mas/.test(pathname)) {
+                        return originalFetch('/test/mocks/folders.json');
                     }
                     return originalFetch(...arguments);
                 };
@@ -123,20 +123,21 @@
                             document.getElementById('card-title');
                         triggerInput(titleField(), 'test title');
                         await editorPanel.updateComplete;
-                        const clipboardContent =
-                            editorPanel.generateCodeToUse();
-                        expect(clipboardContent[0]).to.equal(
-                            '<merch-card><aem-fragment fragment="cc-all-apps" title="test title"></aem-fragment></merch-card>',
+                        const { authorPath, href, richText } =
+                            generateCodeToUse(
+                                editorPanel.fragment,
+                                Store.search.get().path,
+                                Store.page.get(),
+                            );
+                        const normalizedExpected =
+                            '<ahref="https://mas.adobe.com/studio.html#content-type=merch-card&page=welcome&path=acom&query=cc-all-apps"target="_blank">merch-card:ACOM/Slice/CreativeCloudAllApps</a>';
+                        const normalizedActual = richText.replace(/\s+/g, '');
+                        expect(normalizedActual).to.equal(normalizedExpected);
+                        expect(authorPath).to.equal(
+                            'merch-card: ACOM / Slice / Creative Cloud All Apps',
                         );
-                        expect(
-                            clipboardContent[1].includes(
-                                'https://mas.adobe.com/studio.html#path=ccd&fragment=fragment-cc-all-apps',
-                            ),
-                        );
-                        expect(
-                            clipboardContent[1].includes(
-                                'merch-card: CCD / Slice / test title',
-                            ),
+                        expect(href).to.equal(
+                            'https://mas.adobe.com/studio.html#content-type=merch-card&page=welcome&path=acom&query=cc-all-apps',
                         );
                     });
                 });

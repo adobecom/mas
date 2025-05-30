@@ -17,13 +17,7 @@ import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
-import {
-    linkStoreToHash,
-    linkStoreToSearch,
-    initializeRouter,
-    setupNavigationSubscriptions,
-    initializeStoreFromUrl,
-} from './router.js';
+import router from './router.js';
 import { PAGE_NAMES, WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
 
 const BUCKET_TO_ENV = {
@@ -32,18 +26,7 @@ const BUCKET_TO_ENV = {
     e59433: 'prod',
 };
 
-initializeStoreFromUrl();
-
-linkStoreToHash(Store.search, ['path', 'query'], {});
-linkStoreToHash(Store.filters, ['locale'], {
-    locale: 'en_US',
-});
-
-linkStoreToSearch(Store.filters, ['tags'], {});
-linkStoreToSearch(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
-
-initializeRouter();
-setupNavigationSubscriptions();
+router.start();
 
 class MasStudio extends LitElement {
     static properties = {
@@ -51,25 +34,50 @@ class MasStudio extends LitElement {
         baseUrl: { type: String, attribute: 'base-url' },
     };
 
+    #unsubscribeLocaleObserver;
+    #unsubscribeCommerceEnvObserver;
+
     constructor() {
         super();
         this.bucket = 'e59433';
     }
 
-    toggleCommerce(env) {
-        const service = this.querySelector('mas-commerce-service');
-        const newService = service.cloneNode(true);
-        newService.setAttribute('env', env);
-        service.remove();
-        this.prepend(newService);
-    }
-
     connectedCallback() {
         super.connectedCallback();
+        this.subscribeLocaleObserver();
+        this.subscribeCommerceEnvObserver();
+    }
+
+    get commerceService() {
+        return document.querySelector('mas-commerce-service');
+    }
+
+    subscribeLocaleObserver() {
+        const subscription = (value, oldValue) => {
+            if (value.locale !== oldValue.locale) {
+                this.renderCommerceService();
+            }
+        };
+        Store.filters.subscribe(subscription);
+        this.#unsubscribeLocaleObserver = () =>
+            Store.filters.unsubscribe(subscription);
+    }
+
+    subscribeCommerceEnvObserver() {
+        const subscription = (value, oldValue) => {
+            if (value !== oldValue) {
+                this.commerceService.refreshOffers();
+            }
+        };
+        Store.commerceEnv.subscribe(subscription);
+        this.#unsubscribeCommerceEnvObserver = () =>
+            Store.commerceEnv.unsubscribe(subscription);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        this.#unsubscribeLocaleObserver();
+        this.#unsubscribeCommerceEnvObserver();
     }
 
     createRenderRoot() {
@@ -97,27 +105,29 @@ class MasStudio extends LitElement {
     }
 
     get splashScreen() {
+        if (this.page.value !== PAGE_NAMES.WELCOME) return nothing;
         const hash = window.location.hash.slice(1);
         const hashParams = new URLSearchParams(hash);
-        const hasQuery = hashParams.has('query');
-        if (this.page.value !== PAGE_NAMES.WELCOME || hasQuery) return nothing;
         return html`<mas-splash-screen
             base-url=${this.baseUrl}
         ></mas-splash-screen>`;
     }
 
-    get recentlyUpdated() {
-        if (this.page.value !== PAGE_NAMES.WELCOME) return nothing;
-        return html`<mas-recently-updated></mas-recently-updated>`;
+    renderCommerceService() {
+        const env =
+            this.commerceEnv.value === WCS_ENV_STAGE
+                ? WCS_ENV_STAGE
+                : WCS_ENV_PROD;
+        this.commerceService.outerHTML = `<mas-commerce-service env="${env}" locale="${Store.filters.value.locale}"></mas-commerce-service>`;
+    }
+
+    update() {
+        super.update();
+        this.renderCommerceService();
     }
 
     render() {
         return html`
-            ${this.commerceEnv.value === WCS_ENV_STAGE
-                ? html`<mas-commerce-service
-                      env="${WCS_ENV_STAGE}"
-                  ></mas-commerce-service>`
-                : html`<mas-commerce-service></mas-commerce-service>`}
             <mas-top-nav aem-env="${this.aemEnv}"></mas-top-nav>
             <mas-repository
                 bucket="${this.bucket}"

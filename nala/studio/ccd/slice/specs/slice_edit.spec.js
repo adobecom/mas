@@ -231,5 +231,20 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
+        {
+            tcid: '16',
+            name: '@studio-slice-edit-analytics-ids',
+            path: '/studio.html',
+            data: {
+                cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
+                analyticsID: 'buy-now',
+                daaLL: 'buy-now-1',
+                daaLH: 'phsp',
+                newAnalyticsID: 'save-now',
+                newDaaLL: 'save-now-1',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
+        },
     ],
 };

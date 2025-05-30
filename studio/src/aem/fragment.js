@@ -57,6 +57,11 @@ export class Fragment {
         return this.status === 'PUBLISHED' ? 'published' : 'draft';
     }
 
+    getTagTitle(id) {
+        const tags = this.tags.filter((tag) => tag.id.includes(id));
+        return tags[0]?.title;
+    }
+
     refreshFrom(fragmentData) {
         Object.assign(this, fragmentData);
         this.initialValue = structuredClone(this);
@@ -77,6 +82,12 @@ export class Fragment {
 
     getField(fieldName) {
         return this.fields.find((field) => field.name === fieldName);
+    }
+
+    getFieldValue(fieldName, index = 0) {
+        return this.fields.find((field) => field.name === fieldName)?.values?.[
+            index
+        ];
     }
 
     updateField(fieldName, value) {

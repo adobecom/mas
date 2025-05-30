@@ -1,6 +1,7 @@
 import { LitElement, html } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
 import { generateCodeToUse, getService } from './utils.js';
+import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './editor-panel.js';
 import Store from './store.js';
 
 class MasFragmentTable extends LitElement {
@@ -24,6 +25,12 @@ class MasFragmentTable extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         this.loadOfferData();
+    }
+
+    getFragmentName(data) {
+        const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
+        const fragmentParts = getFragmentPartsToUse(Store, data).fragmentParts;
+        return `${webComponentName}: ${fragmentParts}`;
     }
 
     get data() {
@@ -79,7 +86,7 @@ class MasFragmentTable extends LitElement {
         const data = this.fragmentStore.value;
         return html`<sp-table-row value="${data.id}"
             ><sp-table-cell class="name">
-                ${this.icon} ${this.name}
+                ${this.icon} ${this.getFragmentName(data)}
             </sp-table-cell>
             <sp-table-cell class="title">${data.title}</sp-table-cell>
             <sp-table-cell class="offer-type"

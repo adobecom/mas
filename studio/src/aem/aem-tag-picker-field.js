@@ -2,6 +2,7 @@ import { LitElement, html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { AEM } from './aem.js';
 import { EVENT_OST_OFFER_SELECT } from '../constants.js';
+import { VARIANTS } from '../editors/variant-picker.js';
 
 const AEM_TAG_PATTERN = /^[a-zA-Z][a-zA-Z0-9]*:/;
 const namespaces = {};
@@ -165,6 +166,8 @@ class AemTagPickerField extends LitElement {
         const extractedOffer = {
             offer_type: offer.offer_type,
             planType: offer.planType,
+            customer_segment: offer.customer_segment,
+            product_code: offer.product_code,
             market_segments:
                 Array.isArray(offer.market_segments) &&
                 offer.market_segments.length > 0
@@ -180,7 +183,9 @@ class AemTagPickerField extends LitElement {
         const categoriesToUpdate = new Set([
             'offer_type',
             'plan_type',
+            'customer_segment',
             'market_segments',
+            'product_code',
         ]);
 
         const existingTags = this.value.filter((tagPath) => {
@@ -209,7 +214,9 @@ class AemTagPickerField extends LitElement {
         this.multiple = this.multiple ?? this.selection === SELECTION_CHECKBOX;
         this.#aem = new AEM(this.bucket, this.baseUrl);
         this.loadTags();
-        document.addEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelect);
+        if (!this.top) {
+            document.addEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelect);
+        }
     }
 
     disconnectedCallback() {
@@ -227,6 +234,10 @@ class AemTagPickerField extends LitElement {
         return namespaces[this.namespace];
     }
 
+    get allTags() {
+        return namespaces[this.namespace];
+    }
+
     get selectedTags() {
         return this.value.map((path) => this.#data.get(path));
     }
@@ -234,6 +245,20 @@ class AemTagPickerField extends LitElement {
     clear() {
         this.value = [];
         this.tempValue = [];
+    }
+
+    addVariantTags() {
+        if (this.top !== 'variant' || this.flatTags.length) return;
+        VARIANTS.forEach((variant) => {
+            if (variant.value === 'all') return;
+            const tagPath = `/content/cq:tags/mas/variant/${variant.value}`;
+            this.flatTags.push(tagPath);
+            this.#data.set(tagPath, {
+                name: variant.value,
+                title: variant.label,
+                path: tagPath,
+            });
+        });
     }
 
     async loadTags() {
@@ -269,6 +294,7 @@ class AemTagPickerField extends LitElement {
                     }),
                 )
                 .map((tag) => tag.path);
+            this.addVariantTags();
         } else {
             // Otherwise build a hierarchical structure
             this.hierarchicalTags = this.buildHierarchy(allTags);

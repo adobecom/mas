@@ -18,6 +18,9 @@ export default class OSTPage {
         this.nextButton = page.locator(
             '//button[contains(@data-testid, "nextButton")]/span',
         );
+        this.offerTab = page.locator('//div[@data-key="offer"]');
+        this.entitlementsTab = page.locator('//div[@data-key="entitlements"]');
+        this.backButton = page.locator('//button[contains(@aria-label, "previous-step")]');
         this.price = page.locator('//div[@data-type="price"]');
         this.priceOptical = page.locator(
             '//div[contains(@data-type, "priceOptical")]',

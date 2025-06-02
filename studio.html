@@ -70,13 +70,10 @@
                 bucket && studio.setAttribute('aem-bucket', bucket);
                 document.querySelector('sp-theme').appendChild(studio);
             }
-            // Log the referrer information when the page loads
-            console.info('[M@S Studio] Referrer:', document.referrer);
+            const context = {
+                profile_filter: `{"findFirst":true,"fallbackToAA":true,"searchEntireCluster":true};isOwnedByOrg('3B962FB55F5F922E0A495C88@AdobeOrg')`,
+            };
             window.adobeid = {
-                api_parameters: {
-                    profile_filter:
-                        "isOwnedByOrg('3B962FB55F5F922E0A495C88@AdobeOrg')",
-                },
                 client_id: 'mas-studio',
                 environment: 'prod',
                 locale: 'en_US',
@@ -85,14 +82,14 @@
                     location.href.length - location.hash.length,
                 ),
                 response_type: 'id_token',
-                scope: 'additional_info,additional_info.projectedProductContext,additional_info.roles,AdobeID,openid,read_organizations,read_pc,read_pc.acp,read_pc.dma_aem_ams,read_pc.dma_aem_cloud,read_pc.dma_tartan',
+                scope: 'additional_info,additional_info.projectedProductContext,additional_info.roles,AdobeID,openid,read_organizations,read_members',
                 useLocalStorage: true,
                 authorize() {
                     const { expire, token } =
                         window.adobeIMS?.getAccessToken() ?? {};
                     if (token && (expire?.valueOf() ?? 0) > Date.now())
                         return token;
-                    window.adobeIMS?.signIn();
+                    window.adobeIMS?.signIn(context);
                 },
                 onError(error) {
                     console.error('[M@S Studio] IMS error: ', error);
@@ -107,7 +104,7 @@
                                 e,
                             );
                             console.info('[M@S Studio] Signing in');
-                            adobeIMS.signIn();
+                            adobeIMS.signIn(context);
                         });
                 },
             };

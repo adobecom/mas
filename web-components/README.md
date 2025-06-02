@@ -1,4 +1,4 @@
-# Merch At Scale
+# Merch At Scale Web Components
 
 This repository provides a suite of features and web components to support merchandising content across various surfaces, starting from adobe.com. It integrates core commerce capabilities and reusable components designed to simplify development and improve the user experience.
 

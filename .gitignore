@@ -34,8 +34,9 @@ masStudio-*.json
 .aio
 .cursor
 
-# mas specific
+# web-components specific
 !web-components/dist
-mas/commerce.json
-mas/mas.json
-mas/stats.json
+web-components/commerce.json
+web-components/coverage
+web-components/*.tgz
+web-components/*.js.map

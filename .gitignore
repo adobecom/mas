@@ -35,7 +35,6 @@ masStudio-*.json
 .cursor
 
 # web-components specific
-!web-components/dist
 web-components/commerce.json
 web-components/coverage
 web-components/*.tgz

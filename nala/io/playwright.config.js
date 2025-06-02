@@ -1,15 +1,15 @@
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
-    testDir: './',
-    use: {
-        headless: false,
+  testDir: './',
+  use: {
+    headless: false,
+  },
+  projects: [
+    {
+      name: 'chromium',
+      use: { browserName: 'chromium' },
     },
-    projects: [
-        {
-            name: 'chromium',
-            use: { browserName: 'chromium' },
-        },
-    ],
-    testMatch: ['**/ioAutomation.js'],
-});
+  ],
+  testMatch: ['**/ioAutomation.js'],
+}); 

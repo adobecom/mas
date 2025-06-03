@@ -208,7 +208,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            await expect(await individuals.cardBadgeLabel).toHaveText(
+            await expect(await individuals.cardBadge).toHaveText(
                 data.badge,
             );
             await (await studio.getCard(data.cardid)).dblclick();

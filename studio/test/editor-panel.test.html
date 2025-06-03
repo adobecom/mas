@@ -44,7 +44,7 @@
             import { Fragment } from '../src/aem/fragment.js';
             import { FragmentStore } from '../src/reactivity/fragment-store.js';
             import Store from '../src/store.js';
-
+            import { generateCodeToUse } from '../src/utils.js';
             import {
                 createFromTemplate,
                 delay,
@@ -123,12 +123,22 @@
                             document.getElementById('card-title');
                         triggerInput(titleField(), 'test title');
                         await editorPanel.updateComplete;
-                        const { authorPath, href, richText } = editorPanel.generateCodeToUse();
-                        const normalizedExpected = '<ahref="https://mas.adobe.com/studio.html#content-type=merch-card&page=welcome&path=acom&query=cc-all-apps"target="_blank">merch-card:ACOM/Slice/CreativeCloudAllApps</a>';
+                        const { authorPath, href, richText } =
+                            generateCodeToUse(
+                                editorPanel.fragment,
+                                Store.search.get().path,
+                                Store.page.get(),
+                            );
+                        const normalizedExpected =
+                            '<ahref="https://mas.adobe.com/studio.html#content-type=merch-card&page=welcome&path=acom&query=cc-all-apps"target="_blank">merch-card:ACOM/Slice/CreativeCloudAllApps</a>';
                         const normalizedActual = richText.replace(/\s+/g, '');
                         expect(normalizedActual).to.equal(normalizedExpected);
-                        expect(authorPath).to.equal('merch-card: ACOM / Slice / Creative Cloud All Apps');
-                        expect(href).to.equal('https://mas.adobe.com/studio.html#content-type=merch-card&page=welcome&path=acom&query=cc-all-apps');
+                        expect(authorPath).to.equal(
+                            'merch-card: ACOM / Slice / Creative Cloud All Apps',
+                        );
+                        expect(href).to.equal(
+                            'https://mas.adobe.com/studio.html#content-type=merch-card&page=welcome&path=acom&query=cc-all-apps',
+                        );
                     });
                 });
             });

@@ -425,7 +425,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-6: Validate badge field updated', async () => {
             await expect(await editor.badge).toHaveValue(data.newBadge);
-            await expect(await individuals.cardBadgeLabel).toHaveText(
+            await expect(await individuals.cardBadge).toHaveText(
                 data.newBadge,
             );
         });

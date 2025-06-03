@@ -107,21 +107,18 @@ async function main() {
     console.log(`Comparing ${contentPath}`);
     const prodMap = await getProdMap(contentPath, prodIds);
     const stageMap = await getStageMap(prodMap, contentPath);
-    
+
     const tempDir = tmpdir();
     let diffCount = 0;
     let onlyInProdCount = 0;
     let onlyInStageCount = 0;
-    
     for (const [key, value] of Object.entries(prodMap)) {
         if (stageMap[key]) {
             const prodItem = value;
             const stageItem = stageMap[key];
-            
             if (JSON.stringify(prodItem) !== JSON.stringify(stageItem)) {
                 diffCount++;
                 console.log(`\nDifferences for ${key}:`);
-                
                 // Create temp files for diff
                 const prodFile = path.join(
                     tempDir,
@@ -131,10 +128,8 @@ async function main() {
                     tempDir,
                     `stage-${path.basename(key)}.json`,
                 );
-                
                 fs.writeFileSync(prodFile, JSON.stringify(prodItem, null, 2));
                 fs.writeFileSync(stageFile, JSON.stringify(stageItem, null, 2));
-                
                 try {
                     // Run diff command
                     const result = execSync(
@@ -166,7 +161,7 @@ async function main() {
             console.log(`\n${key}: Only in prod, not in stage`);
         }
     }
-    
+
     // Check for items in stage that aren't in prod
     for (const key of Object.keys(stageMap)) {
         if (!prodMap[key]) {
@@ -174,13 +169,15 @@ async function main() {
             console.log(`\n${key}: Only in stage, not in prod`);
         }
     }
-    
+
     // Print summary
     console.log('\n\n--- Summary ---');
     console.log(`Files with differences: ${diffCount}`);
     console.log(`Files only in prod: ${onlyInProdCount}`);
     console.log(`Files only in stage: ${onlyInStageCount}`);
-    console.log(`Total issues: ${diffCount + onlyInProdCount + onlyInStageCount}`);
+    console.log(
+        `Total issues: ${diffCount + onlyInProdCount + onlyInStageCount}`,
+    );
 }
 
 main();

@@ -86,9 +86,10 @@ export class Fragment {
         return this.fields.find((field) => field.name === fieldName);
     }
 
-    getFieldValue(fieldName) {
-        const field = this.getField(fieldName);
-        return field?.values?.[0];
+    getFieldValue(fieldName, index = 0) {
+        return this.fields.find((field) => field.name === fieldName)?.values?.[
+            index
+        ];
     }
 
     updateField(fieldName, value) {

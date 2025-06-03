@@ -11,12 +11,7 @@ import {
     OPERATIONS,
 } from './constants.js';
 import Events from './events.js';
-import { VARIANTS } from './editors/variant-picker.js';
-
-const MODEL_WEB_COMPONENT_MAPPING = {
-    [CARD_MODEL_PATH]: 'merch-card',
-    [COLLECTION_MODEL_PATH]: 'merch-card-collection',
-};
+import { generateCodeToUse } from './utils.js';
 
 const MODELS_NEEDING_MASK = [CARD_MODEL_PATH];
 export default class EditorPanel extends LitElement {
@@ -180,67 +175,13 @@ export default class EditorPanel extends LitElement {
         e.stopPropagation();
     }
 
-    getFragmentPartsToUse() {
-        let fragmentParts = '';
-        let title = '';
-        const surface = Store.search.value.path?.toUpperCase();
-        switch (this.fragment?.model?.path) {
-            case CARD_MODEL_PATH:
-                const props = {
-                    cardTitle: this.fragment?.getField('cardTitle')?.values[0],
-                    variantCode: this.fragment?.getField('variant')?.values[0],
-                    marketSegment: this.fragment?.getTagTitle('market_segment'),
-                    customerSegment:
-                        this.fragment?.getTagTitle('customer_segment'),
-                    product: this.fragment?.getTagTitle('mas:product/'),
-                    promotion: this.fragment?.getTagTitle('mas:promotion/'),
-                };
-
-                VARIANTS.forEach((variant) => {
-                    if (variant.value === props.variantCode) {
-                        props.variantLabel = variant.label;
-                    }
-                });
-                const buildPart = (part) => {
-                    if (part) return ` / ${part}`;
-                    return '';
-                };
-                fragmentParts = `${surface}${buildPart(props.variantLabel)}${buildPart(props.customerSegment)}${buildPart(props.marketSegment)}${buildPart(props.product)}${buildPart(props.promotion)}`;
-                title = props.cardTitle;
-                break;
-            case COLLECTION_MODEL_PATH:
-                title = this.fragment?.title;
-                fragmentParts = `${surface} / ${title}`;
-                break;
-        }
-        return { fragmentParts, title };
-    }
-
-    showNegativeAlert() {
-        Events.toast.emit({
-            variant: 'negative',
-            content: 'Failed to copy code to clipboard',
-        });
-    }
-
-    generateCodeToUse() {
-        const { fragmentParts, title } = this.getFragmentPartsToUse();
-        const webComponentName =
-            MODEL_WEB_COMPONENT_MAPPING[this.fragment?.model?.path];
-        if (!webComponentName) {
-            this.showNegativeAlert();
-            return [];
-        }
-
-        const code = `<${webComponentName}><aem-fragment fragment="${this.fragment?.id}" title="${title}"></aem-fragment></${webComponentName}>`;
-        const authorPath = `${webComponentName}: ${fragmentParts}`;
-        const href = `https://mas.adobe.com/studio.html#content-type=${webComponentName}&page=${Store.page.value}&path=${Store.search.value.path}&query=${this.fragment?.id}`;
-        const richText = `<a href="${href}" target="_blank">${authorPath}</a>`;
-        return { authorPath, code, richText, href };
-    }
-
     async copyToUse() {
-        const { code, richText, href } = this.generateCodeToUse();
+        const { code, richText, href } = generateCodeToUse(
+            this.fragment,
+            Store.search.get().path,
+            Store.page.get(),
+            'Failed to copy code to clipboard',
+        );
         if (!code || !richText || !href) return;
 
         try {
@@ -649,7 +590,11 @@ export default class EditorPanel extends LitElement {
     }
 
     get authorPath() {
-        return this.generateCodeToUse().authorPath;
+        return generateCodeToUse(
+            this.fragment,
+            Store.search.get().path,
+            Store.page.get(),
+        ).authorPath;
     }
 
     render() {

@@ -55,8 +55,6 @@ class AEM {
         this.cfPublishUrl = `${this.cfFragmentsUrl}/publish`;
         this.wcmcommandUrl = `${baseUrl}/bin/wcmcommand`;
         this.csrfTokenUrl = `${baseUrl}/libs/granite/csrf/token.json`;
-        this.foldersUrl = `${baseUrl}/adobe/folders`;
-        this.foldersClassicUrl = `${baseUrl}/api/assets`;
 
         this.headers = {
             // IMS users might not have all the permissions, token in the sessionStorage is a temporary workaround
@@ -488,67 +486,31 @@ class AEM {
         return response; //204 No Content
     }
 
-    /**
-     * @param {*} path
-     */
     async listFolders(path) {
-        const query = new URLSearchParams({
-            path,
-        }).toString();
-
-        const response = await fetch(`${this.foldersUrl}/?${query}`, {
-            method: 'GET',
-            headers: {
-                ...this.headers,
-                'X-Adobe-Accept-Experimental': '1',
-            },
-        }).catch((err) => {
-            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
-        });
-        if (!response.ok) {
-            throw new Error(
-                `Failed to list folders: ${response.status} ${response.statusText}`,
-            );
-        }
-        return await response.json();
-    }
-
-    /**
-     * @param {*} path
-     */
-    async listFoldersClassic(path) {
-        const relativePath = path?.replace(/^\/content\/dam/, '');
-
+        const name = path?.replace(/^\/content\/dam/, '');
         const response = await fetch(
-            `${this.foldersClassicUrl}${relativePath}.json?limit=1000`, // TODO: this is a workaround until Folders API is fixed.
+            `${this.baseUrl}/bin/querybuilder.json?path=${path}&path.flat=true&type=sling:Folder&p.limit=-1`,
             {
                 method: 'GET',
-                headers: { ...this.headers },
+                headers: this.headers,
             },
-        ).catch((err) => {
-            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
-        });
-
+        ).catch((error) => console.error('Error:', error));
         if (!response.ok) {
             throw new Error(
                 `Failed to list folders: ${response.status} ${response.statusText}`,
             );
         }
-        const {
-            properties: { name },
-            entities = [],
-        } = await response.json();
+        const result = await response.json();
         return {
             self: { name, path },
-            children: entities
-                .filter(({ class: [firstClass] }) => /folder/.test(firstClass))
-                .map(({ properties: { name, title } }) => ({
+            children: result.hits
+                .map(({name, title}) => ({
                     name,
                     title,
                     folderId: `${path}/${name}`,
                     path: `${path}/${name}`,
                 })),
-        };
+        }
     }
 
     async listTags(root) {
@@ -655,7 +617,7 @@ class AEM {
         /**
          * @see AEM#listFolders
          */
-        list: this.listFoldersClassic.bind(this),
+        list: this.listFolders.bind(this),
     };
 }
 

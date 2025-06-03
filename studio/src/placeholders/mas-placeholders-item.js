@@ -46,15 +46,18 @@ class MasPlaceholdersItem extends LitElement {
 
     updated(changedProps) {
         super.updated(changedProps);
+        // Needed to avoid using "unsafeHtml" in the rte-field
+        if (this.editing && this.placeholder.isRichText)
+            this.initializeRteField();
+    }
 
-        // Needed to avoid unsafeHtml in the rte-field
-        if (this.editing && this.placeholder.isRichText) {
-            const rteField = this.querySelector('rte-field');
-            if (!rteField.initialized) {
-                rteField.innerHTML =
-                    this.placeholder.getFieldValue('richTextValue');
-                rteField.initialized = true;
-            }
+    initializeRteField() {
+        const rteField = this.querySelector('rte-field');
+        if (!rteField) return;
+        if (!rteField.initialized) {
+            rteField.innerHTML =
+                this.placeholder.getFieldValue('richTextValue');
+            rteField.initialized = true;
         }
     }
 

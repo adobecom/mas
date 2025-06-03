@@ -181,7 +181,7 @@ export class MasRepository extends LitElement {
         return this.fragmentStoreInEdit?.get();
     }
 
-    async searchList(options, limit, abortController) {
+    async searchFragmentList(options, limit, abortController) {
         const cursor = await this.aem.sites.cf.fragments.search(
             options,
             limit,
@@ -356,7 +356,7 @@ export class MasRepository extends LitElement {
 
     async loadPlaceholders() {
         try {
-            const dictionaryPath = `/content/dam/mas/${this.search.value.path}/${this.filters.value.locale}/dictionary`;
+            const dictionaryPath = this.getDictionaryPath();
 
             const searchOptions = {
                 path: dictionaryPath,
@@ -369,35 +369,23 @@ export class MasRepository extends LitElement {
 
             Store.placeholders.list.loading.set(true);
 
-            const cursor = await this.aem.sites.cf.fragments.search(
+            const fragments = await this.searchFragmentList(
                 searchOptions,
                 50,
-                this.#abortControllers.placeholder,
+                this.#abortControllers.placeholders,
             );
 
-            const fragments = [];
-            for await (const result of cursor) {
-                for await (const item of result) {
-                    fragments.push(new Placeholder(item));
-                }
-            }
-
-            try {
-                const indexPath = `${dictionaryPath}/index`;
-                const indexFragment =
-                    await this.aem.sites.cf.fragments.getByPath(indexPath, {
-                        references: 'direct-hydrated',
-                    });
-                if (indexFragment) {
-                    Store.placeholders.index.set(indexFragment);
-                }
-            } catch (error) {
-                console.error('No index fragment found:', error);
-            }
+            const indexFragment = fragments.find((fragment) =>
+                fragment.path.endsWith('/index'),
+            );
+            if (indexFragment) Store.placeholders.index.set(indexFragment);
+            else console.error('No index fragment found:', error);
 
             const placeholders = fragments
                 .filter((fragment) => !fragment.path.endsWith('/index'))
-                .map((fragment) => new FragmentStore(fragment));
+                .map(
+                    (fragment) => new FragmentStore(new Placeholder(fragment)),
+                );
 
             Store.placeholders.list.data.set(placeholders);
         } catch (error) {
@@ -405,6 +393,10 @@ export class MasRepository extends LitElement {
         } finally {
             Store.placeholders.list.loading.set(false);
         }
+    }
+
+    getDictionaryPath() {
+        return `${ROOT_PATH}/${this.search.value.path}/${this.filters.value.locale}/dictionary`;
     }
 
     /**
@@ -596,9 +588,7 @@ export class MasRepository extends LitElement {
             const locale = this.filters.value.locale;
             if (!folderPath || !locale) return false;
 
-            const dictionaryPath = `${ROOT_PATH}/${folderPath}/${locale}/dictionary`;
-            if (!dictionaryPath)
-                throw new Error('Could not construct dictionary path');
+            const dictionaryPath = this.getDictionaryPath();
 
             const typeMap = {
                 richTextValue: 'long-text',

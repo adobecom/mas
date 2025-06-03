@@ -1,6 +1,6 @@
 import { LitElement, html } from 'lit';
 import { MasRepository } from '../mas-repository.js';
-import { showToast } from '../utils.js';
+import { normalizeKey, showToast } from '../utils.js';
 
 const initialPlaceholder = {
     key: '',
@@ -34,7 +34,7 @@ class MasPlaceholdersCreationModal extends LitElement {
     handleKeyChange(event) {
         this.placeholder = {
             ...this.placeholder,
-            key: event.target.value,
+            key: normalizeKey(event.target.value),
         };
     }
 

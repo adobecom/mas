@@ -1,4 +1,4 @@
-import { PAGE_NAMES, WCS_ENV_PROD } from './constants.js';
+import { PAGE_NAMES, SORT_COLUMNS, WCS_ENV_PROD } from './constants.js';
 import Store from './store.js';
 import { debounce } from './utils.js';
 
@@ -79,10 +79,11 @@ export class Router extends EventTarget {
                     newValue = parsedValue;
                 }
             } else {
+                const _defaultValue = defaultValueGetter(defaultValue)();
                 if (isObject) {
-                    newValue[key] = defaultValue?.[key];
+                    newValue[key] = _defaultValue?.[key];
                 } else {
-                    newValue = defaultValue;
+                    newValue = _defaultValue;
                 }
             }
         }
@@ -99,11 +100,16 @@ export class Router extends EventTarget {
      * @param {any} defaultValue - The default value to use if the key is not in the hash
      */
     linkStoreToHash(store, keys, defaultValue) {
-        store.set(defaultValue);
+        const getDefaultValue = defaultValueGetter(defaultValue);
+        store.set(getDefaultValue());
         const keysArray = Array.isArray(keys) ? keys : [keys];
 
         // Store the link configuration for later use with popstate
-        this.linkedStores.push({ store, keysArray, defaultValue });
+        this.linkedStores.push({
+            store,
+            keysArray,
+            defaultValue,
+        });
 
         const newValue = store.get();
         const isObject = typeof newValue === 'object' && newValue !== null;
@@ -148,9 +154,10 @@ export class Router extends EventTarget {
                     self.currentParams.set(key, stringValue);
                 }
 
+                const _defaultValue = getDefaultValue();
                 const defaultValueToCompare = isObject
-                    ? defaultValue?.[key]
-                    : defaultValue;
+                    ? _defaultValue?.[key]
+                    : _defaultValue;
                 if (self.currentParams.get(key) === defaultValueToCompare) {
                     self.currentParams.delete(key);
                 }
@@ -174,9 +181,11 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.filters, ['locale', 'tags'], {
             locale: 'en_US',
         });
-        this.linkStoreToHash(Store.sort, ['sortBy', 'sortDirection'], {
-            sortDirection: 'asc',
-        });
+        this.linkStoreToHash(
+            Store.sort,
+            ['sortBy', 'sortDirection'],
+            getSortDefaultValue,
+        );
         this.linkStoreToHash(Store.placeholders.search, 'search');
         this.linkStoreToHash(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
         if (Store.search.value.query) {
@@ -216,3 +225,17 @@ export class Router extends EventTarget {
 }
 
 export default new Router();
+
+// Default value handling
+
+function defaultValueGetter(defaultValue) {
+    if (!defaultValue) return () => undefined;
+    if (typeof defaultValue === 'function') return defaultValue;
+    return () => defaultValue;
+}
+
+function getSortDefaultValue() {
+    const page = Store.page.get();
+    const defaultSortBy = SORT_COLUMNS[page]?.[0];
+    return { sortBy: defaultSortBy, sortDirection: 'asc' };
+}

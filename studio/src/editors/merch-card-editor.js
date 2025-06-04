@@ -442,6 +442,7 @@ class MerchCardEditor extends LitElement {
                     styling
                     link
                     upt-link
+                    list
                     data-field="description"
                     default-link-style="secondary-link"
                     @change="${this.#handleFragmentUpdate}"

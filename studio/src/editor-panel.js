@@ -293,8 +293,8 @@ export default class EditorPanel extends LitElement {
     }
 
     async confirmClone() {
-        const osi = this.repository.fragmentInEdit.getFieldValue('osi', 0);
-        if (!this.osiClone && !osi) {
+        const osi = this.fragment.getFieldValue('osi', 0);
+        if (this.fragment.model.path === CARD_MODEL_PATH && !this.osiClone && !osi) {
             Events.toast.emit({
                 variant: 'negative',
                 content: 'Please select an offer',

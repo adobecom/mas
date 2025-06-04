@@ -107,6 +107,7 @@ async function main() {
     console.log(`Comparing ${contentPath}`);
     const prodMap = await getProdMap(contentPath, prodIds);
     const stageMap = await getStageMap(prodMap, contentPath);
+
     const tempDir = tmpdir();
     let diffCount = 0;
     let onlyInProdCount = 0;
@@ -168,6 +169,7 @@ async function main() {
             console.log(`\n${key}: Only in stage, not in prod`);
         }
     }
+
     // Print summary
     console.log('\n\n--- Summary ---');
     console.log(`Files with differences: ${diffCount}`);

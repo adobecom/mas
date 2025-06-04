@@ -21,6 +21,7 @@ export default {
             data: {
                 cardid: '27f9c659-7c83-497f-86c2-34c711b9791d',
                 gradientBorderColor: 'Gradient',
+                gradientBorderValue: 'gradient',
                 gradientBorderCSSColor:
                     'linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%)',
                 standardBorderColor: 'Red 900',

@@ -1123,27 +1123,24 @@ class MerchCardEditor extends LitElement {
 
         const hasNoExplicitColor = !selectedValue || selectedValue === '';
         const isTransparent = selectedValue === 'transparent';
-        
-        if (hasNoExplicitColor && (isBadgeColor || isBadgeBorderColor || isBorder)) {
+
+        if (
+            hasNoExplicitColor &&
+            (isBadgeColor || isBadgeBorderColor || isBorder)
+        ) {
             displaySelectedValue = 'Default';
         } else if (isTransparent) {
             displaySelectedValue = 'Transparent';
         }
 
         const options = isBackground
-            ? ['Default', ...colorArray]
-            : dataField === 'borderColor' ||
-                dataField === 'badgeBorderColor' ||
-                dataField === 'trialBadgeBorderColor'
-              ? [
-                    'Default',
-                    'Transparent',
-                    ...(isBorder ? Object.keys(variantSpecialValues) : []),
-                    ...colorArray,
-                ]
-              : isBadgeColor
-                ? ['Default', 'Transparent', ...colorArray]
-                : colorArray;
+            ? ['Default', 'Transparent', ...colorArray]
+            : [
+                  'Default',
+                  'Transparent',
+                  ...(isBorder ? Object.keys(variantSpecialValues) : []),
+                  ...colorArray,
+              ];
 
         const handleChange = (e) => {
             const value = e.target.value;
@@ -1333,7 +1330,9 @@ class MerchCardEditor extends LitElement {
                                                           ? this.#formatName(
                                                                 color,
                                                             )
-                                                          : isSpecialValue(color)
+                                                          : isSpecialValue(
+                                                                  color,
+                                                              )
                                                             ? this.#formatName(
                                                                   color,
                                                               )
@@ -1353,7 +1352,27 @@ class MerchCardEditor extends LitElement {
     }
 
     #backgroundColorSelection(colors, selectedValue, dataField) {
-        const options = { Default: undefined, ...colors };
+        const options = {
+            Default: undefined,
+            Transparent: 'transparent',
+            ...colors,
+        };
+
+        const handleBackgroundChange = (e) => {
+            const value = e.target.value;
+            if (value === 'Default') {
+                const fragment = this.fragmentStore.get();
+                fragment.updateField(dataField, ['']);
+                this.fragmentStore.set(fragment);
+            } else if (value === 'Transparent') {
+                const fragment = this.fragmentStore.get();
+                fragment.updateField(dataField, ['transparent']);
+                this.fragmentStore.set(fragment);
+            } else {
+                this.#handleFragmentUpdate(e);
+            }
+        };
+
         return html`
             <sp-field-group class="toggle" id="backgroundColor">
                 <sp-field-label for="backgroundColor"
@@ -1362,13 +1381,25 @@ class MerchCardEditor extends LitElement {
                 <sp-picker
                     id="backgroundColor"
                     data-field="${dataField}"
-                    value="${selectedValue || 'Default'}"
-                    data-default-value="${selectedValue || 'Default'}"
-                    @change="${this.#handleFragmentUpdate}"
+                    value="${selectedValue === 'transparent'
+                        ? 'Transparent'
+                        : selectedValue || 'Default'}"
+                    data-default-value="${selectedValue === 'transparent'
+                        ? 'Transparent'
+                        : selectedValue || 'Default'}"
+                    @change="${handleBackgroundChange}"
                 >
                     ${Object.entries(options)
                         .sort(([a], [b]) =>
-                            a === 'Default' ? -1 : b === 'Default' ? 1 : 0,
+                            a === 'Default'
+                                ? -1
+                                : b === 'Default'
+                                  ? 1
+                                  : a === 'Transparent'
+                                    ? -1
+                                    : b === 'Transparent'
+                                      ? 1
+                                      : 0,
                         )
                         .map(
                             ([colorName, colorValue]) => html`
@@ -1380,19 +1411,21 @@ class MerchCardEditor extends LitElement {
                                     >
                                         ${colorName === 'Default'
                                             ? html`<span>Default</span>`
-                                            : html`
-                                                  <div
-                                                      style="${this.styleObjectToString(
-                                                          {
-                                                              ...this.styles
-                                                                  .colorSwatch,
-                                                              background:
-                                                                  colorValue,
-                                                          },
-                                                      )}"
-                                                  ></div>
-                                                  <span>${colorName}</span>
-                                              `}
+                                            : colorName === 'Transparent'
+                                              ? html`<span>Transparent</span>`
+                                              : html`
+                                                    <div
+                                                        style="${this.styleObjectToString(
+                                                            {
+                                                                ...this.styles
+                                                                    .colorSwatch,
+                                                                background:
+                                                                    colorValue,
+                                                            },
+                                                        )}"
+                                                    ></div>
+                                                    <span>${colorName}</span>
+                                                `}
                                     </div>
                                 </sp-menu-item>
                             `,

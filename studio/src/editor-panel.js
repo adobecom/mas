@@ -293,7 +293,8 @@ export default class EditorPanel extends LitElement {
     }
 
     async confirmClone() {
-        if (!this.osiClone) {
+        const osi = this.repository.fragmentInEdit.getFieldValue('osi', 0);
+        if (!this.osiClone && !osi) {
             Events.toast.emit({
                 variant: 'negative',
                 content: 'Please select an offer',
@@ -697,6 +698,7 @@ export default class EditorPanel extends LitElement {
                 <sp-button
                     slot="button"
                     variant="accent"
+                    ?disabled=${this.cloneInProgress}
                     @click="${this.confirmClone}"
                 >
                     ${this.cloneInProgress

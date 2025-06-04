@@ -278,6 +278,9 @@ class MerchCardEditor extends LitElement {
             this.availableBadgeColors = [];
         }
         this.availableColors = variant?.allowedColors || [];
+
+        this.#displayBadgeColorFields(this.badgeText);
+        this.#displayTrialBadgeColorFields(this.trialBadgeText);
     }
 
     render() {
@@ -759,18 +762,35 @@ class MerchCardEditor extends LitElement {
             return;
         }
         this.availableColors = this.currentVariantMapping?.allowedColors || [];
-        this.#displayBadgeColorFields(this.badge.text);
-        this.#displayTrialBadgeColorFields(this.trialBadge.text);
+        this.#displayBadgeColorFields(this.badgeText);
+        this.#displayTrialBadgeColorFields(this.trialBadgeText);
+    }
+
+    get supportsBadgeColors() {
+        if (!this.fragment || !this.currentVariantMapping) {
+            return false;
+        }
+        const variantMapping = this.currentVariantMapping;
+        const supports = !!(
+            variantMapping &&
+            variantMapping.badge &&
+            variantMapping.badge.tag
+        );
+        return supports;
     }
 
     #displayBadgeColorFields(text) {
         if (!this.supportsBadgeColors) return;
-        document.querySelector('#badgeColor').style.display = text
-            ? 'block'
-            : 'none';
-        document.querySelector('#badgeBorderColor').style.display = text
-            ? 'block'
-            : 'none';
+        const badgeColorField = document.querySelector('#badgeColor');
+        const badgeBorderColorField =
+            document.querySelector('#badgeBorderColor');
+
+        if (badgeColorField) {
+            badgeColorField.style.display = text ? 'block' : 'none';
+        }
+        if (badgeBorderColorField) {
+            badgeBorderColorField.style.display = text ? 'block' : 'none';
+        }
     }
 
     get badgeText() {
@@ -797,19 +817,6 @@ class MerchCardEditor extends LitElement {
 
     get isPlans() {
         return this.fragment.variant.startsWith('plans');
-    }
-
-    get supportsBadgeColors() {
-        if (!this.fragment || !this.currentVariantMapping) {
-            return false;
-        }
-        const variantMapping = this.currentVariantMapping;
-        return !!(
-            variantMapping &&
-            variantMapping.badge &&
-            typeof variantMapping.badge === 'object' &&
-            variantMapping.badge.tag
-        );
     }
 
     get badge() {
@@ -991,12 +998,17 @@ class MerchCardEditor extends LitElement {
 
     #displayTrialBadgeColorFields(text) {
         if (!this.supportsBadgeColors) return;
-        document.querySelector('#trialBadgeColor').style.display = text
-            ? 'block'
-            : 'none';
-        document.querySelector('#trialBadgeBorderColor').style.display = text
-            ? 'block'
-            : 'none';
+        const trialBadgeColorField = document.querySelector('#trialBadgeColor');
+        const trialBadgeBorderColorField = document.querySelector(
+            '#trialBadgeBorderColor',
+        );
+
+        if (trialBadgeColorField) {
+            trialBadgeColorField.style.display = text ? 'block' : 'none';
+        }
+        if (trialBadgeBorderColorField) {
+            trialBadgeBorderColorField.style.display = text ? 'block' : 'none';
+        }
     }
 
     async #updateBackgroundColors() {
@@ -1218,8 +1230,18 @@ class MerchCardEditor extends LitElement {
                     id="${id}"
                     data-field="${dataField}"
                     value="${displaySelectedValue ||
-                    (isBackground ? 'Default' : '')}"
-                    data-default-value="${isBackground ? 'Default' : ''}"
+                    (isBackground ||
+                    isBadgeColor ||
+                    isBadgeBorderColor ||
+                    isBorder
+                        ? 'Default'
+                        : '')}"
+                    data-default-value="${isBackground ||
+                    isBadgeColor ||
+                    isBadgeBorderColor ||
+                    isBorder
+                        ? 'Default'
+                        : ''}"
                     @change="${handleChange}"
                 >
                     ${options.map(

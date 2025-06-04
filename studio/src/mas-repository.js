@@ -598,44 +598,38 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Fetches a fragment by its path to get the latest version
-     * @param {string} path - Path to the fragment
-     * @returns {Promise<Object>} - The latest fragment data
+     * Populates the store with addon placeholders by filtering fragments that start with 'addon-'
      */
-    async getFragmentByPath(path) {
-        if (!path) {
-            throw new Error('Fragment path is required');
+    async loadAddonPlaceholders() {
+        Store.placeholders.addons.loading.set(true);
+        if (Store.placeholders.addons.data.get().length > 1) return;
+        try {
+            const cursor = await this.aem.sites.cf.fragments.search(
+                {
+                    path: `${this.parentPath}/dictionary`,
+                },
+                null,
+                this.#abortControllers.search,
+            );
+
+            const result = await cursor.next();
+            const addonFragments = [];
+            for await (const item of result.value) {
+                const key = item.fields.find((field) => field.name === 'key')
+                    ?.values[0];
+                if (/^addon-/.test(key)) {
+                    addonFragments.push({ value: key, itemText: key });
+                }
+            }
+            Store.placeholders.addons.data.set((prev) => [
+                ...prev,
+                ...addonFragments,
+            ]);
+        } catch (error) {
+            this.processError(error, 'Could not load addon placeholders.');
+        } finally {
+            Store.placeholders.addons.loading.set(false);
         }
-
-        if (path.includes('/dictionary/')) {
-            return {
-                path,
-                id: 'stub-fragment-id',
-                etag: 'stub-etag',
-                fields: [],
-                status: 'PUBLISHED',
-            };
-        }
-
-        if (!this.aem) {
-            throw new Error('AEM client not initialized');
-        }
-
-        const encodedPath = encodeURIComponent(path);
-        const url = `${this.aem.cfFragmentsUrl}/api/assets/${encodedPath}`;
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                ...(this.aem?.headers || {}),
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error(`Fragment not found at path: ${path}`);
-        }
-
-        return await response.json();
     }
 
     render() {

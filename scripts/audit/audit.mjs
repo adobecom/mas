@@ -13,6 +13,11 @@ const HREF_REGEXP = 'href="(?<url>[^"]+)"';
 const LINK_REGEXP = '<a[^>]*' + HREF_REGEXP + '[^>]*>[^<]*</a>';
 const PARAMETER_REGEXP = '(?<left>\\w+)=(?<right>[^&]+)';
 const DOMAIN_REGEXP = '^https://[^/]+';
+// Constants for preventing hanging
+const MAX_FETCH_TIMEOUT = 5000; // 5 seconds timeout for fetch requests
+const MAX_RETRY_ATTEMPTS = 3; // Maximum number of retry attempts
+const MAX_RECURSION_DEPTH = 10; // Maximum recursion depth for fragment processing
+
 const HREF_REGEXPS = {
     [AUDIT_TARGET.ost]: {
         fragment: '/fragments/',
@@ -203,6 +208,8 @@ const WCS_KEYS = [
     'customerSegment',
     'marketSegments',
     'offerType',
+    'productArrangement.productCode',
+    'productArrangement.productFamily',
     'pricePoint',
     'priceDetails.price',
     'priceDetails.priceWithoutTax',
@@ -213,84 +220,299 @@ const retries = new Set();
 const fetched = new Set();
 const foundUsages = [];
 let file = '/tmp/audit.csv';
-let auditTarget = AUDIT_TARGET.OST;
+let auditTarget = AUDIT_TARGET.ost;
 let defaultBufferSize = BUFFER_SIZE;
 let isDebug = false;
 
+// Add this global cache for manifests
+const manifestCache = new Map();
+
 const convertRelativeToAbsoluteUrl = (url) => {
-    if (url[0] == '/') return `https://www.adobe.com${url}`;
-    return url;
+    if (!url) {
+        console.log(
+            'Warning: Empty URL passed to convertRelativeToAbsoluteUrl',
+        );
+        return '';
+    }
+
+    try {
+        if (url[0] === '/') return `https://www.adobe.com${url}`;
+        return url;
+    } catch (error) {
+        console.log(
+            `Error in convertRelativeToAbsoluteUrl: ${error.message} for URL: ${url}`,
+        );
+        return url || '';
+    }
 };
 
 const getUriAndDomain = (url) => {
-    const domain = new RegExp(DOMAIN_REGEXP).exec(url)[0];
+    if (!url) {
+        console.log('Warning: Empty URL passed to getUriAndDomain');
+        return { domain: '', uri: '' };
+    }
+
+    const match = new RegExp(DOMAIN_REGEXP).exec(url);
+    if (!match) {
+        console.log(`Warning: URL does not match domain pattern: ${url}`);
+        // Try to extract domain safely
+        const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
+        return {
+            domain: `${urlObj.protocol}//${urlObj.hostname}`,
+            uri: urlObj.pathname + urlObj.search + urlObj.hash,
+        };
+    }
+
+    const domain = match[0];
     return {
         domain,
-        uri: (url = url.substring(domain.length)),
+        uri: url.substring(domain.length),
     };
 };
 
-const fetchDocument = (url) => {
+const fetchDocument = async (url) => {
+    if (!url) {
+        console.log('Warning: Empty URL passed to fetchDocument');
+        throw new Error('Empty URL passed to fetchDocument');
+    }
+    const normalizedUrl = normalizeUrl(url);
+
     console.log(`fetching ${url}...`);
-    return fetch(url);
+
+    // Add timeout to fetch requests to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), MAX_FETCH_TIMEOUT);
+
+    try {
+        const response = await fetch(url, {
+            signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        return response;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        // Rethrow to be handled by the caller
+        throw error;
+    }
 };
 
-const getLiveUrl = (url) => url.replaceAll('.aem.page', '.aem.live');
+const normalizeUrl = (url) => {
+    if (!url) return '';
+
+    try {
+        // Remove trailing slashes, normalize case for protocol and domain
+        let normalized = url.trim().toLowerCase();
+
+        // Handle URL variations
+        if (normalized.endsWith('/')) {
+            normalized = normalized.slice(0, -1);
+        }
+
+        return normalized;
+    } catch (error) {
+        console.log(`Error normalizing URL ${url}: ${error.message}`);
+        return url;
+    }
+};
+
+const getLiveUrl = (url) =>
+    url
+        .replaceAll('.aem.page', '.aem.live')
+        .replaceAll('.hlx.page', '.aem.live');
 
 async function getFragmentsFromManifest(url) {
+    if (!url) {
+        console.log('Warning: Empty URL passed to getFragmentsFromManifest');
+        return [];
+    }
+
+    const normalizedUrl = normalizeUrl(url);
+
+    // Check cache first
+    if (manifestCache.has(normalizedUrl)) {
+        if (isDebug) console.log(`Using cached manifest for ${url}`);
+        return manifestCache.get(normalizedUrl);
+    }
+
+    // Also check if already in fetched map to avoid duplicate processing
+    if (fetched.has(normalizedUrl)) {
+        if (isDebug) console.log(`Manifest URL already fetched: ${url}`);
+        // Return empty array as we don't have cached fragments but URL was processed
+        manifestCache.set(normalizedUrl, []);
+        return [];
+    }
+
+    // Add to fetched set to mark as processed
+    fetched.add(normalizedUrl);
+
     const fragments = [];
     try {
-        const response = await fetchDocument(getLiveUrl(url));
-        if (response.status == 200 && response.size > 0) {
-            const manifest = await response?.json();
-            manifest.experiences?.data?.forEach((data) => {
-                Object.values(data)
-                    .map((value) => /^https:\/\/.+/.exec(value)?.[0])
-                    .filter((value) => value != null)
-                    .map(getLiveUrl)
-                    .forEach((url) => fragments.push(url));
-            });
+        const liveUrl = getLiveUrl(normalizedUrl);
+
+        // Add debug output to monitor requests
+        if (isDebug) console.log(`Fetching manifest: ${liveUrl}`);
+
+        const response = await fetchDocument(liveUrl);
+
+        if (!response || !response.ok) {
+            console.log(
+                `Failed to fetch manifest from ${liveUrl}: ${response?.status || 'unknown error'}`,
+            );
+            manifestCache.set(normalizedUrl, fragments);
+            return fragments;
         }
+
+        let manifest;
+        try {
+            manifest = await response.json();
+        } catch (error) {
+            console.log(`Error parsing JSON from ${liveUrl}: ${error.message}`);
+            manifestCache.set(normalizedUrl, fragments);
+            return fragments;
+        }
+
+        if (!manifest || !manifest.experiences || !manifest.experiences.data) {
+            manifestCache.set(normalizedUrl, fragments);
+            return fragments;
+        }
+
+        manifest.experiences.data.forEach((data) => {
+            if (!data) return;
+
+            Object.values(data)
+                .filter((value) => value !== null && value !== undefined)
+                .map((value) => /^https:\/\/.+/.exec(value)?.[0])
+                .filter((value) => value != null)
+                .map((url) => {
+                    // Normalize fragment URLs too
+                    const fragmentUrl = getLiveUrl(url);
+                    const normalizedFragmentUrl = normalizeUrl(fragmentUrl);
+                    fragments.push(normalizedFragmentUrl);
+                    return normalizedFragmentUrl;
+                });
+        });
+
+        // Store in cache
+        manifestCache.set(normalizedUrl, fragments);
     } catch (error) {
-        console.log(`Error while fetching manifest: ${error}`);
+        console.log(`Error while fetching manifest: ${error.message}`);
+        // Cache the empty result so we don't retry
+        manifestCache.set(normalizedUrl, fragments);
     }
+
     return fragments;
 }
 
 async function getPersonalizationFragments(pageContent) {
-    const persoRegexp = new RegExp(PERSO_REGEXP, 'g').exec(pageContent);
-    if (!persoRegexp) return null;
-    const fragments = new Set();
-    const { urls } = persoRegexp.groups;
-    const urlArr = urls.replace('\s', '').split(',');
-    urlArr.forEach(async (url) => {
-        const manifestFragments = await getFragmentsFromManifest(url);
-        manifestFragments.forEach((fragment) => fragments.add(fragment));
-    });
-    return Array.from(fragments);
+    if (!pageContent) {
+        return null;
+    }
+
+    try {
+        const persoRegexp = new RegExp(PERSO_REGEXP, 'g').exec(pageContent);
+        if (!persoRegexp || !persoRegexp.groups || !persoRegexp.groups.urls) {
+            return null;
+        }
+
+        const fragments = new Set();
+        const { urls } = persoRegexp.groups;
+
+        if (!urls) {
+            return null;
+        }
+
+        const urlArr = urls
+            .replace('\s', '')
+            .split(',')
+            .filter((url) => url && url.trim());
+
+        // Filter out URLs that have already been processed
+        const uniqueUrls = urlArr.filter((url) => {
+            const normalizedUrl = normalizeUrl(url);
+            return !fetched.has(normalizedUrl);
+        });
+
+        if (isDebug) {
+            console.log(
+                `Found ${urlArr.length} personalization URLs, ${uniqueUrls.length} unique`,
+            );
+        }
+
+        // Process unique URLs
+        for (const url of uniqueUrls) {
+            try {
+                const normalizedUrl = normalizeUrl(url);
+                // Mark as fetched before processing to prevent concurrent processing
+                fetched.add(normalizedUrl);
+
+                const manifestFragments = await getFragmentsFromManifest(url);
+                if (manifestFragments && manifestFragments.length) {
+                    manifestFragments.forEach((fragment) =>
+                        fragments.add(fragment),
+                    );
+                }
+            } catch (error) {
+                console.log(
+                    `Error processing manifest fragments for URL ${url}: ${error.message}`,
+                );
+            }
+        }
+
+        return Array.from(fragments);
+    } catch (error) {
+        console.log(`Error in getPersonalizationFragments: ${error.message}`);
+        return null;
+    }
 }
 
 const extractLinks = (pageContent) => {
+    if (!pageContent || typeof pageContent !== 'string') {
+        console.log('Warning: Invalid pageContent passed to extractLinks');
+        return {};
+    }
+
     const result = {};
     const linkRegexp = new RegExp(LINK_REGEXP, 'g');
     let match;
-    while ((match = linkRegexp.exec(pageContent)) != null) {
-        const { url } = match.groups;
-        const indexEnd = match.index + match[0].length;
-        const postExcerpt = pageContent
-            .substring(indexEnd, indexEnd + EXCERPT_SIZE)
-            .replaceAll(/[,\n\s]+/g, '');
-        Object.entries(HREF_REGEXPS[auditTarget]).forEach(([type, pattern]) => {
-            const patternMatch = new RegExp(pattern).exec(url);
-            if (patternMatch) {
-                result[type] ??= [];
-                result[type].push({
-                    patternMatch,
-                    postExcerpt,
-                });
+
+    try {
+        while ((match = linkRegexp.exec(pageContent)) != null) {
+            if (!match.groups || !match.groups.url) continue;
+
+            const { url } = match.groups;
+            const indexEnd = match.index + match[0].length;
+            const postExcerpt = pageContent
+                .substring(indexEnd, indexEnd + EXCERPT_SIZE)
+                .replaceAll(/[,\n\s]+/g, '');
+
+            // Only process if auditTarget is defined
+            if (!auditTarget || !HREF_REGEXPS[auditTarget]) {
+                continue;
             }
-        });
+
+            Object.entries(HREF_REGEXPS[auditTarget]).forEach(
+                ([type, pattern]) => {
+                    try {
+                        const patternMatch = new RegExp(pattern).exec(url);
+                        if (patternMatch) {
+                            result[type] ??= [];
+                            result[type].push({
+                                patternMatch,
+                                postExcerpt,
+                            });
+                        }
+                    } catch (error) {
+                        console.log(
+                            `Error matching pattern for ${type}: ${error.message}`,
+                        );
+                    }
+                },
+            );
+        }
+    } catch (error) {
+        console.log(`Error in extractLinks: ${error.message}`);
     }
+
     if (isDebug) {
         console.log(`extracted ${JSON.stringify(result)}`);
     }
@@ -406,81 +628,208 @@ const searchMatches = [];
 const keys = new Set();
 let searchFile;
 
-async function auditPage(ctx, pageUrl) {
+async function auditPage(ctx, pageUrl, depth = 0) {
+    // Validate inputs
+    if (!pageUrl) {
+        console.log('Warning: Empty URL passed to auditPage');
+        return;
+    }
+
+    if (!ctx) {
+        ctx = { origin: pageUrl };
+    }
+
+    // Add depth tracking to prevent infinite recursion
+    if (depth > MAX_RECURSION_DEPTH) {
+        console.log(`Maximum recursion depth reached for ${pageUrl}, stopping`);
+        return;
+    }
+
     try {
         const { localeRewrite, origin } = ctx;
         let url = convertRelativeToAbsoluteUrl(pageUrl);
         url = rewriteUrlLocale(localeRewrite, url);
 
-        // already fetched & parsed
-        if (fetched.has(url)) return;
-        fetched.add(url);
+        // Normalize URL for caching
+        const normalizedUrl = normalizeUrl(url);
+
+        // Already fetched & parsed - Check with normalized URL
+        if (fetched.has(normalizedUrl)) {
+            if (isDebug) console.log(`Skipping already fetched URL: ${url}`);
+            return;
+        }
+
+        // Add to fetched set immediately to prevent concurrent duplicate requests
+        fetched.add(normalizedUrl);
 
         const response = await fetchDocument(url);
-        if (!response.ok) {
+        if (!response || !response.ok) {
             console.log(
-                `Error (${origin}): response status for ${response.url} is ${response.status}`,
+                `Error (${origin}): response status for ${response?.url || url} is ${response?.status || 'unknown'}`,
             );
             return;
         } else if (isDebug) {
             console.log(`Success: response status for ${url} is 200`);
         }
-        if (url === origin) {
-            const { uri } = getUriAndDomain(url);
-            const firstToken = uri.substring(1).split('/')[0];
-            ctx.localeRewrite =
-                LOCALES.indexOf(firstToken) >= 0 ? firstToken : null;
-        } else {
-            ctx.fragment = url;
+
+        // Process locale info
+        try {
+            if (url === origin) {
+                const { uri } = getUriAndDomain(url);
+                if (uri) {
+                    const firstToken = uri.substring(1).split('/')[0];
+                    ctx.localeRewrite =
+                        LOCALES.indexOf(firstToken) >= 0 ? firstToken : null;
+                }
+            } else {
+                ctx.fragment = url;
+            }
+        } catch (error) {
+            console.log(`Error processing locale for ${url}: ${error.message}`);
         }
-        const content = await response.text();
+
+        // Get and process content
+        let content;
+        try {
+            content = await response.text();
+        } catch (error) {
+            console.log(
+                `Error getting text content from ${url}: ${error.message}`,
+            );
+            return;
+        }
+
+        if (!content) {
+            console.log(`Empty content received for ${url}`);
+            return;
+        }
+
+        // Extract links and process them
         const result = extractLinks(content);
 
-        if (searchStringMatch(content, ctx.searchStrings)) {
-            searchMatches.push(url);
+        // Process search matches
+        try {
+            if (searchStringMatch(content, ctx.searchStrings)) {
+                searchMatches.push(url);
+            }
+        } catch (error) {
+            console.log(
+                `Error processing search match for ${url}: ${error.message}`,
+            );
         }
 
-        result?.ost?.map(({ patternMatch, postExcerpt }) =>
-            extractOstUsage(
-                ctx,
-                patternMatch.groups.parameters,
-                postExcerpt,
-                ostUsages,
-            ),
-        );
-        result?.iframes?.forEach(({ patternMatch, postExcerpt }) =>
-            foundUsages.push({
-                ...ctx,
-                pageUrl,
-                url: patternMatch.input,
-                postExcerpt,
-            }),
-        );
-        const persoFragments = await getPersonalizationFragments(content);
-        result.fragment ??= [];
-        let fragments = result.fragment
-            .map(({ patternMatch }) => patternMatch.input)
-            .filter((fragmentUrl) => fragmentUrl != url);
-        if (persoFragments) {
-            fragments = fragments.concat(persoFragments);
+        // Process OST usage
+        try {
+            if (result?.ost?.length) {
+                result.ost.forEach(({ patternMatch, postExcerpt }) => {
+                    if (patternMatch?.groups?.parameters) {
+                        extractOstUsage(
+                            ctx,
+                            patternMatch.groups.parameters,
+                            postExcerpt,
+                            ostUsages,
+                        );
+                    }
+                });
+            }
+        } catch (error) {
+            console.log(
+                `Error processing OST usage for ${url}: ${error.message}`,
+            );
         }
-        await Promise.allSettled(
-            fragments.map((fragmentUrl) => auditPage(ctx, fragmentUrl)),
-        );
+
+        // Process iframe usages
+        try {
+            if (result?.iframes?.length) {
+                result.iframes.forEach(({ patternMatch, postExcerpt }) => {
+                    if (patternMatch?.input) {
+                        foundUsages.push({
+                            ...ctx,
+                            pageUrl,
+                            url: patternMatch.input,
+                            postExcerpt,
+                        });
+                    }
+                });
+            }
+        } catch (error) {
+            console.log(
+                `Error processing iframes for ${url}: ${error.message}`,
+            );
+        }
+
+        // Process personalization fragments
+        let fragments = [];
+        try {
+            const persoFragments = await getPersonalizationFragments(content);
+            result.fragment ??= [];
+
+            fragments = (result.fragment || [])
+                .filter((item) => item?.patternMatch?.input)
+                .map(({ patternMatch }) => patternMatch.input)
+                .filter((fragmentUrl) => fragmentUrl && fragmentUrl !== url)
+                .map((fragmentUrl) =>
+                    normalizeUrl(convertRelativeToAbsoluteUrl(fragmentUrl)),
+                ); // Normalize fragment URLs
+
+            if (persoFragments && persoFragments.length) {
+                // Normalize personalization fragments too
+                const normalizedPersoFragments = persoFragments
+                    .map((fragmentUrl) =>
+                        normalizeUrl(convertRelativeToAbsoluteUrl(fragmentUrl)),
+                    )
+                    .filter(
+                        (fragmentUrl) =>
+                            fragmentUrl && fragmentUrl !== normalizedUrl,
+                    );
+
+                fragments = fragments.concat(normalizedPersoFragments);
+            }
+
+            // Filter out any fragments that have already been fetched
+            fragments = fragments.filter(
+                (fragmentUrl) => !fetched.has(fragmentUrl),
+            );
+        } catch (error) {
+            console.log(
+                `Error processing fragments for ${url}: ${error.message}`,
+            );
+        }
+
+        // Process fragments with depth tracking - only if there are fragments to process
+        if (fragments.length > 0) {
+            await Promise.allSettled(
+                fragments.map((fragmentUrl) =>
+                    auditPage(ctx, fragmentUrl, depth + 1),
+                ),
+            );
+        }
+
         if (retries.has(url)) {
             retries.delete(url);
             console.log(`retries down to ${retries.size}`);
         }
     } catch (error) {
-        ctx.retries = ctx.retries ? ctx.retries++ : 1;
-        const delay = (ctx.retries = 1 * 1000);
-        retries.add(url);
+        // Improved retry logic with maximum attempts
+        ctx.retries = (ctx.retries || 0) + 1;
+
+        if (ctx.retries > MAX_RETRY_ATTEMPTS) {
+            console.log(
+                `Maximum retry attempts (${MAX_RETRY_ATTEMPTS}) reached for ${pageUrl}, giving up`,
+            );
+            return;
+        }
+
+        const delay = ctx.retries * 1000;
+        retries.add(pageUrl);
+
         console.log(
-            `Error while auditing document ${url}: ${error}, retrying (#${ctx.retries})in ${delay / 1000}s...`,
+            `Error while auditing document ${pageUrl}: ${error.message}, retrying (#${ctx.retries}) in ${delay / 1000}s...`,
         );
         console.log(`#retries = ${retries.size}`);
-        await sleep(delay);
-        await auditPage(ctx, url);
+
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        await auditPage(ctx, pageUrl, depth); // Keep the same depth on retry
     }
 }
 
@@ -489,11 +838,12 @@ const writeIframeUsagesToFile = () => {
     let headers = ['page URL', 'fragment URL', 'iFrame URL'];
     fs.writeFileSync(
         file,
-        `${headers.join(',')}\n${foundUsages.map(({origin, pageUrl, url}) => `${origin},${pageUrl},${url}`).join('\n')}`
+        `${headers.join(',')}\n${foundUsages.map(({ origin, pageUrl, url }) => `${origin},${pageUrl},${url}`).join('\n')}`,
     );
 };
 
 const writeOstUsagesToFile = () => {
+    console.log('writing OST usages to file...');
     //rendering of collected ostUsages objects together with all collected keys as a CSV
     let headers = Array.from(keys);
     headers.unshift('fragment');
@@ -527,28 +877,63 @@ const collectOsiData = async () => {
             osisToFetch.length >= defaultBufferSize
                 ? osisToFetch.slice(defaultBufferSize)
                 : [];
-        await Promise.allSettled(
+
+        // Add timeout for the entire batch
+        const batchPromise = Promise.allSettled(
             buffer.map((osi) => setCommerceData(osi, mapWcs[osi].locale)),
         );
+        // Create a timeout promise
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(
+                    new Error(
+                        `Batch processing timeout after ${MAX_FETCH_TIMEOUT}ms`,
+                    ),
+                );
+            }, MAX_FETCH_TIMEOUT * 2); // Double the fetch timeout for the batch
+        });
+        // Race the batch against the timeout
+        try {
+            await Promise.race([batchPromise, timeoutPromise]);
+        } catch (error) {
+            console.error(`Error processing batch: ${error.message}`);
+        }
     }
 };
 
 const processUrlBatchesWithRetries = async ({ urlsToFetch, searchStrings }) => {
-    while (urlsToFetch.length > 0) {
-        console.log(`${urlsToFetch.length} remaining...`);
-        //next buffer
-        // we remove retries that are being run atm
-        const bufferSize =
-            defaultBufferSize > retries.size
-                ? defaultBufferSize - retries.size
-                : 1;
-        const buffer = urlsToFetch.slice(0, bufferSize);
-        //remaining urls once buffer will be done
-        urlsToFetch =
-            urlsToFetch.length >= bufferSize
-                ? urlsToFetch.slice(bufferSize)
+    // Normalize all URLs first and filter out duplicates
+    const uniqueUrls = Array.from(
+        new Set(
+            urlsToFetch
+                .map((url) => {
+                    const normalized = normalizeUrl(
+                        convertRelativeToAbsoluteUrl(url),
+                    );
+                    return normalized;
+                })
+                .filter((url) => url && !fetched.has(url)), // Filter out empty and already fetched URLs
+        ),
+    );
+
+    console.log(
+        `Processing ${uniqueUrls.length} unique URLs out of ${urlsToFetch.length} total`,
+    );
+
+    let remainingUrls = [...uniqueUrls];
+
+    while (remainingUrls.length > 0) {
+        console.log(`${remainingUrls.length} remaining...`);
+
+        const bufferSize = defaultBufferSize;
+
+        const buffer = remainingUrls.slice(0, bufferSize);
+        remainingUrls =
+            remainingUrls.length >= bufferSize
+                ? remainingUrls.slice(bufferSize)
                 : [];
-        //buffer process
+
+        // Process buffer of URLs
         await Promise.allSettled(
             buffer.map((url) => auditPage({ origin: url, searchStrings }, url)),
         );
@@ -628,19 +1013,30 @@ const processArgs = async () => {
 async function main() {
     const startTime = Date.now();
     let { urlsToFetch, searchStrings } = await processArgs();
-    await processUrlBatchesWithRetries({ urlsToFetch, searchStrings });
-    switch (auditTarget) {
-        case AUDIT_TARGET.modal:
-            await writeIframeUsagesToFile();
-            break;
-        case AUDIT_TARGET.ost:
-            await collectOsiData();
-            await writeOstUsagesToFile();
-            break;
-        default:
-            break;
+    console.log(
+        `will audit ${urlsToFetch.length} URLs with buffer size ${defaultBufferSize}, targetting ${auditTarget}`,
+    );
+    try {
+        await processUrlBatchesWithRetries({ urlsToFetch, searchStrings });
+
+        switch (auditTarget) {
+            case AUDIT_TARGET.modal:
+                writeIframeUsagesToFile();
+                break;
+            case AUDIT_TARGET.ost:
+                await collectOsiData();
+                writeOstUsagesToFile();
+                break;
+            default:
+                break;
+        }
+
+        console.log(`finished in ${(Date.now() - startTime) / 1000}s`);
+    } catch (error) {
+        console.error(`Fatal error: ${error.message}`);
+    } finally {
+        clearTimeout(scriptTimeout);
     }
-    console.log(`finished in ${(Date.now() - startTime) / 1000}s`);
 }
 
 main();

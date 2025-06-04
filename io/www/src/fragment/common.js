@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const { transformBody } = require('./odinSchemaTransform.js');
 
 function logPrefix(context, type = 'info') {
     return `[${type}][${context.api_key}][${context.requestId}][${context.transformer}]`;
@@ -24,6 +25,7 @@ async function getErrorContext(response) {
         message: await getErrorMessage(response),
     };
 }
+
 async function getErrorMessage(response) {
     let message = 'nok';
     try {
@@ -31,6 +33,15 @@ async function getErrorMessage(response) {
         message = json?.detail;
     } catch (e) {}
     return message;
+}
+
+async function computeBody(response, context) {
+    let body = await response.json();
+    if (context.preview && Array.isArray(body.fields)) {
+        log('massaging old school schema for preview', context);
+        body = transformBody(body);
+    }
+    return body;
 }
 
 async function internalFetch(path, context) {
@@ -47,9 +58,16 @@ async function internalFetch(path, context) {
             success ? 'info' : 'error',
         );
         logDebug(
-            () => `response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`,
+            () =>
+                `response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`,
             context,
         );
+        if (response.status === 200) {
+            return {
+                status: 200,
+                body: await computeBody(response, context),
+            };
+        }
         return response;
     } catch (e) {
         logError(`[fetch] ${path} fetch error: ${e.message}`, context);

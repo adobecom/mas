@@ -1,0 +1,339 @@
+{
+    "path": "/content/dam/mas/sandbox/en_US/individual-plans",
+    "name": "",
+    "title": "Individual Plans",
+    "id": "e58f8f75-b882-409a-9ff8-8826b36a8368",
+    "description": "",
+    "model": {
+        "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24"
+    },
+    "fields": {
+        "label": "Individual Plans",
+        "cards": [],
+        "collections": [
+            "d5b3180a-41e3-4df1-adb4-73daa8f392b5",
+            "1c0b2890-567a-4771-933c-84b032c8e51d"
+        ]
+    },
+    "references": {
+        "d5b3180a-41e3-4df1-adb4-73daa8f392b5": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_US/individual-plans-all",
+                "name": "individual-plans-all",
+                "title": "Individual Plans All",
+                "id": "d5b3180a-41e3-4df1-adb4-73daa8f392b5",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24"
+                },
+                "fields": {
+                    "label": "All",
+                    "cards": [
+                        "c6727147-7992-4ca4-b566-819c52b0a585",
+                        "049231fd-0c45-4ef5-8792-7fa2dcd5005a"                    
+                    ],
+                    "collections": []
+                }
+            }
+        },
+        "mas:offer_type/base": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/offer_type/base",
+                "name": "base",
+                "title": "Base",
+                "id": "mas:offer_type/base",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Offer type / Base",
+                "description": null
+            }
+        },
+        "mas:market_segments/com": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/market_segments/com",
+                "name": "com",
+                "title": "COM",
+                "id": "mas:market_segments/com",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Market segments / COM",
+                "description": ""
+            }
+        },
+        "c6727147-7992-4ca4-b566-819c52b0a585": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_US/ilyas/ilyas-test-placeholders1",
+                "name": "ilyas-test-placeholders1",
+                "title": "Ilyas Test Placeholders",
+                "id": "c6727147-7992-4ca4-b566-819c52b0a585",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
+                },
+                "fields": {
+                    "variant": "plans",
+                    "mnemonicIcon": [
+                        "https://www.adobe.com/content/dam/shared/images/product-icons/svg/lightroom.svg",
+                        "https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg"
+                    ],
+                    "mnemonicAlt": ["Lightroom", "Illustrator"],
+                    "mnemonicLink": [
+                        "https://www.adobe.com/products/catalog.html",
+                        "https://www.adobe.com"
+                    ],
+                    "badge": { "mimeType": "text/html" },
+                    "cardTitle": "Photography  (1TB)",
+                    "prices": { "mimeType": "text/html" },
+                    "shortDescription": { "mimeType": "text/html" },
+                    "promoCode": "Save over 30% with an annual plan.",
+                    "description": {
+                        "value": "<p>Edit and organize photos for Fred. Save&nbsp;25% for the first 6 months.&nbsp;Ends Feb 26.&nbsp;<a href=\"https://www.adobe.com/offer-terms/ccpp-1tb-terms.html\" target=\"_blank\">See terms.</a><br><a href=\"https://www.adobe.com/creativecloud/photography/compare-plans.html\">Compare photography plans</a><br><a class=\"modal-Link\" href=\"https://www.adobe.com/plans-fragments/modals/individual/modals-content-rich/photography1tb/master.html\" target=\"_blank\">See all plans &amp; pricing details</a></p>",
+                        "mimeType": "text/html"
+                    },
+                    "callout": { "mimeType": "text/html" },
+                    "showStockCheckbox": true,
+                    "ctas": {
+                        "value": "<a class=\"accent\" data-wcs-osi=\"BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c\" data-template=\"checkoutUrl\" target=\"_self\" data-analytics-id=\"buy-now\">Buy now</a>",
+                        "mimeType": "text/html"
+                    },
+                    "tags": [
+                        "mas:product/cc/photoshop",
+                        "mas:product/cc/lightroom",
+                        "mas:offer_type/base",
+                        "mas:market_segments/com"
+                    ]
+                },
+                "settings": {
+                    "stockCheckboxLabel": "Add a 30-day free trial of Adobe Stock.",
+                    "stockOfferOsis": "",
+                    "displayPlanType": true,
+                    "secureLabel": "Secure transaction"
+                }
+            }
+        },
+        "mas:product/cc/lightroom": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/product/cc/lightroom",
+                "name": "lightroom",
+                "title": "Lightroom (1TB)",
+                "id": "mas:product/cc/lightroom",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Product / Creative Cloud / Lightroom (1TB)",
+                "description": ""
+            }
+        },
+        "mas:product/cc/photoshop": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/product/cc/photoshop",
+                "name": "photoshop",
+                "title": "Photoshop",
+                "id": "mas:product/cc/photoshop",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Product / Creative Cloud / Photoshop",
+                "description": ""
+            }
+        },
+        "049231fd-0c45-4ef5-8792-7fa2dcd5005a": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_US/ilyas-test-placeholders",
+                "name": "ilyas-test-placeholders",
+                "title": "Ilyas Test Placeholders",
+                "id": "049231fd-0c45-4ef5-8792-7fa2dcd5005a",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
+                },
+                "fields": {
+                    "variant": "plans",
+                    "mnemonicIcon": [
+                        "https://www.adobe.com/content/dam/shared/images/product-icons/svg/lightroom.svg",
+                        "https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg"
+                    ],
+                    "mnemonicAlt": ["Lightroom", "Illustrator"],
+                    "mnemonicLink": [
+                        "https://www.adobe.com/products/catalog.html",
+                        "https://www.adobe.com"
+                    ],
+                    "badge": { "mimeType": "text/html" },
+                    "cardTitle": "Photography  (1TB)",
+                    "prices": {
+                        "value": "<span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4\"></span>",
+                        "mimeType": "text/html"
+                    },
+                    "shortDescription": { "mimeType": "text/html" },
+                    "promoCode": "Save over 30% with an annual plan.",
+                    "description": {
+                        "value": "<p>Edit and organize photos for Fred. Save&nbsp;25% for the first 6 months.&nbsp;Ends Feb 26.&nbsp;<a href=\"https://www.adobe.com/offer-terms/ccpp-1tb-terms.html\" target=\"_blank\">See terms.</a><br><a href=\"https://www.adobe.com/creativecloud/photography/compare-plans.html\">Compare photography plans</a><br><a class=\"modal-Link\" href=\"https://www.adobe.com/plans-fragments/modals/individual/modals-content-rich/photography1tb/master.html\" target=\"_blank\">See all plans &amp; pricing details</a></p>",
+                        "mimeType": "text/html"
+                    },
+                    "callout": { "mimeType": "text/html" },
+                    "showStockCheckbox": false,
+                    "addon": "addon-stock-base",
+                    "ctas": {
+                        "value": "<a class=\"accent\" data-wcs-osi=\"BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c\" data-template=\"checkoutUrl\" target=\"_self\" data-analytics-id=\"buy-now\">Buy now</a>",
+                        "mimeType": "text/html"
+                    },
+                    "tags": [
+                        "mas:offer_type/base",
+                        "mas:market_segments/com",
+                        "mas:product/cc/photoshop",
+                        "mas:product/cc/lightroom"
+                    ]
+                },
+                "settings": {
+                    "stockCheckboxLabel": "Add a 30-day free trial of Adobe Stock.",
+                    "stockOfferOsis": "",
+                    "displayPlanType": true,
+                    "secureLabel": "Secure transaction"
+                }
+            }
+        },
+        "1c0b2890-567a-4771-933c-84b032c8e51d": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_US/individual-plans-photo",
+                "name": "individual-plans-photo",
+                "title": "Individual Plans Photo",
+                "id": "1c0b2890-567a-4771-933c-84b032c8e51d",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24"
+                },
+                "fields": {
+                    "label": "Photo",
+                    "icon": "https://main--milo--adobecom.hlx.page/drafts/astatescu/icons/camera.svg",
+                    "cards": [
+                        "049231fd-0c45-4ef5-8792-7fa2dcd5005a",
+                        "c6727147-7992-4ca4-b566-819c52b0a585"
+                    ],
+                    "collections": []
+                }
+            }
+        }
+    },
+    "referencesTree": [
+        {
+            "fieldName": "collections",
+            "identifier": "d5b3180a-41e3-4df1-adb4-73daa8f392b5",
+            "referencesTree": [
+                {
+                    "fieldName": "cards",
+                    "identifier": "c6727147-7992-4ca4-b566-819c52b0a585",
+                    "referencesTree": [
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:product/cc/photoshop",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:product/cc/lightroom",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:offer_type/base",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:market_segments/com",
+                            "referencesTree": []
+                        }
+                    ]
+                },
+                {
+                    "fieldName": "cards",
+                    "identifier": "049231fd-0c45-4ef5-8792-7fa2dcd5005a",
+                    "referencesTree": [
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:offer_type/base",
+                            "referencesTree": []
+                        },
+
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:market_segments/com",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:product/cc/photoshop",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:product/cc/lightroom",
+                            "referencesTree": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "fieldName": "collections",
+            "identifier": "1c0b2890-567a-4771-933c-84b032c8e51d",
+            "referencesTree": [
+                {
+                    "fieldName": "cards",
+                    "identifier": "049231fd-0c45-4ef5-8792-7fa2dcd5005a",
+                    "referencesTree": [
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:offer_type/base",
+                            "referencesTree": []
+                        },
+
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:market_segments/com",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:product/cc/photoshop",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:product/cc/lightroom",
+                            "referencesTree": []
+                        }
+                    ]
+                },
+                {
+                    "fieldName": "cards",
+                    "identifier": "c6727147-7992-4ca4-b566-819c52b0a585",
+                    "referencesTree": [
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:product/cc/photoshop",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:product/cc/lightroom",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:offer_type/base",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:market_segments/com",
+                            "referencesTree": []
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

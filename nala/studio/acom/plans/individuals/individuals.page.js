@@ -12,11 +12,18 @@ export default class ACOMPlansIndividualsPage {
         this.cardPhoneLink = page.locator(
             'div[slot="body-xs"] a[href^="tel:"]',
         );
-        this.cardPrice = page.locator('p[slot="heading-m"]');
+        this.cardPrice = page.locator(
+            'p[slot="heading-m"] span[data-template="price"]',
+        );
         this.cardPriceStrikethrough = page.locator(
             'p[slot="heading-m"] span.price-strikethrough',
         );
-        // this.cardCTA = page.locator('div[slot="footer"] > a[is="checkout-link"]');
+        this.cardPriceLegal = page.locator(
+            'span[is="inline-price"][data-template="legal"]',
+        );
+        this.cardCTA = page.locator(
+            'div[slot="footer"] > a[is="checkout-link"]',
+        );
         this.cardPromoText = page.locator('p[slot="promo-text"]');
         this.cardStockCheckbox = page.locator('[id="stock-checkbox"]');
         this.cardStockCheckboxIcon = page.locator(
@@ -85,7 +92,7 @@ export default class ACOMPlansIndividualsPage {
                 'text-decoration-line': 'line-through',
             },
             promoText: {
-                color: 'rgb(0, 122, 77)',
+                color: 'rgb(5, 131, 78)',
                 'font-size': '14px',
                 'font-weight': '700',
                 'line-height': '21px',

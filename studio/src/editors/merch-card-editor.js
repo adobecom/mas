@@ -10,8 +10,8 @@ import '../rte/osi-field.js';
 import { CARD_MODEL_PATH } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
-
-const merchCardCustomElementPromise = customElements.whenDefined('merch-card');
+import { getFragmentMapping, getMerchCardElement } from '../utils.js';
+import '../fields/addon-field.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -20,8 +20,6 @@ class MerchCardEditor extends LitElement {
     static properties = {
         fragmentStore: { type: Object, attribute: false },
         updateFragment: { type: Function },
-        wide: { type: Boolean, state: true },
-        superWide: { type: Boolean, state: true },
         availableSizes: { type: Array, state: true },
         availableColors: { type: Array, state: true },
         availableBorderColors: { type: Array, state: true },
@@ -53,8 +51,6 @@ class MerchCardEditor extends LitElement {
     constructor() {
         super();
         this.updateFragment = null;
-        this.wide = false;
-        this.superWide = false;
         this.availableSizes = [];
         this.availableColors = [];
         this.availableBorderColors = [];
@@ -241,22 +237,17 @@ class MerchCardEditor extends LitElement {
 
     async toggleFields() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await merchCardCustomElementPromise;
-        if (!merchCardCustomElement) return;
+        const variant = await getFragmentMapping(this.fragment.variant);
+        if (!variant) return;
         this.querySelectorAll('sp-field-group.toggle').forEach((field) => {
             field.style.display = 'none';
         });
-        const variant = merchCardCustomElement.getFragmentMapping(
-            this.fragment.variant,
-        );
         if (!variant) return;
         Object.entries(variant).forEach(([key, value]) => {
             if (Array.isArray(value) && value.length === 0) return;
             const field = this.querySelector(`sp-field-group.toggle#${key}`);
             if (field) field.style.display = 'block';
         });
-        this.wide = variant.size?.includes('wide');
-        this.superWide = variant.size?.includes('super-wide');
         this.showQuantityFields(this.quantitySelectorDisplayed);
         if (variant.borderColor) {
             const borderField = this.querySelector(
@@ -490,16 +481,25 @@ class MerchCardEditor extends LitElement {
                 >
                 </mas-plan-type-field>
             </sp-field-group>
-            <sp-field-group class="toggle" id="stockOffer">
-                <sp-checkbox
-                    size="m"
-                    data-field="showStockCheckbox"
-                    value="${form.showStockCheckbox?.values[0]}"
-                    .checked="${form.showStockCheckbox?.values[0]}"
-                    @change="${this.#handleFragmentUpdate}"
-                    ?disabled=${this.disabled}
-                    >Stock Checkbox</sp-checkbox
+            <sp-field-group id="planType" class="toggle">
+                <mas-plan-type-field
+                    id="plan-type-field"
+                    label="Plan Type text"
+                    data-field="showPlanType"
+                    value="${form.showPlanType?.values[0]}"
+                    @change="${this.updateFragment}"
                 >
+                </mas-plan-type-field>
+            </sp-field-group>
+            <sp-field-group id="addon" class="toggle">
+                <mas-addon-field
+                    id="addon-field"
+                    label="Addon"
+                    data-field="addon"
+                    .value="${form.addon?.values[0]}"
+                    @change="${this.updateFragment}"
+                >
+                </mas-addon-field>
             </sp-field-group>
             <sp-field-group class="toggle" id="quantitySelect">
                 <sp-checkbox
@@ -676,7 +676,7 @@ class MerchCardEditor extends LitElement {
 
     async #updateAvailableSizes() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await merchCardCustomElementPromise;
+        const merchCardCustomElement = await getMerchCardElement();
         const variant = merchCardCustomElement?.getFragmentMapping(
             this.fragment.variant,
         );
@@ -685,7 +685,7 @@ class MerchCardEditor extends LitElement {
 
     async #updateAvailableColors() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await merchCardCustomElementPromise;
+        const merchCardCustomElement = await getMerchCardElement();
         const variant = merchCardCustomElement?.getFragmentMapping(
             this.fragment.variant,
         );
@@ -726,7 +726,7 @@ class MerchCardEditor extends LitElement {
     }
 
     get isPlans() {
-        return this.fragment.variant === 'plans';
+        return this.fragment.variant.startsWith('plans');
     }
 
     get badge() {
@@ -811,7 +811,7 @@ class MerchCardEditor extends LitElement {
 
     async #updateBackgroundColors() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await merchCardCustomElementPromise;
+        const merchCardCustomElement = await getMerchCardElement();
         const variant = merchCardCustomElement?.getFragmentMapping(
             this.fragment.variant,
         );

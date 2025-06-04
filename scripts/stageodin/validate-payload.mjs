@@ -23,7 +23,7 @@ async function getFragmentMap(host, path, filter) {
     for (const item of items) {
         if (filter(item)) {
             filteredItems.push(item);
-            const url = `https://${host}/adobe/sites/fragments/${item.id}`;
+            const url = `https://${host}/adobe/sites/fragments/${item.id}?references=all-hydrated`;
             console.log(`fetching: ${url}`);
 
             promises.push(
@@ -107,21 +107,17 @@ async function main() {
     console.log(`Comparing ${contentPath}`);
     const prodMap = await getProdMap(contentPath, prodIds);
     const stageMap = await getStageMap(prodMap, contentPath);
-
     const tempDir = tmpdir();
     let diffCount = 0;
     let onlyInProdCount = 0;
     let onlyInStageCount = 0;
-
     for (const [key, value] of Object.entries(prodMap)) {
         if (stageMap[key]) {
             const prodItem = value;
             const stageItem = stageMap[key];
-
             if (JSON.stringify(prodItem) !== JSON.stringify(stageItem)) {
                 diffCount++;
                 console.log(`\nDifferences for ${key}:`);
-
                 // Create temp files for diff
                 const prodFile = path.join(
                     tempDir,
@@ -131,10 +127,8 @@ async function main() {
                     tempDir,
                     `stage-${path.basename(key)}.json`,
                 );
-
                 fs.writeFileSync(prodFile, JSON.stringify(prodItem, null, 2));
                 fs.writeFileSync(stageFile, JSON.stringify(stageItem, null, 2));
-
                 try {
                     // Run diff command
                     const result = execSync(
@@ -174,7 +168,6 @@ async function main() {
             console.log(`\n${key}: Only in stage, not in prod`);
         }
     }
-
     // Print summary
     console.log('\n\n--- Summary ---');
     console.log(`Files with differences: ${diffCount}`);

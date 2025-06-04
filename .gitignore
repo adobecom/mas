@@ -39,3 +39,4 @@ web-components/commerce.json
 web-components/coverage
 web-components/*.tgz
 web-components/*.js.map
+web-components/dist/*.json

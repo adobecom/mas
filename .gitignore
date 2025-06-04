@@ -25,6 +25,7 @@ test-results/
 nala/.auth/
 *.js.map
 /.cursor*/
+.cursor\ 2/
 
 # IO Runtime Config
 config.json
@@ -34,9 +35,8 @@ masStudio-*.json
 .aio
 .cursor
 
-# web-components specific
-web-components/commerce.json
-web-components/coverage
-web-components/*.tgz
-web-components/*.js.map
-web-components/dist/*.json
+# mas specific
+!mas/dist
+mas/commerce.json
+mas/mas.json
+mas/stats.json

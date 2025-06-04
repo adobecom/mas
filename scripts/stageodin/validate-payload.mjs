@@ -111,7 +111,6 @@ async function main() {
     let diffCount = 0;
     let onlyInProdCount = 0;
     let onlyInStageCount = 0;
-
     for (const [key, value] of Object.entries(prodMap)) {
         if (stageMap[key]) {
             const prodItem = value;
@@ -130,7 +129,6 @@ async function main() {
                 );
                 fs.writeFileSync(prodFile, JSON.stringify(prodItem, null, 2));
                 fs.writeFileSync(stageFile, JSON.stringify(stageItem, null, 2));
-
                 try {
                     // Run diff command
                     const result = execSync(

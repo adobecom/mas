@@ -21,7 +21,7 @@ export default {
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
                 originalBgColor: 'gray',
-                updatedBgColor: 'Default',
+                updatedBgColor: 'Transparent',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
@@ -32,7 +32,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
-                originalBorderColor: 'Default',
+                originalBorderColor: 'Transparent',
                 updatedBorderColor: 'Gray 700',
                 originalBorderCSSColor: 'rgba(0, 0, 0, 0)',
                 updatedBorderCSSColor: 'rgb(70, 70, 70)',

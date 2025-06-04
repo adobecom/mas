@@ -32,7 +32,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
-                originalBorderColor: 'Transparent',
+                originalBorderColor: 'Default',
                 updatedBorderColor: 'Gray 700',
                 originalBorderCSSColor: 'rgba(0, 0, 0, 0)',
                 updatedBorderCSSColor: 'rgb(70, 70, 70)',

@@ -15,6 +15,7 @@ import {
     TAG_STUDIO_CONTENT_TYPE,
     TAG_MODEL_ID_MAPPING,
     EDITABLE_FRAGMENT_MODEL_IDS,
+    CARD_MODEL_PATH,
 } from './constants.js';
 
 let fragmentCache;
@@ -441,7 +442,7 @@ export class MasRepository extends LitElement {
             throw new Error('No fragment provided for saving');
         }
 
-        if (!fragmentToSave.getField('osi')?.values[0]) {
+        if (fragmentToSave.model?.path === CARD_MODEL_PATH && !fragmentToSave.getField('osi')?.values[0]) {
             Events.toast.emit({
                 variant: 'negative',
                 content: 'Please select offer',

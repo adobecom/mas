@@ -104,6 +104,7 @@ export default class EditorPanel extends LitElement {
         this.showDeleteDialog = false;
         this.showDiscardDialog = false;
         this.showCloneDialog = false;
+        this.cloneInProgress = false;
         this.showEditor = true;
         // Used to resolve the discard confirmation promise.
         this.#discardPromiseResolver = null;
@@ -292,11 +293,22 @@ export default class EditorPanel extends LitElement {
     }
 
     async confirmClone() {
-        this.cancelClone();
+        if (!this.osiClone) {
+            Events.toast.emit({
+                variant: 'negative',
+                content: 'Please select an offer',
+            });
+            return;
+        }
+
         try {
+            this.cloneInProgress = true;
             await this.repository.copyFragment(this.titleClone, this.osiClone, this.tagsClone);
+            this.cancelClone();
+            this.cloneInProgress = false;
             await this.closeEditor();
         } catch (error) {
+            this.cloneInProgress = false;
             console.error('Error cloning fragment:', error);
         }
     }
@@ -307,11 +319,15 @@ export default class EditorPanel extends LitElement {
 
     cancelClone() {
         this.showCloneDialog = false;
+        Store.showCloneDialog.set(false);
+        this.tagsClone = [];
+        this.osiClone = null;
         document.removeEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelectClone);
     }
 
     showClone() {
         this.showCloneDialog = true;
+        Store.showCloneDialog.set(true);
     }
 
     /**
@@ -683,7 +699,9 @@ export default class EditorPanel extends LitElement {
                     variant="accent"
                     @click="${this.confirmClone}"
                 >
-                    Clone
+                    ${this.cloneInProgress
+                        ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
+                        : html`Clone`}
                 </sp-button>
             </sp-dialog>
         `;

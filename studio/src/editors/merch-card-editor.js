@@ -12,6 +12,7 @@ import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import { getFragmentMapping, getMerchCardElement } from '../utils.js';
 import '../fields/addon-field.js';
+import Store from '../store.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -594,6 +595,8 @@ class MerchCardEditor extends LitElement {
     }
 
     #handeTagsChange(e) {
+        if (Store.showCloneDialog.get()) return;
+
         const value = e.target.getAttribute('value');
         const newTags = value ? value.split(',') : []; // do not overwrite the tags array
         this.fragmentStore.updateField('tags', newTags);

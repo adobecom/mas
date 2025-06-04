@@ -1122,11 +1122,12 @@ class MerchCardEditor extends LitElement {
         }
 
         const hasNoExplicitColor = !selectedValue || selectedValue === '';
-        if (
-            hasNoExplicitColor &&
-            (isBadgeColor || isBadgeBorderColor || isBorder)
-        ) {
+        const isTransparent = selectedValue === 'transparent';
+        
+        if (hasNoExplicitColor && (isBadgeColor || isBadgeBorderColor || isBorder)) {
             displaySelectedValue = 'Default';
+        } else if (isTransparent) {
+            displaySelectedValue = 'Transparent';
         }
 
         const options = isBackground
@@ -1136,18 +1137,18 @@ class MerchCardEditor extends LitElement {
                 dataField === 'trialBadgeBorderColor'
               ? [
                     'Default',
+                    'Transparent',
                     ...(isBorder ? Object.keys(variantSpecialValues) : []),
                     ...colorArray,
                 ]
               : isBadgeColor
-                ? ['Default', ...colorArray]
+                ? ['Default', 'Transparent', ...colorArray]
                 : colorArray;
 
         const handleChange = (e) => {
             const value = e.target.value;
 
             if (value === 'Default') {
-                // Handle "Default" selection - clear the explicit color
                 if (isBadgeColor) {
                     if (dataField === 'badgeColor') {
                         this.#updateBadge(
@@ -1179,6 +1180,44 @@ class MerchCardEditor extends LitElement {
                 } else if (isBorder) {
                     const fragment = this.fragmentStore.get();
                     fragment.updateField(dataField, ['']);
+                    this.fragmentStore.set(fragment);
+                } else if (isBackground) {
+                    const fragment = this.fragmentStore.get();
+                    fragment.updateField(dataField, ['']);
+                    this.fragmentStore.set(fragment);
+                }
+            } else if (value === 'Transparent') {
+                if (isBadgeColor) {
+                    if (dataField === 'badgeColor') {
+                        this.#updateBadge(
+                            this.badge.text,
+                            'transparent',
+                            this.badge.borderColor,
+                        );
+                    } else if (dataField === 'trialBadgeColor') {
+                        this.#updateTrialBadge(
+                            this.trialBadge.text,
+                            'transparent',
+                            this.trialBadge.borderColor,
+                        );
+                    }
+                } else if (isBadgeBorderColor) {
+                    if (dataField === 'badgeBorderColor') {
+                        this.#updateBadge(
+                            this.badge.text,
+                            this.badge.bgColor,
+                            'transparent',
+                        );
+                    } else if (dataField === 'trialBadgeBorderColor') {
+                        this.#updateTrialBadge(
+                            this.trialBadge.text,
+                            this.trialBadge.bgColor,
+                            'transparent',
+                        );
+                    }
+                } else if (isBorder) {
+                    const fragment = this.fragmentStore.get();
+                    fragment.updateField(dataField, ['transparent']);
                     this.fragmentStore.set(fragment);
                 }
             } else if (isBorder && isSpecialValue(value)) {
@@ -1254,23 +1293,12 @@ class MerchCardEditor extends LitElement {
                                 >
                                     ${color === 'Default'
                                         ? html`<span>Default</span>`
-                                        : color
-                                          ? html`
-                                                ${!isBackground &&
-                                                !isSpecialValue(color)
-                                                    ? html`
-                                                          <div
-                                                              style="${this.styleObjectToString(
-                                                                  {
-                                                                      ...this
-                                                                          .styles
-                                                                          .colorSwatch,
-                                                                      background: `var(--${color})`,
-                                                                  },
-                                                              )}"
-                                                          ></div>
-                                                      `
-                                                    : isSpecialValue(color)
+                                        : color === 'Transparent'
+                                          ? html`<span>Transparent</span>`
+                                          : color
+                                            ? html`
+                                                  ${!isBackground &&
+                                                  !isSpecialValue(color)
                                                       ? html`
                                                             <div
                                                                 style="${this.styleObjectToString(
@@ -1278,30 +1306,43 @@ class MerchCardEditor extends LitElement {
                                                                         ...this
                                                                             .styles
                                                                             .colorSwatch,
-                                                                        background:
-                                                                            variantSpecialValues[
-                                                                                color
-                                                                            ],
+                                                                        background: `var(--${color})`,
                                                                     },
                                                                 )}"
                                                             ></div>
                                                         `
-                                                      : nothing}
-                                                <span
-                                                    >${isBackground
-                                                        ? this.#formatName(
-                                                              color,
-                                                          )
-                                                        : isSpecialValue(color)
+                                                      : isSpecialValue(color)
+                                                        ? html`
+                                                              <div
+                                                                  style="${this.styleObjectToString(
+                                                                      {
+                                                                          ...this
+                                                                              .styles
+                                                                              .colorSwatch,
+                                                                          background:
+                                                                              variantSpecialValues[
+                                                                                  color
+                                                                              ],
+                                                                      },
+                                                                  )}"
+                                                              ></div>
+                                                          `
+                                                        : nothing}
+                                                  <span
+                                                      >${isBackground
                                                           ? this.#formatName(
                                                                 color,
                                                             )
-                                                          : this.#formatColorName(
-                                                                color,
-                                                            )}</span
-                                                >
-                                            `
-                                          : html` <span>Transparent</span> `}
+                                                          : isSpecialValue(color)
+                                                            ? this.#formatName(
+                                                                  color,
+                                                              )
+                                                            : this.#formatColorName(
+                                                                  color,
+                                                              )}</span
+                                                  >
+                                              `
+                                            : html` <span>Transparent</span> `}
                                 </div>
                             </sp-menu-item>
                         `,

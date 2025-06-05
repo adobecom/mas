@@ -9,6 +9,8 @@ import {
 import fetch from 'node-fetch';
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import { join, resolve, isAbsolute } from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import { SPECTRUM_COLORS } from '../studio/src/utils/spectrum-colors.js';
 
 const FIGMA_API_BASE = 'https://api.figma.com/v1';
@@ -837,6 +839,7 @@ class FigmaToMerchCardMCP {
 
     generateVariantCSS(analysis, variantName) {
         const styles = [];
+        const aemMapping = this.generateAEMFragmentMapping(analysis);
 
         styles.push(':root {');
         styles.push(`    --consonant-merch-card-${variantName}-width: 300px;`);
@@ -848,25 +851,69 @@ class FigmaToMerchCardMCP {
             `    width: var(--consonant-merch-card-${variantName}-width);`,
         );
 
-        if (analysis.styles && analysis.styles.backgroundColor) {
+        if (analysis.styles.backgroundColor) {
             styles.push(
                 `    background-color: var(--${analysis.styles.backgroundColor});`,
             );
         }
 
-        if (analysis.styles && analysis.styles.borderColor) {
+        if (analysis.styles.borderColor) {
             styles.push(
                 `    border: 1px solid var(--${analysis.styles.borderColor});`,
             );
         }
 
-        if (analysis.styles && analysis.styles.borderRadius) {
+        if (analysis.styles.borderRadius) {
             styles.push(
                 `    border-radius: ${analysis.styles.borderRadius}px;`,
             );
         }
 
         styles.push('}');
+        styles.push('');
+
+        // Generate CSS for the mapped slots
+        if (aemMapping.title) {
+            styles.push(`merch-card[variant="${variantName}"] [slot="${aemMapping.title.slot}"] {`);
+            styles.push('    /* Title styling will be inherited from global styles */');
+            styles.push('}');
+            styles.push('');
+        }
+
+        if (aemMapping.subtitle) {
+            styles.push(`merch-card[variant="${variantName}"] [slot="${aemMapping.subtitle.slot}"] {`);
+            styles.push('    /* Subtitle styling will be inherited from global styles */');
+            styles.push('}');
+            styles.push('');
+        }
+
+        if (aemMapping.description) {
+            styles.push(`merch-card[variant="${variantName}"] [slot="${aemMapping.description.slot}"] {`);
+            styles.push('    /* Description styling will be inherited from global styles */');
+            styles.push('}');
+            styles.push('');
+        }
+
+        if (aemMapping.prices) {
+            styles.push(`merch-card[variant="${variantName}"] [slot="price"] {`);
+            styles.push('    /* Price styling will be inherited from global styles */');
+            styles.push('}');
+            styles.push('');
+        }
+
+        if (aemMapping.badge) {
+            styles.push(`merch-card[variant="${variantName}"] [slot="badge"] {`);
+            styles.push('    /* Badge styling will be inherited from global styles */');
+            styles.push('}');
+            styles.push('');
+        }
+
+        if (aemMapping.ctas) {
+            styles.push(`merch-card[variant="${variantName}"] [slot="cta"] {`);
+            styles.push('    /* CTA styling will be inherited from global styles */');
+            styles.push('}');
+            styles.push('');
+        }
 
         return styles.join('\n');
     }
@@ -897,7 +944,7 @@ export class ${className} extends VariantLayout {
 
     renderLayout() {
         return html\`
-${this.generateSlotHTML(aemMapping)}
+${this.generateSlotHTML(analysis)}
         \`;
     }
 
@@ -971,7 +1018,10 @@ ${this.generateSlotHTML(aemMapping)}
 customElements.define('${variantName}-card', ${className});`;
     }
 
-    generateSlotHTML(aemMapping) {
+    generateSlotHTML(analysis) {
+        // Get the AEM fragment mapping to determine what slots are available
+        const aemMapping = this.generateAEMFragmentMapping(analysis);
+        
         const slots = {
             hasIcons: !!aemMapping.mnemonics,
             hasTitle: !!aemMapping.title,
@@ -1250,6 +1300,41 @@ ${css}
         }
     }
 
+    async buildBundle(outputPath = 'web-components/src') {
+        const execAsync = promisify(exec);
+        const resolvedOutputPath = this.resolveOutputPath(outputPath);
+        
+        // Always run from the web-components directory
+        const webComponentsDir = resolvedOutputPath.includes('web-components/src') 
+            ? join(resolvedOutputPath, '..')
+            : join(process.cwd(), 'web-components');
+
+        try {
+            console.log(`Running npm run build:bundle in ${webComponentsDir}`);
+            const { stdout, stderr } = await execAsync('npm run build:bundle', {
+                cwd: webComponentsDir,
+                timeout: 120000, // 2 minute timeout
+            });
+
+            console.log('Build completed successfully');
+            return {
+                success: true,
+                stdout,
+                stderr,
+                webComponentsDir,
+            };
+        } catch (error) {
+            console.error('Build failed:', error);
+            return {
+                success: false,
+                error: error.message,
+                stdout: error.stdout || '',
+                stderr: error.stderr || '',
+                webComponentsDir,
+            };
+        }
+    }
+
     async handleUpdateVariantPicker(args) {
         try {
             const { variantName, outputPath = 'web-components/src' } = args;
@@ -1373,6 +1458,9 @@ ${css}
                 outputPath,
             );
 
+            // Build the bundle after all updates
+            const buildResult = await this.buildBundle(outputPath);
+
             return {
                 content: [
                     {
@@ -1394,6 +1482,12 @@ ${css}
                         text: variantPickerUpdateResult.success
                             ? `\n✅ Automatically added variant to ${variantPickerUpdateResult.variantPickerPath}`
                             : `\n⚠️  Could not auto-update variant-picker.js: ${variantPickerUpdateResult.error}`,
+                    },
+                    {
+                        type: 'text',
+                        text: buildResult.success
+                            ? `\n✅ Successfully built bundle: npm run build:bundle completed`
+                            : `\n⚠️  Build failed: ${buildResult.error}`,
                     },
                     {
                         type: 'text',
@@ -1650,6 +1744,9 @@ ${css}
                 outputPath,
             );
 
+            // Build the bundle after all updates
+            const buildResult = await this.buildBundle(outputPath);
+
             return {
                 content: [
                     {
@@ -1671,6 +1768,12 @@ ${css}
                         text: variantPickerUpdateResult.success
                             ? `\n✅ Automatically added variant to ${variantPickerUpdateResult.variantPickerPath} with surface "${surface}"`
                             : `\n⚠️  Could not auto-update variant-picker.js: ${variantPickerUpdateResult.error}`,
+                    },
+                    {
+                        type: 'text',
+                        text: buildResult.success
+                            ? `\n✅ Successfully built bundle: npm run build:bundle completed`
+                            : `\n⚠️  Build failed: ${buildResult.error}`,
                     },
                     {
                         type: 'text',

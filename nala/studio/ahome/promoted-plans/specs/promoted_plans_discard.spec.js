@@ -21,7 +21,7 @@ export default {
                 cardid: '27f9c659-7c83-497f-86c2-34c711b9791d',
                 standardBorderColor: 'Red 900',
                 standardBorderCSSColor: 'spectrum-red-900',
-                transparentBorderColor: 'Transparent',
+                transparentBorderColor: 'Default',
                 transparentBorderCSSColor: 'transparent',
             },
             browserParams: '#query=',

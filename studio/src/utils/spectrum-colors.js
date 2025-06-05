@@ -22,6 +22,11 @@ export const SPECTRUM_COLORS = [
     'spectrum-red-700',
     'spectrum-red-800',
     'spectrum-red-900',
+    'spectrum-red-1000',
+    'spectrum-red-1100',
+    'spectrum-red-1200',
+    'spectrum-red-1300',
+    'spectrum-red-1400',
 
     // Orange
     'spectrum-orange-100',
@@ -33,6 +38,22 @@ export const SPECTRUM_COLORS = [
     'spectrum-orange-700',
     'spectrum-orange-800',
     'spectrum-orange-900',
+
+    // Yellow
+    'spectrum-yellow-100',
+    'spectrum-yellow-200',
+    'spectrum-yellow-300',
+    'spectrum-yellow-400',
+    'spectrum-yellow-500',
+    'spectrum-yellow-600',
+    'spectrum-yellow-700',
+    'spectrum-yellow-800',
+    'spectrum-yellow-900',
+    'spectrum-yellow-1000',
+    'spectrum-yellow-1100',
+    'spectrum-yellow-1200',
+    'spectrum-yellow-1300',
+    'spectrum-yellow-1400',
 
     // Green
     'spectrum-green-100',

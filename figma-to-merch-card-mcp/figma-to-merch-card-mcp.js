@@ -145,7 +145,12 @@ class FigmaToMerchCardMCP {
             return outputPath;
         }
         // Convert relative path to absolute path based on current working directory
-        return resolve(process.cwd(), outputPath);
+        // If we're in the web-components directory, go up one level to the project root
+        const cwd = process.cwd();
+        const projectRoot = cwd.endsWith('web-components')
+            ? join(cwd, '..')
+            : cwd;
+        return resolve(projectRoot, outputPath);
     }
 
     setupToolHandlers() {
@@ -1284,10 +1289,35 @@ ${css}
             'web-components/src',
         )
             ? join(resolvedOutputPath, '..')
-            : join(process.cwd(), 'web-components');
+            : join(this.resolveOutputPath(''), 'web-components');
 
         try {
+            // Check if web-components directory exists and has package.json
+            if (!existsSync(webComponentsDir)) {
+                throw new Error(
+                    `Web-components directory not found: ${webComponentsDir}`,
+                );
+            }
+
+            const packageJsonPath = join(webComponentsDir, 'package.json');
+            if (!existsSync(packageJsonPath)) {
+                throw new Error(
+                    `package.json not found in: ${webComponentsDir}`,
+                );
+            }
+
             console.log(`Running npm run build:bundle in ${webComponentsDir}`);
+
+            // Check if build:bundle script exists
+            const packageJson = JSON.parse(
+                readFileSync(packageJsonPath, 'utf8'),
+            );
+            if (!packageJson.scripts || !packageJson.scripts['build:bundle']) {
+                throw new Error(
+                    'build:bundle script not found in package.json',
+                );
+            }
+
             const { stdout, stderr } = await execAsync('npm run build:bundle', {
                 cwd: webComponentsDir,
                 timeout: 120000, // 2 minute timeout

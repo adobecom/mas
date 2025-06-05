@@ -260,7 +260,6 @@ export default {
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 checkoutParams: {
                     mv: '1',
-                    cs: 'individual',
                     promoid: 'ABC123',
                     mv2: '2',
                 },

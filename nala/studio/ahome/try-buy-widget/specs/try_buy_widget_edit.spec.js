@@ -21,7 +21,7 @@ export default {
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
                 originalBgColor: 'gray',
-                updatedBgColor: 'Default',
+                updatedBgColor: 'Transparent',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',

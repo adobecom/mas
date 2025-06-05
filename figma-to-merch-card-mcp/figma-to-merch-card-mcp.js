@@ -693,6 +693,31 @@ class FigmaToMerchCardMCP {
     }
 
     generateAEMFragmentMapping(analysis) {
+        // Standard valid AEM fragment mapping keys based on existing variants
+        const VALID_MAPPING_KEYS = [
+            'title',
+            'subtitle',
+            'description',
+            'prices',
+            'ctas',
+            'badge',
+            'mnemonics',
+            'promoText',
+            'callout',
+            'quantitySelect',
+            'addon',
+            'secureLabel',
+            'planType',
+            'stockOffer',
+            'allowedBadgeColors',
+            'allowedBorderColors',
+            'borderColor',
+            'size',
+            'whatsIncluded',
+            'style',
+            'backgroundImage',
+        ];
+
         const detectedSlots = {
             headingSlots: new Set(),
             bodySlots: new Set(),
@@ -728,7 +753,7 @@ class FigmaToMerchCardMCP {
 
         processNode(analysis);
 
-        // Build the standard AEM fragment mapping
+        // Build the standard AEM fragment mapping with only valid keys
         const mapping = {};
 
         // Always include mnemonics for icons (standard in merch cards)
@@ -805,12 +830,6 @@ class FigmaToMerchCardMCP {
             default: 'spectrum-yellow-300',
         };
 
-        mapping.trialBadge = {
-            tag: 'div',
-            slot: 'trial-badge',
-            default: 'spectrum-green-800',
-        };
-
         // Add price support if detected or as standard
         if (detectedSlots.hasPrice || true) {
             // Keep price available even if not detected
@@ -822,9 +841,6 @@ class FigmaToMerchCardMCP {
             // Keep CTA available even if not detected
             mapping.ctas = { slot: 'cta', size: 'M' };
         }
-
-        // Always include addon confirmation (standard in merch cards)
-        mapping.addonConfirmation = { tag: 'div', slot: 'addon-confirmation' };
 
         // Border color customization (standard)
         mapping.borderColor = {
@@ -839,7 +855,6 @@ class FigmaToMerchCardMCP {
 
     generateVariantCSS(analysis, variantName) {
         const styles = [];
-        const aemMapping = this.generateAEMFragmentMapping(analysis);
 
         styles.push(':root {');
         styles.push(`    --consonant-merch-card-${variantName}-width: 300px;`);
@@ -871,49 +886,6 @@ class FigmaToMerchCardMCP {
 
         styles.push('}');
         styles.push('');
-
-        // Generate CSS for the mapped slots
-        if (aemMapping.title) {
-            styles.push(`merch-card[variant="${variantName}"] [slot="${aemMapping.title.slot}"] {`);
-            styles.push('    /* Title styling will be inherited from global styles */');
-            styles.push('}');
-            styles.push('');
-        }
-
-        if (aemMapping.subtitle) {
-            styles.push(`merch-card[variant="${variantName}"] [slot="${aemMapping.subtitle.slot}"] {`);
-            styles.push('    /* Subtitle styling will be inherited from global styles */');
-            styles.push('}');
-            styles.push('');
-        }
-
-        if (aemMapping.description) {
-            styles.push(`merch-card[variant="${variantName}"] [slot="${aemMapping.description.slot}"] {`);
-            styles.push('    /* Description styling will be inherited from global styles */');
-            styles.push('}');
-            styles.push('');
-        }
-
-        if (aemMapping.prices) {
-            styles.push(`merch-card[variant="${variantName}"] [slot="price"] {`);
-            styles.push('    /* Price styling will be inherited from global styles */');
-            styles.push('}');
-            styles.push('');
-        }
-
-        if (aemMapping.badge) {
-            styles.push(`merch-card[variant="${variantName}"] [slot="badge"] {`);
-            styles.push('    /* Badge styling will be inherited from global styles */');
-            styles.push('}');
-            styles.push('');
-        }
-
-        if (aemMapping.ctas) {
-            styles.push(`merch-card[variant="${variantName}"] [slot="cta"] {`);
-            styles.push('    /* CTA styling will be inherited from global styles */');
-            styles.push('}');
-            styles.push('');
-        }
 
         return styles.join('\n');
     }
@@ -1021,7 +993,7 @@ customElements.define('${variantName}-card', ${className});`;
     generateSlotHTML(analysis) {
         // Get the AEM fragment mapping to determine what slots are available
         const aemMapping = this.generateAEMFragmentMapping(analysis);
-        
+
         const slots = {
             hasIcons: !!aemMapping.mnemonics,
             hasTitle: !!aemMapping.title,
@@ -1030,7 +1002,6 @@ customElements.define('${variantName}-card', ${className});`;
             hasPrice: !!aemMapping.prices,
             hasCta: !!aemMapping.ctas,
             hasBadge: !!aemMapping.badge,
-            hasTrialBadge: !!aemMapping.trialBadge,
         };
 
         // Generate template structure similar to existing variants
@@ -1043,15 +1014,15 @@ customElements.define('${variantName}-card', ${className});`;
         }
 
         if (slots.hasTitle) {
-            template.push(`                    <slot name="${aemMapping.title.slot}"></slot>`);
+            template.push(
+                `                    <slot name="${aemMapping.title.slot}"></slot>`,
+            );
         }
 
         if (slots.hasSubtitle) {
-            template.push(`                    <slot name="${aemMapping.subtitle.slot}"></slot>`);
-        }
-
-        if (slots.hasTrialBadge) {
-            template.push('                    <slot name="trial-badge"></slot>');
+            template.push(
+                `                    <slot name="${aemMapping.subtitle.slot}"></slot>`,
+            );
         }
 
         template.push('                </div>');
@@ -1061,7 +1032,9 @@ customElements.define('${variantName}-card', ${className});`;
         }
 
         if (slots.hasDescription) {
-            template.push(`                <slot name="${aemMapping.description.slot}"></slot>`);
+            template.push(
+                `                <slot name="${aemMapping.description.slot}"></slot>`,
+            );
         }
 
         template.push('                <div class="footer">');
@@ -1071,7 +1044,9 @@ customElements.define('${variantName}-card', ${className});`;
             template.push('                        <slot name="cta"></slot>');
         }
 
-        template.push('                        <slot name="addon-confirmation"></slot>');
+        template.push(
+            '                        <slot name="addon-confirmation"></slot>',
+        );
         template.push('                    </div>');
 
         if (slots.hasPrice) {
@@ -1303,9 +1278,11 @@ ${css}
     async buildBundle(outputPath = 'web-components/src') {
         const execAsync = promisify(exec);
         const resolvedOutputPath = this.resolveOutputPath(outputPath);
-        
+
         // Always run from the web-components directory
-        const webComponentsDir = resolvedOutputPath.includes('web-components/src') 
+        const webComponentsDir = resolvedOutputPath.includes(
+            'web-components/src',
+        )
             ? join(resolvedOutputPath, '..')
             : join(process.cwd(), 'web-components');
 

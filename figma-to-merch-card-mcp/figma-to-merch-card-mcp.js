@@ -7,8 +7,8 @@ import {
     ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import fetch from 'node-fetch';
-import { writeFileSync, readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
+import { join, resolve, isAbsolute } from 'path';
 import { SPECTRUM_COLORS } from '../studio/src/utils/spectrum-colors.js';
 
 const FIGMA_API_BASE = 'https://api.figma.com/v1';
@@ -135,6 +135,17 @@ class FigmaToMerchCardMCP {
         return token;
     }
 
+    /**
+     * Resolves the output path to an absolute path to prevent file creation issues
+     */
+    resolveOutputPath(outputPath) {
+        if (isAbsolute(outputPath)) {
+            return outputPath;
+        }
+        // Convert relative path to absolute path based on current working directory
+        return resolve(process.cwd(), outputPath);
+    }
+
     setupToolHandlers() {
         this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
             tools: [
@@ -151,7 +162,8 @@ class FigmaToMerchCardMCP {
                             },
                             accessToken: {
                                 type: 'string',
-                                description: 'Figma API access token (optional if FIGMA_ACCESS_TOKEN env var is set)',
+                                description:
+                                    'Figma API access token (optional if FIGMA_ACCESS_TOKEN env var is set)',
                             },
                             frameId: {
                                 type: 'string',
@@ -185,7 +197,8 @@ class FigmaToMerchCardMCP {
                             },
                             accessToken: {
                                 type: 'string',
-                                description: 'Figma API access token (optional if FIGMA_ACCESS_TOKEN env var is set)',
+                                description:
+                                    'Figma API access token (optional if FIGMA_ACCESS_TOKEN env var is set)',
                             },
                             frameId: {
                                 type: 'string',
@@ -250,7 +263,8 @@ class FigmaToMerchCardMCP {
                             },
                             accessToken: {
                                 type: 'string',
-                                description: 'Figma API access token (optional if FIGMA_ACCESS_TOKEN env var is set)',
+                                description:
+                                    'Figma API access token (optional if FIGMA_ACCESS_TOKEN env var is set)',
                             },
                             frameId: {
                                 type: 'string',
@@ -316,24 +330,38 @@ class FigmaToMerchCardMCP {
         return match ? match[1] : figmaUrl;
     }
 
+    /**
+     * Extracts frame ID from Figma URL and converts from URL format (6-32191) to API format (6:32191)
+     * This is a critical conversion that prevents frame targeting issues
+     */
     static extractFrameIdFromUrl(figmaUrl) {
         try {
             const url = new URL(figmaUrl);
             const nodeId = url.searchParams.get('node-id');
             if (nodeId) {
-                // Convert URL format (30-2061) to API format (30:2061)
-                return nodeId.replace(/-/g, ':');
+                // Convert URL format (6-32191) to API format (6:32191)
+                // This is the key conversion that fixes frame targeting issues
+                const convertedId = nodeId.replace(/-/g, ':');
+                console.log(`Frame ID conversion: ${nodeId} -> ${convertedId}`);
+                return convertedId;
             }
         } catch (error) {
-            // If URL parsing fails, return null
+            console.error('Failed to extract frame ID from URL:', error);
         }
         return null;
     }
 
+    /**
+     * Normalizes frame ID format to ensure consistent API calls
+     */
     static normalizeFrameId(frameId) {
         if (!frameId) return null;
         // Convert dash format to colon format if needed
-        return frameId.replace(/-/g, ':');
+        const normalized = frameId.replace(/-/g, ':');
+        if (frameId !== normalized) {
+            console.log(`Frame ID normalized: ${frameId} -> ${normalized}`);
+        }
+        return normalized;
     }
 
     static async fetchFigmaFile(fileKey, accessToken) {
@@ -669,13 +697,13 @@ class FigmaToMerchCardMCP {
             hasIcons: false,
             hasPrice: false,
             hasBadge: false,
-            hasCta: false
+            hasCta: false,
         };
 
         const processNode = (node) => {
             if (node.type === 'TEXT' && node.text && node.textStyle) {
                 const slotType = FigmaToMerchCardMCP.determineSlotType(node);
-                
+
                 if (slotType === 'icons') {
                     detectedSlots.hasIcons = true;
                 } else if (slotType === 'price') {
@@ -702,16 +730,28 @@ class FigmaToMerchCardMCP {
         const mapping = {};
 
         // Always include mnemonics for icons (standard in merch cards)
-        if (detectedSlots.hasIcons || true) { // Keep icons available even if not detected
+        if (detectedSlots.hasIcons || true) {
+            // Keep icons available even if not detected
             mapping.mnemonics = { size: 's' };
         }
 
         // Add detected heading slots
         if (detectedSlots.headingSlots.size > 0) {
             // Determine primary title slot (usually the largest or most prominent)
-            const headingSizes = ['heading-xl', 'heading-l', 'heading-m', 'heading-s', 'heading-xs', 'heading-xxs', 'heading-xxxs'];
-            const primaryHeading = headingSizes.find(size => detectedSlots.headingSlots.has(size)) || 'heading-xxs';
-            
+            const headingSizes = [
+                'heading-xl',
+                'heading-l',
+                'heading-m',
+                'heading-s',
+                'heading-xs',
+                'heading-xxs',
+                'heading-xxxs',
+            ];
+            const primaryHeading =
+                headingSizes.find((size) =>
+                    detectedSlots.headingSlots.has(size),
+                ) || 'heading-xxs';
+
             mapping.title = {
                 tag: 'h3',
                 slot: primaryHeading,
@@ -720,7 +760,9 @@ class FigmaToMerchCardMCP {
             };
 
             // Add secondary headings if present
-            const remainingHeadings = Array.from(detectedSlots.headingSlots).filter(h => h !== primaryHeading);
+            const remainingHeadings = Array.from(
+                detectedSlots.headingSlots,
+            ).filter((h) => h !== primaryHeading);
             if (remainingHeadings.length > 0) {
                 mapping.subtitle = {
                     tag: 'h4',
@@ -734,9 +776,18 @@ class FigmaToMerchCardMCP {
         // Add detected body slots
         if (detectedSlots.bodySlots.size > 0) {
             // Determine primary body slot
-            const bodySizes = ['body-xl', 'body-l', 'body-m', 'body-s', 'body-xs', 'body-xxs'];
-            const primaryBody = bodySizes.find(size => detectedSlots.bodySlots.has(size)) || 'body-s';
-            
+            const bodySizes = [
+                'body-xl',
+                'body-l',
+                'body-m',
+                'body-s',
+                'body-xs',
+                'body-xxs',
+            ];
+            const primaryBody =
+                bodySizes.find((size) => detectedSlots.bodySlots.has(size)) ||
+                'body-s';
+
             mapping.description = {
                 tag: 'div',
                 slot: primaryBody,
@@ -759,12 +810,14 @@ class FigmaToMerchCardMCP {
         };
 
         // Add price support if detected or as standard
-        if (detectedSlots.hasPrice || true) { // Keep price available even if not detected
+        if (detectedSlots.hasPrice || true) {
+            // Keep price available even if not detected
             mapping.prices = { tag: 'p', slot: 'price' };
         }
 
         // Add CTA support if detected or as standard
-        if (detectedSlots.hasCta || true) { // Keep CTA available even if not detected
+        if (detectedSlots.hasCta || true) {
+            // Keep CTA available even if not detected
             mapping.ctas = { slot: 'cta', size: 'M' };
         }
 
@@ -1042,11 +1095,23 @@ ${css}
         cssFile,
         outputPath = 'web-components/src',
     ) {
-        const variantsDir = join(outputPath, 'variants');
+        // Resolve path to absolute to prevent file creation issues
+        const resolvedOutputPath = this.resolveOutputPath(outputPath);
+        const variantsDir = join(resolvedOutputPath, 'variants');
         const variantJsPath = join(variantsDir, `${variantName}.js`);
         const variantCssPath = join(variantsDir, `${variantName}.css.js`);
 
         try {
+            // Ensure the variants directory exists
+            if (!existsSync(variantsDir)) {
+                console.log(`Creating variants directory: ${variantsDir}`);
+                mkdirSync(variantsDir, { recursive: true });
+            }
+
+            console.log(`Saving variant files:`);
+            console.log(`- JS: ${variantJsPath}`);
+            console.log(`- CSS: ${variantCssPath}`);
+
             writeFileSync(variantJsPath, variantClass);
             writeFileSync(variantCssPath, cssFile);
 
@@ -1056,6 +1121,7 @@ ${css}
                 success: true,
             };
         } catch (error) {
+            console.error(`Failed to save variant files:`, error);
             return {
                 success: false,
                 error: error.message,
@@ -1064,7 +1130,8 @@ ${css}
     }
 
     updateMasJs(variantName, outputPath = 'web-components/src') {
-        const masJsPath = join(outputPath, 'mas.js');
+        const resolvedOutputPath = this.resolveOutputPath(outputPath);
+        const masJsPath = join(resolvedOutputPath, 'mas.js');
 
         if (!existsSync(masJsPath)) {
             return {
@@ -1155,8 +1222,9 @@ ${css}
         surface = 'acom',
         outputPath = 'web-components/src',
     ) {
+        const resolvedOutputPath = this.resolveOutputPath(outputPath);
         const variantPickerPath = join(
-            outputPath,
+            resolvedOutputPath,
             '..',
             'studio',
             'src',

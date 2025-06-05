@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "figma-to-merch-card": {
+      "command": "node",
+      "args": ["./figma-to-merch-card-mcp.js"],
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+} 

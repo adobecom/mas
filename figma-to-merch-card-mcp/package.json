@@ -1,0 +1,43 @@
+{
+  "name": "figma-to-merch-card-mcp",
+  "version": "1.0.0",
+  "description": "MCP server that converts Figma designs to merch card variants",
+  "type": "module",
+  "main": "figma-to-merch-card-mcp.js",
+  "bin": {
+    "figma-to-merch-card-mcp": "./figma-to-merch-card-mcp.js"
+  },
+  "scripts": {
+    "start": "node figma-to-merch-card-mcp.js",
+    "dev": "node --inspect figma-to-merch-card-mcp.js",
+    "test": "node --test test/*.js"
+  },
+  "keywords": [
+    "figma",
+    "merch-card",
+    "mcp",
+    "design-to-code",
+    "adobe",
+    "spectrum"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/figma-to-merch-card-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/figma-to-merch-card-mcp/issues"
+  },
+  "homepage": "https://github.com/your-username/figma-to-merch-card-mcp#readme"
+} 

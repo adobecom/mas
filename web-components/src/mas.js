@@ -39,6 +39,7 @@ import {
 import { FRIES_AEM_FRAGMENT_MAPPING, FriesCard } from './variants/fries.js';
 
 // Register dynamic variants
+
 registerVariant(
     'ccd-suggested',
     CCDSuggested,

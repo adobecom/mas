@@ -837,7 +837,6 @@ class FigmaToMerchCardMCP {
 
     generateVariantCSS(analysis, variantName) {
         const styles = [];
-        const aemMapping = this.generateAEMFragmentMapping(analysis);
 
         styles.push(':root {');
         styles.push(`    --consonant-merch-card-${variantName}-width: 300px;`);
@@ -849,69 +848,25 @@ class FigmaToMerchCardMCP {
             `    width: var(--consonant-merch-card-${variantName}-width);`,
         );
 
-        if (analysis.styles.backgroundColor) {
+        if (analysis.styles && analysis.styles.backgroundColor) {
             styles.push(
                 `    background-color: var(--${analysis.styles.backgroundColor});`,
             );
         }
 
-        if (analysis.styles.borderColor) {
+        if (analysis.styles && analysis.styles.borderColor) {
             styles.push(
                 `    border: 1px solid var(--${analysis.styles.borderColor});`,
             );
         }
 
-        if (analysis.styles.borderRadius) {
+        if (analysis.styles && analysis.styles.borderRadius) {
             styles.push(
                 `    border-radius: ${analysis.styles.borderRadius}px;`,
             );
         }
 
         styles.push('}');
-        styles.push('');
-
-        // Generate CSS for the mapped slots
-        if (aemMapping.title) {
-            styles.push(`merch-card[variant="${variantName}"] [slot="${aemMapping.title.slot}"] {`);
-            styles.push('    /* Title styling will be inherited from global styles */');
-            styles.push('}');
-            styles.push('');
-        }
-
-        if (aemMapping.subtitle) {
-            styles.push(`merch-card[variant="${variantName}"] [slot="${aemMapping.subtitle.slot}"] {`);
-            styles.push('    /* Subtitle styling will be inherited from global styles */');
-            styles.push('}');
-            styles.push('');
-        }
-
-        if (aemMapping.description) {
-            styles.push(`merch-card[variant="${variantName}"] [slot="${aemMapping.description.slot}"] {`);
-            styles.push('    /* Description styling will be inherited from global styles */');
-            styles.push('}');
-            styles.push('');
-        }
-
-        if (aemMapping.prices) {
-            styles.push(`merch-card[variant="${variantName}"] [slot="price"] {`);
-            styles.push('    /* Price styling will be inherited from global styles */');
-            styles.push('}');
-            styles.push('');
-        }
-
-        if (aemMapping.badge) {
-            styles.push(`merch-card[variant="${variantName}"] [slot="badge"] {`);
-            styles.push('    /* Badge styling will be inherited from global styles */');
-            styles.push('}');
-            styles.push('');
-        }
-
-        if (aemMapping.ctas) {
-            styles.push(`merch-card[variant="${variantName}"] [slot="cta"] {`);
-            styles.push('    /* CTA styling will be inherited from global styles */');
-            styles.push('}');
-            styles.push('');
-        }
 
         return styles.join('\n');
     }
@@ -942,7 +897,7 @@ export class ${className} extends VariantLayout {
 
     renderLayout() {
         return html\`
-${this.generateSlotHTML(analysis)}
+${this.generateSlotHTML(aemMapping)}
         \`;
     }
 
@@ -1016,10 +971,7 @@ ${this.generateSlotHTML(analysis)}
 customElements.define('${variantName}-card', ${className});`;
     }
 
-    generateSlotHTML(analysis) {
-        // Get the AEM fragment mapping to determine what slots are available
-        const aemMapping = this.generateAEMFragmentMapping(analysis);
-        
+    generateSlotHTML(aemMapping) {
         const slots = {
             hasIcons: !!aemMapping.mnemonics,
             hasTitle: !!aemMapping.title,

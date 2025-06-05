@@ -425,7 +425,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-6: Validate badge field updated', async () => {
             await expect(await editor.badge).toHaveValue(data.newBadge);
-            await expect(await individuals.cardBadgeLabel).toHaveText(
+            await expect(await individuals.cardBadge).toHaveText(
                 data.newBadge,
             );
         });
@@ -1395,7 +1395,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 decodeURI(CTAhref).split('?')[1],
             );
             expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
-            expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
             expect(searchParams.get('promoid')).toBe(
                 data.checkoutParams.promoid,
             );

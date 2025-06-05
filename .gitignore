@@ -23,6 +23,9 @@ studio.json
 test-html-results/
 test-results/
 nala/.auth/
+*.js.map
+/.cursor*/
+.cursor\ 2/
 
 # IO Runtime Config
 config.json
@@ -31,3 +34,9 @@ masStudio-*.json
 .env*
 .aio
 .cursor
+
+# mas specific
+!mas/dist
+mas/commerce.json
+mas/mas.json
+mas/stats.json

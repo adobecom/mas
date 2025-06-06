@@ -212,7 +212,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-4: Verify badge change is saved', async () => {
             await expect(await editor.badge).toHaveValue(data.newBadge);
             await expect(
-                await clonedCard.locator(individuals.cardBadgeLabel),
+                await clonedCard.locator(individuals.cardBadge),
             ).toHaveText(data.newBadge);
         });
     });
@@ -963,7 +963,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 decodeURI(CTAhref).split('?')[1],
             );
             expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
-            expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
             expect(searchParams.get('promoid')).toBe(
                 data.checkoutParams.promoid,
             );

@@ -36,7 +36,6 @@
           "/content/dam/mas/sandbox/en_US/dictionary/learn-more",
           "/content/dam/mas/sandbox/en_US/dictionary/test",
           "/content/dam/mas/sandbox/en_US/dictionary/secure-label",
-          "/content/dam/mas/sandbox/en_US/dictionary/stock-checkbox-label",
           "/content/dam/mas/sandbox/en_US/dictionary/new"
         ]
       },
@@ -102,87 +101,6 @@
             "locked": false,
             "values": [
               "test"
-            ]
-          },
-          {
-            "name": "richTextValue",
-            "type": "long-text",
-            "multiple": false,
-            "locked": false,
-            "mimeType": "text/html",
-            "values": []
-          },
-          {
-            "name": "locReady",
-            "type": "boolean",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              true
-            ]
-          }
-        ],
-        "variations": [],
-        "tags": [
-          {
-            "id": "mas:status/draft",
-            "title": "Draft",
-            "i18n": [],
-            "titlePath": "Merch at Scale : Status / Draft",
-            "name": "draft",
-            "path": "/content/cq:tags/mas/status/draft"
-          }
-        ]
-      },
-      {
-        "name": "stock-checkbox-label",
-        "fieldName": "entries",
-        "type": "content-fragment",
-        "title": "stock-checkbox-label",
-        "path": "/content/dam/mas/sandbox/en_US/dictionary/stock-checkbox-label",
-        "created": {
-          "at": "2025-04-08T11:47:05.969Z",
-          "by": "cod14230@adobe.com",
-          "fullName": "cod14230@adobe.com"
-        },
-        "modified": {
-          "at": "2025-04-15T10:28:23.402Z",
-          "by": "cod14230@adobe.com",
-          "fullName": "cod14230@adobe.com"
-        },
-        "published": {
-          "at": "2025-04-15T10:30:00.432Z",
-          "by": "cod14230@adobe.com",
-          "fullName": "cod14230@adobe.com"
-        },
-        "status": "PUBLISHED",
-        "previewReplicationStatus": "NEVER_PUBLISHED",
-        "id": "ee8a5467-bb53-407d-a34d-0c8849f3201b",
-        "references": [],
-        "model": {
-          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
-          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
-          "name": "Dictionnary Entry",
-          "title": "Dictionnary Entry"
-        },
-        "description": "Placeholder for stock-checkbox-label",
-        "fields": [
-          {
-            "name": "key",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "stock-checkbox-label"
-            ]
-          },
-          {
-            "name": "value",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "Add a 30-day free trial of Adobe Stock."
             ]
           },
           {

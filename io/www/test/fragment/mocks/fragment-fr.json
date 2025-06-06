@@ -31,7 +31,6 @@
             "value": "<p>Module complémentaire Assistant IA disponible lors du paiement.</p>",
             "mimeType": "text/html"
         },
-        "showStockCheckbox": true,
         "ctas": {
             "value": "<a class=\"accent\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\" target=\"_self\" data-analytics-id=\"buy-now\">{{select}}</a>",
             "mimeType": "text/html"

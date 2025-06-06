@@ -141,6 +141,34 @@ class FigmaToMerchCardMCP {
      * Resolves the output path to an absolute path to prevent file creation issues
      */
     resolveOutputPath(outputPath) {
+        // Handle empty or null paths
+        if (!outputPath || outputPath === '') {
+            const cwd = process.cwd();
+            const projectRoot = cwd.endsWith('web-components')
+                ? join(cwd, '..')
+                : cwd;
+            return projectRoot;
+        }
+
+        // Handle paths that start with / but should be relative to project root
+        // This prevents issues where /web-components/src is treated as filesystem root
+        // We detect project-relative paths by checking if they start with known project directories
+        const projectRelativePrefixes = [
+            '/web-components/',
+            '/mas/',
+            '/studio/',
+            '/libs/',
+            '/scripts/',
+            '/commons/',
+        ];
+
+        for (const prefix of projectRelativePrefixes) {
+            if (outputPath.startsWith(prefix)) {
+                outputPath = outputPath.substring(1); // Remove leading slash
+                break;
+            }
+        }
+
         if (isAbsolute(outputPath)) {
             return outputPath;
         }
@@ -1104,9 +1132,36 @@ ${css}
             };
         } catch (error) {
             console.error(`Failed to save variant files:`, error);
+
+            // Enhanced error reporting for debugging
+            const debugInfo = {
+                originalOutputPath: outputPath,
+                resolvedOutputPath,
+                variantsDir,
+                variantJsPath,
+                variantCssPath,
+                currentWorkingDirectory: process.cwd(),
+                variantsDirExists: existsSync(variantsDir),
+                parentDirExists: existsSync(resolvedOutputPath),
+            };
+
+            console.error(
+                'Debug information:',
+                JSON.stringify(debugInfo, null, 2),
+            );
+            // Additional path resolution debugging
+            console.error('Path resolution trace:');
+            console.error(`  Original outputPath: "${outputPath}"`);
+            console.error(`  Resolved outputPath: "${resolvedOutputPath}"`);
+            console.error(`  Expected variants dir: "${variantsDir}"`);
+            console.error(`  Process CWD: "${process.cwd()}"`);
+            console.error(
+                `  Absolute path check: isAbsolute("${outputPath}") = ${isAbsolute(outputPath)}`,
+            );
+
             return {
                 success: false,
-                error: error.message,
+                error: `${error.message} (Debug info: resolved path=${resolvedOutputPath}, variants dir=${variantsDir})`,
             };
         }
     }

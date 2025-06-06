@@ -1,26 +1,44 @@
 import { LitElement, html, css, nothing } from 'lit';
-import StoreController from './reactivity/store-controller.js';
-import Store from './store.js';
 import { EVENT_KEYDOWN } from './constants.js';
+import ReactiveController from './reactivity/reactive-controller.js';
 
 class MasSelectionPanel extends LitElement {
     static styles = css`
         sp-action-bar {
-            margin-bottom: 30px;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
         }
     `;
 
+    static properties = {
+        open: { type: Boolean, attribute: true },
+        selectionStore: { type: Object, attribute: false },
+        onDuplicate: { type: Function, attribute: false },
+        onDelete: { type: Function, attribute: false },
+        onPublish: { type: Function, attribute: false },
+        onUnpublish: { type: Function, attribute: false },
+    };
+
     constructor() {
         super();
+
+        this.open = false;
+        this.selectionStore = null;
+        this.onDuplicate = null;
+        this.onDelete = null;
+        this.onPublish = null;
+        this.onUnpublish = null;
+
         this.close = this.close.bind(this);
     }
-
-    selecting = new StoreController(this, Store.selecting);
-    selection = new StoreController(this, Store.selection);
 
     connectedCallback() {
         super.connectedCallback();
         window.addEventListener(EVENT_KEYDOWN, this.close);
+        this.reactiveController = new ReactiveController(this, [
+            this.selectionStore,
+        ]);
     }
 
     disconnectedCallback() {
@@ -29,17 +47,41 @@ class MasSelectionPanel extends LitElement {
     }
 
     close(event) {
-        if (!this.selecting.value) return;
+        if (!this.open) return;
         if (event instanceof KeyboardEvent && event.code !== 'Escape') return;
-        Store.selecting.set(false);
-        Store.selection.set([]);
+        this.dispatchEvent(new CustomEvent('close'));
+        this.selectionStore.set([]);
     }
 
+    get selection() {
+        return this.selectionStore.get();
+    }
+
+    // #region Handlers
+
+    handleDuplicate(event) {
+        this.onDuplicate(this.selection, event);
+    }
+
+    handleDelete(event) {
+        this.onDelete(this.selection, event);
+    }
+
+    handlePublish(event) {
+        this.onPublish(this.selection, event);
+    }
+
+    handleUnpublish(event) {
+        this.onUnpublish(this.selection, event);
+    }
+
+    // #endregion
+
     render() {
-        const count = this.selection.value.length;
+        const count = this.selection.length;
         return html`<sp-action-bar
             emphasized
-            ?open=${this.selecting.value}
+            ?open=${this.open}
             variant="fixed"
             @close=${this.close}
         >
@@ -48,7 +90,8 @@ class MasSelectionPanel extends LitElement {
                 ? html`<sp-action-button
                       slot="buttons"
                       label="Duplicate"
-                      disabled
+                      ?disabled=${!this.onDuplicate}
+                      @click=${this.handleDuplicate}
                   >
                       <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
                       <sp-tooltip self-managed placement="top"
@@ -57,7 +100,12 @@ class MasSelectionPanel extends LitElement {
                   </sp-action-button>`
                 : nothing}
             ${count > 0
-                ? html`<sp-action-button slot="buttons" label="Delete" disabled>
+                ? html`<sp-action-button
+                      slot="buttons"
+                      label="Delete"
+                      ?disabled=${!this.onDelete}
+                      @click=${this.handleDelete}
+                  >
                       <sp-icon-delete-outline
                           slot="icon"
                       ></sp-icon-delete-outline>
@@ -70,7 +118,8 @@ class MasSelectionPanel extends LitElement {
                 ? html`<sp-action-button
                       slot="buttons"
                       label="Publish"
-                      disabled
+                      ?disabled=${!this.onPublish}
+                      @click=${this.handlePublish}
                   >
                       <sp-icon-publish-check
                           slot="icon"
@@ -84,7 +133,8 @@ class MasSelectionPanel extends LitElement {
                 ? html`<sp-action-button
                       slot="buttons"
                       label="Unpublish"
-                      disabled
+                      ?disabled=${!this.onUnpublish}
+                      @click=${this.handleUnpublish}
                   >
                       <sp-icon-publish-remove
                           slot="icon"

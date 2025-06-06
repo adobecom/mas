@@ -6,7 +6,7 @@ import {
     CallToolRequestSchema,
     ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import fetch from 'node-fetch';
+import fetch, { Headers } from 'node-fetch';
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import { join, resolve, isAbsolute } from 'path';
 import { exec } from 'child_process';
@@ -432,14 +432,58 @@ class FigmaToMerchCardMCP {
         return normalized;
     }
 
-    static async fetchFigmaFile(fileKey, accessToken) {
-        const response = await fetch(`${FIGMA_API_BASE}/files/${fileKey}`, {
-            headers: { 'X-Figma-Token': accessToken },
+    static async fetchFigmaFile(fileKey, accessToken, frameId = null) {
+        let url = `${FIGMA_API_BASE}/files/${fileKey}`;
+
+        // Add filtering parameters to prevent "Request too large" errors
+        if (frameId) {
+            url += `?ids=${encodeURIComponent(frameId)}`;
+        } else {
+            // Add basic filtering to reduce response size for large files
+            url += '?geometry=paths';
+        }
+
+        console.log(`[DEBUG] Fetching Figma file:`, {
+            fileKey,
+            frameId,
+            url,
+            accessToken: accessToken ? 'PROVIDED' : 'MISSING',
+        });
+
+        const response = await fetch(url, {
+            headers: {
+                'X-Figma-Token': accessToken,
+            },
+        });
+
+        console.log(`[DEBUG] Figma API response:`, {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok,
         });
 
         if (!response.ok) {
+            // Get the actual error response body
+            let errorBody = '';
+            try {
+                errorBody = await response.text();
+            } catch (e) {
+                errorBody = 'Unable to read error body';
+            }
+            
+            console.log(`[DEBUG] Error response body:`, errorBody);
+            console.log(`[DEBUG] Response headers:`, response.headers);
+            
+            // Check if it's actually a 400 error or something else
+            if (response.status === 400 && errorBody.includes('Bad Request')) {
+                // This might be the HTML error page, not the actual API error
+                throw new Error(
+                    `Figma API error: 400 Bad Request. This might be due to request headers. URL: ${url}`,
+                );
+            }
+            
             throw new Error(
-                `Figma API error: ${response.status} ${response.statusText}`,
+                `Figma API error: ${response.status} ${response.statusText} - ${errorBody}`,
             );
         }
 
@@ -451,7 +495,9 @@ class FigmaToMerchCardMCP {
         const response = await fetch(
             `${FIGMA_API_BASE}/images/${fileKey}?ids=${nodeIdsParam}&format=png&scale=2`,
             {
-                headers: { 'X-Figma-Token': accessToken },
+                headers: {
+                    'X-Figma-Token': accessToken,
+                },
             },
         );
 
@@ -1480,11 +1526,6 @@ ${css}
 
             const fileKey = FigmaToMerchCardMCP.extractFileKey(figmaUrl);
 
-            const fileData = await FigmaToMerchCardMCP.fetchFigmaFile(
-                fileKey,
-                this.getAccessToken(accessToken),
-            );
-
             let targetFrameId = frameId;
 
             // Auto-extract frameId from URL if not provided or try to normalize it
@@ -1495,6 +1536,12 @@ ${css}
                 targetFrameId =
                     FigmaToMerchCardMCP.normalizeFrameId(targetFrameId);
             }
+
+            const fileData = await FigmaToMerchCardMCP.fetchFigmaFile(
+                fileKey,
+                this.getAccessToken(accessToken),
+                targetFrameId,
+            );
 
             let targetNode;
             if (targetFrameId) {
@@ -1620,11 +1667,6 @@ ${css}
             const { figmaUrl, accessToken, frameId } = args;
             const fileKey = FigmaToMerchCardMCP.extractFileKey(figmaUrl);
 
-            const fileData = await FigmaToMerchCardMCP.fetchFigmaFile(
-                fileKey,
-                this.getAccessToken(accessToken),
-            );
-
             let targetFrameId = frameId;
 
             // Auto-extract frameId from URL if not provided or try to normalize it
@@ -1635,6 +1677,12 @@ ${css}
                 targetFrameId =
                     FigmaToMerchCardMCP.normalizeFrameId(targetFrameId);
             }
+
+            const fileData = await FigmaToMerchCardMCP.fetchFigmaFile(
+                fileKey,
+                this.getAccessToken(accessToken),
+                targetFrameId,
+            );
 
             let targetNode;
             if (targetFrameId) {
@@ -1771,11 +1819,6 @@ ${css}
 
             const fileKey = FigmaToMerchCardMCP.extractFileKey(figmaUrl);
 
-            const fileData = await FigmaToMerchCardMCP.fetchFigmaFile(
-                fileKey,
-                this.getAccessToken(accessToken),
-            );
-
             let targetFrameId = frameId;
 
             // Auto-extract frameId from URL if not provided or try to normalize it
@@ -1786,6 +1829,12 @@ ${css}
                 targetFrameId =
                     FigmaToMerchCardMCP.normalizeFrameId(targetFrameId);
             }
+
+            const fileData = await FigmaToMerchCardMCP.fetchFigmaFile(
+                fileKey,
+                this.getAccessToken(accessToken),
+                targetFrameId,
+            );
 
             let targetNode;
             if (targetFrameId) {

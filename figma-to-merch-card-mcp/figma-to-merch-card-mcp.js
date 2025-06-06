@@ -642,6 +642,20 @@ class FigmaToMerchCardMCP {
             children: [],
         };
 
+        // Capture dimensions from the Figma node
+        if (node.absoluteBoundingBox) {
+            analysis.dimensions = {
+                width: Math.round(node.absoluteBoundingBox.width),
+                height: Math.round(node.absoluteBoundingBox.height),
+            };
+        } else if (node.size) {
+            // Fallback to size property if absoluteBoundingBox is not available
+            analysis.dimensions = {
+                width: Math.round(node.size.x),
+                height: Math.round(node.size.y),
+            };
+        }
+
         if (node.fills && node.fills.length > 0) {
             const fill = node.fills[0];
             if (fill.type === 'SOLID') {
@@ -968,14 +982,19 @@ class FigmaToMerchCardMCP {
     generateVariantCSS(analysis, variantName) {
         const styles = [];
 
+        // Use the width from the Figma design if available, otherwise default to 300px
+        const minWidth = analysis.dimensions?.width || 300;
+
         styles.push(':root {');
-        styles.push(`    --consonant-merch-card-${variantName}-width: 300px;`);
+        styles.push(
+            `    --consonant-merch-card-${variantName}-width: ${minWidth}px;`,
+        );
         styles.push('}');
         styles.push('');
 
         styles.push(`merch-card[variant="${variantName}"] {`);
         styles.push(
-            `    width: var(--consonant-merch-card-${variantName}-width);`,
+            `    min-width: var(--consonant-merch-card-${variantName}-width);`,
         );
 
         if (analysis.styles.backgroundColor) {

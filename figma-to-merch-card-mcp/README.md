@@ -28,6 +28,7 @@ This folder contains a custom Model Context Protocol (MCP) server that converts 
 - Automatically registers variants in `../web-components/src/mas.js`
 - Automatically adds variants to `../studio/src/editors/variant-picker.js`
 - Maps colors to Adobe Spectrum design tokens
+- **Uses the width from the Figma design's main container as the min-width for the generated variant** (defaults to 300px if not available)
 
 ## Files
 

@@ -64,3 +64,9 @@ jobs:
         OST_WRITE_API_KEY: ${{ secrets.OST_WRITE_API_KEY }}
         WCS_CDN_ENDPOINT: ${{ secrets.WCS_CDN_ENDPOINT }}
         WCS_ORIGIN_ENDPOINT: ${{ secrets.WCS_ORIGIN_ENDPOINT }}
+
+    - name: Run Tests against Production
+      if: success()
+      uses: ./.github/workflows/io-tests.yaml
+      secrets:
+        workspace: ${{ secrets.AIO_NS_PROD }}

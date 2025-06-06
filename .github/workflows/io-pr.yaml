@@ -1,15 +1,9 @@
 name: IO WWW PR Check
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'io/www/**'
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
       - 'io/www/**'
-  workflow_dispatch:
 
 jobs:
   tests:

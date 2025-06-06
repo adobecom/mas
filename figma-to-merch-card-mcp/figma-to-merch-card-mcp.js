@@ -1260,9 +1260,26 @@ ${css}
         outputPath = 'web-components/src',
     ) {
         const resolvedOutputPath = this.resolveOutputPath(outputPath);
+
+                        // Simplified path resolution for variant-picker.js
+        // Since this MCP is designed for the MAS project structure, use direct path resolution
+
+        // Start with resolved output path and navigate to project root
+        // resolvedOutputPath is typically /path/to/mas/web-components/src
+        const pathParts = resolvedOutputPath.split('/');
+        const masIndex = pathParts.findIndex((part) => part === 'mas');
+
+        let projectRoot;
+        if (masIndex !== -1) {
+            // Reconstruct path to MAS project root
+            projectRoot = pathParts.slice(0, masIndex + 1).join('/');
+        } else {
+            // Fallback to current working directory
+            projectRoot = process.cwd();
+        }
+
         const variantPickerPath = join(
-            resolvedOutputPath,
-            '..',
+            projectRoot,
             'studio',
             'src',
             'editors',
@@ -1272,7 +1289,7 @@ ${css}
         if (!existsSync(variantPickerPath)) {
             return {
                 success: false,
-                error: 'variant-picker.js file not found',
+                error: `variant-picker.js file not found at ${variantPickerPath}. Project root determined as: ${projectRoot}`,
             };
         }
 

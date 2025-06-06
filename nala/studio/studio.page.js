@@ -1,8 +1,10 @@
 import { expect } from '@playwright/test';
+import OSTPage from './ost.page';
 
 export default class StudioPage {
     constructor(page) {
         this.page = page;
+        this.ost = new OSTPage(page);
 
         this.quickActions = page.locator('.quick-actions');
         this.recentlyUpdated = page.locator('.recently-updated');
@@ -191,6 +193,18 @@ export default class StudioPage {
                 // Enter fragment title
                 const titleInput = this.page.locator('sp-dialog[variant="confirmation"] sp-textfield input');
                 await titleInput.fill('Cloned Fragment');
+
+                const osiButton = this.page.locator('sp-dialog[variant="confirmation"] #offerSelectorToolButtonOSI');
+                await osiButton.click();
+                await this.ost.backButton.click();
+                await this.page.waitForTimeout(2000);
+                await expect(await this.ost.searchField).toBeVisible();
+                await this.ost.searchField.fill('1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o');
+                await (await this.ost.nextButton).click();
+                await expect(await this.ost.priceUse).toBeVisible();
+                await this.ost.priceUse.click();
+                await this.page.waitForTimeout(500);
+
                 await this.page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Clone")').click();
 
                 // Wait for progress circle

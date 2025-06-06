@@ -141,95 +141,76 @@ class FigmaToMerchCardMCP {
      * Resolves the output path to an absolute path relative to the project root
      */
     resolveOutputPath(outputPath) {
+        // Hardcoded absolute path for the MAS project
+        const PROJECT_ROOT = '/Users/axelcurenobasurto/Web/mas';
+
         // Debug logging
         console.log('resolveOutputPath called with:', outputPath);
+        console.log('Using hardcoded project root:', PROJECT_ROOT);
         console.log('Current working directory:', process.cwd());
-        
+
         // Handle null, undefined, or empty string
         if (!outputPath || outputPath === '') {
             outputPath = 'web-components/src';
         }
 
-        // Remove leading slash if present (treat as project-relative)
-        // This handles the schema default of '/web-components/src'
-        if (
-            outputPath.startsWith('/') &&
-            !outputPath.startsWith('/Users') &&
-            !outputPath.startsWith('/home')
-        ) {
-            console.log('Removing leading slash from:', outputPath);
-            outputPath = outputPath.substring(1);
-        }
-
-        // If it's already a full absolute path, return as-is
-        if (isAbsolute(outputPath)) {
+        // If it's already a full absolute path and exists, return as-is
+        if (isAbsolute(outputPath) && existsSync(outputPath)) {
             return outputPath;
         }
 
-        // Find the project root (mas directory)
-        const cwd = process.cwd();
-        let projectRoot = cwd;
+        // Always use the hardcoded project root
+        let resolvedPath;
 
-        // Look for 'mas' directory in the current path
-        const pathParts = cwd.split('/');
-        const masIndex = pathParts.findIndex((part) => part === 'mas');
-
-        if (masIndex !== -1) {
-            projectRoot = pathParts.slice(0, masIndex + 1).join('/');
+        // Handle different path formats
+        if (outputPath.startsWith('../')) {
+            // For paths like ../web-components/src, strip the .. and resolve from project root
+            const cleanPath = outputPath.replace(/^\.\.\//, '');
+            resolvedPath = join(PROJECT_ROOT, cleanPath);
+        } else if (outputPath.startsWith('./')) {
+            // For paths like ./web-components/src, strip the . and resolve from project root
+            const cleanPath = outputPath.replace(/^\.\//, '');
+            resolvedPath = join(PROJECT_ROOT, cleanPath);
+        } else if (outputPath.startsWith('/web-components')) {
+            // Special case for paths that look like /web-components/src
+            // These should be relative to project root, not system root
+            resolvedPath = join(PROJECT_ROOT, outputPath.substring(1));
+        } else if (outputPath.startsWith('/') && !isAbsolute(outputPath)) {
+            // Clean up any other leading slashes
+            const cleanPath = outputPath.substring(1);
+            resolvedPath = join(PROJECT_ROOT, cleanPath);
         } else {
-            // Fallback strategies to find project root
-            // 1. Check if we're in a subdirectory of mas
-            if (cwd.includes('/mas/')) {
-                const masPath = cwd.substring(0, cwd.indexOf('/mas/') + 4);
-                projectRoot = masPath;
-            }
-            // 2. Check if we're in web-components directory
-            else if (cwd.endsWith('web-components')) {
-                projectRoot = join(cwd, '..');
-            }
-            // 3. Check if parent directories contain mas
-            else {
-                let currentDir = cwd;
-                for (let i = 0; i < 5; i++) {
-                    const parentDir = join(currentDir, '..');
-                    if (existsSync(join(parentDir, 'web-components', 'src'))) {
-                        projectRoot = parentDir;
-                        break;
-                    }
-                    currentDir = parentDir;
-                }
-            }
+            // For paths like web-components/src, resolve directly from project root
+            resolvedPath = join(PROJECT_ROOT, outputPath);
         }
 
-        // Validate that we found a valid project root
-        const testPath = join(projectRoot, outputPath);
-        const webComponentsPath = join(projectRoot, 'web-components');
-        
-        // If the resolved path doesn't exist, try to find web-components directory
-        if (!existsSync(webComponentsPath)) {
+        // Validate the resolved path
+        const variantsDir = join(resolvedPath, 'variants');
+        if (!existsSync(variantsDir)) {
             console.warn(
-                `Warning: web-components directory not found at ${webComponentsPath}`,
+                `Warning: variants directory not found at ${variantsDir}`,
             );
-            console.warn(`Current working directory: ${cwd}`);
-            console.warn(`Detected project root: ${projectRoot}`);
-            
-            // Last resort: use current directory
-            if (existsSync(join(cwd, 'web-components'))) {
-                projectRoot = cwd;
-            }
+            console.warn(`Project root: ${PROJECT_ROOT}`);
+            console.warn(`Original output path: ${outputPath}`);
+            console.warn(`Resolved path: ${resolvedPath}`);
         }
 
-        // Resolve relative to project root
-        const resolvedPath = resolve(projectRoot, outputPath);
-        
-        // Final validation
-        if (!existsSync(resolve(projectRoot, 'web-components'))) {
-            console.error(
-                `Error: Cannot find web-components directory from project root: ${projectRoot}`,
+        // Final safety check - if resolved path doesn't start with PROJECT_ROOT, prepend it
+        if (!resolvedPath.startsWith(PROJECT_ROOT)) {
+            console.warn(
+                `Warning: Resolved path doesn't start with project root. Fixing...`,
             );
-            console.error(`Resolved path would be: ${resolvedPath}`);
+            console.warn(`Original resolved path: ${resolvedPath}`);
+            // If it starts with /, it's trying to be absolute but wrong
+            if (resolvedPath.startsWith('/')) {
+                resolvedPath = join(PROJECT_ROOT, resolvedPath.substring(1));
+            } else {
+                resolvedPath = join(PROJECT_ROOT, resolvedPath);
+            }
+            console.warn(`Fixed resolved path: ${resolvedPath}`);
         }
-        
+
+        console.log(`Resolved output path: ${resolvedPath}`);
         return resolvedPath;
     }
 
@@ -264,8 +245,8 @@ class FigmaToMerchCardMCP {
                             outputPath: {
                                 type: 'string',
                                 description:
-                                    'Base path for output files (default: web-components/src)',
-                                default: 'web-components/src',
+                                    'Base path for output files (default: ../web-components/src)',
+                                default: '../web-components/src',
                             },
                         },
                         required: ['figmaUrl', 'variantName'],
@@ -310,8 +291,8 @@ class FigmaToMerchCardMCP {
                             outputPath: {
                                 type: 'string',
                                 description:
-                                    'Base path for output files (default: web-components/src)',
-                                default: 'web-components/src',
+                                    'Base path for output files (default: ../web-components/src)',
+                                default: '../web-components/src',
                             },
                         },
                         required: ['variantName'],
@@ -377,8 +358,8 @@ class FigmaToMerchCardMCP {
                             outputPath: {
                                 type: 'string',
                                 description:
-                                    'Base path for output files (default: web-components/src)',
-                                default: 'web-components/src',
+                                    'Base path for output files (default: ../web-components/src)',
+                                default: '../web-components/src',
                             },
                         },
                         required: ['figmaUrl', 'variantName', 'surface'],
@@ -1155,7 +1136,7 @@ ${css}
         variantName,
         variantClass,
         cssFile,
-        outputPath = 'web-components/src',
+        outputPath = '../web-components/src',
     ) {
         // Resolve path to absolute to prevent file creation issues
         const resolvedOutputPath = this.resolveOutputPath(outputPath);
@@ -1164,12 +1145,6 @@ ${css}
         const variantCssPath = join(variantsDir, `${variantName}.css.js`);
 
         try {
-            // Ensure the variants directory exists
-            if (!existsSync(variantsDir)) {
-                console.log(`Creating variants directory: ${variantsDir}`);
-                mkdirSync(variantsDir, { recursive: true });
-            }
-
             console.log(`Saving variant files:`);
             console.log(`- JS: ${variantJsPath}`);
             console.log(`- CSS: ${variantCssPath}`);
@@ -1218,7 +1193,7 @@ ${css}
         }
     }
 
-    updateMasJs(variantName, outputPath = 'web-components/src') {
+    updateMasJs(variantName, outputPath = '../web-components/src') {
         const resolvedOutputPath = this.resolveOutputPath(outputPath);
         const masJsPath = join(resolvedOutputPath, 'mas.js');
 
@@ -1309,26 +1284,10 @@ ${css}
     updateVariantPicker(
         variantName,
         surface = 'acom',
-        outputPath = 'web-components/src',
+        outputPath = '../web-components/src',
     ) {
-        const resolvedOutputPath = this.resolveOutputPath(outputPath);
-
-        // Simplified path resolution for variant-picker.js
-        // Since this MCP is designed for the MAS project structure, use direct path resolution
-
-        // Start with resolved output path and navigate to project root
-        // resolvedOutputPath is typically /path/to/mas/web-components/src
-        const pathParts = resolvedOutputPath.split('/');
-        const masIndex = pathParts.findIndex((part) => part === 'mas');
-
-        let projectRoot;
-        if (masIndex !== -1) {
-            // Reconstruct path to MAS project root
-            projectRoot = pathParts.slice(0, masIndex + 1).join('/');
-        } else {
-            // Fallback to current working directory
-            projectRoot = process.cwd();
-        }
+        // Use hardcoded project root
+        const projectRoot = '/Users/axelcurenobasurto/Web/mas';
 
         const variantPickerPath = join(
             projectRoot,
@@ -1404,16 +1363,15 @@ ${css}
         }
     }
 
-    async buildBundle(outputPath = 'web-components/src') {
+    async buildBundle(outputPath = '../web-components/src') {
         const execAsync = promisify(exec);
         const resolvedOutputPath = this.resolveOutputPath(outputPath);
 
         // Always run from the web-components directory
-        const webComponentsDir = resolvedOutputPath.includes(
-            '/web-components/src',
-        )
-            ? join(resolvedOutputPath, '..')
-            : join(this.resolveOutputPath(''), 'web-components');
+        const webComponentsDir = join(
+            '/Users/axelcurenobasurto/Web/mas',
+            'web-components',
+        );
 
         try {
             // Check if web-components directory exists and has package.json
@@ -1468,14 +1426,15 @@ ${css}
 
     async handleUpdateVariantPicker(args) {
         try {
-            const { variantName, outputPath = 'web-components/src' } = args;
-            
-            // Failsafe: ensure outputPath doesn't have leading slash
-            const cleanOutputPath = outputPath && outputPath.startsWith('/') && !outputPath.startsWith('/Users') && !outputPath.startsWith('/home')
-                ? outputPath.substring(1)
-                : outputPath || 'web-components/src';
-            
-            const result = this.updateVariantPicker(variantName, cleanOutputPath);
+            const { variantName, outputPath = '../web-components/src' } = args;
+
+            // Use outputPath as-is, let resolveOutputPath handle the resolution
+            const cleanOutputPath = outputPath || 'web-components/src';
+
+            const result = this.updateVariantPicker(
+                variantName,
+                cleanOutputPath,
+            );
 
             return {
                 content: [
@@ -1513,14 +1472,12 @@ ${css}
                 accessToken,
                 frameId,
                 variantName,
-                outputPath = 'web-components/src',
+                outputPath = '../web-components/src',
             } = args;
-            
-            // Failsafe: ensure outputPath doesn't have leading slash
-            const cleanOutputPath = outputPath && outputPath.startsWith('/') && !outputPath.startsWith('/Users') && !outputPath.startsWith('/home')
-                ? outputPath.substring(1)
-                : outputPath || 'web-components/src';
-            
+
+            // Use outputPath as-is, let resolveOutputPath handle the resolution
+            const cleanOutputPath = outputPath || 'web-components/src';
+
             const fileKey = FigmaToMerchCardMCP.extractFileKey(figmaUrl);
 
             const fileData = await FigmaToMerchCardMCP.fetchFigmaFile(
@@ -1595,7 +1552,10 @@ ${css}
                 throw new Error(`Failed to save files: ${saveResult.error}`);
             }
 
-            const masUpdateResult = this.updateMasJs(variantName, cleanOutputPath);
+            const masUpdateResult = this.updateMasJs(
+                variantName,
+                cleanOutputPath,
+            );
             const variantPickerUpdateResult = this.updateVariantPicker(
                 variantName,
                 cleanOutputPath,
@@ -1788,13 +1748,11 @@ ${css}
                 frameId,
                 variantName,
                 surface,
-                outputPath = 'web-components/src',
+                outputPath = '../web-components/src',
             } = args;
 
-            // Failsafe: ensure outputPath doesn't have leading slash
-            const cleanOutputPath = outputPath && outputPath.startsWith('/') && !outputPath.startsWith('/Users') && !outputPath.startsWith('/home')
-                ? outputPath.substring(1)
-                : outputPath || 'web-components/src';
+            // Use outputPath as-is, let resolveOutputPath handle the resolution
+            const cleanOutputPath = outputPath || 'web-components/src';
 
             // Show available surface options if not provided
             if (!surface) {
@@ -1885,7 +1843,10 @@ ${css}
                 throw new Error(`Failed to save files: ${saveResult.error}`);
             }
 
-            const masUpdateResult = this.updateMasJs(variantName, cleanOutputPath);
+            const masUpdateResult = this.updateMasJs(
+                variantName,
+                cleanOutputPath,
+            );
             const variantPickerUpdateResult = this.updateVariantPicker(
                 variantName,
                 surface,

@@ -32,7 +32,6 @@ const contentTypes = [
 
 class MasToolbar extends LitElement {
     static properties = {
-        filtersShown: { state: true },
         createDialogOpen: { state: true },
         selectedContentType: { state: true },
         filterCount: { state: true },
@@ -81,9 +80,11 @@ class MasToolbar extends LitElement {
         .filters-button {
             border: none;
             font-weight: bold;
+            cursor: default;
         }
 
         .filters-button:not(.shown) {
+            background-color: #fff;
             color: var(--spectrum-gray-700);
         }
 
@@ -94,6 +95,10 @@ class MasToolbar extends LitElement {
 
         .filters-button.shown:hover {
             background-color: var(--spectrum-blue-200);
+        }
+        
+        .filters-button:not(.shown):hover {
+            background-color: var(--spectrum-actionbutton-background-color-hover);
         }
 
         .filters-badge {
@@ -120,7 +125,6 @@ class MasToolbar extends LitElement {
 
     constructor() {
         super();
-        this.filtersShown = false;
         this.createDialogOpen = false;
         this.selectedContentType = 'merch-card';
         this.filterCount = 0;
@@ -164,9 +168,6 @@ class MasToolbar extends LitElement {
         } else {
             this.filterCount = 0;
         }
-        if (this.filterCount > 0) {
-            this.filtersShown = true;
-        }
     }
 
     handleRenderModeChange(ev) {
@@ -208,11 +209,10 @@ class MasToolbar extends LitElement {
             <sp-action-button
                 toggles
                 label="Filter"
-                @click=${() => (this.filtersShown = !this.filtersShown)}
-                ?quiet=${!this.filtersShown}
-                class="filters-button ${this.filtersShown ? 'shown' : ''}"
+                @click="${this.onShowFilter}"
+                class="filters-button ${this.filterCount > 0 ? 'shown' : ''}"
             >
-                ${!this.filtersShown
+                ${!this.filterCount > 0
                     ? html`<sp-icon-filter-add
                           slot="icon"
                       ></sp-icon-filter-add>`
@@ -281,7 +281,6 @@ class MasToolbar extends LitElement {
     }
 
     get filtersPanel() {
-        if (!this.filtersShown) return nothing;
         return html`<mas-filter-panel></mas-filter-panel>`;
     }
 

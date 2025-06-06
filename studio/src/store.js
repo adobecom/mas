@@ -48,6 +48,7 @@ const Store = {
             ]),
         },
     },
+    showCloneDialog: new ReactiveStore(false),
 };
 
 /**

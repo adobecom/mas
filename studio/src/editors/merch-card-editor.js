@@ -12,6 +12,7 @@ import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import { getFragmentMapping } from '../utils.js';
 import '../fields/addon-field.js';
+import Store from '../store.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -437,6 +438,7 @@ class MerchCardEditor extends LitElement {
                     inline
                     link
                     data-field="prices"
+                    .osi=${form.osi.values[0]}
                     default-link-style="primary-outline"
                     @change="${this.#handleFragmentUpdate}"
                     >${unsafeHTML(form.prices.values[0])}</rte-field
@@ -487,6 +489,7 @@ class MerchCardEditor extends LitElement {
                     list
                     mnemonic
                     data-field="description"
+                    .osi=${form.osi.values[0]}
                     default-link-style="secondary-link"
                     @change="${this.#handleFragmentUpdate}"
                     >${unsafeHTML(form.description.values[0])}</rte-field
@@ -499,6 +502,7 @@ class MerchCardEditor extends LitElement {
                     link
                     icon
                     data-field="callout"
+                    .osi=${form.osi.values[0]}
                     default-link-style="secondary-link"
                     @change="${this.#handleFragmentUpdate}"
                     ?readonly=${this.disabled}
@@ -600,6 +604,7 @@ class MerchCardEditor extends LitElement {
                     link
                     inline
                     data-field="ctas"
+                    .osi=${form.osi.values[0]}
                     default-link-style="primary-outline"
                     @change="${this.#handleFragmentUpdate}"
                     >${unsafeHTML(form.ctas.values[0])}</rte-field
@@ -635,6 +640,8 @@ class MerchCardEditor extends LitElement {
     }
 
     #handeTagsChange(e) {
+        if (Store.showCloneDialog.get()) return;
+
         const value = e.target.getAttribute('value');
         const newTags = value ? value.split(',') : []; // do not overwrite the tags array
         this.fragmentStore.updateField('tags', newTags);
@@ -816,7 +823,7 @@ class MerchCardEditor extends LitElement {
     }
 
     get isPlans() {
-        return this.fragment.variant.startsWith('plans');
+        return this.fragment.variant?.startsWith('plans');
     }
 
     get badge() {

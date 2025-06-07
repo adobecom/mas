@@ -905,7 +905,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-edit-whats-included - Validate edit whats included for plans individuals card in mas studio
-    test.skip(`${features[14].name},${features[14].tags}`, async ({
+    test(`${features[14].name},${features[14].tags}`, async ({
         page,
         baseURL,
     }) => {

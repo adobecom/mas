@@ -1,4 +1,4 @@
-# Figma to Merch Card MCP - Standalone
+# FiMeCa - Figma to Merch Card MCP - Standalone
 
 A standalone Model Context Protocol (MCP) server that converts Figma designs into Adobe MAS merch card variants. This tool is now fully decoupled and can work with any target project.
 

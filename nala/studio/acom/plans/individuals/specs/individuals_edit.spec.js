@@ -185,7 +185,7 @@ export default {
                 iconLabel: 'Photoshop icon',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit @nopr', //skip until regression is fixed
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '15',

@@ -301,3 +301,32 @@ describe('pipeline corner cases', () => {
         expect(result.statusCode).to.equal(200);
     });
 });
+
+describe('collection placeholders', () => {
+    it('should work', async () => {
+        nock.cleanAll();
+        const DICTIONARY_RESPONSE = require('./mocks/dictionaryForCollection.json');
+        const COLLECTION_RESPONSE = require('./mocks/collection.json');
+        const state = new MockState();
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments/07f9729e-dc1f-4634-829d-7aa469bb0d33')
+            .query({ references: 'all-hydrated' })
+            .reply(200, COLLECTION_RESPONSE);
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments/412fda08-7b73-4a01-a04f-1953e183bad2')
+            .query({ references: 'all-hydrated' })
+            .reply(200, DICTIONARY_RESPONSE);
+        state.put(
+            'req-07f9729e-dc1f-4634-829d-7aa469bb0d33-en_US',
+            '{"hash":"c4b6f3c040708c47444316d4e103268c8f2fb91c35dc4609ecccc29803f2aec0","lastModified":"Mon, 09 Jun 2025 07:43:58 GMT","dictionaryId":"412fda08-7b73-4a01-a04f-1953e183bad2"}',
+        );
+        const result = await getFragment({
+            id: '07f9729e-dc1f-4634-829d-7aa469bb0d33',
+            state: state,
+            locale: 'en_US',
+        });
+        expect(result.body.placeholders.searchResultsMobileText).to.equal(
+            '<p><span data-placeholder="resultCount"></span>&nbsp;results in&nbsp;<strong><span data-placeholder="searchTerm"></span></strong></p>',
+        );
+    });
+});

@@ -185,7 +185,7 @@ export default {
                 iconLabel: 'Photoshop icon',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit @nopr', //skip until regression is fixed
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '15',
@@ -278,7 +278,6 @@ export default {
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 checkoutParams: {
                     mv: '1',
-                    cs: 'individual',
                     promoid: 'ABC123',
                     mv2: '2',
                 },

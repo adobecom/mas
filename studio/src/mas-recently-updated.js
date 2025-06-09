@@ -36,7 +36,8 @@ class MasRecentlyUpdated extends LitElement {
                 ${this.loadingIndicator}
                 ${this.fragments.value.map((fragmentStore) => {
                     // Hide the card if the variant isn't one of VARIANTS that is pre-defined.
-                    if (!variantValues.includes(fragmentStore.value.variant)) return html``;
+                    if (!variantValues.includes(fragmentStore.value.variant))
+                        return html``;
                     return html`<mas-fragment
                         .fragmentStore=${fragmentStore}
                         view="render"

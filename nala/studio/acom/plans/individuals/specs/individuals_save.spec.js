@@ -154,7 +154,7 @@ export default {
                 whatsIncludedText: 'List of items:',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save @nopr', //skip until regression is fixed
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
             tcid: '13',

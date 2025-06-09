@@ -170,7 +170,6 @@ class RteField extends LitElement {
         icon: { type: Boolean, attribute: 'icon' },
         mnemonic: { type: Boolean, attribute: 'mnemonic' },
         uptLink: { type: Boolean, attribute: 'upt-link' },
-        list: { type: Boolean, attribute: 'list' },
         isLinkSelected: { type: Boolean, state: true },
         priceSelected: { type: Boolean, state: true },
         readOnly: { type: Boolean, attribute: 'readonly' },
@@ -518,6 +517,10 @@ class RteField extends LitElement {
                     margin-right: 4px;
                     padding: 0 2px;
                     vertical-align: middle;
+                }
+                
+                #stylingMenu .is-selected {
+                    background-color: rgba(213,213,213);
                 }
             `,
             prosemirrorStyles,
@@ -1346,6 +1349,28 @@ class RteField extends LitElement {
         };
     }
 
+    #handleStylingMenuOpen(event) {
+        event.target.querySelectorAll('sp-menu-item').forEach((item) => {
+            item.classList.remove('is-selected');
+        });
+
+        let { state } = this.editorView;
+        const {
+            selection: { from, to },
+        } = state;
+
+        state.doc.nodesBetween(from, to, (node) => {
+            const stylingMark = node.marks.find(
+                (mark) => mark.type.spec.group === 'styling',
+            );
+            const name = stylingMark?.type?.name;
+            if (name) {
+                const item = event.target.querySelector(`sp-menu-item[value="${name}"]`);
+                if (item) item.classList.add('is-selected');
+            }
+        });
+    }
+
     #handleStylingSelection(event) {
         event.stopPropagation();
         const stylingType = event.target.value;
@@ -1749,14 +1774,15 @@ class RteField extends LitElement {
         return html`<sp-action-menu
             id="stylingMenu"
             title="Styling"
+            @click=${this.#handleStylingMenuOpen}
             @change=${this.#handleStylingSelection}
         >
             <sp-icon-brush slot="icon"></sp-icon-brush>
-            <sp-menu-item value="heading-xxxs">Heading XXXS</sp-menu-item>
-            <sp-menu-item value="heading-xxs">Heading XXS</sp-menu-item>
-            <sp-menu-item value="heading-xs">Heading XS</sp-menu-item>
-            <sp-menu-item value="heading-s">Heading S</sp-menu-item>
-            <sp-menu-item value="heading-m">Heading M</sp-menu-item>
+            <sp-menu-item value="heading-xxxs">Heading XXXS - H6</sp-menu-item>
+            <sp-menu-item value="heading-xxs">Heading XXS - H5</sp-menu-item>
+            <sp-menu-item value="heading-xs">Heading XS - H4</sp-menu-item>
+            <sp-menu-item value="heading-s">Heading S - H3</sp-menu-item>
+            <sp-menu-item value="heading-m">Heading M - H2</sp-menu-item>
             <sp-menu-divider></sp-menu-divider>
             <sp-menu-item value="promo-text">Promo text</sp-menu-item>
             <sp-menu-item value="mnemonic-text">Mnemonic Text</sp-menu-item>

@@ -11,7 +11,8 @@ import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import { join, resolve, isAbsolute } from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { SPECTRUM_COLORS } from '../studio/src/utils/spectrum-colors.js';
+import { SPECTRUM_COLORS } from './spectrum-colors.js';
+import { ConfigHandler } from './config-handler.js';
 
 const FIGMA_API_BASE = 'https://api.figma.com/v1';
 
@@ -106,6 +107,7 @@ const STYLE_MAPPINGS = {
 
 class FigmaToMerchCardMCP {
     constructor() {
+        this.configHandler = new ConfigHandler();
         this.server = new Server(
             {
                 name: 'figma-to-merch-card',
@@ -122,96 +124,11 @@ class FigmaToMerchCardMCP {
     }
 
     getAccessToken(providedToken) {
-        const token = process.env.FIGMA_ACCESS_TOKEN || providedToken;
-
-        if (!token) {
-            throw new Error(
-                'Figma access token is required. Either:\n' +
-                    '1. Set FIGMA_ACCESS_TOKEN environment variable, or\n' +
-                    '2. Provide accessToken parameter\n\n' +
-                    'To set environment variable:\n' +
-                    'export FIGMA_ACCESS_TOKEN=your_token_here',
-            );
-        }
-
-        return token;
+        return this.configHandler.getFigmaAccessToken(providedToken);
     }
 
-    /**
-     * Resolves the output path to an absolute path relative to the project root
-     */
     resolveOutputPath(outputPath) {
-        // Hardcoded absolute path for the MAS project
-        const PROJECT_ROOT = '/Users/axelcurenobasurto/Web/mas';
-
-        // Debug logging
-        console.log('resolveOutputPath called with:', outputPath);
-        console.log('Using hardcoded project root:', PROJECT_ROOT);
-        console.log('Current working directory:', process.cwd());
-
-        // Handle null, undefined, or empty string
-        if (!outputPath || outputPath === '') {
-            outputPath = 'web-components/src';
-        }
-
-        // If it's already a full absolute path and exists, return as-is
-        if (isAbsolute(outputPath) && existsSync(outputPath)) {
-            return outputPath;
-        }
-
-        // Always use the hardcoded project root
-        let resolvedPath;
-
-        // Handle different path formats
-        if (outputPath.startsWith('../')) {
-            // For paths like ../web-components/src, strip the .. and resolve from project root
-            const cleanPath = outputPath.replace(/^\.\.\//, '');
-            resolvedPath = join(PROJECT_ROOT, cleanPath);
-        } else if (outputPath.startsWith('./')) {
-            // For paths like ./web-components/src, strip the . and resolve from project root
-            const cleanPath = outputPath.replace(/^\.\//, '');
-            resolvedPath = join(PROJECT_ROOT, cleanPath);
-        } else if (outputPath.startsWith('/web-components')) {
-            // Special case for paths that look like /web-components/src
-            // These should be relative to project root, not system root
-            resolvedPath = join(PROJECT_ROOT, outputPath.substring(1));
-        } else if (outputPath.startsWith('/') && !isAbsolute(outputPath)) {
-            // Clean up any other leading slashes
-            const cleanPath = outputPath.substring(1);
-            resolvedPath = join(PROJECT_ROOT, cleanPath);
-        } else {
-            // For paths like web-components/src, resolve directly from project root
-            resolvedPath = join(PROJECT_ROOT, outputPath);
-        }
-
-        // Validate the resolved path
-        const variantsDir = join(resolvedPath, 'variants');
-        if (!existsSync(variantsDir)) {
-            console.warn(
-                `Warning: variants directory not found at ${variantsDir}`,
-            );
-            console.warn(`Project root: ${PROJECT_ROOT}`);
-            console.warn(`Original output path: ${outputPath}`);
-            console.warn(`Resolved path: ${resolvedPath}`);
-        }
-
-        // Final safety check - if resolved path doesn't start with PROJECT_ROOT, prepend it
-        if (!resolvedPath.startsWith(PROJECT_ROOT)) {
-            console.warn(
-                `Warning: Resolved path doesn't start with project root. Fixing...`,
-            );
-            console.warn(`Original resolved path: ${resolvedPath}`);
-            // If it starts with /, it's trying to be absolute but wrong
-            if (resolvedPath.startsWith('/')) {
-                resolvedPath = join(PROJECT_ROOT, resolvedPath.substring(1));
-            } else {
-                resolvedPath = join(PROJECT_ROOT, resolvedPath);
-            }
-            console.warn(`Fixed resolved path: ${resolvedPath}`);
-        }
-
-        console.log(`Resolved output path: ${resolvedPath}`);
-        return resolvedPath;
+        return this.configHandler.resolveOutputPath(outputPath);
     }
 
     setupToolHandlers() {
@@ -245,8 +162,8 @@ class FigmaToMerchCardMCP {
                             outputPath: {
                                 type: 'string',
                                 description:
-                                    'Base path for output files (default: ../web-components/src)',
-                                default: '../web-components/src',
+                                    'Base path for output files (default: web-components/src)',
+                                default: 'web-components/src',
                             },
                         },
                         required: ['figmaUrl', 'variantName'],
@@ -291,8 +208,8 @@ class FigmaToMerchCardMCP {
                             outputPath: {
                                 type: 'string',
                                 description:
-                                    'Base path for output files (default: ../web-components/src)',
-                                default: '../web-components/src',
+                                    'Base path for output files (default: web-components/src)',
+                                default: 'web-components/src',
                             },
                         },
                         required: ['variantName'],
@@ -358,8 +275,8 @@ class FigmaToMerchCardMCP {
                             outputPath: {
                                 type: 'string',
                                 description:
-                                    'Base path for output files (default: ../web-components/src)',
-                                default: '../web-components/src',
+                                    'Base path for output files (default: web-components/src)',
+                                default: 'web-components/src',
                             },
                         },
                         required: ['figmaUrl', 'variantName', 'surface'],
@@ -470,18 +387,16 @@ class FigmaToMerchCardMCP {
             } catch (e) {
                 errorBody = 'Unable to read error body';
             }
-            
+
             console.log(`[DEBUG] Error response body:`, errorBody);
             console.log(`[DEBUG] Response headers:`, response.headers);
-            
-            // Check if it's actually a 400 error or something else
+
             if (response.status === 400 && errorBody.includes('Bad Request')) {
-                // This might be the HTML error page, not the actual API error
                 throw new Error(
                     `Figma API error: 400 Bad Request. This might be due to request headers. URL: ${url}`,
                 );
             }
-            
+
             throw new Error(
                 `Figma API error: ${response.status} ${response.statusText} - ${errorBody}`,
             );
@@ -1201,7 +1116,7 @@ ${css}
         variantName,
         variantClass,
         cssFile,
-        outputPath = '../web-components/src',
+        outputPath = 'web-components/src',
     ) {
         // Resolve path to absolute to prevent file creation issues
         const resolvedOutputPath = this.resolveOutputPath(outputPath);
@@ -1258,9 +1173,8 @@ ${css}
         }
     }
 
-    updateMasJs(variantName, outputPath = '../web-components/src') {
-        const resolvedOutputPath = this.resolveOutputPath(outputPath);
-        const masJsPath = join(resolvedOutputPath, 'mas.js');
+    updateMasJs(variantName, outputPath = 'web-components/src') {
+        const masJsPath = this.configHandler.getMasJsPath(outputPath);
 
         if (!existsSync(masJsPath)) {
             return {
@@ -1349,23 +1263,14 @@ ${css}
     updateVariantPicker(
         variantName,
         surface = 'acom',
-        outputPath = '../web-components/src',
+        outputPath = 'web-components/src',
     ) {
-        // Use hardcoded project root
-        const projectRoot = '/Users/axelcurenobasurto/Web/mas';
-
-        const variantPickerPath = join(
-            projectRoot,
-            'studio',
-            'src',
-            'editors',
-            'variant-picker.js',
-        );
+        const variantPickerPath = this.configHandler.getVariantPickerPath();
 
         if (!existsSync(variantPickerPath)) {
             return {
                 success: false,
-                error: `variant-picker.js file not found at ${variantPickerPath}. Project root determined as: ${projectRoot}`,
+                error: `variant-picker.js file not found at ${variantPickerPath}`,
             };
         }
 
@@ -1428,18 +1333,12 @@ ${css}
         }
     }
 
-    async buildBundle(outputPath = '../web-components/src') {
+    async buildBundle(outputPath = 'web-components/src') {
         const execAsync = promisify(exec);
-        const resolvedOutputPath = this.resolveOutputPath(outputPath);
-
-        // Always run from the web-components directory
-        const webComponentsDir = join(
-            '/Users/axelcurenobasurto/Web/mas',
-            'web-components',
-        );
+        const webComponentsDir = this.configHandler.getWebComponentsPath();
+        const buildConfig = this.configHandler.getBuildConfig();
 
         try {
-            // Check if web-components directory exists and has package.json
             if (!existsSync(webComponentsDir)) {
                 throw new Error(
                     `Web-components directory not found: ${webComponentsDir}`,
@@ -1453,9 +1352,10 @@ ${css}
                 );
             }
 
-            console.log(`Running npm run build:bundle in ${webComponentsDir}`);
+            console.log(
+                `Running ${buildConfig.command} in ${webComponentsDir}`,
+            );
 
-            // Check if build:bundle script exists
             const packageJson = JSON.parse(
                 readFileSync(packageJsonPath, 'utf8'),
             );
@@ -1465,9 +1365,9 @@ ${css}
                 );
             }
 
-            const { stdout, stderr } = await execAsync('npm run build:bundle', {
+            const { stdout, stderr } = await execAsync(buildConfig.command, {
                 cwd: webComponentsDir,
-                timeout: 120000, // 2 minute timeout
+                timeout: buildConfig.timeout,
             });
 
             console.log('Build completed successfully');
@@ -1491,7 +1391,7 @@ ${css}
 
     async handleUpdateVariantPicker(args) {
         try {
-            const { variantName, outputPath = '../web-components/src' } = args;
+            const { variantName, outputPath = 'web-components/src' } = args;
 
             // Use outputPath as-is, let resolveOutputPath handle the resolution
             const cleanOutputPath = outputPath || 'web-components/src';
@@ -1537,7 +1437,7 @@ ${css}
                 accessToken,
                 frameId,
                 variantName,
-                outputPath = '../web-components/src',
+                outputPath = 'web-components/src',
             } = args;
 
             // Use outputPath as-is, let resolveOutputPath handle the resolution
@@ -1815,7 +1715,7 @@ ${css}
                 frameId,
                 variantName,
                 surface,
-                outputPath = '../web-components/src',
+                outputPath = 'web-components/src',
             } = args;
 
             // Use outputPath as-is, let resolveOutputPath handle the resolution

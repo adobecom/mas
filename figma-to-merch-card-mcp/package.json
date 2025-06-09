@@ -1,7 +1,7 @@
 {
   "name": "figma-to-merch-card-mcp",
-  "version": "1.0.0",
-  "description": "MCP server that converts Figma designs to merch card variants",
+  "version": "2.0.0",
+  "description": "Standalone MCP server that converts Figma designs to merch card variants for any target project",
   "type": "module",
   "main": "figma-to-merch-card-mcp.js",
   "bin": {
@@ -10,7 +10,8 @@
   "scripts": {
     "start": "node figma-to-merch-card-mcp.js",
     "dev": "node --inspect figma-to-merch-card-mcp.js",
-    "test": "node --test test/*.js"
+    "validate": "node validate-config.js",
+    "quick-start": "./run-mcp.sh"
   },
   "keywords": [
     "figma",
@@ -18,9 +19,11 @@
     "mcp",
     "design-to-code",
     "adobe",
-    "spectrum"
+    "spectrum",
+    "standalone",
+    "configurable"
   ],
-  "author": "Your Name",
+  "author": "Adobe MAS Team",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.5.0",
@@ -32,12 +35,21 @@
   "engines": {
     "node": ">=18.0.0"
   },
+  "files": [
+    "figma-to-merch-card-mcp.js",
+    "config-handler.js",
+    "spectrum-colors.js",
+    "config.json",
+    "validate-config.js",
+    "README.md",
+    "STANDALONE_SETUP.md"
+  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/figma-to-merch-card-mcp.git"
+    "url": "https://github.com/adobe/figma-to-merch-card-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/figma-to-merch-card-mcp/issues"
+    "url": "https://github.com/adobe/figma-to-merch-card-mcp/issues"
   },
-  "homepage": "https://github.com/your-username/figma-to-merch-card-mcp#readme"
+  "homepage": "https://github.com/adobe/figma-to-merch-card-mcp#readme"
 } 

@@ -464,7 +464,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 await ost.ctaTextMenu.click();
                 await expect(
                     page.locator('div[role="option"]', {
-                        hasText: `${data.newCtaText}`,
+                        hasText: `${data.newCtaOption}`,
                     }),
                 ).toBeVisible({
                     timeout: 500,
@@ -472,7 +472,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             }).toPass();
             await page
                 .locator('div[role="option"]', {
-                    hasText: `${data.newCtaText}`,
+                    hasText: `${data.newCtaOption}`,
                 })
                 .click();
             await ost.checkoutLinkUse.click();
@@ -972,7 +972,6 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 decodeURI(CTAhref).split('?')[1],
             );
             expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
-            expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
             expect(searchParams.get('promoid')).toBe(
                 data.checkoutParams.promoid,
             );

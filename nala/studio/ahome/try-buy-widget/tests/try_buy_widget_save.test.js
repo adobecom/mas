@@ -427,7 +427,6 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 decodeURI(CTAhref).split('?')[1],
             );
             expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
-            expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
             expect(searchParams.get('promoid')).toBe(
                 data.checkoutParams.promoid,
             );

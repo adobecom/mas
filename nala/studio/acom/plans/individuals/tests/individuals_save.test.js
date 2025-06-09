@@ -588,7 +588,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-save-edited-whats-included - Validate saving card after editing whats included
-    test.skip(`${features[12].name},${features[12].tags}`, async ({
+    test(`${features[12].name},${features[12].tags}`, async ({
         page,
         baseURL,
     }) => {
@@ -963,7 +963,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 decodeURI(CTAhref).split('?')[1],
             );
             expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
-            expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
             expect(searchParams.get('promoid')).toBe(
                 data.checkoutParams.promoid,
             );

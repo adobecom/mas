@@ -12,6 +12,8 @@ function applyCollectionSettings(context) {
         plansSidenavTitle: '{{coll-plans-sidenav-title}}',
         resultText: '{{coll-result-text}}',
         resultsText: '{{coll-results-text}}',
+        resultMobileText: '{{coll-result-mobile-text}}',
+        resultsMobileText: '{{coll-results-mobile-text}}',
         searchResultText: '{{coll-search-result-text}}',
         searchResultsText: '{{coll-search-results-text}}',
         searchResultMobileText: '{{coll-search-result-mobile-text}}',

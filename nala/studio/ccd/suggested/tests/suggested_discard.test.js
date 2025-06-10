@@ -482,6 +482,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await editor.OSI).toBeVisible();
             await expect(await editor.tags).toBeVisible();
             await editor.OSIButton.click();
+            await ost.backButton.click();
+            await page.waitForTimeout(2000);
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.newosi);
             await ost.nextButton.click();

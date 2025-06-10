@@ -48,7 +48,7 @@ export default {
                 cardid: '2cf0ed0e-84ea-4bd4-8e89-ddf527a7a75b',
                 analyticsID: 'buy-now',
                 daaLL: 'buy-now-2',
-                daaLH: 'cces',
+                daaLH: 'ccsn',
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-2',
             },

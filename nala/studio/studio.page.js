@@ -194,16 +194,6 @@ export default class StudioPage {
                 const titleInput = this.page.locator('sp-dialog[variant="confirmation"] sp-textfield input');
                 await titleInput.fill('Cloned Fragment');
 
-                const osiButton = this.page.locator('sp-dialog[variant="confirmation"] #offerSelectorToolButtonOSI');
-                await osiButton.click();
-                await this.ost.backButton.click();
-                await this.page.waitForTimeout(2000);
-                await expect(await this.ost.searchField).toBeVisible();
-                await (await this.ost.nextButton).click();
-                await expect(await this.ost.priceUse).toBeVisible();
-                await this.ost.priceUse.click();
-                await this.page.waitForTimeout(500);
-
                 await this.page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Clone")').click();
 
                 // Wait for progress circle

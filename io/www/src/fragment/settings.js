@@ -1,8 +1,5 @@
 function applyPlansSettings(fragment, locale) {
-    fragment.settings = {
-        stockCheckboxLabel: '{{stock-checkbox-label}}',
-        stockOfferOsis: '',
-    };
+    fragment.settings = {};
     if (fragment?.fields?.showSecureLabel !== false) {
         fragment.settings.secureLabel = '{{secure-label}}';
     }

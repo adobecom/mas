@@ -199,7 +199,6 @@ export default class StudioPage {
                 await this.ost.backButton.click();
                 await this.page.waitForTimeout(2000);
                 await expect(await this.ost.searchField).toBeVisible();
-                await this.ost.searchField.fill('A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M');
                 await (await this.ost.nextButton).click();
                 await expect(await this.ost.priceUse).toBeVisible();
                 await this.ost.priceUse.click();

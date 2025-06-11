@@ -121,6 +121,13 @@ class MerchCardCollectionEditor extends LitElement {
         );
     }
 
+    get iconLight() {
+        return (
+            this.fragment?.fields?.find((f) => f.name === 'iconLight')
+                ?.values?.[0] || ''
+        );
+    }
+
     get fragment() {
         return this.fragmentStore?.get();
     }
@@ -815,11 +822,20 @@ class MerchCardCollectionEditor extends LitElement {
                     ></sp-textfield>
                 </div>
                 <div class="form-row">
-                    <sp-field-label for="icon">Icon</sp-field-label>
+                    <sp-field-label for="icon">Icon (dark)</sp-field-label>
                     <sp-textfield
                         id="icon"
                         data-field="icon"
                         .value=${this.icon}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="icon">Icon (light)</sp-field-label>
+                    <sp-textfield
+                        id="iconLight"
+                        data-field="iconLight"
+                        .value=${this.iconLight}
                         @input=${this.updateFragment}
                     ></sp-textfield>
                 </div>

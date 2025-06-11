@@ -812,7 +812,7 @@ class MerchCardCollectionEditor extends LitElement {
                 </div>
                 <div class="form-row">
                     <sp-field-label for="navigationLabel"
-                        >Navigation title</sp-field-label
+                        >Navigation label</sp-field-label
                     >
                     <sp-textfield
                         id="navigationLabel"

@@ -5,10 +5,29 @@ async function cleanupClonedCards() {
 
     try {
         const { chromium } = await import('@playwright/test');
+        const { existsSync } = await import('fs');
+        const authFilePath = './nala/.auth/user.json';
+        
+        // Launch browser without authentication
         const browser = await chromium.launch();
-        const context = await browser.newContext({
-            storageState: './nala/.auth/user.json',
-        });
+        let context;
+        
+        // Try to use auth file if it exists, but proceed without it if not
+        if (existsSync(authFilePath)) {
+            try {
+                context = await browser.newContext({
+                    storageState: authFilePath,
+                });
+                console.info('Using authentication from stored file');
+            } catch (authError) {
+                console.warn(`⚠️ Error loading auth file: ${authError.message}`);
+                context = await browser.newContext();
+            }
+        } else {
+            console.warn('⚠️ Auth file not found, proceeding without authentication');
+            context = await browser.newContext();
+        }
+        
         const page = await context.newPage();
 
         const baseURL =
@@ -20,6 +39,9 @@ async function cleanupClonedCards() {
         await page.waitForLoadState('domcontentloaded');
         await page.waitForTimeout(3000);
 
+        console.info('Attempting to clean up cloned cards (may not work without auth)');
+        
+        // Continue with cleanup attempt even without authentication
         const cleanupResult = await page.evaluate(() => {
             const repo = document.querySelector('mas-repository');
             if (!repo) {
@@ -57,6 +79,20 @@ async function cleanupClonedCards() {
 
             console.log(`Found ${fragments.length} cloned cards to clean up`);
 
+            // If we're not authenticated, just report what we found without attempting deletion
+            if (!document.cookie.includes('ims_sid') && !sessionStorage.getItem('masAccessToken')) {
+                return {
+                    success: true,
+                    notAuthenticated: true,
+                    foundCount: fragments.length,
+                    fragments: fragments.map((f) => ({
+                        id: f.id,
+                        createdAt: f.created.at,
+                        createdBy: f.created.by,
+                    })),
+                };
+            }
+
             const deletePromises = fragments.map((fragment) => {
                 console.log(`Deleting fragment: ${fragment.id}`);
                 return repo.aem.deleteFragment(fragment);
@@ -76,14 +112,32 @@ async function cleanupClonedCards() {
         });
 
         if (cleanupResult.success) {
-            console.info(
-                `✅ Successfully cleaned up ${cleanupResult.deletedCount} cloned cards`,
-            );
-            if (cleanupResult.deletedIds && cleanupResult.deletedIds.length > 0) {
+            if (cleanupResult.notAuthenticated) {
                 console.info(
-                    'Deleted card IDs:',
-                    cleanupResult.deletedIds.join(', '),
+                    `⚠️ Found ${cleanupResult.foundCount} cloned cards but couldn't delete them (not authenticated)`,
                 );
+                if (
+                    cleanupResult.fragments &&
+                    cleanupResult.fragments.length > 0
+                ) {
+                    console.info(
+                        'Cards that would be deleted:',
+                        cleanupResult.fragments.map(f => f.id).join(', '),
+                    );
+                }
+            } else {
+                console.info(
+                    `✅ Successfully cleaned up ${cleanupResult.deletedCount} cloned cards`,
+                );
+                if (
+                    cleanupResult.deletedIds &&
+                    cleanupResult.deletedIds.length > 0
+                ) {
+                    console.info(
+                        'Deleted card IDs:',
+                        cleanupResult.deletedIds.join(', '),
+                    );
+                }
             }
         } else {
             console.error(`❌ Cleanup failed: ${cleanupResult.error}`);

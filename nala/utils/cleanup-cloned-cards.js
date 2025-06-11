@@ -27,9 +27,30 @@ async function cleanupClonedCards(options = {}) {
     let browser;
     try {
         browser = await chromium.launch({ headless: true });
-        const context = await browser.newContext({
-            storageState: authFile,
-        });
+
+        let context;
+        const { existsSync } = await import('fs');
+
+        // Check if auth file exists and use it if available
+        if (existsSync(authFile)) {
+            try {
+                context = await browser.newContext({
+                    storageState: authFile,
+                });
+                console.log('Using authentication from stored file');
+            } catch (authError) {
+                console.warn(
+                    `⚠️ Error loading auth file: ${authError.message}`,
+                );
+                context = await browser.newContext();
+            }
+        } else {
+            console.warn(
+                '⚠️ Auth file not found, proceeding without authentication',
+            );
+            context = await browser.newContext();
+        }
+
         const page = await context.newPage();
 
         if (verbose) {
@@ -87,6 +108,24 @@ async function cleanupClonedCards(options = {}) {
                     `Found ${fragments.length} cloned cards to clean up`,
                 );
 
+                // Check authentication state
+                if (
+                    !document.cookie.includes('ims_sid') &&
+                    !sessionStorage.getItem('masAccessToken') &&
+                    !dryRun
+                ) {
+                    return {
+                        success: true,
+                        notAuthenticated: true,
+                        foundCount: fragments.length,
+                        fragments: fragments.map((f) => ({
+                            id: f.id,
+                            createdAt: f.created.at,
+                            createdBy: f.created.by,
+                        })),
+                    };
+                }
+
                 if (dryRun) {
                     return {
                         success: true,
@@ -121,7 +160,22 @@ async function cleanupClonedCards(options = {}) {
         );
 
         if (cleanupResult.success) {
-            if (cleanupResult.dryRun) {
+            if (cleanupResult.notAuthenticated) {
+                console.log(
+                    `⚠️ Found ${cleanupResult.foundCount} cloned cards but couldn't delete them (not authenticated)`,
+                );
+                if (
+                    cleanupResult.fragments &&
+                    cleanupResult.fragments.length > 0
+                ) {
+                    console.log(
+                        '\nCards that would need authentication to delete:',
+                    );
+                    cleanupResult.fragments.forEach((f) => {
+                        console.log(`  - ${f.id} (created: ${f.createdAt})`);
+                    });
+                }
+            } else if (cleanupResult.dryRun) {
                 console.log(
                     `🔍 DRY RUN: Found ${cleanupResult.foundCount} cloned cards that would be deleted`,
                 );
@@ -155,6 +209,7 @@ async function cleanupClonedCards(options = {}) {
                     `Attempted to clean ${cleanupResult.attemptedCount} cards`,
                 );
             }
+            // Only exit the process when run directly as a script
             if (import.meta.url === `file://${process.argv[1]}`) {
                 process.exit(1);
             }
@@ -166,6 +221,7 @@ async function cleanupClonedCards(options = {}) {
         if (verbose) {
             console.error(error.stack);
         }
+        // Only exit the process when run directly as a script
         if (import.meta.url === `file://${process.argv[1]}`) {
             process.exit(1);
         }
@@ -220,4 +276,4 @@ Examples:
     cleanupClonedCards(options);
 }
 
-export { cleanupClonedCards }; 
+export { cleanupClonedCards };

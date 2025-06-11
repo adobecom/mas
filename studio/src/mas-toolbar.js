@@ -291,6 +291,10 @@ class MasToolbar extends LitElement {
         >`;
     }
 
+    handleSelectionPanelClose() {
+        Store.selecting.set(false);
+    }
+
     render() {
         return html`<div id="toolbar">
                 <div id="actions">
@@ -299,7 +303,11 @@ class MasToolbar extends LitElement {
                 </div>
                 ${this.filtersPanel}${this.searchResultsLabel}
             </div>
-            <mas-selection-panel></mas-selection-panel>
+            <mas-selection-panel
+                ?open=${this.selecting.value}
+                .selectionStore=${Store.selection}
+                @close=${this.handleSelectionPanelClose}
+            ></mas-selection-panel>
             ${this.createDialogOpen
                 ? html`<mas-create-dialog
                       type=${this.selectedContentType}

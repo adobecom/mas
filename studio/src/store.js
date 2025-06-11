@@ -53,6 +53,7 @@ const Store = {
         },
     },
     confirmDialogOptions: new ReactiveStore(null),
+    showCloneDialog: new ReactiveStore(false),
 };
 
 // #region Validators

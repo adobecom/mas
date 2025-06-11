@@ -22,6 +22,7 @@ import {
     EDITABLE_FRAGMENT_MODEL_IDS,
     DICTIONARY_MODEL_ID,
     TAG_STATUS_DRAFT,
+    CARD_MODEL_PATH,
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 
@@ -197,6 +198,12 @@ export class MasRepository extends LitElement {
         return fragments;
     }
 
+    skipVariant(variants, item) {
+        const variant = item.fields.find((field) => field.name === 'variant')
+            ?.values?.[0];
+        return variants.length && !variants.includes(variant);
+    }
+
     async searchFragments() {
         if (this.page.value !== PAGE_NAMES.CONTENT) return;
 
@@ -205,6 +212,7 @@ export class MasRepository extends LitElement {
         const path = this.search.value.path;
         const dataStore = Store.fragments.list.data;
         const query = this.search.value.query;
+        const TAG_VARIANT_PREFIX = 'mas:variant/';
 
         let tags = [];
         if (this.filters.value.tags) {
@@ -226,7 +234,14 @@ export class MasRepository extends LitElement {
 
         if (modelIds.length === 0) modelIds = EDITABLE_FRAGMENT_MODEL_IDS;
 
-        tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE));
+        const variants = tags
+            .filter((tag) => tag.startsWith(TAG_VARIANT_PREFIX))
+            .map((tag) => tag.replace(TAG_VARIANT_PREFIX, ''));
+        tags = tags.filter(
+            (tag) =>
+                !tag.startsWith(TAG_STUDIO_CONTENT_TYPE) &&
+                !tag.startsWith(TAG_VARIANT_PREFIX),
+        );
 
         const damPath = getDamPath(path);
         const localSearch = {
@@ -288,6 +303,7 @@ export class MasRepository extends LitElement {
                 const fragmentStores = [];
                 for await (const result of cursor) {
                     for await (const item of result) {
+                        if (this.skipVariant(variants, item)) continue;
                         const fragment = await this.#addToCache(item);
                         fragmentStores.push(new FragmentStore(fragment));
                     }
@@ -412,8 +428,12 @@ export class MasRepository extends LitElement {
             .filter(([key, value]) => value !== undefined)
             .reduce(
                 (fields, [key, value]) => {
-                    const type = key === 'locReady' ? 'boolean' : 'text';
-                    fields.push({ name: key, type, values: [value] });
+                    if (key === 'tags') {
+                        fields.push({ name: key, type: 'tag', values: value });
+                    } else {
+                        const type = key === 'locReady' ? 'boolean' : 'text';
+                        fields.push({ name: key, type, values: [value] });
+                    }
                     return fields;
                 },
                 [...existingFields],
@@ -437,7 +457,13 @@ export class MasRepository extends LitElement {
                 fields,
                 parentPath: fragmentData.parentPath || this.parentPath,
             });
-            const fragment = await this.#addToCache(result);
+            let latest = await this.aem.sites.cf.fragments.getById(result.id);
+            if (fragmentData.data?.tags?.length) {
+                latest.newTags = fragmentData.data.tags;
+                await this.aem.saveTags(latest);
+                latest = await this.aem.sites.cf.fragments.getById(result.id);
+            }
+            const fragment = await this.#addToCache(latest);
 
             if (showSuccessToast) {
                 showToast('Fragment successfully created.', 'positive');
@@ -445,7 +471,11 @@ export class MasRepository extends LitElement {
 
             return fragment;
         } catch (error) {
-            this.processError(error, 'Failed to create fragment.');
+            if (error.message.includes(': 409')) {
+                throw error;
+            } else {
+                this.processError(error, 'Failed to create fragment.');
+            }
         } finally {
             this.operation.set(null);
         }
@@ -467,16 +497,23 @@ export class MasRepository extends LitElement {
 
     /**
      * Unified method to save a fragment (regular or dictionary)
-     * @param {Object} fragment - The fragment to save
+     * @param {FragmentStore} fragmentStore - The fragment to save
      * @returns {Promise<Object>} The saved fragment
      */
     async saveFragment(fragmentStore) {
         showToast('Saving fragment...');
+        const fragmentToSave = fragmentStore.get();
+        if (
+            fragmentToSave.model?.path === CARD_MODEL_PATH &&
+            !fragmentToSave.getFieldValue('osi')
+        ) {
+            showToast('Please select offer', 'negative');
+            return false;
+        }
         this.operation.set(OPERATIONS.SAVE);
         try {
-            const savedFragment = await this.aem.sites.cf.fragments.save(
-                fragmentStore.get(),
-            );
+            const savedFragment =
+                await this.aem.sites.cf.fragments.save(fragmentToSave);
             if (!savedFragment) throw new Error('Invalid fragment.');
             fragmentStore.refreshFrom(savedFragment);
             showToast('Fragment successfully saved.', 'positive');
@@ -492,13 +529,38 @@ export class MasRepository extends LitElement {
     /**
      * @returns {Promise<boolean>} Whether or not it was successful
      */
-    async copyFragment() {
+    async copyFragment(updatedTitle, osi, tags = []) {
         try {
             this.operation.set(OPERATIONS.CLONE);
             const result = await this.aem.sites.cf.fragments.copy(
                 this.fragmentInEdit,
             );
-            const newFragment = await this.#addToCache(result);
+            let savedResult = result;
+            if (
+                (updatedTitle && updatedTitle !== result.title) ||
+                tags.length
+            ) {
+                if (updatedTitle) result.title = updatedTitle;
+                if (tags.length) {
+                    result.fields.forEach((field) => {
+                        if (field.name === 'tags') {
+                            field.values = tags;
+                        }
+                        if (osi && field.name === 'osi') {
+                            field.values = [osi];
+                        }
+                    });
+                }
+                savedResult = await this.aem.sites.cf.fragments.save(result);
+            }
+            if (tags.length) {
+                savedResult.newTags = tags;
+                await this.aem.saveTags(savedResult);
+                savedResult = await this.aem.sites.cf.fragments.getById(
+                    savedResult.id,
+                );
+            }
+            const newFragment = await this.#addToCache(savedResult);
 
             const newFragmentStore = new FragmentStore(newFragment);
             Store.fragments.list.data.set((prev) => [

@@ -126,7 +126,7 @@ class MasContent extends LitElement {
         >
             <sp-table-head>
                 <sp-table-head-cell sortable class="name"
-                    >Name</sp-table-head-cell
+                    >Path</sp-table-head-cell
                 >
                 <sp-table-head-cell sortable class="title"
                     >Title</sp-table-head-cell

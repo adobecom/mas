@@ -155,7 +155,9 @@ async function cleanupClonedCards(options = {}) {
                     `Attempted to clean ${cleanupResult.attemptedCount} cards`,
                 );
             }
-            process.exit(1);
+            if (import.meta.url === `file://${process.argv[1]}`) {
+                process.exit(1);
+            }
         }
 
         return cleanupResult;
@@ -164,7 +166,10 @@ async function cleanupClonedCards(options = {}) {
         if (verbose) {
             console.error(error.stack);
         }
-        process.exit(1);
+        if (import.meta.url === `file://${process.argv[1]}`) {
+            process.exit(1);
+        }
+        return { success: false, error: error.message };
     } finally {
         if (browser) {
             await browser.close();

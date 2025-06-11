@@ -424,7 +424,12 @@ class RteField extends LitElement {
 
                 div.ProseMirror ul {
                     margin: 0;
-                    padding-left: 24px;
+                    padding-inline-start: 8px;
+                    list-style-type: '\u2022';
+
+                    & li {
+                        padding-inline-start: 8px;
+                    }
                 }
 
                 .ProseMirror {

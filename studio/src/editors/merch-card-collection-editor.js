@@ -107,9 +107,9 @@ class MerchCardCollectionEditor extends LitElement {
         );
     }
 
-    get navigationTitle() {
+    get navigationLabel() {
         return (
-            this.fragment?.fields?.find((f) => f.name === 'navigationTitle')
+            this.fragment?.fields?.find((f) => f.name === 'navigationLabel')
                 ?.values?.[0] || ''
         );
     }
@@ -371,7 +371,7 @@ class MerchCardCollectionEditor extends LitElement {
         if (itemWrapper) {
             itemWrapper.classList.remove('dragover');
         } else if (e.currentTarget === e.target) {
-            e.currentTarget.classList.remove('dragover');
+            e.currentTarget.classListn.remove('dragover');
         }
     }
 
@@ -811,13 +811,13 @@ class MerchCardCollectionEditor extends LitElement {
                     ></sp-textfield>
                 </div>
                 <div class="form-row">
-                    <sp-field-label for="navigationTitle"
+                    <sp-field-label for="navigationLabel"
                         >Navigation title</sp-field-label
                     >
                     <sp-textfield
-                        id="navigationTitle"
-                        data-field="navigationTitle"
-                        .value=${this.navigationTitle}
+                        id="navigationLabel"
+                        data-field="navigationLabel"
+                        .value=${this.navigationLabel}
                         @input=${this.updateFragment}
                     ></sp-textfield>
                 </div>

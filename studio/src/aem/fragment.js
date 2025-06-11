@@ -95,12 +95,19 @@ export class Fragment {
         this.fields
             .filter((field) => field.name === fieldName)
             .forEach((field) => {
+                //handles encoding of values for characters like ✓
+                const encodedValues = value.map((v) => {
+                    if (typeof v === 'string') {
+                        return v.normalize('NFC');
+                    }
+                    return v;
+                });
                 if (
-                    field.values.length === value.length &&
-                    field.values.every((v, index) => v === value[index])
+                    field.values.length === encodedValues.length &&
+                    field.values.every((v, index) => v === encodedValues[index])
                 )
                     return;
-                field.values = value;
+                field.values = encodedValues;
                 this.hasChanges = true;
                 change = true;
             });

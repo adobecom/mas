@@ -69,20 +69,6 @@ jobs:
           IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
           IMS_PASS: ${{ secrets.IMS_PASS }}
 
-      - name: Cleanup cloned cards
-        if: always()
-        run: node -e "
-          import('./nala/utils/global.teardown.js')
-            .then(module => module.default())
-            .catch(err => {
-              console.error('Cleanup failed:', err.message);
-              process.exit(0);
-            });"
-        env:
-          GITHUB_ACTION_PATH: ${{ github.workspace }}
-          IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
-          IMS_PASS: ${{ secrets.IMS_PASS }}
-
       - name: Upload screenshots
         uses: actions/upload-artifact@v4
         if: failure()

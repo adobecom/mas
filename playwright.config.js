@@ -9,7 +9,6 @@ const config = {
     testDir: './nala',
     outputDir: './test-results',
     globalSetup: './nala/utils/global.setup.js',
-    globalTeardown: './nala/utils/global.teardown.js',
     /* Maximum time one test can run for. */
     timeout: 45 * 1000,
     expect: {

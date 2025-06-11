@@ -87,6 +87,7 @@ test.describe('M@S Studio feature test suite', () => {
         await test.step('step-2: Validate search field rendered', async () => {
             await expect(await studio.searchInput).toBeVisible();
             await expect(await studio.searchIcon).toBeVisible();
+            await page.waitForTimeout(3000);
             await expect(await studio.renderView).toBeVisible();
             const cards = await studio.renderView.locator('merch-card');
             expect(await cards.count()).toBeGreaterThan(1);

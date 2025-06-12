@@ -24,12 +24,7 @@ application:
             runtime: nodejs:22
             annotations:
               require-adobe-auth: false
-          ost-products-wow:
-            function: src/ost-products/read.js
-            web: 'yes'
-            runtime: nodejs:22
-            annotations:
-              require-adobe-auth: false
+
 
 
               

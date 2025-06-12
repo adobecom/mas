@@ -719,6 +719,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 new RegExp(`${data.planTypeTag}`),
             );
             await editor.OSIButton.click();
+            await ost.backButton.click();
+            await page.waitForTimeout(2000);
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.newosi);
             await (await ost.nextButton).click();
@@ -905,7 +907,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-edit-whats-included - Validate edit whats included for plans individuals card in mas studio
-    test.skip(`${features[14].name},${features[14].tags}`, async ({
+    test(`${features[14].name},${features[14].tags}`, async ({
         page,
         baseURL,
     }) => {
@@ -1439,7 +1441,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 await ost.ctaTextMenu.click();
                 await expect(
                     page.locator('div[role="option"]', {
-                        hasText: `${data.newCtaText}`,
+                        hasText: `${data.newCtaOption}`,
                     }),
                 ).toBeVisible({
                     timeout: 500,
@@ -1447,7 +1449,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             }).toPass();
             await page
                 .locator('div[role="option"]', {
-                    hasText: `${data.newCtaText}`,
+                    hasText: `${data.newCtaOption}`,
                 })
                 .click();
             await ost.checkoutLinkUse.click();

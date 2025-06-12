@@ -1,8 +1,10 @@
 import { expect } from '@playwright/test';
+import OSTPage from './ost.page';
 
 export default class StudioPage {
     constructor(page) {
         this.page = page;
+        this.ost = new OSTPage(page);
 
         this.quickActions = page.locator('.quick-actions');
         this.recentlyUpdated = page.locator('.recently-updated');
@@ -10,8 +12,8 @@ export default class StudioPage {
             '.quick-action-card[heading="Go to Content"]',
         );
 
-        this.searchInput = page.locator('sp-search  input');
-        this.searchIcon = page.locator('sp-search sp-icon-magnify');
+        this.searchInput = page.locator('#actions sp-search  input');
+        this.searchIcon = page.locator('#actions sp-search[placeholder="Search"] sp-icon-magnify');
         this.filter = page.locator('sp-action-button[label="Filter"]');
         this.folderPicker = page.locator('mas-folder-picker sp-action-menu');
         this.renderView = page.locator('#render');
@@ -181,6 +183,18 @@ export default class StudioPage {
                 await this.page.waitForTimeout(500);
 
                 await this.cloneCardButton.click({ force: true });
+
+                // Wait for fragment title dialog and enter title
+                await this.page.waitForSelector('sp-dialog[variant="confirmation"]', {
+                    state: 'visible',
+                    timeout: 5000,
+                });
+                
+                // Enter fragment title
+                const titleInput = this.page.locator('sp-dialog[variant="confirmation"] sp-textfield input');
+                await titleInput.fill('Cloned Fragment');
+
+                await this.page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Clone")').click();
 
                 // Wait for progress circle
                 await this.page

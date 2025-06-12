@@ -1,0 +1,1078 @@
+[
+    {
+        "offer_id": "0036F201A9B572E8B788C7B7C6F2F8A2",
+        "spec_id": "18a0d52d-cb49-4be6-a70e-4b29b83b31fa",
+        "offer_type": "BASE",
+        "price_point": "REGULAR",
+        "commitment": "YEAR",
+        "term": "ANNUAL",
+        "product_code": "STKS",
+        "product_arrangement_code": "stks_direct_indirect_team",
+        "customer_segment": "TEAM",
+        "sales_channel": "INDIRECT",
+        "language": "MULT",
+        "platform": "Mac/Win",
+        "merchant": "ADOBE",
+        "market_segments": [
+            "EDU"
+        ],
+        "buying_program": "VIP",
+        "customer_ui": [
+            "rc_available_offers",
+            "aac_overview",
+            "aac_products"
+        ],
+        "countries": [
+            "AD",
+            "AE",
+            "AF",
+            "AG",
+            "AL",
+            "AM",
+            "AO",
+            "AR",
+            "AS",
+            "AT",
+            "AU",
+            "AW",
+            "AZ",
+            "BA",
+            "BB",
+            "BD",
+            "BE",
+            "BF",
+            "BG",
+            "BH",
+            "BI",
+            "BJ",
+            "BM",
+            "BN",
+            "BO",
+            "BQ",
+            "BR",
+            "BS",
+            "BT",
+            "BW",
+            "BY",
+            "BZ",
+            "CA",
+            "CD",
+            "CF",
+            "CG",
+            "CH",
+            "CI",
+            "CK",
+            "CL",
+            "CM",
+            "CO",
+            "CR",
+            "CV",
+            "CX",
+            "CY",
+            "CZ",
+            "DE",
+            "DJ",
+            "DK",
+            "DM",
+            "DO",
+            "DZ",
+            "EC",
+            "EE",
+            "EG",
+            "EH",
+            "ER",
+            "ES",
+            "ET",
+            "FI",
+            "FJ",
+            "FK",
+            "FM",
+            "FO",
+            "FR",
+            "GA",
+            "GB",
+            "GD",
+            "GE",
+            "GF",
+            "GH",
+            "GI",
+            "GL",
+            "GM",
+            "GN",
+            "GP",
+            "GQ",
+            "GR",
+            "GT",
+            "GU",
+            "GW",
+            "HK",
+            "HN",
+            "HR",
+            "HT",
+            "HU",
+            "ID",
+            "IE",
+            "IL",
+            "IN",
+            "IQ",
+            "IS",
+            "IT",
+            "JM",
+            "JO",
+            "JP",
+            "KE",
+            "KG",
+            "KH",
+            "KI",
+            "KM",
+            "KN",
+            "KR",
+            "KV",
+            "KW",
+            "KY",
+            "KZ",
+            "LA",
+            "LB",
+            "LC",
+            "LI",
+            "LK",
+            "LR",
+            "LS",
+            "LT",
+            "LU",
+            "LV",
+            "LY",
+            "MA",
+            "MC",
+            "MD",
+            "ME",
+            "MG",
+            "MH",
+            "MK",
+            "ML",
+            "MM",
+            "MN",
+            "MO",
+            "MP",
+            "MQ",
+            "MR",
+            "MS",
+            "MT",
+            "MU",
+            "MV",
+            "MW",
+            "MX",
+            "MY",
+            "MZ",
+            "NA",
+            "NC",
+            "NE",
+            "NF",
+            "NG",
+            "NI",
+            "NL",
+            "NO",
+            "NP",
+            "NR",
+            "NU",
+            "NZ",
+            "OM",
+            "PA",
+            "PE",
+            "PF",
+            "PG",
+            "PH",
+            "PK",
+            "PL",
+            "PM",
+            "PR",
+            "PS",
+            "PT",
+            "PY",
+            "QA",
+            "RE",
+            "RO",
+            "RS",
+            "RU",
+            "RW",
+            "SA",
+            "SB",
+            "SC",
+            "SE",
+            "SG",
+            "SH",
+            "SI",
+            "SJ",
+            "SK",
+            "SL",
+            "SM",
+            "SN",
+            "SO",
+            "SR",
+            "SS",
+            "ST",
+            "SV",
+            "SZ",
+            "TC",
+            "TD",
+            "TG",
+            "TH",
+            "TJ",
+            "TK",
+            "TL",
+            "TM",
+            "TN",
+            "TO",
+            "TR",
+            "TT",
+            "TV",
+            "TW",
+            "TZ",
+            "UA",
+            "UG",
+            "US",
+            "UY",
+            "UZ",
+            "VA",
+            "VC",
+            "VE",
+            "VG",
+            "VI",
+            "VU",
+            "WF",
+            "WS",
+            "YE",
+            "YT",
+            "ZA",
+            "ZM",
+            "ZW",
+            "VN",
+            "AI",
+            "AN",
+            "AQ",
+            "CC",
+            "CS",
+            "GS",
+            "GY",
+            "IO",
+            "PN",
+            "UM"
+        ],
+        "product_arrangement_v2": {
+            "id": "nfyNip-UULFH9OKOT__Z-zzr4k_NzyMK26qL3kWshfQ",
+            "code": "stks_direct_indirect_team",
+            "family": "STOCK_SUBSCRIPTION_PLAN",
+            "cloud": "CREATIVE",
+            "type": "BASE",
+            "administrable_items": {
+                "stks_direct_indirect_team_default": {
+                    "code": "stks_direct_indirect_team_default",
+                    "enabled": true,
+                    "fulfillable_items": {
+                        "firefly_limited_taste": {
+                            "id": "c8da5f5f-23f3-43e3-a635-b71a79ea5b1a",
+                            "code": "firefly_limited_taste",
+                            "type": "QUOTA",
+                            "fulfillment_configurable": false,
+                            "delegation_configurable": false,
+                            "charging_model": {
+                                "model": "RECURRING",
+                                "overage": "NA",
+                                "rollover": 0
+                            },
+                            "api_access": false,
+                            "off_by_default": false,
+                            "enabled": true,
+                            "feature_sets": {
+                                "premium": {
+                                    "id": "premium",
+                                    "label": "Premium",
+                                    "enabled": true
+                                },
+                                "ff_lvl_10_single_app": {
+                                    "id": "ff_lvl_10_single_app",
+                                    "label": "Ff Lvl 10 Single App",
+                                    "enabled": true
+                                }
+                            }
+                        },
+                        "purchase_auth_allowed": {
+                            "id": "2dfed6e7-3ccc-43c8-be15-d41ac91f4618",
+                            "code": "purchase_auth_allowed",
+                            "type": "FEATURE",
+                            "fulfillment_configurable": false,
+                            "delegation_configurable": false,
+                            "charging_model": {
+                                "model": "RECURRING",
+                                "overage": "NA",
+                                "rollover": 0
+                            },
+                            "api_access": false,
+                            "off_by_default": false,
+                            "enabled": true
+                        },
+                        "stock_image": {
+                            "id": "4ae52cac-66c8-4f1d-9988-2b90e75543c4",
+                            "code": "stock_image",
+                            "type": "QUOTA",
+                            "fulfillment_configurable": false,
+                            "delegation_configurable": false,
+                            "charging_model": {
+                                "model": "RECURRING",
+                                "cap": 10,
+                                "unit": "image",
+                                "overage": "NONE",
+                                "rollover": 12
+                            },
+                            "api_access": false,
+                            "off_by_default": false,
+                            "enabled": true
+                        },
+                        "firefly_credits": {
+                            "id": "63e374de-a717-47b3-9efc-78c528dd8e4e",
+                            "code": "firefly_credits",
+                            "type": "QUOTA",
+                            "fulfillment_configurable": false,
+                            "delegation_configurable": false,
+                            "charging_model": {
+                                "model": "RECURRING",
+                                "cap": 500,
+                                "unit": "GENERATIVE CREDITS",
+                                "overage": "NA",
+                                "rollover": 0
+                            },
+                            "api_access": false,
+                            "off_by_default": false,
+                            "enabled": true,
+                            "feature_sets": {
+                                "premium": {
+                                    "id": "premium",
+                                    "label": "Premium",
+                                    "enabled": true
+                                },
+                                "soft_capped": {
+                                    "id": "soft_capped",
+                                    "label": "Soft Capped",
+                                    "enabled": true
+                                },
+                                "standard_credits": {
+                                    "id": "standard_credits",
+                                    "label": "Standard Credits",
+                                    "enabled": true
+                                },
+                                "ff_lvl_10_single_app": {
+                                    "id": "ff_lvl_10_single_app",
+                                    "label": "Ff Lvl 10 Single App",
+                                    "enabled": true
+                                }
+                            }
+                        },
+                        "grace_allowed": {
+                            "id": "7a46bd7f-4123-4e38-bab5-1d4326525791",
+                            "code": "grace_allowed",
+                            "type": "FEATURE",
+                            "fulfillment_configurable": false,
+                            "delegation_configurable": false,
+                            "charging_model": {
+                                "model": "RECURRING",
+                                "overage": "NA",
+                                "rollover": 0
+                            },
+                            "api_access": false,
+                            "off_by_default": false,
+                            "enabled": true
+                        }
+                    }
+                }
+            }
+        },
+        "merchandising": {
+            "code": "stks_direct_indirect_team",
+            "copy": {
+                "name": "Adobe Stock \u2013 10 assets a month",
+                "short_name": "Adobe Stock \u2013 10 assets a month",
+                "description": "Access millions of high-quality, royalty-free images, templates, and 3D assets\u2014all built right into your favorite Adobe Creative Cloud apps. Adobe Stock lets your creatives find the perfect asset quickly with search powered by Adobe Sensei. Rollover included up to 120 unused licenses.",
+                "short_description": "Access millions of high-quality, royalty-free images, templates, and 3D assets. Rollover included.",
+                "item_descriptor": "Adobe",
+                "market_segment_name": "Adobe Stock \u2013 10 assets a month",
+                "market_segment_description": "Access millions of high-quality, royalty-free images, templates, and 3D assets\u2014all built right into your favorite Adobe Creative Cloud apps. Adobe Stock lets your creatives find the perfect asset quickly with search powered by Adobe Sensei. Rollover included up to 120 unused licenses.",
+                "market_segment_short_description": "Access millions of high-quality, royalty-free images, templates, and 3D assets. Rollover included.",
+                "tags": [
+                    "Photo",
+                    "Graphic Design",
+                    "Illustration",
+                    "UI and UX"
+                ],
+                "internal_name": "Adobe Stock \u2013 10 assets a month"
+            },
+            "assets": {
+                "icons": {
+                    "48x48": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/48x48/st_appicon_noshadow_48x48.png",
+                    "16x16": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/16x16/st_appicon_16x16.png",
+                    "svg": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/svg/st_appicon.svg",
+                    "128x128": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/128x128/st_appicon_128x128.png"
+                },
+                "background_images": {
+                    "80x80": "https://mcs.odin.adobe.com/content/dam/mcs/en/backgroundImages/raw/80x80/AdobeStock_96012516@1x.jpg",
+                    "160x160": "https://mcs.odin.adobe.com/content/dam/mcs/en/backgroundImages/raw/160x160/AdobeStock_96012516@2x.jpg"
+                }
+            },
+            "fulfillable_items": [
+                {
+                    "code": "firefly_limited_taste",
+                    "assets": {
+                        "icons": {
+                            "48x48": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/firefly_appicon_Jan2025_48.png",
+                            "16x16": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/firefly_appicon_Jan2025_16.png",
+                            "svg": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/firefly_appicon_Jan2025_256.svg",
+                            "128x128": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/firefly_appicon_Jan2025_128.png"
+                        }
+                    },
+                    "copy": {
+                        "name": "Firefly limited taste",
+                        "enterprise_name": "Firefly limited taste",
+                        "description": "Provides access to certain workflows powered by Adobe Firefly. Adobe Firefly is a family of creative generative AI models powering some of Adobe's generative AI features. Firefly will drive real content workflows used by creators of all levels.",
+                        "short_description": "Provides access to certain workflows powered by Adobe Firefly.  Adobe Firefly is a family of creative generative AI models powering some of Adobe's generative AI features."
+                    },
+                    "metadata": {
+                        "content_fragment_path": "/content/dam/mcs/en/entitlement/cf-entitlement-b9ffb9fa-941d-4709-9e6b-39f2a1bfa7fc"
+                    }
+                },
+                {
+                    "code": "purchase_auth_allowed",
+                    "assets": {},
+                    "copy": {
+                        "name": "Purchase Authorization Allowed",
+                        "enterprise_name": "Purchase Authorization Allowed",
+                        "description": "Allow the creation of Purchase Authorization (PA). A PA implies a commitment to place and order with Adobe.",
+                        "short_description": "Allow the creation of Purchase Authorization (PA). A PA implies a commitment to place and order with Adobe."
+                    },
+                    "metadata": {
+                        "content_fragment_path": "/content/dam/mcs/en/entitlement/cf-entitlement-7e21ec72-2c5a-4fc3-b4b6-60707cdfeee8"
+                    }
+                },
+                {
+                    "code": "firefly_credits",
+                    "assets": {
+                        "icons": {
+                            "48x48": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/firefly_appicon_Jan2025_48.png",
+                            "16x16": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/firefly_appicon_Jan2025_16.png",
+                            "svg": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/firefly_appicon_Jan2025_256.svg",
+                            "128x128": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/firefly_appicon_Jan2025_128.png"
+                        }
+                    },
+                    "copy": {
+                        "name": "Adobe Firefly",
+                        "enterprise_name": "Adobe Firefly",
+                        "description": "Provides access to certain workflows powered by Adobe Firefly. Adobe Firefly is a family of creative generative AI models powering some of Adobe's generative AI features. Firefly will drive real content workflows used by creators of all levels.",
+                        "short_description": "Provides access to certain workflows powered by Adobe Firefly.  Adobe Firefly is a family of creative generative AI models powering some of Adobe's generative AI features.",
+                        "units": {
+                            "default": "generative credits"
+                        }
+                    },
+                    "metadata": {
+                        "content_fragment_path": "/content/dam/mcs/en/entitlement/cf-entitlement-5c29c2f2-1925-4035-83c8-282e3a0a1524"
+                    }
+                },
+                {
+                    "code": "grace_allowed",
+                    "assets": {},
+                    "copy": {
+                        "name": "Grace Allowed",
+                        "enterprise_name": "Grace Allowed",
+                        "description": "If a Purchase Authorization is allowed, then a grace period is allowed. VIP Members shall place Product orders with their Account Manager within 30 days after the Purchase Authorization Date, with payment being calculated from the Purchase Authorization Date.",
+                        "short_description": "If a Purchase Authorization is allowed, then a grace period is allowed. VIP Members shall place Product orders with their Account Manager within 30 days after the Purchase Authorization Date, with payment being calculated from the Purchase Authorization Date."
+                    },
+                    "metadata": {
+                        "content_fragment_path": "/content/dam/mcs/en/entitlement/cf-entitlement-ed232e77-77a0-47b2-aa01-3db7b5c3f9f1"
+                    }
+                },
+                {
+                    "code": "stock_image",
+                    "assets": {
+                        "icons": {
+                            "48x48": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/48x48/st_appicon_noshadow_48x48.png",
+                            "16x16": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/16x16/st_appicon_16x16.png",
+                            "svg": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/svg/st_appicon.svg",
+                            "128x128": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/128x128/st_appicon_128x128.png"
+                        }
+                    },
+                    "copy": {
+                        "name": "Adobe Stock Images",
+                        "enterprise_name": "Adobe Stock Images",
+                        "description": "Adobe Stock Images may be used to license any standard images.",
+                        "short_description": "Adobe Stock Images may be used to license any standard images."
+                    },
+                    "metadata": {
+                        "content_fragment_path": "/content/dam/mcs/en/entitlement/cf-entitlement-b170ab4f-8b91-4445-b943-73c6a691766d"
+                    }
+                }
+            ],
+            "links": {
+                "provisioned_user": [
+                    {
+                        "href": "https://stock.adobe.com"
+                    }
+                ],
+                "getting_started": [
+                    {
+                        "href": "https://www.adobe.com/go/search_adobe_stock",
+                        "text": "Getting Started"
+                    }
+                ],
+                "getting_started_template": [
+                    {
+                        "href": "https://productrouter.adobe.com/?orderId={{orderId}}&workflow={{workflow}}&context={{checkoutContext}}&cloud={{cloud}}&role={{role}}",
+                        "text": "Getting Started"
+                    }
+                ]
+            },
+            "misc": {
+                "plan_type": "Annual plan, prepaid",
+                "license_type": "Subscription"
+            },
+            "context": "default",
+            "metadata": {
+                "content_fragment_path": "/content/dam/mcs/en/product/cf-product-f8ecff73-d689-4064-b45a-9fa2aaf52cb6"
+            }
+        },
+        "payment_structure": "PAID_IN_ADVANCE",
+        "qualifiers": [
+            {
+                "target": "STANDARD",
+                "validation_point": "AT_PURCHASE"
+            }
+        ],
+        "product_arrangement_version_id": "nfyNip-UULFH9OKOT__Z-zzr4k_NzyMK26qL3kWshfQ"
+    },
+    {
+        "offer_id": "003D847E3426E53E63E033611D91A052",
+        "spec_id": "b5a6eb89-c516-43e3-8ec3-71102d52cf09",
+        "offer_type": "BASE",
+        "price_point": "REGULAR",
+        "commitment": "YEAR",
+        "term": "ANNUAL",
+        "product_code": "ECHG",
+        "product_arrangement_code": "PA-263",
+        "customer_segment": "ENTERPRISE",
+        "sales_channel": "INDIRECT",
+        "language": "MULT",
+        "platform": "Mac/Win",
+        "merchant": "ADOBE",
+        "market_segments": [
+            "GOV"
+        ],
+        "buying_program": "VIP",
+        "customer_ui": [
+            "aac_products",
+            "aac_overview"
+        ],
+        "countries": [
+            "BQ",
+            "CA",
+            "GU",
+            "MP",
+            "MX",
+            "PR",
+            "UM",
+            "US",
+            "VI"
+        ],
+        "product_arrangement_v2": {
+            "id": "wp5T7Tm2UiwhHLbab1O-9sobdTzffShs-GvmikhcDaY",
+            "code": "PA-263",
+            "family": "SIGN",
+            "cloud": "DOCUMENT",
+            "type": "BASE",
+            "administrable_items": {
+                "echg-transaction-azure": {
+                    "code": "echg-transaction-azure",
+                    "enabled": true,
+                    "fulfillable_items": {
+                        "domain_claiming": {
+                            "id": "a82ce4b1-5190-43da-b294-8e054e7bd2c3",
+                            "code": "domain_claiming",
+                            "type": "FEATURE",
+                            "fulfillment_configurable": false,
+                            "delegation_configurable": false,
+                            "charging_model": {
+                                "model": "RECURRING",
+                                "overage": "NA"
+                            },
+                            "api_access": false,
+                            "off_by_default": false,
+                            "enabled": true
+                        },
+                        "license_group_member_configuration": {
+                            "id": "cd3af3f5-e785-40dc-b650-0d47b21e66bc",
+                            "code": "license_group_member_configuration",
+                            "type": "FEATURE",
+                            "fulfillment_configurable": false,
+                            "delegation_configurable": false,
+                            "charging_model": {
+                                "model": "ON_DEMAND",
+                                "overage": "NA",
+                                "rollover": 0
+                            },
+                            "api_access": false,
+                            "off_by_default": false,
+                            "enabled": true
+                        },
+                        "user_sync": {
+                            "id": "c100d08d-b5ee-4ee2-9bf3-eb45c1d1a062",
+                            "code": "user_sync",
+                            "type": "FEATURE",
+                            "fulfillment_configurable": false,
+                            "delegation_configurable": false,
+                            "charging_model": {
+                                "model": "RECURRING",
+                                "overage": "NA"
+                            },
+                            "api_access": false,
+                            "off_by_default": false,
+                            "enabled": true
+                        },
+                        "acom_esign": {
+                            "id": "c6a13d1e-0bba-42ba-bc80-8c018122ebc4",
+                            "code": "acom_esign",
+                            "type": "SERVICE",
+                            "fulfillment_configurable": false,
+                            "delegation_configurable": false,
+                            "charging_model": {
+                                "model": "RECURRING",
+                                "overage": "NA"
+                            },
+                            "api_access": false,
+                            "off_by_default": false,
+                            "enabled": true,
+                            "feature_sets": {
+                                "SL_ACOM_W_20": {
+                                    "id": "SL_ACOM_W_20",
+                                    "label": "SL ACOM W 20",
+                                    "enabled": true
+                                },
+                                "CloudProv_AZURE": {
+                                    "id": "CloudProv_AZURE",
+                                    "label": "CloudProv AZURE",
+                                    "enabled": true
+                                }
+                            },
+                            "fulfillment_parameters": {
+                                "deselected_by_default": {
+                                    "type": "BOOLEAN",
+                                    "offer_creation_configurable": true,
+                                    "fulfillment_configurable": false,
+                                    "required": true,
+                                    "unrestricted": false,
+                                    "default": false
+                                }
+                            }
+                        },
+                        "total_sign_transactions": {
+                            "id": "df5874cc-bd21-4786-b29f-e4f053ac21d8",
+                            "code": "total_sign_transactions",
+                            "type": "QUOTA",
+                            "fulfillment_configurable": true,
+                            "delegation_configurable": false,
+                            "charging_model": {
+                                "model": "RECURRING",
+                                "cap": 5000,
+                                "unit": "transactions",
+                                "overage": "NONE"
+                            },
+                            "api_access": false,
+                            "off_by_default": false,
+                            "enabled": true
+                        },
+                        "overdelegation_allowed": {
+                            "id": "f259fa5f-8164-460a-b1da-ec2938a71327",
+                            "code": "overdelegation_allowed",
+                            "type": "FEATURE",
+                            "fulfillment_configurable": false,
+                            "delegation_configurable": false,
+                            "charging_model": {
+                                "model": "RECURRING",
+                                "overage": "NONE"
+                            },
+                            "api_access": false,
+                            "off_by_default": false,
+                            "enabled": true
+                        },
+                        "asset_sharing_policy_config": {
+                            "id": "2df4b32d-2f8c-4479-bf97-b37ef9c60b6b",
+                            "code": "asset_sharing_policy_config",
+                            "type": "FEATURE",
+                            "fulfillment_configurable": false,
+                            "delegation_configurable": false,
+                            "charging_model": {
+                                "model": "RECURRING",
+                                "overage": "NA"
+                            },
+                            "api_access": false,
+                            "off_by_default": false,
+                            "enabled": true
+                        },
+                        "user_group_assignment": {
+                            "id": "b28a9e2d-729f-40c1-8747-feb4fc0de473",
+                            "code": "user_group_assignment",
+                            "type": "FEATURE",
+                            "fulfillment_configurable": false,
+                            "delegation_configurable": false,
+                            "charging_model": {
+                                "model": "RECURRING",
+                                "overage": "NA"
+                            },
+                            "api_access": false,
+                            "off_by_default": false,
+                            "enabled": true
+                        },
+                        "data_encryption": {
+                            "id": "9bedb92b-8e42-402a-9bc5-6f9248f336f8",
+                            "code": "data_encryption",
+                            "type": "FEATURE",
+                            "fulfillment_configurable": false,
+                            "delegation_configurable": false,
+                            "charging_model": {
+                                "model": "RECURRING",
+                                "overage": "NA"
+                            },
+                            "api_access": false,
+                            "off_by_default": false,
+                            "enabled": true
+                        },
+                        "support_role_assignment_allowed": {
+                            "id": "7a62ad56-9754-4872-9906-a779e4a62b64",
+                            "code": "support_role_assignment_allowed",
+                            "type": "FEATURE",
+                            "fulfillment_configurable": false,
+                            "delegation_configurable": false,
+                            "charging_model": {
+                                "model": "RECURRING",
+                                "overage": "NA"
+                            },
+                            "api_access": false,
+                            "off_by_default": false,
+                            "enabled": true
+                        },
+                        "support_case_creation_allowed": {
+                            "id": "8200268d-af6a-4d86-acef-fd7a6954869a",
+                            "code": "support_case_creation_allowed",
+                            "type": "FEATURE",
+                            "fulfillment_configurable": false,
+                            "delegation_configurable": false,
+                            "charging_model": {
+                                "model": "RECURRING",
+                                "overage": "NA"
+                            },
+                            "api_access": false,
+                            "off_by_default": false,
+                            "enabled": true
+                        },
+                        "native_adobe_sign_web_experience": {
+                            "id": "c9cbb531-50b6-4921-a91f-1afdcfb0c8a5",
+                            "code": "native_adobe_sign_web_experience",
+                            "type": "FEATURE",
+                            "fulfillment_configurable": false,
+                            "delegation_configurable": false,
+                            "charging_model": {
+                                "model": "RECURRING",
+                                "overage": "NA",
+                                "rollover": 0
+                            },
+                            "api_access": false,
+                            "off_by_default": false,
+                            "enabled": true
+                        }
+                    }
+                }
+            }
+        },
+        "merchandising": {
+            "code": "PA-263",
+            "copy": {
+                "name": "Acrobat Sign Solutions for enterprise Subscription Azure - up to 5K",
+                "short_name": "Acrobat Sign Solutions for enterprise Subscription Azure - up to 5K",
+                "description": "Deliver 100% digital workflows with legal, trusted electronic signatures. Adobe Acrobat Sign Solutions for enterprise includes all Adobe Acrobat Sign Solutions for business features plus prebuilt integrations for rapid deployment with enterprise apps",
+                "short_description": "Deliver 100% digital workflows with legal, trusted electronic signatures. Adobe Acrobat Sign Solutions for enterprise includes all Adobe Acrobat Sign Solutions for business features plus prebuilt integrations for rapid deployment with enterprise apps",
+                "item_descriptor": "Adobe",
+                "market_segment_name": "Acrobat Sign Solutions for enterprise Subscription Azure - up to 5K",
+                "market_segment_description": "Deliver 100% digital workflows with legal, trusted electronic signatures. Adobe Acrobat Sign Solutions for enterprise includes all Adobe Acrobat Sign Solutions for business features plus prebuilt integrations for rapid deployment with enterprise apps",
+                "market_segment_short_description": "Deliver 100% digital workflows with legal, trusted electronic signatures. Adobe Acrobat Sign Solutions for enterprise includes all Adobe Acrobat Sign Solutions for business features plus prebuilt integrations for rapid deployment with enterprise apps",
+                "internal_name": "Acrobat Sign Solutions for enterprise Subscription Azure - up to 5K"
+            },
+            "assets": {
+                "icons": {
+                    "48x48": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/48x48/adobe_sign_appicon_noshadow_48x48.png",
+                    "16x16": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/16x16/adobe_sign_appicon_16x16.png",
+                    "svg": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/svg/adobe_sign_appicon_256.svg",
+                    "128x128": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/128x128/adobe_sign_appicon_128x128.png"
+                }
+            },
+            "fulfillable_items": [
+                {
+                    "code": "asset_sharing_policy_config",
+                    "assets": {},
+                    "copy": {
+                        "name": "Asset Sharing",
+                        "enterprise_name": "Asset Sharing",
+                        "description": "Ability to define restriction policies for sharing of assets with other users",
+                        "short_description": "Ability to define restriction policies for sharing of assets with other users"
+                    },
+                    "metadata": {
+                        "content_fragment_path": "/content/dam/mcs/en/entitlement/cf-entitlement-b12652e3-e28b-4920-99ec-4e9abddf1744"
+                    }
+                },
+                {
+                    "code": "user_group_assignment",
+                    "assets": {
+                        "icons": {
+                            "48x48": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/48x48/marketing_cloud_appicon_noshadow_48x48.png",
+                            "16x16": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/16x16/marketing_cloud_appicon_16x16.png",
+                            "svg": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/svg/marketing_cloud_appicon.svg",
+                            "128x128": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/128x128/marketing_cloud_appicon_128x128.png"
+                        }
+                    },
+                    "copy": {
+                        "name": "User Group Assignment",
+                        "enterprise_name": "User Group Assignment",
+                        "description": "Tied to the PLC creation problem in that teams cannot do this yet.",
+                        "short_description": "Tied to the PLC creation problem in that teams cannot do this yet."
+                    },
+                    "metadata": {
+                        "content_fragment_path": "/content/dam/mcs/en/entitlement/cf-entitlement-85af0f21-f843-4d06-9011-5efbe5a991ff"
+                    }
+                },
+                {
+                    "code": "support_role_assignment_allowed",
+                    "assets": {},
+                    "copy": {
+                        "name": "Support Role Assignment Allowed",
+                        "enterprise_name": "Support Role Assignment Allowed",
+                        "description": "Controls whether or not One Console administrators are allowed to create support admin roles for this product",
+                        "short_description": "Controls whether or not One Console administrators are allowed to create support admin roles for this product"
+                    },
+                    "metadata": {
+                        "content_fragment_path": "/content/dam/mcs/en/entitlement/cf-entitlement-64529545-7906-41a8-9fbf-dcb33560c8e2"
+                    }
+                },
+                {
+                    "code": "native_adobe_sign_web_experience",
+                    "assets": {
+                        "icons": {
+                            "48x48": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/48x48/adobe_sign_appicon_noshadow_48x48.png",
+                            "16x16": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/16x16/adobe_sign_appicon_16x16.png",
+                            "svg": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/svg/adobe_sign_appicon_256.svg",
+                            "128x128": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/128x128/adobe_sign_appicon_128x128.png"
+                        }
+                    },
+                    "copy": {
+                        "name": "Native Adobe Sign Web Experience",
+                        "enterprise_name": "Native Adobe Sign Web Experience",
+                        "description": "Determines whether the customer will have access to the native Adobe Sign web interface",
+                        "short_description": "Determines whether the customer will have access to the native Adobe Sign web interface"
+                    },
+                    "metadata": {
+                        "content_fragment_path": "/content/dam/mcs/en/entitlement/cf-entitlement-58456131-55e6-44f3-8cf0-ed6618204a35"
+                    }
+                },
+                {
+                    "code": "domain_claiming",
+                    "assets": {},
+                    "copy": {
+                        "name": "Domain Claiming",
+                        "enterprise_name": "Domain Claiming",
+                        "description": "Ability to claim domains in the console",
+                        "short_description": "Ability to claim domains in the console"
+                    },
+                    "metadata": {
+                        "content_fragment_path": "/content/dam/mcs/en/entitlement/cf-entitlement-01f879cb-7942-4342-aa49-cbb1018dd3e7"
+                    }
+                },
+                {
+                    "code": "license_group_member_configuration",
+                    "assets": {
+                        "icons": {
+                            "48x48": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/48x48/analytics-no-shadow-48x48.png",
+                            "16x16": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/16x16/analytics-16x16.png",
+                            "svg": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/svg/analytics.svg",
+                            "128x128": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/128x128/analytics-128x128.png"
+                        }
+                    },
+                    "copy": {
+                        "name": "License Group Member Configuration",
+                        "enterprise_name": "License Group Member Configuration",
+                        "description": "License Group Member Configuration",
+                        "short_description": "License Group Member Configuration"
+                    },
+                    "metadata": {
+                        "content_fragment_path": "/content/dam/mcs/en/entitlement/cf-entitlement-caa8abec-9f63-44c4-a298-beee6a34eb84"
+                    }
+                },
+                {
+                    "code": "user_sync",
+                    "assets": {
+                        "icons": {
+                            "48x48": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/48x48/marketing_cloud_appicon_noshadow_48x48.png",
+                            "16x16": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/16x16/marketing_cloud_appicon_16x16.png",
+                            "svg": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/svg/marketing_cloud_appicon.svg",
+                            "128x128": "https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/128x128/marketing_cloud_appicon_128x128.png"
+                        }
+                    },
+                    "copy": {
+                        "name": "User Sync",
+                        "enterprise_name": "User Sync",
+                        "description": "Ability to integrate your user management system with ours, via adobe.io.",
+                        "short_description": "Ability to integrate your user management system with ours, via adobe.io."
+                    },
+                    "metadata": {
+                        "content_fragment_path": "/content/dam/mcs/en/entitlement/cf-entitlement-def4907c-4cd9-457b-899c-68c0b17678e5"
+                    }
+                },
+                {
+                    "code": "acom_esign",
+                    "assets": {
+                        "icons": {
+                            "48x48": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/48x48/adobe_sign_appicon_noshadow_48x48.png",
+                            "16x16": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/16x16/adobe_sign_appicon_16x16.png",
+                            "svg": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/svg/adobe_sign_appicon_256.svg",
+                            "128x128": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/128x128/adobe_sign_appicon_128x128.png"
+                        }
+                    },
+                    "copy": {
+                        "name": "Acrobat Sign",
+                        "enterprise_name": "Acrobat Sign",
+                        "description": "Adobe Acrobat Sign allows users to send, sign, track, and manage signed documents.",
+                        "short_description": "Adobe Acrobat Sign allows users to send, sign, track, and manage signed documents."
+                    },
+                    "metadata": {
+                        "content_fragment_path": "/content/dam/mcs/en/entitlement/cf-entitlement-33d4ab92-da91-4ef7-ab51-241eb30e1f8b"
+                    }
+                },
+                {
+                    "code": "total_sign_transactions",
+                    "assets": {
+                        "icons": {
+                            "48x48": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/48x48/adobe_sign_appicon_noshadow_48x48.png",
+                            "16x16": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/16x16/adobe_sign_appicon_16x16.png",
+                            "svg": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/svg/adobe_sign_appicon_256.svg",
+                            "128x128": "https://odin.adobe.com/content/dam/mcs/en/icons/raw/128x128/adobe_sign_appicon_128x128.png"
+                        }
+                    },
+                    "copy": {
+                        "name": "Sign Transactions",
+                        "enterprise_name": "Sign Transactions",
+                        "description": "It gives the total transactions that the contract can support.",
+                        "short_description": "It gives the total transactions that the contract can support."
+                    },
+                    "metadata": {
+                        "content_fragment_path": "/content/dam/mcs/en/entitlement/cf-entitlement-9d2e7add-dd43-4f72-b22e-4db94f799abe"
+                    }
+                },
+                {
+                    "code": "overdelegation_allowed",
+                    "assets": {},
+                    "copy": {
+                        "name": "Overdelegation Allowed",
+                        "enterprise_name": "Overdelegation Allowed",
+                        "description": "This indicates admins can overdelegate to a product.",
+                        "short_description": "This indicates admins can overdelegate to a product."
+                    },
+                    "metadata": {
+                        "content_fragment_path": "/content/dam/mcs/en/entitlement/cf-entitlement-4201173d-c3ae-4dbf-bdff-3363a60a7a34"
+                    }
+                },
+                {
+                    "code": "data_encryption",
+                    "assets": {},
+                    "copy": {
+                        "name": "Data Encryption",
+                        "enterprise_name": "Data Encryption",
+                        "description": "Enterprise assets can be encrypted using AWS KMS",
+                        "short_description": "Enterprise assets can be encrypted using AWS KMS"
+                    },
+                    "metadata": {
+                        "content_fragment_path": "/content/dam/mcs/en/entitlement/cf-entitlement-f825804c-c24e-4cec-842b-0c11a631a31a"
+                    }
+                },
+                {
+                    "code": "support_case_creation_allowed",
+                    "assets": {},
+                    "copy": {
+                        "name": "Support Case Creation Allowed",
+                        "enterprise_name": "Support Case Creation Allowed",
+                        "description": "Controls whether or not support administrators are allowed to create support cases for this product",
+                        "short_description": "Controls whether or not support administrators are allowed to create support cases for this product"
+                    },
+                    "metadata": {
+                        "content_fragment_path": "/content/dam/mcs/en/entitlement/cf-entitlement-06187140-0d43-44ba-9ae2-01bc6d041d63"
+                    }
+                }
+            ],
+            "links": {
+                "provisioned_user": [
+                    {
+                        "href": "https://adobe.com/go/sfs"
+                    }
+                ],
+                "product_admin": [
+                    {
+                        "href": "https://www.adobe.com/go/doccloud_esignadmin_go",
+                        "text": "Manage Adobe Sign"
+                    }
+                ],
+                "getting_started_template": [
+                    {
+                        "href": "https://adminconsole.adobe.com/overview",
+                        "text": "Get Started"
+                    }
+                ],
+                "detailed_help_admin": [
+                    {
+                        "href": "https://helpx.adobe.com/sign/how-to/get-started.html",
+                        "text": "Get started"
+                    },
+                    {
+                        "href": "https://helpx.adobe.com/sign/how-to/tutorials.html",
+                        "text": "Tutorials"
+                    },
+                    {
+                        "href": "https://helpx.adobe.com/sign/topics.html",
+                        "text": "User manual"
+                    },
+                    {
+                        "href": "https://helpx.adobe.com/sign/faq.html",
+                        "text": "FAQ"
+                    },
+                    {
+                        "href": "https://helpx.adobe.com/sign/release-notes/release-notes.html",
+                        "text": "Release Notes"
+                    },
+                    {
+                        "href": "https://forums.adobe.com/community/adobesign",
+                        "text": "Ask the community"
+                    },
+                    {
+                        "href": "https://helpx.adobe.com/contact.html?step=APRO-APAP-APCC-ACRO-CPDF-ECHP-sign",
+                        "text": "Contact us"
+                    }
+                ]
+            },
+            "misc": {
+                "plan_type": "Annual plan, prepaid",
+                "license_type": "Subscription"
+            },
+            "context": "default",
+            "metadata": {
+                "content_fragment_path": "/content/dam/mcs/en/product/cf-product-d7eab00c-8631-402c-90e4-9f6a2df176df"
+            }
+        },
+        "payment_structure": "PAID_IN_ADVANCE",
+        "qualifiers": [
+            {
+                "target": "PREVENT_PA_CREATION",
+                "validation_point": "AT_PURCHASE"
+            }
+        ],
+        "product_arrangement_version_id": "wp5T7Tm2UiwhHLbab1O-9sobdTzffShs-GvmikhcDaY"
+    }
+]

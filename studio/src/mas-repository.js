@@ -180,7 +180,8 @@ export class MasRepository extends LitElement {
     }
 
     skipVariant(variants, item) {
-        const variant = item.fields.find((field) => field.name === 'variant')?.values?.[0];
+        const variant = item.fields.find((field) => field.name === 'variant')
+            ?.values?.[0];
         return variants.length && !variants.includes(variant);
     }
 
@@ -214,8 +215,14 @@ export class MasRepository extends LitElement {
 
         if (modelIds.length === 0) modelIds = EDITABLE_FRAGMENT_MODEL_IDS;
 
-        const variants = tags.filter((tag) => tag.startsWith(TAG_VARIANT_PREFIX)).map((tag) => tag.replace(TAG_VARIANT_PREFIX, ''));
-        tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE) && !tag.startsWith(TAG_VARIANT_PREFIX));
+        const variants = tags
+            .filter((tag) => tag.startsWith(TAG_VARIANT_PREFIX))
+            .map((tag) => tag.replace(TAG_VARIANT_PREFIX, ''));
+        tags = tags.filter(
+            (tag) =>
+                !tag.startsWith(TAG_STUDIO_CONTENT_TYPE) &&
+                !tag.startsWith(TAG_VARIANT_PREFIX),
+        );
 
         const damPath = getDamPath(path);
         const localSearch = {
@@ -442,7 +449,10 @@ export class MasRepository extends LitElement {
             throw new Error('No fragment provided for saving');
         }
 
-        if (fragmentToSave.model?.path === CARD_MODEL_PATH && !fragmentToSave.getField('osi')?.values[0]) {
+        if (
+            fragmentToSave.model?.path === CARD_MODEL_PATH &&
+            !fragmentToSave.getField('osi')?.values[0]
+        ) {
             Events.toast.emit({
                 variant: 'negative',
                 content: 'Please select offer',
@@ -490,7 +500,10 @@ export class MasRepository extends LitElement {
                 this.fragmentInEdit,
             );
             let savedResult = result;
-            if ((updatedTitle && updatedTitle !== result.title) || tags.length) {
+            if (
+                (updatedTitle && updatedTitle !== result.title) ||
+                tags.length
+            ) {
                 if (updatedTitle) result.title = updatedTitle;
                 if (tags.length) {
                     result.fields.forEach((field) => {
@@ -507,7 +520,9 @@ export class MasRepository extends LitElement {
             if (tags.length) {
                 savedResult.newTags = tags;
                 await this.aem.saveTags(savedResult);
-                savedResult = await this.aem.sites.cf.fragments.getById(savedResult.id);
+                savedResult = await this.aem.sites.cf.fragments.getById(
+                    savedResult.id,
+                );
             }
             const newFragment = await this.#addToCache(savedResult);
 
@@ -651,8 +666,8 @@ export class MasRepository extends LitElement {
      * Populates the store with addon placeholders by filtering fragments that start with 'addon-'
      */
     async loadAddonPlaceholders() {
-        Store.placeholders.addons.loading.set(true);
         if (Store.placeholders.addons.data.get().length > 1) return;
+        Store.placeholders.addons.loading.set(true);
         try {
             const cursor = await this.aem.sites.cf.fragments.search(
                 {

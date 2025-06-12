@@ -2,6 +2,7 @@ import { css, html, LitElement, nothing } from 'lit';
 import { EVENT_INPUT } from '../constants.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import Store from '../store.js';
+import { MasRepository } from '../mas-repository.js';
 
 export class AddonField extends LitElement {
     static properties = {
@@ -53,6 +54,7 @@ export class AddonField extends LitElement {
         this.repository.loadAddonPlaceholders();
     }
 
+    /** @type {MasRepository} */
     get repository() {
         return document.querySelector('mas-repository');
     }

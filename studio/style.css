@@ -555,6 +555,10 @@ sp-progress-circle.preview {
     z-index: 1000;
 }
 
+.clone-dialog sp-progress-circle {
+    position: relative;
+}
+
 @media screen and (max-width: 1100px) {
     sp-table-cell.offer-id {
         word-break: break-all;

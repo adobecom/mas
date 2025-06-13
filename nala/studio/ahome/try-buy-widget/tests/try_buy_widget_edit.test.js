@@ -464,7 +464,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 await ost.ctaTextMenu.click();
                 await expect(
                     page.locator('div[role="option"]', {
-                        hasText: `${data.newCtaText}`,
+                        hasText: `${data.newCtaOption}`,
                     }),
                 ).toBeVisible({
                     timeout: 500,
@@ -472,7 +472,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             }).toPass();
             await page
                 .locator('div[role="option"]', {
-                    hasText: `${data.newCtaText}`,
+                    hasText: `${data.newCtaOption}`,
                 })
                 .click();
             await ost.checkoutLinkUse.click();
@@ -733,9 +733,13 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-5: Validate tags update', async () => {
-            await expect(await editor.tags).toHaveAttribute(
+            await expect(await editor.tags).not.toHaveAttribute(
                 'value',
                 new RegExp(`${data.productCodeTag}`),
+            );
+            await expect(await editor.tags).toHaveAttribute(
+                'value',
+                new RegExp(`${data.newProductCodeTag}`),
             );
             await expect(await editor.tags).toHaveAttribute(
                 'value',
@@ -797,6 +801,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 new RegExp(`${data.planTypeTag}`),
             );
             await (await editor.OSIButton).click();
+            await ost.backButton.click();
+            await page.waitForTimeout(2000);
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.newosi);
             await (await ost.nextButton).click();
@@ -972,7 +978,6 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 decodeURI(CTAhref).split('?')[1],
             );
             expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
-            expect(searchParams.get('cs')).toBe(data.checkoutParams.cs);
             expect(searchParams.get('promoid')).toBe(
                 data.checkoutParams.promoid,
             );

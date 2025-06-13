@@ -13,9 +13,9 @@ const config = {
     },
     languageOptions: {
         globals: {
-            'window': 'readonly',
-            'require': 'readonly'
-        }
+            window: 'readonly',
+            require: 'readonly',
+        },
     },
     ignores: [
         '/node_modules/',

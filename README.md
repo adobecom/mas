@@ -44,7 +44,7 @@ Refer to the corresponding README.md under any of the packages:
 
 ## Nala E2E tests
 for initial setup:
-```
+```sh
 npm install
 npx playwright install
 export IMS_EMAIL=<val>
@@ -63,3 +63,12 @@ documented in .github/README.md
 
 #### Troubleshooting
 Please reach out to us in `#merch-at-scale` for any questions.
+
+Getting issues commiting changes in /io/www?
+Make sure to install node >22.16 and set it as default. Husky precommit hook will try to run tests and build:client script. Be careful if you have 22 node lower then 22.16 - it will not work.
+```sh
+nvm install 22
+nvm alias default 22
+nvm uninstall 22.2.0
+```
+restart IDE.

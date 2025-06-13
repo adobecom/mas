@@ -42,7 +42,7 @@ const paginatedOffers = (allProducts, landscape, locale, params, page = 0) => {
     return fetch(offersEndpoint)
         .then((response) => response.json())
         .then((offers) => {
-            // console.log(`received ${landscape} - ${page}}`);
+            console.log(`received ${landscape} - ${page}}`);
             if (offers && offers.length > 0) {
                 const products = allProducts[landscape];
                 for (const offer of offers) {
@@ -54,6 +54,9 @@ const paginatedOffers = (allProducts, landscape, locale, params, page = 0) => {
                                 name: offer.merchandising?.copy?.name,
                                 arrangement_code: pa,
                                 icon: offer.merchandising?.assets?.icons?.svg,
+                                product_code: offer.product_code,
+                                product_family:
+                                    offer.product_arrangement_v2?.family,
                                 planTypes: {},
                                 customerSegments: {},
                                 marketSegments: {},
@@ -74,11 +77,11 @@ const paginatedOffers = (allProducts, landscape, locale, params, page = 0) => {
                     ++page,
                 );
             } else {
-                // console.log(
-                //     `collected ${
-                //         Object.entries(allProducts[landscape]).length
-                //     } products for ${landscape}`,
-                // );
+                console.log(
+                    `collected ${
+                        Object.entries(allProducts[landscape]).length
+                    } products for ${landscape}`,
+                );
             }
         });
 };
@@ -92,9 +95,9 @@ const getProducts = async (params) => {
     ];
     const allProducts = { DRAFT: {}, PUBLISHED: {} };
     const promises = options.map((option) => {
-        // console.log(
-        //     `fetching ${option.landscape} products for locale: ${option.locale}`,
-        // );
+        console.log(
+            `fetching ${option.landscape} products for locale: ${option.locale}`,
+        );
         return paginatedOffers(
             allProducts,
             option.landscape,
@@ -103,13 +106,13 @@ const getProducts = async (params) => {
         );
     });
     await Promise.all(promises);
-    // console.log('awaited');
-    // console.log('fetched all AOS responses, assembling...');
+    console.log('awaited');
+    console.log('fetched all AOS responses, assembling...');
     const combinedProducts = allProducts.PUBLISHED;
     Object.keys(allProducts.DRAFT).forEach((pa) => {
         const draftOffer = allProducts.DRAFT[pa];
         if (!combinedProducts[pa]) {
-            // console.log(`found ${pa} to be draft`);
+            console.log(`found ${pa} to be draft`);
             combinedProducts[pa] = {
                 ...draftOffer,
                 draft: true,
@@ -118,9 +121,9 @@ const getProducts = async (params) => {
         else if (
             JSON.stringify(combinedProducts[pa]) !== JSON.stringify(draftOffer)
         ) {
-            // console.log(
-            //     `found ${pa} to be draft, but there is already a published offer with the same PA.`,
-            // );
+            console.log(
+                `found ${pa} to be draft, but there is already a published offer with the same PA.`,
+            );
             combinedProducts[pa].planTypes = {
                 ...combinedProducts[pa].planTypes,
                 ...draftOffer.planTypes,

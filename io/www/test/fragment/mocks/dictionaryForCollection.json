@@ -1,0 +1,80 @@
+{
+    "path": "/content/dam/mas/acom/en_US/dictionary/index",
+    "name": "",
+    "title": "Index",
+    "id": "412fda08-7b73-4a01-a04f-1953e183bad2",
+    "description": "",
+    "model": {
+        "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk"
+    },
+    "fields": {
+        "entries": [
+            "ff41dbbc-5481-4e19-9dcb-71d24ae3c80d",
+            "8add1937-cbfa-4a13-ad52-202028d9db15"
+        ]
+    },
+    "references": {
+        "ff41dbbc-5481-4e19-9dcb-71d24ae3c80d": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/acom/en_US/dictionary/coll-search-result-mobile-text",
+                "name": "",
+                "title": "coll-search-result-mobile-text",
+                "id": "ff41dbbc-5481-4e19-9dcb-71d24ae3c80d",
+                "description": "Placeholder for coll-search-result-mobile-text",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5"
+                },
+                "fields": {
+                    "key": "coll-search-result-mobile-text",
+                    "richTextValue": {
+                        "value": "<p><u>1</u>result in&nbsp;<strong>{{coll-filter}}</strong></p>",
+                        "mimeType": "text/html"
+                    }
+                }
+            }
+        },
+        "8add1937-cbfa-4a13-ad52-202028d9db15": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/acom/en_US/dictionary/coll-search-results-mobile-text",
+                "name": "",
+                "title": "coll-search-results-mobile-text",
+                "id": "8add1937-cbfa-4a13-ad52-202028d9db15",
+                "description": "Placeholder for coll-search-results-mobile-text",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5"
+                },
+                "fields": {
+                    "key": "coll-search-results-mobile-text",
+                    "richTextValue": {
+                        "value": "<p>{{coll-result-count}}&nbsp;results in&nbsp;<strong>{{coll-search-term}}</strong></p>",
+                        "mimeType": "text/html"
+                    }
+                }
+            }
+        }
+    },
+    "referencesTree": [
+        {
+            "fieldName": "entries",
+            "identifier": "ff41dbbc-5481-4e19-9dcb-71d24ae3c80d",
+            "referencesTree": []
+        },
+        {
+            "fieldName": "entries",
+            "identifier": "8add1937-cbfa-4a13-ad52-202028d9db15",
+            "referencesTree": []
+        }
+    ],
+    "modelReferences": {
+        "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk": {
+            "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk",
+            "path": "/conf/mas/settings/dam/cfm/models/dictionary"
+        },
+        "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5": {
+            "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+            "path": "/conf/mas/settings/dam/cfm/models/dictionnary"
+        }
+    }
+}

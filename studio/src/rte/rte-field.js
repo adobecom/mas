@@ -180,6 +180,7 @@ class RteField extends LitElement {
         maxLength: { type: Number, attribute: 'max-length' },
         length: { type: Number, state: true },
         hideOfferSelector: { type: Boolean, attribute: 'hide-offer-selector' },
+        osi: { type: String },
     };
 
     static get styles() {
@@ -550,6 +551,7 @@ class RteField extends LitElement {
         this.maxLength = 70;
         this.length = 0;
         this.hideOfferSelector = false;
+        this.osi = '';
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
             ostEvent: this.#handleOstEvent.bind(this),
@@ -1484,6 +1486,11 @@ class RteField extends LitElement {
     handleOpenOfferSelector(event, element) {
         ostRteFieldSource = this;
         this.showOfferSelector = true;
+        if (!element && this.osi) {
+            element = document.createElement('span');
+            element.setAttribute('data-wcs-osi', this.osi);
+            element.isInlinePrice = true;
+        }
         openOfferSelectorTool(this, element);
     }
 

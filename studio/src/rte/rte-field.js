@@ -170,7 +170,6 @@ class RteField extends LitElement {
         icon: { type: Boolean, attribute: 'icon' },
         mnemonic: { type: Boolean, attribute: 'mnemonic' },
         uptLink: { type: Boolean, attribute: 'upt-link' },
-        list: { type: Boolean, attribute: 'list' },
         isLinkSelected: { type: Boolean, state: true },
         priceSelected: { type: Boolean, state: true },
         readOnly: { type: Boolean, attribute: 'readonly' },
@@ -181,6 +180,7 @@ class RteField extends LitElement {
         maxLength: { type: Number, attribute: 'max-length' },
         length: { type: Number, state: true },
         hideOfferSelector: { type: Boolean, attribute: 'hide-offer-selector' },
+        osi: { type: String },
     };
 
     static get styles() {
@@ -519,6 +519,10 @@ class RteField extends LitElement {
                     padding: 0 2px;
                     vertical-align: middle;
                 }
+                
+                #stylingMenu .is-selected {
+                    background-color: rgba(213,213,213);
+                }
             `,
             prosemirrorStyles,
         ];
@@ -547,6 +551,7 @@ class RteField extends LitElement {
         this.maxLength = 70;
         this.length = 0;
         this.hideOfferSelector = false;
+        this.osi = '';
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
             ostEvent: this.#handleOstEvent.bind(this),
@@ -594,10 +599,10 @@ class RteField extends LitElement {
         clearInterval(this.updateLengthInterval);
     }
 
-    getStylingMark(stylingType) {
+    getStylingMark(stylingType, ariaLevel) {
         return {
             [stylingType]: {
-                attrs: { class: { default: null } },
+                attrs: { class: { default: null }, role: { default: null }, 'aria-level': { default: null } },
                 group: 'styling',
                 parseDOM: [
                     {
@@ -605,7 +610,7 @@ class RteField extends LitElement {
                         getAttrs: this.#collectDataAttributes,
                     },
                 ],
-                toDOM: () => ['span', { class: stylingType }, 0],
+                toDOM: () => ['span', { class: stylingType, role: ariaLevel ? 'heading' : null, 'aria-level': ariaLevel }, 0],
             },
         };
     }
@@ -880,11 +885,11 @@ class RteField extends LitElement {
                     toDOM: () => ['u', 0],
                 },
                 ...(this.styling && {
-                    ...this.getStylingMark('heading-xxxs'),
-                    ...this.getStylingMark('heading-xxs'),
-                    ...this.getStylingMark('heading-xs'),
-                    ...this.getStylingMark('heading-s'),
-                    ...this.getStylingMark('heading-m'),
+                    ...this.getStylingMark('heading-xxxs', '6'),
+                    ...this.getStylingMark('heading-xxs', '5'),
+                    ...this.getStylingMark('heading-xs', '4'),
+                    ...this.getStylingMark('heading-s', '3'),
+                    ...this.getStylingMark('heading-m', '2'),
                     ...this.getStylingMark('promo-text'),
                     ...this.getStylingMark('mnemonic-text'),
                 }),
@@ -1346,6 +1351,28 @@ class RteField extends LitElement {
         };
     }
 
+    #handleStylingMenuOpen(event) {
+        event.target.querySelectorAll('sp-menu-item').forEach((item) => {
+            item.classList.remove('is-selected');
+        });
+
+        let { state } = this.editorView;
+        const {
+            selection: { from, to },
+        } = state;
+
+        state.doc.nodesBetween(from, to, (node) => {
+            const stylingMark = node.marks.find(
+                (mark) => mark.type.spec.group === 'styling',
+            );
+            const name = stylingMark?.type?.name;
+            if (name) {
+                const item = event.target.querySelector(`sp-menu-item[value="${name}"]`);
+                if (item) item.classList.add('is-selected');
+            }
+        });
+    }
+
     #handleStylingSelection(event) {
         event.stopPropagation();
         const stylingType = event.target.value;
@@ -1459,6 +1486,11 @@ class RteField extends LitElement {
     handleOpenOfferSelector(event, element) {
         ostRteFieldSource = this;
         this.showOfferSelector = true;
+        if (!element && this.osi) {
+            element = document.createElement('span');
+            element.setAttribute('data-wcs-osi', this.osi);
+            element.isInlinePrice = true;
+        }
         openOfferSelectorTool(this, element);
     }
 
@@ -1749,14 +1781,15 @@ class RteField extends LitElement {
         return html`<sp-action-menu
             id="stylingMenu"
             title="Styling"
+            @click=${this.#handleStylingMenuOpen}
             @change=${this.#handleStylingSelection}
         >
             <sp-icon-brush slot="icon"></sp-icon-brush>
-            <sp-menu-item value="heading-xxxs">Heading XXXS</sp-menu-item>
-            <sp-menu-item value="heading-xxs">Heading XXS</sp-menu-item>
-            <sp-menu-item value="heading-xs">Heading XS</sp-menu-item>
-            <sp-menu-item value="heading-s">Heading S</sp-menu-item>
-            <sp-menu-item value="heading-m">Heading M</sp-menu-item>
+            <sp-menu-item value="heading-xxxs">Heading XXXS - H6</sp-menu-item>
+            <sp-menu-item value="heading-xxs">Heading XXS - H5</sp-menu-item>
+            <sp-menu-item value="heading-xs">Heading XS - H4</sp-menu-item>
+            <sp-menu-item value="heading-s">Heading S - H3</sp-menu-item>
+            <sp-menu-item value="heading-m">Heading M - H2</sp-menu-item>
             <sp-menu-divider></sp-menu-divider>
             <sp-menu-item value="promo-text">Promo text</sp-menu-item>
             <sp-menu-item value="mnemonic-text">Mnemonic Text</sp-menu-item>

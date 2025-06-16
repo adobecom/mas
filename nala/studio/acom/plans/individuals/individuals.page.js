@@ -4,7 +4,7 @@ export default class ACOMPlansIndividualsPage {
 
         // Card element selectors
         this.cardIcon = page.locator('merch-icon');
-        this.cardTitle = page.locator('p[slot="heading-xs"]');
+        this.cardTitle = page.locator('h3[slot="heading-xs"]');
         this.cardBadge = page.locator('merch-badge');
         this.cardBadgeLabel = page.locator('.plans-badge');
         this.cardDescription = page.locator('div[slot="body-xs"] p');

@@ -94,7 +94,7 @@ const runOnFilledState = async (entry, headers) => {
     await state.put('debugFragmentLogs', true);
     return await getFragment({
         id: 'some-en-us-fragment',
-        state: state,
+        state,
         locale: 'fr_FR',
         __ow_headers: headers,
     });

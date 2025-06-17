@@ -1,7 +1,7 @@
 const { odinReferences, odinPath } = require('./paths.js');
-const { fetch, log, logError } = require('./common.js');
+const { fetch, log, logDebug, logError } = require('./common.js');
 const DICTIONARY_ID_PATH = 'dictionary/index';
-const PH_REGEXP = /{{(\s*([\w\-]+)\s*)}}/gi;
+const PH_REGEXP = /{{(\s*([\w\-\_]+)\s*)}}/gi;
 
 async function getDictionaryId(context) {
     const { surface, locale, preview } = context;
@@ -32,9 +32,10 @@ function extractValue(ref) {
 }
 
 async function getDictionary(context) {
+    const dictionary = context.dictionary || {};
     const id = context.dictionaryId ?? (await getDictionaryId(context));
     if (!id) {
-        return null;
+        return dictionary;
     }
     const response = await fetch(
         odinReferences(id, true, context.preview),
@@ -42,7 +43,6 @@ async function getDictionary(context) {
     );
     if (response.status == 200) {
         const references = response.body.references;
-        const dictionary = {};
         Object.keys(references).forEach((id) => {
             const ref = references[id]?.value?.fields;
             if (ref?.key) {
@@ -53,7 +53,7 @@ async function getDictionary(context) {
         });
         return dictionary;
     }
-    return null;
+    return dictionary;
 }
 
 function replaceValues(input, dictionary, calls) {
@@ -70,7 +70,7 @@ function replaceValues(input, dictionary, calls) {
             dictionary[key] == undefined || calls.includes(key)
                 ? key
                 : dictionary[key];
-        if (value.match(PH_REGEXP)) {
+        if (value?.match(PH_REGEXP)) {
             //the value has nested PH
             calls.push(key);
             value = replaceValues(value, dictionary, calls);
@@ -97,6 +97,10 @@ async function replace(context) {
             } catch (e) {
                 /* istanbul ignore next */
                 logError(`[replace] ${e.message}`, context);
+                logDebug(
+                    () => `[replace] invalid json: ${bodyString}`,
+                    context,
+                );
             }
         }
     } else {

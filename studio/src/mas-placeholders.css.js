@@ -54,17 +54,6 @@ export const styles = css`
         position: relative;
     }
 
-    .no-folder-message,
-    .loading-message {
-        padding: 24px;
-        text-align: center;
-        color: var(--spectrum-global-color-gray-700);
-        font-size: 16px;
-        background-color: var(--spectrum-global-color-gray-100);
-        border-radius: 4px;
-        margin-top: 16px;
-    }
-
     .error-message {
         display: flex;
         align-items: center;
@@ -230,67 +219,6 @@ export const styles = css`
         font-weight: 500;
     }
 
-    .create-modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10;
-    }
-
-    .create-modal {
-        background-color: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-        width: 600px;
-        max-width: 90vw;
-        max-height: 90vh;
-        overflow: auto;
-    }
-
-    .create-modal-content {
-        padding: 24px;
-    }
-
-    .create-modal-title {
-        font-size: 20px;
-        font-weight: 600;
-        margin: 0 0 24px 0;
-    }
-
-    .create-modal-form {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-    }
-
-    .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .form-group label {
-        font-size: 14px;
-        font-weight: 500;
-    }
-
-    .required {
-        color: var(--spectrum-semantic-negative-color-default);
-    }
-
-    .create-modal-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 8px;
-        margin-top: 24px;
-    }
-
     .edit-field-container {
         width: 100%;
         padding: 8px;
@@ -328,7 +256,6 @@ export const styles = css`
     }
 
     .rich-text-cell {
-        max-width: 7vw;
         overflow: hidden;
         padding: 4px 0;
         font-size: var(--spectrum-global-font-size-100);
@@ -398,22 +325,6 @@ export const styles = css`
         max-width: 100vw;
     }
 
-    .breadcrumbs {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 14px;
-    }
-
-    .breadcrumb-link {
-        color: var(--spectrum-global-color-blue-600);
-        text-decoration: none;
-    }
-
-    .breadcrumb-current {
-        color: var(--spectrum-global-color-gray-700);
-    }
-
     .approve-button sp-icon-checkmark {
         color: var(--spectrum-semantic-positive-color-default, green);
     }
@@ -422,9 +333,54 @@ export const styles = css`
         color: var(--spectrum-semantic-negative-color-default, red);
     }
 
-    .rich-text-toggle {
-        padding: 8px 0;
-        margin-bottom: 8px;
+    /* Dialog styles */
+    .dialog-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        padding: var(--spectrum-global-dimension-size-400);
+        width: 80vw;
+        max-width: 900px;
+        box-sizing: border-box;
+    }
+
+    .form-field {
+        margin-bottom: var(--spectrum-global-dimension-size-200);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .form-field:last-child {
+        margin-bottom: 0;
+    }
+
+    .form-field sp-field-label {
+        display: block;
+        margin-bottom: var(--spectrum-global-dimension-size-75);
+    }
+
+    .form-field sp-picker,
+    .form-field sp-textfield {
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    .form-field mas-locale-picker {
+        border: none;
+        background: none;
+    }
+
+    .form-field .rte-container {
+        width: 100%;
+    }
+
+    sp-table .key {
+        flex: 2;
+    }
+    sp-table .value {
+        flex: 3;
     }
 `;
 

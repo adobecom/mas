@@ -1,0 +1,72 @@
+merch-card:not([variant]) {
+    display: none;
+}
+
+merch-card {
+    cursor: pointer;
+    user-select: none;
+    box-sizing: border-box;
+}
+
+merch-card a,
+merch-card button {
+    pointer-events: none;
+}
+
+merch-card [slot='price'] {
+    min-width: 21px;
+}
+
+merch-card:hover {
+    background-color: var(--spectrum-background-base-color) !important;
+}
+
+merch-card sp-icon-add,
+merch-card sp-icon-remove {
+    display: none;
+}
+
+merch-card.selected:hover sp-icon-remove {
+    display: block;
+}
+
+merch-card:hover:not(.selected) sp-icon-add {
+    display: block;
+}
+
+merch-card .overlay {
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 16px;
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+merch-card[variant='plans'][size='wide'],
+merch-card[variant='plans-education'][size='wide'] {
+    width: 575px;
+}
+
+merch-card[variant='plans'][size='super-wide'],
+merch-card[variant='plans-education'][size='super-wide'] {
+    width: 874px;
+}
+
+@media (min-width: 926px) and (max-width: 1235px) {
+    merch-card[variant='plans'][size='super-wide'],
+    merch-card[variant='plans-education'][size='wide'] {
+        width: 575px;
+    }
+}
+
+@media (max-width: 925px) {
+    merch-card[variant='plans'][size='super-wide'],
+    merch-card[variant='plans-education'][size='super-wide'] {
+        width: 276px;
+    }
+}

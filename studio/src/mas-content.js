@@ -32,13 +32,13 @@ class MasContent extends LitElement {
         this.subscriptions.push(
             Store.fragments.list.data.subscribe(() => {
                 this.requestUpdate();
-            })
+            }),
         );
 
         this.subscriptions.push(
             Store.filters.subscribe(() => {
                 this.requestUpdate();
-            })
+            }),
         );
     }
 
@@ -47,7 +47,7 @@ class MasContent extends LitElement {
         Events.fragmentAdded.unsubscribe(this.goToFragment);
 
         if (this.subscriptions && this.subscriptions.length) {
-            this.subscriptions.forEach(subscription => {
+            this.subscriptions.forEach((subscription) => {
                 if (subscription) {
                     subscription.unsubscribe();
                 }
@@ -82,7 +82,10 @@ class MasContent extends LitElement {
                             return false;
                         return true;
                     }),
-                    (fragmentStore) => fragmentStore.get()?.path || fragmentStore.id || Math.random(),
+                    (fragmentStore) =>
+                        fragmentStore.get()?.path ||
+                        fragmentStore.id ||
+                        Math.random(),
                     (fragmentStore) =>
                         html`<mas-fragment
                             .fragmentStore=${fragmentStore}
@@ -106,12 +109,25 @@ class MasContent extends LitElement {
             @change=${this.updateTableSelection}
         >
             <sp-table-head>
-                <sp-table-head-cell sortable>Title</sp-table-head-cell>
-                <sp-table-head-cell sortable>Name</sp-table-head-cell>
+                <sp-table-head-cell sortable class="name"
+                    >Path</sp-table-head-cell
+                >
+                <sp-table-head-cell sortable class="title"
+                    >Title</sp-table-head-cell
+                >
+                <sp-table-head-cell sortable class="offer-type"
+                    >Offer type</sp-table-head-cell
+                >
+                <sp-table-head-cell sortable class="price"
+                    >Price</sp-table-head-cell
+                >
+                <sp-table-head-cell sortable class="offer-id"
+                    >Offer ID</sp-table-head-cell
+                >
                 <slot name="headers"></slot>
-                <sp-table-head-cell sortable>Status</sp-table-head-cell>
-                <sp-table-head-cell sortable>Modified at</sp-table-head-cell>
-                <sp-table-head-cell sortable>Modified by</sp-table-head-cell>
+                <sp-table-head-cell sortable class="status"
+                    >Status</sp-table-head-cell
+                >
             </sp-table-head>
             <sp-table-body>
                 ${repeat(

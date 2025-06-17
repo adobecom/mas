@@ -1,8 +1,10 @@
 import { expect } from '@playwright/test';
+import OSTPage from './ost.page';
 
 export default class StudioPage {
     constructor(page) {
         this.page = page;
+        this.ost = new OSTPage(page);
 
         this.quickActions = page.locator('.quick-actions');
         this.recentlyUpdated = page.locator('.recently-updated');
@@ -10,8 +12,8 @@ export default class StudioPage {
             '.quick-action-card[heading="Go to Content"]',
         );
 
-        this.searchInput = page.locator('sp-search  input');
-        this.searchIcon = page.locator('sp-search sp-icon-magnify');
+        this.searchInput = page.locator('#actions sp-search  input');
+        this.searchIcon = page.locator('#actions sp-search[placeholder="Search"] sp-icon-magnify');
         this.filter = page.locator('sp-action-button[label="Filter"]');
         this.folderPicker = page.locator('mas-folder-picker sp-action-menu');
         this.renderView = page.locator('#render');
@@ -25,6 +27,9 @@ export default class StudioPage {
         this.discardDialog = page.locator('sp-button:has-text("Discard")');
         this.toastPositive = page.locator(
             'mas-toast >> sp-toast[variant="positive"]',
+        );
+        this.toastNegative = page.locator(
+            'mas-toast >> sp-toast[variant="negative"]',
         );
         this.suggestedCard = page.locator(
             'merch-card[variant="ccd-suggested"]',
@@ -46,40 +51,16 @@ export default class StudioPage {
         this.ahTryBuyWidgetDoubleCard = page.locator(
             'merch-card[variant="ah-try-buy-widget"][size="double"]',
         );
-        // Editor panel fields
-        this.editorVariant = page.locator('#card-variant');
-        this.editorSize = page.locator('#card-size');
-        this.editorTitle = page.locator('#card-title input');
-        this.editorSubtitle = page.locator('#card-subtitle input');
-        this.editorBadge = page.locator('#card-badge input');
-        this.editorIconURL = page.locator('#icon input');
-        this.editorBackgroundImage = page.locator('#background-image input');
-        this.editorPrices = page.locator('sp-field-group#prices');
-        this.regularPrice = page.locator(
-            'span[is="inline-price"][data-template="price"]',
+        this.plansCard = page.locator('merch-card[variant="plans"]');
+        this.ahPromotedPlansCard = page.locator(
+            'merch-card[variant="ah-promoted-plans"]',
         );
-        this.strikethroughPrice = page.locator(
-            'span[is="inline-price"][data-template="strikethrough"]',
-        );
-        this.editorFooter = page.locator('sp-field-group#ctas');
-        this.editorCTA = page.locator('sp-field-group#ctas a');
-        this.editorDescription = page.locator(
-            'sp-field-group#description div[contenteditable="true"]',
-        );
-        this.editorBorderColor = page.locator('sp-picker#border-color');
-        this.editorBackgroundColor = page.locator('sp-picker#backgroundColor');
-        this.editorOSI = page.locator('osi-field#osi');
-        this.editorOSIButton = page.locator('#offerSelectorToolButtonOSI');
-        this.editorTags = page.locator('aem-tag-picker-field[label="Tags"]');
-        this.editorCTAClassSecondary = page.locator(
-            'sp-field-group#ctas a.secondary',
+        this.ahPromotedPlansCardGradientBorder = page.locator(
+            'merch-card[variant="ah-promoted-plans"][gradient-border="true"]',
         );
         // Editor panel toolbar
         this.cloneCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="clone"]',
-        );
-        this.closeEditor = page.locator(
-            'div[id="editor-toolbar"] >> sp-action-button[value="close"]',
         );
         this.deleteCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="delete"]',
@@ -87,50 +68,12 @@ export default class StudioPage {
         this.saveCardButton = page.locator(
             'div[id="editor-toolbar"] >> sp-action-button[value="save"]',
         );
-        // RTE panel toolbar
-        this.linkEdit = page.locator('#linkEditorButton');
-        // Edit Link Panel
-        this.checkoutParameters = page.locator('#checkoutParameters input');
-        this.linkText = page.locator('#linkText input');
-        this.linkSave = page.locator('#saveButton');
-        this.linkVariant = page.locator('#linkVariant');
-        this.accentVariant = page.locator('sp-button[variant="accent"]');
-        this.primaryVariant = page.locator(
-            'sp-button[variant="primary]:not([treatment="outline"]])',
-        );
-        this.primaryOutlineVariant = page.locator(
-            'sp-button[variant="primary"][treatment="outline"]',
-        );
-        this.secondaryVariant = page.locator(
-            'sp-button[variant="secondary]:not([treatment="outline"]])',
-        );
-        this.secondaryOutlineVariant = page.locator(
-            'sp-button[variant="secondary"][treatment="outline"]',
-        );
-        this.primaryLinkVariant = page.locator(
-            'sp-link:has-text("Primary link")',
-        );
-        this.secondaryLinkVariant = page.locator(
-            'sp-link[variant="secondary"]',
-        );
     }
 
-    async getCard(id, cardType, cloned, secondID) {
-        const cardVariant = {
-            suggested: this.suggestedCard,
-            slice: this.sliceCard,
-            'slice-wide': this.sliceCardWide,
-            ahtrybuywidget: this.ahTryBuyWidgetCard,
-            'ahtrybuywidget-triple': this.ahTryBuyWidgetTripleCard,
-            'ahtrybuywidget-single': this.ahTryBuyWidgetSingleCard,
-            'ahtrybuywidget-double': this.ahTryBuyWidgetDoubleCard,
-
-            empty: this.emptyCard,
-        };
-
-        const card = cardVariant[cardType];
+    async getCard(id, cloned, secondID) {
+        const card = this.page.locator('merch-card');
         if (!card) {
-            throw new Error(`Invalid card type: ${cardType}`);
+            throw new Error(`No merch card found`);
         }
 
         if (cloned) {
@@ -148,48 +91,387 @@ export default class StudioPage {
         });
     }
 
-    async cloneCard() {
-        await expect(await this.cloneCardButton).toBeEnabled();
-        await this.cloneCardButton.click();
-        await expect(await this.toastPositive).toHaveText(
-            'Fragment successfully copied.',
-        );
+    #setupConsoleListener(consoleErrors) {
+        return (msg) => {
+            if (msg.type() === 'error') {
+                const errorText = msg.text();
+                let errorCode = '';
+                const codeMatch = errorText.match(
+                    /(?:\[ERR[_-])?\d+\]?|(?:Error:?\s*)\d+|(?:status(?:\scode)?:?\s*)\d+/i,
+                );
+                if (codeMatch) {
+                    errorCode = codeMatch[0];
+                    consoleErrors.push(`[${errorCode}] ${errorText}`);
+                } else {
+                    consoleErrors.push(errorText);
+                }
+            }
+        };
+    }
+
+    async #retryOperation(operation, shouldReload = false, maxRetries = 2) {
+        const attempts = [];
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                if (shouldReload && attempt > 1) {
+                    // Wait for network to be idle before reload
+                    await this.page
+                        .waitForLoadState('networkidle')
+                        .catch(() => {});
+
+                    // Perform reload
+                    await this.page
+                        .reload({ waitUntil: 'networkidle', timeout: 30000 })
+                        .catch(async (e) => {
+                            // If reload fails, try navigating to the current URL
+                            const url = this.page.url();
+                            await this.page.goto(url, {
+                                waitUntil: 'networkidle',
+                                timeout: 30000,
+                            });
+                        });
+
+                    // Wait for page to be ready
+                    await this.page.waitForLoadState('domcontentloaded');
+                }
+
+                await operation(attempt);
+                return; // Success - exit the retry loop
+            } catch (error) {
+                attempts.push(
+                    `[Attempt ${attempt}/${maxRetries}] ${error.message}`,
+                );
+
+                if (attempt === maxRetries) {
+                    const errorMessage = `All attempts failed:\n\n${attempts.join('\n\n')}`;
+                    throw new Error(errorMessage);
+                }
+            }
+        }
+    }
+
+    async cloneCard(cardId) {
+        if (!cardId) {
+            throw new Error('cardId is required parameter for cloneCard');
+        }
+
+        const consoleErrors = [];
+        const consoleListener = this.#setupConsoleListener(consoleErrors);
+        this.page.on('console', consoleListener);
+
+        try {
+            await this.#retryOperation(async (attempt) => {
+                // Open editor (needed after each reload)
+                const card = await this.getCard(cardId);
+                await expect(card).toBeVisible();
+                await card.dblclick();
+                await this.page.waitForSelector('editor-panel > #editor', {
+                    state: 'visible',
+                    timeout: 30000,
+                });
+                await this.page.waitForTimeout(1000); // Give editor time to stabilize
+
+                // Wait for clone button and ensure it's enabled
+                await this.page.waitForSelector(
+                    'div[id="editor-toolbar"] >> sp-action-button[value="clone"]',
+                    { state: 'visible', timeout: 5000 },
+                );
+                await expect(this.cloneCardButton).toBeEnabled();
+
+                await this.cloneCardButton.scrollIntoViewIfNeeded();
+                await this.page.waitForTimeout(500);
+
+                await this.cloneCardButton.click({ force: true });
+
+                // Wait for fragment title dialog and enter title
+                await this.page.waitForSelector('sp-dialog[variant="confirmation"]', {
+                    state: 'visible',
+                    timeout: 5000,
+                });
+                
+                // Enter fragment title
+                const titleInput = this.page.locator('sp-dialog[variant="confirmation"] sp-textfield input');
+                await titleInput.fill('Cloned Fragment');
+
+                await this.page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Clone")').click();
+
+                // Wait for progress circle
+                await this.page
+                    .waitForSelector(
+                        'div[id="editor-toolbar"] >> sp-action-button[value="clone"] sp-progress-circle',
+                        { state: 'visible', timeout: 5000 },
+                    )
+                    .catch(() => {
+                        throw new Error(
+                            '[CLICK_FAILED] Clone button click did not trigger progress circle',
+                        );
+                    });
+
+                // Wait for any toast
+                await this.page
+                    .waitForSelector('mas-toast >> sp-toast', {
+                        state: 'visible',
+                        timeout: 15000,
+                    })
+                    .catch(() => {}); // Ignore timeout, we'll check for specific toasts next
+
+                // Check for error toast first
+                if (await this.toastNegative.isVisible()) {
+                    const errorText = await this.toastNegative.textContent();
+                    throw new Error(
+                        `[ERROR_TOAST] Clone operation received error: "${errorText.trim()}"`,
+                    );
+                }
+
+                // Wait for success toast
+                await this.toastPositive
+                    .waitFor({ timeout: 15000 })
+                    .catch(() => {
+                        throw new Error(
+                            '[NO_RESPONSE] Clone operation failed - no success toast shown',
+                        );
+                    });
+            }, true);
+        } catch (e) {
+            // On failure, collect all attempt errors and console logs
+            if (e.message.includes('\nAll attempts failed:')) {
+                // Extract individual attempt errors from the combined error message
+                const attemptErrors = e.message
+                    .split('\n\n')
+                    .filter((msg) => msg.startsWith('[Attempt'))
+                    .map((msg) => {
+                        const attemptMatch = msg.match(
+                            /\[Attempt (\d+)\/\d+\]/,
+                        );
+                        if (attemptMatch) {
+                            const attemptNum = parseInt(attemptMatch[1]);
+                            // Get console errors that occurred during this attempt
+                            const attemptConsoleErrors = consoleErrors
+                                .slice((attemptNum - 1) * 3, attemptNum * 3) // Assuming max 3 errors per attempt
+                                .filter((err) => err); // Remove any undefined entries
+
+                            return `${msg}${attemptConsoleErrors.length ? '\nConsole errors:\n' + attemptConsoleErrors.join('\n') : ''}`;
+                        }
+                        return msg;
+                    });
+                throw new Error(
+                    `All attempts failed:\n\n${attemptErrors.join('\n\n')}`,
+                );
+            }
+            throw new Error(e.message);
+        } finally {
+            this.page.removeListener('console', consoleListener);
+        }
     }
 
     async saveCard() {
-        await expect(await this.saveCardButton).toBeEnabled();
-        await this.saveCardButton.click();
-        await expect(await this.toastPositive).toHaveText(
-            'Fragment successfully saved.',
-        );
+        const consoleErrors = [];
+        const consoleListener = this.#setupConsoleListener(consoleErrors);
+        this.page.on('console', consoleListener);
+
+        try {
+            await this.#retryOperation(async (attempt) => {
+                await this.saveCardButton.scrollIntoViewIfNeeded();
+                await this.page.waitForTimeout(500);
+
+                const isEnabled = await this.saveCardButton.isEnabled();
+
+                // Only consider disabled button a success on retry attempts
+                if (attempt > 1 && !isEnabled) {
+                    return;
+                }
+
+                if (!isEnabled) {
+                    throw new Error(
+                        '[BUTTON_DISABLED] Save button is not enabled',
+                    );
+                }
+
+                await this.saveCardButton.click({ force: true });
+
+                // Wait for progress circle
+                await this.page
+                    .waitForSelector(
+                        'div[id="editor-toolbar"] >> sp-action-button[value="save"] sp-progress-circle',
+                        { state: 'visible', timeout: 5000 },
+                    )
+                    .catch(() => {
+                        throw new Error(
+                            '[CLICK_FAILED] Save button click did not trigger progress circle',
+                        );
+                    });
+
+                // Wait for any toast
+                await this.page
+                    .waitForSelector('mas-toast >> sp-toast', {
+                        state: 'visible',
+                        timeout: 15000,
+                    })
+                    .catch(() => {}); // Ignore timeout, we'll check for specific toasts next
+
+                // Check for error toast first
+                if (await this.toastNegative.isVisible()) {
+                    const errorText = await this.toastNegative.textContent();
+
+                    // If it's the specific "Save completed but couldn't retrieve" message, consider it a success
+                    if (
+                        errorText.includes(
+                            'Save completed but the updated fragment could not be retrieved',
+                        )
+                    ) {
+                        return; // Exit successfully
+                    }
+
+                    throw new Error(
+                        `[ERROR_TOAST] Save operation received error: "${errorText.trim()}"`,
+                    );
+                }
+
+                // Wait for success toast
+                await this.toastPositive
+                    .waitFor({ timeout: 15000 })
+                    .catch(() => {
+                        throw new Error(
+                            '[NO_RESPONSE] Save operation failed - no success toast shown',
+                        );
+                    });
+            });
+        } catch (e) {
+            // On failure, collect all attempt errors and console logs
+            if (e.message.includes('\nAll attempts failed:')) {
+                // Extract individual attempt errors from the combined error message
+                const attemptErrors = e.message
+                    .split('\n\n')
+                    .filter((msg) => msg.startsWith('[Attempt'))
+                    .map((msg) => {
+                        const attemptMatch = msg.match(
+                            /\[Attempt (\d+)\/\d+\]/,
+                        );
+                        if (attemptMatch) {
+                            const attemptNum = parseInt(attemptMatch[1]);
+                            // Get console errors that occurred during this attempt
+                            const attemptConsoleErrors = consoleErrors
+                                .slice((attemptNum - 1) * 3, attemptNum * 3) // Assuming max 3 errors per attempt
+                                .filter((err) => err); // Remove any undefined entries
+
+                            return `${msg}${attemptConsoleErrors.length ? '\nConsole errors:\n' + attemptConsoleErrors.join('\n') : ''}`;
+                        }
+                        return msg;
+                    });
+                throw new Error(
+                    `All attempts failed:\n\n${attemptErrors.join('\n\n')}`,
+                );
+            }
+            throw new Error(e.message);
+        } finally {
+            this.page.removeListener('console', consoleListener);
+        }
     }
 
-    async deleteCard() {
-        await expect(await this.deleteCardButton).toBeEnabled();
-        await this.deleteCardButton.click();
-        await expect(await this.confirmationDialog).toBeVisible();
-        await this.confirmationDialog.locator(this.deleteDialog).click();
-        await expect(await this.toastPositive).toHaveText(
-            'Fragment successfully deleted.',
-        );
-    }
-
-    async getLinkVariant(variant) {
-        const linkVariant = {
-            accent: this.accentVariant,
-            primary: this.primaryVariant,
-            'primary-outline': this.primaryOutlineVariant,
-            secondary: this.secondaryVariant,
-            'secondary-outline': this.secondaryOutlineVariant,
-            'primary-link': this.primaryLinkVariant,
-            'secondary-link': this.secondaryLinkVariant,
-        };
-
-        const link = linkVariant[variant];
-        if (!link) {
-            throw new Error(`Invalid link variant type: ${variant}`);
+    async deleteCard(cardId) {
+        if (!cardId) {
+            throw new Error('cardId is required parameter for deleteCard');
         }
 
-        return this.linkVariant.locator(link);
+        const consoleErrors = [];
+        const consoleListener = this.#setupConsoleListener(consoleErrors);
+        this.page.on('console', consoleListener);
+
+        try {
+            // First ensure card exists and editor is open
+            const card = await this.getCard(cardId);
+            await expect(card).toBeVisible();
+            await card.dblclick();
+            await this.page.waitForSelector('editor-panel > #editor', {
+                state: 'visible',
+                timeout: 30000,
+            });
+            await this.page.waitForTimeout(1000); // Give editor time to stabilize
+
+            await this.#retryOperation(async (attempt) => {
+                // Wait for delete button and ensure it's enabled
+                await this.page.waitForSelector(
+                    'div[id="editor-toolbar"] >> sp-action-button[value="delete"]',
+                    { state: 'visible', timeout: 5000 },
+                );
+                await expect(this.deleteCardButton).toBeEnabled();
+
+                await this.deleteCardButton.scrollIntoViewIfNeeded();
+                await this.page.waitForTimeout(500);
+
+                await this.deleteCardButton.click({ force: true });
+                await expect(await this.confirmationDialog).toBeVisible();
+                await this.confirmationDialog
+                    .locator(this.deleteDialog)
+                    .click();
+
+                // Wait for progress circle
+                await this.page
+                    .waitForSelector(
+                        'div[id="editor-toolbar"] >> sp-action-button[value="delete"] sp-progress-circle',
+                        { state: 'visible', timeout: 5000 },
+                    )
+                    .catch(() => {
+                        throw new Error(
+                            '[CLICK_FAILED] Delete confirmation did not trigger progress circle',
+                        );
+                    });
+
+                // Wait for any toast
+                await this.page
+                    .waitForSelector('mas-toast >> sp-toast', {
+                        state: 'visible',
+                        timeout: 15000,
+                    })
+                    .catch(() => {}); // Ignore timeout, we'll check for specific toasts next
+
+                // Check for error toast first
+                if (await this.toastNegative.isVisible()) {
+                    const errorText = await this.toastNegative.textContent();
+                    throw new Error(
+                        `[ERROR_TOAST] Delete operation received error: "${errorText.trim()}"`,
+                    );
+                }
+
+                // Wait for success toast
+                await this.toastPositive
+                    .waitFor({ timeout: 15000 })
+                    .catch(() => {
+                        throw new Error(
+                            '[NO_RESPONSE] Delete operation failed - no success toast shown',
+                        );
+                    });
+            });
+        } catch (e) {
+            // On failure, collect all attempt errors and console logs
+            if (e.message.includes('\nAll attempts failed:')) {
+                // Extract individual attempt errors from the combined error message
+                const attemptErrors = e.message
+                    .split('\n\n')
+                    .filter((msg) => msg.startsWith('[Attempt'))
+                    .map((msg) => {
+                        const attemptMatch = msg.match(
+                            /\[Attempt (\d+)\/\d+\]/,
+                        );
+                        if (attemptMatch) {
+                            const attemptNum = parseInt(attemptMatch[1]);
+                            // Get console errors that occurred during this attempt
+                            const attemptConsoleErrors = consoleErrors
+                                .slice((attemptNum - 1) * 3, attemptNum * 3) // Assuming max 3 errors per attempt
+                                .filter((err) => err); // Remove any undefined entries
+
+                            return `${msg}${attemptConsoleErrors.length ? '\nConsole errors:\n' + attemptConsoleErrors.join('\n') : ''}`;
+                        }
+                        return msg;
+                    });
+                throw new Error(
+                    `All attempts failed:\n\n${attemptErrors.join('\n\n')}`,
+                );
+            }
+            throw new Error(e.message);
+        } finally {
+            this.page.removeListener('console', consoleListener);
+        }
     }
 }

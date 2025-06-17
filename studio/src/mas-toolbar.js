@@ -32,7 +32,6 @@ const contentTypes = [
 
 class MasToolbar extends LitElement {
     static properties = {
-        filtersShown: { state: true },
         createDialogOpen: { state: true },
         selectedContentType: { state: true },
         filterCount: { state: true },
@@ -81,9 +80,11 @@ class MasToolbar extends LitElement {
         .filters-button {
             border: none;
             font-weight: bold;
+            cursor: default;
         }
 
         .filters-button:not(.shown) {
+            background-color: #fff;
             color: var(--spectrum-gray-700);
         }
 
@@ -94,6 +95,10 @@ class MasToolbar extends LitElement {
 
         .filters-button.shown:hover {
             background-color: var(--spectrum-blue-200);
+        }
+        
+        .filters-button:not(.shown):hover {
+            background-color: var(--spectrum-actionbutton-background-color-hover);
         }
 
         .filters-badge {
@@ -120,7 +125,6 @@ class MasToolbar extends LitElement {
 
     constructor() {
         super();
-        this.filtersShown = false;
         this.createDialogOpen = false;
         this.selectedContentType = 'merch-card';
         this.filterCount = 0;
@@ -156,7 +160,7 @@ class MasToolbar extends LitElement {
             this.filterCount = 0;
             return;
         }
-        
+
         if (typeof filters.tags === 'string') {
             this.filterCount = filters.tags.split(',').filter(Boolean).length;
         } else if (Array.isArray(filters.tags)) {
@@ -205,15 +209,16 @@ class MasToolbar extends LitElement {
             <sp-action-button
                 toggles
                 label="Filter"
-                @click=${() => (this.filtersShown = !this.filtersShown)}
-                ?quiet=${!this.filtersShown}
-                class="filters-button ${this.filtersShown ? 'shown' : ''}"
+                @click="${this.onShowFilter}"
+                class="filters-button ${this.filterCount > 0 ? 'shown' : ''}"
             >
-                ${!this.filtersShown
+                ${!this.filterCount > 0
                     ? html`<sp-icon-filter-add
                           slot="icon"
                       ></sp-icon-filter-add>`
-                    : html`<div slot="icon" class="filters-badge">${this.filterCount}</div>`}
+                    : html`<div slot="icon" class="filters-badge">
+                          ${this.filterCount}
+                      </div>`}
                 Filter</sp-action-button
             >
             <sp-search
@@ -276,7 +281,6 @@ class MasToolbar extends LitElement {
     }
 
     get filtersPanel() {
-        if (!this.filtersShown) return nothing;
         return html`<mas-filter-panel></mas-filter-panel>`;
     }
 

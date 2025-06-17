@@ -1,0 +1,72 @@
+export default {
+    FeatureName: 'M@S Studio AHome Promoted Plans',
+    features: [
+        {
+            tcid: '0',
+            name: '@studio-promoted-plans-discard-title',
+            path: '/studio.html',
+            data: {
+                cardid: '27f9c659-7c83-497f-86c2-34c711b9791d',
+                title: 'MAS Automation Promoted Card',
+                newTitle: 'Creative Cloud All Apps Premium',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-discard',
+        },
+        {
+            tcid: '1',
+            name: '@studio-promoted-plans-discard-gradient-border',
+            path: '/studio.html',
+            data: {
+                cardid: '27f9c659-7c83-497f-86c2-34c711b9791d',
+                standardBorderColor: 'Red 900',
+                standardBorderCSSColor: 'spectrum-red-900',
+                transparentBorderColor: 'Default',
+                transparentBorderCSSColor: 'transparent',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-discard',
+        },
+        {
+            tcid: '2',
+            name: '@studio-promoted-plans-discard-edited-cta-variant',
+            path: '/studio.html',
+            data: {
+                cardid: '27f9c659-7c83-497f-86c2-34c711b9791d',
+                variant: 'accent',
+                newVariant: 'primary',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-discard',
+        },
+        {
+            tcid: '3',
+            name: '@studio-promoted-plans-discard-edited-description',
+            path: '/studio.html',
+            data: {
+                cardid: '27f9c659-7c83-497f-86c2-34c711b9791d',
+                description:
+                    'Create with Adobe on the web. Includes Firefly, Express, Photoshop, Lightroom, and more.',
+                newDescription:
+                    'Access the full power of Creative Cloud with all Adobe creative applications.',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-discard',
+        },
+        {
+            tcid: '4',
+            name: '@studio-promoted-plans-discard-edited-analytics-ids',
+            path: '/studio.html',
+            data: {
+                cardid: '27f9c659-7c83-497f-86c2-34c711b9791d',
+                analyticsID: 'buy-now',
+                daaLL: 'buy-now-2',
+                daaLH: 'ccsn',
+                newAnalyticsID: 'save-now',
+                newDaaLL: 'save-now-2',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @promoted-plans @promoted-plans-discard',
+        },
+    ],
+};

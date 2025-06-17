@@ -3,7 +3,7 @@ export default {
     features: [
         {
             tcid: '0',
-            name: '@studio-try-buy-widget-discard-price',
+            name: '@studio-try-buy-widget-discard-edited-price',
             path: '/studio.html',
             data: {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
@@ -15,7 +15,7 @@ export default {
         },
         {
             tcid: '1',
-            name: '@studio-try-buy-widget-discard-variant-change',
+            name: '@studio-try-buy-widget-discard-edited-variant-change',
             path: '/studio.html',
             data: {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
@@ -25,7 +25,7 @@ export default {
         },
         {
             tcid: '2',
-            name: '@studio-try-buy-widget-discard-edit-osi',
+            name: '@studio-try-buy-widget-discard-edited-osi',
             path: '/studio.html',
             data: {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
@@ -44,7 +44,7 @@ export default {
         },
         {
             tcid: '3',
-            name: '@studio-try-buy-widget-discard-edit-cta-variant',
+            name: '@studio-try-buy-widget-discard-edited-cta-variant',
             path: '/studio.html',
             data: {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
@@ -56,20 +56,34 @@ export default {
         },
         {
             tcid: '4',
-            name: '@studio-try-buy-widget-discard-edit-cta-checkout-params',
+            name: '@studio-try-buy-widget-discard-edited-cta-checkout-params',
             path: '/studio.html',
             data: {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
                 osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
                 checkoutParams: {
                     mv: '1',
-                    cs: 'individual',
                     promoid: 'ABC123',
                     mv2: '2',
                 },
             },
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-discard',
+        },
+        {
+            tcid: '5',
+            name: '@studio-try-buy-widget-discard-edited-analytics-ids',
+            path: '/studio.html',
+            data: {
+                cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
+                analyticsID: 'free-trial',
+                daaLL: 'free-trial-1',
+                daaLH: 'ccsn',
+                newAnalyticsID: 'save-now',
+                newDaaLL: 'save-now-1',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @ahome @try-buy-widget @try-buy-widget-discard',
         },
     ],
 };

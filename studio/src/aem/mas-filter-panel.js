@@ -1,7 +1,7 @@
 import { html, css, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
-import Events from '../events.js';
+import router from '../router.js';
 
 function pathToTagId(path) {
     return `mas:${path.replace('/content/cq:tags/mas/', '')}`;
@@ -16,8 +16,10 @@ const EMPTY_TAGS = {
     plan_type: [],
     market_segments: [],
     customer_segment: [],
+    product_code: [],
     status: [],
     'studio/content-type': [],
+    variant: [],
 };
 
 class MasFilterPanel extends LitElement {
@@ -55,15 +57,22 @@ class MasFilterPanel extends LitElement {
         this.#initializeTagFilters();
     }
 
+    connectedCallback() {
+        super.connectedCallback();
+        router.addEventListener('change', () => this.#initializeTagFilters());
+    }
+
     disconnectedCallback() {
         super.disconnectedCallback();
-
-        if (this.filtersSubscription) {
-            this.filtersSubscription.unsubscribe();
-        }
+        router.removeEventListener('change', () =>
+            this.#initializeTagFilters(),
+        );
     }
 
     #initializeTagFilters() {
+        this.tagsByType = {
+            ...EMPTY_TAGS,
+        };
         const filters = Store.filters.get();
         if (!filters.tags) return;
         this.tagsByType = filters.tags.split(',').reduce(
@@ -91,13 +100,35 @@ class MasFilterPanel extends LitElement {
                     values.length > 0
                         ? values[values.length - 1].toUpperCase()
                         : '';
+
+                const picker = this.shadowRoot.querySelector(`aem-tag-picker-field[top="${type}"]`);
+                picker?.allTags.then?.(() => { // when tags are loaded
+                    this.tagsByType[type].forEach((displayedTag) => {
+                        picker.selectedTags.forEach((selTag) => {
+                            if (displayedTag.path === selTag.path) {
+                                displayedTag.title = selTag.title;
+                            }
+                        })
+                    })
+                    this.tagsByType = {
+                        ...this.tagsByType,
+                    };
+                });
+
+                let selectedTagTitle = '';
+                picker?.selectedTags.forEach((selectedTag) => {
+                    if (selectedTag.name.toLowerCase() === title.toLowerCase()) {
+                        selectedTagTitle = selectedTag.title;
+                    }
+                });
+
                 return {
                     ...acc,
                     [type]: [
                         ...(acc[type] || []),
                         {
                             path: fullPath,
-                            title,
+                            title: selectedTagTitle || title,
                             top: type,
                         },
                     ],
@@ -136,7 +167,7 @@ class MasFilterPanel extends LitElement {
     #handleRefresh() {
         Store.search.set((prev) => ({
             ...prev,
-            tags: '',
+            query: '',
         }));
 
         Store.filters.set((prev) => ({
@@ -206,6 +237,26 @@ class MasFilterPanel extends LitElement {
                     label="Customer Segment"
                     selection="checkbox"
                     value=${pathsToTagIds(this.tagsByType.customer_segment)}
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
+
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="product_code"
+                    multiple
+                    label="Product Code"
+                    selection="checkbox"
+                    value=${pathsToTagIds(this.tagsByType.product_code)}
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
+
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="variant"
+                    label="Variant"
+                    multiple
+                    selection="checkbox"
+                    value=${pathsToTagIds(this.tagsByType.variant)}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 

@@ -57,6 +57,11 @@ export class Fragment {
         return this.status === 'PUBLISHED' ? 'published' : 'draft';
     }
 
+    getTagTitle(id) {
+        const tags = this.tags.filter((tag) => tag.id.includes(id));
+        return tags[0]?.title;
+    }
+
     refreshFrom(fragmentData) {
         Object.assign(this, fragmentData);
         this.initialValue = structuredClone(this);
@@ -79,17 +84,30 @@ export class Fragment {
         return this.fields.find((field) => field.name === fieldName);
     }
 
+    getFieldValue(fieldName, index = 0) {
+        return this.fields.find((field) => field.name === fieldName)?.values?.[
+            index
+        ];
+    }
+
     updateField(fieldName, value) {
         let change = false;
         this.fields
             .filter((field) => field.name === fieldName)
             .forEach((field) => {
+                //handles encoding of values for characters like ✓
+                const encodedValues = value.map((v) => {
+                    if (typeof v === 'string') {
+                        return v.normalize('NFC');
+                    }
+                    return v;
+                });
                 if (
-                    field.values.length === value.length &&
-                    field.values.every((v, index) => v === value[index])
+                    field.values.length === encodedValues.length &&
+                    field.values.every((v, index) => v === encodedValues[index])
                 )
                     return;
-                field.values = value;
+                field.values = encodedValues;
                 this.hasChanges = true;
                 change = true;
             });

@@ -38,9 +38,9 @@
             import '../../src/swc.js';
             import '../../src/rte/rte-field.js';
             import '../../src/rte/rte-link-editor.js';
-            import '@adobecom/milo/libs/features/mas/dist/mas.js';
-            import { mockFetch } from '@adobecom/milo/libs/features/mas/test/mocks/fetch.js';
-            import { withWcs } from '@adobecom/milo/libs/features/mas/test/mocks/wcs.js';
+            import '../../../web-components/dist/mas.js';
+            import { mockFetch } from '../../../web-components/test/mocks/fetch.js';
+            import { withWcs } from '../../../web-components/test/mocks/wcs.js';
 
             import {
                 createFromTemplate,
@@ -76,6 +76,56 @@
                             this.test.title,
                         );
                         expect(rte.shadowRoot).exist;
+                    });
+                });
+
+                describe('RTE Field: styling features', () => {
+                    let rte;
+                    const firstStyledElement = () =>
+                        rte.shadowRoot.querySelector('.ProseMirror span');
+
+                    it('should render styling menu', async function () {
+                        rte = await createFromTemplate(
+                            'rte-styling',
+                            this.test.title,
+                        );
+                        const stylingMenu =
+                            rte.shadowRoot.querySelector('#stylingMenu');
+                        expect(stylingMenu).to.exist;
+                    });
+
+                    it('should apply heading styles', async function () {
+                        rte = await createFromTemplate(
+                            'rte-styling',
+                            this.test.title,
+                        );
+                        await selectWordsInTextNode(rte.editorView, 'Styling');
+
+                        rte.handleStylingAction('heading-m');
+                        await delay(100);
+
+                        let span = firstStyledElement();
+                        expect(span.className).to.equal('heading-m');
+
+                        rte.handleStylingAction('heading-xxs');
+                        await delay(100);
+
+                        span = firstStyledElement();
+                        expect(span.className).to.equal('heading-xxs');
+                    });
+
+                    it('should apply promo text styles', async function () {
+                        rte = await createFromTemplate(
+                            'rte-styling',
+                            this.test.title,
+                        );
+                        await selectWordsInTextNode(rte.editorView, 'Styling');
+
+                        rte.handleStylingAction('promo-text');
+                        await delay(100);
+
+                        let span = firstStyledElement();
+                        expect(span.className).to.equal('promo-text');
                     });
                 });
 
@@ -305,6 +355,11 @@
         <template id="rte">
             <rte-field link>
                 <p>Text only</p>
+            </rte-field>
+        </template>
+        <template id="rte-styling">
+            <rte-field styling>
+                <p>Styling</p>
             </rte-field>
         </template>
         <template id="rte-link">

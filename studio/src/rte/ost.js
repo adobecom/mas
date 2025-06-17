@@ -20,9 +20,9 @@ export const ostDefaults = {
     aosApiKey: 'wcms-commerce-ims-user-prod',
     checkoutClientId: 'creative',
     country: 'US',
+    language: 'en',
     environment: 'PROD',
     landscape: 'PUBLISHED',
-    language: 'en',
     searchParameters: {},
     searchOfferSelectorId: null,
     defaultPlaceholderOptions: {
@@ -48,8 +48,12 @@ export const ostDefaults = {
 
         getSelectedText(searchParameters) {
             const ctaLabel = searchParameters.get('text');
-            const selectedText = this.ctaTexts.find(({ id, name }) =>
+            let selectedText;
+            if (ctaLabel)
+            selectedText = this.ctaTexts.find(({ id, name }) =>
                 [id, name].includes(ctaLabel),
+            ) || this.ctaTexts.find(({ id, name }) =>
+                [id, name].includes(ctaLabel.replace('{{' , '').replace('}}', '')),
             );
             if (selectedText) return selectedText.id;
             return ctaLabel || this.getDefaultText();
@@ -102,6 +106,9 @@ const OST_OPTION_ATTRIBUTE_MAPPING = {
     workflow: 'data-checkout-workflow',
     workflowStep: 'data-checkout-workflow-step',
     storedPromoOverride: 'data-promotion-code',
+    modal: 'data-modal',
+    entitlement: 'data-entitlement',
+    upgrade: 'data-upgrade',
 };
 
 export const OST_OPTION_ATTRIBUTE_MAPPING_REVERSE = Object.fromEntries(
@@ -149,7 +156,7 @@ export function onPlaceholderSelect(
 
     const ctaText = CHECKOUT_CTA_TEXTS[options.ctaText]; // no placeholder key support.
     if (ctaText) {
-        attributes['text'] = ctaText;
+        attributes['text'] =  ['acom', 'sandbox', 'nala'].includes(Store.search.get().path) ? `{{${options.ctaText}}}` : ctaText;
         attributes['data-analytics-id'] = options.ctaText;
     }
 
@@ -236,14 +243,21 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 'checkoutType',
                 'workflowStep',
                 'country',
+                'modal',
+                'entitlement',
+                'upgrade',
             ].forEach((key) => {
                 const value = offerSelectorPlaceholderOptions[key];
                 if (value) searchParameters.append(key, value);
             });
         }
+        const masCommerceService = document.querySelector(
+            'mas-commerce-service',
+        );
         ostRoot.style.display = 'block';
         closeFunction = window.ost.openOfferSelectorTool({
             ...ostDefaults,
+            ...masCommerceService.settings,
             rootElement: ostRoot,
             zIndex: 20,
             aosAccessToken,
@@ -252,6 +266,9 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             searchOfferSelectorId,
             defaultPlaceholderOptions,
             offerSelectorPlaceholderOptions,
+            modalsAndEntitlements: ['acom', 'sandbox', 'nala'].includes(
+                Store.search.get().path,
+            ),
             dialog: true,
             onSelect:
                 triggerElement.tagName === 'OSI-FIELD'

@@ -66,8 +66,10 @@
                             plan_type: [],
                             market_segments: [],
                             customer_segment: [],
+                            product_code: [],
                             status: [],
                             'studio/content-type': [],
+                            variant: [],
                         });
                     });
 
@@ -145,7 +147,7 @@
                         ).to.have.lengthOf(0);
 
                         const storeState = await Store.search.get();
-                        expect(storeState.tags).to.have.lengthOf(0);
+                        expect(storeState.tags).to.undefined;
                     });
 
                     it('Should maintain other tag types when one type changes', async function () {

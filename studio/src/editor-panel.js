@@ -8,15 +8,54 @@ import {
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
     EVENT_KEYDOWN,
+    EVENT_OST_OFFER_SELECT,
     OPERATIONS,
 } from './constants.js';
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
+import { generateCodeToUse } from './utils.js';
+import './rte/osi-field.js';
+import './aem/aem-tag-picker-field.js';
 
-const MODEL_WEB_COMPONENT_MAPPING = {
+export const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
     [COLLECTION_MODEL_PATH]: 'merch-card-collection',
 };
+
+export function getFragmentPartsToUse(store, fragment) {
+    let fragmentParts = '';
+    let title = '';
+    const surface = store.search.value.path?.toUpperCase();
+    switch (fragment?.model?.path) {
+        case CARD_MODEL_PATH:
+            const props = {
+                cardTitle: fragment?.getField('cardTitle')?.values[0],
+                variantCode: fragment?.getField('variant')?.values[0],
+                marketSegment: fragment?.getTagTitle('market_segment'),
+                customerSegment: fragment?.getTagTitle('customer_segment'),
+                product: fragment?.getTagTitle('mas:product/'),
+                promotion: fragment?.getTagTitle('mas:promotion/'),
+            };
+
+            VARIANTS.forEach((variant) => {
+                if (variant.value === props.variantCode) {
+                    props.variantLabel = variant.label;
+                }
+            });
+            const buildPart = (part) => {
+                if (part) return ` / ${part}`;
+                return '';
+            };
+            fragmentParts = `${surface}${buildPart(props.variantLabel)}${buildPart(props.customerSegment)}${buildPart(props.marketSegment)}${buildPart(props.product)}${buildPart(props.promotion)}`;
+            title = props.cardTitle;
+            break;
+        case COLLECTION_MODEL_PATH:
+            title = fragment?.title;
+            fragmentParts = `${surface} / ${title}`;
+            break;
+    }
+    return { fragmentParts, title };
+}
 
 const MODELS_NEEDING_MASK = [CARD_MODEL_PATH];
 export default class EditorPanel extends LitElement {
@@ -25,6 +64,7 @@ export default class EditorPanel extends LitElement {
         bucket: { type: String },
         showDeleteDialog: { type: Boolean, state: true },
         showDiscardDialog: { type: Boolean, state: true },
+        showCloneDialog: { type: Boolean, state: true },
         showEditor: { type: Boolean, state: true }, // Used to force re-rendering of the editor
     };
 
@@ -63,9 +103,14 @@ export default class EditorPanel extends LitElement {
         super();
         this.showDeleteDialog = false;
         this.showDiscardDialog = false;
+        this.showCloneDialog = false;
+        this.cloneInProgress = false;
         this.showEditor = true;
         // Used to resolve the discard confirmation promise.
         this.#discardPromiseResolver = null;
+        this.titleClone = '';
+        this.tagsClone = [];
+        this.osiClone = null;
 
         // Bind methods
         this.handleClose = this.handleClose.bind(this);
@@ -180,33 +225,6 @@ export default class EditorPanel extends LitElement {
         e.stopPropagation();
     }
 
-    getFragmentPartsToUse() {
-        let fragmentParts = '';
-        let title = '';
-        const surface = Store.search.value.path.toUpperCase();
-        switch (this.fragment?.model?.path) {
-            case CARD_MODEL_PATH:
-                const props =  {
-                    cardTitle: this.fragment?.getField('cardTitle')?.values[0],
-                    variantCode: this.fragment?.getField('variant')?.values[0],
-                    };
-
-                    VARIANTS.forEach((variant) => {
-                        if (variant.value === props.variantCode) {
-                            props.variantLabel = variant.label;
-                    }
-                });
-                fragmentParts = `${surface} / ${props.variantLabel} / ${props.cardTitle}`;
-                title = props.cardTitle;
-                break;  
-            case COLLECTION_MODEL_PATH:
-                title = this.fragment?.title;
-                fragmentParts = `${surface} / ${title}`;
-                break;
-        }
-        return {fragmentParts, title};
-    }
-
     showNegativeAlert() {
         Events.toast.emit({
             variant: 'negative',
@@ -214,33 +232,20 @@ export default class EditorPanel extends LitElement {
         });
     }
 
-    generateCodeToUse() {
-        const {fragmentParts, title} = this.getFragmentPartsToUse();
-        const webComponentName =
-            MODEL_WEB_COMPONENT_MAPPING[this.fragment?.model?.path];
-        if (!webComponentName) {
-            this.showNegativeAlert();
-            return [];
-        }
-
-        const code = `<${webComponentName}><aem-fragment fragment="${this.fragment?.id}" title="${title}"></aem-fragment></${webComponentName}>`;
-        const richText = `
-                <a href="https://mas.adobe.com/studio.html#page=${Store.page.value}&path=${Store.search.value.path}&query=${this.fragment?.id}">
-                    ${webComponentName}: ${fragmentParts}
-                </a>
-            `;
-        return [code, richText];
-    }
-
     async copyToUse() {
-        const [code, richText] = this.generateCodeToUse();
-        if (!code || !richText) return;
+        const { code, richText, href } = generateCodeToUse(
+            this.fragment,
+            Store.search.get().path,
+            Store.page.get(),
+            'Failed to copy code to clipboard',
+        );
+        if (!code || !richText || !href) return;
 
         try {
             await navigator.clipboard.write([
                 /* global ClipboardItem */
                 new ClipboardItem({
-                    'text/plain': new Blob([code], { type: 'text/plain' }),
+                    'text/plain': new Blob([href], { type: 'text/plain' }),
                     'text/html': new Blob([richText], { type: 'text/html' }),
                 }),
             ]);
@@ -255,8 +260,11 @@ export default class EditorPanel extends LitElement {
 
     #updateFragmentInternal(event) {
         const fieldName = event.target.dataset.field;
-        let value = event.target.value;
-        this.fragmentStore.updateFieldInternal(fieldName, value);
+        this.fragmentStore.updateFieldInternal(fieldName, event.target.value);
+    }
+
+    #updateCloneFragmentInternal(event) {
+        this.titleClone = event.target.value;
     }
 
     updateFragment({ target, detail, values }) {
@@ -284,8 +292,43 @@ export default class EditorPanel extends LitElement {
         }
     }
 
+    async confirmClone() {
+        const osi = this.fragment.getFieldValue('osi', 0);
+        if (this.fragment.model.path === CARD_MODEL_PATH && !this.osiClone && !osi) {
+            Events.toast.emit({
+                variant: 'negative',
+                content: 'Please select an offer',
+            });
+            return;
+        }
+
+        try {
+            this.cloneInProgress = true;
+            await this.repository.copyFragment(this.titleClone, this.osiClone, this.tagsClone);
+            this.cancelClone();
+            this.cloneInProgress = false;
+            await this.closeEditor();
+        } catch (error) {
+            this.cloneInProgress = false;
+            console.error('Error cloning fragment:', error);
+        }
+    }
+
     cancelDelete() {
         this.showDeleteDialog = false;
+    }
+
+    cancelClone() {
+        this.showCloneDialog = false;
+        Store.showCloneDialog.set(false);
+        this.tagsClone = [];
+        this.osiClone = null;
+        document.removeEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelectClone);
+    }
+
+    showClone() {
+        this.showCloneDialog = true;
+        Store.showCloneDialog.set(true);
     }
 
     /**
@@ -361,6 +404,16 @@ export default class EditorPanel extends LitElement {
         this.fragmentStore.updateField('locReady', [value]);
     }
 
+    #handleTagsChangeOnClone(e) {
+        const value = e.target.getAttribute('value');
+        this.tagsClone = value ? value.split(',') : [];
+    }
+
+    _onOstSelectClone = ({ detail: { offerSelectorId, offer } }) => {
+        if (!offer) return;
+        this.osiClone = offerSelectorId;
+    }
+
     get fragmentEditorToolbar() {
         return html`
             <div id="editor-toolbar">
@@ -420,7 +473,7 @@ export default class EditorPanel extends LitElement {
                     <sp-action-button
                         label="Clone"
                         value="clone"
-                        @click="${this.repository.copyFragment}"
+                        @click="${this.showClone}"
                     >
                         ${this.operation.equals(OPERATIONS.CLONE)
                             ? html`<sp-progress-circle
@@ -592,6 +645,70 @@ export default class EditorPanel extends LitElement {
         `;
     }
 
+    get cloneConfirmationDialog() {
+        if (!this.showCloneDialog) return nothing;
+        document.addEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelectClone);
+        const osiValues = this.fragment.getField('osi')?.values;
+        return html`
+            <sp-underlay open @click="${this.cancelClone}"></sp-underlay>
+            <sp-dialog
+                open
+                variant="confirmation"
+                class="clone-dialog"
+                @sp-dialog-confirm="${this.confirmClone}"
+                @sp-dialog-dismiss="${this.cancelClone}"
+            >
+                <h1 slot="heading">Confirm Cloning</h1>
+                <p>
+                    Please enter new fragment title
+                </p>
+                <sp-textfield
+                    placeholder="new fragment title"
+                    id="new-fragment-title"
+                    data-field="title"
+                    value="${this.fragment.title}"
+                    @input=${this.#updateCloneFragmentInternal}
+                ></sp-textfield>
+                ${this.fragment.model.path === CARD_MODEL_PATH
+                    ? html`
+                        <sp-field-group>
+                            <sp-field-label for="osi">OSI Search</sp-field-label>
+                            <osi-field
+                                id="osi"
+                                .value=${osiValues?.length ? osiValues[0] : null}
+                                data-field="osi"
+                            ></osi-field>
+                        </sp-field-group>
+                        <aem-tag-picker-field
+                            label="Tags"
+                            namespace="/content/cq:tags/mas"
+                            multiple
+                            value="${this.fragment.tags.map((tag) => tag.id).join(',')}"
+                            @change=${this.#handleTagsChangeOnClone}
+                        ></aem-tag-picker-field>
+                        `
+                    : nothing}
+                <sp-button
+                    slot="button"
+                    variant="secondary"
+                    @click="${this.cancelClone}"
+                >
+                    Cancel
+                </sp-button>
+                <sp-button
+                    slot="button"
+                    variant="accent"
+                    ?disabled=${this.cloneInProgress}
+                    @click="${this.confirmClone}"
+                >
+                    ${this.cloneInProgress
+                        ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
+                        : html`Clone`}
+                </sp-button>
+            </sp-dialog>
+        `;
+    }
+
     get fragmentEditor() {
         return html`
             ${this.fragment
@@ -633,6 +750,14 @@ export default class EditorPanel extends LitElement {
         `;
     }
 
+    get authorPath() {
+        return generateCodeToUse(
+            this.fragment,
+            Store.search.get().path,
+            Store.page.get(),
+        ).authorPath;
+    }
+
     render() {
         if (!this.fragment) return nothing;
         if (this.fragment.loading)
@@ -660,10 +785,16 @@ export default class EditorPanel extends LitElement {
         }
         return html`
             <div id="editor">
-                ${this.fragmentEditorToolbar} ${editor}
+                ${this.fragmentEditorToolbar}
+                <sp-divider size="s"></sp-divider>
+                <div>
+                    <p id="author-path">${this.authorPath}</p>
+                </div>
+                <sp-divider size="s"></sp-divider>
+                ${editor}
                 <sp-divider size="s"></sp-divider>
                 ${this.fragmentEditor} ${this.deleteConfirmationDialog}
-                ${this.discardConfirmationDialog}
+                ${this.discardConfirmationDialog} ${this.cloneConfirmationDialog}
             </div>
         `;
     }

@@ -13,7 +13,8 @@ export const CHECKOUT_CTA_TEXTS = {
     'see-more': 'See more',
     'upgrade-now': 'Upgrade now',
     'get-offer': 'Get offer',
-    select: 'Select',
+    'select': 'Select',
+    'see-all-plans-and-pricing': 'See all plans & pricing details',
 };
 export const WCS_LANDSCAPE_PUBLISHED = 'PUBLISHED';
 export const WCS_LANDSCAPE_DRAFT = 'DRAFT';

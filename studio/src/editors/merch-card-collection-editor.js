@@ -822,7 +822,10 @@ class MerchCardCollectionEditor extends LitElement {
                     ></sp-textfield>
                 </div>
                 <div class="form-row">
-                    <sp-field-label for="icon">Icon (dark)</sp-field-label>
+                    <sp-field-label for="icon"
+                        >Default icon (dark, mandatory if you need
+                        icon)</sp-field-label
+                    >
                     <sp-textfield
                         id="icon"
                         data-field="icon"
@@ -831,7 +834,9 @@ class MerchCardCollectionEditor extends LitElement {
                     ></sp-textfield>
                 </div>
                 <div class="form-row">
-                    <sp-field-label for="icon">Icon (light)</sp-field-label>
+                    <sp-field-label for="icon"
+                        >Selected Icon (light, optional)</sp-field-label
+                    >
                     <sp-textfield
                         id="iconLight"
                         data-field="iconLight"

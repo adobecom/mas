@@ -107,9 +107,23 @@ class MerchCardCollectionEditor extends LitElement {
         );
     }
 
+    get navigationLabel() {
+        return (
+            this.fragment?.fields?.find((f) => f.name === 'navigationLabel')
+                ?.values?.[0] || ''
+        );
+    }
+
     get icon() {
         return (
             this.fragment?.fields?.find((f) => f.name === 'icon')
+                ?.values?.[0] || ''
+        );
+    }
+
+    get iconLight() {
+        return (
+            this.fragment?.fields?.find((f) => f.name === 'iconLight')
                 ?.values?.[0] || ''
         );
     }
@@ -357,7 +371,7 @@ class MerchCardCollectionEditor extends LitElement {
         if (itemWrapper) {
             itemWrapper.classList.remove('dragover');
         } else if (e.currentTarget === e.target) {
-            e.currentTarget.classList.remove('dragover');
+            e.currentTarget.classListn.remove('dragover');
         }
     }
 
@@ -797,11 +811,36 @@ class MerchCardCollectionEditor extends LitElement {
                     ></sp-textfield>
                 </div>
                 <div class="form-row">
-                    <sp-field-label for="icon">Icon</sp-field-label>
+                    <sp-field-label for="navigationLabel"
+                        >Navigation label</sp-field-label
+                    >
+                    <sp-textfield
+                        id="navigationLabel"
+                        data-field="navigationLabel"
+                        .value=${this.navigationLabel}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="icon"
+                        >Default icon (dark, mandatory if you need
+                        icon)</sp-field-label
+                    >
                     <sp-textfield
                         id="icon"
                         data-field="icon"
                         .value=${this.icon}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="icon"
+                        >Selected Icon (light, optional)</sp-field-label
+                    >
+                    <sp-textfield
+                        id="iconLight"
+                        data-field="iconLight"
+                        .value=${this.iconLight}
                         @input=${this.updateFragment}
                     ></sp-textfield>
                 </div>

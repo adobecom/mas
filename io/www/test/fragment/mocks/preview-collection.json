@@ -248,13 +248,6 @@
                             "values": []
                         },
                         {
-                            "name": "showStockCheckbox",
-                            "type": "boolean",
-                            "multiple": false,
-                            "locked": false,
-                            "values": [false]
-                        },
-                        {
                             "name": "quantitySelect",
                             "type": "text",
                             "multiple": false,
@@ -543,13 +536,6 @@
                             "multiple": false,
                             "locked": false,
                             "values": []
-                        },
-                        {
-                            "name": "showStockCheckbox",
-                            "type": "boolean",
-                            "multiple": false,
-                            "locked": false,
-                            "values": [true]
                         },
                         {
                             "name": "quantitySelect",
@@ -907,13 +893,6 @@
                             "values": []
                         },
                         {
-                            "name": "showStockCheckbox",
-                            "type": "boolean",
-                            "multiple": false,
-                            "locked": false,
-                            "values": [false]
-                        },
-                        {
                             "name": "quantitySelect",
                             "type": "text",
                             "multiple": false,
@@ -1202,13 +1181,6 @@
                             "multiple": false,
                             "locked": false,
                             "values": []
-                        },
-                        {
-                            "name": "showStockCheckbox",
-                            "type": "boolean",
-                            "multiple": false,
-                            "locked": false,
-                            "values": [true]
                         },
                         {
                             "name": "quantitySelect",

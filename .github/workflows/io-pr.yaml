@@ -36,18 +36,28 @@ jobs:
   deploy:
     needs: tests
     if: success() && github.event_name == 'pull_request'
-    uses: ./.github/workflows/io-deploy.yaml
-    secrets:
-      workspace: ${{ secrets[format('AIO_NS_{0}', github.actor)] || secrets.AIO_NS_QA }}
-      auth: ${{ secrets[format('AIO_AUTH_{0}', github.actor)] || secrets.AIO_AUTH_QA }}
-      AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
-      AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
-      AOS_URL: ${{ secrets.AOS_URL }}
-      ODIN_CDN_ENDPOINT: ${{ secrets.ODIN_CDN_ENDPOINT }}
-      ODIN_ORIGIN_ENDPOINT: ${{ secrets.ODIN_ORIGIN_ENDPOINT }}
-      OST_WRITE_API_KEY: ${{ secrets.OST_WRITE_API_KEY }}
-      WCS_CDN_ENDPOINT: ${{ secrets.WCS_CDN_ENDPOINT }}
-      WCS_ORIGIN_ENDPOINT: ${{ secrets.WCS_ORIGIN_ENDPOINT }}
+    steps:
+    - name: Log Workspace Selection
+      run: |
+        if [ -n "${{ secrets[format('AIO_NS_{0}', github.actor)] }}" ]; then
+          echo "Using author-specific workspace for ${{ github.actor }}"
+        else
+          echo "Falling back to QA workspace"
+        fi
+
+    - name: Deploy
+      uses: ./.github/workflows/io-deploy.yaml
+      secrets:
+        workspace: ${{ secrets[format('AIO_NS_{0}', github.actor)] || secrets.AIO_NS_QA }}
+        auth: ${{ secrets[format('AIO_AUTH_{0}', github.actor)] || secrets.AIO_AUTH_QA }}
+        AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
+        AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
+        AOS_URL: ${{ secrets.AOS_URL }}
+        ODIN_CDN_ENDPOINT: ${{ secrets.ODIN_CDN_ENDPOINT }}
+        ODIN_ORIGIN_ENDPOINT: ${{ secrets.ODIN_ORIGIN_ENDPOINT }}
+        OST_WRITE_API_KEY: ${{ secrets.OST_WRITE_API_KEY }}
+        WCS_CDN_ENDPOINT: ${{ secrets.WCS_CDN_ENDPOINT }}
+        WCS_ORIGIN_ENDPOINT: ${{ secrets.WCS_ORIGIN_ENDPOINT }}
 
   test-deployed:
     needs: deploy

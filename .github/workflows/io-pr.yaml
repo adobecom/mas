@@ -40,13 +40,11 @@ jobs:
     steps:
     - name: Log Workspace Selection
       run: |
-        echo "::stop-commands::"
         if [ -n "${{ secrets[format('AIO_NS_{0}', github.actor)] }}" ]; then
           echo "Using author-specific workspace for ${{ github.actor }}"
         else
           echo "Falling back to QA workspace"
         fi
-        echo "::start-commands::"
 
   deploy:
     needs: [tests, log-workspace]

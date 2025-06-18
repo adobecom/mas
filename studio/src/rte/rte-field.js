@@ -1,4 +1,4 @@
-import { LitElement, html, nothing, css } from 'lit';
+import { LitElement, html, nothing, css, unsafeCSS } from 'lit';
 import {
     EditorState,
     NodeSelection,
@@ -41,6 +41,19 @@ const isNodePhoneLink = (node) => {
     if (!node) return false;
     return node.type.name === 'link' && node.attrs.href.startsWith('tel:');
 };
+
+const CUSTOM_MARKS_DATA = [
+    ['heading-xxxs', 'Heading XXXS'],
+    ['heading-xxs', 'Heading XXS'],
+    ['heading-xs', 'Heading XS'],
+    ['heading-s', 'Heading S'],
+    ['heading-m', 'Heading M'],
+    [],
+    ['promo-text', 'Promo text'],
+    ['promo-duration-text', 'Promo duration text'],
+    ['mnemonic-text', 'Mnemonic Text'],
+    ['renewal-text', 'Renewal text'],
+];
 
 class LinkNodeView {
     constructor(node, view, getPos) {
@@ -169,6 +182,13 @@ class RteField extends LitElement {
         link: { type: Boolean, attribute: 'link' },
         icon: { type: Boolean, attribute: 'icon' },
         mnemonic: { type: Boolean, attribute: 'mnemonic' },
+        marks: {
+            type: Array,
+            attribute: 'marks',
+            converter: {
+                fromAttribute: (value) => value.split(','),
+            },
+        },
         uptLink: { type: Boolean, attribute: 'upt-link' },
         isLinkSelected: { type: Boolean, state: true },
         priceSelected: { type: Boolean, state: true },
@@ -214,6 +234,13 @@ class RteField extends LitElement {
                 p {
                     margin: 0;
                 }
+
+                ${unsafeCSS(
+                    CUSTOM_MARKS_DATA.filter((item) => item.length === 2)
+                        .map(([mark]) => `span.${mark}`)
+                        .join(',\n') +
+                        ` { background-color: rgba(250, 50, 50, 0.1); }`,
+                )}
 
                 #editor {
                     padding: 8px 4px 4px 4px;
@@ -519,9 +546,9 @@ class RteField extends LitElement {
                     padding: 0 2px;
                     vertical-align: middle;
                 }
-                
+
                 #stylingMenu .is-selected {
-                    background-color: rgba(213,213,213);
+                    background-color: rgba(213, 213, 213);
                 }
             `,
             prosemirrorStyles,
@@ -533,6 +560,7 @@ class RteField extends LitElement {
     editorView;
     value = null;
     #serializer;
+    #stylingMarksData;
 
     constructor() {
         super();
@@ -551,7 +579,17 @@ class RteField extends LitElement {
         this.maxLength = 70;
         this.length = 0;
         this.hideOfferSelector = false;
-        this.osi = '';
+        this.marks = [
+            'heading-xxxs',
+            'heading-xxs',
+            'heading-xs',
+            'heading-s',
+            'heading-m',
+            'promo-text',
+            'mnemonic-text',
+            'promo-duration-text',
+            'renewal-text',
+        ];
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
             ostEvent: this.#handleOstEvent.bind(this),
@@ -602,7 +640,11 @@ class RteField extends LitElement {
     getStylingMark(stylingType, ariaLevel) {
         return {
             [stylingType]: {
-                attrs: { class: { default: null }, role: { default: null }, 'aria-level': { default: null } },
+                attrs: {
+                    class: { default: null },
+                    role: { default: null },
+                    'aria-level': { default: null },
+                },
                 group: 'styling',
                 parseDOM: [
                     {
@@ -610,7 +652,15 @@ class RteField extends LitElement {
                         getAttrs: this.#collectDataAttributes,
                     },
                 ],
-                toDOM: () => ['span', { class: stylingType, role: ariaLevel ? 'heading' : null, 'aria-level': ariaLevel }, 0],
+                toDOM: () => [
+                    'span',
+                    {
+                        class: stylingType,
+                        role: ariaLevel ? 'heading' : null,
+                        'aria-level': ariaLevel,
+                    },
+                    0,
+                ],
             },
         };
     }
@@ -872,6 +922,23 @@ class RteField extends LitElement {
             });
         }
 
+        let stylingMarksData = CUSTOM_MARKS_DATA;
+
+        if (this.marks) {
+            stylingMarksData = stylingMarksData.filter(([mark]) =>
+                this.marks.includes(mark),
+            );
+        }
+
+        this.#stylingMarksData = stylingMarksData;
+
+        const stylingMarks = stylingMarksData.reduce((marks, [markName]) => {
+            if (markName) {
+                Object.assign(marks, this.getStylingMark(markName));
+            }
+            return marks;
+        }, {});
+
         const marks = schema.spec.marks
             .remove('code')
             .remove('link')
@@ -884,15 +951,7 @@ class RteField extends LitElement {
                     parseDOM: [{ tag: 'u' }],
                     toDOM: () => ['u', 0],
                 },
-                ...(this.styling && {
-                    ...this.getStylingMark('heading-xxxs', '6'),
-                    ...this.getStylingMark('heading-xxs', '5'),
-                    ...this.getStylingMark('heading-xs', '4'),
-                    ...this.getStylingMark('heading-s', '3'),
-                    ...this.getStylingMark('heading-m', '2'),
-                    ...this.getStylingMark('promo-text'),
-                    ...this.getStylingMark('mnemonic-text'),
-                }),
+                ...stylingMarks,
             });
 
         if (this.inline) {
@@ -1367,7 +1426,9 @@ class RteField extends LitElement {
             );
             const name = stylingMark?.type?.name;
             if (name) {
-                const item = event.target.querySelector(`sp-menu-item[value="${name}"]`);
+                const item = event.target.querySelector(
+                    `sp-menu-item[value="${name}"]`,
+                );
                 if (item) item.classList.add('is-selected');
             }
         });
@@ -1777,7 +1838,8 @@ class RteField extends LitElement {
     }
 
     get stylingButton() {
-        if (!this.styling) return;
+        if (!this.styling) return nothing;
+        if (!this.#stylingMarksData) return nothing;
         return html`<sp-action-menu
             id="stylingMenu"
             title="Styling"
@@ -1785,14 +1847,12 @@ class RteField extends LitElement {
             @change=${this.#handleStylingSelection}
         >
             <sp-icon-brush slot="icon"></sp-icon-brush>
-            <sp-menu-item value="heading-xxxs">Heading XXXS - H6</sp-menu-item>
-            <sp-menu-item value="heading-xxs">Heading XXS - H5</sp-menu-item>
-            <sp-menu-item value="heading-xs">Heading XS - H4</sp-menu-item>
-            <sp-menu-item value="heading-s">Heading S - H3</sp-menu-item>
-            <sp-menu-item value="heading-m">Heading M - H2</sp-menu-item>
-            <sp-menu-divider></sp-menu-divider>
-            <sp-menu-item value="promo-text">Promo text</sp-menu-item>
-            <sp-menu-item value="mnemonic-text">Mnemonic Text</sp-menu-item>
+            ${this.#stylingMarksData.map(([mark, label]) => {
+                if (!mark) return html`<sp-divider size="s"></sp-divider>`;
+                return html`<sp-menu-item value="${mark}"
+                    >${label}</sp-menu-item
+                >`;
+            })}
         </sp-action-menu>`;
     }
 

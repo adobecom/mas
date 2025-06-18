@@ -25,6 +25,10 @@ export const VARIANTS = [
         value: 'fries',
         surface: 'commerce',
     },
+    {
+        label: 'Mini',
+        value: 'mini',
+    },
 ];
 
 class VariantPicker extends LitElement {

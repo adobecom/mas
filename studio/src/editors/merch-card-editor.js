@@ -30,6 +30,8 @@ class MerchCardEditor extends LitElement {
         currentVariantMapping: { type: Object, state: true },
     };
 
+    #variant = null;
+
     styles = {
         menuItemContainer: {
             display: 'flex',
@@ -253,36 +255,37 @@ class MerchCardEditor extends LitElement {
     async toggleFields() {
         if (!this.fragment) return;
         await this.#updateCurrentVariantMapping();
-        const variant = this.currentVariantMapping;
-        if (!variant) return;
+        this.#variant = this.currentVariantMapping;
+        if (!this.#variant) return;
         this.querySelectorAll('sp-field-group.toggle').forEach((field) => {
             field.style.display = 'none';
         });
-        Object.entries(variant).forEach(([key, value]) => {
+        Object.entries(this.#variant).forEach(([key, value]) => {
             if (Array.isArray(value) && value.length === 0) return;
             const field = this.querySelector(`sp-field-group.toggle#${key}`);
             if (field) field.style.display = 'block';
         });
         this.showQuantityFields(this.quantitySelectorDisplayed);
-        if (variant.borderColor) {
+        if (this.#variant.borderColor) {
             const borderField = this.querySelector(
                 'sp-field-group.toggle#border-color',
             );
             if (borderField) borderField.style.display = 'block';
         }
-        if (variant.borderColor || variant.badge?.tag) {
+        if (this.#variant.borderColor || this.#variant.badge?.tag) {
             this.availableBorderColors =
-                variant.allowedBorderColors || SPECTRUM_COLORS;
+                this.#variant.allowedBorderColors || SPECTRUM_COLORS;
             this.availableBadgeColors =
-                variant.allowedBadgeColors || SPECTRUM_COLORS;
+                this.#variant.allowedBadgeColors || SPECTRUM_COLORS;
         } else {
             this.availableBorderColors = [];
             this.availableBadgeColors = [];
         }
-        this.availableColors = variant?.allowedColors || [];
+        this.availableColors = this.#variant?.allowedColors || [];
 
         this.#displayBadgeColorFields(this.badgeText);
         this.#displayTrialBadgeColorFields(this.trialBadgeText);
+        this.requestUpdate();
     }
 
     render() {
@@ -292,6 +295,8 @@ class MerchCardEditor extends LitElement {
         const form = Object.fromEntries([
             ...this.fragment.fields.map((f) => [f.name, f]),
         ]);
+
+        console.log(this.#variant?.description?.marks);
         return html`
             <sp-field-group id="variant">
                 <sp-field-label for="card-variant">Variant</sp-field-label>
@@ -437,7 +442,7 @@ class MerchCardEditor extends LitElement {
                 <rte-field
                     id="prices"
                     inline
-                    link
+                    .marks=${this.#variant?.description?.marks}
                     data-field="prices"
                     .osi=${form.osi.values[0]}
                     default-link-style="primary-outline"

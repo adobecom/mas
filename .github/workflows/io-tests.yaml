@@ -39,6 +39,7 @@ jobs:
 
         # Run health check test
         echo "Running health check test"
+        echo "Running tests with URL: ${TEST_URL}"
         npx playwright test ioAutomation.js --grep "@health" --config=playwright.config.js
         
         # Run default locale tests

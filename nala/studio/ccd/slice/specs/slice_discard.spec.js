@@ -84,7 +84,8 @@ export default {
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
                 ctaText: 'Buy now',
-                newCtaText: 'Save now',
+                newCtaOption: 'Save now',
+                newCtaText: 'save-now',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
@@ -151,7 +152,6 @@ export default {
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 checkoutParams: {
                     mv: '1',
-                    cs: 'individual',
                     promoid: 'ABC123',
                     mv2: '2',
                 },

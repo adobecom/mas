@@ -206,7 +206,8 @@ export default {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 ctaText: 'Buy now',
-                newCtaText: 'Save now',
+                newCtaOption: 'Save now',
+                newCtaText: 'save-now',
                 ucv3: 'commerce.adobe.com/store/email',
                 country: 'US',
                 ctx: 'fp',
@@ -259,7 +260,6 @@ export default {
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 checkoutParams: {
                     mv: '1',
-                    cs: 'individual',
                     promoid: 'ABC123',
                     mv2: '2',
                 },

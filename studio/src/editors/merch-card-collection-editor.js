@@ -101,11 +101,31 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     get label() {
-        return this.fragment?.fields?.find(f => f.name === 'label')?.values?.[0] || '';
+        return (
+            this.fragment?.fields?.find((f) => f.name === 'label')
+                ?.values?.[0] || ''
+        );
+    }
+
+    get navigationLabel() {
+        return (
+            this.fragment?.fields?.find((f) => f.name === 'navigationLabel')
+                ?.values?.[0] || ''
+        );
     }
 
     get icon() {
-        return this.fragment?.fields?.find(f => f.name === 'icon')?.values?.[0] || '';
+        return (
+            this.fragment?.fields?.find((f) => f.name === 'icon')
+                ?.values?.[0] || ''
+        );
+    }
+
+    get iconLight() {
+        return (
+            this.fragment?.fields?.find((f) => f.name === 'iconLight')
+                ?.values?.[0] || ''
+        );
     }
 
     get fragment() {
@@ -113,7 +133,7 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     #getField(fieldName) {
-        return this.fragment?.fields?.find(field => field.name === fieldName);
+        return this.fragment?.fields?.find((field) => field.name === fieldName);
     }
 
     get #cardsHeader() {
@@ -163,13 +183,15 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     get #tip() {
-        if (this.#cards !== nothing || this.#collections !== nothing) return nothing;
-        
+        if (this.#cards !== nothing || this.#collections !== nothing)
+            return nothing;
+
         return html`
             <div class="tip">
                 <sp-icon-info-outline></sp-icon-info-outline>
                 <div>
-                    Drag and drop cards or collections to add to this collection.
+                    Drag and drop cards or collections to add to this
+                    collection.
                 </div>
             </div>
         `;
@@ -183,7 +205,10 @@ class MerchCardCollectionEditor extends LitElement {
                     variant="secondary"
                     @click="${() => this.removeItem(fragment.path)}"
                 >
-                    <sp-icon-close slot="icon" label="Remove item"></sp-icon-close>
+                    <sp-icon-close
+                        slot="icon"
+                        label="Remove item"
+                    ></sp-icon-close>
                 </sp-action-button>
                 <sp-action-button
                     quiet
@@ -197,7 +222,8 @@ class MerchCardCollectionEditor extends LitElement {
                           <sp-icon-preview
                               slot="icon"
                               label="Preview item"
-                              @mouseover="${(e) => this.showItemPreview(e, fragment)}"
+                              @mouseover="${(e) =>
+                                  this.showItemPreview(e, fragment)}"
                               @mouseout="${() => this.hideItemPreview()}"
                           ></sp-icon-preview>
                       `
@@ -209,27 +235,29 @@ class MerchCardCollectionEditor extends LitElement {
 
     #getFragmentInfo(fragment) {
         const isCollection = fragment.model?.path === COLLECTION_MODEL_PATH;
-        
+
         // Get label based on fragment type
-        const label = fragment.fields?.find(
-            field => field.name === (isCollection ? 'label' : 'cardTitle')
-        )?.values?.[0] || '';
-        
+        const label =
+            fragment.fields?.find(
+                (field) =>
+                    field.name === (isCollection ? 'label' : 'cardTitle'),
+            )?.values?.[0] || '';
+
         // Get icons based on fragment type
         let iconPaths = [];
         if (isCollection) {
             const iconPath = fragment.fields?.find(
-                field => field.name === 'icon'
+                (field) => field.name === 'icon',
             )?.values?.[0];
-            
+
             if (iconPath) iconPaths = [iconPath];
         } else {
             // For cards, get mnemonic icons
-            iconPaths = fragment.fields?.find(
-                field => field.name === 'mnemonicIcon'
-            )?.values || [];
+            iconPaths =
+                fragment.fields?.find((field) => field.name === 'mnemonicIcon')
+                    ?.values || [];
         }
-        
+
         return { label, iconPaths: iconPaths.slice(0, 2) };
     }
 
@@ -240,28 +268,35 @@ class MerchCardCollectionEditor extends LitElement {
                     field.values,
                     (item) => item,
                     (item, index) => {
-                        const fragmentStore = this.#fragmentReferencesMap.get(item);
+                        const fragmentStore =
+                            this.#fragmentReferencesMap.get(item);
                         if (!fragmentStore) return nothing;
 
                         const fragment = fragmentStore.get();
                         if (!fragment) return nothing;
 
-                        const { label, iconPaths } = this.#getFragmentInfo(fragment);
+                        const { label, iconPaths } =
+                            this.#getFragmentInfo(fragment);
 
                         return html`
                             <div
                                 class="item-wrapper"
                                 draggable="true"
-                                @dragstart="${(e) => this.#dragStart(e, index, fragment.model)}"
-                                @dragover="${(e) => this.#dragOver(e, index, fragment.model)}"
+                                @dragstart="${(e) =>
+                                    this.#dragStart(e, index, fragment.model)}"
+                                @dragover="${(e) =>
+                                    this.#dragOver(e, index, fragment.model)}"
                                 @dragleave="${this.#dragLeave}"
-                                @drop="${(e) => this.#drop(e, index, fragment.model)}"
+                                @drop="${(e) =>
+                                    this.#drop(e, index, fragment.model)}"
                                 @dragend="${this.#dragEnd}"
                             >
                                 <div class="item-content">
                                     <div class="item-text">
                                         <div class="item-label">${label}</div>
-                                        <div class="item-subtext">${fragment.name}</div>
+                                        <div class="item-subtext">
+                                            ${fragment.name}
+                                        </div>
                                     </div>
                                     ${iconPaths.length > 0
                                         ? html`
@@ -273,7 +308,7 @@ class MerchCardCollectionEditor extends LitElement {
                                                               alt="${label} icon"
                                                               class="item-icon"
                                                           />
-                                                      `
+                                                      `,
                                                   )}
                                               </div>
                                           `
@@ -282,7 +317,7 @@ class MerchCardCollectionEditor extends LitElement {
                                 ${this.#buildItemActions(fragment)}
                             </div>
                         `;
-                    }
+                    },
                 )}
             </div>
         `;
@@ -291,14 +326,17 @@ class MerchCardCollectionEditor extends LitElement {
     #dragStart(e, index, model) {
         this.draggingIndex = index;
         this.draggingFieldName = FIELD_MODEL_MAPPING[model.path];
-        
+
         // Set data for internal drags - needed for Firefox and other browsers that require data
-        e.dataTransfer.setData('application/json', JSON.stringify({
-            isInternalDrag: true,
-            sourceIndex: index,
-            fieldName: this.draggingFieldName
-        }));
-        
+        e.dataTransfer.setData(
+            'application/json',
+            JSON.stringify({
+                isInternalDrag: true,
+                sourceIndex: index,
+                fieldName: this.draggingFieldName,
+            }),
+        );
+
         e.dataTransfer.effectAllowed = 'move';
         e.target.classList.add('dragging');
     }
@@ -317,7 +355,10 @@ class MerchCardCollectionEditor extends LitElement {
         }
 
         // For internal drags, only allow if models match
-        if (this.draggingIndex !== index && this.draggingFieldName === FIELD_MODEL_MAPPING[model.path]) {
+        if (
+            this.draggingIndex !== index &&
+            this.draggingFieldName === FIELD_MODEL_MAPPING[model.path]
+        ) {
             e.target.classList.add('dragover');
         }
     }
@@ -330,7 +371,7 @@ class MerchCardCollectionEditor extends LitElement {
         if (itemWrapper) {
             itemWrapper.classList.remove('dragover');
         } else if (e.currentTarget === e.target) {
-            e.currentTarget.classList.remove('dragover');
+            e.currentTarget.classListn.remove('dragover');
         }
     }
 
@@ -340,10 +381,11 @@ class MerchCardCollectionEditor extends LitElement {
         if (!this.fragment) return;
 
         const isInternalDrop = this.draggingIndex !== -1;
-        const targetFieldName = isInternalDrop && model ? FIELD_MODEL_MAPPING[model?.path] : null;
-        
+        const targetFieldName =
+            isInternalDrop && model ? FIELD_MODEL_MAPPING[model?.path] : null;
+
         this.handleDropOperation(e, targetFieldName, index, isInternalDrop);
-        
+
         if (isInternalDrop) {
             this.draggingIndex = -1;
             this.draggingFieldName = null;
@@ -376,19 +418,27 @@ class MerchCardCollectionEditor extends LitElement {
 
             // If data not available, check type
             if (!fragmentData) {
-                return Array.from(event.dataTransfer.types).includes('application/json');
+                return Array.from(event.dataTransfer.types).includes(
+                    'application/json',
+                );
             }
 
             // Validate model path
-            if (!fragmentData.model || FIELD_MODEL_MAPPING[fragmentData.model.path] === undefined) {
+            if (
+                !fragmentData.model ||
+                FIELD_MODEL_MAPPING[fragmentData.model.path] === undefined
+            ) {
                 return false;
             }
-            
+
             // Check for duplicates
-            if (fragmentData.path && this.isFragmentAlreadyInCollection(fragmentData.path)) {
+            if (
+                fragmentData.path &&
+                this.isFragmentAlreadyInCollection(fragmentData.path)
+            ) {
                 return false;
             }
-            
+
             return true;
         } catch (e) {
             // Be permissive during dragover
@@ -398,47 +448,60 @@ class MerchCardCollectionEditor extends LitElement {
 
     isFragmentAlreadyInCollection(fragmentPath) {
         if (!this.fragment || !fragmentPath) return false;
-        
+
         const cardsField = this.#getField('cards');
         const collectionsField = this.#getField('collections');
-        
+
         const existingItems = [
             ...(cardsField?.values || []),
-            ...(collectionsField?.values || [])
+            ...(collectionsField?.values || []),
         ];
-        
+
         return existingItems.includes(fragmentPath);
     }
 
-    handleDropOperation(event, targetFieldName = null, targetIndex = -1, isInternalDrop = false) {
+    handleDropOperation(
+        event,
+        targetFieldName = null,
+        targetIndex = -1,
+        isInternalDrop = false,
+    ) {
         if (!this.fragment) return;
         event.preventDefault();
         event.stopPropagation();
-        
+
         this.#removeAllDragoverClasses();
-        
+
         try {
             const data = event.dataTransfer.getData('application/json');
             if (!data) {
                 console.warn('No data received in drop event');
                 return;
             }
-            
+
             const parsedData = JSON.parse(data);
-            
+
             // Handle internal drag
             if (isInternalDrop && this.draggingFieldName) {
-                this.#handleInternalDrop(parsedData, targetFieldName, targetIndex);
+                this.#handleInternalDrop(
+                    parsedData,
+                    targetFieldName,
+                    targetIndex,
+                );
                 return;
             }
-            
+
             // Skip internal marker in external context
             if (parsedData.isInternalDrag === true && !isInternalDrop) {
                 return;
             }
-            
-            this.#handleExternalDrop(parsedData, targetFieldName, targetIndex, event);
-            
+
+            this.#handleExternalDrop(
+                parsedData,
+                targetFieldName,
+                targetIndex,
+                event,
+            );
         } catch (error) {
             console.error('Error handling drop:', error);
         }
@@ -447,82 +510,96 @@ class MerchCardCollectionEditor extends LitElement {
     #handleInternalDrop(parsedData, targetFieldName, targetIndex) {
         const fieldName = this.draggingFieldName;
         const field = this.#getField(fieldName);
-        
+
         if (!field || !field.values) {
             console.error(`Field ${fieldName} not found or has no values`);
             return;
         }
-        
+
         // Check if dropping into different field type
         if (targetFieldName && targetFieldName !== fieldName) {
             console.warn('Cannot drop items between different sections');
             return;
         }
-        
+
         // For internal reordering
         const newValues = [...field.values];
-        
+
         // Get the dragged item path
         const draggedPath = newValues[this.draggingIndex];
         if (!draggedPath) {
             console.error(`No item found at index ${this.draggingIndex}`);
             return;
         }
-        
+
         // Remove from original position and insert at new position
         newValues.splice(this.draggingIndex, 1);
         newValues.splice(targetIndex, 0, draggedPath);
-        
+
         this.#updateFieldValues(fieldName, newValues);
     }
 
     #handleExternalDrop(fragmentData, targetFieldName, targetIndex, event) {
         // Validate model path
-        if (!fragmentData.model || !FIELD_MODEL_MAPPING[fragmentData.model.path]) {
-            console.warn(`No field mapping found for model path: ${fragmentData.model?.path}`);
+        if (
+            !fragmentData.model ||
+            !FIELD_MODEL_MAPPING[fragmentData.model.path]
+        ) {
+            console.warn(
+                `No field mapping found for model path: ${fragmentData.model?.path}`,
+            );
             return;
         }
 
         // Check for duplicates
         if (this.isFragmentAlreadyInCollection(fragmentData.path)) {
-            console.warn(`Fragment already exists in collection: ${fragmentData.path}`);
+            console.warn(
+                `Fragment already exists in collection: ${fragmentData.path}`,
+            );
             return;
         }
-        
-        const fieldName = targetFieldName || FIELD_MODEL_MAPPING[fragmentData.model.path];
-        
+
+        const fieldName =
+            targetFieldName || FIELD_MODEL_MAPPING[fragmentData.model.path];
+
         // Check if drop is on specific section
         if (!targetFieldName) {
             const dropTarget = event.target.closest('[data-field-name]');
             if (dropTarget) {
-                const sectionFieldName = dropTarget.getAttribute('data-field-name');
-                if (sectionFieldName !== fieldName && sectionFieldName !== 'cards-section') {
-                    console.warn(`Cannot drop ${fieldName} into ${sectionFieldName} section`);
+                const sectionFieldName =
+                    dropTarget.getAttribute('data-field-name');
+                if (
+                    sectionFieldName !== fieldName &&
+                    sectionFieldName !== 'cards-section'
+                ) {
+                    console.warn(
+                        `Cannot drop ${fieldName} into ${sectionFieldName} section`,
+                    );
                     return;
                 }
             }
         }
-        
+
         const field = this.#getField(fieldName);
         if (!field) {
             console.error(`Field ${fieldName} not found`);
             return;
         }
-        
+
         // Add item to values
         const newValues = [...(field.values || [])];
-        
+
         if (targetIndex !== -1) {
             newValues.splice(targetIndex, 0, fragmentData.path);
         } else {
             newValues.push(fragmentData.path);
         }
-        
+
         // Ensure no duplicates
         const uniqueValues = [...new Set(newValues)];
-        
+
         this.#updateFieldValues(fieldName, uniqueValues);
-        
+
         // Add reference if needed
         this.#addFragmentReference(fragmentData);
     }
@@ -535,27 +612,27 @@ class MerchCardCollectionEditor extends LitElement {
             },
             values: values,
         });
-        
+
         this.requestUpdate();
     }
 
     #addFragmentReference(fragmentData) {
         // Check if reference already exists
         const existingReference = this.fragment.references?.find(
-            (ref) => ref.path === fragmentData.path
+            (ref) => ref.path === fragmentData.path,
         );
-        
+
         if (!existingReference) {
             // Add the new reference
             this.fragment.references = [
                 ...(this.fragment.references || []),
                 fragmentData,
             ];
-            
+
             // Create a FragmentStore for the new reference
             this.#fragmentReferencesMap.set(
                 fragmentData.path,
-                new FragmentStore(new Fragment(fragmentData))
+                new FragmentStore(new Fragment(fragmentData)),
             );
         }
     }
@@ -563,12 +640,14 @@ class MerchCardCollectionEditor extends LitElement {
     #removeAllDragoverClasses() {
         // Remove from host element
         this.classList.remove('dragover');
-        
+
         // Remove from shadow DOM elements
         if (this.shadowRoot) {
-            this.shadowRoot.querySelectorAll('.dragover, .dragging').forEach(element => 
-                element.classList.remove('dragover', 'dragging')
-            );
+            this.shadowRoot
+                .querySelectorAll('.dragover, .dragging')
+                .forEach((element) =>
+                    element.classList.remove('dragover', 'dragging'),
+                );
         }
     }
 
@@ -613,7 +692,10 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     handleDragLeave(event) {
-        if (event.currentTarget === this && !this.contains(event.relatedTarget)) {
+        if (
+            event.currentTarget === this &&
+            !this.contains(event.relatedTarget)
+        ) {
             this.classList.remove('dragover');
         }
     }
@@ -624,7 +706,7 @@ class MerchCardCollectionEditor extends LitElement {
             this.#removeAllDragoverClasses();
             return;
         }
-        
+
         this.handleDropOperation(event);
     }
 
@@ -647,9 +729,18 @@ class MerchCardCollectionEditor extends LitElement {
         const position = {
             top: triggerRect.top,
             ...(spaceOnRight > spaceOnLeft
-                ? { left: editorRect.right + spaceOnRight / 2 - 150, right: undefined }
-                : { right: viewportWidth - editorRect.left + spaceOnLeft / 2 - 150, left: undefined }
-            ),
+                ? {
+                      left: editorRect.right + spaceOnRight / 2 - 150,
+                      right: undefined,
+                  }
+                : {
+                      right:
+                          viewportWidth -
+                          editorRect.left +
+                          spaceOnLeft / 2 -
+                          150,
+                      left: undefined,
+                  }),
         };
 
         this.previewItem = fragment;
@@ -657,7 +748,10 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     hideItemPreview() {
-        if (this.previewElement && document.body.contains(this.previewElement)) {
+        if (
+            this.previewElement &&
+            document.body.contains(this.previewElement)
+        ) {
             document.body.removeChild(this.previewElement);
             this.previewElement = null;
         }
@@ -666,7 +760,7 @@ class MerchCardCollectionEditor extends LitElement {
     async renderPreviewInLightDOM(position, previewItem) {
         // Remove any existing preview
         this.hideItemPreview();
-        
+
         // Get the fragment for preview
         const fragmentStore = this.#fragmentReferencesMap.get(previewItem.path);
         if (!fragmentStore) return;
@@ -697,7 +791,7 @@ class MerchCardCollectionEditor extends LitElement {
         // Add to document body
         document.body.appendChild(container);
         this.previewElement = container;
-        
+
         // Wait for components to load
         await container.querySelector('aem-fragment').updateComplete;
         await container.querySelector('merch-card').checkReady();
@@ -717,11 +811,36 @@ class MerchCardCollectionEditor extends LitElement {
                     ></sp-textfield>
                 </div>
                 <div class="form-row">
-                    <sp-field-label for="icon">Icon</sp-field-label>
+                    <sp-field-label for="navigationLabel"
+                        >Navigation label</sp-field-label
+                    >
+                    <sp-textfield
+                        id="navigationLabel"
+                        data-field="navigationLabel"
+                        .value=${this.navigationLabel}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="icon"
+                        >Default icon (dark, mandatory if you need
+                        icon)</sp-field-label
+                    >
                     <sp-textfield
                         id="icon"
                         data-field="icon"
                         .value=${this.icon}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="icon"
+                        >Selected Icon (light, optional)</sp-field-label
+                    >
+                    <sp-textfield
+                        id="iconLight"
+                        data-field="iconLight"
+                        .value=${this.iconLight}
                         @input=${this.updateFragment}
                     ></sp-textfield>
                 </div>

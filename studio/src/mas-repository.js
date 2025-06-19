@@ -17,6 +17,7 @@ import {
     EDITABLE_FRAGMENT_MODEL_IDS,
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
+    LOCALE_DEFAULT,
 } from './constants.js';
 
 let fragmentCache;

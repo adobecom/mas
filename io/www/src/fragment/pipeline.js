@@ -7,6 +7,7 @@ const translate = require('./translate.js').translate;
 const replace = require('./replace.js').replace;
 const settings = require('./settings.js').settings;
 const stateLib = require('@adobe/aio-lib-state');
+const wcs = require('./wcs.js').wcs;
 const zlib = require('zlib');
 
 function calculateHash(body) {
@@ -60,7 +61,13 @@ async function main(params) {
         }
     }
 
-    for (const transformer of [fetchFragment, translate, settings, replace]) {
+    for (const transformer of [
+        fetchFragment,
+        translate,
+        settings,
+        replace,
+        wcs,
+    ]) {
         if (context.status != 200) {
             logError(context.message, context);
             break;

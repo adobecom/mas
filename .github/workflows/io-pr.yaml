@@ -17,17 +17,6 @@ jobs:
       with:
         node-version: '22.x'
 
-    - name: Install AIO CLI
-      run: npm install -g @adobe/aio-cli
-
-    - name: Upload AIO CLI
-      uses: actions/upload-artifact@v4
-      with:
-        name: aio-cli-${{ github.run_id }}
-        path: |
-          /usr/local/bin/aio
-          /usr/local/lib/node_modules/@adobe/aio-cli
-
     - name: Install Playwright dependencies
       working-directory: nala/io
       run: npm install -D @playwright/test playwright

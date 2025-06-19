@@ -41,21 +41,8 @@ jobs:
         cache: 'npm'
         cache-dependency-path: io/www/package-lock.json
 
-    - name: Download AIO CLI
-      uses: actions/download-artifact@v4
-      with:
-        name: aio-cli-${{ github.run_id }}
-        path: /usr/local
-      continue-on-error: true
-
-    - name: Verify AIO CLI installation
-      run: |
-        if ! command -v aio &> /dev/null; then
-          echo "AIO CLI not found, installing..."
-          npm install -g @adobe/aio-cli
-        else
-          echo "AIO CLI found and ready"
-        fi
+    - name: Install AIO CLI
+      run: npm install -g @adobe/aio-cli
 
     - name: Deploy action
       env:

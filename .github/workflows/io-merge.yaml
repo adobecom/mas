@@ -33,7 +33,9 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: aio-cli-${{ github.run_id }}
-        path: /usr/local
+        path: |
+          /usr/local/bin/aio
+          /usr/local/lib/node_modules/@adobe/aio-cli
 
     - name: Upload Playwright
       uses: actions/upload-artifact@v4

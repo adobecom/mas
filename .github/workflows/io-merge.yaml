@@ -6,7 +6,45 @@ on:
       - 'io/www/**'
 
 jobs:
+  setup-tools:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22.x'
+
+    - name: Install AIO CLI
+      run: npm install -g @adobe/aio-cli
+
+    - name: Install Playwright dependencies
+      working-directory: nala/io
+      run: npm install -D @playwright/test playwright
+
+    - name: Install Playwright browsers
+      working-directory: nala/io
+      run: npx playwright install --with-deps
+
+    - name: Upload AIO CLI
+      uses: actions/upload-artifact@v4
+      with:
+        name: aio-cli-${{ github.run_id }}
+        path: ~/.npm
+
+    - name: Upload Playwright
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-${{ github.run_id }}
+        path: |
+          ~/.cache/ms-playwright
+          nala/io/node_modules
+
   build_and_test:
+    needs: setup-tools
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     defaults:
@@ -21,7 +59,7 @@ jobs:
       with:
         node-version: '22.x'
         cache: 'npm'
-        cache-dependency-path: io/www/package.json
+        cache-dependency-path: io/www/package-lock.json
 
     - name: Install dependencies
       run: npm ci
@@ -30,7 +68,7 @@ jobs:
       run: npm test
 
   deploy_stage:
-    needs: build_and_test
+    needs: [build_and_test, setup-tools]
     uses: ./.github/workflows/io-deploy.yaml
     secrets:
       workspace: ${{ secrets.AIO_NS_Stage }}
@@ -45,13 +83,13 @@ jobs:
       WCS_ORIGIN_ENDPOINT: ${{ secrets.WCS_ORIGIN_ENDPOINT }}
 
   test_stage:
-    needs: deploy_stage
+    needs: [deploy_stage, setup-tools]
     uses: ./.github/workflows/io-tests.yaml
     secrets:
       workspace: ${{ secrets.AIO_NS_Stage }}
 
   deploy_production:
-    needs: test_stage
+    needs: [test_stage, setup-tools]
     uses: ./.github/workflows/io-deploy.yaml
     secrets:
       workspace: ${{ secrets.AIO_NS_PROD }}
@@ -66,7 +104,7 @@ jobs:
       WCS_ORIGIN_ENDPOINT: ${{ secrets.WCS_ORIGIN_ENDPOINT }}
 
   test_production:
-    needs: deploy_production
+    needs: [deploy_production, setup-tools]
     uses: ./.github/workflows/io-tests.yaml
     secrets:
       workspace: ${{ secrets.AIO_NS_PROD }}

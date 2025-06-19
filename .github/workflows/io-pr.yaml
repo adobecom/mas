@@ -6,35 +6,68 @@ on:
       - 'io/www/**'
 
 jobs:
+  setup-tools:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22.x'
+
+    - name: Install AIO CLI
+      run: npm install -g @adobe/aio-cli
+
+    - name: Install Playwright dependencies
+      working-directory: nala/io
+      run: npm install -D @playwright/test playwright
+
+    - name: Install Playwright browsers
+      working-directory: nala/io
+      run: npx playwright install --with-deps
+
+    - name: Upload AIO CLI
+      uses: actions/upload-artifact@v4
+      with:
+        name: aio-cli-${{ github.run_id }}
+        path: ~/.npm
+
+    - name: Upload Playwright
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-${{ github.run_id }}
+        path: |
+          ~/.cache/ms-playwright
+          nala/io/node_modules
+
   tests:
+    needs: setup-tools
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: io/www
-
-    strategy:
-      matrix:
-        node-version: [22.x]
         
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up Node.js ${{ matrix.node-version }}
+    - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: '22.x'
         cache: 'npm'
-        cache-dependency-path: io/www/package.json
+        cache-dependency-path: io/www/package-lock.json
 
-    - name: Install dependencies
+    - name: Install io/www dependencies
       run: npm ci
     
-    - name: Run tests
+    - name: Run io/www tests
       run: npm test
 
   log-workspace:
-    needs: tests
+    needs: [tests, setup-tools]
     if: success() && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -47,7 +80,7 @@ jobs:
         fi
 
   deploy:
-    needs: [tests, log-workspace]
+    needs: [tests, log-workspace, setup-tools]
     if: success() && github.event_name == 'pull_request'
     uses: ./.github/workflows/io-deploy.yaml
     secrets:
@@ -63,7 +96,7 @@ jobs:
       WCS_ORIGIN_ENDPOINT: ${{ secrets.WCS_ORIGIN_ENDPOINT }}
 
   test-deployed:
-    needs: deploy
+    needs: [deploy, setup-tools]
     if: success() && github.event_name == 'pull_request'
     uses: ./.github/workflows/io-tests.yaml
     secrets:

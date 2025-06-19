@@ -8,10 +8,7 @@
         "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk"
     },
     "fields": {
-        "entries": [
-            "ff41dbbc-5481-4e19-9dcb-71d24ae3c80d",
-            "8add1937-cbfa-4a13-ad52-202028d9db15"
-        ]
+        "entries": ["ff41dbbc-5481-4e19-9dcb-71d24ae3c80d", "8add1937-cbfa-4a13-ad52-202028d9db15"]
     },
     "references": {
         "ff41dbbc-5481-4e19-9dcb-71d24ae3c80d": {

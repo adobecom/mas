@@ -1,5 +1,4 @@
-const COLLECTION_MODEL_ID =
-    'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
+const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
 
 function applyCollectionSettings(context) {
     context.body.placeholders = {
@@ -54,11 +53,7 @@ async function settings(context) {
 
     if (context.body?.references) {
         Object.entries(context.body.references).forEach(([key, ref]) => {
-            if (
-                ref &&
-                ref.type === 'content-fragment' &&
-                ref.value?.fields?.variant?.startsWith('plans')
-            ) {
+            if (ref && ref.type === 'content-fragment' && ref.value?.fields?.variant?.startsWith('plans')) {
                 applyPlansSettings(ref.value, locale);
             }
         });

@@ -45,10 +45,8 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '27f9c659-7c83-497f-86c2-34c711b9791d',
-                description:
-                    'Create with Adobe on the web. Includes Firefly, Express, Photoshop, Lightroom, and more.',
-                newDescription:
-                    'Access the full power of Creative Cloud with all Adobe creative applications.',
+                description: 'Create with Adobe on the web. Includes Firefly, Express, Photoshop, Lightroom, and more.',
+                newDescription: 'Access the full power of Creative Cloud with all Adobe creative applications.',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-discard',

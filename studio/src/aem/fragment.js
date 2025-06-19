@@ -12,20 +12,7 @@ export class Fragment {
     /**
      * @param {*} AEM Fragment JSON object
      */
-    constructor({
-        id,
-        etag,
-        model,
-        path,
-        title,
-        description,
-        status,
-        created,
-        modified,
-        fields,
-        tags,
-        references,
-    }) {
+    constructor({ id, etag, model, path, title, description, status, created, modified, fields, tags, references }) {
         this.id = id;
         this.model = model;
         this.etag = etag;
@@ -44,8 +31,7 @@ export class Fragment {
     }
 
     get variant() {
-        return this.fields.find((field) => field.name === 'variant')
-            ?.values?.[0];
+        return this.fields.find((field) => field.name === 'variant')?.values?.[0];
     }
 
     get fragmentName() {
@@ -85,9 +71,7 @@ export class Fragment {
     }
 
     getFieldValue(fieldName, index = 0) {
-        return this.fields.find((field) => field.name === fieldName)?.values?.[
-            index
-        ];
+        return this.fields.find((field) => field.name === fieldName)?.values?.[index];
     }
 
     updateField(fieldName, value) {

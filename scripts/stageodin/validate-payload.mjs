@@ -4,9 +4,7 @@ import { tmpdir } from 'os';
 import path from 'path';
 
 async function getItems(host, path) {
-    const response = await fetch(
-        `https://${host}/adobe/sites/cf/fragments?path=/content/dam/mas/${path}`,
-    );
+    const response = await fetch(`https://${host}/adobe/sites/cf/fragments?path=/content/dam/mas/${path}`);
     if (response.ok) {
         const data = await response.json();
         return data.items;
@@ -30,9 +28,7 @@ async function getFragmentMap(host, path, filter) {
                 fetch(url)
                     .then((response) => {
                         if (!response.ok) {
-                            throw new Error(
-                                `Failed to fetch ${url}: ${response.status} ${response.statusText}`,
-                            );
+                            throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
                         }
                         return response.json();
                     })
@@ -44,9 +40,7 @@ async function getFragmentMap(host, path, filter) {
         }
     }
 
-    console.log(
-        `Filtered ${filteredItems.length} items out of ${items.length}`,
-    );
+    console.log(`Filtered ${filteredItems.length} items out of ${items.length}`);
 
     if (filteredItems.length === 0) {
         console.log('No items matched the filter criteria');
@@ -76,24 +70,16 @@ async function getFragmentMap(host, path, filter) {
         }
     }
 
-    console.log(
-        `Successfully processed ${successCount} items, ${failureCount} failed`,
-    );
+    console.log(`Successfully processed ${successCount} items, ${failureCount} failed`);
     return map;
 }
 
 async function getProdMap(path, prodIds) {
-    return getFragmentMap('odin.adobe.com', path, (item) =>
-        prodIds.includes(item.id),
-    );
+    return getFragmentMap('odin.adobe.com', path, (item) => prodIds.includes(item.id));
 }
 
 async function getStageMap(prodMap, path) {
-    return getFragmentMap(
-        'stage-odin.adobe.com',
-        path,
-        (item) => prodMap[item.path],
-    );
+    return getFragmentMap('stage-odin.adobe.com', path, (item) => prodMap[item.path]);
 }
 
 async function main() {
@@ -119,25 +105,16 @@ async function main() {
                 diffCount++;
                 console.log(`\nDifferences for ${key}:`);
                 // Create temp files for diff
-                const prodFile = path.join(
-                    tempDir,
-                    `prod-${path.basename(key)}.json`,
-                );
-                const stageFile = path.join(
-                    tempDir,
-                    `stage-${path.basename(key)}.json`,
-                );
+                const prodFile = path.join(tempDir, `prod-${path.basename(key)}.json`);
+                const stageFile = path.join(tempDir, `stage-${path.basename(key)}.json`);
                 fs.writeFileSync(prodFile, JSON.stringify(prodItem, null, 2));
                 fs.writeFileSync(stageFile, JSON.stringify(stageItem, null, 2));
                 try {
                     // Run diff command
-                    const result = execSync(
-                        `diff --color=always -u ${prodFile} ${stageFile}`,
-                        {
-                            encoding: 'utf-8',
-                            stdio: ['pipe', 'pipe', 'ignore'],
-                        },
-                    );
+                    const result = execSync(`diff --color=always -u ${prodFile} ${stageFile}`, {
+                        encoding: 'utf-8',
+                        stdio: ['pipe', 'pipe', 'ignore'],
+                    });
                     // Strip first two lines (file paths)
                     const lines = result.split('\n');
                     console.log(lines.slice(2).join('\n'));
@@ -173,9 +150,7 @@ async function main() {
     console.log(`Files with differences: ${diffCount}`);
     console.log(`Files only in prod: ${onlyInProdCount}`);
     console.log(`Files only in stage: ${onlyInStageCount}`);
-    console.log(
-        `Total issues: ${diffCount + onlyInProdCount + onlyInStageCount}`,
-    );
+    console.log(`Total issues: ${diffCount + onlyInProdCount + onlyInStageCount}`);
 }
 
 main();

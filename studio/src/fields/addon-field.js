@@ -13,10 +13,7 @@ export class AddonField extends LitElement {
 
     addons = Store.placeholders.addons.data;
     loading = Store.placeholders.addons.loading;
-    reactiveController = new ReactiveController(this, [
-        this.addons,
-        this.loading,
-    ]);
+    reactiveController = new ReactiveController(this, [this.addons, this.loading]);
 
     constructor() {
         super();
@@ -105,14 +102,8 @@ export class AddonField extends LitElement {
         return html`
             <sp-field-group>
                 <div>
-                    <sp-field-label for="addon-field"
-                        >${this.label}</sp-field-label
-                    >
-                    <sp-switch
-                        size="m"
-                        .checked="${this.isEditable}"
-                        @change="${this.#handleToggle}"
-                    ></sp-switch>
+                    <sp-field-label for="addon-field">${this.label}</sp-field-label>
+                    <sp-switch size="m" .checked="${this.isEditable}" @change="${this.#handleToggle}"></sp-switch>
                 </div>
                 <!-- style hack -->
                 <span></span>

@@ -43,9 +43,7 @@ const apiKey = process.env.MAS_API_KEY;
 
 if (!bucket || !consumer || !accessToken || !apiKey) {
     console.error('Usage: node gen-locales.mjs <bucket> <consumer>');
-    console.error(
-        'Ensure MAS_ACCESS_TOKEN and MAS_API_KEY are set as environment variables.',
-    );
+    console.error('Ensure MAS_ACCESS_TOKEN and MAS_API_KEY are set as environment variables.');
     process.exit(1);
 }
 
@@ -79,30 +77,17 @@ async function run() {
 
                 res.on('end', () => {
                     if (res.statusCode >= 200 && res.statusCode < 300) {
-                        console.log(
-                            `Batch processed successfully: ${JSON.stringify(batch)}`,
-                        );
+                        console.log(`Batch processed successfully: ${JSON.stringify(batch)}`);
                         resolve();
                     } else {
-                        console.error(
-                            `Failed to process batch: ${JSON.stringify(batch)}`,
-                            res.statusCode,
-                            data,
-                        );
-                        reject(
-                            new Error(
-                                `Failed to process batch: ${res.statusCode}`,
-                            ),
-                        );
+                        console.error(`Failed to process batch: ${JSON.stringify(batch)}`, res.statusCode, data);
+                        reject(new Error(`Failed to process batch: ${res.statusCode}`));
                     }
                 });
             });
 
             req.on('error', (error) => {
-                console.error(
-                    `Error processing batch: ${JSON.stringify(batch)}`,
-                    error,
-                );
+                console.error(`Error processing batch: ${JSON.stringify(batch)}`, error);
                 reject(error);
             });
 

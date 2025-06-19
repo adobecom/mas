@@ -4,13 +4,7 @@ import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import {
-    CARD_MODEL_PATH,
-    COLLECTION_MODEL_PATH,
-    EVENT_KEYDOWN,
-    EVENT_OST_OFFER_SELECT,
-    OPERATIONS,
-} from './constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, EVENT_KEYDOWN, EVENT_OST_OFFER_SELECT, OPERATIONS } from './constants.js';
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import { generateCodeToUse } from './utils.js';
@@ -153,14 +147,8 @@ export default class EditorPanel extends LitElement {
     }
 
     updatePosition(position) {
-        this.style.setProperty(
-            '--editor-left',
-            position === 'left' ? '0' : 'inherit',
-        );
-        this.style.setProperty(
-            '--editor-right',
-            position === 'right' ? '0' : 'inherit',
-        );
+        this.style.setProperty('--editor-left', position === 'left' ? '0' : 'inherit');
+        this.style.setProperty('--editor-right', position === 'right' ? '0' : 'inherit');
         this.setAttribute('position', position);
     }
 
@@ -170,17 +158,13 @@ export default class EditorPanel extends LitElement {
 
     maskOtherFragments(currentId) {
         document.querySelector('.main-container')?.classList.add('mask');
-        document
-            .querySelector(`[data-id="${currentId}"]`)
-            ?.classList.add('editing-fragment');
+        document.querySelector(`[data-id="${currentId}"]`)?.classList.add('editing-fragment');
     }
 
     unmaskOtherFragments() {
         // Remove mask when editor closes
         document.querySelector('.mask')?.classList.remove('mask');
-        document
-            .querySelector('.editing-fragment')
-            ?.classList.remove('editing-fragment');
+        document.querySelector('.editing-fragment')?.classList.remove('editing-fragment');
     }
 
     /**
@@ -201,11 +185,7 @@ export default class EditorPanel extends LitElement {
         }
         await this.repository.refreshFragment(store);
         this.inEdit.set(store);
-        this.reactiveController.updateStores([
-            this.inEdit,
-            store,
-            this.operation,
-        ]);
+        this.reactiveController.updateStores([this.inEdit, store, this.operation]);
         if (this.needsMask(store.get(id))) {
             this.maskOtherFragments(id);
         }
@@ -214,10 +194,8 @@ export default class EditorPanel extends LitElement {
     handleKeyDown(event) {
         if (event.code === 'Escape') this.closeEditor();
         if (!event.ctrlKey) return;
-        if (event.code === 'ArrowLeft' && event.shiftKey)
-            this.updatePosition('left');
-        if (event.code === 'ArrowRight' && event.shiftKey)
-            this.updatePosition('right');
+        if (event.code === 'ArrowLeft' && event.shiftKey) this.updatePosition('left');
+        if (event.code === 'ArrowRight' && event.shiftKey) this.updatePosition('right');
     }
 
     handleClose(e) {
@@ -412,19 +390,12 @@ export default class EditorPanel extends LitElement {
     _onOstSelectClone = ({ detail: { offerSelectorId, offer } }) => {
         if (!offer) return;
         this.osiClone = offerSelectorId;
-    }
+    };
 
     get fragmentEditorToolbar() {
         return html`
             <div id="editor-toolbar">
-                <sp-action-group
-                    aria-label="Fragment actions"
-                    role="group"
-                    size="l"
-                    compact
-                    emphasized
-                    quiet
-                >
+                <sp-action-group aria-label="Fragment actions" role="group" size="l" compact emphasized quiet>
                     <sp-action-button
                         label="Move left"
                         title="Move left"
@@ -432,12 +403,8 @@ export default class EditorPanel extends LitElement {
                         id="move-left"
                         @click="${() => this.updatePosition('left')}"
                     >
-                        <sp-icon-chevron-left
-                            slot="icon"
-                        ></sp-icon-chevron-left>
-                        <sp-tooltip self-managed placement="bottom"
-                            >Move left</sp-tooltip
-                        >
+                        <sp-icon-chevron-left slot="icon"></sp-icon-chevron-left>
+                        <sp-tooltip self-managed placement="bottom">Move left</sp-tooltip>
                     </sp-action-button>
                     <sp-action-button
                         label="Save"
@@ -447,16 +414,9 @@ export default class EditorPanel extends LitElement {
                         @click="${this.repository.saveFragment}"
                     >
                         ${this.operation.equals(OPERATIONS.SAVE)
-                            ? html`<sp-progress-circle
-                                  indeterminate
-                                  size="s"
-                              ></sp-progress-circle>`
-                            : html`<sp-icon-save-floppy
-                                  slot="icon"
-                              ></sp-icon-save-floppy>`}
-                        <sp-tooltip self-managed placement="bottom"
-                            >Save changes</sp-tooltip
-                        >
+                            ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
+                            : html`<sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>`}
+                        <sp-tooltip self-managed placement="bottom">Save changes</sp-tooltip>
                     </sp-action-button>
                     <sp-action-button
                         label="Discard"
@@ -466,44 +426,20 @@ export default class EditorPanel extends LitElement {
                         @click="${this.onToolbarDiscard}"
                     >
                         <sp-icon-undo slot="icon"></sp-icon-undo>
-                        <sp-tooltip self-managed placement="bottom"
-                            >Discard changes</sp-tooltip
-                        >
+                        <sp-tooltip self-managed placement="bottom">Discard changes</sp-tooltip>
                     </sp-action-button>
-                    <sp-action-button
-                        label="Clone"
-                        value="clone"
-                        @click="${this.showClone}"
-                    >
+                    <sp-action-button label="Clone" value="clone" @click="${this.showClone}">
                         ${this.operation.equals(OPERATIONS.CLONE)
-                            ? html`<sp-progress-circle
-                                  indeterminate
-                                  size="s"
-                              ></sp-progress-circle>`
-                            : html` <sp-icon-duplicate
-                                  slot="icon"
-                              ></sp-icon-duplicate>`}
+                            ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
+                            : html` <sp-icon-duplicate slot="icon"></sp-icon-duplicate>`}
 
-                        <sp-tooltip self-managed placement="bottom"
-                            >Clone</sp-tooltip
-                        >
+                        <sp-tooltip self-managed placement="bottom">Clone</sp-tooltip>
                     </sp-action-button>
-                    <sp-action-button
-                        label="Publish"
-                        value="publish"
-                        @click="${this.repository.publishFragment}"
-                    >
+                    <sp-action-button label="Publish" value="publish" @click="${this.repository.publishFragment}">
                         ${this.operation.equals(OPERATIONS.PUBLISH)
-                            ? html`<sp-progress-circle
-                                  indeterminate
-                                  size="s"
-                              ></sp-progress-circle>`
-                            : html` <sp-icon-publish-check
-                                  slot="icon"
-                              ></sp-icon-publish-check>`}
-                        <sp-tooltip self-managed placement="bottom"
-                            >Publish</sp-tooltip
-                        >
+                            ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
+                            : html` <sp-icon-publish-check slot="icon"></sp-icon-publish-check>`}
+                        <sp-tooltip self-managed placement="bottom">Publish</sp-tooltip>
                     </sp-action-button>
                     <sp-action-button
                         label="Unpublish"
@@ -511,53 +447,23 @@ export default class EditorPanel extends LitElement {
                         @click="${this.repository.unpublishFragment}"
                         disabled
                     >
-                        <sp-icon-publish-remove
-                            slot="icon"
-                        ></sp-icon-publish-remove>
-                        <sp-tooltip self-managed placement="bottom"
-                            >Unpublish</sp-tooltip
-                        >
+                        <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
+                        <sp-tooltip self-managed placement="bottom">Unpublish</sp-tooltip>
                     </sp-action-button>
-                    <sp-action-button
-                        label="Use"
-                        value="use"
-                        @click="${this.copyToUse}"
-                    >
+                    <sp-action-button label="Use" value="use" @click="${this.copyToUse}">
                         <sp-icon-code slot="icon"></sp-icon-code>
-                        <sp-tooltip self-managed placement="bottom"
-                            >Use</sp-tooltip
-                        >
+                        <sp-tooltip self-managed placement="bottom">Use</sp-tooltip>
                     </sp-action-button>
-                    <sp-action-button
-                        label="Delete fragment"
-                        value="delete"
-                        @click="${this.deleteFragment}"
-                    >
+                    <sp-action-button label="Delete fragment" value="delete" @click="${this.deleteFragment}">
                         ${this.operation.equals(OPERATIONS.DELETE)
-                            ? html`<sp-progress-circle
-                                  indeterminate
-                                  size="s"
-                              ></sp-progress-circle>`
-                            : html` <sp-icon-delete-outline
-                                  slot="icon"
-                              ></sp-icon-delete-outline>`}
+                            ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
+                            : html` <sp-icon-delete-outline slot="icon"></sp-icon-delete-outline>`}
 
-                        <sp-tooltip self-managed placement="bottom"
-                            >Delete fragment</sp-tooltip
-                        >
+                        <sp-tooltip self-managed placement="bottom">Delete fragment</sp-tooltip>
                     </sp-action-button>
-                    <sp-action-button
-                        title="Close"
-                        label="Close"
-                        value="close"
-                        @click="${this.closeEditor}"
-                    >
-                        <sp-icon-close-circle
-                            slot="icon"
-                        ></sp-icon-close-circle>
-                        <sp-tooltip self-managed placement="bottom"
-                            >Close</sp-tooltip
-                        >
+                    <sp-action-button title="Close" label="Close" value="close" @click="${this.closeEditor}">
+                        <sp-icon-close-circle slot="icon"></sp-icon-close-circle>
+                        <sp-tooltip self-managed placement="bottom">Close</sp-tooltip>
                     </sp-action-button>
                     <sp-action-button
                         label="Move right"
@@ -566,12 +472,8 @@ export default class EditorPanel extends LitElement {
                         id="move-right"
                         @click="${() => this.updatePosition('right')}"
                     >
-                        <sp-icon-chevron-right
-                            slot="icon"
-                        ></sp-icon-chevron-right>
-                        <sp-tooltip self-managed placement="bottom"
-                            >Move right</sp-tooltip
-                        >
+                        <sp-icon-chevron-right slot="icon"></sp-icon-chevron-right>
+                        <sp-tooltip self-managed placement="bottom">Move right</sp-tooltip>
                     </sp-action-button>
                 </sp-action-group>
             </div>
@@ -589,24 +491,9 @@ export default class EditorPanel extends LitElement {
                 @sp-dialog-dismiss="${this.cancelDelete}"
             >
                 <h1 slot="heading">Confirm Deletion</h1>
-                <p>
-                    Are you sure you want to delete this fragment? This action
-                    cannot be undone.
-                </p>
-                <sp-button
-                    slot="button"
-                    variant="secondary"
-                    @click="${this.cancelDelete}"
-                >
-                    Cancel
-                </sp-button>
-                <sp-button
-                    slot="button"
-                    variant="accent"
-                    @click="${this.confirmDelete}"
-                >
-                    Delete
-                </sp-button>
+                <p>Are you sure you want to delete this fragment? This action cannot be undone.</p>
+                <sp-button slot="button" variant="secondary" @click="${this.cancelDelete}"> Cancel </sp-button>
+                <sp-button slot="button" variant="accent" @click="${this.confirmDelete}"> Delete </sp-button>
             </sp-dialog>
         `;
     }
@@ -622,23 +509,9 @@ export default class EditorPanel extends LitElement {
                 @sp-dialog-dismiss="${this.cancelDiscard}"
             >
                 <h1 slot="heading">Confirm Discard</h1>
-                <p>
-                    Are you sure you want to discard changes? This action cannot
-                    be undone.
-                </p>
-                <sp-button
-                    slot="button"
-                    variant="secondary"
-                    @click="${this.cancelDiscard}"
-                >
-                    Cancel
-                </sp-button>
-                <sp-button
-                    slot="button"
-                    variant="accent"
-                    id="btnDiscard"
-                    @click="${this.discardConfirmed}"
-                >
+                <p>Are you sure you want to discard changes? This action cannot be undone.</p>
+                <sp-button slot="button" variant="secondary" @click="${this.cancelDiscard}"> Cancel </sp-button>
+                <sp-button slot="button" variant="accent" id="btnDiscard" @click="${this.discardConfirmed}">
                     Discard
                 </sp-button>
             </sp-dialog>
@@ -659,9 +532,7 @@ export default class EditorPanel extends LitElement {
                 @sp-dialog-dismiss="${this.cancelClone}"
             >
                 <h1 slot="heading">Confirm Cloning</h1>
-                <p>
-                    Please enter new fragment title
-                </p>
+                <p>Please enter new fragment title</p>
                 <sp-textfield
                     placeholder="new fragment title"
                     id="new-fragment-title"
@@ -671,36 +542,25 @@ export default class EditorPanel extends LitElement {
                 ></sp-textfield>
                 ${this.fragment.model.path === CARD_MODEL_PATH
                     ? html`
-                        <sp-field-group>
-                            <sp-field-label for="osi">OSI Search</sp-field-label>
-                            <osi-field
-                                id="osi"
-                                .value=${osiValues?.length ? osiValues[0] : null}
-                                data-field="osi"
-                            ></osi-field>
-                        </sp-field-group>
-                        <aem-tag-picker-field
-                            label="Tags"
-                            namespace="/content/cq:tags/mas"
-                            multiple
-                            value="${this.fragment.tags.map((tag) => tag.id).join(',')}"
-                            @change=${this.#handleTagsChangeOnClone}
-                        ></aem-tag-picker-field>
-                        `
+                          <sp-field-group>
+                              <sp-field-label for="osi">OSI Search</sp-field-label>
+                              <osi-field
+                                  id="osi"
+                                  .value=${osiValues?.length ? osiValues[0] : null}
+                                  data-field="osi"
+                              ></osi-field>
+                          </sp-field-group>
+                          <aem-tag-picker-field
+                              label="Tags"
+                              namespace="/content/cq:tags/mas"
+                              multiple
+                              value="${this.fragment.tags.map((tag) => tag.id).join(',')}"
+                              @change=${this.#handleTagsChangeOnClone}
+                          ></aem-tag-picker-field>
+                      `
                     : nothing}
-                <sp-button
-                    slot="button"
-                    variant="secondary"
-                    @click="${this.cancelClone}"
-                >
-                    Cancel
-                </sp-button>
-                <sp-button
-                    slot="button"
-                    variant="accent"
-                    ?disabled=${this.cloneInProgress}
-                    @click="${this.confirmClone}"
-                >
+                <sp-button slot="button" variant="secondary" @click="${this.cancelClone}"> Cancel </sp-button>
+                <sp-button slot="button" variant="accent" ?disabled=${this.cloneInProgress} @click="${this.confirmClone}">
                     ${this.cloneInProgress
                         ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
                         : html`Clone`}
@@ -714,9 +574,7 @@ export default class EditorPanel extends LitElement {
             ${this.fragment
                 ? html`
                       <p>Fragment details (not shown on the card)</p>
-                      <sp-field-label for="fragment-title"
-                          >Fragment Title</sp-field-label
-                      >
+                      <sp-field-label for="fragment-title">Fragment Title</sp-field-label>
                       <sp-textfield
                           placeholder="Enter fragment title"
                           id="fragment-title"
@@ -724,9 +582,7 @@ export default class EditorPanel extends LitElement {
                           value="${this.fragment.title}"
                           @input=${this.#updateFragmentInternal}
                       ></sp-textfield>
-                      <sp-field-label for="fragment-description"
-                          >Fragment Description</sp-field-label
-                      >
+                      <sp-field-label for="fragment-description">Fragment Description</sp-field-label>
                       <sp-textfield
                           placeholder="Enter fragment description"
                           id="fragment-description"
@@ -736,14 +592,8 @@ export default class EditorPanel extends LitElement {
                           @input=${this.#updateFragmentInternal}
                       >
                       </sp-textfield>
-                      <sp-field-label for="fragment-locready"
-                          >Send to translation?</sp-field-label
-                      >
-                      <sp-switch
-                          ?checked="${this.fragment.getField('locReady')
-                              ?.values[0]}"
-                          @click="${this.#handleLocReady}"
-                      >
+                      <sp-field-label for="fragment-locready">Send to translation?</sp-field-label>
+                      <sp-switch ?checked="${this.fragment.getField('locReady')?.values[0]}" @click="${this.#handleLocReady}">
                       </sp-switch>
                   `
                 : nothing}
@@ -751,20 +601,12 @@ export default class EditorPanel extends LitElement {
     }
 
     get authorPath() {
-        return generateCodeToUse(
-            this.fragment,
-            Store.search.get().path,
-            Store.page.get(),
-        ).authorPath;
+        return generateCodeToUse(this.fragment, Store.search.get().path, Store.page.get()).authorPath;
     }
 
     render() {
         if (!this.fragment) return nothing;
-        if (this.fragment.loading)
-            return html`<sp-progress-circle
-                indeterminate
-                size="l"
-            ></sp-progress-circle>`;
+        if (this.fragment.loading) return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
 
         let editor = nothing;
         if (this.showEditor) {
@@ -793,8 +635,8 @@ export default class EditorPanel extends LitElement {
                 <sp-divider size="s"></sp-divider>
                 ${editor}
                 <sp-divider size="s"></sp-divider>
-                ${this.fragmentEditor} ${this.deleteConfirmationDialog}
-                ${this.discardConfirmationDialog} ${this.cloneConfirmationDialog}
+                ${this.fragmentEditor} ${this.deleteConfirmationDialog} ${this.discardConfirmationDialog}
+                ${this.cloneConfirmationDialog}
             </div>
         `;
     }

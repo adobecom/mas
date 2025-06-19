@@ -547,11 +547,7 @@
                     "type": "content-reference",
                     "name": "cards",
                     "multiple": true,
-                    "values": [
-                        "/content/mas/cards/photoshop",
-                        "/content/mas/cards/lightroom",
-                        "/content/mas/cards/bridge"
-                    ]
+                    "values": ["/content/mas/cards/photoshop", "/content/mas/cards/lightroom", "/content/mas/cards/bridge"]
                 }
             ]
         },
@@ -583,11 +579,7 @@
                     "type": "content-reference",
                     "name": "cards",
                     "multiple": true,
-                    "values": [
-                        "/content/mas/cards/photoshop",
-                        "/content/mas/cards/lightroom",
-                        "/content/mas/cards/firefly"
-                    ]
+                    "values": ["/content/mas/cards/photoshop", "/content/mas/cards/lightroom", "/content/mas/cards/firefly"]
                 }
             ]
         },

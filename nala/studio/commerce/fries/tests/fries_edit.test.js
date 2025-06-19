@@ -31,10 +31,7 @@ test.beforeEach(async ({ page, browserName }) => {
 
 test.describe('M@S Studio Commerce Fries card test suite', () => {
     // @studio-fries-edit-title - Validate edit title for fries card in mas studio
-    test(`${features[0].name},${features[0].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -67,10 +64,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
     });
 
     // @studio-fries-edit-description - Validate edit description field for fries card in mas studio
-    test(`${features[1].name},${features[1].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const { data } = features[1];
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -92,23 +86,16 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         });
 
         await test.step('step-4: Validate edited description in Editor panel', async () => {
-            await expect(await editor.description).toContainText(
-                data.newDescription,
-            );
+            await expect(await editor.description).toContainText(data.newDescription);
         });
 
         await test.step('step-5: Validate edited description on the card', async () => {
-            await expect(await fries.description).toHaveText(
-                data.newDescription,
-            );
+            await expect(await fries.description).toHaveText(data.newDescription);
         });
     });
 
     // @studio-fries-edit-mnemonic - Validate edit mnemonic URL field for fries card in mas studio
-    test(`${features[2].name},${features[2].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
         const { data } = features[2];
         const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -134,18 +121,12 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         });
 
         await test.step('step-5: Validate edited mnemonic URL on the card', async () => {
-            await expect(await fries.icon.first()).toHaveAttribute(
-                'src',
-                data.newIconURL,
-            );
+            await expect(await fries.icon.first()).toHaveAttribute('src', data.newIconURL);
         });
     });
 
     // @studio-fries-edit-price - Validate edit price field for fries card in mas studio
-    test(`${features[3].name},${features[3].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
         const { data } = features[3];
         const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -164,9 +145,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         await test.step('step-3: Edit price field', async () => {
             await expect(await editor.prices).toBeVisible();
             // Just check that prices section exists
-            const regularPriceEl = await editor.prices
-                .locator(editor.regularPrice)
-                .first();
+            const regularPriceEl = await editor.prices.locator(editor.regularPrice).first();
             if ((await regularPriceEl.count()) > 0) {
                 await regularPriceEl.dblclick();
                 await expect(await ost.price).toBeVisible();
@@ -189,10 +168,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
     });
 
     // @studio-fries-edit-cta-label - Validate edit CTA label for fries card in mas studio
-    test(`${features[4].name},${features[4].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
         const { data } = features[4];
         const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -212,9 +188,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             if ((await editor.CTA.count()) > 0) {
                 await expect(await editor.CTA).toBeVisible();
                 await editor.CTA.click();
-                if (
-                    (await editor.footer.locator(editor.linkEdit).count()) > 0
-                ) {
+                if ((await editor.footer.locator(editor.linkEdit).count()) > 0) {
                     await editor.footer.locator(editor.linkEdit).click();
                     await expect(await editor.linkText).toBeVisible();
                     await expect(await editor.linkSave).toBeVisible();
@@ -226,9 +200,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
         await test.step('step-4: Validate edited CTA label in Editor panel', async () => {
             if ((await editor.footer.count()) > 0) {
-                await expect(await editor.footer).toContainText(
-                    data.newCtaText,
-                );
+                await expect(await editor.footer).toContainText(data.newCtaText);
             }
         });
 

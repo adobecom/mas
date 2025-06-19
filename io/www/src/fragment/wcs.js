@@ -1,8 +1,7 @@
 const { log, logError, fetch } = require('./common.js');
 
 const MAS_ELEMENT_REGEXP = /<[^>]+data-wcs-osi=\\"(?<osi>[^\\]+)\\"[^>]*?>/gm;
-const PROMOCODE_REGEXP =
-    /(?<promo>data-promotion-code=\\"(?<promotionCode>[^\\]+)\\")/;
+const PROMOCODE_REGEXP = /(?<promo>data-promotion-code=\\"(?<promotionCode>[^\\]+)\\")/;
 
 async function fetchArtifact(osi, promotionCode, wcsContext) {
     const url = new URL(wcsContext.wcsURL);
@@ -28,19 +27,10 @@ async function computeCache(tokens, config, wcsContext) {
     const promises = tokens.map(
         ({ osi, promotionCode }) =>
             new Promise(async (resolve, reject) => {
-                const response = await fetchArtifact(
-                    osi,
-                    promotionCode,
-                    wcsContext,
-                );
+                const response = await fetchArtifact(osi, promotionCode, wcsContext);
                 if (response) {
                     const { resolvedOffers } = response;
-                    const cacheKey = [
-                        osi,
-                        wcsContext.country.toLowerCase(),
-                        wcsContext.language.toLowerCase(),
-                        promotionCode,
-                    ]
+                    const cacheKey = [osi, wcsContext.country.toLowerCase(), wcsContext.language.toLowerCase(), promotionCode]
                         .filter((val) => val)
                         .join('-');
                     resolve({
@@ -63,14 +53,11 @@ async function computeCache(tokens, config, wcsContext) {
 }
 
 async function getWcsConfigurations(context) {
-    const wcsConfigurationStr =
-        (await context.state.get('wcs-configuration'))?.value || false;
+    const wcsConfigurationStr = (await context.state.get('wcs-configuration'))?.value || false;
     if (wcsConfigurationStr) {
         try {
             const arrayConfig = JSON.parse(wcsConfigurationStr);
-            return arrayConfig.filter((config) =>
-                config.api_keys?.includes(context.api_key),
-            );
+            return arrayConfig.filter((config) => config.api_keys?.includes(context.api_key));
         } catch (e) {
             logError(`Error parsing WCS configuration: ${e.message}`, context);
             return null;
@@ -83,10 +70,7 @@ async function wcs(context) {
     const startTime = Date.now();
     const wcsConfigs = await getWcsConfigurations(context);
     if (!wcsConfigs || wcsConfigs.length === 0) {
-        log(
-            `No WCS configurations found for API key ${context.api_key}`,
-            context,
-        );
+        log(`No WCS configurations found for API key ${context.api_key}`, context);
         return context;
     }
     const { body, locale } = context;

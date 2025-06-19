@@ -45,7 +45,8 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: aio-cli-${{ github.run_id }}
-        path: ~/.npm
+        path: /usr/local
+      continue-on-error: true
 
     - name: Verify AIO CLI installation
       run: |

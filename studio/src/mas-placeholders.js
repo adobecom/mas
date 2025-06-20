@@ -1,6 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import styles from './mas-placeholders.css.js';
+import styles from './placeholders/mas-placeholders.css.js';
 import Store from './store.js';
 import Events from './events.js';
 import { MasRepository } from './mas-repository.js';

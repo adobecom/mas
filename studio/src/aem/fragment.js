@@ -22,6 +22,7 @@ export class Fragment {
         status,
         created,
         modified,
+        published,
         fields,
         tags,
         references,
@@ -36,6 +37,7 @@ export class Fragment {
         this.status = status;
         this.created = created;
         this.modified = modified;
+        this.published = published;
         this.tags = tags;
         this.fields = fields;
         this.references = references;

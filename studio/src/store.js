@@ -27,9 +27,7 @@ const Store = {
     },
     search: new ReactiveStore({}),
     filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
-    renderMode: new ReactiveStore(
-        localStorage.getItem('mas-render-mode') || 'render',
-    ),
+    renderMode: new ReactiveStore(localStorage.getItem('mas-render-mode') || 'render'),
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
@@ -43,9 +41,7 @@ const Store = {
         editing: new ReactiveStore(null),
         addons: {
             loading: new ReactiveStore(false),
-            data: new ReactiveStore([
-                { value: 'disabled', itemText: 'disabled' },
-            ]),
+            data: new ReactiveStore([{ value: 'disabled', itemText: 'disabled' }]),
         },
     },
     showCloneDialog: new ReactiveStore(false),
@@ -75,11 +71,7 @@ function filtersValidator(value) {
  * @returns {string}
  */
 function pageValidator(value) {
-    const validPages = [
-        PAGE_NAMES.WELCOME,
-        PAGE_NAMES.CONTENT,
-        PAGE_NAMES.PLACEHOLDERS,
-    ];
+    const validPages = [PAGE_NAMES.WELCOME, PAGE_NAMES.CONTENT, PAGE_NAMES.PLACEHOLDERS];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }
 
@@ -90,10 +82,7 @@ const editorPanel = () => document.querySelector('editor-panel');
  */
 export function toggleSelection(id) {
     const selection = Store.selection.get();
-    if (selection.includes(id))
-        Store.selection.set(
-            selection.filter((selectedId) => selectedId !== id),
-        );
+    if (selection.includes(id)) Store.selection.set(selection.filter((selectedId) => selectedId !== id));
     else Store.selection.set([...selection, id]);
 }
 

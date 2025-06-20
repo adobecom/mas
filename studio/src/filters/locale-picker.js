@@ -78,9 +78,7 @@ class MasLocalePicker extends LitElement {
                                     ?selected="${locale.code === currentValue}"
                                     @click="${this.handleSelect}"
                                 >
-                                    <span slot="icon" class="flag"
-                                        >${locale.flag}</span
-                                    >
+                                    <span slot="icon" class="flag">${locale.flag}</span>
                                     ${locale.name} (${locale.code})
                                 </sp-menu-item>
                             `,

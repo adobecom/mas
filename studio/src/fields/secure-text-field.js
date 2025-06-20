@@ -79,9 +79,7 @@ export class SecureTextField extends LitElement {
         return html`
             <sp-field-group id="${this.id}">
                 <div>
-                    <sp-field-label for="${this.id}"
-                        >${this.label}</sp-field-label
-                    >
+                    <sp-field-label for="${this.id}">${this.label}</sp-field-label>
                     <sp-switch
                         id="${this.id}-toggle"
                         size="m"

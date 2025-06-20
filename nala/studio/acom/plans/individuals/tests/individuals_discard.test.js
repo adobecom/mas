@@ -31,10 +31,7 @@ test.beforeEach(async ({ page, browserName }) => {
 
 test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-discard-edited-variant-change - Validate variant change for plans individuals card to suggested in mas studio
-    test(`${features[0].name},${features[0].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -66,28 +63,16 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
-                'variant',
-                'plans',
-            );
-            await expect(await studio.getCard(data.cardid)).not.toHaveAttribute(
-                'variant',
-                'ccd-suggested',
-            );
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'plans');
+            await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute(
-                'default-value',
-                'plans',
-            );
+            await expect(await editor.variant).toHaveAttribute('default-value', 'plans');
         });
     });
 
     // @studio-plans-individuals-discard-edited-size - Validate discard edited size for plans individuals card in mas studio
-    test(`${features[1].name},${features[1].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -106,9 +91,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-3: Edit size field', async () => {
             await expect(await editor.size).toBeVisible();
             await editor.size.click();
-            await page
-                .getByRole('option', { name: 'Wide', exact: true })
-                .click();
+            await page.getByRole('option', { name: 'Wide', exact: true }).click();
             await page.waitForTimeout(2000);
         });
 
@@ -121,14 +104,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute(
-                'variant',
-                'plans',
-            );
-            await expect(await studio.getCard(data.cardid)).not.toHaveAttribute(
-                'size',
-                'wide',
-            );
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'plans');
+            await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('size', 'wide');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.size).toHaveAttribute('value', 'Default');
@@ -136,10 +113,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-discard-edited-title - Validate discard edited title for plans individuals card in mas studio
-    test(`${features[2].name},${features[2].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
         const { data } = features[2];
         const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -176,10 +150,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-discard-edited-badge - Validate discard edited badge for plans individuals card in mas studio
-    test(`${features[3].name},${features[3].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
         const { data } = features[3];
         const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -208,9 +179,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            await expect(await individuals.cardBadge).toHaveText(
-                data.badge,
-            );
+            await expect(await individuals.cardBadge).toHaveText(data.badge);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.badge).toHaveValue(data.badge);
@@ -218,10 +187,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-discard-edited-description - Validate discard edited description for plans individuals card in mas studio
-    test(`${features[4].name},${features[4].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
         const { data } = features[4];
         const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -250,22 +216,15 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Validate description field not updated', async () => {
-            await expect(await individuals.cardDescription).toContainText(
-                data.description,
-            );
+            await expect(await individuals.cardDescription).toContainText(data.description);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.description).toContainText(
-                data.description,
-            );
+            await expect(await editor.description).toContainText(data.description);
         });
     });
 
     // @studio-plans-individuals-discard-edited-mnemonic - Validate discard edited mnemonic for plans individuals card in mas studio
-    test(`${features[5].name},${features[5].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
         const { data } = features[5];
         const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -294,10 +253,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Validate mnemonic field not updated', async () => {
-            await expect(await individuals.cardIcon).toHaveAttribute(
-                'src',
-                data.iconURL,
-            );
+            await expect(await individuals.cardIcon).toHaveAttribute('src', data.iconURL);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.iconURL).toHaveValue(data.iconURL);
@@ -305,10 +261,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-discard-edited-callout - Validate discard edited callout for plans individuals card in mas studio
-    test(`${features[6].name},${features[6].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[6].name},${features[6].tags}`, async ({ page, baseURL }) => {
         const { data } = features[6];
         const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -337,22 +290,15 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Validate callout field not updated', async () => {
-            await expect(await individuals.cardCallout).toContainText(
-                data.calloutText,
-            );
+            await expect(await individuals.cardCallout).toContainText(data.calloutText);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.calloutRTE).toContainText(
-                data.calloutText,
-            );
+            await expect(await editor.calloutRTE).toContainText(data.calloutText);
         });
     });
 
     // @studio-plans-individuals-discard-edited-promo-text - Validate discard edited promo text for plans individuals card in mas studio
-    test(`${features[7].name},${features[7].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
         const { data } = features[7];
         const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -381,9 +327,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Validate promo text field not updated', async () => {
-            await expect(await individuals.cardPromoText).toHaveText(
-                data.promoText,
-            );
+            await expect(await individuals.cardPromoText).toHaveText(data.promoText);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.promoText).toHaveValue(data.promoText);
@@ -391,10 +335,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-discard-edited-price - Validate discard edited price for plans individuals card in mas studio
-    test(`${features[8].name},${features[8].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[8].name},${features[8].tags}`, async ({ page, baseURL }) => {
         const { data } = features[8];
         const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -429,33 +370,20 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(await individuals.cardPrice).toContainText(data.price);
-            await expect(await individuals.cardPrice).toContainText(
-                data.strikethroughPrice,
-            );
-            await expect(await individuals.cardPrice).not.toContainText(
-                data.newPrice,
-            );
-            await expect(await individuals.cardPrice).not.toContainText(
-                data.newStrikethroughPrice,
-            );
+            await expect(await individuals.cardPrice).toContainText(data.strikethroughPrice);
+            await expect(await individuals.cardPrice).not.toContainText(data.newPrice);
+            await expect(await individuals.cardPrice).not.toContainText(data.newStrikethroughPrice);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.prices).toContainText(data.price);
-            await expect(await editor.prices).toContainText(
-                data.strikethroughPrice,
-            );
+            await expect(await editor.prices).toContainText(data.strikethroughPrice);
             await expect(await editor.prices).not.toContainText(data.newPrice);
-            await expect(await editor.prices).not.toContainText(
-                data.newStrikethroughPrice,
-            );
+            await expect(await editor.prices).not.toContainText(data.newStrikethroughPrice);
         });
     });
 
     // @studio-plans-individuals-discard-edited-osi - Validate discard edited OSI for plans individuals card in mas studio
-    test(`${features[9].name},${features[9].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[9].name},${features[9].tags}`, async ({ page, baseURL }) => {
         const { data } = features[9];
         const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -496,38 +424,17 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.OSI).toContainText(data.osi);
             await expect(await editor.OSI).not.toContainText(data.newosi);
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.offerTypeTag}`),
-            );
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.marketSegmentsTag}`),
-            );
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.planTypeTag}`),
-            );
-            await expect(await editor.tags).not.toHaveAttribute(
-                'value',
-                new RegExp(`${data.newPlanTypeTag}`),
-            );
-            await expect(await editor.tags).not.toHaveAttribute(
-                'value',
-                new RegExp(`${data.newOfferTypeTag}`),
-            );
-            await expect(await editor.tags).not.toHaveAttribute(
-                'value',
-                new RegExp(`${data.newMarketSegmentsTag}`),
-            );
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.offerTypeTag}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.marketSegmentsTag}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.planTypeTag}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.newPlanTypeTag}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.newOfferTypeTag}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.newMarketSegmentsTag}`));
         });
     });
 
     // @studio-plans-individuals-discard-edited-stock-checkbox - Validate discard edited stock checkbox for plans individuals card in mas studio
-    test.skip(`${features[10].name},${features[10].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test.skip(`${features[10].name},${features[10].tags}`, async ({ page, baseURL }) => {
         const { data } = features[10];
         const testPage = `${baseURL}${features[10].path}${miloLibs}${features[10].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -565,10 +472,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-discard-edited-quantity-selector - Validate discard edited quantity selector for plans individuals card in mas studio
-    test(`${features[11].name},${features[11].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[11].name},${features[11].tags}`, async ({ page, baseURL }) => {
         const { data } = features[11];
         const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -605,10 +509,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-discard-edited-whats-included - Validate discard edited whats included for plans individuals card in mas studio
-    test(`${features[12].name},${features[12].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[12].name},${features[12].tags}`, async ({ page, baseURL }) => {
         const { data } = features[12];
         const testPage = `${baseURL}${features[12].path}${miloLibs}${features[12].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -644,10 +545,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-discard-edited-badge-color - Validate discard edited badge color for plans individuals card in mas studio
-    test(`${features[13].name},${features[13].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[13].name},${features[13].tags}`, async ({ page, baseURL }) => {
         const { data } = features[13];
         const testPage = `${baseURL}${features[13].path}${miloLibs}${features[13].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -667,9 +565,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-3: Edit badge color field', async () => {
             await expect(await editor.badgeColor).toBeVisible();
             await editor.badgeColor.click();
-            await page
-                .getByRole('option', { name: data.newColor, exact: true })
-                .click();
+            await page.getByRole('option', { name: data.newColor, exact: true }).click();
             await page.waitForTimeout(2000);
         });
 
@@ -682,10 +578,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-5: Verify badge color is unchanged', async () => {
             expect(
-                await webUtil.verifyCSS(
-                    individualsCard.locator(individuals.cardBadge),
-                    { 'background-color': data.colorCSS },
-                ),
+                await webUtil.verifyCSS(individualsCard.locator(individuals.cardBadge), { 'background-color': data.colorCSS }),
             ).toBeTruthy();
             await individualsCard.dblclick();
             await expect(await editor.panel).toBeVisible();
@@ -694,10 +587,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-discard-edited-badge-border-color - Validate discard edited badge border color for plans individuals card in mas studio
-    test(`${features[14].name},${features[14].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[14].name},${features[14].tags}`, async ({ page, baseURL }) => {
         const { data } = features[14];
         const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -717,9 +607,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-3: Edit badge border color field', async () => {
             await expect(await editor.badgeBorderColor).toBeVisible();
             await editor.badgeBorderColor.click();
-            await page
-                .getByRole('option', { name: data.newColor, exact: true })
-                .click();
+            await page.getByRole('option', { name: data.newColor, exact: true }).click();
             await page.waitForTimeout(2000);
         });
 
@@ -732,28 +620,20 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-5: Verify badge border color is unchanged', async () => {
             expect(
-                await webUtil.verifyCSS(
-                    individualsCard.locator(individuals.cardBadge),
-                    {
-                        'border-left-color': data.colorCSS,
-                        'border-top-color': data.colorCSS,
-                        'border-bottom-color': data.colorCSS,
-                    },
-                ),
+                await webUtil.verifyCSS(individualsCard.locator(individuals.cardBadge), {
+                    'border-left-color': data.colorCSS,
+                    'border-top-color': data.colorCSS,
+                    'border-bottom-color': data.colorCSS,
+                }),
             ).toBeTruthy();
             await individualsCard.dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.badgeBorderColor).toContainText(
-                data.color,
-            );
+            await expect(await editor.badgeBorderColor).toContainText(data.color);
         });
     });
 
     // @studio-plans-individuals-discard-edited-card-border-color - Validate discard edited card border color for plans individuals card in mas studio
-    test(`${features[15].name},${features[15].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[15].name},${features[15].tags}`, async ({ page, baseURL }) => {
         const { data } = features[15];
         const testPage = `${baseURL}${features[15].path}${miloLibs}${features[15].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -773,9 +653,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-3: Edit card border color field', async () => {
             await expect(await editor.cardBorderColor).toBeVisible();
             await editor.cardBorderColor.click();
-            await page
-                .getByRole('option', { name: data.newColor, exact: true })
-                .click();
+            await page.getByRole('option', { name: data.newColor, exact: true }).click();
             await page.waitForTimeout(2000);
         });
 
@@ -794,17 +672,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             ).toBeTruthy();
             await individualsCard.dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.cardBorderColor).toContainText(
-                data.color,
-            );
+            await expect(await editor.cardBorderColor).toContainText(data.color);
         });
     });
 
     // @studio-plans-individuals-discard-edited-cta-ost - Validate discard edited CTA for plans individuals card in mas studio
-    test(`${features[16].name},${features[16].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[16].name},${features[16].tags}`, async ({ page, baseURL }) => {
         const { data } = features[16];
         const testPage = `${baseURL}${features[16].path}${miloLibs}${features[16].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -861,10 +734,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-discard-edited-cta-label - Validate discard edited CTA label for plans individuals card in mas studio
-    test(`${features[17].name},${features[17].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[17].name},${features[17].tags}`, async ({ page, baseURL }) => {
         const { data } = features[17];
         const testPage = `${baseURL}${features[17].path}${miloLibs}${features[17].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -881,9 +751,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-3: Edit CTA label', async () => {
-            await expect(
-                await editor.footer.locator(editor.linkEdit),
-            ).toBeVisible();
+            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
@@ -909,10 +777,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-discard-edited-cta-variant - Validate changing CTA variant for plans individuals card in mas studio
-    test(`${features[18].name},${features[18].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[18].name},${features[18].tags}`, async ({ page, baseURL }) => {
         const { data } = features[18];
         const testPage = `${baseURL}${features[18].path}${miloLibs}${features[18].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -929,17 +794,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-3: Edit CTA variant', async () => {
-            await expect(
-                await editor.footer.locator(editor.linkEdit),
-            ).toBeVisible();
+            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkVariant).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-            await expect(
-                await editor.getLinkVariant(data.newVariant),
-            ).toBeVisible();
+            await expect(await editor.getLinkVariant(data.newVariant)).toBeVisible();
             await (await editor.getLinkVariant(data.newVariant)).click();
             await editor.linkSave.click();
         });
@@ -961,10 +822,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-discard-edited-cta-checkout-params - Validate discard edited CTA checkout params for plans individuals card in mas studio
-    test(`${features[19].name},${features[19].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[19].name},${features[19].tags}`, async ({ page, baseURL }) => {
         const { data } = features[19];
         const testPage = `${baseURL}${features[19].path}${miloLibs}${features[19].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -981,9 +839,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-3: Edit CTA checkout params', async () => {
-            await expect(
-                await editor.footer.locator(editor.linkEdit),
-            ).toBeVisible();
+            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
@@ -991,10 +847,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.linkSave).toBeVisible();
 
             const checkoutParamsString = Object.keys(data.checkoutParams)
-                .map(
-                    (key) =>
-                        `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`,
-                )
+                .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`)
                 .join('&');
             await editor.checkoutParameters.fill(checkoutParamsString);
             await editor.linkSave.click();
@@ -1008,11 +861,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            const changedCTAhref =
-                await individuals.cardCTA.getAttribute('href');
-            let noSearchParams = new URLSearchParams(
-                decodeURI(changedCTAhref).split('?')[1],
-            );
+            const changedCTAhref = await individuals.cardCTA.getAttribute('href');
+            let noSearchParams = new URLSearchParams(decodeURI(changedCTAhref).split('?')[1]);
             expect(noSearchParams).toBeNull;
         });
     });

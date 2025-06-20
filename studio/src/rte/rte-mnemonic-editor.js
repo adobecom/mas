@@ -84,8 +84,7 @@ class RteMnemonicEditor extends LitElement {
         this.altTextInput = this.shadowRoot.querySelector('#altText');
         this.sizeSelect = this.shadowRoot.querySelector('#size');
         this.tooltipTextInput = this.shadowRoot.querySelector('#tooltipText');
-        this.tooltipPlacementSelect =
-            this.shadowRoot.querySelector('#tooltipPlacement');
+        this.tooltipPlacementSelect = this.shadowRoot.querySelector('#tooltipPlacement');
     }
 
     updated(changedProperties) {
@@ -101,19 +100,14 @@ class RteMnemonicEditor extends LitElement {
         if (changedProperties.has('tooltipText') && this.tooltipTextInput) {
             this.tooltipTextInput.value = this.tooltipText;
         }
-        if (
-            changedProperties.has('tooltipPlacement') &&
-            this.tooltipPlacementSelect
-        ) {
+        if (changedProperties.has('tooltipPlacement') && this.tooltipPlacementSelect) {
             this.tooltipPlacementSelect.value = this.tooltipPlacement;
         }
     }
 
     #handleClose() {
         this.open = false;
-        this.dispatchEvent(
-            new CustomEvent('close', { bubbles: false, composed: true }),
-        );
+        this.dispatchEvent(new CustomEvent('close', { bubbles: false, composed: true }));
     }
 
     #handleSubmit(e) {
@@ -149,18 +143,11 @@ class RteMnemonicEditor extends LitElement {
         const isEditing = !!this.imageUrl;
         return html`
             <sp-dialog close=${this.#handleClose}>
-                <h2 slot="heading">
-                    ${isEditing ? 'Edit' : 'Add'} Inline Icon
-                </h2>
-                <p>
-                    ${isEditing ? 'Edit the' : 'Add an'} icon that will appear
-                    inline with your text
-                </p>
+                <h2 slot="heading">${isEditing ? 'Edit' : 'Add'} Inline Icon</h2>
+                <p>${isEditing ? 'Edit the' : 'Add an'} icon that will appear inline with your text</p>
                 <form @submit=${this.#handleSubmit}>
                     <div class="form-field">
-                        <sp-field-label for="imageUrl" required>
-                            Icon URL
-                        </sp-field-label>
+                        <sp-field-label for="imageUrl" required> Icon URL </sp-field-label>
                         <sp-textfield
                             id="imageUrl"
                             placeholder="https://example.com/icon.svg"
@@ -185,9 +172,7 @@ class RteMnemonicEditor extends LitElement {
                         </sp-picker>
                     </div>
                     <div class="form-field">
-                        <sp-field-label for="tooltipText"
-                            >Tooltip Text</sp-field-label
-                        >
+                        <sp-field-label for="tooltipText">Tooltip Text</sp-field-label>
                         <sp-textfield
                             id="tooltipText"
                             placeholder="Enter tooltip text (optional)"
@@ -195,39 +180,20 @@ class RteMnemonicEditor extends LitElement {
                         ></sp-textfield>
                     </div>
                     <div class="form-field">
-                        <sp-field-label for="tooltipPlacement"
-                            >Tooltip Placement</sp-field-label
-                        >
-                        <sp-picker
-                            id="tooltipPlacement"
-                            .value=${this.tooltipPlacement}
-                        >
+                        <sp-field-label for="tooltipPlacement">Tooltip Placement</sp-field-label>
+                        <sp-picker id="tooltipPlacement" .value=${this.tooltipPlacement}>
                             <sp-menu-item value="top">Top</sp-menu-item>
                             <sp-menu-item value="bottom">Bottom</sp-menu-item>
                             <sp-menu-item value="left">Left</sp-menu-item>
                             <sp-menu-item value="right">Right</sp-menu-item>
-                            <sp-menu-item value="top-start"
-                                >Top Start</sp-menu-item
-                            >
+                            <sp-menu-item value="top-start">Top Start</sp-menu-item>
                             <sp-menu-item value="top-end">Top End</sp-menu-item>
-                            <sp-menu-item value="bottom-start"
-                                >Bottom Start</sp-menu-item
-                            >
-                            <sp-menu-item value="bottom-end"
-                                >Bottom End</sp-menu-item
-                            >
-                            <sp-menu-item value="left-start"
-                                >Left Start</sp-menu-item
-                            >
-                            <sp-menu-item value="left-end"
-                                >Left End</sp-menu-item
-                            >
-                            <sp-menu-item value="right-start"
-                                >Right Start</sp-menu-item
-                            >
-                            <sp-menu-item value="right-end"
-                                >Right End</sp-menu-item
-                            >
+                            <sp-menu-item value="bottom-start">Bottom Start</sp-menu-item>
+                            <sp-menu-item value="bottom-end">Bottom End</sp-menu-item>
+                            <sp-menu-item value="left-start">Left Start</sp-menu-item>
+                            <sp-menu-item value="left-end">Left End</sp-menu-item>
+                            <sp-menu-item value="right-start">Right Start</sp-menu-item>
+                            <sp-menu-item value="right-end">Right End</sp-menu-item>
                         </sp-picker>
                     </div>
                 </form>
@@ -241,12 +207,7 @@ class RteMnemonicEditor extends LitElement {
                 >
                     Cancel
                 </sp-button>
-                <sp-button
-                    id="saveButton"
-                    slot="button"
-                    variant="accent"
-                    @click=${this.#handleSubmit}
-                >
+                <sp-button id="saveButton" slot="button" variant="accent" @click=${this.#handleSubmit}>
                     ${isEditing ? 'Update' : 'Add'} Icon
                 </sp-button>
             </sp-dialog>

@@ -20,26 +20,12 @@ const fragments = new SharedArray('fragments', () => {
         ) // convert to object,
         .filter((line) => line.id)
         .filter((line) => line.id.length === 36); // non well formatted items,
-    fragmentArray = fragmentArray.slice(
-        0,
-        __ENV.MAX_FRAGMENTS || fragmentArray.length,
-    ); // limit the number of fragments
+    fragmentArray = fragmentArray.slice(0, __ENV.MAX_FRAGMENTS || fragmentArray.length); // limit the number of fragments
 
     console.log('Fragments:', fragmentArray);
     return fragmentArray;
 });
-const locales = [
-    'de_DE',
-    'en_US',
-    'fr_FR',
-    'it_IT',
-    'ja_JP',
-    'ko_KR',
-    'pt_BR',
-    'pl_PL',
-    'tr_TR',
-    'uk_UA',
-];
+const locales = ['de_DE', 'en_US', 'fr_FR', 'it_IT', 'ja_JP', 'ko_KR', 'pt_BR', 'pl_PL', 'tr_TR', 'uk_UA'];
 
 const NB_USER = __ENV.USERS || 1;
 
@@ -73,8 +59,7 @@ export default function () {
                 },
             });
             check(id, {
-                'id seems valid': (i) =>
-                    i && (!fragment[locale] || i === fragment[locale]),
+                'id seems valid': (i) => i && (!fragment[locale] || i === fragment[locale]),
             });
             if (!fieldCheck) {
                 console.error(`Failed URL: ${url}, Fields: ${fields}`);

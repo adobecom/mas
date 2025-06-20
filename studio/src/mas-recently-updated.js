@@ -16,17 +16,11 @@ class MasRecentlyUpdated extends LitElement {
     }
 
     fragments = new StoreController(this, Store.fragments.recentlyUpdated.data);
-    loading = new StoreController(
-        this,
-        Store.fragments.recentlyUpdated.loading,
-    );
+    loading = new StoreController(this, Store.fragments.recentlyUpdated.loading);
 
     get loadingIndicator() {
         if (!this.loading.value) return nothing;
-        return html`<sp-progress-circle
-            indeterminate
-            size="l"
-        ></sp-progress-circle>`;
+        return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
     }
 
     render() {
@@ -36,12 +30,8 @@ class MasRecentlyUpdated extends LitElement {
                 ${this.loadingIndicator}
                 ${this.fragments.value.map((fragmentStore) => {
                     // Hide the card if the variant isn't one of VARIANTS that is pre-defined.
-                    if (!variantValues.includes(fragmentStore.value.variant))
-                        return html``;
-                    return html`<mas-fragment
-                        .fragmentStore=${fragmentStore}
-                        view="render"
-                    ></mas-fragment>`;
+                    if (!variantValues.includes(fragmentStore.value.variant)) return html``;
+                    return html`<mas-fragment .fragmentStore=${fragmentStore} view="render"></mas-fragment>`;
                 })}
             </div>`;
     }

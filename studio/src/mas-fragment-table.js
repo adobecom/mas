@@ -58,48 +58,29 @@ class MasFragmentTable extends LitElement {
     get icon() {
         const iconSrc = this.data.getFieldValue('mnemonicIcon'); // Returns only the first one
         if (!iconSrc) return '';
-        return html`<img
-            class="mnemonic-icon"
-            src=${this.data.getFieldValue('mnemonicIcon')}
-        />`;
+        return html`<img class="mnemonic-icon" src=${this.data.getFieldValue('mnemonicIcon')} />`;
     }
 
     get name() {
-        return generateCodeToUse(
-            this.data,
-            Store.search.get().path,
-            Store.page.get(),
-        ).authorPath;
+        return generateCodeToUse(this.data, Store.search.get().path, Store.page.get()).authorPath;
     }
 
     get price() {
         const osi = this.data.getFieldValue('osi');
         if (!osi) return '';
-        return html`<span
-            is="inline-price"
-            data-template="price"
-            data-wcs-osi=${osi}
-        ></span>`;
+        return html`<span is="inline-price" data-template="price" data-wcs-osi=${osi}></span>`;
     }
 
     render() {
         const data = this.fragmentStore.value;
         return html`<sp-table-row value="${data.id}"
-            ><sp-table-cell class="name">
-                ${this.icon} ${this.getFragmentName(data)}
-            </sp-table-cell>
+            ><sp-table-cell class="name"> ${this.icon} ${this.getFragmentName(data)} </sp-table-cell>
             <sp-table-cell class="title">${data.title}</sp-table-cell>
-            <sp-table-cell class="offer-type"
-                >${this.offerData?.offerType}</sp-table-cell
-            >
+            <sp-table-cell class="offer-type">${this.offerData?.offerType}</sp-table-cell>
             <sp-table-cell class="price">${this.price}</sp-table-cell>
-            <sp-table-cell class="offer-id" title=${this.offerData?.offerId}
-                >${this.offerData?.offerId}
-            </sp-table-cell>
+            <sp-table-cell class="offer-id" title=${this.offerData?.offerId}>${this.offerData?.offerId} </sp-table-cell>
             ${this.customRender?.(data)}
-            <sp-table-cell class="status"
-                >${data.status}</sp-table-cell
-            ></sp-table-row
+            <sp-table-cell class="status">${data.status}</sp-table-cell></sp-table-row
         >`;
     }
 }

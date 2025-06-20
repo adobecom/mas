@@ -19,9 +19,7 @@ describe('translate typical cases', function () {
     it('should return fr fragment (us fragment, fr locale)', async function () {
         // french fragment by id
         nock('https://odin.adobe.com')
-            .get(
-                `/adobe/sites/fragments/some-fr-fr-fragment?references=all-hydrated`,
-            )
+            .get(`/adobe/sites/fragments/some-fr-fr-fragment?references=all-hydrated`)
             .reply(200, FRAGMENT_RESPONSE_FR);
         nock('https://odin.adobe.com')
             .get('/adobe/sites/fragments')

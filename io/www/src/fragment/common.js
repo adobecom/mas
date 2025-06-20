@@ -52,16 +52,8 @@ async function internalFetch(path, context) {
         });
         const success = response.status == 200;
         const message = success ? 'ok' : await getErrorMessage(response);
-        log(
-            `fetch ${path} (${response?.status}) ${message} in ${Date.now() - start}ms`,
-            context,
-            success ? 'info' : 'error',
-        );
-        logDebug(
-            () =>
-                `response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`,
-            context,
-        );
+        log(`fetch ${path} (${response?.status}) ${message} in ${Date.now() - start}ms`, context, success ? 'info' : 'error');
+        logDebug(() => `response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`, context);
         if (response.status === 200) {
             return {
                 status: 200,

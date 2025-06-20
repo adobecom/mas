@@ -1,12 +1,13 @@
 # ost-products-write
 
 This action generate will:
-* query AOS API 
-* generate a light-weight list of products
-This list is used in the initial Product List screen of OST.
-The list will be stored in action worspace Store for a year.
-Action is autotriggered by Github daily (see ost-products.yaml in .github/workflows)
-Action has a simple api key security mechanism.
+
+- query AOS API
+- generate a light-weight list of products
+  This list is used in the initial Product List screen of OST.
+  The list will be stored in action worspace Store for a year.
+  Action is autotriggered by Github daily (see ost-products.yaml in .github/workflows)
+  Action has a simple api key security mechanism.
 
 # ost-products-read
 

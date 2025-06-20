@@ -21,9 +21,7 @@ runTests(async () => {
     // mockFetch(withAem);
     describe('mas-content component', () => {
         it('uses a reactive store, managed by mas-repository, as data source', () => {
-            const [masRepository, masContent] = initElementFromTemplate(
-                'mas-content-with-data-source',
-            ).children;
+            const [masRepository, masContent] = initElementFromTemplate('mas-content-with-data-source').children;
         });
     });
 });

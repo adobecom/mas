@@ -12,10 +12,8 @@
         "cards": [],
         "collections": []
     },
-    "references": {
-    },
-    "referencesTree": [
-    ],
+    "references": {},
+    "referencesTree": [],
     "modelReferences": {
         "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24": {
             "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24",

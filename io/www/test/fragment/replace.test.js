@@ -23,17 +23,13 @@ const odinResponse = (description, cta = '{{buy-now}}') => ({
 
 const mockDictionary = (preview = false) => {
     const odinDomain = `https://${preview ? 'odinpreview.corp' : 'odin'}.adobe.com`;
-    const odinUriRoot = preview
-        ? '/adobe/sites/cf/fragments'
-        : '/adobe/sites/fragments';
+    const odinUriRoot = preview ? '/adobe/sites/cf/fragments' : '/adobe/sites/fragments';
     nock(odinDomain)
         .get(odinUriRoot)
         .query({ path: '/content/dam/mas/sandbox/fr_FR/dictionary/index' })
         .reply(200, DICTIONARY_CF_RESPONSE);
     // Use the new URL format with ?references=all-hydrated
-    nock(odinDomain)
-        .get(`${odinUriRoot}/fr_FR_dictionary?references=all-hydrated`)
-        .reply(200, DICTIONARY_RESPONSE);
+    nock(odinDomain).get(`${odinUriRoot}/fr_FR_dictionary?references=all-hydrated`).reply(200, DICTIONARY_RESPONSE);
 };
 
 const getResponse = async (description, cta) => {
@@ -74,13 +70,9 @@ describe('replace', () => {
         expect(response).to.deep.equal(expected);
     });
     it('returns 200 & replaced entries keys with text', async () => {
-        const response = await getResponse(
-            'please {{view-account}} for {{cai-default}} region',
-        );
+        const response = await getResponse('please {{view-account}} for {{cai-default}} region');
         expect(response).to.deep.equal(
-            expectedResponse(
-                'please View account for An AI tool was not used in creating this image region',
-            ),
+            expectedResponse('please View account for An AI tool was not used in creating this image region'),
         );
     });
     it('returns 200 & replace empty (but present) placeholders', async () => {
@@ -89,33 +81,23 @@ describe('replace', () => {
     });
     it('returns 200 & manages nested placeholders', async () => {
         const response = await getResponse('look! {{nest}}');
-        expect(response).to.deep.equal(
-            expectedResponse('look! little bird is in the nest'),
-        );
+        expect(response).to.deep.equal(expectedResponse('look! little bird is in the nest'));
     });
     it('returns 200 & manages circular references', async () => {
         const response = await getResponse('look! {{yin}}');
-        expect(response).to.deep.equal(
-            expectedResponse('look! yin and yin and yang'),
-        );
+        expect(response).to.deep.equal(expectedResponse('look! yin and yin and yang'));
     });
     it('returns 200 & leaves non existing keys', async () => {
         const response = await getResponse('this is {{non-existing}}');
-        expect(response).to.deep.equal(
-            expectedResponse('this is non-existing'),
-        );
+        expect(response).to.deep.equal(expectedResponse('this is non-existing'));
     });
     it('returns 200 & manages rich text', async () => {
         const response = await getResponse('look! {{rich-text}}');
-        expect(response).to.deep.equal(
-            expectedResponse('look! <p>i am <strong>rich</strong></p>'),
-        );
+        expect(response).to.deep.equal(expectedResponse('look! <p>i am <strong>rich</strong></p>'));
     });
     it('returns 200 & manages rich text with double quotes', async () => {
         const response = await getResponse('look! {{rich-text-with-quotes}}');
-        expect(response).to.deep.equal(
-            expectedResponse('look! <p>i am "rich"</p>'),
-        );
+        expect(response).to.deep.equal(expectedResponse('look! <p>i am "rich"</p>'));
     });
     describe('corner cases', () => {
         beforeEach(() => {
@@ -184,9 +166,7 @@ describe('replace', () => {
                 })
                 .reply(200, DICTIONARY_CF_RESPONSE);
             nock('https://odin.adobe.com')
-                .get(
-                    '/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated',
-                )
+                .get('/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated')
                 .replyWithError('fetch error');
             const context = await replace(FAKE_CONTEXT);
             const dictionaryId = 'fr_FR_dictionary';
@@ -200,9 +180,7 @@ describe('replace', () => {
                 })
                 .reply(200, DICTIONARY_CF_RESPONSE);
             nock('https://odin.adobe.com')
-                .get(
-                    '/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated',
-                )
+                .get('/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated')
                 .reply(500, 'server error');
             const context = await replace(FAKE_CONTEXT);
             const dictionaryId = 'fr_FR_dictionary';

@@ -106,16 +106,10 @@ class MasSideNav extends LitElement {
                     class="side-nav-support"
                     label="Support"
                     value="support"
-                    @click="${() =>
-                        window.open(
-                            'https://adobe.enterprise.slack.com/archives/C02RZERR9CH',
-                            '_blank',
-                        )}"
+                    @click="${() => window.open('https://adobe.enterprise.slack.com/archives/C02RZERR9CH', '_blank')}"
                 >
                     <sp-icon-help slot="icon"></sp-icon-help>
-                    <sp-icon-link-out-light
-                        class="side-nav-new-window"
-                    ></sp-icon-link-out-light>
+                    <sp-icon-link-out-light class="side-nav-new-window"></sp-icon-link-out-light>
                 </sp-sidenav-item>
             </sp-sidenav>
         </side-nav>`;

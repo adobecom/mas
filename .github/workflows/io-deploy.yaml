@@ -1,98 +1,98 @@
 name: IO WWW Deploy
 on:
-  workflow_call:
-    secrets:
-      workspace:
-        required: true
-      auth:
-        required: true
-      AIO_APIHOST:
-        required: true
-      AOS_API_KEY:
-        required: true
-      AOS_URL:
-        required: true
-      ODIN_CDN_ENDPOINT:
-        required: true
-      ODIN_ORIGIN_ENDPOINT:
-        required: true
-      OST_WRITE_API_KEY:
-        required: true
-      WCS_CDN_ENDPOINT:
-        required: true
-      WCS_ORIGIN_ENDPOINT:
-        required: true
+    workflow_call:
+        secrets:
+            workspace:
+                required: true
+            auth:
+                required: true
+            AIO_APIHOST:
+                required: true
+            AOS_API_KEY:
+                required: true
+            AOS_URL:
+                required: true
+            ODIN_CDN_ENDPOINT:
+                required: true
+            ODIN_ORIGIN_ENDPOINT:
+                required: true
+            OST_WRITE_API_KEY:
+                required: true
+            WCS_CDN_ENDPOINT:
+                required: true
+            WCS_ORIGIN_ENDPOINT:
+                required: true
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: io/www
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    deploy:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: io/www
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22.x'
-        cache: 'npm'
-        cache-dependency-path: io/www/package.json
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-    - name: Install dependencies
-      run: npm ci
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '22.x'
+                  cache: 'npm'
+                  cache-dependency-path: io/www/package.json
 
-    - name: Run tests with coverage
-      run: npm test
+            - name: Install dependencies
+              run: npm ci
 
-    - name: Install AIO CLI
-      if: success()
-      run: npm install -g @adobe/aio-cli
+            - name: Run tests with coverage
+              run: npm test
 
-    - name: Deploy action
-      env:
-        AIO_runtime_namespace: ${{ secrets.workspace }}
-        AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
-        AIO_runtime_auth: ${{ secrets.auth }}
-        AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
-        AOS_URL: ${{ secrets.AOS_URL }}
-        ODIN_CDN_ENDPOINT: ${{ secrets.ODIN_CDN_ENDPOINT }}
-        ODIN_ORIGIN_ENDPOINT: ${{ secrets.ODIN_ORIGIN_ENDPOINT }}
-        OST_WRITE_API_KEY: ${{ secrets.OST_WRITE_API_KEY }}
-        WCS_CDN_ENDPOINT: ${{ secrets.WCS_CDN_ENDPOINT }}
-        WCS_ORIGIN_ENDPOINT: ${{ secrets.WCS_ORIGIN_ENDPOINT }}
-      run: |
-        # Check for missing secrets
-        missing_secrets=()
-        
-        [ -z "$AIO_runtime_namespace" ] && missing_secrets+=("AIO_runtime_namespace")
-        [ -z "$AIO_APIHOST" ] && missing_secrets+=("AIO_APIHOST")
-        [ -z "$AIO_runtime_auth" ] && missing_secrets+=("AIO_runtime_auth")
-        [ -z "$AOS_API_KEY" ] && missing_secrets+=("AOS_API_KEY")
-        [ -z "$AOS_URL" ] && missing_secrets+=("AOS_URL")
-        [ -z "$ODIN_CDN_ENDPOINT" ] && missing_secrets+=("ODIN_CDN_ENDPOINT")
-        [ -z "$ODIN_ORIGIN_ENDPOINT" ] && missing_secrets+=("ODIN_ORIGIN_ENDPOINT")
-        [ -z "$OST_WRITE_API_KEY" ] && missing_secrets+=("OST_WRITE_API_KEY")
-        [ -z "$WCS_CDN_ENDPOINT" ] && missing_secrets+=("WCS_CDN_ENDPOINT")
-        [ -z "$WCS_ORIGIN_ENDPOINT" ] && missing_secrets+=("WCS_ORIGIN_ENDPOINT")
-        
-        if [ ${#missing_secrets[@]} -ne 0 ]; then
-          echo "Error: The following required secrets are empty:"
-          printf '%s\n' "${missing_secrets[@]}"
-          exit 1
-        fi
+            - name: Install AIO CLI
+              if: success()
+              run: npm install -g @adobe/aio-cli
 
-        # Configure and deploy
-        aio config set AIO_runtime_namespace "$AIO_runtime_namespace"
-        aio config set AIO_runtime_auth "$AIO_runtime_auth"
-        aio config set AIO_APIHOST "$AIO_APIHOST"
-        aio config set AOS_API_KEY "$AOS_API_KEY"
-        aio config set AOS_URL "$AOS_URL"
-        aio config set ODIN_CDN_ENDPOINT "$ODIN_CDN_ENDPOINT"
-        aio config set ODIN_ORIGIN_ENDPOINT "$ODIN_ORIGIN_ENDPOINT"
-        aio config set OST_WRITE_API_KEY "$OST_WRITE_API_KEY"
-        aio config set WCS_CDN_ENDPOINT "$WCS_CDN_ENDPOINT"
-        aio config set WCS_ORIGIN_ENDPOINT "$WCS_ORIGIN_ENDPOINT"
-        aio app deploy
+            - name: Deploy action
+              env:
+                  AIO_runtime_namespace: ${{ secrets.workspace }}
+                  AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
+                  AIO_runtime_auth: ${{ secrets.auth }}
+                  AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
+                  AOS_URL: ${{ secrets.AOS_URL }}
+                  ODIN_CDN_ENDPOINT: ${{ secrets.ODIN_CDN_ENDPOINT }}
+                  ODIN_ORIGIN_ENDPOINT: ${{ secrets.ODIN_ORIGIN_ENDPOINT }}
+                  OST_WRITE_API_KEY: ${{ secrets.OST_WRITE_API_KEY }}
+                  WCS_CDN_ENDPOINT: ${{ secrets.WCS_CDN_ENDPOINT }}
+                  WCS_ORIGIN_ENDPOINT: ${{ secrets.WCS_ORIGIN_ENDPOINT }}
+              run: |
+                  # Check for missing secrets
+                  missing_secrets=()
+
+                  [ -z "$AIO_runtime_namespace" ] && missing_secrets+=("AIO_runtime_namespace")
+                  [ -z "$AIO_APIHOST" ] && missing_secrets+=("AIO_APIHOST")
+                  [ -z "$AIO_runtime_auth" ] && missing_secrets+=("AIO_runtime_auth")
+                  [ -z "$AOS_API_KEY" ] && missing_secrets+=("AOS_API_KEY")
+                  [ -z "$AOS_URL" ] && missing_secrets+=("AOS_URL")
+                  [ -z "$ODIN_CDN_ENDPOINT" ] && missing_secrets+=("ODIN_CDN_ENDPOINT")
+                  [ -z "$ODIN_ORIGIN_ENDPOINT" ] && missing_secrets+=("ODIN_ORIGIN_ENDPOINT")
+                  [ -z "$OST_WRITE_API_KEY" ] && missing_secrets+=("OST_WRITE_API_KEY")
+                  [ -z "$WCS_CDN_ENDPOINT" ] && missing_secrets+=("WCS_CDN_ENDPOINT")
+                  [ -z "$WCS_ORIGIN_ENDPOINT" ] && missing_secrets+=("WCS_ORIGIN_ENDPOINT")
+
+                  if [ ${#missing_secrets[@]} -ne 0 ]; then
+                    echo "Error: The following required secrets are empty:"
+                    printf '%s\n' "${missing_secrets[@]}"
+                    exit 1
+                  fi
+
+                  # Configure and deploy
+                  aio config set AIO_runtime_namespace "$AIO_runtime_namespace"
+                  aio config set AIO_runtime_auth "$AIO_runtime_auth"
+                  aio config set AIO_APIHOST "$AIO_APIHOST"
+                  aio config set AOS_API_KEY "$AOS_API_KEY"
+                  aio config set AOS_URL "$AOS_URL"
+                  aio config set ODIN_CDN_ENDPOINT "$ODIN_CDN_ENDPOINT"
+                  aio config set ODIN_ORIGIN_ENDPOINT "$ODIN_ORIGIN_ENDPOINT"
+                  aio config set OST_WRITE_API_KEY "$OST_WRITE_API_KEY"
+                  aio config set WCS_CDN_ENDPOINT "$WCS_CDN_ENDPOINT"
+                  aio config set WCS_ORIGIN_ENDPOINT "$WCS_ORIGIN_ENDPOINT"
+                  aio app deploy

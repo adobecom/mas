@@ -1,73 +1,72 @@
 name: IO WWW Merge
 on:
-  pull_request:
-    types: [closed]
-    paths:
-      - 'io/www/**'
+    pull_request:
+        types: [closed]
+        paths:
+            - 'io/www/**'
 
 jobs:
-  build_and_test:
-    if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: io/www
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    build_and_test:
+        if: github.event.pull_request.merged == true
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: io/www
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22.x'
-        cache: 'npm'
-        cache-dependency-path: io/www/package.json
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '22.x'
+                  cache: 'npm'
+                  cache-dependency-path: io/www/package.json
 
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Run tests
-      run: npm test
+            - name: Install dependencies
+              run: npm ci
 
-  deploy_stage:
-    needs: build_and_test
-    uses: ./.github/workflows/io-deploy.yaml
-    secrets:
-      workspace: ${{ secrets.AIO_NS_Stage }}
-      auth: ${{ secrets.AIO_AUTH_Stage }}
-      AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
-      AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
-      AOS_URL: ${{ secrets.AOS_URL }}
-      ODIN_CDN_ENDPOINT: ${{ secrets.ODIN_CDN_ENDPOINT }}
-      ODIN_ORIGIN_ENDPOINT: ${{ secrets.ODIN_ORIGIN_ENDPOINT }}
-      OST_WRITE_API_KEY: ${{ secrets.OST_WRITE_API_KEY }}
-      WCS_CDN_ENDPOINT: ${{ secrets.WCS_CDN_ENDPOINT }}
-      WCS_ORIGIN_ENDPOINT: ${{ secrets.WCS_ORIGIN_ENDPOINT }}
+            - name: Run tests
+              run: npm test
 
-  test_stage:
-    needs: deploy_stage
-    uses: ./.github/workflows/io-tests.yaml
-    secrets:
-      workspace: ${{ secrets.AIO_NS_Stage }}
+    deploy_stage:
+        needs: build_and_test
+        uses: ./.github/workflows/io-deploy.yaml
+        secrets:
+            workspace: ${{ secrets.AIO_NS_Stage }}
+            auth: ${{ secrets.AIO_AUTH_Stage }}
+            AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
+            AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
+            AOS_URL: ${{ secrets.AOS_URL }}
+            ODIN_CDN_ENDPOINT: ${{ secrets.ODIN_CDN_ENDPOINT }}
+            ODIN_ORIGIN_ENDPOINT: ${{ secrets.ODIN_ORIGIN_ENDPOINT }}
+            OST_WRITE_API_KEY: ${{ secrets.OST_WRITE_API_KEY }}
+            WCS_CDN_ENDPOINT: ${{ secrets.WCS_CDN_ENDPOINT }}
+            WCS_ORIGIN_ENDPOINT: ${{ secrets.WCS_ORIGIN_ENDPOINT }}
 
-  deploy_production:
-    needs: test_stage
-    uses: ./.github/workflows/io-deploy.yaml
-    secrets:
-      workspace: ${{ secrets.AIO_NS_PROD }}
-      auth: ${{ secrets.AIO_AUTH_PROD }}
-      AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
-      AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
-      AOS_URL: ${{ secrets.AOS_URL }}
-      ODIN_CDN_ENDPOINT: ${{ secrets.ODIN_CDN_ENDPOINT }}
-      ODIN_ORIGIN_ENDPOINT: ${{ secrets.ODIN_ORIGIN_ENDPOINT }}
-      OST_WRITE_API_KEY: ${{ secrets.OST_WRITE_API_KEY }}
-      WCS_CDN_ENDPOINT: ${{ secrets.WCS_CDN_ENDPOINT }}
-      WCS_ORIGIN_ENDPOINT: ${{ secrets.WCS_ORIGIN_ENDPOINT }}
+    test_stage:
+        needs: deploy_stage
+        uses: ./.github/workflows/io-tests.yaml
+        secrets:
+            workspace: ${{ secrets.AIO_NS_Stage }}
 
-  test_production:
-    needs: deploy_production
-    uses: ./.github/workflows/io-tests.yaml
-    secrets:
-      workspace: ${{ secrets.AIO_NS_PROD }}
-      
+    deploy_production:
+        needs: test_stage
+        uses: ./.github/workflows/io-deploy.yaml
+        secrets:
+            workspace: ${{ secrets.AIO_NS_PROD }}
+            auth: ${{ secrets.AIO_AUTH_PROD }}
+            AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
+            AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
+            AOS_URL: ${{ secrets.AOS_URL }}
+            ODIN_CDN_ENDPOINT: ${{ secrets.ODIN_CDN_ENDPOINT }}
+            ODIN_ORIGIN_ENDPOINT: ${{ secrets.ODIN_ORIGIN_ENDPOINT }}
+            OST_WRITE_API_KEY: ${{ secrets.OST_WRITE_API_KEY }}
+            WCS_CDN_ENDPOINT: ${{ secrets.WCS_CDN_ENDPOINT }}
+            WCS_ORIGIN_ENDPOINT: ${{ secrets.WCS_ORIGIN_ENDPOINT }}
+
+    test_production:
+        needs: deploy_production
+        uses: ./.github/workflows/io-tests.yaml
+        secrets:
+            workspace: ${{ secrets.AIO_NS_PROD }}

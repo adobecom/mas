@@ -94,7 +94,7 @@ export class MasCreateDialog extends LitElement {
     _onOstSelect = ({ detail: { offerSelectorId, offer } }) => {
         if (!offer) return;
         this.osi = offerSelectorId;
-    }
+    };
 
     #handeTagsChange(e) {
         const value = e.target.getAttribute('value');
@@ -113,10 +113,7 @@ export class MasCreateDialog extends LitElement {
             await this.createFragment(masRepository, fragmentData);
             return true;
         } catch (error) {
-            console.error(
-                `${error.message} Will try to create again`,
-                error.stack,
-            );
+            console.error(`${error.message} Will try to create again`, error.stack);
             return false;
         }
     }
@@ -150,9 +147,7 @@ export class MasCreateDialog extends LitElement {
         const modelId =
             this.type === 'merch-card'
                 ? TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card']
-                : TAG_MODEL_ID_MAPPING[
-                      'mas:studio/content-type/merch-card-collection'
-                  ];
+                : TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card-collection'];
 
         // Create fragment data
         const fragmentData = {
@@ -184,8 +179,7 @@ export class MasCreateDialog extends LitElement {
     }
 
     get dialogTitle() {
-        const typeLabel =
-            this.type === 'merch-card' ? 'Merch Card' : 'Merch Card Collection';
+        const typeLabel = this.type === 'merch-card' ? 'Merch Card' : 'Merch Card Collection';
         return `Create New ${typeLabel}`;
     }
 
@@ -205,9 +199,7 @@ export class MasCreateDialog extends LitElement {
                 <div class="dialog-content">
                     <form @submit=${this.handleSubmit}>
                         <div class="form-field">
-                            <sp-field-label for="fragment-title" required
-                                >Internal title</sp-field-label
-                            >
+                            <sp-field-label for="fragment-title" required>Internal title</sp-field-label>
                             <sp-textfield
                                 id="fragment-title"
                                 placeholder="Enter internal fragment title"
@@ -218,22 +210,17 @@ export class MasCreateDialog extends LitElement {
                         </div>
                         ${this.type === 'merch-card'
                             ? html`
-                                <div class="form-field">
-                                    <sp-field-label for="osi" required
-                                        >OSI Search</sp-field-label
-                                    >
-                                    <osi-field
-                                        id="osi"
-                                        data-field="osi"
-                                    ></osi-field>
-                                </div>
-                                <aem-tag-picker-field
-                                    label="Tags"
-                                    namespace="/content/cq:tags/mas"
-                                    multiple
-                                    @change=${this.#handeTagsChange}
-                                ></aem-tag-picker-field>
-                                `
+                                  <div class="form-field">
+                                      <sp-field-label for="osi" required>OSI Search</sp-field-label>
+                                      <osi-field id="osi" data-field="osi"></osi-field>
+                                  </div>
+                                  <aem-tag-picker-field
+                                      label="Tags"
+                                      namespace="/content/cq:tags/mas"
+                                      multiple
+                                      @change=${this.#handeTagsChange}
+                                  ></aem-tag-picker-field>
+                              `
                             : nothing}
                     </form>
                 </div>

@@ -23,28 +23,19 @@ class MasFragmentStatus extends LitElement {
         }
 
         :host([variant='draft']) {
-            --mas-status-background-color: rgba(
-                var(--spectrum-blue-100-rgb),
-                0.4
-            );
+            --mas-status-background-color: rgba(var(--spectrum-blue-100-rgb), 0.4);
             --mas-status-hover-color: var(--spectrum-blue-100);
             --mas-status-accent-color: var(--spectrum-blue-800);
         }
 
         :host([variant='modified']) {
-            --mas-status-background-color: rgba(
-                var(--spectrum-yellow-100-rgb),
-                0.4
-            );
+            --mas-status-background-color: rgba(var(--spectrum-yellow-100-rgb), 0.4);
             --mas-status-hover-color: var(--spectrum-yellow-100);
             --mas-status-accent-color: var(--spectrum-yellow-600);
         }
 
         :host([variant='published']) {
-            --mas-status-background-color: rgba(
-                var(--spectrum-green-100-rgb),
-                0.4
-            );
+            --mas-status-background-color: rgba(var(--spectrum-green-100-rgb), 0.4);
             --mas-status-hover-color: var(--spectrum-green-100);
             --mas-status-accent-color: var(--spectrum-green-700);
         }
@@ -78,11 +69,7 @@ class MasFragmentStatus extends LitElement {
     }
 
     render() {
-        return html`<sp-status-light
-                size="l"
-                variant="${this.lightVariant}"
-            ></sp-status-light>
-            ${this.label}`;
+        return html`<sp-status-light size="l" variant="${this.lightVariant}"></sp-status-light> ${this.label}`;
     }
 }
 

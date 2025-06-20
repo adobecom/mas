@@ -1,50 +1,50 @@
 name: IO WWW Tests
 on:
-  workflow_call:
-    secrets:
-      workspace:
-        required: true
+    workflow_call:
+        secrets:
+            workspace:
+                required: true
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: io/www
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    test:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: io/www
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22.x'
-        cache: 'npm'
-        cache-dependency-path: io/www/package.json
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-    - name: Install dependencies
-      run: npm ci
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '22.x'
+                  cache: 'npm'
+                  cache-dependency-path: io/www/package.json
 
-    - name: Run Playwright Tests
-      env:
-        TEST_URL: https://stage--milo--adobecom.hlx.live/libs/features/mas/docs/ccd.html?mas-io-url=https://${{ secrets.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScale
-        HEALTH_CHECK_URL: https://${{ secrets.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScale/health-check
-      working-directory: nala/io
-      run: |
-        # Install Playwright and its test package
-        npm install -D @playwright/test playwright
-        sudo apt-get install xvfb
-        npx playwright install --with-deps
+            - name: Install dependencies
+              run: npm ci
 
-        # Run health check test
-        echo "Running health check test"
-        npx playwright test ioAutomation.js --grep "@health" --config=playwright.config.js
-        
-        # Run default locale tests
-        echo "Running default locale tests"
-        xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test ioAutomation.js --grep "@e2e" --config=playwright.config.js
-        
-        # Run French locale tests
-        echo "Running French locale tests"
-        TEST_URL="${TEST_URL}&locale=fr_FR" xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test ioAutomation.js --grep "@e2e" --config=playwright.config.js
+            - name: Run Playwright Tests
+              env:
+                  TEST_URL: https://stage--milo--adobecom.hlx.live/libs/features/mas/docs/ccd.html?mas-io-url=https://${{ secrets.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScale
+                  HEALTH_CHECK_URL: https://${{ secrets.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScale/health-check
+              working-directory: nala/io
+              run: |
+                  # Install Playwright and its test package
+                  npm install -D @playwright/test playwright
+                  sudo apt-get install xvfb
+                  npx playwright install --with-deps
+
+                  # Run health check test
+                  echo "Running health check test"
+                  npx playwright test ioAutomation.js --grep "@health" --config=playwright.config.js
+
+                  # Run default locale tests
+                  echo "Running default locale tests"
+                  xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test ioAutomation.js --grep "@e2e" --config=playwright.config.js
+
+                  # Run French locale tests
+                  echo "Running French locale tests"
+                  TEST_URL="${TEST_URL}&locale=fr_FR" xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test ioAutomation.js --grep "@e2e" --config=playwright.config.js

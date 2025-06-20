@@ -32,10 +32,8 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '6c3297e1-9a27-4d9a-84e7-44f953762d97',
-                iconURL:
-                    'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/acrobat-pro.svg',
-                newIconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                iconURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/acrobat-pro.svg',
+                newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
             browserParams: '#query=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-discard',

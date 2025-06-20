@@ -10,34 +10,34 @@ For a developer guide please see [mas.js documentation](https://mas.adobe.com/we
 
 Interactive web components built using the [Lit](https://lit.dev/) framework, offering a vanilla HTML/JS approach:
 
--   **Merch Cards**
--   `catalog`
--   `image`
--   `inline-heading`
--   `mini-compare-chart`
--   `plans`
--   `product`
--   `segment`
--   `special-offers`
--   `twp`
--   `ccd-slice`
--   `ccd-suggested`
--   **Merch Card Collection**
-    -   Features:
-        -   Filtering by category and device type
-        -   Keyword search
-        -   Sorting (natural order)
-        -   Deep linking
-        -   Query parameter support
-        -   "Show more" button
+- **Merch Cards**
+- `catalog`
+- `image`
+- `inline-heading`
+- `mini-compare-chart`
+- `plans`
+- `product`
+- `segment`
+- `special-offers`
+- `twp`
+- `ccd-slice`
+- `ccd-suggested`
+- **Merch Card Collection**
+    - Features:
+        - Filtering by category and device type
+        - Keyword search
+        - Sorting (natural order)
+        - Deep linking
+        - Query parameter support
+        - "Show more" button
 
 ### Commerce Services
 
 Generic commerce-related logic, including:
 
--   `mas-commerce-service` to enable mas commerce in the page
--   `price` and `checkout-link` custom elements
--   Functions for building checkout URLs and resolving price offers
+- `mas-commerce-service` to enable mas commerce in the page
+- `price` and `checkout-link` custom elements
+- Functions for building checkout URLs and resolving price offers
 
 ### Installation
 
@@ -64,9 +64,9 @@ npm run build:docs
 
 This package uses:
 
--   [Web Test Runner](https://modern-web.dev/docs/test-runner/overview/)
--   [ChaiJS](https://www.chaijs.com/api/bdd/)
--   [SinonJS](https://sinonjs.org/releases/v15/)
+- [Web Test Runner](https://modern-web.dev/docs/test-runner/overview/)
+- [ChaiJS](https://www.chaijs.com/api/bdd/)
+- [SinonJS](https://sinonjs.org/releases/v15/)
 
 Run all tests:
 

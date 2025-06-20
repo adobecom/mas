@@ -27,10 +27,7 @@
             import { expect } from '@esm-bundle/chai';
             import { fixture, oneEvent } from '@open-wc/testing-helpers/pure';
 
-            import {
-                fromAttribute,
-                toAttribute,
-            } from '../../src/aem/aem-tag-picker-field.js';
+            import { fromAttribute, toAttribute } from '../../src/aem/aem-tag-picker-field.js';
 
             import { delay, initElementFromTemplate } from '../utils.js';
 
@@ -52,9 +49,7 @@
                             '/content/cq:tags/mas/product/photoshop',
                             '/content/cq:tags/mas/product/illustrator',
                         ]);
-                        expect(value).to.equal(
-                            'mas:product/photoshop,mas:product/illustrator',
-                        );
+                        expect(value).to.equal('mas:product/photoshop,mas:product/illustrator');
                     });
 
                     it('Parses value attribute', async () => {
@@ -62,13 +57,9 @@
                         expect(value).to.deep.equal([]);
                         value = fromAttribute(null);
                         expect(value).to.deep.equal([]);
-                        value = fromAttribute(
-                            '/content/cq:tags/mas/product/photoshop',
-                        );
+                        value = fromAttribute('/content/cq:tags/mas/product/photoshop');
                         expect(value).to.deep.equal([]);
-                        value = fromAttribute(
-                            'mas:product/photoshop,mas:product/illustrator',
-                        );
+                        value = fromAttribute('mas:product/photoshop,mas:product/illustrator');
                         expect(value).to.deep.equal([
                             '/content/cq:tags/mas/product/photoshop',
                             '/content/cq:tags/mas/product/illustrator',
@@ -76,33 +67,17 @@
                     });
 
                     it('Supports picking a single tag', async function () {
-                        const aemTagPicker = initElementFromTemplate(
-                            'tagPicker1',
-                            this.test.title,
-                        );
-                        await aemTagPicker.toggleTag(
-                            '/content/cq:tags/mas/product/cc/photoshop',
-                        );
-                        await aemTagPicker.toggleTag(
-                            '/content/cq:tags/mas/product/cc/illustrator',
-                        );
+                        const aemTagPicker = initElementFromTemplate('tagPicker1', this.test.title);
+                        await aemTagPicker.toggleTag('/content/cq:tags/mas/product/cc/photoshop');
+                        await aemTagPicker.toggleTag('/content/cq:tags/mas/product/cc/illustrator');
                         await aemTagPicker.updateComplete;
-                        expect(aemTagPicker.value).to.deep.equal([
-                            '/content/cq:tags/mas/product/cc/illustrator',
-                        ]);
+                        expect(aemTagPicker.value).to.deep.equal(['/content/cq:tags/mas/product/cc/illustrator']);
                     });
 
                     it('Supports picking multiple tags', async function () {
-                        const aemTagPicker = initElementFromTemplate(
-                            'tagPicker2',
-                            this.test.title,
-                        );
-                        await aemTagPicker.toggleTag(
-                            '/content/cq:tags/mas/status/draft',
-                        );
-                        await aemTagPicker.toggleTag(
-                            '/content/cq:tags/mas/status/documentation',
-                        );
+                        const aemTagPicker = initElementFromTemplate('tagPicker2', this.test.title);
+                        await aemTagPicker.toggleTag('/content/cq:tags/mas/status/draft');
+                        await aemTagPicker.toggleTag('/content/cq:tags/mas/status/documentation');
                         await aemTagPicker.updateComplete;
                         expect(aemTagPicker.value).to.deep.equal([
                             '/content/cq:tags/mas/status/draft',
@@ -111,68 +86,37 @@
                     });
 
                     it('Dispatches a change event on add/remove', async function () {
-                        const aemTagPicker = initElementFromTemplate(
-                            'tagPicker2',
-                            this.test.title,
-                        );
+                        const aemTagPicker = initElementFromTemplate('tagPicker2', this.test.title);
                         const listener = oneEvent(aemTagPicker, 'change');
-                        await aemTagPicker.toggleTag(
-                            '/content/cq:tags/mas/status/draft',
-                        );
+                        await aemTagPicker.toggleTag('/content/cq:tags/mas/status/draft');
                         await listener;
-                        expect(aemTagPicker.value).to.deep.equal([
-                            '/content/cq:tags/mas/status/draft',
-                        ]);
+                        expect(aemTagPicker.value).to.deep.equal(['/content/cq:tags/mas/status/draft']);
                     });
 
                     it('Allows to delete tags', async function () {
-                        const aemTagPicker = initElementFromTemplate(
-                            'tagPicker2',
-                            this.test.title,
-                        );
-                        await aemTagPicker.toggleTag(
-                            '/content/cq:tags/mas/status/draft',
-                        );
-                        await aemTagPicker.toggleTag(
-                            '/content/cq:tags/mas/status/documentation',
-                        );
+                        const aemTagPicker = initElementFromTemplate('tagPicker2', this.test.title);
+                        await aemTagPicker.toggleTag('/content/cq:tags/mas/status/draft');
+                        await aemTagPicker.toggleTag('/content/cq:tags/mas/status/documentation');
                         await aemTagPicker.updateComplete;
                         await delay(100);
-                        aemTagPicker.shadowRoot
-                            .querySelector('sp-tag')
-                            .delete();
+                        aemTagPicker.shadowRoot.querySelector('sp-tag').delete();
                         await aemTagPicker.updateComplete;
-                        expect(aemTagPicker.value).to.deep.equal([
-                            '/content/cq:tags/mas/status/documentation',
-                        ]);
+                        expect(aemTagPicker.value).to.deep.equal(['/content/cq:tags/mas/status/documentation']);
                     });
 
                     it('Should not require top attribute', async function () {
-                        const aemTagPicker = initElementFromTemplate(
-                            'tagPicker3',
-                            this.test.title,
-                        );
+                        const aemTagPicker = initElementFromTemplate('tagPicker3', this.test.title);
                         await aemTagPicker.updateComplete;
-                        expect(
-                            aemTagPicker.shadowRoot.querySelector(
-                                'sp-action-button' /* tag picker button */,
-                            ),
-                        ).to.not.be.null;
+                        expect(aemTagPicker.shadowRoot.querySelector('sp-action-button' /* tag picker button */)).to.not.be
+                            .null;
                     });
                 });
 
                 describe('aem-tag-picker-field custom element: checkbox', async () => {
                     it('Should not alter tags outside the scope of the picker', async function () {
-                        const aemTagPicker = initElementFromTemplate(
-                            'tagPicker4',
-                            this.test.title,
-                        );
-                        await aemTagPicker.toggleTag(
-                            '/content/cq:tags/mas/status/draft',
-                        );
-                        await aemTagPicker.toggleTag(
-                            '/content/cq:tags/mas/status/documentation',
-                        );
+                        const aemTagPicker = initElementFromTemplate('tagPicker4', this.test.title);
+                        await aemTagPicker.toggleTag('/content/cq:tags/mas/status/draft');
+                        await aemTagPicker.toggleTag('/content/cq:tags/mas/status/documentation');
                         await aemTagPicker.updateComplete;
                         expect(aemTagPicker.value).to.deep.equal([
                             '/content/cq:tags/mas/product/cc/photoshop',
@@ -182,35 +126,23 @@
                     });
 
                     it('Dispatches a change event on click to Apply button', async function () {
-                        const aemTagPicker = initElementFromTemplate(
-                            'tagPicker5',
-                            this.test.title,
-                        );
+                        const aemTagPicker = initElementFromTemplate('tagPicker5', this.test.title);
                         const listener = oneEvent(aemTagPicker, 'change');
                         await aemTagPicker.loadTags();
                         await aemTagPicker.updateComplete;
 
-                        aemTagPicker.shadowRoot
-                            .querySelector('sp-action-button')
-                            .click();
+                        aemTagPicker.shadowRoot.querySelector('sp-action-button').click();
                         await delay(50);
 
-                        const checkboxList =
-                            aemTagPicker.shadowRoot.querySelector(
-                                '.checkbox-list',
-                            );
+                        const checkboxList = aemTagPicker.shadowRoot.querySelector('.checkbox-list');
 
-                        const applyButton =
-                            aemTagPicker.shadowRoot.querySelector(
-                                'sp-button[variant="accent"]',
-                            );
+                        const applyButton = aemTagPicker.shadowRoot.querySelector('sp-button[variant="accent"]');
                         expect(applyButton).to.not.be.null;
 
                         // Setup listener before interaction
 
                         // Get items
-                        const items =
-                            checkboxList.querySelectorAll('sp-checkbox');
+                        const items = checkboxList.querySelectorAll('sp-checkbox');
                         expect(items.length).to.be.above(0);
 
                         // Get the first item's value and toggle it
@@ -222,59 +154,35 @@
                         await delay(50);
                         const event = await listener;
                         expect(event.type).to.equal('change');
-                        expect(aemTagPicker.getAttribute('value')).to.include(
-                            'mas:status/archived',
-                        );
+                        expect(aemTagPicker.getAttribute('value')).to.include('mas:status/archived');
                     });
 
                     it('Tags are sorted alphabetically in picker', async function () {
-                        const aemTagPicker = initElementFromTemplate(
-                            'tagPicker6',
-                            this.test.title,
-                        );
+                        const aemTagPicker = initElementFromTemplate('tagPicker6', this.test.title);
                         await aemTagPicker.loadTags();
                         await aemTagPicker.updateComplete;
 
-                        aemTagPicker.shadowRoot
-                            .querySelector('sp-action-button')
-                            .click();
+                        aemTagPicker.shadowRoot.querySelector('sp-action-button').click();
                         await delay(50);
 
-                        const checkboxList =
-                            aemTagPicker.shadowRoot.querySelector(
-                                '.checkbox-list',
-                            );
+                        const checkboxList = aemTagPicker.shadowRoot.querySelector('.checkbox-list');
 
-                        const items =
-                            checkboxList.querySelectorAll('sp-checkbox');
+                        const items = checkboxList.querySelectorAll('sp-checkbox');
                         expect(items.length).to.be.above(0);
 
-                        const actual = [...items].map((item) =>
-                            item.textContent.trim(),
-                        );
-                        expect(actual).to.deep.equal([
-                            'ARCHIVED',
-                            'DOCUMENTATION',
-                            'DRAFT',
-                            'PUBLISHED',
-                        ]);
+                        const actual = [...items].map((item) => item.textContent.trim());
+                        expect(actual).to.deep.equal(['ARCHIVED', 'DOCUMENTATION', 'DRAFT', 'PUBLISHED']);
                     });
 
                     it('a search bar is down for more than 7 items', async function () {
-                        const aemTagPicker = initElementFromTemplate(
-                            'tagPicker7',
-                            this.test.title,
-                        );
+                        const aemTagPicker = initElementFromTemplate('tagPicker7', this.test.title);
                         await aemTagPicker.loadTags();
                         await aemTagPicker.updateComplete;
 
-                        aemTagPicker.shadowRoot
-                            .querySelector('sp-action-button')
-                            .click();
+                        aemTagPicker.shadowRoot.querySelector('sp-action-button').click();
                         await delay(50);
 
-                        const spSearch =
-                            aemTagPicker.shadowRoot.querySelector('sp-search');
+                        const spSearch = aemTagPicker.shadowRoot.querySelector('sp-search');
                         expect(spSearch).to.not.be.null;
                     });
                 });
@@ -291,18 +199,10 @@
             ></aem-tag-picker-field>
         </template>
         <template id="tagPicker2">
-            <aem-tag-picker-field
-                namespace="/content/cq:tags/mas"
-                top="status"
-                multiple
-            ></aem-tag-picker-field>
+            <aem-tag-picker-field namespace="/content/cq:tags/mas" top="status" multiple></aem-tag-picker-field>
         </template>
         <template id="tagPicker3">
-            <aem-tag-picker-field
-                label="Filter"
-                namespace="/content/cq:tags/mas"
-                multiple
-            ></aem-tag-picker-field>
+            <aem-tag-picker-field label="Filter" namespace="/content/cq:tags/mas" multiple></aem-tag-picker-field>
         </template>
         <template id="tagPicker4">
             <aem-tag-picker-field
@@ -321,11 +221,7 @@
             ></aem-tag-picker-field>
         </template>
         <template id="tagPicker6">
-            <aem-tag-picker-field
-                namespace="/content/cq:tags/mas"
-                top="status"
-                selection="checkbox"
-            ></aem-tag-picker-field>
+            <aem-tag-picker-field namespace="/content/cq:tags/mas" top="status" selection="checkbox"></aem-tag-picker-field>
         </template>
         <template id="tagPicker7">
             <aem-tag-picker-field

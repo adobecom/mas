@@ -69,9 +69,7 @@ class MnemonicField extends LitElement {
     }
 
     render() {
-        return html` <sp-field-label required for="icon"
-                >Icon URL</sp-field-label
-            >
+        return html` <sp-field-label required for="icon">Icon URL</sp-field-label>
             <sp-textfield
                 id="icon"
                 required

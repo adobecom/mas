@@ -37,11 +37,7 @@ class MasSplashScreen extends LitElement {
             <div class="quick-actions">
                 <h2>Quick Actions</h2>
                 <div class="actions-grid">
-                    <div
-                        class="quick-action-card"
-                        @click=${router.navigateToPage(PAGE_NAMES.CONTENT)}
-                        heading="Go to Content"
-                    >
+                    <div class="quick-action-card" @click=${router.navigateToPage(PAGE_NAMES.CONTENT)} heading="Go to Content">
                         <div slot="cover-photo">${contentIcon}</div>
                         <div slot="heading">Go To Content</div>
                     </div>
@@ -52,8 +48,7 @@ class MasSplashScreen extends LitElement {
                 </div>
             </div>
             <div class="recently-updated">
-                <mas-recently-updated source="aem" base-url="${this.baseUrl}">
-                </mas-recently-updated>
+                <mas-recently-updated source="aem" base-url="${this.baseUrl}"> </mas-recently-updated>
             </div>
         </div>`;
     }

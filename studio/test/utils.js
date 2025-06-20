@@ -12,8 +12,7 @@ export const getTemplateContent = (template) => {
     return [...templateContent.children];
 };
 
-export const delay = (ms = 0) =>
-    new Promise((resolve) => setTimeout(resolve, ms));
+export const delay = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function spTheme() {
     const theme = document.createElement('sp-theme');
@@ -59,9 +58,7 @@ const setCursorPosition = (element, offsetX, rect) => {
     const textNode = element.firstChild;
     if (!textNode || textNode.nodeType !== Node.TEXT_NODE) return;
 
-    const charIndex = Math.floor(
-        (offsetX / rect.width) * textNode.textContent.length,
-    );
+    const charIndex = Math.floor((offsetX / rect.width) * textNode.textContent.length);
 
     const range = document.createRange();
     const selection = window.getSelection();
@@ -133,9 +130,7 @@ export function applyChanges(view, pos, attrs) {
 
 export function triggerInput(element, value) {
     element.value = value;
-    element.dispatchEvent(
-        new Event('input', { bubbles: true, composed: true }),
-    );
+    element.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
 }
 
 export function initElementFromTemplate(templateId, title) {

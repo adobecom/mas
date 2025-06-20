@@ -8,7 +8,7 @@ test('health check endpoint @health', async ({ request }) => {
 
 test('basic test @e2e', async ({ page }) => {
     const url = process.env.TEST_URL;
-    
+
     await page.goto(url);
     let merchCardSlice = page.locator('//merch-card[@id="51c23f28-504f-450d-9764-0e60f1e279b2"]');
     await expect(merchCardSlice).toBeVisible();
@@ -18,8 +18,7 @@ test('basic test @e2e', async ({ page }) => {
     const iconSrc = await merchIcon.getAttribute('src');
     expect(iconSrc).toBeTruthy();
     expect(iconSrc.length).toBeGreaterThan(0);
-    
-    
+
     let imageDiv = merchCardSlice.locator('div[slot="image"]');
     await expect(imageDiv).toBeVisible();
     let image = imageDiv.locator('img');
@@ -29,12 +28,12 @@ test('basic test @e2e', async ({ page }) => {
     expect(imageSrc.length).toBeGreaterThan(0);
 
     let priceSpan = merchCardSlice.locator('span[class="price"]');
-    await expect(priceSpan).toBeVisible({timeout: 15000});
+    await expect(priceSpan).toBeVisible({ timeout: 15000 });
 
     let currencySymbol = priceSpan.locator('span[class="price-currency-symbol"]');
     await expect(currencySymbol).toBeVisible();
 
-    let priceInteger = priceSpan.locator('span[class="price-integer"]'); 
+    let priceInteger = priceSpan.locator('span[class="price-integer"]');
     await expect(priceInteger).toBeVisible();
 
     let decimalsDelimiter = priceSpan.locator('span[class="price-decimals-delimiter"]');
@@ -45,7 +44,6 @@ test('basic test @e2e', async ({ page }) => {
 
     let priceRecurrence = priceSpan.locator('span[class="price-recurrence"]');
     await expect(priceRecurrence).toBeVisible();
-    
 
     if (url.includes('locale=fr_FR')) {
         const recurrenceText = await priceRecurrence.textContent();
@@ -78,7 +76,7 @@ test('basic test @e2e', async ({ page }) => {
     let headingXs = merchCardSuggested.locator('h3[slot="heading-xs"]');
     await expect(headingXs).toBeVisible();
 
-    let detailS = merchCardSuggested.locator('h4[slot="detail-s"]'); 
+    let detailS = merchCardSuggested.locator('h4[slot="detail-s"]');
     await expect(detailS).toBeVisible();
 
     let bodyXS = merchCardSuggested.locator('div[slot="body-xs"]');
@@ -144,5 +142,3 @@ test('basic test @e2e', async ({ page }) => {
     expect(checkoutHrefSuggested).toBeTruthy();
     expect(checkoutHrefSuggested).toContain('commerce.adobe.com');
 });
-
-

@@ -41,7 +41,24 @@
             import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 
             runTests(async () => {
+                const originalFetch = window.fetch;
+                window.fetch = async function (args) {
+                    const { href } = new URL(args);
+                    if (
+                        /querybuilder.json\?path=\/content\/dam\/mas/.test(
+                            href,
+                        )
+                    ) {
+                        return originalFetch('/test/mocks/folders.json');
+                    }
+                    return originalFetch(...arguments);
+                };
                 describe('merch-card-collection-editor custom element', async () => {
+                    beforeEach(async () => {
+                        const editorPanel = initElementFromTemplate(
+                            'merch-card-collection-editor',
+                        );
+                    });
                     it('should render', async () => {
                         const editor = document.querySelector('editor-panel');
                         const collectionFragment = await fetch(
@@ -61,12 +78,15 @@
             });
         </script>
         <main>
-            <sp-theme color="light" scale="medium">
+            <sp-theme color="light" scale="medium"></sp-theme>
+        </main>
+        <template id="merch-card-collection-editor">
+            <div>
                 <mas-repository
                     base-url="http://localhost:2023/test/mocks"
                 ></mas-repository>
                 <editor-panel></editor-panel>
-            </sp-theme>
-        </main>
+            </div>
+        </template>
     </body>
 </html>

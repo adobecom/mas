@@ -10,7 +10,9 @@ async function fetchArtifact(osi, promotionCode, wcsContext) {
     url.searchParams.set('locale', wcsContext.locale);
     url.searchParams.set('landscape', wcsContext.landscape);
     url.searchParams.set('api_key', wcsContext.context.api_key);
-    url.searchParams.set('language', wcsContext.language);
+    if (wcsContext.language) {
+        url.searchParams.set('language', wcsContext.language);
+    }
     url.searchParams.set('offer_selector_ids', osi);
     if (promotionCode) {
         url.searchParams.set('promotion_code', promotionCode);
@@ -22,9 +24,8 @@ async function fetchArtifact(osi, promotionCode, wcsContext) {
     return null;
 }
 
-async function computeCache(tokens, config, wcsContext) {
+async function computeCache(tokens, wcsContext) {
     const cache = {};
-    wcsContext.wcsURL = config.wcsURL;
     const promises = tokens.map(
         ({ osi, promotionCode }) =>
             new Promise(async (resolve, reject) => {
@@ -38,7 +39,7 @@ async function computeCache(tokens, config, wcsContext) {
                     const cacheKey = [
                         osi,
                         wcsContext.country.toLowerCase(),
-                        wcsContext.language.toLowerCase(),
+                        wcsContext.language?.toLowerCase(),
                         promotionCode,
                     ]
                         .filter((val) => val)
@@ -109,12 +110,13 @@ async function wcs(context) {
         const wcsContext = {
             locale,
             country,
-            language: country === 'GB' ? 'EN' : 'MULT',
-            landscape: 'PUBLISHED',
             context,
         };
         for (const config of wcsConfigs) {
-            const cache = await computeCache(tokens, config, wcsContext);
+            wcsContext.wcsURL = config.wcsURL;
+            wcsContext.landscape = config.landscape || 'PUBLISHED';
+            if (country !== 'GB') wcsContext.language = 'MULT';
+            const cache = await computeCache(tokens, wcsContext);
             if (cache) {
                 context.body.wcs ??= {};
                 context.body.wcs[config.env] = cache;

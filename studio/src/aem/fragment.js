@@ -90,6 +90,10 @@ export class Fragment {
         ];
     }
 
+    getOriginalIdField() {
+        return this.fields.find((field) => field.name === 'originalId');
+    }
+
     updateField(fieldName, value) {
         let change = false;
         this.fields

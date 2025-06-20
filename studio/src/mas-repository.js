@@ -16,6 +16,8 @@ import {
     TAG_MODEL_ID_MAPPING,
     EDITABLE_FRAGMENT_MODEL_IDS,
     CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    LOCALE_DEFAULT,
 } from './constants.js';
 
 let fragmentCache;
@@ -497,6 +499,9 @@ export class MasRepository extends LitElement {
                         if (field.name === 'tags') {
                             field.values = tags;
                         }
+                        if (field.name === 'originalId') {
+                            field.values = [result.id];
+                        }
                         if (osi && field.name === 'osi') {
                             field.values = [osi];
                         }
@@ -614,7 +619,27 @@ export class MasRepository extends LitElement {
         store.setLoading(true);
         const id = store.get().id;
         const latest = await this.aem.sites.cf.fragments.getById(id);
+
         store.refreshFrom(latest);
+        if (
+            [CARD_MODEL_PATH, COLLECTION_MODEL_PATH].includes(latest.model.path)
+        ) {
+            // originalId allows to keep track of the relation between en_US fragment and the current one if in different locales
+            const originalId = store.get().getOriginalIdField();
+            if (this.filters.value.locale === LOCALE_DEFAULT) {
+                originalId.values = [latest.id];
+            } else {
+                const enUsPath = latest.path.replace(
+                    this.filters.value.locale,
+                    LOCALE_DEFAULT,
+                );
+                const sourceFragment =
+                    await this.aem.sites.cf.fragments.getByPath(enUsPath);
+                if (sourceFragment) {
+                    originalId.values = [sourceFragment.id];
+                }
+            }
+        }
         this.#addToCache(store.get());
         store.setLoading(false);
     }

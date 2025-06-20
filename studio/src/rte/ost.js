@@ -16,6 +16,18 @@ if (!ostRoot) {
     document.body.appendChild(ostRoot);
 }
 
+const OST_OPTION_DEFAULTS = {
+    displayOldPrice: false,
+    displayPerUnit: true,
+    displayPlanType: false,
+    displayRecurrence: true,
+    displayTax: false,
+    forceTaxExclusive: false,
+    isPerpetual: false,
+    workflow: 'UCv3',
+    workflowStep: 'email',
+};
+
 export const ostDefaults = {
     aosApiKey: 'wcms-commerce-ims-user-prod',
     checkoutClientId: 'creative',
@@ -25,13 +37,7 @@ export const ostDefaults = {
     landscape: 'PUBLISHED',
     searchParameters: {},
     searchOfferSelectorId: null,
-    defaultPlaceholderOptions: {
-        displayRecurrence: true,
-        displayPerUnit: false,
-        displayTax: false,
-        displayOldPrice: true,
-        forceTaxExclusive: true,
-    },
+    defaultPlaceholderOptions: OST_OPTION_DEFAULTS,
     wcsApiKey: 'wcms-commerce-ims-ro-user-cc',
     ctaTextOption: {
         ctaTexts: Object.entries(CHECKOUT_CTA_TEXTS).map(([id, name]) => ({
@@ -50,11 +56,15 @@ export const ostDefaults = {
             const ctaLabel = searchParameters.get('text');
             let selectedText;
             if (ctaLabel)
-            selectedText = this.ctaTexts.find(({ id, name }) =>
-                [id, name].includes(ctaLabel),
-            ) || this.ctaTexts.find(({ id, name }) =>
-                [id, name].includes(ctaLabel.replace('{{' , '').replace('}}', '')),
-            );
+                selectedText =
+                    this.ctaTexts.find(({ id, name }) =>
+                        [id, name].includes(ctaLabel),
+                    ) ||
+                    this.ctaTexts.find(({ id, name }) =>
+                        [id, name].includes(
+                            ctaLabel.replace('{{', '').replace('}}', ''),
+                        ),
+                    );
             if (selectedText) return selectedText.id;
             return ctaLabel || this.getDefaultText();
         },
@@ -118,17 +128,6 @@ export const OST_OPTION_ATTRIBUTE_MAPPING_REVERSE = Object.fromEntries(
     ]),
 );
 
-const OST_OPTION_DEFAULTS = {
-    displayOldPrice: true,
-    displayPerUnit: false,
-    displayRecurrence: true,
-    displayTax: false,
-    forceTaxExclusive: false,
-    isPerpetual: false,
-    workflow: 'UCv3',
-    workflowStep: 'email',
-};
-
 const OST_VALUE_MAPPING = {
     true: true,
     false: false,
@@ -156,7 +155,11 @@ export function onPlaceholderSelect(
 
     const ctaText = CHECKOUT_CTA_TEXTS[options.ctaText]; // no placeholder key support.
     if (ctaText) {
-        attributes['text'] =  ['acom', 'sandbox', 'nala'].includes(Store.search.get().path) ? `{{${options.ctaText}}}` : ctaText;
+        attributes['text'] = ['acom', 'sandbox', 'nala'].includes(
+            Store.search.get().path,
+        )
+            ? `{{${options.ctaText}}}`
+            : ctaText;
         attributes['data-analytics-id'] = options.ctaText;
     }
 

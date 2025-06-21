@@ -8,13 +8,6 @@ application:
       MerchAtScaleStudio:
         license: Apache-2.0
         actions:      
-          fragment:
-            function: src/fragment/pipeline.js
-            web: 'yes'
-            runtime: nodejs:22
-            annotations:
-              require-adobe-auth: false      
-              final: true
           ost-products-write:
             function: src/ost-products/write.js
             web: 'yes'
@@ -31,11 +24,7 @@ application:
             runtime: nodejs:22
             annotations:
               require-adobe-auth: false
-          dictionary:
-            function: src/dictionary/dictionary.js
-            web: 'yes'
-            runtime: nodejs:22
-            annotations:
-              require-adobe-auth: false
+
+
 
               

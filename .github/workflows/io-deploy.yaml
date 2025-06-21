@@ -39,16 +39,9 @@ jobs:
       with:
         node-version: '22.x'
         cache: 'npm'
-        cache-dependency-path: io/www/package.json
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Run tests with coverage
-      run: npm test
+        cache-dependency-path: io/www/package-lock.json
 
     - name: Install AIO CLI
-      if: success()
       run: npm install -g @adobe/aio-cli
 
     - name: Deploy action

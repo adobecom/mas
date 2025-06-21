@@ -12,7 +12,6 @@ test('basic test @e2e', async ({ page }) => {
     await page.goto(url);
     let merchCardSlice = page.locator('//merch-card[@id="51c23f28-504f-450d-9764-0e60f1e279b2"]');
     await expect(merchCardSlice).toBeVisible();
-
     let merchIcon = merchCardSlice.locator('//merch-icon');
     await expect(merchIcon).toBeVisible();
     const iconSrc = await merchIcon.getAttribute('src');

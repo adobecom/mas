@@ -20,11 +20,62 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '22.x'
-        cache: 'npm'
-        cache-dependency-path: io/www/package.json
 
-    - name: Install dependencies
-      run: npm ci
+    - name: Download Playwright
+      uses: actions/download-artifact@v4
+      with:
+        name: playwright-${{ github.run_id }}
+        path: playwright-artifact
+      continue-on-error: true
+
+    - name: Setup Playwright
+      run: |
+        echo "Setting up Playwright..."
+        
+        # Create necessary directories
+        mkdir -p ~/.cache/ms-playwright
+        mkdir -p nala/io/node_modules
+        
+        # Check if artifact was downloaded successfully
+        if [ -d "playwright-artifact" ]; then
+          echo "Playwright artifact found, restoring from cache..."
+          
+          # Restore Playwright browsers
+          if [ -d "playwright-artifact/.cache/ms-playwright" ]; then
+            cp -r playwright-artifact/.cache/ms-playwright/* ~/.cache/ms-playwright/ 2>/dev/null || true
+            echo "Playwright browsers restored"
+          fi
+          
+          # Restore node_modules
+          if [ -d "playwright-artifact/nala/io/node_modules" ]; then
+            cp -r playwright-artifact/nala/io/node_modules/* nala/io/node_modules/ 2>/dev/null || true
+            echo "Playwright dependencies restored"
+          fi
+          
+          # Verify Playwright is available
+          if command -v npx >/dev/null 2>&1 && npx playwright --version >/dev/null 2>&1; then
+            echo "Playwright setup successful"
+          else
+            echo "Playwright verification failed, falling back to fresh install"
+            cd nala/io && npm install -D @playwright/test playwright && npx playwright install --with-deps
+          fi
+        else
+          echo "Playwright artifact not found, installing fresh..."
+          cd nala/io && npm install -D @playwright/test playwright && npx playwright install --with-deps
+        fi
+
+    - name: Install system dependencies
+      run: sudo apt-get update && sudo apt-get install -y xvfb
+
+    - name: Verify test setup
+      working-directory: nala/io
+      run: |
+        echo "Verifying test environment..."
+        echo "Node version: $(node --version)"
+        echo "NPM version: $(npm --version)"
+        echo "Playwright version: $(npx playwright --version)"
+        echo "Available browsers:"
+        npx playwright install --dry-run | grep -E "(chromium|firefox|webkit)" || true
 
     - name: Run Playwright Tests
       env:
@@ -32,11 +83,6 @@ jobs:
         HEALTH_CHECK_URL: https://${{ secrets.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScale/health-check
       working-directory: nala/io
       run: |
-        # Install Playwright and its test package
-        npm install -D @playwright/test playwright
-        sudo apt-get install xvfb
-        npx playwright install --with-deps
-
         # Run health check test
         echo "Running health check test"
         npx playwright test ioAutomation.js --grep "@health" --config=playwright.config.js

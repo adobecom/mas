@@ -73,7 +73,7 @@ class MasPlaceholdersCreationModal extends LitElement {
         this.saving = false;
         if (!success) return;
         this.dispatchEvent(new CustomEvent('save'));
-        showToast('Successfully created placeholder', 'positive');
+        showToast('Placeholder successfully created.', 'positive');
         this.onClose();
     }
 

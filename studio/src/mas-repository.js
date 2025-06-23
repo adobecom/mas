@@ -584,11 +584,12 @@ export class MasRepository extends LitElement {
      * @param {Fragment} fragment Fragment to publish
      * @returns {Promise<boolean>} Whether or not it was successful
      */
-    async publishFragment(fragment) {
+    async publishFragment(fragment, showToast = true) {
         try {
             this.operation.set(OPERATIONS.PUBLISH);
             await this.aem.sites.cf.fragments.publish(fragment);
-            showToast('Fragment successfully published.', 'positive');
+            if (showToast)
+                showToast('Fragment successfully published.', 'positive');
 
             return true;
         } catch (error) {
@@ -764,7 +765,7 @@ export class MasRepository extends LitElement {
             }
 
             if (shouldPublish) {
-                await this.publishFragment(updatedIndexFragment);
+                await this.publishFragment(updatedIndexFragment, false);
             }
 
             return true;
@@ -815,7 +816,7 @@ export class MasRepository extends LitElement {
             }
 
             if (shouldPublish) {
-                await this.publishFragment(updatedIndexFragment);
+                await this.publishFragment(updatedIndexFragment, false);
             }
 
             return true;
@@ -874,7 +875,7 @@ export class MasRepository extends LitElement {
             }
 
             if (shouldPublish) {
-                await this.publishFragment(indexFragment);
+                await this.publishFragment(indexFragment, false);
             }
 
             return true;

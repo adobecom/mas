@@ -235,7 +235,10 @@ class MasPlaceholders extends LitElement {
                 this.refresh();
             }
         }
-        showToast(`Successfully deleted ${placeholder.key}`);
+        showToast(
+            `Placeholder ${placeholder.key} successfully deleted.`,
+            'positive',
+        );
         this.pending = false;
     }
 
@@ -254,7 +257,7 @@ class MasPlaceholders extends LitElement {
             .map((placeholderStore) => placeholderStore.get());
 
         this.pending = true;
-        showToast('Deleting fragments...');
+        showToast('Deleting placeholders...');
 
         await this.repository.removeFromIndexFragment(fragments, true);
         await this.repository.bulkDeleteFragments(fragments, {
@@ -263,7 +266,7 @@ class MasPlaceholders extends LitElement {
         });
 
         this.pending = false;
-        showToast('Successfully deleted fragments', 'positive');
+        showToast('Successfully deleted placeholders', 'positive');
         this.handleSelectionPanelClose();
     }
 

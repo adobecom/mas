@@ -1,10 +1,5 @@
 import { LitElement, html, nothing, css, unsafeCSS } from 'lit';
-import {
-    EditorState,
-    NodeSelection,
-    Plugin,
-    TextSelection,
-} from 'prosemirror-state';
+import { EditorState, NodeSelection } from 'prosemirror-state';
 import { Schema, DOMParser, DOMSerializer } from 'prosemirror-model';
 import { EditorView } from 'prosemirror-view';
 import { keymap } from 'prosemirror-keymap';
@@ -592,8 +587,6 @@ class RteField extends LitElement {
             'heading-m',
             'promo-text',
             'mnemonic-text',
-            'promo-duration-text',
-            'renewal-text',
         ];
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
@@ -1359,13 +1352,10 @@ class RteField extends LitElement {
             event.stopPropagation(); // Stop propagation here
             if (this.showLinkEditor) {
                 this.showLinkEditor = false;
-                this.requestUpdate();
             } else if (this.showIconEditor) {
                 this.showIconEditor = false;
-                this.requestUpdate();
             } else if (this.showMnemonicEditor) {
                 this.showMnemonicEditor = false;
-                this.requestUpdate();
             }
             closeOfferSelectorTool();
         }
@@ -1628,7 +1618,6 @@ class RteField extends LitElement {
     #handleFocusout(view, event) {
         this.hasFocus = false;
         this.isLinkSelected = false;
-        this.requestUpdate();
     }
 
     #handleFocus() {

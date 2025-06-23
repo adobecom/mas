@@ -65,6 +65,9 @@
                     if (/querybuilder.json?path=\/content\/dam\/mas/.test(pathname)) {
                         return originalFetch('/test/mocks/folders.json');
                     }
+                    if (/querybuilder.json?path=\/content\/dam\/mas/.test(pathname)) {
+                        return originalFetch('/test/mocks/folders.json');
+                    }
                     return originalFetch(...arguments);
                 };
 

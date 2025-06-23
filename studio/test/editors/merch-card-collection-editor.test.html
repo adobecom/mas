@@ -61,7 +61,7 @@
                     });
                     it('should render', async () => {
                         const editor = document.querySelector('editor-panel');
-                        const collectionFragment = await fetch(
+                        const collectionFragment = await originalFetch(
                             '/test/mocks/adobe/sites/cf/fragments/collection.json',
                         ).then((res) => res.json());
                         const fragmentStore = new FragmentStore(

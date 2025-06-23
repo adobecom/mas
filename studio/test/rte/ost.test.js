@@ -41,7 +41,6 @@ describe('onPlaceholderSelect', () => {
             'data-wcs-osi': offerSelectorId,
             'data-template': type,
             is: 'inline-price',
-            'data-display-old-price': false,
             'data-promotion-code': promoOverride,
         };
 

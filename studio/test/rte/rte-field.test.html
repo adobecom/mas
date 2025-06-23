@@ -133,13 +133,13 @@
                             'rte-marks',
                             this.test.title,
                         );
-                        await selectWordsInTextNode(rte.editorView, '');
+                        await selectWordsInTextNode(rte.editorView, 'Styling');
 
-                        rte.handleStylingAction('promo-duration');
+                        rte.handleStylingAction('promo-duration-text');
                         await delay(100);
 
                         let span = firstStyledElement();
-                        expect(span.className).to.equal('promo-duration');
+                        expect(span.className).to.equal('promo-duration-text');
                     });
 
                     it('should apply renewal text styles', async function () {
@@ -149,11 +149,11 @@
                         );
                         await selectWordsInTextNode(rte.editorView, 'Styling');
 
-                        rte.handleStylingAction('renewalText');
+                        rte.handleStylingAction('renewal-text');
                         await delay(100);
 
                         let span = firstStyledElement();
-                        expect(span.className).to.equal('renewalText');
+                        expect(span.className).to.equal('renewal-text');
                     });
                 });
 

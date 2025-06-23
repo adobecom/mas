@@ -1,8 +1,36 @@
-function applyPlansSettings(fragment, locale) {
-    fragment.settings = {
-        stockCheckboxLabel: '{{stock-checkbox-label}}',
-        stockOfferOsis: '',
+const COLLECTION_MODEL_ID =
+    'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
+
+function applyCollectionSettings(context) {
+    context.body.placeholders = {
+        searchText: '{{coll-search-text}}',
+        filtersText: '{{coll-filters-text}}',
+        sortText: '{{coll-sort-text}}',
+        popularityText: '{{coll-popularity-text}}',
+        alphabeticallyText: '{{coll-alphabetically-text}}',
+        noResultsText: '{{coll-no-results-text}}',
+        plansSidenavTitle: '{{coll-plans-sidenav-title}}',
+        resultText: '{{coll-result-text}}',
+        resultsText: '{{coll-results-text}}',
+        resultMobileText: '{{coll-result-mobile-text}}',
+        resultsMobileText: '{{coll-results-mobile-text}}',
+        searchResultText: '{{coll-search-result-text}}',
+        searchResultsText: '{{coll-search-results-text}}',
+        searchResultMobileText: '{{coll-search-result-mobile-text}}',
+        searchResultsMobileText: '{{coll-search-results-mobile-text}}',
+        noSearchResultsText: '{{coll-no-search-results-text}}',
+        showMoreText: '{{coll-show-more-text}}',
     };
+    context.dictionary = {
+        ...context?.dictionary,
+        'coll-filter': '<span data-placeholder=\\"filter\\"></span>',
+        'coll-result-count': '<span data-placeholder=\\"resultCount\\"></span>',
+        'coll-search-term': '<span data-placeholder=\\"searchTerm\\"></span>',
+    };
+}
+
+function applyPlansSettings(fragment, locale) {
+    fragment.settings = {};
     if (fragment?.fields?.showSecureLabel !== false) {
         fragment.settings.secureLabel = '{{secure-label}}';
     }
@@ -18,6 +46,10 @@ async function settings(context) {
     const { locale } = context;
     if (context.body?.fields?.variant?.startsWith('plans')) {
         applyPlansSettings(context.body, locale);
+    }
+
+    if (context.body?.model?.id === COLLECTION_MODEL_ID) {
+        applyCollectionSettings(context);
     }
 
     if (context.body?.references) {

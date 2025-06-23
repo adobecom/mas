@@ -93,7 +93,6 @@
                         "mimeType": "text/html"
                     },
                     "callout": { "mimeType": "text/html" },
-                    "showStockCheckbox": true,
                     "ctas": {
                         "value": "<a class=\"accent\" data-wcs-osi=\"BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c\" data-template=\"checkoutUrl\" target=\"_self\" data-analytics-id=\"buy-now\">Buy now</a>",
                         "mimeType": "text/html"
@@ -106,8 +105,6 @@
                     ]
                 },
                 "settings": {
-                    "stockCheckboxLabel": "Add a 30-day free trial of Adobe Stock.",
-                    "stockOfferOsis": "",
                     "displayPlanType": true,
                     "secureLabel": "Secure transaction"
                 }
@@ -172,7 +169,6 @@
                         "mimeType": "text/html"
                     },
                     "callout": { "mimeType": "text/html" },
-                    "showStockCheckbox": false,
                     "addon": "addon-stock-base",
                     "ctas": {
                         "value": "<a class=\"accent\" data-wcs-osi=\"BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c\" data-template=\"checkoutUrl\" target=\"_self\" data-analytics-id=\"buy-now\">Buy now</a>",
@@ -186,8 +182,6 @@
                     ]
                 },
                 "settings": {
-                    "stockCheckboxLabel": "Add a 30-day free trial of Adobe Stock.",
-                    "stockOfferOsis": "",
                     "displayPlanType": true,
                     "secureLabel": "Secure transaction"
                 }

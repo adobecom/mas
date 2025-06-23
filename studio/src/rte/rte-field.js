@@ -638,11 +638,7 @@ class RteField extends LitElement {
     getStylingMark(stylingType, ariaLevel) {
         return {
             [stylingType]: {
-                attrs: {
-                    class: { default: null },
-                    role: { default: null },
-                    'aria-level': { default: null },
-                },
+                attrs: { class: { default: null }, role: { default: null }, 'aria-level': { default: null } },
                 group: 'styling',
                 parseDOM: [
                     {
@@ -650,15 +646,7 @@ class RteField extends LitElement {
                         getAttrs: this.#collectDataAttributes,
                     },
                 ],
-                toDOM: () => [
-                    'span',
-                    {
-                        class: stylingType,
-                        role: ariaLevel ? 'heading' : null,
-                        'aria-level': ariaLevel,
-                    },
-                    0,
-                ],
+                toDOM: () => ['span', { class: stylingType, role: ariaLevel ? 'heading' : null, 'aria-level': ariaLevel }, 0],
             },
         };
     }
@@ -1421,9 +1409,7 @@ class RteField extends LitElement {
             );
             const name = stylingMark?.type?.name;
             if (name) {
-                const item = event.target.querySelector(
-                    `sp-menu-item[value="${name}"]`,
-                );
+                const item = event.target.querySelector(`sp-menu-item[value="${name}"]`);
                 if (item) item.classList.add('is-selected');
             }
         });

@@ -207,7 +207,7 @@ class AEM {
      * @returns {Promise<Object>} the updated fragment
      */
     async saveFragment(fragment) {
-        if (!fragment || !fragment.id) {
+        if (!fragment?.id) {
             throw new Error('Invalid fragment data for save operation');
         }
 
@@ -217,15 +217,6 @@ class AEM {
         }
 
         const { title, description, fields } = fragment;
-        const isDictionaryFragment = fragment.path?.includes('/dictionary/');
-
-        const payload = isDictionaryFragment
-            ? {
-                  title: fragment.title || latestFragment.title,
-                  description: fragment.description || latestFragment.description || '',
-                  fields: fragment.fields || latestFragment.fields || [],
-              }
-            : { title, description, fields };
 
         const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
             method: 'PUT',
@@ -234,7 +225,11 @@ class AEM {
                 'Content-Type': 'application/json',
                 'If-Match': latestFragment.etag,
             },
-            body: JSON.stringify(payload),
+            body: JSON.stringify({
+                title,
+                description,
+                fields,
+            }),
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
@@ -243,11 +238,9 @@ class AEM {
             throw new Error(`Failed to save fragment: ${response.status} ${response.statusText}`);
         }
 
-        if (!isDictionaryFragment) {
-            await this.saveTags(fragment);
-        }
+        await this.saveTags(fragment);
 
-        return isDictionaryFragment ? this.getFragment(response) : this.pollUpdatedFragment(fragment);
+        return this.pollUpdatedFragment(fragment);
     }
 
     async saveTags(fragment) {
@@ -286,6 +279,17 @@ class AEM {
                 throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
             });
         }
+    }
+
+    async pollCreatedFragment(newFragment) {
+        let attempts = 0;
+        while (attempts < MAX_POLL_ATTEMPTS) {
+            attempts++;
+            const fragment = await this.sites.cf.fragments.getById(newFragment.id);
+            if (fragment) return fragment;
+            await this.wait(POLL_TIMEOUT);
+        }
+        throw new UserFriendlyError('Creation completed but the created fragment could not be retrieved.');
     }
 
     async pollUpdatedFragment(oldFragment) {
@@ -385,7 +389,8 @@ class AEM {
             throw new Error(`Failed to create fragment: ${response.status} ${response.statusText}`);
         }
 
-        return await this.getFragment(response);
+        const newFragment = await this.getFragment(response);
+        return this.pollCreatedFragment(newFragment);
     }
 
     /**

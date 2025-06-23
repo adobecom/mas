@@ -28,6 +28,7 @@ class MasContent extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         Events.fragmentAdded.subscribe(this.goToFragment);
+        Events.fragmentDeleted.subscribe(this.onFragmentDeleted);
 
         this.subscriptions.push(
             Store.fragments.list.data.subscribe(() => {
@@ -45,6 +46,7 @@ class MasContent extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         Events.fragmentAdded.unsubscribe(this.goToFragment);
+        Events.fragmentDeleted.unsubscribe(this.onFragmentDeleted);
 
         if (this.subscriptions && this.subscriptions.length) {
             this.subscriptions.forEach((subscription) => {
@@ -54,6 +56,18 @@ class MasContent extends LitElement {
             });
         }
         this.subscriptions = [];
+    }
+
+    onFragmentDeleted(fragment) {
+        Store.fragments.list.data.set((prev) => {
+            const result = [...prev];
+            const index = result.findIndex((fragmentStore) => fragmentStore.get().id === fragment.id);
+            if (index !== -1) {
+                result.splice(index, 1);
+            }
+            return result;
+        });
+        Store.fragments.inEdit.set(null);
     }
 
     async goToFragment(id, skipUpdate = false) {

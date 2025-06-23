@@ -344,6 +344,14 @@ export default class EditorPanel extends LitElement {
         }
     }
 
+    saveFragment() {
+        this.repository.saveFragment(this.inEdit.get());
+    }
+
+    publishFragment() {
+        this.repository.publishFragment(this.inEdit);
+    }
+
     /**
      * Handler for the toolbar "Discard" action.
      * Uses the same prompt so that the user always sees a consistent confirmation.
@@ -411,7 +419,7 @@ export default class EditorPanel extends LitElement {
                         title="Save changes"
                         value="save"
                         ?disabled="${!Store.editor.hasChanges}"
-                        @click="${this.repository.saveFragment}"
+                        @click="${this.saveFragment}"
                     >
                         ${this.operation.equals(OPERATIONS.SAVE)
                             ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
@@ -435,7 +443,7 @@ export default class EditorPanel extends LitElement {
 
                         <sp-tooltip self-managed placement="bottom">Clone</sp-tooltip>
                     </sp-action-button>
-                    <sp-action-button label="Publish" value="publish" @click="${this.repository.publishFragment}">
+                    <sp-action-button label="Publish" value="publish" @click="${this.publishFragment}">
                         ${this.operation.equals(OPERATIONS.PUBLISH)
                             ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
                             : html` <sp-icon-publish-check slot="icon"></sp-icon-publish-check>`}

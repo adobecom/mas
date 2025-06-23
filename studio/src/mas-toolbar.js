@@ -278,12 +278,20 @@ class MasToolbar extends LitElement {
         return html`<span id="search-results-label">Search results for "${this.search.value.query}"</span>`;
     }
 
+    handleSelectionPanelClose() {
+        Store.selecting.set(false);
+    }
+
     render() {
         return html`<div id="toolbar">
                 <div id="actions">${this.searchAndFilterControls} ${this.contentManagementControls} ${this.selectionPanel}</div>
                 ${this.filtersPanel}${this.searchResultsLabel}
             </div>
-            <mas-selection-panel></mas-selection-panel>
+            <mas-selection-panel
+                ?open=${this.selecting.value}
+                .selectionStore=${Store.selection}
+                @close=${this.handleSelectionPanelClose}
+            ></mas-selection-panel>
             ${this.createDialogOpen
                 ? html`<mas-create-dialog
                       type=${this.selectedContentType}

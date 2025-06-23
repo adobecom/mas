@@ -3,6 +3,7 @@ import { EVENT_KEYDOWN, EVENT_OST_OFFER_SELECT, TAG_MODEL_ID_MAPPING } from './c
 import { editFragment } from './store.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
+import { FragmentStore } from './reactivity/fragment-store.js';
 
 export class MasCreateDialog extends LitElement {
     static properties = {
@@ -102,7 +103,8 @@ export class MasCreateDialog extends LitElement {
     }
 
     async createFragment(masRepository, fragmentData) {
-        const fragmentStore = await masRepository.createFragment(fragmentData);
+        const fragment = await masRepository.createFragment(fragmentData);
+        const fragmentStore = new FragmentStore(fragment);
         fragmentStore.new = true;
         editFragment(fragmentStore, 0);
         this.close();

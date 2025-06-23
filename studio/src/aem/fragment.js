@@ -12,7 +12,7 @@ export class Fragment {
     /**
      * @param {*} AEM Fragment JSON object
      */
-    constructor({ id, etag, model, path, title, description, status, created, modified, fields, tags, references }) {
+    constructor({ id, etag, model, path, title, description, status, created, modified, published, fields, tags, references }) {
         this.id = id;
         this.model = model;
         this.etag = etag;
@@ -23,6 +23,7 @@ export class Fragment {
         this.status = status;
         this.created = created;
         this.modified = modified;
+        this.published = published;
         this.tags = tags;
         this.fields = fields;
         this.references = references;

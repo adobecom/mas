@@ -62,6 +62,13 @@ export class ReactiveStore {
         return value;
     }
 
+    /**
+     * @param {(value: any) => any} validator
+     */
+    registerValidator(validator) {
+        this.validator = validator;
+    }
+
     // #region Meta
 
     hasMeta(key) {

@@ -1,5 +1,6 @@
-import { PAGE_NAMES, WCS_ENV_PROD } from './constants.js';
+import { PAGE_NAMES, SORT_COLUMNS, WCS_ENV_PROD } from './constants.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
+import { getHashParam } from './utils.js';
 
 // Store definition with default values - no URL parsing here
 const Store = {
@@ -27,25 +28,31 @@ const Store = {
     },
     search: new ReactiveStore({}),
     filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
+    sort: new ReactiveStore({}),
     renderMode: new ReactiveStore(localStorage.getItem('mas-render-mode') || 'render'),
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
     commerceEnv: new ReactiveStore(WCS_ENV_PROD),
     placeholders: {
+        search: new ReactiveStore(''),
         list: {
             data: new ReactiveStore([]),
-            loading: new ReactiveStore(false),
+            loading: new ReactiveStore(true),
         },
-        selected: new ReactiveStore(null),
+        index: new ReactiveStore(null),
+        selection: new ReactiveStore([]),
         editing: new ReactiveStore(null),
         addons: {
             loading: new ReactiveStore(false),
             data: new ReactiveStore([{ value: 'disabled', itemText: 'disabled' }]),
         },
     },
+    confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
 };
+
+// #region Validators
 
 /**
  * @param {object} value
@@ -75,6 +82,25 @@ function pageValidator(value) {
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }
 
+function sortValidator(value) {
+    const page = Store.page.get();
+    const defaultSortBy = SORT_COLUMNS[page]?.[0];
+    if (!value) return { sortBy: defaultSortBy, sortDirection: 'asc' };
+    const result = { ...value };
+    if (!result.sortBy) result.sortBy = defaultSortBy;
+    else {
+        const isValidField = (SORT_COLUMNS[page] || []).includes(result.sortBy);
+        if (!isValidField) result.sortBy = defaultSortBy;
+    }
+    if (result.sortDirection !== 'asc' && result.sortDirection !== 'desc') result.sortDirection = 'asc';
+    return result;
+}
+// This validator accesses the store object, so it can't be passed in the
+// ReactiveStore contructor - it gets registered separately
+Store.sort.registerValidator(sortValidator);
+
+// #endregion
+
 const editorPanel = () => document.querySelector('editor-panel');
 
 /**
@@ -97,3 +123,8 @@ export function editFragment(store, x = 0) {
 }
 
 export default Store;
+
+// Reset sort on page change
+Store.page.subscribe((value) => {
+    Store.sort.set({ sortBy: SORT_COLUMNS[value]?.[0], sortDirection: 'asc' });
+});

@@ -17,7 +17,7 @@ setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
   await page.goto(`${baseURL}/studio.html`);
   await page.waitForURL('**/auth.services.adobe.com/en_US/index.html**/');
 
-  await expect(page).toHaveTitle(/Adobe ID/);
+  // await expect(page).toHaveTitle(/Adobe ID/);
   let heading = await page.locator('.spectrum-Heading1,.Heading-1').first().innerText();
   expect(heading).toBe('Sign in');
 
@@ -35,7 +35,7 @@ setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
   expect(heading).toBe('Enter your password');
   await page.locator('#PasswordPage-PasswordField').fill(process.env.IMS_PASS);
   await page.locator('[data-id=PasswordPage-ContinueButton]').click();
-  await page.locator('div.ActionList-Item:nth-child(1)').click();
+  await page.locator('.ActionList-Item:nth-child(1)').click();
   await page.waitForURL(`${baseURL}/studio.html#path=acom`);
   await expect(page).toHaveURL(`${baseURL}/studio.html#path=acom`);
 

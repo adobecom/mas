@@ -2,6 +2,18 @@ const COLLECTION_MODEL_ID =
     'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
 
 function applyCollectionSettings(context) {
+    if (context.body?.references) {
+        Object.entries(context.body.references).forEach(([key, ref]) => {
+            if (
+                ref &&
+                ref.type === 'content-fragment' &&
+                ref.value?.fields?.variant?.startsWith('plans')
+            ) {
+                applyPlansSettings(ref.value, context);
+            }
+        });
+    }
+
     context.body.placeholders = {
         searchText: '{{coll-search-text}}',
         filtersText: '{{coll-filters-text}}',
@@ -29,7 +41,8 @@ function applyCollectionSettings(context) {
     };
 }
 
-function applyPlansSettings(fragment, locale) {
+function applyPlansSettings(fragment, context) {
+    const { locale } = context;
     fragment.settings = {};
     if (fragment?.fields?.showSecureLabel !== false) {
         fragment.settings.secureLabel = '{{secure-label}}';
@@ -42,28 +55,41 @@ function applyPlansSettings(fragment, locale) {
     }
 }
 
+function applyPriceLiterals(fragment) {
+    if (fragment) {
+        fragment.priceLiterals = {
+            recurrenceLabel: '{{price-literal-recurrence-label}}',
+            recurrenceAriaLabel: '{{price-literal-recurrence-aria-label}}',
+            perUnitLabel: '{{price-literal-per-unit-label}}',
+            perUnitAriaLabel: '{{price-literal-per-unit-aria-label}}',
+            freeLabel: '{{price-literal-free-label}}',
+            freeAriaLabel: '{{price-literal-free-aria-label}}',
+            taxExclusiveLabel: '{{price-literal-tax-exclusive-label}}',
+            taxInclusiveLabel: '{{price-literal-tax-inclusive-label}}',
+            alternativePriceAriaLabel:
+                '{{price-literal-alternative-price-aria-label}}',
+            strikethroughAriaLabel:
+                '{{price-literal-strikethrough-aria-label}}',
+            planTypeLabel: '{{price-literal-plan-type-label}}',
+        };
+    }
+}
+
 async function settings(context) {
-    const { locale } = context;
     if (context.body?.fields?.variant?.startsWith('plans')) {
-        applyPlansSettings(context.body, locale);
+        applyPlansSettings(context.body, context);
     }
 
     if (context.body?.model?.id === COLLECTION_MODEL_ID) {
         applyCollectionSettings(context);
     }
 
-    if (context.body?.references) {
-        Object.entries(context.body.references).forEach(([key, ref]) => {
-            if (
-                ref &&
-                ref.type === 'content-fragment' &&
-                ref.value?.fields?.variant?.startsWith('plans')
-            ) {
-                applyPlansSettings(ref.value, locale);
-            }
-        });
-    }
+    applyPriceLiterals(context.body);
+
     return context;
 }
 
-exports.settings = settings;
+module.exports = {
+    applyCollectionSettings,
+    settings,
+};

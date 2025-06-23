@@ -113,12 +113,13 @@ async function wcs(context) {
             landscape: 'PUBLISHED',
             context,
         };
+        context.body.wcs ??= {};
         for (const config of wcsConfigs) {
-            const cache = await computeCache(tokens, config, wcsContext);
-            if (cache) {
-                context.body.wcs ??= {};
-                context.body.wcs[config.env] = cache;
-            }
+            context.body.wcs[config.env] = await computeCache(
+                tokens,
+                config,
+                wcsContext,
+            );
         }
     } else {
         log('No WCS placeholders found in fragment content', context);

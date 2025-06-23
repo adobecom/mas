@@ -65,7 +65,7 @@ class MasPlaceholdersCreationModal extends LitElement {
             showToast('Key and Value are required.', 'negative');
             return;
         }
-
+        showToast('Creating placeholder...');
         this.saving = true;
         const success = await this.repository.createPlaceholder(
             this.placeholder,
@@ -73,7 +73,7 @@ class MasPlaceholdersCreationModal extends LitElement {
         this.saving = false;
         if (!success) return;
         this.dispatchEvent(new CustomEvent('save'));
-        showToast('Successfully created fragment', 'positive');
+        showToast('Successfully created placeholder', 'positive');
         this.onClose();
     }
 

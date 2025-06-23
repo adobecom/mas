@@ -440,9 +440,14 @@ export class MasRepository extends LitElement {
             );
     }
 
-    async createFragment(fragmentData, showSuccessToast = true) {
+    /**
+     * @param {object} fragmentData
+     * @param {boolean} withToast
+     * @returns {Promise<Fragment>}
+     */
+    async createFragment(fragmentData, withToast = true) {
         try {
-            showToast('Creating fragment...');
+            if (withToast) showToast('Creating fragment...');
 
             this.operation.set(OPERATIONS.CREATE);
 
@@ -465,9 +470,8 @@ export class MasRepository extends LitElement {
             }
             const fragment = await this.#addToCache(latest);
 
-            if (showSuccessToast) {
+            if (withToast)
                 showToast('Fragment successfully created.', 'positive');
-            }
 
             return fragment;
         } catch (error) {
@@ -582,13 +586,14 @@ export class MasRepository extends LitElement {
 
     /**
      * @param {Fragment} fragment Fragment to publish
+     * @param {boolean} withToast Whether or not to display toasts
      * @returns {Promise<boolean>} Whether or not it was successful
      */
-    async publishFragment(fragment, showToast = true) {
+    async publishFragment(fragment, withToast = true) {
         try {
             this.operation.set(OPERATIONS.PUBLISH);
             await this.aem.sites.cf.fragments.publish(fragment);
-            if (showToast)
+            if (withToast)
                 showToast('Fragment successfully published.', 'positive');
 
             return true;

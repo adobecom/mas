@@ -1,8 +1,13 @@
 import { LitElement, html, css, nothing } from 'lit';
-import { EVENT_KEYDOWN, EVENT_OST_OFFER_SELECT, TAG_MODEL_ID_MAPPING } from './constants.js';
+import {
+    EVENT_KEYDOWN,
+    EVENT_OST_OFFER_SELECT,
+    TAG_MODEL_ID_MAPPING,
+} from './constants.js';
 import { editFragment } from './store.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
+import { FragmentStore } from './reactivity/fragment-store.js';
 
 export class MasCreateDialog extends LitElement {
     static properties = {
@@ -94,7 +99,7 @@ export class MasCreateDialog extends LitElement {
     _onOstSelect = ({ detail: { offerSelectorId, offer } }) => {
         if (!offer) return;
         this.osi = offerSelectorId;
-    }
+    };
 
     #handeTagsChange(e) {
         const value = e.target.getAttribute('value');
@@ -102,7 +107,8 @@ export class MasCreateDialog extends LitElement {
     }
 
     async createFragment(masRepository, fragmentData) {
-        const fragmentStore = await masRepository.createFragment(fragmentData);
+        const fragment = await masRepository.createFragment(fragmentData);
+        const fragmentStore = new FragmentStore(fragment);
         fragmentStore.new = true;
         editFragment(fragmentStore, 0);
         this.close();
@@ -127,7 +133,9 @@ export class MasCreateDialog extends LitElement {
         const charactersLength = characters.length;
         const length = offset + 3;
         for (let i = 0; i < length; i++) {
-            suffix += characters.charAt(Math.floor(Math.random() * charactersLength));
+            suffix += characters.charAt(
+                Math.floor(Math.random() * charactersLength),
+            );
         }
         return suffix;
     }
@@ -170,7 +178,10 @@ export class MasCreateDialog extends LitElement {
         const masRepository = document.querySelector('mas-repository');
         const firstName = fragmentData.name;
         let nmbOfTries = 0;
-        while (!(await this.tryToCreateFragment(masRepository, fragmentData)) && nmbOfTries < 10) {
+        while (
+            !(await this.tryToCreateFragment(masRepository, fragmentData)) &&
+            nmbOfTries < 10
+        ) {
             nmbOfTries += 1;
             fragmentData.name = `${firstName}-${this.getSuffix(nmbOfTries)}`;
         }
@@ -212,28 +223,29 @@ export class MasCreateDialog extends LitElement {
                                 id="fragment-title"
                                 placeholder="Enter internal fragment title"
                                 value=${this.title}
-                                @input=${(e) => this.handleTitleChange(e.target.value)}
+                                @input=${(e) =>
+                                    this.handleTitleChange(e.target.value)}
                                 required
                             ></sp-textfield>
                         </div>
                         ${this.type === 'merch-card'
                             ? html`
-                                <div class="form-field">
-                                    <sp-field-label for="osi" required
-                                        >OSI Search</sp-field-label
-                                    >
-                                    <osi-field
-                                        id="osi"
-                                        data-field="osi"
-                                    ></osi-field>
-                                </div>
-                                <aem-tag-picker-field
-                                    label="Tags"
-                                    namespace="/content/cq:tags/mas"
-                                    multiple
-                                    @change=${this.#handeTagsChange}
-                                ></aem-tag-picker-field>
-                                `
+                                  <div class="form-field">
+                                      <sp-field-label for="osi" required
+                                          >OSI Search</sp-field-label
+                                      >
+                                      <osi-field
+                                          id="osi"
+                                          data-field="osi"
+                                      ></osi-field>
+                                  </div>
+                                  <aem-tag-picker-field
+                                      label="Tags"
+                                      namespace="/content/cq:tags/mas"
+                                      multiple
+                                      @change=${this.#handeTagsChange}
+                                  ></aem-tag-picker-field>
+                              `
                             : nothing}
                     </form>
                 </div>

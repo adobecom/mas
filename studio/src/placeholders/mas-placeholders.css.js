@@ -3,6 +3,7 @@ import { css } from 'lit';
 export const styles = css`
     .placeholders-container {
         height: 100%;
+        min-height: 200px;
         border-radius: 8px;
         padding: 24px;
         background-color: var(--spectrum-white);
@@ -91,6 +92,10 @@ export const styles = css`
         table-layout: fixed;
     }
 
+    .no-placeholders-label {
+        text-align: center;
+    }
+
     .placeholders-table sp-table-head {
         background-color: var(--spectrum-global-color-gray-100);
         border-bottom: 1px solid var(--spectrum-gray-200);
@@ -119,10 +124,41 @@ export const styles = css`
         justify-content: flex-start;
     }
 
+    .placeholders-table sp-table-cell,
+    .placeholders-table sp-table-checkbox-cell:not([head-cell]) {
+        border-block-start: var(
+                --mod-table-border-width,
+                var(--spectrum-table-border-width)
+            )
+            solid
+            var(
+                --highcontrast-table-divider-color,
+                var(
+                    --mod-table-divider-color,
+                    var(--spectrum-table-divider-color)
+                )
+            );
+        border-radius: 0;
+    }
+
     .placeholders-table sp-table-cell.editing-cell {
         box-sizing: border-box;
         display: inline-flex;
         padding: 0 30px 0 0;
+    }
+
+    .placeholders-table sp-table-cell.updated-by {
+        overflow: hidden;
+
+        & overlay-trigger {
+            overflow: hidden;
+        }
+
+        & .cell-content {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
     }
 
     .placeholders-table sp-table-body {
@@ -152,6 +188,11 @@ export const styles = css`
         justify-content: center;
         border-radius: 4px;
         flex: 0 0 auto;
+
+        &:disabled {
+            filter: grayscale(1);
+            opacity: 0.6;
+        }
     }
 
     .action-button:hover {
@@ -213,7 +254,6 @@ export const styles = css`
     }
 
     .status-cell mas-fragment-status {
-        height: 24px;
         width: auto;
         display: inline-flex;
         font-weight: 500;
@@ -308,23 +348,6 @@ export const styles = css`
         box-shadow: 1px 2px 6px rgba(0, 0, 0, 0.2);
     }
 
-    .confirm-dialog-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: transparent;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1500;
-    }
-
-    .confirm-dialog-overlay sp-dialog-wrapper {
-        max-width: 100vw;
-    }
-
     .approve-button sp-icon-checkmark {
         color: var(--spectrum-semantic-positive-color-default, green);
     }
@@ -338,7 +361,7 @@ export const styles = css`
         display: flex;
         flex-direction: column;
         gap: 0;
-        padding: var(--spectrum-global-dimension-size-400);
+        padding: var(--spectrum-global-dimension-size-200);
         width: 80vw;
         max-width: 900px;
         box-sizing: border-box;

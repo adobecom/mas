@@ -294,7 +294,11 @@ export default class EditorPanel extends LitElement {
 
     async confirmClone() {
         const osi = this.fragment.getFieldValue('osi', 0);
-        if (this.fragment.model.path === CARD_MODEL_PATH && !this.osiClone && !osi) {
+        if (
+            this.fragment.model.path === CARD_MODEL_PATH &&
+            !this.osiClone &&
+            !osi
+        ) {
             Events.toast.emit({
                 variant: 'negative',
                 content: 'Please select an offer',
@@ -304,7 +308,11 @@ export default class EditorPanel extends LitElement {
 
         try {
             this.cloneInProgress = true;
-            await this.repository.copyFragment(this.titleClone, this.osiClone, this.tagsClone);
+            await this.repository.copyFragment(
+                this.titleClone,
+                this.osiClone,
+                this.tagsClone,
+            );
             this.cancelClone();
             this.cloneInProgress = false;
             await this.closeEditor();
@@ -323,7 +331,10 @@ export default class EditorPanel extends LitElement {
         Store.showCloneDialog.set(false);
         this.tagsClone = [];
         this.osiClone = null;
-        document.removeEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelectClone);
+        document.removeEventListener(
+            EVENT_OST_OFFER_SELECT,
+            this._onOstSelectClone,
+        );
     }
 
     showClone() {
@@ -364,6 +375,14 @@ export default class EditorPanel extends LitElement {
             this.#discardPromiseResolver(false);
             this.#discardPromiseResolver = null;
         }
+    }
+
+    saveFragment() {
+        this.repository.saveFragment(this.fragmentStore);
+    }
+
+    publishFragment() {
+        this.repository.publishFragment(this.fragment);
     }
 
     /**
@@ -412,7 +431,7 @@ export default class EditorPanel extends LitElement {
     _onOstSelectClone = ({ detail: { offerSelectorId, offer } }) => {
         if (!offer) return;
         this.osiClone = offerSelectorId;
-    }
+    };
 
     get fragmentEditorToolbar() {
         return html`
@@ -444,7 +463,7 @@ export default class EditorPanel extends LitElement {
                         title="Save changes"
                         value="save"
                         ?disabled="${!Store.editor.hasChanges}"
-                        @click="${this.repository.saveFragment}"
+                        @click="${this.saveFragment}"
                     >
                         ${this.operation.equals(OPERATIONS.SAVE)
                             ? html`<sp-progress-circle
@@ -491,7 +510,7 @@ export default class EditorPanel extends LitElement {
                     <sp-action-button
                         label="Publish"
                         value="publish"
-                        @click="${this.repository.publishFragment}"
+                        @click="${this.publishFragment}"
                     >
                         ${this.operation.equals(OPERATIONS.PUBLISH)
                             ? html`<sp-progress-circle
@@ -647,7 +666,10 @@ export default class EditorPanel extends LitElement {
 
     get cloneConfirmationDialog() {
         if (!this.showCloneDialog) return nothing;
-        document.addEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelectClone);
+        document.addEventListener(
+            EVENT_OST_OFFER_SELECT,
+            this._onOstSelectClone,
+        );
         const osiValues = this.fragment.getField('osi')?.values;
         return html`
             <sp-underlay open @click="${this.cancelClone}"></sp-underlay>
@@ -659,9 +681,7 @@ export default class EditorPanel extends LitElement {
                 @sp-dialog-dismiss="${this.cancelClone}"
             >
                 <h1 slot="heading">Confirm Cloning</h1>
-                <p>
-                    Please enter new fragment title
-                </p>
+                <p>Please enter new fragment title</p>
                 <sp-textfield
                     placeholder="new fragment title"
                     id="new-fragment-title"
@@ -671,22 +691,28 @@ export default class EditorPanel extends LitElement {
                 ></sp-textfield>
                 ${this.fragment.model.path === CARD_MODEL_PATH
                     ? html`
-                        <sp-field-group>
-                            <sp-field-label for="osi">OSI Search</sp-field-label>
-                            <osi-field
-                                id="osi"
-                                .value=${osiValues?.length ? osiValues[0] : null}
-                                data-field="osi"
-                            ></osi-field>
-                        </sp-field-group>
-                        <aem-tag-picker-field
-                            label="Tags"
-                            namespace="/content/cq:tags/mas"
-                            multiple
-                            value="${this.fragment.tags.map((tag) => tag.id).join(',')}"
-                            @change=${this.#handleTagsChangeOnClone}
-                        ></aem-tag-picker-field>
-                        `
+                          <sp-field-group>
+                              <sp-field-label for="osi"
+                                  >OSI Search</sp-field-label
+                              >
+                              <osi-field
+                                  id="osi"
+                                  .value=${osiValues?.length
+                                      ? osiValues[0]
+                                      : null}
+                                  data-field="osi"
+                              ></osi-field>
+                          </sp-field-group>
+                          <aem-tag-picker-field
+                              label="Tags"
+                              namespace="/content/cq:tags/mas"
+                              multiple
+                              value="${this.fragment.tags
+                                  .map((tag) => tag.id)
+                                  .join(',')}"
+                              @change=${this.#handleTagsChangeOnClone}
+                          ></aem-tag-picker-field>
+                      `
                     : nothing}
                 <sp-button
                     slot="button"
@@ -702,7 +728,10 @@ export default class EditorPanel extends LitElement {
                     @click="${this.confirmClone}"
                 >
                     ${this.cloneInProgress
-                        ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
+                        ? html`<sp-progress-circle
+                              indeterminate
+                              size="s"
+                          ></sp-progress-circle>`
                         : html`Clone`}
                 </sp-button>
             </sp-dialog>
@@ -794,7 +823,8 @@ export default class EditorPanel extends LitElement {
                 ${editor}
                 <sp-divider size="s"></sp-divider>
                 ${this.fragmentEditor} ${this.deleteConfirmationDialog}
-                ${this.discardConfirmationDialog} ${this.cloneConfirmationDialog}
+                ${this.discardConfirmationDialog}
+                ${this.cloneConfirmationDialog}
             </div>
         `;
     }

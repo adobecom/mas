@@ -378,11 +378,11 @@ export default class EditorPanel extends LitElement {
     }
 
     saveFragment() {
-        this.repository.saveFragment(this.inEdit.get());
+        this.repository.saveFragment(this.fragmentStore);
     }
 
     publishFragment() {
-        this.repository.publishFragment(this.inEdit);
+        this.repository.publishFragment(this.fragment);
     }
 
     /**

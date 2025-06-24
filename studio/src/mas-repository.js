@@ -261,8 +261,8 @@ export class MasRepository extends LitElement {
                         const fragment = await this.#addToCache(item);
                         fragmentStores.push(new FragmentStore(fragment));
                     }
+                    dataStore.set(fragmentStores);
                 }
-                dataStore.set(fragmentStores);
             }
 
             dataStore.setMeta('path', path);

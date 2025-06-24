@@ -100,7 +100,6 @@ describe('wcs typical cases', function () {
                 locale: 'en_GB',
                 landscape: 'PUBLISHED',
                 api_key: 'testing_wcs',
-                language: 'EN',
             })
             .reply(200, { resolvedOffers: [{ blah: 'blah' }] });
         nock('https://www.adobe.com')
@@ -112,7 +111,6 @@ describe('wcs typical cases', function () {
                 landscape: 'PUBLISHED',
                 promotion_code: 'nicopromo',
                 api_key: 'testing_wcs',
-                language: 'EN',
             })
             .reply(200, { resolvedOffers: [{ foo: 'bar' }] });
         await context.state.put(
@@ -129,12 +127,12 @@ describe('wcs typical cases', function () {
         context = await wcs(context);
         expect(context.body.wcs).to.deep.equal({
             prod: {
-                'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-gb-en': [
+                'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-gb': [
                     {
                         blah: 'blah',
                     },
                 ],
-                'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ-gb-en-nicopromo': [
+                'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ-gb-nicopromo': [
                     {
                         foo: 'bar',
                     },

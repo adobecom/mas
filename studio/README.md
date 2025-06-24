@@ -1,8 +1,7 @@
 # M@S Studio
 
-
-
 ## AEM(Odin) Proxy
+
 Due to different CORS limitations, proxy-server.mjs has been created in order to allow local development on the ports 3000 (aem) and 2023 (wtr dev server) without any CORS issues.
 
 MAS Studio can be developped with the following markup using the proxy.
@@ -12,6 +11,7 @@ MAS Studio can be developped with the following markup using the proxy.
 ```
 
 ### running the proxy
+
 ```
 npm run proxy
 ```

@@ -42,13 +42,7 @@
             import { mockFetch } from '../../../web-components/test/mocks/fetch.js';
             import { withWcs } from '../../../web-components/test/mocks/wcs.js';
 
-            import {
-                createFromTemplate,
-                delay,
-                applyChanges,
-                selectNodeAtPos,
-                selectWordsInTextNode,
-            } from '../utils.js';
+            import { createFromTemplate, delay, applyChanges, selectNodeAtPos, selectWordsInTextNode } from '../utils.js';
 
             runTests(async () => {
                 await mockFetch(withWcs);
@@ -62,43 +56,29 @@
                 };
 
                 const clickSave = (rte) => {
-                    const saveButton =
-                        rte.linkEditorElement.shadowRoot.getElementById(
-                            'saveButton',
-                        );
+                    const saveButton = rte.linkEditorElement.shadowRoot.getElementById('saveButton');
                     saveButton.click();
                 };
 
                 describe('RTE Field', () => {
                     it('should render with default attributes', async function () {
-                        const rte = await createFromTemplate(
-                            'rte',
-                            this.test.title,
-                        );
+                        const rte = await createFromTemplate('rte', this.test.title);
                         expect(rte.shadowRoot).exist;
                     });
                 });
 
                 describe('RTE Field: styling features', () => {
                     let rte;
-                    const firstStyledElement = () =>
-                        rte.shadowRoot.querySelector('.ProseMirror span');
+                    const firstStyledElement = () => rte.shadowRoot.querySelector('.ProseMirror span');
 
                     it('should render styling menu', async function () {
-                        rte = await createFromTemplate(
-                            'rte-styling',
-                            this.test.title,
-                        );
-                        const stylingMenu =
-                            rte.shadowRoot.querySelector('#stylingMenu');
+                        rte = await createFromTemplate('rte-styling', this.test.title);
+                        const stylingMenu = rte.shadowRoot.querySelector('#stylingMenu');
                         expect(stylingMenu).to.exist;
                     });
 
                     it('should apply heading styles', async function () {
-                        rte = await createFromTemplate(
-                            'rte-styling',
-                            this.test.title,
-                        );
+                        rte = await createFromTemplate('rte-styling', this.test.title);
                         await selectWordsInTextNode(rte.editorView, 'Styling');
 
                         rte.handleStylingAction('heading-m');
@@ -115,10 +95,7 @@
                     });
 
                     it('should apply promo text styles', async function () {
-                        rte = await createFromTemplate(
-                            'rte-styling',
-                            this.test.title,
-                        );
+                        rte = await createFromTemplate('rte-styling', this.test.title);
                         await selectWordsInTextNode(rte.editorView, 'Styling');
 
                         rte.handleStylingAction('promo-text');
@@ -161,17 +138,12 @@
                 describe('RTE Field: link features', () => {
                     let rte;
 
-                    const firstLink = () =>
-                        rte.shadowRoot.querySelector('.ProseMirror a');
+                    const firstLink = () => rte.shadowRoot.querySelector('.ProseMirror a');
 
-                    const firstParagraph = () =>
-                        rte.shadowRoot.querySelector('.ProseMirror p');
+                    const firstParagraph = () => rte.shadowRoot.querySelector('.ProseMirror p');
 
                     it('should allow to remove a link', async function () {
-                        rte = await createFromTemplate(
-                            'rte-link',
-                            this.test.title,
-                        );
+                        rte = await createFromTemplate('rte-link', this.test.title);
                         rte.selectLink(1);
                         await delay(100);
                         rte.unlinkEditorButtonElement.click();
@@ -180,26 +152,16 @@
                     });
 
                     it('should open the link editor on link click and support update', async function () {
-                        rte = await createFromTemplate(
-                            'rte-link',
-                            this.test.title,
-                        );
+                        rte = await createFromTemplate('rte-link', this.test.title);
                         rte.selectLink(1);
                         await delay(100);
                         await openLinkEditor(rte);
-                        const {
-                            href,
-                            text,
-                            title,
-                            target,
-                            checkoutParameters,
-                        } = rte.linkEditorElement;
+                        const { href, text, title, target, checkoutParameters } = rte.linkEditorElement;
                         expect(href).to.equal('https://www.adobe.com');
                         expect(text).to.equal('Adobe');
                         expect(title).to.equal('adobe.com homepage');
                         expect(target).to.equal('_self');
-                        rte.linkEditorElement.href =
-                            'https://www.adobe.com/max';
+                        rte.linkEditorElement.href = 'https://www.adobe.com/max';
                         rte.linkEditorElement.text = 'ebodA';
                         rte.linkEditorElement.requestUpdate();
                         await rte.linkEditorElement.updateComplete;
@@ -247,10 +209,7 @@
                     });
 
                     it('should preserve certain classes when changing variant (ex. upt-link)', async function () {
-                        rte = await createFromTemplate(
-                            'rte-upt',
-                            this.test.title,
-                        );
+                        rte = await createFromTemplate('rte-upt', this.test.title);
                         rte.selectLink(1);
                         await openLinkEditor(rte);
                         rte.linkEditorElement.variant = 'primary-link';
@@ -259,9 +218,7 @@
                         clickSave(rte);
                         await delay(100);
                         const a = firstLink();
-                        expect(a.classList.value).to.equal(
-                            'upt-link primary-link',
-                        );
+                        expect(a.classList.value).to.equal('upt-link primary-link');
                     });
                 });
 
@@ -276,24 +233,15 @@
                         await rte.linkEditorElement;
                     };
 
-                    const firstPrice = () =>
-                        rte.shadowRoot.querySelector(
-                            '.ProseMirror span[is="inline-price"]',
-                        );
+                    const firstPrice = () => rte.shadowRoot.querySelector('.ProseMirror span[is="inline-price"]');
 
-                    const firstCheckoutLink = () =>
-                        rte.shadowRoot.querySelector(
-                            '.ProseMirror a[is="checkout-link"]',
-                        );
+                    const firstCheckoutLink = () => rte.shadowRoot.querySelector('.ProseMirror a[is="checkout-link"]');
 
                     it('should open OST', async function () {
                         if (!localStorage.getItem('masAccessToken')) {
                             localStorage.setItem('masAccessToken', 'test');
                         }
-                        const rte = await createFromTemplate(
-                            'rte-all',
-                            this.test.title,
-                        );
+                        const rte = await createFromTemplate('rte-all', this.test.title);
                         await delay(100);
                         expect(rte.value).to.equal(
                             '<span is="inline-price" data-wcs-osi="abm"></span><a class="accent" data-wcs-osi="abm">Buy now</a><a class="primary-outline" data-wcs-osi="abm">Buy now</a><a class="secondary" data-wcs-osi="abm">Buy now</a><a class="secondary-outline" data-wcs-osi="abm">Buy now</a><a class="primary-link" data-wcs-osi="abm">Buy now</a><a class="secondary-link" data-wcs-osi="abm">Buy now</a>',
@@ -301,18 +249,13 @@
 
                         rte.offerSelectorToolButtonElement.click();
                         await delay(100);
-                        const cancelButton = document.querySelector(
-                            '[data-testid="productsTab/cancelButton"]',
-                        );
+                        const cancelButton = document.querySelector('[data-testid="productsTab/cancelButton"]');
                         expect(cancelButton).to.exist;
                         cancelButton.click();
                     });
 
                     it('should allow to author extra checkout parameters', async function () {
-                        rte = await createFromTemplate(
-                            'rte-ost-extra',
-                            this.test.title,
-                        );
+                        rte = await createFromTemplate('rte-ost-extra', this.test.title);
                         await delay(100);
                         const attributes = {
                             sc: '1',
@@ -333,50 +276,33 @@
                         });
                         selectNodeAtPos(rte.editorView, 1);
                         await openLinkEditor(rte);
-                        const expectedParams = new URLSearchParams(
-                            attributes,
-                        ).toString();
-                        expect(
-                            rte.linkEditorElement.checkoutParameters,
-                        ).to.equal(expectedParams.toString());
+                        const expectedParams = new URLSearchParams(attributes).toString();
+                        expect(rte.linkEditorElement.checkoutParameters).to.equal(expectedParams.toString());
 
                         const newAttributes = {
                             ...attributes,
                             sc: '2',
                             promoid: 'XYZ',
                         };
-                        const newExpectedParams = new URLSearchParams(
-                            newAttributes,
-                        ).toString();
+                        const newExpectedParams = new URLSearchParams(newAttributes).toString();
 
-                        rte.linkEditorElement.checkoutParameters =
-                            newExpectedParams;
+                        rte.linkEditorElement.checkoutParameters = newExpectedParams;
                         rte.linkEditorElement.requestUpdate();
                         await rte.linkEditorElement.updateComplete;
                         clickSave(rte);
                         await delay(100);
                         [node] = selectNodeAtPos(rte.editorView, 1);
-                        expect(node.attrs['data-extra-options']).to.equal(
-                            JSON.stringify(newAttributes),
-                        );
+                        expect(node.attrs['data-extra-options']).to.equal(JSON.stringify(newAttributes));
                     });
 
                     it.skip('dev', async function () {
-                        const rte = await createFromTemplate(
-                            'rte-dev',
-                            this.test.title,
-                        );
+                        const rte = await createFromTemplate('rte-dev', this.test.title);
                     });
                 });
             });
         </script>
         <mas-commerce-service></mas-commerce-service>
-        <button
-            onclick="toggleTheme()"
-            style="position: absolute; right: 0; bottom: 0"
-        >
-            Toggle theme
-        </button>
+        <button onclick="toggleTheme()" style="position: absolute; right: 0; bottom: 0">Toggle theme</button>
         <main>
             <sp-theme color="light" scale="medium"> </sp-theme>
         </main>
@@ -391,49 +317,25 @@
             </rte-field>
         </template>
         <template id="rte-link">
-            <rte-field link
-                ><a href="https://www.adobe.com" title="adobe.com homepage"
-                    >Adobe</a
-                >
-            </rte-field>
+            <rte-field link><a href="https://www.adobe.com" title="adobe.com homepage">Adobe</a> </rte-field>
         </template>
         <template id="rte-upt">
-            <rte-field link upt-link
-                ><a class="upt-link" href="#" title="Terms link">See terms</a>
-            </rte-field>
+            <rte-field link upt-link><a class="upt-link" href="#" title="Terms link">See terms</a> </rte-field>
         </template>
         <template id="rte-all">
             <rte-field link inline>
                 <span is="inline-price" data-wcs-osi="abm"></span
-                ><a class="accent" is="checkout-link" data-wcs-osi="abm"
-                    >Buy now</a
-                ><a
-                    class="primary-outline"
-                    is="checkout-link"
-                    data-wcs-osi="abm"
-                    >Buy now</a
-                ><a class="secondary" is="checkout-link" data-wcs-osi="abm"
-                    >Buy now</a
-                ><a
-                    class="secondary-outline"
-                    is="checkout-link"
-                    data-wcs-osi="abm"
-                    >Buy now</a
-                ><a class="primary-link" is="checkout-link" data-wcs-osi="abm"
-                    >Buy now</a
-                ><a class="secondary-link" is="checkout-link" data-wcs-osi="abm"
-                    >Buy now</a
-                >
+                ><a class="accent" is="checkout-link" data-wcs-osi="abm">Buy now</a
+                ><a class="primary-outline" is="checkout-link" data-wcs-osi="abm">Buy now</a
+                ><a class="secondary" is="checkout-link" data-wcs-osi="abm">Buy now</a
+                ><a class="secondary-outline" is="checkout-link" data-wcs-osi="abm">Buy now</a
+                ><a class="primary-link" is="checkout-link" data-wcs-osi="abm">Buy now</a
+                ><a class="secondary-link" is="checkout-link" data-wcs-osi="abm">Buy now</a>
             </rte-field>
         </template>
         <template id="rte-tinymce">
             <rte-field link defaut-link-style="primary-outline">
-                <div
-                    data-mce-bogus="all"
-                    class="mce-offscreen-selection"
-                    id="sel-mce_0"
-                    style="top: 18px"
-                >
+                <div data-mce-bogus="all" class="mce-offscreen-selection" id="sel-mce_0" style="top: 18px">
                     &nbsp;<a
                         is="checkout-link"
                         data-checkout-workflow="UCv3"
@@ -490,15 +392,11 @@
             </rte-field>
         </template>
         <template id="rte-maxlength">
-            <rte-field>
-                this is a text that exceeds the 40 characters limit
-            </rte-field>
+            <rte-field> this is a text that exceeds the 40 characters limit </rte-field>
         </template>
         <template id="rte-dev">
             <div>
-                <rte-field link>
-                    <a href="https://www.adobe.com">Buy now</a> yes evet oui
-                </rte-field>
+                <rte-field link> <a href="https://www.adobe.com">Buy now</a> yes evet oui </rte-field>
                 <br />
                 <rte-field link inline>
                     <a data-wcs-osi="abm">Buy now</a>

@@ -46,8 +46,7 @@ class AEM {
     #author;
     constructor(bucket, baseUrlOverride) {
         this.#author = Boolean(bucket);
-        const baseUrl =
-            baseUrlOverride || `https://${bucket}.adobeaemcloud.com`;
+        const baseUrl = baseUrlOverride || `https://${bucket}.adobeaemcloud.com`;
         this.baseUrl = baseUrl;
         const sitesUrl = `${baseUrl}/adobe/sites`;
         this.cfFragmentsUrl = `${sitesUrl}/cf/fragments`;
@@ -76,9 +75,7 @@ class AEM {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
         if (!response.ok) {
-            throw new Error(
-                `Failed to get CSRF token: ${response.status} ${response.statusText}`,
-            );
+            throw new Error(`Failed to get CSRF token: ${response.status} ${response.statusText}`);
         }
         const { token } = await response.json();
         return token;
@@ -94,11 +91,7 @@ class AEM {
      * @param {AbortController} abortController used for cancellation
      * @returns A generator function that fetches all the matching data using a cursor that is returned by the search API
      */
-    async *searchFragment(
-        { path, query = '', tags = [], modelIds = [], sort, status },
-        limit,
-        abortController,
-    ) {
+    async *searchFragment({ path, query = '', tags = [], modelIds = [], sort, status }, limit, abortController) {
         const filter = {
             path,
         };
@@ -136,18 +129,13 @@ class AEM {
                 params.cursor = cursor;
             }
             const searchParams = new URLSearchParams(params).toString();
-            const response = await fetch(
-                `${this.cfSearchUrl}?${searchParams}`,
-                {
-                    headers: this.headers,
-                    signal: abortController?.signal,
-                },
-            );
+            const response = await fetch(`${this.cfSearchUrl}?${searchParams}`, {
+                headers: this.headers,
+                signal: abortController?.signal,
+            });
 
             if (!response.ok) {
-                throw new Error(
-                    `Search failed: ${response.status} ${response.statusText}`,
-                );
+                throw new Error(`Search failed: ${response.status} ${response.statusText}`);
             }
             let items;
             ({ items, cursor } = await response.json());
@@ -181,17 +169,12 @@ class AEM {
      * @returns {Promise<Object>} the raw fragment item
      */
     async getFragmentById(baseUrl, id, headers, abortController) {
-        const response = await fetch(
-            `${baseUrl}/adobe/sites/cf/fragments/${id}?references=direct-hydrated`,
-            {
-                headers,
-                signal: abortController?.signal,
-            },
-        );
+        const response = await fetch(`${baseUrl}/adobe/sites/cf/fragments/${id}?references=direct-hydrated`, {
+            headers,
+            signal: abortController?.signal,
+        });
         if (!response.ok) {
-            throw new Error(
-                `Failed to get fragment: ${response.status} ${response.statusText}`,
-            );
+            throw new Error(`Failed to get fragment: ${response.status} ${response.statusText}`);
         }
         return await this.getFragment(response);
     }
@@ -209,9 +192,7 @@ class AEM {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
         if (!response.ok) {
-            throw new Error(
-                `Failed to get fragment: ${response.status} ${response.statusText}`,
-            );
+            throw new Error(`Failed to get fragment: ${response.status} ${response.statusText}`);
         }
         const { items } = await response.json();
         if (!items || items.length === 0) {
@@ -254,9 +235,7 @@ class AEM {
         });
 
         if (!response.ok) {
-            throw new Error(
-                `Failed to save fragment: ${response.status} ${response.statusText}`,
-            );
+            throw new Error(`Failed to save fragment: ${response.status} ${response.statusText}`);
         }
 
         await this.saveTags(fragment);
@@ -268,13 +247,10 @@ class AEM {
         const { newTags } = fragment;
         if (!newTags) return;
         // we need this to get the Etag
-        const fragmentTags = await fetch(
-            `${this.cfFragmentsUrl}/${fragment.id}/tags`,
-            {
-                method: 'GET',
-                headers: this.headers,
-            },
-        ).catch((err) => {
+        const fragmentTags = await fetch(`${this.cfFragmentsUrl}/${fragment.id}/tags`, {
+            method: 'GET',
+            headers: this.headers,
+        }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
 
@@ -309,30 +285,22 @@ class AEM {
         let attempts = 0;
         while (attempts < MAX_POLL_ATTEMPTS) {
             attempts++;
-            const fragment = await this.sites.cf.fragments.getById(
-                newFragment.id,
-            );
+            const fragment = await this.sites.cf.fragments.getById(newFragment.id);
             if (fragment) return fragment;
             await this.wait(POLL_TIMEOUT);
         }
-        throw new UserFriendlyError(
-            'Creation completed but the created fragment could not be retrieved.',
-        );
+        throw new UserFriendlyError('Creation completed but the created fragment could not be retrieved.');
     }
 
     async pollUpdatedFragment(oldFragment) {
         let attempts = 0;
         while (attempts < MAX_POLL_ATTEMPTS) {
             attempts++;
-            const newFragment = await this.sites.cf.fragments.getById(
-                oldFragment.id,
-            );
+            const newFragment = await this.sites.cf.fragments.getById(oldFragment.id);
             if (newFragment.etag !== oldFragment.etag) return newFragment;
             await this.wait(POLL_TIMEOUT);
         }
-        throw new UserFriendlyError(
-            'Save completed but the updated fragment could not be retrieved.',
-        );
+        throw new UserFriendlyError('Save completed but the updated fragment could not be retrieved.');
     }
 
     /**
@@ -361,9 +329,7 @@ class AEM {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
         if (!res.ok) {
-            throw new Error(
-                `Failed to copy fragment: ${res.status} ${res.statusText}`,
-            );
+            throw new Error(`Failed to copy fragment: ${res.status} ${res.statusText}`);
         }
         const responseText = await res.text();
         const parser = new DOMParser();
@@ -388,13 +354,10 @@ class AEM {
     async createFragment(fragment) {
         const { title, name, description, fields } = fragment;
         const parentPath = fragment.parentPath;
-        const modelId =
-            fragment.modelId || (fragment.model && fragment.model.id);
+        const modelId = fragment.modelId || (fragment.model && fragment.model.id);
 
         if (!parentPath || !title || !modelId) {
-            throw new Error(
-                `Missing data to create a fragment: ${parentPath}, ${title}, ${modelId}`,
-            );
+            throw new Error(`Missing data to create a fragment: ${parentPath}, ${title}, ${modelId}`);
         }
 
         const response = await fetch(`${this.cfFragmentsUrl}`, {
@@ -423,9 +386,7 @@ class AEM {
                 }
             } catch (parseError) {}
 
-            throw new Error(
-                `Failed to create fragment: ${response.status} ${response.statusText}`,
-            );
+            throw new Error(`Failed to create fragment: ${response.status} ${response.statusText}`);
         }
 
         const newFragment = await this.getFragment(response);
@@ -448,16 +409,13 @@ class AEM {
             body: JSON.stringify({
                 paths: [fragment.path],
                 filterReferencesByStatus: ['DRAFT', 'UNPUBLISHED'],
-                workflowModelId:
-                    '/var/workflow/models/scheduled_activation_with_references',
+                workflowModelId: '/var/workflow/models/scheduled_activation_with_references',
             }),
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
         if (!response.ok) {
-            throw new Error(
-                `Failed to publish fragment: ${response.status} ${response.statusText}`,
-            );
+            throw new Error(`Failed to publish fragment: ${response.status} ${response.statusText}`);
         }
         return await response.json();
     }
@@ -479,9 +437,7 @@ class AEM {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
         if (!response.ok) {
-            throw new Error(
-                `Failed to delete fragment: ${response.status} ${response.statusText}`,
-            );
+            throw new Error(`Failed to delete fragment: ${response.status} ${response.statusText}`);
         }
         return response; //204 No Content
     }
@@ -496,21 +452,18 @@ class AEM {
             },
         ).catch((error) => console.error('Error:', error));
         if (!response.ok) {
-            throw new Error(
-                `Failed to list folders: ${response.status} ${response.statusText}`,
-            );
+            throw new Error(`Failed to list folders: ${response.status} ${response.statusText}`);
         }
         const result = await response.json();
         return {
             self: { name, path },
-            children: result.hits
-                .map(({name, title}) => ({
-                    name,
-                    title,
-                    folderId: `${path}/${name}`,
-                    path: `${path}/${name}`,
-                })),
-        }
+            children: result.hits.map(({ name, title }) => ({
+                name,
+                title,
+                folderId: `${path}/${name}`,
+                path: `${path}/${name}`,
+            })),
+        };
     }
 
     async listTags(root) {
@@ -522,9 +475,7 @@ class AEM {
             },
         ).catch((error) => console.error('Error:', error));
         if (!response.ok) {
-            throw new Error(
-                `Failed to list tags: ${response.status} ${response.statusText}`,
-            );
+            throw new Error(`Failed to list tags: ${response.status} ${response.statusText}`);
         }
         return response.json();
     }
@@ -551,9 +502,7 @@ class AEM {
         });
 
         if (!response.ok) {
-            throw new Error(
-                `Failed to get fragment: ${response.status} ${response.statusText}`,
-            );
+            throw new Error(`Failed to get fragment: ${response.status} ${response.statusText}`);
         }
 
         return await this.getFragment(response);
@@ -573,13 +522,7 @@ class AEM {
                 /**
                  * @see AEM#getFragmentById
                  */
-                getById: (id, abortController) =>
-                    this.getFragmentById(
-                        this.baseUrl,
-                        id,
-                        this.headers,
-                        abortController,
-                    ),
+                getById: (id, abortController) => this.getFragmentById(this.baseUrl, id, this.headers, abortController),
                 /**
                  * @see AEM#getFragmentWithEtag
                  */

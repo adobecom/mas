@@ -32,9 +32,7 @@ export class Router extends EventTarget {
     navigateToPage(value) {
         return async () => {
             const editorPanel = document.querySelector('editor-panel');
-            const confirmed =
-                !Store.editor.hasChanges ||
-                (await editorPanel.promptDiscardChanges());
+            const confirmed = !Store.editor.hasChanges || (await editorPanel.promptDiscardChanges());
             if (confirmed) {
                 Store.fragments.inEdit.set();
                 Store.fragments.list.data.set([]);
@@ -54,13 +52,7 @@ export class Router extends EventTarget {
      * @param {any} defaultValue - The default value to use if the key is not in the hash
      * @returns {boolean} Whether the store was updated
      */
-    syncStoreFromHash(
-        store,
-        currentValue,
-        isObject,
-        keysArray,
-        defaultValue = undefined,
-    ) {
+    syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue = undefined) {
         this.currentParams ??= new URLSearchParams(this.location.hash.slice(1));
         let newValue = isObject ? structuredClone(currentValue) : currentValue;
         for (const key of keysArray) {
@@ -114,19 +106,11 @@ export class Router extends EventTarget {
         const newValue = store.get();
         const isObject = typeof newValue === 'object' && newValue !== null;
         // Initial sync from hash to store
-        this.syncStoreFromHash(
-            store,
-            newValue,
-            isObject,
-            keysArray,
-            defaultValue,
-        );
+        this.syncStoreFromHash(store, newValue, isObject, keysArray, defaultValue);
 
         const self = this;
         store.subscribe((value) => {
-            self.currentParams ??= new URLSearchParams(
-                self.location.hash.slice(1),
-            );
+            self.currentParams ??= new URLSearchParams(self.location.hash.slice(1));
 
             for (const key of keysArray) {
                 const storeValue = isObject ? value?.[key] : value;
@@ -145,19 +129,14 @@ export class Router extends EventTarget {
                     continue;
                 }
 
-                const stringValue =
-                    typeof storeValue === 'object'
-                        ? JSON.stringify(storeValue)
-                        : String(storeValue);
+                const stringValue = typeof storeValue === 'object' ? JSON.stringify(storeValue) : String(storeValue);
 
                 if (self.currentParams.get(key) !== stringValue) {
                     self.currentParams.set(key, stringValue);
                 }
 
                 const _defaultValue = getDefaultValue();
-                const defaultValueToCompare = isObject
-                    ? _defaultValue?.[key]
-                    : _defaultValue;
+                const defaultValueToCompare = isObject ? _defaultValue?.[key] : _defaultValue;
                 if (self.currentParams.get(key) === defaultValueToCompare) {
                     self.currentParams.delete(key);
                 }
@@ -181,11 +160,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.filters, ['locale', 'tags'], {
             locale: 'en_US',
         });
-        this.linkStoreToHash(
-            Store.sort,
-            ['sortBy', 'sortDirection'],
-            getSortDefaultValue,
-        );
+        this.linkStoreToHash(Store.sort, ['sortBy', 'sortDirection'], getSortDefaultValue);
         this.linkStoreToHash(Store.placeholders.search, 'search');
         this.linkStoreToHash(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
         if (Store.search.value.query) {
@@ -193,9 +168,7 @@ export class Router extends EventTarget {
         }
         window.addEventListener('hashchange', () => {
             /* fix hash when missing params(e.g: manual edit) */
-            this.currentParams = new URLSearchParams(
-                this.location.hash.slice(1),
-            );
+            this.currentParams = new URLSearchParams(this.location.hash.slice(1));
             if (this.currentParams.has('query')) {
                 Store.page.set(PAGE_NAMES.CONTENT);
             }
@@ -210,15 +183,8 @@ export class Router extends EventTarget {
             // Sync all linked stores from the current hash
             this.linkedStores.forEach(({ store, keysArray, defaultValue }) => {
                 const currentValue = store.get();
-                const isObject =
-                    typeof currentValue === 'object' && currentValue !== null;
-                this.syncStoreFromHash(
-                    store,
-                    currentValue,
-                    isObject,
-                    keysArray,
-                    defaultValue,
-                );
+                const isObject = typeof currentValue === 'object' && currentValue !== null;
+                this.syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue);
             });
         });
     }

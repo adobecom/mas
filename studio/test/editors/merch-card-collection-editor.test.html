@@ -44,35 +44,23 @@
                 const originalFetch = window.fetch;
                 window.fetch = async function (args) {
                     const { href } = new URL(args);
-                    if (
-                        /querybuilder.json\?path=\/content\/dam\/mas/.test(
-                            href,
-                        )
-                    ) {
+                    if (/querybuilder.json\?path=\/content\/dam\/mas/.test(href)) {
                         return originalFetch('/test/mocks/folders.json');
                     }
                     return originalFetch(...arguments);
                 };
                 describe('merch-card-collection-editor custom element', async () => {
                     beforeEach(async () => {
-                        const editorPanel = initElementFromTemplate(
-                            'merch-card-collection-editor',
-                        );
+                        const editorPanel = initElementFromTemplate('merch-card-collection-editor');
                     });
                     it('should render', async () => {
                         const editor = document.querySelector('editor-panel');
-                        const collectionFragment = await originalFetch(
-                            '/test/mocks/adobe/sites/cf/fragments/collection.json',
-                        ).then((res) => res.json());
-                        const fragmentStore = new FragmentStore(
-                            new Fragment(collectionFragment),
+                        const collectionFragment = await fetch('/test/mocks/adobe/sites/cf/fragments/collection.json').then(
+                            (res) => res.json(),
                         );
+                        const fragmentStore = new FragmentStore(new Fragment(collectionFragment));
                         await editor.editFragment(fragmentStore, 1);
-                        expect(
-                            editor.querySelector(
-                                'merch-card-collection-editor',
-                            ),
-                        ).to.exist;
+                        expect(editor.querySelector('merch-card-collection-editor')).to.exist;
                     });
                 });
             });
@@ -82,9 +70,7 @@
         </main>
         <template id="merch-card-collection-editor">
             <div>
-                <mas-repository
-                    base-url="http://localhost:2023/test/mocks"
-                ></mas-repository>
+                <mas-repository base-url="http://localhost:2023/test/mocks"></mas-repository>
                 <editor-panel></editor-panel>
             </div>
         </template>

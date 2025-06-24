@@ -96,7 +96,7 @@ class MasToolbar extends LitElement {
         .filters-button.shown:hover {
             background-color: var(--spectrum-blue-200);
         }
-        
+
         .filters-button:not(.shown):hover {
             background-color: var(--spectrum-actionbutton-background-color-hover);
         }
@@ -213,12 +213,8 @@ class MasToolbar extends LitElement {
                 class="filters-button ${this.filterCount > 0 ? 'shown' : ''}"
             >
                 ${!this.filterCount > 0
-                    ? html`<sp-icon-filter-add
-                          slot="icon"
-                      ></sp-icon-filter-add>`
-                    : html`<div slot="icon" class="filters-badge">
-                          ${this.filterCount}
-                      </div>`}
+                    ? html`<sp-icon-filter-add slot="icon"></sp-icon-filter-add>`
+                    : html`<div slot="icon" class="filters-badge">${this.filterCount}</div>`}
                 Filter</sp-action-button
             >
             <sp-search
@@ -241,9 +237,7 @@ class MasToolbar extends LitElement {
                 <sp-menu>
                     ${contentTypes.map(
                         ({ value, label }) => html`
-                            <sp-menu-item
-                                @click=${() => this.selectContentType(value)}
-                            >
+                            <sp-menu-item @click=${() => this.selectContentType(value)}>
                                 ${label}
                                 <sp-icon-add slot="icon"></sp-icon-add>
                             </sp-menu-item>
@@ -259,9 +253,7 @@ class MasToolbar extends LitElement {
         return html`<div id="write">
             ${this.createButton}
             <sp-button @click=${() => Store.selecting.set(true)}>
-                <sp-icon-selection-checked
-                    slot="icon"
-                ></sp-icon-selection-checked>
+                <sp-icon-selection-checked slot="icon"></sp-icon-selection-checked>
                 Select
             </sp-button>
             <sp-action-menu
@@ -271,10 +263,7 @@ class MasToolbar extends LitElement {
                 @change=${this.handleRenderModeChange}
             >
                 ${renderModes.map(
-                    ({ value, label, icon }) =>
-                        html`<sp-menu-item value="${value}"
-                            >${icon} ${label}</sp-menu-item
-                        >`,
+                    ({ value, label, icon }) => html`<sp-menu-item value="${value}">${icon} ${label}</sp-menu-item>`,
                 )}
             </sp-action-menu>
         </div>`;
@@ -286,9 +275,7 @@ class MasToolbar extends LitElement {
 
     get searchResultsLabel() {
         if (this.loading.value || !this.search.value.query) return nothing;
-        return html`<span id="search-results-label"
-            >Search results for "${this.search.value.query}"</span
-        >`;
+        return html`<span id="search-results-label">Search results for "${this.search.value.query}"</span>`;
     }
 
     handleSelectionPanelClose() {
@@ -297,10 +284,7 @@ class MasToolbar extends LitElement {
 
     render() {
         return html`<div id="toolbar">
-                <div id="actions">
-                    ${this.searchAndFilterControls}
-                    ${this.contentManagementControls} ${this.selectionPanel}
-                </div>
+                <div id="actions">${this.searchAndFilterControls} ${this.contentManagementControls} ${this.selectionPanel}</div>
                 ${this.filtersPanel}${this.searchResultsLabel}
             </div>
             <mas-selection-panel

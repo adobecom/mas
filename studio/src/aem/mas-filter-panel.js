@@ -64,9 +64,7 @@ class MasFilterPanel extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        router.removeEventListener('change', () =>
-            this.#initializeTagFilters(),
-        );
+        router.removeEventListener('change', () => this.#initializeTagFilters());
     }
 
     #initializeTagFilters() {
@@ -96,20 +94,18 @@ class MasFilterPanel extends LitElement {
                 // Construct the full path
                 const fullPath = `/content/cq:tags/mas/${tagPath}`;
                 // Get the title from the last value
-                const title =
-                    values.length > 0
-                        ? values[values.length - 1].toUpperCase()
-                        : '';
+                const title = values.length > 0 ? values[values.length - 1].toUpperCase() : '';
 
                 const picker = this.shadowRoot.querySelector(`aem-tag-picker-field[top="${type}"]`);
-                picker?.allTags.then?.(() => { // when tags are loaded
+                picker?.allTags.then?.(() => {
+                    // when tags are loaded
                     this.tagsByType[type].forEach((displayedTag) => {
                         picker.selectedTags.forEach((selTag) => {
                             if (displayedTag.path === selTag.path) {
                                 displayedTag.title = selTag.title;
                             }
-                        })
-                    })
+                        });
+                    });
                     this.tagsByType = {
                         ...this.tagsByType,
                     };
@@ -176,20 +172,16 @@ class MasFilterPanel extends LitElement {
         }));
 
         this.tagsByType = { ...EMPTY_TAGS };
-        this.shadowRoot
-            .querySelectorAll('aem-tag-picker-field')
-            .forEach((tagPicker) => {
-                tagPicker.clear();
-            });
+        this.shadowRoot.querySelectorAll('aem-tag-picker-field').forEach((tagPicker) => {
+            tagPicker.clear();
+        });
     }
 
     async #handleTagDelete(e) {
         const value = e.target.value;
         this.tagsByType = {
             ...this.tagsByType,
-            [value.top]: this.tagsByType[value.top].filter(
-                (tag) => tag.path !== value.path,
-            ),
+            [value.top]: this.tagsByType[value.top].filter((tag) => tag.path !== value.path),
         };
         this.#updateFiltersParams();
     }
@@ -276,16 +268,11 @@ class MasFilterPanel extends LitElement {
                     label="Content Type"
                     multiple
                     selection="checkbox"
-                    value=${pathsToTagIds(
-                        this.tagsByType['studio/content-type'],
-                    )}
+                    value=${pathsToTagIds(this.tagsByType['studio/content-type'])}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
-                <sp-action-button
-                    quiet
-                    @click=${this.#handleRefresh}
-                    title="Clear all filters"
+                <sp-action-button quiet @click=${this.#handleRefresh} title="Clear all filters"
                     >Reset Filters
                     <sp-icon-refresh slot="icon"></sp-icon-refresh>
                 </sp-action-button>
@@ -297,12 +284,7 @@ class MasFilterPanel extends LitElement {
                         .filter((tag) => tag),
                     (tag) => tag.path,
                     (tag) => html`
-                        <sp-tag
-                            key=${tag.path}
-                            size="s"
-                            deletable
-                            @delete=${this.#handleTagDelete}
-                            .value=${tag}
+                        <sp-tag key=${tag.path} size="s" deletable @delete=${this.#handleTagDelete} .value=${tag}
                             >${tag.title}</sp-tag
                         >
                     `,
@@ -312,9 +294,7 @@ class MasFilterPanel extends LitElement {
     }
 
     get filterIcon() {
-        return html`<sp-icon
-            style="inline-size: 20px; block-size: 20px;  color: var(--spectrum-white);"
-        >
+        return html`<sp-icon style="inline-size: 20px; block-size: 20px;  color: var(--spectrum-white);">
             <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 36 36"

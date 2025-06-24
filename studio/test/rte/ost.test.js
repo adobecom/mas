@@ -29,13 +29,7 @@ describe('onPlaceholderSelect', () => {
         };
         const promoOverride = 'PROMO123';
 
-        onPlaceholderSelect(
-            offerSelectorId,
-            type,
-            offer,
-            options,
-            promoOverride,
-        );
+        onPlaceholderSelect(offerSelectorId, type, offer, options, promoOverride);
 
         const expectedAttributes = {
             'data-wcs-osi': offerSelectorId,
@@ -62,13 +56,7 @@ describe('onPlaceholderSelect', () => {
         };
         const promoOverride = null;
 
-        onPlaceholderSelect(
-            offerSelectorId,
-            type,
-            offer,
-            options,
-            promoOverride,
-        );
+        onPlaceholderSelect(offerSelectorId, type, offer, options, promoOverride);
 
         const expectedAttributes = {
             'data-wcs-osi': offerSelectorId,
@@ -94,13 +82,7 @@ describe('onPlaceholderSelect', () => {
         const options = {};
         const promoOverride = null;
 
-        onPlaceholderSelect(
-            offerSelectorId,
-            type,
-            offer,
-            options,
-            promoOverride,
-        );
+        onPlaceholderSelect(offerSelectorId, type, offer, options, promoOverride);
 
         const expectedAttributes = {
             'data-wcs-osi': offerSelectorId,

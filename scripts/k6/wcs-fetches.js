@@ -33,8 +33,7 @@ export default function () {
     const locale = { country: 'US', locale: 'en_US' };
     const osiIndex = (__VU - 1 + __ITER) % osis.length; // rotates per user & iteration
     const osi = osis[osiIndex];
-    const landscape =
-        __ENV.TEST_WCS_URL?.indexOf('.stage.') > 0 ? 'ALL' : 'PUBLISHED';
+    const landscape = __ENV.TEST_WCS_URL?.indexOf('.stage.') > 0 ? 'ALL' : 'PUBLISHED';
     const url = `${__ENV.TEST_WCS_URL}${osi}&country=${locale.country}&language=${locale.country === 'GB' ? 'EN' : 'MULT'}&locale=${locale.locale}&api_key=${api_key}&landscape=${landscape}`;
     const res = http.get(url);
 
@@ -44,14 +43,10 @@ export default function () {
         'is status 200': (r) => r.status === 200,
     });
     if (!is200) {
-        console.error(
-            `URL: ${url}, Status: ${res.status}, Headers: ${logHeaders(res)}`,
-        );
+        console.error(`URL: ${url}, Status: ${res.status}, Headers: ${logHeaders(res)}`);
     } else {
         if (LOG) {
-            console.log(
-                `URL: ${url}, Status: ${res.status}, Headers: ${logHeaders(res)}`,
-            );
+            console.log(`URL: ${url}, Status: ${res.status}, Headers: ${logHeaders(res)}`);
         }
         check(res, {
             'response is not empty': (r) => r.body && r.body.length > 0,

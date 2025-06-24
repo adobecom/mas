@@ -4,19 +4,10 @@ import { Schema, DOMParser, DOMSerializer } from 'prosemirror-model';
 import { EditorView } from 'prosemirror-view';
 import { keymap } from 'prosemirror-keymap';
 import { schema } from 'prosemirror-schema-basic';
-import {
-    addListNodes,
-    wrapInList,
-    splitListItem,
-    liftListItem,
-} from 'prosemirror-schema-list';
+import { addListNodes, wrapInList, splitListItem, liftListItem } from 'prosemirror-schema-list';
 import { baseKeymap, toggleMark } from 'prosemirror-commands';
 import { history, undo, redo } from 'prosemirror-history';
-import {
-    openOfferSelectorTool,
-    attributeFilter,
-    closeOfferSelectorTool,
-} from './ost.js';
+import { openOfferSelectorTool, attributeFilter, closeOfferSelectorTool } from './ost.js';
 import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
 import throttle from '../utils/throttle.js';
@@ -233,8 +224,7 @@ class RteField extends LitElement {
                 ${unsafeCSS(
                     CUSTOM_MARKS_DATA.filter((item) => item.length === 2)
                         .map(([mark]) => `span.${mark}`)
-                        .join(',\n') +
-                        ` { background-color: rgba(250, 50, 50, 0.1); }`,
+                        .join(',\n') + ` { background-color: rgba(250, 50, 50, 0.1); }`,
                 )}
 
                 #editor {
@@ -381,8 +371,7 @@ class RteField extends LitElement {
                     display: block;
                 }
 
-                div.ProseMirror-focused
-                    span[is='inline-price'].ProseMirror-selectednode,
+                div.ProseMirror-focused span[is='inline-price'].ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode {
                     outline: 2px dashed var(--spectrum-global-color-blue-500);
@@ -390,12 +379,8 @@ class RteField extends LitElement {
                     border-radius: 16px;
                 }
 
-                div.ProseMirror-focused
-                    .ProseMirror-selectednode.mnemonic
-                    merch-icon,
-                div.ProseMirror-focused
-                    sp-tooltip.ProseMirror-selectednode
-                    merch-icon,
+                div.ProseMirror-focused .ProseMirror-selectednode.mnemonic merch-icon,
+                div.ProseMirror-focused sp-tooltip.ProseMirror-selectednode merch-icon,
                 div.ProseMirror-focused sp-tooltip.ProseMirror-selectednode {
                     outline: 2px dashed var(--spectrum-global-color-blue-500) !important;
                     outline-offset: 2px;
@@ -406,23 +391,17 @@ class RteField extends LitElement {
                     vertical-align: middle;
                 }
 
-                div.ProseMirror-focused
-                    sp-tooltip.ProseMirror-selectednode
-                    merch-icon {
+                div.ProseMirror-focused sp-tooltip.ProseMirror-selectednode merch-icon {
                     outline: none !important;
                 }
 
                 div.ProseMirror-focused span.mnemonic.ProseMirror-selectednode,
-                div.ProseMirror-focused
-                    span.mnemonic.ProseMirror-selectednode
-                    merch-icon {
+                div.ProseMirror-focused span.mnemonic.ProseMirror-selectednode merch-icon {
                     outline: 2px dashed var(--spectrum-global-color-blue-500) !important;
                     outline-offset: 2px;
                 }
 
-                div.ProseMirror-focused
-                    span.mnemonic.ProseMirror-selectednode
-                    merch-icon {
+                div.ProseMirror-focused span.mnemonic.ProseMirror-selectednode merch-icon {
                     outline: none !important;
                 }
                 div.ProseMirror-focused span.mnemonic.ProseMirror-selectednode {
@@ -477,48 +456,28 @@ class RteField extends LitElement {
                     display: block;
 
                     &.heading-xxxs {
-                        font-size: var(
-                            --consonant-merch-card-heading-xxxs-font-size
-                        );
-                        line-height: var(
-                            --consonant-merch-card-heading-xxxs-line-height
-                        );
+                        font-size: var(--consonant-merch-card-heading-xxxs-font-size);
+                        line-height: var(--consonant-merch-card-heading-xxxs-line-height);
                     }
 
                     &.heading-xxs {
-                        font-size: var(
-                            --consonant-merch-card-heading-xxs-font-size
-                        );
-                        line-height: var(
-                            --consonant-merch-card-heading-xxs-line-height
-                        );
+                        font-size: var(--consonant-merch-card-heading-xxs-font-size);
+                        line-height: var(--consonant-merch-card-heading-xxs-line-height);
                     }
 
                     &.heading-xs {
-                        font-size: var(
-                            --consonant-merch-card-heading-xs-font-size
-                        );
-                        line-height: var(
-                            --consonant-merch-card-heading-xs-line-height
-                        );
+                        font-size: var(--consonant-merch-card-heading-xs-font-size);
+                        line-height: var(--consonant-merch-card-heading-xs-line-height);
                     }
 
                     &.heading-s {
-                        font-size: var(
-                            --consonant-merch-card-heading-s-font-size
-                        );
-                        line-height: var(
-                            --consonant-merch-card-heading-s-line-height
-                        );
+                        font-size: var(--consonant-merch-card-heading-s-font-size);
+                        line-height: var(--consonant-merch-card-heading-s-line-height);
                     }
 
                     &.heading-m {
-                        font-size: var(
-                            --consonant-merch-card-heading-m-font-size
-                        );
-                        line-height: var(
-                            --consonant-merch-card-heading-m-line-height
-                        );
+                        font-size: var(--consonant-merch-card-heading-m-font-size);
+                        line-height: var(--consonant-merch-card-heading-m-line-height);
                     }
                 }
 
@@ -579,15 +538,7 @@ class RteField extends LitElement {
         this.maxLength = 70;
         this.length = 0;
         this.hideOfferSelector = false;
-        this.marks = [
-            'heading-xxxs',
-            'heading-xxs',
-            'heading-xs',
-            'heading-s',
-            'heading-m',
-            'promo-text',
-            'mnemonic-text',
-        ];
+        this.marks = ['heading-xxxs', 'heading-xxs', 'heading-xs', 'heading-s', 'heading-m', 'promo-text', 'mnemonic-text'];
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
             ostEvent: this.#handleOstEvent.bind(this),
@@ -612,14 +563,8 @@ class RteField extends LitElement {
         document.addEventListener('keydown', this.#boundHandlers.escKey, {
             capture: true,
         });
-        document.addEventListener(
-            EVENT_OST_SELECT,
-            this.#boundHandlers.ostEvent,
-        );
-        this.updateLengthInterval = setInterval(
-            this.#boundHandlers.updateLength,
-            1000,
-        );
+        document.addEventListener(EVENT_OST_SELECT, this.#boundHandlers.ostEvent);
+        this.updateLengthInterval = setInterval(this.#boundHandlers.updateLength, 1000);
     }
 
     disconnectedCallback() {
@@ -627,10 +572,7 @@ class RteField extends LitElement {
         document.removeEventListener('keydown', this.#boundHandlers.escKey, {
             capture: true,
         });
-        document.removeEventListener(
-            EVENT_OST_SELECT,
-            this.#boundHandlers.ostEvent,
-        );
+        document.removeEventListener(EVENT_OST_SELECT, this.#boundHandlers.ostEvent);
         this.editorView?.destroy();
         clearInterval(this.updateLengthInterval);
     }
@@ -638,7 +580,11 @@ class RteField extends LitElement {
     getStylingMark(stylingType, ariaLevel) {
         return {
             [stylingType]: {
-                attrs: { class: { default: null }, role: { default: null }, 'aria-level': { default: null } },
+                attrs: {
+                    class: { default: null },
+                    role: { default: null },
+                    'aria-level': { default: null },
+                },
                 group: 'styling',
                 parseDOM: [
                     {
@@ -646,15 +592,21 @@ class RteField extends LitElement {
                         getAttrs: this.#collectDataAttributes,
                     },
                 ],
-                toDOM: () => ['span', { class: stylingType, role: ariaLevel ? 'heading' : null, 'aria-level': ariaLevel }, 0],
+                toDOM: () => [
+                    'span',
+                    {
+                        class: stylingType,
+                        role: ariaLevel ? 'heading' : null,
+                        'aria-level': ariaLevel,
+                    },
+                    0,
+                ],
             },
         };
     }
 
     #initEditorSchema() {
-        let nodes = this.list
-            ? addListNodes(schema.spec.nodes, 'paragraph block*', 'block')
-            : schema.spec.nodes;
+        let nodes = this.list ? addListNodes(schema.spec.nodes, 'paragraph block*', 'block') : schema.spec.nodes;
 
         nodes = nodes.addToStart('inlinePrice', {
             group: 'inline',
@@ -719,23 +671,15 @@ class RteField extends LitElement {
                     {
                         tag: 'overlay-trigger',
                         getAttrs: (domNode) => {
-                            const triggerIcon = domNode.querySelector(
-                                'merch-icon[slot="trigger"]',
-                            );
-                            const tooltipContent = domNode.querySelector(
-                                'sp-tooltip[slot="hover-content"]',
-                            );
+                            const triggerIcon = domNode.querySelector('merch-icon[slot="trigger"]');
+                            const tooltipContent = domNode.querySelector('sp-tooltip[slot="hover-content"]');
 
                             if (!triggerIcon) return false;
 
-                            let textFromTooltip = tooltipContent
-                                ? tooltipContent.textContent.trim()
-                                : null;
-                            let textFromAriaLabel =
-                                triggerIcon.getAttribute('aria-label');
+                            let textFromTooltip = tooltipContent ? tooltipContent.textContent.trim() : null;
+                            let textFromAriaLabel = triggerIcon.getAttribute('aria-label');
 
-                            let parsedTooltipText =
-                                textFromTooltip || textFromAriaLabel || null;
+                            let parsedTooltipText = textFromTooltip || textFromAriaLabel || null;
 
                             return {
                                 src: triggerIcon.getAttribute('src'),
@@ -743,8 +687,7 @@ class RteField extends LitElement {
                                 size: triggerIcon.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
                                 tooltipText: parsedTooltipText,
-                                tooltipPlacement:
-                                    domNode.getAttribute('placement') || 'top',
+                                tooltipPlacement: domNode.getAttribute('placement') || 'top',
                             };
                         },
                     },
@@ -753,8 +696,7 @@ class RteField extends LitElement {
                         getAttrs: (domNode) => {
                             if (
                                 domNode.getAttribute('slot') === 'trigger' &&
-                                domNode.parentElement?.tagName.toLowerCase() ===
-                                    'overlay-trigger'
+                                domNode.parentElement?.tagName.toLowerCase() === 'overlay-trigger'
                             ) {
                                 return false;
                             }
@@ -767,11 +709,8 @@ class RteField extends LitElement {
                                 alt: domNode.getAttribute('alt'),
                                 size: domNode.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
-                                tooltipText:
-                                    domNode.getAttribute('data-tooltip'),
-                                tooltipPlacement: domNode.getAttribute(
-                                    'data-tooltip-placement',
-                                ),
+                                tooltipText: domNode.getAttribute('data-tooltip'),
+                                tooltipPlacement: domNode.getAttribute('data-tooltip-placement'),
                             };
                         },
                     },
@@ -781,22 +720,17 @@ class RteField extends LitElement {
                         getAttrs: (domNode) => {
                             if (
                                 domNode.getAttribute('slot') === 'trigger' &&
-                                domNode.parentElement?.tagName.toLowerCase() ===
-                                    'overlay-trigger'
+                                domNode.parentElement?.tagName.toLowerCase() === 'overlay-trigger'
                             )
                                 return false;
-                            if (domNode.querySelector('sp-tooltip'))
-                                return false;
+                            if (domNode.querySelector('sp-tooltip')) return false;
                             return {
                                 src: domNode.getAttribute('src'),
                                 alt: domNode.getAttribute('alt'),
                                 size: domNode.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
-                                tooltipText:
-                                    domNode.getAttribute('data-tooltip'),
-                                tooltipPlacement: domNode.getAttribute(
-                                    'data-tooltip-placement',
-                                ),
+                                tooltipText: domNode.getAttribute('data-tooltip'),
+                                tooltipPlacement: domNode.getAttribute('data-tooltip-placement'),
                             };
                         },
                     },
@@ -808,8 +742,7 @@ class RteField extends LitElement {
                             if (!icon) return false;
                             if (
                                 icon.getAttribute('slot') === 'trigger' &&
-                                domNode.parentElement?.tagName.toLowerCase() ===
-                                    'overlay-trigger'
+                                domNode.parentElement?.tagName.toLowerCase() === 'overlay-trigger'
                             )
                                 return false;
                             if (icon.querySelector('sp-tooltip')) return false;
@@ -819,16 +752,13 @@ class RteField extends LitElement {
                                 size: icon.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
                                 tooltipText: icon.getAttribute('data-tooltip'),
-                                tooltipPlacement: icon.getAttribute(
-                                    'data-tooltip-placement',
-                                ),
+                                tooltipPlacement: icon.getAttribute('data-tooltip-placement'),
                             };
                         },
                     },
                 ],
                 toDOM: (node) => {
-                    const { src, alt, size, tooltipText, tooltipPlacement } =
-                        node.attrs;
+                    const { src, alt, size, tooltipText, tooltipPlacement } = node.attrs;
 
                     if (tooltipText && tooltipText.trim() !== '') {
                         const overlayAttrs = {
@@ -911,9 +841,7 @@ class RteField extends LitElement {
         let stylingMarksData = CUSTOM_MARKS_DATA;
 
         if (this.marks) {
-            stylingMarksData = stylingMarksData.filter(([mark]) =>
-                this.marks.includes(mark),
-            );
+            stylingMarksData = stylingMarksData.filter(([mark]) => this.marks.includes(mark));
         }
 
         this.#stylingMarksData = stylingMarksData;
@@ -954,9 +882,7 @@ class RteField extends LitElement {
         if (this.inline) {
             doc = this.#editorSchema.node('doc', null, []);
         } else {
-            doc = this.#editorSchema.node('doc', null, [
-                this.#editorSchema.node('paragraph', null, []),
-            ]);
+            doc = this.#editorSchema.node('doc', null, [this.#editorSchema.node('paragraph', null, [])]);
         }
 
         const plugins = [
@@ -987,12 +913,7 @@ class RteField extends LitElement {
     #collectDataAttributes(dom) {
         const attrs = {};
         for (const name of dom.getAttributeNames()) {
-            if (
-                attributeFilter(name) ||
-                name === 'src' ||
-                name === 'alt' ||
-                name === 'size'
-            ) {
+            if (attributeFilter(name) || name === 'src' || name === 'alt' || name === 'size') {
                 const value = dom.getAttribute(name);
                 if (value === null) continue;
                 attrs[name] = value;
@@ -1002,13 +923,12 @@ class RteField extends LitElement {
     }
 
     #createIconElement(node) {
-        const tooltipText =
-            node.content.content[0]?.text.trim() || node.attrs.title;
+        const tooltipText = node.content.content[0]?.text.trim() || node.attrs.title;
 
         const icon = document.createElement('span');
         icon.setAttribute('class', 'icon-button');
         if (tooltipText) {
-            icon.setAttribute('title', tooltipText);
+            icon.dataset.tooltip = tooltipText;
         }
         return icon;
     }
@@ -1058,10 +978,8 @@ class RteField extends LitElement {
             },
             handleDoubleClickOn: this.#boundHandlers.doubleClickOn,
             nodeViews: {
-                link: (node, view, getPos) =>
-                    new LinkNodeView(node, view, getPos),
-                mnemonic: (node, view, getPos) =>
-                    new MnemonicNodeView(node, view, getPos),
+                link: (node, view, getPos) => new LinkNodeView(node, view, getPos),
+                mnemonic: (node, view, getPos) => new MnemonicNodeView(node, view, getPos),
             },
         });
 
@@ -1096,11 +1014,7 @@ class RteField extends LitElement {
 
             const parser = DOMParser.fromSchema(this.#editorSchema);
             const doc = parser.parse(container);
-            const tr = this.editorView.state.tr.replaceWith(
-                0,
-                this.editorView.state.doc.content.size,
-                doc.content,
-            );
+            const tr = this.editorView.state.tr.replaceWith(0, this.editorView.state.doc.content.size, doc.content);
             this.editorView.dispatch(tr);
         } catch (error) {
             console.error('Error setting editor value:', error);
@@ -1148,9 +1062,7 @@ class RteField extends LitElement {
     #serializeContent(state) {
         try {
             if (!state?.doc?.content) return '';
-            const fragment = this.#serializer.serializeFragment(
-                state.doc.content,
-            );
+            const fragment = this.#serializer.serializeFragment(state.doc.content);
             const container = document.createElement('div');
             container.appendChild(fragment);
             return container.innerHTML;
@@ -1172,9 +1084,7 @@ class RteField extends LitElement {
         if (isCheckoutLink) {
             try {
                 checkoutParameters = new URLSearchParams(
-                    JSON.parse(
-                        selection.node.attrs['data-extra-options'] ?? '{}',
-                    ),
+                    JSON.parse(selection.node.attrs['data-extra-options'] ?? '{}'),
                 ).toString();
             } catch (error) {
                 console.error('Error parsing checkout parameters:', error);
@@ -1191,8 +1101,7 @@ class RteField extends LitElement {
                 variant: selection.node.attrs.class || '',
                 analyticsId: selection.node.attrs['data-analytics-id'] || '',
                 checkoutParameters,
-                ctaToggleText:
-                    selection.node.attrs['data-cta-toggle-text'] || '',
+                ctaToggleText: selection.node.attrs['data-cta-toggle-text'] || '',
             };
         }
 
@@ -1200,11 +1109,7 @@ class RteField extends LitElement {
             const text = state.doc.textBetween(selection.from, selection.to);
             // Check if selected text is a potential phone number
             // NOTE: NOT supposed to be a 'catch-all' phone validator - just a check to see if the selected text is roughly a phone number
-            linkType = /^\+?([0-9]{3})\)?([ .-]?)([0-9]{3})\2([0-9]{4})/.test(
-                text,
-            )
-                ? 'phone'
-                : linkType;
+            linkType = /^\+?([0-9]{3})\)?([ .-]?)([0-9]{3})\2([0-9]{4})/.test(text) ? 'phone' : linkType;
             return {
                 linkType,
                 href: '',
@@ -1236,10 +1141,7 @@ class RteField extends LitElement {
         const { state, dispatch } = this.editorView;
         const { selection } = state;
 
-        const node = state.schema.nodes.icon.create(
-            {},
-            state.schema.text(tooltip || ' '),
-        );
+        const node = state.schema.nodes.icon.create({}, state.schema.text(tooltip || ' '));
         const tr = state.tr.insert(selection.from, node);
         dispatch(tr);
 
@@ -1247,15 +1149,7 @@ class RteField extends LitElement {
     }
 
     #handleLinkSave(event) {
-        const {
-            href,
-            text,
-            title,
-            target,
-            variant,
-            analyticsId,
-            ctaToggleText,
-        } = event.detail;
+        const { href, text, title, target, variant, analyticsId, ctaToggleText } = event.detail;
 
         let { checkoutParameters } = event.detail;
         const { state, dispatch } = this.editorView;
@@ -1266,11 +1160,7 @@ class RteField extends LitElement {
 
         if (checkoutParameters) {
             try {
-                checkoutParameters = JSON.stringify(
-                    Object.fromEntries(
-                        new URLSearchParams(checkoutParameters).entries(),
-                    ),
-                );
+                checkoutParameters = JSON.stringify(Object.fromEntries(new URLSearchParams(checkoutParameters).entries()));
             } catch (error) {
                 console.error('Error parsing checkout parameters:', error);
             }
@@ -1305,11 +1195,7 @@ class RteField extends LitElement {
                 ...linkAttrs,
                 class: classValue,
             };
-            const updatedNode = linkNodeType.create(
-                mergedAttributes,
-                content,
-                selection.node?.marks,
-            );
+            const updatedNode = linkNodeType.create(mergedAttributes, content, selection.node?.marks);
             tr = tr.replaceWith(selection.from, selection.to, updatedNode);
         } else {
             let marks;
@@ -1317,9 +1203,7 @@ class RteField extends LitElement {
                 if (node.type === state.schema.nodes.text) marks = node.marks;
             });
             const linkNode = linkNodeType.create(linkAttrs, content, marks);
-            tr = selection.empty
-                ? tr.insert(selection.from, linkNode)
-                : tr.replaceWith(selection.from, selection.to, linkNode);
+            tr = selection.empty ? tr.insert(selection.from, linkNode) : tr.replaceWith(selection.from, selection.to, linkNode);
         }
 
         dispatch(tr);
@@ -1327,11 +1211,7 @@ class RteField extends LitElement {
     }
 
     #handleEscKey(event) {
-        if (
-            !this.showLinkEditor &&
-            !this.showIconEditor &&
-            !this.showMnemonicEditor
-        ) {
+        if (!this.showLinkEditor && !this.showIconEditor && !this.showMnemonicEditor) {
             return;
         }
 
@@ -1355,9 +1235,7 @@ class RteField extends LitElement {
         const { state, dispatch } = this.editorView;
         const { selection } = state;
         const nodeType =
-            attributes.is === CUSTOM_ELEMENT_INLINE_PRICE
-                ? state.schema.nodes.inlinePrice
-                : state.schema.nodes.link; // Fixed to use 'link' node type
+            attributes.is === CUSTOM_ELEMENT_INLINE_PRICE ? state.schema.nodes.inlinePrice : state.schema.nodes.link; // Fixed to use 'link' node type
 
         const mergedAttributes = {
             class: selection.node?.attrs.class,
@@ -1365,15 +1243,9 @@ class RteField extends LitElement {
         };
 
         const content =
-            attributes.is === CUSTOM_ELEMENT_CHECKOUT_LINK && attributes.text
-                ? state.schema.text(attributes.text)
-                : null;
+            attributes.is === CUSTOM_ELEMENT_CHECKOUT_LINK && attributes.text ? state.schema.text(attributes.text) : null;
 
-        const node = nodeType.create(
-            mergedAttributes,
-            content,
-            selection.node?.marks,
-        );
+        const node = nodeType.create(mergedAttributes, content, selection.node?.marks);
         const tr = selection.empty
             ? state.tr.insert(selection.from, node)
             : state.tr.replaceWith(selection.from, selection.to, node);
@@ -1404,9 +1276,7 @@ class RteField extends LitElement {
         } = state;
 
         state.doc.nodesBetween(from, to, (node) => {
-            const stylingMark = node.marks.find(
-                (mark) => mark.type.spec.group === 'styling',
-            );
+            const stylingMark = node.marks.find((mark) => mark.type.spec.group === 'styling');
             const name = stylingMark?.type?.name;
             if (name) {
                 const item = event.target.querySelector(`sp-menu-item[value="${name}"]`);
@@ -1428,9 +1298,7 @@ class RteField extends LitElement {
         } = state;
         let markTypeToRemove = null;
         state.doc.nodesBetween(from, to, (node) => {
-            const stylingMark = node.marks.find(
-                (mark) => mark.type.spec.group === 'styling',
-            );
+            const stylingMark = node.marks.find((mark) => mark.type.spec.group === 'styling');
             if (!stylingMark) return;
             if (stylingMark.type.name !== stylingType) {
                 markTypeToRemove = stylingMark.type;
@@ -1474,9 +1342,7 @@ class RteField extends LitElement {
 
     #updateSelection(state) {
         const { selection } = state;
-        this.isLinkSelected =
-            selection.node?.type.name === 'link' &&
-            !selection.node.attrs['data-wcs-osi'];
+        this.isLinkSelected = selection.node?.type.name === 'link' && !selection.node.attrs['data-wcs-osi'];
     }
 
     #updateLength() {
@@ -1500,11 +1366,7 @@ class RteField extends LitElement {
 
         const content = state.schema.text('{{see-terms}}');
 
-        const node = nodeType.create(
-            attributes,
-            content,
-            selection.node?.marks,
-        );
+        const node = nodeType.create(attributes, content, selection.node?.marks);
         const tr = selection.empty
             ? state.tr.insert(selection.from, node)
             : state.tr.replaceWith(selection.from, selection.to, node);
@@ -1539,11 +1401,7 @@ class RteField extends LitElement {
     get #linkEditorButton() {
         if (!this.link) return nothing;
         return html`
-            <sp-action-button
-                id="linkEditorButton"
-                @click=${this.openLinkEditor}
-                title="Add Link (Ctrl+K)"
-            >
+            <sp-action-button id="linkEditorButton" @click=${this.openLinkEditor} title="Add Link (Ctrl+K)">
                 <sp-icon-link slot="icon"></sp-icon-link>
             </sp-action-button>
         `;
@@ -1556,12 +1414,7 @@ class RteField extends LitElement {
     get #unlinkEditorButton() {
         if (!this.isLinkSelected) return nothing;
         return html`
-            <sp-action-button
-                id="unlinkEditorButton"
-                title="Remove Link"
-                emphasized
-                @click=${this.#removeLink}
-            >
+            <sp-action-button id="unlinkEditorButton" title="Remove Link" emphasized @click=${this.#removeLink}>
                 <sp-icon-unlink slot="icon"></sp-icon-unlink>
             </sp-action-button>
         `;
@@ -1577,11 +1430,7 @@ class RteField extends LitElement {
 
         if (selection.node?.type.name === 'link') {
             if (isNodeCheckoutLink(selection.node)) return;
-            const tr = state.tr.replaceWith(
-                selection.from,
-                selection.to,
-                state.schema.text(selection.node.textContent || ''),
-            );
+            const tr = state.tr.replaceWith(selection.from, selection.to, state.schema.text(selection.node.textContent || ''));
             dispatch(tr);
             return;
         }
@@ -1589,11 +1438,7 @@ class RteField extends LitElement {
         const tr = state.tr;
         state.doc.nodesBetween(selection.from, selection.to, (node, pos) => {
             if (node.type.name === 'link' && !isNodeCheckoutLink(node)) {
-                tr.replaceWith(
-                    pos,
-                    pos + node.nodeSize,
-                    state.schema.text(node.textContent || ''),
-                );
+                tr.replaceWith(pos, pos + node.nodeSize, state.schema.text(node.textContent || ''));
                 return false;
             }
         });
@@ -1615,10 +1460,7 @@ class RteField extends LitElement {
         const osiDomTarget = event.target.closest('[data-wcs-osi]');
         if (osiDomTarget) {
             const prosemirrorNodeAtClick = view.state.doc.nodeAt(nodePos);
-            if (
-                prosemirrorNodeAtClick &&
-                prosemirrorNodeAtClick.attrs['data-wcs-osi']
-            ) {
+            if (prosemirrorNodeAtClick && prosemirrorNodeAtClick.attrs['data-wcs-osi']) {
                 ostRteFieldSource = this;
                 this.showOfferSelector = true;
                 this.handleOpenOfferSelector(null, osiDomTarget);
@@ -1675,10 +1517,7 @@ class RteField extends LitElement {
 
     get iconEditor() {
         if (!this.showIconEditor) return nothing;
-        return html`<rte-icon-editor
-            dialog
-            @save="${this.#boundHandlers.iconSave}"
-        ></rte-icon-editor>`;
+        return html`<rte-icon-editor dialog @save="${this.#boundHandlers.iconSave}"></rte-icon-editor>`;
     }
 
     get mnemonicEditor() {
@@ -1708,18 +1547,12 @@ class RteField extends LitElement {
         const lengthExceeded = this.length > this.maxLength;
         return html`
             <sp-action-group quiet size="m" aria-label="RTE toolbar actions">
-                ${this.#formatButtons} ${this.stylingButton}
-                ${this.#listButtons} ${this.#linkEditorButton}
-                ${this.#unlinkEditorButton} ${this.#offerSelectorToolButton}
-                ${this.#iconsButton} ${this.#uptLinkButton}
+                ${this.#formatButtons} ${this.stylingButton} ${this.#listButtons} ${this.#linkEditorButton}
+                ${this.#unlinkEditorButton} ${this.#offerSelectorToolButton} ${this.#iconsButton} ${this.#uptLinkButton}
                 ${this.#mnemonicButton}
             </sp-action-group>
             <div id="editor"></div>
-            <p id="counter">
-                <span class="${lengthExceeded ? 'exceeded' : ''}"
-                    >${this.length}</span
-                >/${this.maxLength}
-            </p>
+            <p id="counter"><span class="${lengthExceeded ? 'exceeded' : ''}">${this.length}</span>/${this.maxLength}</p>
             ${this.linkEditor} ${this.iconEditor} ${this.mnemonicEditor}
         `;
     }
@@ -1727,12 +1560,7 @@ class RteField extends LitElement {
     get #iconsButton() {
         if (!this.icon) return nothing;
         return html`
-            <sp-action-button
-                emphasized
-                id="addIconButton"
-                @click=${this.openIconEditor}
-                title="Add Icon"
-            >
+            <sp-action-button emphasized id="addIconButton" @click=${this.openIconEditor} title="Add Icon">
                 <sp-icon-info slot="icon"></sp-icon-info>
             </sp-action-button>
         `;
@@ -1741,12 +1569,7 @@ class RteField extends LitElement {
     get #mnemonicButton() {
         if (!this.mnemonic) return nothing;
         return html`
-            <sp-action-button
-                emphasized
-                id="addMnemonicButton"
-                @click=${this.openMnemonicEditor}
-                title="Add Inline Icon"
-            >
+            <sp-action-button emphasized id="addMnemonicButton" @click=${this.openMnemonicEditor} title="Add Inline Icon">
                 <sp-icon-image slot="icon"></sp-icon-image>
             </sp-action-button>
         `;
@@ -1803,9 +1626,7 @@ class RteField extends LitElement {
                 @mousedown=${(e) => e.preventDefault()}
                 title="Strikethrough (Command+S)"
             >
-                <sp-icon-text-strikethrough
-                    slot="icon"
-                ></sp-icon-text-strikethrough>
+                <sp-icon-text-strikethrough slot="icon"></sp-icon-text-strikethrough>
             </sp-action-button>
             <sp-action-button
                 @click=${this.#handleToolbarAction('underline')}
@@ -1829,9 +1650,7 @@ class RteField extends LitElement {
             <sp-icon-brush slot="icon"></sp-icon-brush>
             ${this.#stylingMarksData.map(([mark, label]) => {
                 if (!mark) return html`<sp-divider size="s"></sp-divider>`;
-                return html`<sp-menu-item value="${mark}"
-                    >${label}</sp-menu-item
-                >`;
+                return html`<sp-menu-item value="${mark}">${label}</sp-menu-item>`;
             })}
         </sp-action-menu>`;
     }
@@ -1850,8 +1669,7 @@ class RteField extends LitElement {
     }
 
     #handleMnemonicSave(event) {
-        const { imageUrl, altText, size, tooltipText, tooltipPlacement } =
-            event.detail;
+        const { imageUrl, altText, size, tooltipText, tooltipPlacement } = event.detail;
         const { state } = this.editorView;
 
         const attributesToSet = {
@@ -1865,15 +1683,10 @@ class RteField extends LitElement {
 
         let tr;
         if (this.currentMnemonicPos != null) {
-            tr = state.tr.setNodeMarkup(
-                this.currentMnemonicPos,
-                null,
-                attributesToSet,
-            );
+            tr = state.tr.setNodeMarkup(this.currentMnemonicPos, null, attributesToSet);
             this.currentMnemonicPos = null;
         } else {
-            const mnemonicNodeInstance =
-                state.schema.nodes.mnemonic.create(attributesToSet);
+            const mnemonicNodeInstance = state.schema.nodes.mnemonic.create(attributesToSet);
             tr = state.tr.replaceSelectionWith(mnemonicNodeInstance);
         }
         this.editorView.dispatch(tr);

@@ -830,8 +830,8 @@ export class MasRepository extends LitElement {
      * Populates the store with addon placeholders by filtering fragments that start with 'addon-'
      */
     async loadAddonPlaceholders() {
-        Store.placeholders.addons.loading.set(true);
         if (Store.placeholders.addons.data.get().length > 1) return;
+        Store.placeholders.addons.loading.set(true);
         try {
             const cursor = await this.aem.sites.cf.fragments.search(
                 {

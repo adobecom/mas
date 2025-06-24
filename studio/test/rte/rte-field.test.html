@@ -106,10 +106,7 @@
                     });
 
                     it('should apply promo duration text styles', async function () {
-                        rte = await createFromTemplate(
-                            'rte-marks',
-                            this.test.title,
-                        );
+                        rte = await createFromTemplate('rte-marks', this.test.title);
                         await selectWordsInTextNode(rte.editorView, 'Styling');
 
                         rte.handleStylingAction('promo-duration-text');
@@ -120,10 +117,7 @@
                     });
 
                     it('should apply renewal text styles', async function () {
-                        rte = await createFromTemplate(
-                            'rte-marks',
-                            this.test.title,
-                        );
+                        rte = await createFromTemplate('rte-marks', this.test.title);
                         await selectWordsInTextNode(rte.editorView, 'Styling');
 
                         rte.handleStylingAction('renewal-text');
@@ -410,12 +404,7 @@
             </div>
         </template>
         <template id="rte-marks">
-            <rte-field
-                styling
-                marks="promo-text,promo-duration-text,renewal-text"
-            >
-                Styling
-            </rte-field>
+            <rte-field styling marks="promo-text,promo-duration-text,renewal-text"> Styling </rte-field>
         </template>
     </body>
 </html>

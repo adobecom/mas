@@ -787,20 +787,14 @@ export class MasRepository extends LitElement {
         const latest = await this.aem.sites.cf.fragments.getById(id);
 
         store.refreshFrom(latest);
-        if (
-            [CARD_MODEL_PATH, COLLECTION_MODEL_PATH].includes(latest.model.path)
-        ) {
+        if ([CARD_MODEL_PATH, COLLECTION_MODEL_PATH].includes(latest.model.path)) {
             // originalId allows to keep track of the relation between en_US fragment and the current one if in different locales
             const originalId = store.get().getOriginalIdField();
             if (this.filters.value.locale === LOCALE_DEFAULT) {
                 originalId.values = [latest.id];
             } else {
-                const enUsPath = latest.path.replace(
-                    this.filters.value.locale,
-                    LOCALE_DEFAULT,
-                );
-                const sourceFragment =
-                    await this.aem.sites.cf.fragments.getByPath(enUsPath);
+                const enUsPath = latest.path.replace(this.filters.value.locale, LOCALE_DEFAULT);
+                const sourceFragment = await this.aem.sites.cf.fragments.getByPath(enUsPath);
                 if (sourceFragment) {
                     originalId.values = [sourceFragment.id];
                 }

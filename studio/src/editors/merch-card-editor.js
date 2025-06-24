@@ -443,8 +443,7 @@ class MerchCardEditor extends LitElement {
                     upt-link
                     list
                     mnemonic
-                    .marks=${VARIANT_RTE_MARKS[this.fragment.variant]
-                        ?.description?.marks}
+                    .marks=${VARIANT_RTE_MARKS[this.fragment.variant]?.description?.marks}
                     data-field="description"
                     .osi=${form.osi.values[0]}
                     default-link-style="secondary-link"

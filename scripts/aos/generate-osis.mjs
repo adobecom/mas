@@ -2,8 +2,7 @@ import fetch from 'node-fetch';
 const AOS_URL = 'https://aos-stage.adobe.io';
 const OFFERS_SELECTORS_API = `${AOS_URL}/offer_selectors`;
 
-const offerUrl = (id) =>
-    `${AOS_URL}/offers/${id}?api_key=dexter-commerce-offers`;
+const offerUrl = (id) => `${AOS_URL}/offers/${id}?api_key=dexter-commerce-offers`;
 
 // Function to sanitize the token for header use
 function getAuthHeader(token) {
@@ -17,9 +16,7 @@ function getOffers(offerIds) {
     // Get auth token from environment variable
     const authHeader = getAuthHeader(process.env.AOS_TOKEN);
     if (!authHeader) {
-        console.error(
-            'Error: AOS_TOKEN environment variable is not set or invalid',
-        );
+        console.error('Error: AOS_TOKEN environment variable is not set or invalid');
         process.exit(1);
     }
     return Promise.allSettled(
@@ -37,19 +34,14 @@ function getOffers(offerIds) {
                         },
                     }).then((response) => {
                         if (!response.ok) {
-                            reject(
-                                `Failed to fetch ${url}: ${response.status} ${response.statusText}`,
-                            );
+                            reject(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
                             console.error(message);
                         }
                         response
                             .json()
                             .then(resolve)
                             .catch((error) => {
-                                console.error(
-                                    `Error parsing JSON from ${url}:`,
-                                    error.message,
-                                );
+                                console.error(`Error parsing JSON from ${url}:`, error.message);
                                 reject(error);
                             });
                     });
@@ -89,9 +81,7 @@ function getOffersOSIS(offers) {
                         offer_type,
                         price_point,
                     });
-                    console.log(
-                        `Generating OSI for offer: ${offer_id} and body: ${body}`,
-                    );
+                    console.log(`Generating OSI for offer: ${offer_id} and body: ${body}`);
                     return fetch(OFFERS_SELECTORS_API, {
                         method: 'POST',
                         headers: {
@@ -102,9 +92,7 @@ function getOffersOSIS(offers) {
                         body,
                     }).then((response) => {
                         if (!response.ok) {
-                            reject(
-                                `Failed to generate OSI: ${response.status} ${response.statusText}`,
-                            );
+                            reject(`Failed to generate OSI: ${response.status} ${response.statusText}`);
                         }
                         response
                             .json()
@@ -115,10 +103,7 @@ function getOffersOSIS(offers) {
                                 });
                             })
                             .catch((error) => {
-                                console.error(
-                                    `Error parsing JSON from OFFERS_SELECTORS_API:`,
-                                    error.message,
-                                );
+                                console.error(`Error parsing JSON from OFFERS_SELECTORS_API:`, error.message);
                                 reject(error);
                             });
                     });
@@ -130,9 +115,7 @@ function getOffersOSIS(offers) {
 async function main() {
     // Verify AOS_TOKEN is set
     if (!process.env.AOS_TOKEN) {
-        console.error(
-            'Error: AOS_TOKEN environment variable is not set. Please set it before running this script.',
-        );
+        console.error('Error: AOS_TOKEN environment variable is not set. Please set it before running this script.');
         console.error('Example: export AOS_TOKEN="your_token_here"');
         process.exit(1);
     }

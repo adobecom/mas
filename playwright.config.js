@@ -31,11 +31,7 @@ const config = {
     /* Reporter to use. */
     reporter: process.env.CI
         ? [['github'], ['list'], ['./nala/utils/base-reporter.js']]
-        : [
-              ['html', { outputFolder: 'test-html-results' }],
-              ['list'],
-              ['./nala/utils/base-reporter.js'],
-          ],
+        : [['html', { outputFolder: 'test-html-results' }], ['list'], ['./nala/utils/base-reporter.js']],
     /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
     use: {
         /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
@@ -43,10 +39,7 @@ const config = {
 
         trace: 'on-first-retry',
         screenshot: 'only-on-failure',
-        baseURL:
-            process.env.PR_BRANCH_LIVE_URL ||
-            process.env.LOCAL_TEST_LIVE_URL ||
-            'https://main--mas--adobecom.aem.live',
+        baseURL: process.env.PR_BRANCH_LIVE_URL || process.env.LOCAL_TEST_LIVE_URL || 'https://main--mas--adobecom.aem.live',
     },
 
     /* Configure projects for major browsers */

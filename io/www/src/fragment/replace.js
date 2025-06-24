@@ -1,16 +1,11 @@
 const { odinReferences, odinPath } = require('./paths.js');
-const { fetch, log, logError } = require('./common.js');
+const { fetch, log, logDebug, logError } = require('./common.js');
 const DICTIONARY_ID_PATH = 'dictionary/index';
-const PH_REGEXP = /{{(\s*([\w\-]+)\s*)}}/gi;
+const PH_REGEXP = /{{(\s*([\w\-\_]+)\s*)}}/gi;
 
 async function getDictionaryId(context) {
     const { surface, locale, preview } = context;
-    const dictionaryPath = odinPath(
-        surface,
-        locale,
-        DICTIONARY_ID_PATH,
-        preview,
-    );
+    const dictionaryPath = odinPath(surface, locale, DICTIONARY_ID_PATH, preview);
     const response = await fetch(dictionaryPath, context);
     if (response.status == 200) {
         const { items } = response.body;
@@ -26,23 +21,18 @@ async function getDictionaryId(context) {
 function extractValue(ref) {
     const value = ref.value || ref.richTextValue?.value || '';
     // Escape control characters and double quotes before parsing
-    return value
-        .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
-        .replace(/"/g, '\\"');
+    return value.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').replace(/"/g, '\\"');
 }
 
 async function getDictionary(context) {
+    const dictionary = context.dictionary || {};
     const id = context.dictionaryId ?? (await getDictionaryId(context));
     if (!id) {
-        return null;
+        return dictionary;
     }
-    const response = await fetch(
-        odinReferences(id, true, context.preview),
-        context,
-    );
+    const response = await fetch(odinReferences(id, true, context.preview), context);
     if (response.status == 200) {
         const references = response.body.references;
-        const dictionary = {};
         Object.keys(references).forEach((id) => {
             const ref = references[id]?.value?.fields;
             if (ref?.key) {
@@ -53,7 +43,7 @@ async function getDictionary(context) {
         });
         return dictionary;
     }
-    return null;
+    return dictionary;
 }
 
 function replaceValues(input, dictionary, calls) {
@@ -66,11 +56,8 @@ function replaceValues(input, dictionary, calls) {
         //we concatenate everything from last iteration to index of placeholder
         replaced = replaced + input.slice(nextIndex, match.index);
         //value will be key in case of undefined or circular reference
-        let value =
-            dictionary[key] == undefined || calls.includes(key)
-                ? key
-                : dictionary[key];
-        if (value.match(PH_REGEXP)) {
+        let value = dictionary[key] == undefined || calls.includes(key) ? key : dictionary[key];
+        if (value?.match(PH_REGEXP)) {
             //the value has nested PH
             calls.push(key);
             value = replaceValues(value, dictionary, calls);
@@ -97,6 +84,7 @@ async function replace(context) {
             } catch (e) {
                 /* istanbul ignore next */
                 logError(`[replace] ${e.message}`, context);
+                logDebug(() => `[replace] invalid json: ${bodyString}`, context);
             }
         }
     } else {

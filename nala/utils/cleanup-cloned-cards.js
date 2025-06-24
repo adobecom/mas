@@ -9,9 +9,7 @@ const authFile = join(currentDir, '../.auth/user.json');
 
 async function cleanupClonedCards(options = {}) {
     const {
-        baseURL = process.env.PR_BRANCH_LIVE_URL ||
-            process.env.LOCAL_TEST_LIVE_URL ||
-            'https://main--mas--adobecom.aem.live',
+        baseURL = process.env.PR_BRANCH_LIVE_URL || process.env.LOCAL_TEST_LIVE_URL || 'https://main--mas--adobecom.aem.live',
         daysBack = 2,
         dryRun = false,
         verbose = false,
@@ -72,20 +70,12 @@ async function cleanupClonedCards(options = {}) {
                     .filter((fragment) => {
                         if (!fragment || !fragment.created) return false;
 
-                        const isTargetDate = targetDates.some((date) =>
-                            new RegExp(date).test(fragment.created.at),
-                        );
+                        const isTargetDate = targetDates.some((date) => new RegExp(date).test(fragment.created.at));
 
-                        return (
-                            isTargetDate &&
-                            fragment.created.by ===
-                                'cod23684+masautomation@adobetest.com'
-                        );
+                        return isTargetDate && fragment.created.by === 'cod23684+masautomation@adobetest.com';
                     });
 
-                console.log(
-                    `Found ${fragments.length} cloned cards to clean up`,
-                );
+                console.log(`Found ${fragments.length} cloned cards to clean up`);
 
                 if (dryRun) {
                     return {
@@ -122,38 +112,24 @@ async function cleanupClonedCards(options = {}) {
 
         if (cleanupResult.success) {
             if (cleanupResult.dryRun) {
-                console.log(
-                    `🔍 DRY RUN: Found ${cleanupResult.foundCount} cloned cards that would be deleted`,
-                );
-                if (
-                    cleanupResult.fragments &&
-                    cleanupResult.fragments.length > 0
-                ) {
+                console.log(`🔍 DRY RUN: Found ${cleanupResult.foundCount} cloned cards that would be deleted`);
+                if (cleanupResult.fragments && cleanupResult.fragments.length > 0) {
                     console.log('\nCards that would be deleted:');
                     cleanupResult.fragments.forEach((f) => {
                         console.log(`  - ${f.id} (created: ${f.createdAt})`);
                     });
                 }
             } else {
-                console.log(
-                    `✅ Successfully cleaned up ${cleanupResult.deletedCount} cloned cards`,
-                );
-                if (
-                    cleanupResult.deletedIds &&
-                    cleanupResult.deletedIds.length > 0
-                ) {
+                console.log(`✅ Successfully cleaned up ${cleanupResult.deletedCount} cloned cards`);
+                if (cleanupResult.deletedIds && cleanupResult.deletedIds.length > 0) {
                     console.log('\nDeleted card IDs:');
-                    cleanupResult.deletedIds.forEach((id) =>
-                        console.log(`  - ${id}`),
-                    );
+                    cleanupResult.deletedIds.forEach((id) => console.log(`  - ${id}`));
                 }
             }
         } else {
             console.error(`❌ Cleanup failed: ${cleanupResult.error}`);
             if (cleanupResult.attemptedCount) {
-                console.error(
-                    `Attempted to clean ${cleanupResult.attemptedCount} cards`,
-                );
+                console.error(`Attempted to clean ${cleanupResult.attemptedCount} cards`);
             }
             process.exit(1);
         }
@@ -215,4 +191,4 @@ Examples:
     cleanupClonedCards(options);
 }
 
-export { cleanupClonedCards }; 
+export { cleanupClonedCards };

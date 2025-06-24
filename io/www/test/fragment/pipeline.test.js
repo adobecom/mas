@@ -12,13 +12,7 @@ const { MockState } = require('./mocks/MockState.js');
 function decompress(response) {
     const body =
         response.body?.length > 0
-            ? JSON.parse(
-                  zlib
-                      .brotliDecompressSync(
-                          Buffer.from(response.body, 'base64'),
-                      )
-                      .toString('utf-8'),
-              )
+            ? JSON.parse(zlib.brotliDecompressSync(Buffer.from(response.body, 'base64')).toString('utf-8'))
             : undefined;
     return {
         ...response,
@@ -31,27 +25,20 @@ async function getFragment(params) {
 }
 
 const EXPECTED_HEADERS = {
-    'Access-Control-Expose-Headers':
-        'X-Request-Id,Etag,Last-Modified,server-timing',
+    'Access-Control-Expose-Headers': 'X-Request-Id,Etag,Last-Modified,server-timing',
     'Content-Encoding': 'br',
     'Content-Type': 'application/json',
 };
 
 function setupFragmentMocks({ id, path, fields = {} }, preview = false) {
     const odinDomain = `https://${preview ? 'odinpreview.corp' : 'odin'}.adobe.com`;
-    const odinUriRoot = preview
-        ? '/adobe/sites/cf/fragments'
-        : '/adobe/sites/fragments';
+    const odinUriRoot = preview ? '/adobe/sites/cf/fragments' : '/adobe/sites/fragments';
     // english fragment by id
-    nock(odinDomain)
-        .get(`${odinUriRoot}/some-en-us-fragment?references=all-hydrated`)
-        .reply(200, FRAGMENT_RESPONSE_EN);
+    nock(odinDomain).get(`${odinUriRoot}/some-en-us-fragment?references=all-hydrated`).reply(200, FRAGMENT_RESPONSE_EN);
 
     // french fragment by path
     nock(odinDomain)
-        .get(
-            `${odinUriRoot}?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app`,
-        )
+        .get(`${odinUriRoot}?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app`)
         .reply(200, {
             items: [
                 {
@@ -60,14 +47,10 @@ function setupFragmentMocks({ id, path, fields = {} }, preview = false) {
             ],
         });
     // french fragment by id
-    nock(odinDomain)
-        .get(`${odinUriRoot}/some-fr-fr-fragment?references=all-hydrated`)
-        .reply(200, FRAGMENT_RESPONSE_FR);
+    nock(odinDomain).get(`${odinUriRoot}/some-fr-fr-fragment?references=all-hydrated`).reply(200, FRAGMENT_RESPONSE_FR);
 
     // dictionary by id
-    nock(odinDomain)
-        .get(`${odinUriRoot}/dictionary?references=all-hydrated`)
-        .reply(200, mockDictionary());
+    nock(odinDomain).get(`${odinUriRoot}/dictionary?references=all-hydrated`).reply(200, mockDictionary());
 }
 
 const EXPECTED_BODY = {
@@ -75,8 +58,7 @@ const EXPECTED_BODY = {
     path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
 };
 //EXPECTED BODY SHA256 hash
-const EXPECTED_BODY_HASH =
-    '85a1b526366f8ad5a31e61bcca892e68829369c53ddf19c24e6092e75d8ececc';
+const EXPECTED_BODY_HASH = 'dd21bd2c42a0de4b5f0262fc47828f916bb3832a254c702189e6c6f72183641d';
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 
@@ -94,7 +76,7 @@ const runOnFilledState = async (entry, headers) => {
     await state.put('debugFragmentLogs', true);
     return await getFragment({
         id: 'some-en-us-fragment',
-        state: state,
+        state,
         locale: 'fr_FR',
         __ow_headers: headers,
     });
@@ -210,9 +192,7 @@ describe('pipeline corner cases', () => {
     });
 
     it('should handle fetch exceptions', async () => {
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments/test-fragment')
-            .replyWithError('Network error');
+        nock('https://odin.adobe.com').get('/adobe/sites/fragments/test-fragment').replyWithError('Network error');
 
         const result = await getFragment({
             id: 'test-fragment',
@@ -230,18 +210,14 @@ describe('pipeline corner cases', () => {
     });
 
     it('should handle 404 response status', async () => {
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments/test-fragment')
-            .reply(404, {
-                message: 'Fragment not found',
-            });
+        nock('https://odin.adobe.com').get('/adobe/sites/fragments/test-fragment').reply(404, {
+            message: 'Fragment not found',
+        });
 
         // Also mock the request with references=all-hydrated parameter
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments/test-fragment?references=all-hydrated')
-            .reply(404, {
-                message: 'Fragment not found',
-            });
+        nock('https://odin.adobe.com').get('/adobe/sites/fragments/test-fragment?references=all-hydrated').reply(404, {
+            message: 'Fragment not found',
+        });
 
         const result = await getFragment({
             id: 'test-fragment',
@@ -299,5 +275,34 @@ describe('pipeline corner cases', () => {
         const result = await runOnFilledState('null', {});
         expect(result.body).to.deep.include(EXPECTED_BODY);
         expect(result.statusCode).to.equal(200);
+    });
+});
+
+describe('collection placeholders', () => {
+    it('should work', async () => {
+        nock.cleanAll();
+        const DICTIONARY_RESPONSE = require('./mocks/dictionaryForCollection.json');
+        const COLLECTION_RESPONSE = require('./mocks/collection.json');
+        const state = new MockState();
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments/07f9729e-dc1f-4634-829d-7aa469bb0d33')
+            .query({ references: 'all-hydrated' })
+            .reply(200, COLLECTION_RESPONSE);
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments/412fda08-7b73-4a01-a04f-1953e183bad2')
+            .query({ references: 'all-hydrated' })
+            .reply(200, DICTIONARY_RESPONSE);
+        state.put(
+            'req-07f9729e-dc1f-4634-829d-7aa469bb0d33-en_US',
+            '{"hash":"c4b6f3c040708c47444316d4e103268c8f2fb91c35dc4609ecccc29803f2aec0","lastModified":"Mon, 09 Jun 2025 07:43:58 GMT","dictionaryId":"412fda08-7b73-4a01-a04f-1953e183bad2"}',
+        );
+        const result = await getFragment({
+            id: '07f9729e-dc1f-4634-829d-7aa469bb0d33',
+            state: state,
+            locale: 'en_US',
+        });
+        expect(result.body.placeholders.searchResultsMobileText).to.equal(
+            '<p><span data-placeholder="resultCount"></span>&nbsp;results in&nbsp;<strong><span data-placeholder="searchTerm"></span></strong></p>',
+        );
     });
 });

@@ -3,6 +3,7 @@ import { EVENT_KEYDOWN, EVENT_OST_OFFER_SELECT, TAG_MODEL_ID_MAPPING } from './c
 import { editFragment } from './store.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
+import { FragmentStore } from './reactivity/fragment-store.js';
 
 export class MasCreateDialog extends LitElement {
     static properties = {
@@ -94,7 +95,7 @@ export class MasCreateDialog extends LitElement {
     _onOstSelect = ({ detail: { offerSelectorId, offer } }) => {
         if (!offer) return;
         this.osi = offerSelectorId;
-    }
+    };
 
     #handeTagsChange(e) {
         const value = e.target.getAttribute('value');
@@ -102,7 +103,8 @@ export class MasCreateDialog extends LitElement {
     }
 
     async createFragment(masRepository, fragmentData) {
-        const fragmentStore = await masRepository.createFragment(fragmentData);
+        const fragment = await masRepository.createFragment(fragmentData);
+        const fragmentStore = new FragmentStore(fragment);
         fragmentStore.new = true;
         editFragment(fragmentStore, 0);
         this.close();
@@ -113,10 +115,7 @@ export class MasCreateDialog extends LitElement {
             await this.createFragment(masRepository, fragmentData);
             return true;
         } catch (error) {
-            console.error(
-                `${error.message} Will try to create again`,
-                error.stack,
-            );
+            console.error(`${error.message} Will try to create again`, error.stack);
             return false;
         }
     }
@@ -150,9 +149,7 @@ export class MasCreateDialog extends LitElement {
         const modelId =
             this.type === 'merch-card'
                 ? TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card']
-                : TAG_MODEL_ID_MAPPING[
-                      'mas:studio/content-type/merch-card-collection'
-                  ];
+                : TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card-collection'];
 
         // Create fragment data
         const fragmentData = {
@@ -184,8 +181,7 @@ export class MasCreateDialog extends LitElement {
     }
 
     get dialogTitle() {
-        const typeLabel =
-            this.type === 'merch-card' ? 'Merch Card' : 'Merch Card Collection';
+        const typeLabel = this.type === 'merch-card' ? 'Merch Card' : 'Merch Card Collection';
         return `Create New ${typeLabel}`;
     }
 
@@ -205,9 +201,7 @@ export class MasCreateDialog extends LitElement {
                 <div class="dialog-content">
                     <form @submit=${this.handleSubmit}>
                         <div class="form-field">
-                            <sp-field-label for="fragment-title" required
-                                >Internal title</sp-field-label
-                            >
+                            <sp-field-label for="fragment-title" required>Internal title</sp-field-label>
                             <sp-textfield
                                 id="fragment-title"
                                 placeholder="Enter internal fragment title"
@@ -218,22 +212,17 @@ export class MasCreateDialog extends LitElement {
                         </div>
                         ${this.type === 'merch-card'
                             ? html`
-                                <div class="form-field">
-                                    <sp-field-label for="osi" required
-                                        >OSI Search</sp-field-label
-                                    >
-                                    <osi-field
-                                        id="osi"
-                                        data-field="osi"
-                                    ></osi-field>
-                                </div>
-                                <aem-tag-picker-field
-                                    label="Tags"
-                                    namespace="/content/cq:tags/mas"
-                                    multiple
-                                    @change=${this.#handeTagsChange}
-                                ></aem-tag-picker-field>
-                                `
+                                  <div class="form-field">
+                                      <sp-field-label for="osi" required>OSI Search</sp-field-label>
+                                      <osi-field id="osi" data-field="osi"></osi-field>
+                                  </div>
+                                  <aem-tag-picker-field
+                                      label="Tags"
+                                      namespace="/content/cq:tags/mas"
+                                      multiple
+                                      @change=${this.#handeTagsChange}
+                                  ></aem-tag-picker-field>
+                              `
                             : nothing}
                     </form>
                 </div>

@@ -145,9 +145,7 @@ class AemTagPickerField extends LitElement {
 
     constructor() {
         super();
-        this.baseUrl = document.querySelector(
-            'meta[name="aem-base-url"]',
-        )?.content;
+        this.baseUrl = document.querySelector('meta[name="aem-base-url"]')?.content;
         this.bucket = null;
         this.top = null;
         this.multiple = false;
@@ -169,8 +167,7 @@ class AemTagPickerField extends LitElement {
             customer_segment: offer.customer_segment,
             product_code: offer.product_code,
             market_segments:
-                Array.isArray(offer.market_segments) &&
-                offer.market_segments.length > 0
+                Array.isArray(offer.market_segments) && offer.market_segments.length > 0
                     ? offer.market_segments[0]
                     : offer.market_segments,
         };
@@ -180,13 +177,7 @@ class AemTagPickerField extends LitElement {
             return str.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
         };
 
-        const categoriesToUpdate = new Set([
-            'offer_type',
-            'plan_type',
-            'customer_segment',
-            'market_segments',
-            'product_code',
-        ]);
+        const categoriesToUpdate = new Set(['offer_type', 'plan_type', 'customer_segment', 'market_segments', 'product_code']);
 
         const existingTags = this.value.filter((tagPath) => {
             for (const category of categoriesToUpdate) {
@@ -272,18 +263,14 @@ class AemTagPickerField extends LitElement {
             const rawTags = await this.#aem.tags.list(this.namespace);
             if (!rawTags) return;
             // Store as a Map keyed by tag path
-            namespaces[this.namespace] = new Map(
-                rawTags.hits.map((tag) => [tag.path, tag]),
-            );
+            namespaces[this.namespace] = new Map(rawTags.hits.map((tag) => [tag.path, tag]));
             resolveNamespace();
         } else if (this.#data instanceof Promise) {
             // If still loading, wait
             await this.#data;
         }
 
-        const allTags = [...this.#data.values()].filter((tag) =>
-            tag.path.startsWith(this.#tagsRoot),
-        );
+        const allTags = [...this.#data.values()].filter((tag) => tag.path.startsWith(this.#tagsRoot));
 
         if (this.selection === SELECTION_CHECKBOX) {
             this.flatTags = allTags
@@ -373,9 +360,7 @@ class AemTagPickerField extends LitElement {
             const value = info ? info.path : `${parentPath}/${key}`;
             return html`
                 <sp-sidenav-item label="${label}" value="${value}">
-                    ${hasChildren
-                        ? this.renderSidenavItems(item.__children__, value)
-                        : nothing}
+                    ${hasChildren ? this.renderSidenavItems(item.__children__, value) : nothing}
                     ${hasChildren
                         ? html`<sp-icon-labels slot="icon"></sp-icon-labels>`
                         : html`<sp-icon-label slot="icon"></sp-icon-label>`}
@@ -441,13 +426,8 @@ class AemTagPickerField extends LitElement {
 
     async #updateMargin() {
         await this.updateComplete;
-        if (
-            !this.popoverElement ||
-            !/bottom/.test(this.popoverElement.placement)
-        )
-            return;
-        const margin =
-            this.shadowRoot.querySelector('sp-tag:last-child')?.offsetTop ?? 0;
+        if (!this.popoverElement || !/bottom/.test(this.popoverElement.placement)) return;
+        const margin = this.shadowRoot.querySelector('sp-tag:last-child')?.offsetTop ?? 0;
         this.style.setProperty('--margin-picker-top', `${margin}px`);
     }
 
@@ -488,22 +468,14 @@ class AemTagPickerField extends LitElement {
         let filteredTags = this.flatTags;
         if (this.flatTags.length > 7) {
             filteredTags = this.flatTags.filter((path) =>
-                this.#resolveTagTitle(path)
-                    .toLowerCase()
-                    .includes(this.searchQuery.toLowerCase()),
+                this.#resolveTagTitle(path).toLowerCase().includes(this.searchQuery.toLowerCase()),
             );
         }
 
         return html`
             <div id="content">
                 ${this.flatTags.length > 7
-                    ? html`
-                          <sp-search
-                              @input=${(e) =>
-                                  (this.searchQuery = e.target.value)}
-                              placeholder="Search"
-                          ></sp-search>
-                      `
+                    ? html` <sp-search @input=${(e) => (this.searchQuery = e.target.value)} placeholder="Search"></sp-search> `
                     : nothing}
                 <div class="checkbox-list">
                     ${repeat(
@@ -512,11 +484,7 @@ class AemTagPickerField extends LitElement {
                         (path) => {
                             const checked = this.tempValue.includes(path);
                             return html`
-                                <sp-checkbox
-                                    value="${path}"
-                                    ?checked=${checked}
-                                    @change=${this.#handleCheckboxToggle}
-                                >
+                                <sp-checkbox value="${path}" ?checked=${checked} @change=${this.#handleCheckboxToggle}>
                                     ${this.#resolveTagTitle(path)}
                                 </sp-checkbox>
                             `;
@@ -525,17 +493,10 @@ class AemTagPickerField extends LitElement {
                 </div>
                 <div id="footer">
                     <span> ${this.selectedText} </span>
-                    <sp-button
-                        size="s"
-                        @click=${this.resetSelection}
-                        variant="secondary"
-                        treatment="outline"
-                    >
+                    <sp-button size="s" @click=${this.resetSelection} variant="secondary" treatment="outline">
                         Reset
                     </sp-button>
-                    <sp-button size="s" @click=${this.applySelection}>
-                        Apply
-                    </sp-button>
+                    <sp-button size="s" @click=${this.applySelection}> Apply </sp-button>
                 </div>
             </div>
         `;
@@ -547,21 +508,15 @@ class AemTagPickerField extends LitElement {
      * - The footer shows # selected, plus Reset/Apply.
      */
     renderCheckboxMode() {
-        const selectCount =
-            this.value.length > 0 ? html`(${this.value.length})` : '';
+        const selectCount = this.value.length > 0 ? html`(${this.value.length})` : '';
         return html`
-            <overlay-trigger
-                placement="bottom"
-                @sp-closed=${this.#handleCheckoxMenuClose}
-            >
+            <overlay-trigger placement="bottom" @sp-closed=${this.#handleCheckoxMenuClose}>
                 <sp-action-button slot="trigger" quiet>
                     ${this.triggerLabel} ${selectCount}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
 
-                <sp-popover slot="click-content" class="checkbox-popover">
-                    ${this.checkboxMenu}
-                </sp-popover>
+                <sp-popover slot="click-content" class="checkbox-popover"> ${this.checkboxMenu} </sp-popover>
             </overlay-trigger>
         `;
     }
@@ -581,9 +536,7 @@ class AemTagPickerField extends LitElement {
                     <sp-popover slot="click-content">
                         <sp-dialog size="s" no-divider>
                             <sp-sidenav @change=${this.#handleChange}>
-                                ${this.renderSidenavItems(
-                                    this.hierarchicalTags,
-                                )}
+                                ${this.renderSidenavItems(this.hierarchicalTags)}
                             </sp-sidenav>
                         </sp-dialog>
                     </sp-popover>

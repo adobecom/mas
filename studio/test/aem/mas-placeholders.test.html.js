@@ -46,11 +46,7 @@ function createStoreMock(initialData = {}) {
         filters: createObservable(initialData.filters || { locale: 'en_US' }),
         page: createObservable(initialData.page || PAGE_NAMES.PLACEHOLDERS),
         folders: {
-            data: createObservable(
-                initialData.folderData || [
-                    { path: 'test-folder', name: 'Test Folder' },
-                ],
-            ),
+            data: createObservable(initialData.folderData || [{ path: 'test-folder', name: 'Test Folder' }]),
             loaded: createObservable(true),
         },
         placeholders: {
@@ -192,9 +188,7 @@ runTests(async () => {
             await new Promise((r) => setTimeout(r, 50)); // Increased delay
 
             // Check progress circle is gone
-            const progressAfter = element.shadowRoot.querySelector(
-                'sp-progress-circle, .progress-indicator',
-            );
+            const progressAfter = element.shadowRoot.querySelector('sp-progress-circle, .progress-indicator');
             expect(progressAfter).to.not.exist;
         });
 
@@ -203,8 +197,7 @@ runTests(async () => {
             element.error = 'Test Error';
             await new Promise((r) => setTimeout(r, 10)); // Small delay
             // Check for error message
-            const errorElement =
-                element.shadowRoot.querySelector('.error-message');
+            const errorElement = element.shadowRoot.querySelector('.error-message');
 
             expect(errorElement).to.exist;
             expect(errorElement.textContent).to.include('Test Error');

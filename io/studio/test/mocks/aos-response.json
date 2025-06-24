@@ -13,15 +13,9 @@
         "language": "MULT",
         "platform": "Mac/Win",
         "merchant": "ADOBE",
-        "market_segments": [
-            "EDU"
-        ],
+        "market_segments": ["EDU"],
         "buying_program": "VIP",
-        "customer_ui": [
-            "rc_available_offers",
-            "aac_overview",
-            "aac_products"
-        ],
+        "customer_ui": ["rc_available_offers", "aac_overview", "aac_products"],
         "countries": [
             "AD",
             "AE",
@@ -397,12 +391,7 @@
                 "market_segment_name": "Adobe Stock \u2013 10 assets a month",
                 "market_segment_description": "Access millions of high-quality, royalty-free images, templates, and 3D assets\u2014all built right into your favorite Adobe Creative Cloud apps. Adobe Stock lets your creatives find the perfect asset quickly with search powered by Adobe Sensei. Rollover included up to 120 unused licenses.",
                 "market_segment_short_description": "Access millions of high-quality, royalty-free images, templates, and 3D assets. Rollover included.",
-                "tags": [
-                    "Photo",
-                    "Graphic Design",
-                    "Illustration",
-                    "UI and UX"
-                ],
+                "tags": ["Photo", "Graphic Design", "Illustration", "UI and UX"],
                 "internal_name": "Adobe Stock \u2013 10 assets a month"
             },
             "assets": {
@@ -559,25 +548,10 @@
         "language": "MULT",
         "platform": "Mac/Win",
         "merchant": "ADOBE",
-        "market_segments": [
-            "GOV"
-        ],
+        "market_segments": ["GOV"],
         "buying_program": "VIP",
-        "customer_ui": [
-            "aac_products",
-            "aac_overview"
-        ],
-        "countries": [
-            "BQ",
-            "CA",
-            "GU",
-            "MP",
-            "MX",
-            "PR",
-            "UM",
-            "US",
-            "VI"
-        ],
+        "customer_ui": ["aac_products", "aac_overview"],
+        "countries": ["BQ", "CA", "GU", "MP", "MX", "PR", "UM", "US", "VI"],
         "product_arrangement_v2": {
             "id": "wp5T7Tm2UiwhHLbab1O-9sobdTzffShs-GvmikhcDaY",
             "code": "PA-263",

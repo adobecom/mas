@@ -17,14 +17,7 @@ const config = {
             require: 'readonly',
         },
     },
-    ignores: [
-        '/node_modules/',
-        '**/node_modules/**',
-        '/libs/',
-        '**/libs/**',
-        '**/dist/**',
-        'studio/ost/index.js',
-    ],
+    ignores: ['/node_modules/', '**/node_modules/**', '/libs/', '**/libs/**', '**/dist/**', 'studio/ost/index.js'],
     ...eslintPluginPrettierRecommended,
 };
 

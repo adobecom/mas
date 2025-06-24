@@ -67,9 +67,7 @@ class MasPlaceholdersCreationModal extends LitElement {
         }
         showToast('Creating placeholder...');
         this.saving = true;
-        const success = await this.repository.createPlaceholder(
-            this.placeholder,
-        );
+        const success = await this.repository.createPlaceholder(this.placeholder);
         this.saving = false;
         if (!success) return;
         this.dispatchEvent(new CustomEvent('save'));
@@ -98,9 +96,7 @@ class MasPlaceholdersCreationModal extends LitElement {
                         }}
                     >
                         <div class="form-field">
-                            <sp-field-label for="placeholder-key" required>
-                                Key
-                            </sp-field-label>
+                            <sp-field-label for="placeholder-key" required> Key </sp-field-label>
                             <sp-textfield
                                 id="placeholder-key"
                                 placeholder="Enter key"
@@ -111,9 +107,7 @@ class MasPlaceholdersCreationModal extends LitElement {
                         </div>
 
                         <div class="form-field">
-                            <sp-field-label for="placeholder-locale" required>
-                                Locale
-                            </sp-field-label>
+                            <sp-field-label for="placeholder-locale" required> Locale </sp-field-label>
                             <mas-locale-picker
                                 id="placeholder-locale"
                                 ?disabled=${this.saving}
@@ -122,9 +116,7 @@ class MasPlaceholdersCreationModal extends LitElement {
                         </div>
 
                         <div class="form-field">
-                            <sp-field-label for="rich-text-toggle">
-                                Rich Text
-                            </sp-field-label>
+                            <sp-field-label for="rich-text-toggle"> Rich Text </sp-field-label>
                             <sp-switch
                                 id="rich-text-toggle"
                                 @change=${this.handleIsRickText}
@@ -136,9 +128,7 @@ class MasPlaceholdersCreationModal extends LitElement {
                         </div>
 
                         <div class="form-field">
-                            <sp-field-label for="placeholder-value" required>
-                                Value
-                            </sp-field-label>
+                            <sp-field-label for="placeholder-value" required> Value </sp-field-label>
                             ${this.placeholder.isRichText
                                 ? html`
                                       <div class="rte-container">
@@ -168,7 +158,4 @@ class MasPlaceholdersCreationModal extends LitElement {
     }
 }
 
-customElements.define(
-    'mas-placeholders-creation-modal',
-    MasPlaceholdersCreationModal,
-);
+customElements.define('mas-placeholders-creation-modal', MasPlaceholdersCreationModal);

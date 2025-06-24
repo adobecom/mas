@@ -29,9 +29,7 @@ const Store = {
     search: new ReactiveStore({}),
     filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
     sort: new ReactiveStore({}),
-    renderMode: new ReactiveStore(
-        localStorage.getItem('mas-render-mode') || 'render',
-    ),
+    renderMode: new ReactiveStore(localStorage.getItem('mas-render-mode') || 'render'),
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
@@ -47,9 +45,7 @@ const Store = {
         editing: new ReactiveStore(null),
         addons: {
             loading: new ReactiveStore(false),
-            data: new ReactiveStore([
-                { value: 'disabled', itemText: 'disabled' },
-            ]),
+            data: new ReactiveStore([{ value: 'disabled', itemText: 'disabled' }]),
         },
     },
     confirmDialogOptions: new ReactiveStore(null),
@@ -82,11 +78,7 @@ function filtersValidator(value) {
  * @returns {string}
  */
 function pageValidator(value) {
-    const validPages = [
-        PAGE_NAMES.WELCOME,
-        PAGE_NAMES.CONTENT,
-        PAGE_NAMES.PLACEHOLDERS,
-    ];
+    const validPages = [PAGE_NAMES.WELCOME, PAGE_NAMES.CONTENT, PAGE_NAMES.PLACEHOLDERS];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }
 
@@ -100,8 +92,7 @@ function sortValidator(value) {
         const isValidField = (SORT_COLUMNS[page] || []).includes(result.sortBy);
         if (!isValidField) result.sortBy = defaultSortBy;
     }
-    if (result.sortDirection !== 'asc' && result.sortDirection !== 'desc')
-        result.sortDirection = 'asc';
+    if (result.sortDirection !== 'asc' && result.sortDirection !== 'desc') result.sortDirection = 'asc';
     return result;
 }
 // This validator accesses the store object, so it can't be passed in the
@@ -117,10 +108,7 @@ const editorPanel = () => document.querySelector('editor-panel');
  */
 export function toggleSelection(id) {
     const selection = Store.selection.get();
-    if (selection.includes(id))
-        Store.selection.set(
-            selection.filter((selectedId) => selectedId !== id),
-        );
+    if (selection.includes(id)) Store.selection.set(selection.filter((selectedId) => selectedId !== id));
     else Store.selection.set([...selection, id]);
 }
 

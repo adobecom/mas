@@ -11,5 +11,6 @@ Please do the steps below before submitting your PR for a code review or QA
 - [ ] C.6 read your Jira one more time to validate that you've addressed all AC's and nothing is missing
 
 Test URLs:
+
 - Before: https://main--mas--adobecom.aem.live/
 - After: https://mwpw-NUMBER--mas--adobecom.aem.live/

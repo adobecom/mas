@@ -25,6 +25,11 @@ export const VARIANTS = [
         value: 'fries',
         surface: 'commerce',
     },
+    {
+        label: 'Simplified pricing Express',
+        value: 'simplified-pricing-express',
+        surface: 'acom',
+    },
 ];
 
 class VariantPicker extends LitElement {

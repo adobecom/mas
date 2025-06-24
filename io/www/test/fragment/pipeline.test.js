@@ -46,6 +46,10 @@ function setupFragmentMocks({ id, path, fields = {} }, preview = false) {
                 },
             ],
         });
+    // candadian french fragment by path
+    nock(odinDomain).get(`${odinUriRoot}?path=/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app`).reply(200, {
+        items: [],
+    });
     // french fragment by id
     nock(odinDomain).get(`${odinUriRoot}/some-fr-fr-fragment?references=all-hydrated`).reply(200, FRAGMENT_RESPONSE_FR);
 
@@ -165,6 +169,29 @@ describe('pipeline full use case', () => {
         expect(result.statusCode).to.equal(304);
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers['Last-Modified']).to.equal(RANDOM_OLD_DATE);
+    });
+
+    it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment from fr_CA locale request', async () => {
+        setupFragmentMocks({
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        const state = new MockState();
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state: state,
+            locale: 'fr_CA',
+        });
+        expect(result.statusCode).to.equal(200);
+        expect(result.body).to.deep.include(EXPECTED_BODY);
+        expect(result.headers).to.have.property('Last-Modified');
+        expect(result.headers).to.have.property('ETag');
+        expect(Object.keys(state.store).length).to.equal(1);
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_CA');
+        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA']);
+        //we should not have translatedId as there is no guarantee it stays that way
+        expect(json.dictionaryId).to.not.equal('fr_FR_dictionary');
+        expect(json).to.not.have.property('translatedId');
     });
 });
 

@@ -121,10 +121,7 @@
                             "type": "text",
                             "multiple": true,
                             "locked": false,
-                            "values": [
-                                "https://www.adobe.com/products/catalog.html",
-                                "https://www.adobe.com"
-                            ]
+                            "values": ["https://www.adobe.com/products/catalog.html", "https://www.adobe.com"]
                         },
                         {
                             "name": "badge",
@@ -246,13 +243,6 @@
                             "multiple": false,
                             "locked": false,
                             "values": []
-                        },
-                        {
-                            "name": "showStockCheckbox",
-                            "type": "boolean",
-                            "multiple": false,
-                            "locked": false,
-                            "values": [false]
                         },
                         {
                             "name": "quantitySelect",
@@ -420,10 +410,7 @@
                             "type": "text",
                             "multiple": true,
                             "locked": false,
-                            "values": [
-                                "https://www.adobe.com/products/catalog.html",
-                                "https://www.adobe.com"
-                            ]
+                            "values": ["https://www.adobe.com/products/catalog.html", "https://www.adobe.com"]
                         },
                         {
                             "name": "badge",
@@ -543,13 +530,6 @@
                             "multiple": false,
                             "locked": false,
                             "values": []
-                        },
-                        {
-                            "name": "showStockCheckbox",
-                            "type": "boolean",
-                            "multiple": false,
-                            "locked": false,
-                            "values": [true]
                         },
                         {
                             "name": "quantitySelect",
@@ -676,9 +656,7 @@
                     "type": "text",
                     "multiple": false,
                     "locked": false,
-                    "values": [
-                        "https://main--milo--adobecom.hlx.page/drafts/astatescu/icons/camera.svg"
-                    ]
+                    "values": ["https://main--milo--adobecom.hlx.page/drafts/astatescu/icons/camera.svg"]
                 },
                 {
                     "name": "cards",
@@ -780,10 +758,7 @@
                             "type": "text",
                             "multiple": true,
                             "locked": false,
-                            "values": [
-                                "https://www.adobe.com/products/catalog.html",
-                                "https://www.adobe.com"
-                            ]
+                            "values": ["https://www.adobe.com/products/catalog.html", "https://www.adobe.com"]
                         },
                         {
                             "name": "badge",
@@ -905,13 +880,6 @@
                             "multiple": false,
                             "locked": false,
                             "values": []
-                        },
-                        {
-                            "name": "showStockCheckbox",
-                            "type": "boolean",
-                            "multiple": false,
-                            "locked": false,
-                            "values": [false]
                         },
                         {
                             "name": "quantitySelect",
@@ -1079,10 +1047,7 @@
                             "type": "text",
                             "multiple": true,
                             "locked": false,
-                            "values": [
-                                "https://www.adobe.com/products/catalog.html",
-                                "https://www.adobe.com"
-                            ]
+                            "values": ["https://www.adobe.com/products/catalog.html", "https://www.adobe.com"]
                         },
                         {
                             "name": "badge",
@@ -1202,13 +1167,6 @@
                             "multiple": false,
                             "locked": false,
                             "values": []
-                        },
-                        {
-                            "name": "showStockCheckbox",
-                            "type": "boolean",
-                            "multiple": false,
-                            "locked": false,
-                            "values": [true]
                         },
                         {
                             "name": "quantitySelect",

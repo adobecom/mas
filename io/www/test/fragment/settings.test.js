@@ -18,8 +18,6 @@ describe('settings transformer', () => {
 
         const result = await settings(context);
         expect(result.body.settings).to.deep.equal({
-            stockCheckboxLabel: '{{stock-checkbox-label}}',
-            stockOfferOsis: '',
             secureLabel: '{{secure-label}}',
             displayPlanType: true,
         });
@@ -33,8 +31,6 @@ describe('settings transformer', () => {
 
         const result = await settings(context);
         expect(result.body.settings).to.deep.equal({
-            stockCheckboxLabel: '{{stock-checkbox-label}}',
-            stockOfferOsis: '',
             secureLabel: '{{secure-label}}',
             displayPlanType: true,
         });
@@ -48,8 +44,6 @@ describe('settings transformer', () => {
 
         const result = await settings(context);
         expect(result.body.settings).to.deep.equal({
-            stockCheckboxLabel: '{{stock-checkbox-label}}',
-            stockOfferOsis: '',
             displayPlanType: true,
         });
     });
@@ -69,8 +63,6 @@ describe('settings transformer', () => {
 
         const result = await settings(context);
         expect(result.body.references.ref1.value.settings).to.deep.equal({
-            stockCheckboxLabel: '{{stock-checkbox-label}}',
-            stockOfferOsis: '',
             secureLabel: '{{secure-label}}',
             displayPlanType: true,
         });
@@ -98,8 +90,6 @@ describe('settings transformer', () => {
 
         const result = await settings(context);
         expect(result.body.references.ref1.value.settings).to.deep.equal({
-            stockCheckboxLabel: '{{stock-checkbox-label}}',
-            stockOfferOsis: '',
             secureLabel: '{{secure-label}}',
             displayPlanType: true,
         });
@@ -112,8 +102,6 @@ describe('settings transformer', () => {
 
         const result = await settings(context);
         expect(result.body.settings).to.deep.equal({
-            stockCheckboxLabel: '{{stock-checkbox-label}}',
-            stockOfferOsis: '',
             secureLabel: '{{secure-label}}',
         });
     });
@@ -169,8 +157,6 @@ describe('settings transformer', () => {
 
         const result = await settings(context);
         expect(result.body.settings).to.deep.equal({
-            stockCheckboxLabel: '{{stock-checkbox-label}}',
-            stockOfferOsis: '',
             secureLabel: '{{secure-label}}',
             displayPlanType: false,
         });

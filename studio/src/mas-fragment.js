@@ -76,9 +76,7 @@ class MasFragment extends LitElement {
                 @mouseleave=${this.handleMouseLeave}
                 @dblclick=${this.edit}
             ></mas-fragment-table
-            ><sp-tooltip slot="hover-content" placement="top"
-                >Double click the card to start editing.</sp-tooltip
-            >
+            ><sp-tooltip slot="hover-content" placement="top">Double click the card to start editing.</sp-tooltip>
         </overlay-trigger>`;
     }
 

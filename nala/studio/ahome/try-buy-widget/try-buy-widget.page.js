@@ -7,12 +7,8 @@ export default class TryBuyWidgetPage {
         this.cardIcon = page.locator('merch-icon[slot="icons"]');
         this.cardImage = page.locator('div[slot="image"] img');
         this.cardPriceSlot = page.locator('p[slot="price"]');
-        this.cardPrice = page
-            .locator('span[data-template="price"] > .price')
-            .first();
-        this.cardPriceStrikethrough = page.locator(
-            'span[data-template="price"] > .price-strikethrough',
-        );
+        this.cardPrice = page.locator('span[data-template="price"] > .price').first();
+        this.cardPriceStrikethrough = page.locator('span[data-template="price"] > .price-strikethrough');
         this.cardCTASlot = page.locator('div[slot="cta"]');
         this.cardCTA = page.locator('div[slot="cta"] > button');
     }

@@ -14,27 +14,24 @@ function transformFields(body) {
             }
         });
     }
-    const transformedFields = fields.reduce(
-        (fields, { name, multiple, values, mimeType }) => {
-            if (CF_REFERENCE_FIELDS.includes(name)) {
-                fields[name] = values.map((value) => {
-                    if (typeof value === 'string') {
-                        return pathToIdMap[value] || value;
-                    }
-                    return value;
-                });
-            } else if (mimeType === 'text/html') {
-                fields[name] = {
-                    mimeType,
-                    value: values[0],
-                };
-            } else {
-                fields[name] = multiple ? values : values[0];
-            }
-            return fields;
-        },
-        {},
-    );
+    const transformedFields = fields.reduce((fields, { name, multiple, values, mimeType }) => {
+        if (CF_REFERENCE_FIELDS.includes(name)) {
+            fields[name] = values.map((value) => {
+                if (typeof value === 'string') {
+                    return pathToIdMap[value] || value;
+                }
+                return value;
+            });
+        } else if (mimeType === 'text/html') {
+            fields[name] = {
+                mimeType,
+                value: values[0],
+            };
+        } else {
+            fields[name] = multiple ? values : values[0];
+        }
+        return fields;
+    }, {});
     return transformedFields;
 }
 
@@ -53,10 +50,7 @@ function buildReferenceTree(fields, references) {
                     };
                     const nestedRef = references[id];
                     if (nestedRef.type === 'content-fragment') {
-                        ref.referencesTree = buildReferenceTree(
-                            nestedRef.value.fields,
-                            references,
-                        );
+                        ref.referencesTree = buildReferenceTree(nestedRef.value.fields, references);
                     }
                     referencesTree.push(ref);
                 }
@@ -77,9 +71,7 @@ function transformReferences(body) {
         if (ref.references && ref.references.length > 0) {
             ref.references.forEach((nestedRef) => {
                 // Add nested reference to main references array if not already present
-                if (
-                    !Object.keys(references).find((id) => id === nestedRef.id)
-                ) {
+                if (!Object.keys(references).find((id) => id === nestedRef.id)) {
                     // Process the nested reference recursively
                     processReference(references, nestedRef);
                 }
@@ -102,7 +94,8 @@ function transformReferences(body) {
         // If the current ref (e.g., a card) has associated tag objects, add them.
         if (ref.tags && Array.isArray(ref.tags)) {
             ref.tags.forEach((tag) => {
-                if (tag && tag.id && !references[tag.id]) { // Check if tag not already added
+                if (tag && tag.id && !references[tag.id]) {
+                    // Check if tag not already added
                     references[tag.id] = {
                         type: 'tag',
                         value: {
@@ -110,10 +103,7 @@ function transformReferences(body) {
                             name: tag.name || '',
                             title: tag.title || '',
                             path: tag.path || '',
-                            description:
-                                tag.description !== undefined
-                                    ? tag.description
-                                    : null,
+                            description: tag.description !== undefined ? tag.description : null,
                             i18n: tag.i18n || [],
                             titlePath: tag.titlePath || '',
                         },

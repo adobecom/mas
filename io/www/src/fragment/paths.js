@@ -2,8 +2,7 @@ const MAS_ROOT = '/content/dam/mas';
 
 const FRAGMENT_URL_PREFIX = 'https://odin.adobe.com/adobe/sites/fragments';
 
-const PATH_TOKENS =
-    /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
+const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
 
 function rootURL(preview) {
     return `${!preview?.url ? FRAGMENT_URL_PREFIX : preview.url}`;

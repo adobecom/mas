@@ -56,13 +56,7 @@ export class RteIconEditor extends LitElement {
                 type="button"
                 >Cancel</sp-button
             >
-            <sp-button
-                id="saveButton"
-                slot="button"
-                variant="accent"
-                @click=${this.#handleSave}
-                >Insert</sp-button
-            >
+            <sp-button id="saveButton" slot="button" variant="accent" @click=${this.#handleSave}>Insert</sp-button>
         </sp-dialog>`;
     }
 
@@ -90,9 +84,7 @@ export class RteIconEditor extends LitElement {
 
     #handleClose() {
         this.open = false;
-        this.dispatchEvent(
-            new CustomEvent('close', { bubbles: false, composed: true }),
-        );
+        this.dispatchEvent(new CustomEvent('close', { bubbles: false, composed: true }));
     }
 
     render() {

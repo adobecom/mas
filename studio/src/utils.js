@@ -240,3 +240,15 @@ export function generateCodeToUse(fragment, path, page, failMessage) {
     const richText = `<a href="${href}" target="_blank">${authorPath}</a>`;
     return { authorPath, code, richText, href };
 }
+
+/*
+ * Helper method to show toast messages with consistent formatting
+ * @param {string} message - The message to display
+ * @param {string} variant - The toast variant (positive, negative, info)
+ */
+export function showToast(message, variant = 'info') {
+    Events.toast.emit({
+        variant,
+        content: message,
+    });
+}

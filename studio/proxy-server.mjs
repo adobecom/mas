@@ -64,8 +64,7 @@ function requestHandler(req, res) {
         const options = {
             protocol: targetUrl.protocol,
             hostname: targetUrl.hostname,
-            port:
-                targetUrl.port || (targetUrl.protocol === 'https:' ? 443 : 80),
+            port: targetUrl.port || (targetUrl.protocol === 'https:' ? 443 : 80),
             path: url,
             method,
             headers: {
@@ -89,9 +88,7 @@ function requestHandler(req, res) {
             let curlCommand = `curl -X ${options.method} '${urlString}'`;
 
             // Add headers
-            for (const [headerName, headerValue] of Object.entries(
-                options.headers,
-            )) {
+            for (const [headerName, headerValue] of Object.entries(options.headers)) {
                 // Escape single quotes in header values
                 const escapedHeaderValue = headerValue.replace(/'/g, "'\\''");
                 curlCommand += ` -H '${headerName}: ${escapedHeaderValue}'`;
@@ -108,9 +105,7 @@ function requestHandler(req, res) {
 
             // Now proceed to make the proxy request
 
-            const proxyRequest = (
-                targetUrl.protocol === 'https:' ? httpsRequest : httpRequest
-            )(options, (proxyRes) => {
+            const proxyRequest = (targetUrl.protocol === 'https:' ? httpsRequest : httpRequest)(options, (proxyRes) => {
                 // Add CORS headers to the response
                 res.writeHead(proxyRes.statusCode, {
                     ...proxyRes.headers,
@@ -136,7 +131,5 @@ function requestHandler(req, res) {
 }
 
 server.listen(serverPort, () => {
-    console.log(
-        `Proxy server is running on ${serverProtocol}://localhost:${serverPort}`,
-    );
+    console.log(`Proxy server is running on ${serverProtocol}://localhost:${serverPort}`);
 });

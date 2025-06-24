@@ -55,9 +55,9 @@
                     });
                     it('should render', async () => {
                         const editor = document.querySelector('editor-panel');
-                        const collectionFragment = await fetch('/test/mocks/adobe/sites/cf/fragments/collection.json').then(
-                            (res) => res.json(),
-                        );
+                        const collectionFragment = await originalFetch(
+                            '/test/mocks/adobe/sites/cf/fragments/collection.json',
+                        ).then((res) => res.json());
                         const fragmentStore = new FragmentStore(new Fragment(collectionFragment));
                         await editor.editFragment(fragmentStore, 1);
                         expect(editor.querySelector('merch-card-collection-editor')).to.exist;

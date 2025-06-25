@@ -77,13 +77,6 @@ async function settings(context) {
         applyCollectionSettings(context);
     }
 
-    if (context.body?.references) {
-        Object.entries(context.body.references).forEach(([key, ref]) => {
-            if (ref && ref.type === 'content-fragment' && ref.value?.fields?.variant?.startsWith('plans')) {
-                applyPlansSettings(ref.value, locale);
-            }
-        });
-    }
     applyPriceLiterals(context.body);
 
     return context;

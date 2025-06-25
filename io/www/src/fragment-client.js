@@ -26,13 +26,7 @@ async function previewFragment(id, options) {
         api_key: 'n/a',
         locale,
     };
-    for (const transformer of [
-        fetchFragment,
-        translate,
-        settings,
-        replace,
-        corrector,
-    ]) {
+    for (const transformer of [fetchFragment, translate, settings, replace, corrector]) {
         if (context.status != 200) {
             logError(context.message, context);
             break;

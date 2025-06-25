@@ -36,9 +36,7 @@ class MasSelectionPanel extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         window.addEventListener(EVENT_KEYDOWN, this.close);
-        this.reactiveController = new ReactiveController(this, [
-            this.selectionStore,
-        ]);
+        this.reactiveController = new ReactiveController(this, [this.selectionStore]);
     }
 
     disconnectedCallback() {
@@ -79,12 +77,7 @@ class MasSelectionPanel extends LitElement {
 
     render() {
         const count = this.selection.length;
-        return html`<sp-action-bar
-            emphasized
-            ?open=${this.open}
-            variant="fixed"
-            @close=${this.close}
-        >
+        return html`<sp-action-bar emphasized ?open=${this.open} variant="fixed" @close=${this.close}>
             ${count} selected
             ${count === 1
                 ? html`<sp-action-button
@@ -94,24 +87,13 @@ class MasSelectionPanel extends LitElement {
                       @click=${this.handleDuplicate}
                   >
                       <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
-                      <sp-tooltip self-managed placement="top"
-                          >Duplicate</sp-tooltip
-                      >
+                      <sp-tooltip self-managed placement="top">Duplicate</sp-tooltip>
                   </sp-action-button>`
                 : nothing}
             ${count > 0
-                ? html`<sp-action-button
-                      slot="buttons"
-                      label="Delete"
-                      ?disabled=${!this.onDelete}
-                      @click=${this.handleDelete}
-                  >
-                      <sp-icon-delete-outline
-                          slot="icon"
-                      ></sp-icon-delete-outline>
-                      <sp-tooltip self-managed placement="top"
-                          >Delete</sp-tooltip
-                      >
+                ? html`<sp-action-button slot="buttons" label="Delete" ?disabled=${!this.onDelete} @click=${this.handleDelete}>
+                      <sp-icon-delete-outline slot="icon"></sp-icon-delete-outline>
+                      <sp-tooltip self-managed placement="top">Delete</sp-tooltip>
                   </sp-action-button>`
                 : nothing}
             ${count > 0
@@ -121,12 +103,8 @@ class MasSelectionPanel extends LitElement {
                       ?disabled=${!this.onPublish}
                       @click=${this.handlePublish}
                   >
-                      <sp-icon-publish-check
-                          slot="icon"
-                      ></sp-icon-publish-check>
-                      <sp-tooltip self-managed placement="top"
-                          >Publish</sp-tooltip
-                      >
+                      <sp-icon-publish-check slot="icon"></sp-icon-publish-check>
+                      <sp-tooltip self-managed placement="top">Publish</sp-tooltip>
                   </sp-action-button>`
                 : nothing}
             ${count > 0
@@ -136,12 +114,8 @@ class MasSelectionPanel extends LitElement {
                       ?disabled=${!this.onUnpublish}
                       @click=${this.handleUnpublish}
                   >
-                      <sp-icon-publish-remove
-                          slot="icon"
-                      ></sp-icon-publish-remove>
-                      <sp-tooltip self-managed placement="top"
-                          >Unpublish</sp-tooltip
-                      >
+                      <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
+                      <sp-tooltip self-managed placement="top">Unpublish</sp-tooltip>
                   </sp-action-button>`
                 : nothing}
         </sp-action-bar>`;

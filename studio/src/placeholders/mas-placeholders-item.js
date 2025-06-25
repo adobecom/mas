@@ -39,24 +39,20 @@ class MasPlaceholdersItem extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.reactiveController = new ReactiveController(this, [
-            this.placeholderStore,
-        ]);
+        this.reactiveController = new ReactiveController(this, [this.placeholderStore]);
     }
 
     updated(changedProps) {
         super.updated(changedProps);
         // Needed to avoid using "unsafeHtml" in the rte-field
-        if (this.editing && this.placeholder.isRichText)
-            this.initializeRteField();
+        if (this.editing && this.placeholder.isRichText) this.initializeRteField();
     }
 
     initializeRteField() {
         const rteField = this.querySelector('rte-field');
         if (!rteField) return;
         if (!rteField.initialized) {
-            rteField.innerHTML =
-                this.placeholder.getFieldValue('richTextValue');
+            rteField.innerHTML = this.placeholder.getFieldValue('richTextValue');
             rteField.initialized = true;
         }
     }
@@ -86,9 +82,7 @@ class MasPlaceholdersItem extends LitElement {
     }
 
     handleRteValueChange(event) {
-        this.placeholderStore.updateField('richTextValue', [
-            event.target.value || '',
-        ]);
+        this.placeholderStore.updateField('richTextValue', [event.target.value || '']);
     }
 
     async onSave(event) {
@@ -115,13 +109,7 @@ class MasPlaceholdersItem extends LitElement {
         });
         if (!confirmed) return;
         showToast('Deleting placeholder...');
-        if (
-            !(await this.repository.removeFromIndexFragment(
-                this.placeholder,
-                true,
-            ))
-        )
-            return;
+        if (!(await this.repository.removeFromIndexFragment(this.placeholder, true))) return;
         this.repository.deleteFragment(this.placeholder, {
             startToast: false,
             endToast: false,
@@ -149,17 +137,10 @@ class MasPlaceholdersItem extends LitElement {
     render() {
         return html`
             <sp-table-row value=${this.placeholder.key}>
-                ${this.renderKeyCell()} ${this.renderValueCell()}
-                ${this.renderStatusCell()}
+                ${this.renderKeyCell()} ${this.renderValueCell()} ${this.renderStatusCell()}
                 ${this.renderTableCell(this.locale, 'right')}
-                ${this.renderTableCell(
-                    this.placeholder.updatedBy,
-                    'right',
-                    'updated-by',
-                    true,
-                )}
-                ${this.renderTableCell(this.placeholder.updatedAt, 'right')}
-                ${this.renderActionCell()}
+                ${this.renderTableCell(this.placeholder.updatedBy, 'right', 'updated-by', true)}
+                ${this.renderTableCell(this.placeholder.updatedAt, 'right')} ${this.renderActionCell()}
             </sp-table-row>
         `;
     }
@@ -169,25 +150,15 @@ class MasPlaceholdersItem extends LitElement {
      * @param {string} content - Cell content
      * @returns {TemplateResult} - HTML template
      */
-    renderTableCell(
-        content = '',
-        align = '',
-        className = '',
-        forceTooltip = false,
-    ) {
+    renderTableCell(content = '', align = '', className = '', forceTooltip = false) {
         const needsTooltip = forceTooltip || content.length > 50;
-        const value =
-            content.length > 50 ? `${content.substring(0, 47)}...` : content;
+        const value = content.length > 50 ? `${content.substring(0, 47)}...` : content;
         return html`
-            <sp-table-cell
-                class=${className}
-                style="${align === 'right' ? 'text-align: right;' : ''}"
+            <sp-table-cell class=${className} style="${align === 'right' ? 'text-align: right;' : ''}"
                 >${html`<overlay-trigger placement="top"
                     ><div class="cell-content" slot="trigger">${value}</div>
                     ${needsTooltip
-                        ? html`<sp-tooltip slot="hover-content" placement="top"
-                              >${content}</sp-tooltip
-                          >`
+                        ? html`<sp-tooltip slot="hover-content" placement="top">${content}</sp-tooltip>`
                         : nothing}</overlay-trigger
                 >`}
             </sp-table-cell>
@@ -244,10 +215,7 @@ class MasPlaceholdersItem extends LitElement {
         if (this.placeholder.isRichText) {
             return html`
                 <sp-table-cell class="value">
-                    <div
-                        class="rich-text-cell"
-                        .innerHTML=${this.placeholder.value}
-                    ></div>
+                    <div class="rich-text-cell" .innerHTML=${this.placeholder.value}></div>
                 </sp-table-cell>
             `;
         }
@@ -259,9 +227,7 @@ class MasPlaceholdersItem extends LitElement {
         return html`
             <sp-table-cell>
                 <div class="status-cell">
-                    <mas-fragment-status
-                        variant="${this.placeholder.statusVariant}"
-                    ></mas-fragment-status>
+                    <mas-fragment-status variant="${this.placeholder.statusVariant}"></mas-fragment-status>
                 </div>
             </sp-table-cell>
         `;
@@ -276,8 +242,7 @@ class MasPlaceholdersItem extends LitElement {
                             class="action-button approve-button"
                             @click=${this.onSave}
                             aria-label="Save changes"
-                            ?disabled=${!this.placeholder.hasChanges ||
-                            this.disabled}
+                            ?disabled=${!this.placeholder.hasChanges || this.disabled}
                         >
                             <sp-icon-checkmark></sp-icon-checkmark>
                         </button>
@@ -299,8 +264,7 @@ class MasPlaceholdersItem extends LitElement {
                 <div class="action-buttons">
                     <button
                         class="action-button approve-button"
-                        @click=${(event) =>
-                            this.toggleEditing(this.placeholder.key, event)}
+                        @click=${(event) => this.toggleEditing(this.placeholder.key, event)}
                         aria-label="Edit placeholder"
                         ?disabled=${this.disabled}
                     >
@@ -309,11 +273,7 @@ class MasPlaceholdersItem extends LitElement {
                     <div class="dropdown-menu-container">
                         <button
                             class="action-button action-menu-button"
-                            @click=${(event) =>
-                                this.toggleDropdown(
-                                    this.placeholder.key,
-                                    event,
-                                )}
+                            @click=${(event) => this.toggleDropdown(this.placeholder.key, event)}
                             @mousedown=${this.preventSelection}
                             aria-label="More options"
                             ?disabled=${this.disabled}
@@ -324,9 +284,7 @@ class MasPlaceholdersItem extends LitElement {
                             ? html`
                                   <div class="dropdown-menu">
                                       <div
-                                          class="dropdown-item ${this
-                                              .placeholder.status ===
-                                          STATUS_PUBLISHED
+                                          class="dropdown-item ${this.placeholder.status === STATUS_PUBLISHED
                                               ? 'disabled'
                                               : ''}"
                                           @click=${this.onPublish}
@@ -334,10 +292,7 @@ class MasPlaceholdersItem extends LitElement {
                                           <sp-icon-publish-check></sp-icon-publish-check>
                                           <span>Publish</span>
                                       </div>
-                                      <div
-                                          class="dropdown-item"
-                                          @click="${this.onDelete}"
-                                      >
+                                      <div class="dropdown-item" @click="${this.onDelete}">
                                           <sp-icon-delete></sp-icon-delete>
                                           <span>Delete</span>
                                       </div>

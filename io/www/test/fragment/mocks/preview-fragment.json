@@ -18,7 +18,9 @@
             "type": "long-text",
             "multiple": false,
             "mimeType": "text/html",
-            "values": ["<merch-badge background-color=\"spectrum-yellow-300\" border-color=\"\" variant=\"plans\">Nico</merch-badge>"]
+            "values": [
+                "<merch-badge background-color=\"spectrum-yellow-300\" border-color=\"\" variant=\"plans\">Nico</merch-badge>"
+            ]
         },
         {
             "name": "cardTitle",
@@ -31,21 +33,27 @@
             "type": "long-text",
             "multiple": false,
             "mimeType": "text/html",
-            "values": ["<span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4\"></span>"]
+            "values": [
+                "<span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4\"></span>"
+            ]
         },
         {
             "name": "description",
             "type": "long-text",
             "multiple": false,
             "mimeType": "text/html",
-            "values": ["<p>Edit and organize photos for Fred. Save&nbsp;25% for the first 6 months.&nbsp;Ends Feb 26.&nbsp;<a href=\"https://www.adobe.com/offer-terms/ccpp-1tb-terms.html\" target=\"_blank\">See terms.</a><br><a href=\"https://www.adobe.com/creativecloud/photography/compare-plans.html\">Compare photography plans</a><br><a class=\"modal-Link\" href=\"https://www.adobe.com/plans-fragments/modals/individual/modals-content-rich/photography1tb/master.html\" target=\"_blank\">See all plans &amp; pricing details</a></p>"]
+            "values": [
+                "<p>Edit and organize photos for Fred. Save&nbsp;25% for the first 6 months.&nbsp;Ends Feb 26.&nbsp;<a href=\"https://www.adobe.com/offer-terms/ccpp-1tb-terms.html\" target=\"_blank\">See terms.</a><br><a href=\"https://www.adobe.com/creativecloud/photography/compare-plans.html\">Compare photography plans</a><br><a class=\"modal-Link\" href=\"https://www.adobe.com/plans-fragments/modals/individual/modals-content-rich/photography1tb/master.html\" target=\"_blank\">See all plans &amp; pricing details</a></p>"
+            ]
         },
         {
             "name": "ctas",
             "type": "long-text",
             "multiple": false,
             "mimeType": "text/html",
-            "values": ["<a class=\"accent\" data-wcs-osi=\"BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c\" data-template=\"checkoutUrl\" target=\"_self\" data-analytics-id=\"buy-now\">{{buy-now}}</a>"]
+            "values": [
+                "<a class=\"accent\" data-wcs-osi=\"BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c\" data-template=\"checkoutUrl\" target=\"_self\" data-analytics-id=\"buy-now\">{{buy-now}}</a>"
+            ]
         }
     ],
     "tags": [

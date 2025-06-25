@@ -12,16 +12,12 @@ const wcs = require('./wcs.js').wcs;
 const zlib = require('zlib');
 
 function calculateHash(body) {
-    return crypto
-        .createHash('sha256')
-        .update(JSON.stringify(body))
-        .digest('hex');
+    return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
 }
 
 async function main(params) {
     const startTime = Date.now();
-    const requestId =
-        params.__ow_headers?.['x-request-id'] || 'mas-' + Date.now();
+    const requestId = params.__ow_headers?.['x-request-id'] || 'mas-' + Date.now();
     const api_key = params.api_key || 'n/a';
     const DEFAULT_HEADERS = {
         Accept: 'application/json',
@@ -40,36 +36,22 @@ async function main(params) {
     if (!context.state) {
         context.state = await stateLib.init();
     }
-    context.debugLogs =
-        (await context.state.get('debugFragmentLogs'))?.value || false;
+    context.debugLogs = (await context.state.get('debugFragmentLogs'))?.value || false;
     const requestKey = `req-${context.id}-${context.locale}`;
     const cachedMetadataStr = (await context.state.get(requestKey))?.value;
     let cachedMetadata = {};
     if (cachedMetadataStr) {
-        log(
-            `(${Date.now() - startTime}ms) found cached metadata for ${requestKey} -> ${cachedMetadataStr}`,
-            context,
-        );
+        log(`(${Date.now() - startTime}ms) found cached metadata for ${requestKey} -> ${cachedMetadataStr}`, context);
         try {
             cachedMetadata = JSON.parse(cachedMetadataStr);
             const { translatedId, dictionaryId } = cachedMetadata || {};
             context = { ...context, translatedId, dictionaryId };
         } catch (e) {
-            logError(
-                `Error parsing cached metadata ${cachedMetadataStr}: ${e.message}`,
-                context,
-            );
+            logError(`Error parsing cached metadata ${cachedMetadataStr}: ${e.message}`, context);
         }
     }
 
-    for (const transformer of [
-        fetchFragment,
-        translate,
-        settings,
-        replace,
-        wcs,
-        corrector,
-    ]) {
+    for (const transformer of [fetchFragment, translate, settings, replace, wcs, corrector]) {
         if (context.status != 200) {
             logError(context.message, context);
             break;
@@ -124,15 +106,11 @@ async function main(params) {
     }
     returnValue.headers = {
         ...returnValue.headers,
-        'Access-Control-Expose-Headers':
-            'X-Request-Id,Etag,Last-Modified,server-timing',
+        'Access-Control-Expose-Headers': 'X-Request-Id,Etag,Last-Modified,server-timing',
         'Content-Type': 'application/json',
         'Content-Encoding': 'br',
     };
-    returnValue.body =
-        responseBody?.length > 0
-            ? zlib.brotliCompressSync(responseBody).toString('base64')
-            : undefined;
+    returnValue.body = responseBody?.length > 0 ? zlib.brotliCompressSync(responseBody).toString('base64') : undefined;
     logDebug(() => 'full response: ' + JSON.stringify(returnValue), context);
     log(
         `pipeline completed: ${context.id} ${context.locale} -> ${id} (${returnValue.statusCode}) in ${Date.now() - startTime}ms`,

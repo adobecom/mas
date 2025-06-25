@@ -1,0 +1,38 @@
+name: Check Formatting
+
+on:
+    push:
+        branches:
+            - main
+    pull_request:
+        types: [opened, synchronize, reopened]
+
+jobs:
+    prettier:
+        name: Prettier Check
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 2
+
+            - name: Set up Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ matrix.node-version }}
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Run prettier check
+              run: |
+                  npx prettier --check . > prettier-report.txt 2>&1 || true
+                  cat prettier-report.txt
+                  if grep -q 'Code style issues found' prettier-report.txt; then
+                    echo "The following files are not formatted correctly:"
+                    grep -oP '(?<=\[warn\] ).*' prettier-report.txt
+                    exit 1
+                  else
+                    echo "All files are properly formatted."
+                  fi

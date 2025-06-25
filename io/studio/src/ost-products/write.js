@@ -19,11 +19,7 @@ const getPlanType = ({ commitment, term }) => {
         case '':
             return '';
         case COMMITMENT_YEAR:
-            return term === TERM_MONTHLY
-                ? ABM
-                : term === TERM_ANNUAL
-                  ? PUF
-                  : '';
+            return term === TERM_MONTHLY ? ABM : term === TERM_ANNUAL ? PUF : '';
         case COMMITMENT_MONTH:
             return term === TERM_MONTHLY ? M2M : '';
         case PERPETUAL:
@@ -61,24 +57,12 @@ const paginatedOffers = (allProducts, landscape, locale, params, page = 0) => {
                         }
                         p.planTypes[getPlanType(offer)] = true;
                         p.customerSegments[offer.customer_segment] = true;
-                        offer.market_segments.forEach(
-                            (s) => (p.marketSegments[s] = true),
-                        );
+                        offer.market_segments.forEach((s) => (p.marketSegments[s] = true));
                     }
                 }
-                return paginatedOffers(
-                    allProducts,
-                    landscape,
-                    locale,
-                    params,
-                    ++page,
-                );
+                return paginatedOffers(allProducts, landscape, locale, params, ++page);
             } else {
-                console.log(
-                    `collected ${
-                        Object.entries(allProducts[landscape]).length
-                    } products for ${landscape}`,
-                );
+                console.log(`collected ${Object.entries(allProducts[landscape]).length} products for ${landscape}`);
             }
         });
 };
@@ -98,15 +82,8 @@ async function main(params) {
         ];
         const allProducts = { DRAFT: {}, PUBLISHED: {} };
         const promises = options.map((option) => {
-            console.log(
-                `fetching ${option.landscape} products for locale: ${option.locale}`,
-            );
-            return paginatedOffers(
-                allProducts,
-                option.landscape,
-                option.locale,
-                params,
-            );
+            console.log(`fetching ${option.landscape} products for locale: ${option.locale}`);
+            return paginatedOffers(allProducts, option.landscape, option.locale, params);
         });
         await Promise.all(promises);
         console.log('awaited');
@@ -121,13 +98,8 @@ async function main(params) {
                     draft: true,
                 };
             } // merge planTypes, customerSegments and marketSegments for published and draft offers
-            else if (
-                JSON.stringify(combinedProducts[pa]) !==
-                JSON.stringify(draftOffer)
-            ) {
-                console.log(
-                    `found ${pa} to be draft, but there is already a published offer with the same PA.`,
-                );
+            else if (JSON.stringify(combinedProducts[pa]) !== JSON.stringify(draftOffer)) {
+                console.log(`found ${pa} to be draft, but there is already a published offer with the same PA.`);
                 combinedProducts[pa].planTypes = {
                     ...combinedProducts[pa].planTypes,
                     ...draftOffer.planTypes,
@@ -146,9 +118,7 @@ async function main(params) {
             combinedProducts,
             dateTime: new Date().toString(),
         };
-        const compressed = zlib
-            .brotliCompressSync(JSON.stringify(ostResult, null, 0))
-            .toString('base64');
+        const compressed = zlib.brotliCompressSync(JSON.stringify(ostResult, null, 0)).toString('base64');
         // will be stored in state for a year. state is separated per workspace.
         await state.put('ostResult', compressed, { ttl: stateLib.MAX_TTL });
         return {

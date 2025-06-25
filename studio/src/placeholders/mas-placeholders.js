@@ -72,9 +72,7 @@ class MasPlaceholders extends LitElement {
     updated(changedProperties) {
         super.updated(changedProperties);
         if (!changedProperties.has('pending')) return;
-        const checkboxes = this.shadowRoot.querySelectorAll(
-            'sp-table-checkbox-cell',
-        );
+        const checkboxes = this.shadowRoot.querySelectorAll('sp-table-checkbox-cell');
         checkboxes.forEach((checkbox) => {
             if (this.pending) checkbox.setAttribute('disabled', '');
             else checkbox.removeAttribute('disabled');
@@ -151,15 +149,12 @@ class MasPlaceholders extends LitElement {
                 const value = placeholder.value?.toLowerCase() || '';
                 const matches = key.includes(query) || value.includes(query);
                 if (!matches) {
-                    if (this.selection.includes(placeholder.key))
-                        removeFromSelection.push(placeholder.key);
+                    if (this.selection.includes(placeholder.key)) removeFromSelection.push(placeholder.key);
                 }
                 return matches;
             });
             if (removeFromSelection.length > 0) {
-                Store.placeholders.selection.set((prev) =>
-                    prev.filter((key) => !removeFromSelection.includes(key)),
-                );
+                Store.placeholders.selection.set((prev) => prev.filter((key) => !removeFromSelection.includes(key)));
             }
         }
 
@@ -221,24 +216,16 @@ class MasPlaceholders extends LitElement {
 
     async onDeleted(placeholder) {
         Store.placeholders.list.data.set((prev) =>
-            prev.filter(
-                (placeholderStore) =>
-                    placeholderStore.get().id !== placeholder.id,
-            ),
+            prev.filter((placeholderStore) => placeholderStore.get().id !== placeholder.id),
         );
         if (this.selection.includes(placeholder.key)) {
             if (this.selection.length === 1) this.handleSelectionPanelClose();
             else {
-                Store.placeholders.selection.set((prev) =>
-                    prev.filter((key) => key !== placeholder.key),
-                );
+                Store.placeholders.selection.set((prev) => prev.filter((key) => key !== placeholder.key));
                 this.refresh();
             }
         }
-        showToast(
-            `Placeholder ${placeholder.key} successfully deleted.`,
-            'positive',
-        );
+        showToast(`Placeholder ${placeholder.key} successfully deleted.`, 'positive');
         this.pending = false;
     }
 
@@ -306,11 +293,7 @@ class MasPlaceholders extends LitElement {
                             .value=${this.locale}
                         ></mas-locale-picker>
                     </div>
-                    <sp-button
-                        variant="primary"
-                        @click=${this.toggleCreationModal}
-                        class="create-button"
-                    >
+                    <sp-button variant="primary" @click=${this.toggleCreationModal} class="create-button">
                         <sp-icon-add slot="icon"></sp-icon-add>
                         Create New Placeholder
                     </sp-button>
@@ -351,11 +334,7 @@ class MasPlaceholders extends LitElement {
     }
 
     renderContent() {
-        if (this.loading)
-            return html`<sp-progress-circle
-                indeterminate
-                size="l"
-            ></sp-progress-circle>`;
+        if (this.loading) return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
         return this.renderTable();
     }
 
@@ -403,12 +382,8 @@ class MasPlaceholders extends LitElement {
                             <sp-table-head-cell
                                 class=${key}
                                 ?sortable=${sortable}
-                                @click=${sortable
-                                    ? () => this.updateSort(key)
-                                    : undefined}
-                                style="${align === 'right'
-                                    ? 'text-align: right;'
-                                    : ''}"
+                                @click=${sortable ? () => this.updateSort(key) : undefined}
+                                style="${align === 'right' ? 'text-align: right;' : ''}"
                             >
                                 ${label}
                             </sp-table-head-cell>
@@ -427,8 +402,7 @@ class MasPlaceholders extends LitElement {
                                     .placeholderStore=${placeholderStore}
                                     .editing=${this.editing === placeholder.key}
                                     .disabled=${this.pending}
-                                    .activeDropdown=${this.activeDropdown ===
-                                    placeholder.key}
+                                    .activeDropdown=${this.activeDropdown === placeholder.key}
                                     .toggleEditing=${this.toggleEditing}
                                     .toggleDropdown=${this.toggleDropdown}
                                     .updatePending=${this.updatePending}
@@ -437,9 +411,7 @@ class MasPlaceholders extends LitElement {
                         },
                     )}
                     ${this.internalPlaceholders.length === 0
-                        ? html`<p class="no-placeholders-label">
-                              No placeholders found
-                          </p>`
+                        ? html`<p class="no-placeholders-label">No placeholders found</p>`
                         : nothing}
                 </sp-table-body>
             </sp-table>

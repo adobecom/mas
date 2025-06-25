@@ -22,8 +22,7 @@ export default {
                 cardid: '27f9c659-7c83-497f-86c2-34c711b9791d',
                 gradientBorderColor: 'Gradient',
                 gradientBorderValue: 'gradient',
-                gradientBorderCSSColor:
-                    'linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%)',
+                gradientBorderCSSColor: 'linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%)',
                 standardBorderColor: 'Red 900',
                 standardBorderCSSColor: 'spectrum-red-900',
             },
@@ -36,8 +35,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '27f9c659-7c83-497f-86c2-34c711b9791d',
-                description:
-                    'Create with Adobe on the web. Includes Firefly, Express, Photoshop, Lightroom, and more.',
+                description: 'Create with Adobe on the web. Includes Firefly, Express, Photoshop, Lightroom, and more.',
                 updatedDescription:
                     'Create with Adobe on the web. Get access to Firefly, Express, Photoshop, and more creative tools.',
             },

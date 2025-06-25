@@ -1,81 +1,81 @@
 name: Run Nala on Milolibs
 
 on:
-  workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Provide the live branch url. ex: https://main--mas--adobecom.aem.live'
-        required: false
-        type: string
-      milolibs:
-        description: 'Provide Milolibs param. (with "?") ex: ?milolibs=stage--milo--adobecom'
-        required: false
-        type: string
-      tags:
-        description: 'Test scenario tags, if empty all tests will run. i.e., @mas-studio'
-        required: false
-        type: string
+    workflow_dispatch:
+        inputs:
+            branch:
+                description: 'Provide the live branch url. ex: https://main--mas--adobecom.aem.live'
+                required: false
+                type: string
+            milolibs:
+                description: 'Provide Milolibs param. (with "?") ex: ?milolibs=stage--milo--adobecom'
+                required: false
+                type: string
+            tags:
+                description: 'Test scenario tags, if empty all tests will run. i.e., @mas-studio'
+                required: false
+                type: string
 
 jobs:
-  platform_matrix:
-    strategy:
-      fail-fast: false
-      matrix:
-        node-version: [20.x]
-    name: Running tests
-    runs-on: ubuntu-latest
-    env:
-      WORKFLOW_NAME: 'Milo Libs Run'
-      MILO_LIBS_RUN: 'true'
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Set up Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-          cache-dependency-path: |
-            **/package-lock.json
-            **/yarn.lock
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
-
-      - name: Install Playwright dependencies
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
-
-      - name: Set environment variables
-        run: |
-          echo "PR_BRANCH_MILOLIBS_LIVE_URL=${{ github.event.inputs.branch }}" >> $GITHUB_ENV
-          echo "MILO_LIBS=${{ github.event.inputs.milolibs }}" >> $GITHUB_ENV
-
-      - name: Set execute permission for gh.run.sh
-        run: chmod +x ./nala/utils/gh.run.sh
-        
-      - name: Run Nala Tests with Milolibs via gh.run.sh
-        run: ./nala/utils/gh.run.sh
+    platform_matrix:
+        strategy:
+            fail-fast: false
+            matrix:
+                node-version: [20.x]
+        name: Running tests
+        runs-on: ubuntu-latest
         env:
-          labels: ${{ inputs.tags }}
-          IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
-          IMS_PASS: ${{ secrets.IMS_PASS }}
-       
-      - name: Persist JSON Artifact
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: test-results
-          path: test-results
-          retention-days: 30
+            WORKFLOW_NAME: 'Milo Libs Run'
+            MILO_LIBS_RUN: 'true'
+
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 2
+
+            - name: Set up Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ matrix.node-version }}
+                  cache: 'npm'
+                  cache-dependency-path: |
+                      **/package-lock.json
+                      **/yarn.lock
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Cache Playwright browsers
+              uses: actions/cache@v4
+              id: playwright-cache
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
+
+            - name: Install Playwright dependencies
+              if: steps.playwright-cache.outputs.cache-hit != 'true'
+              run: npx playwright install --with-deps
+
+            - name: Set environment variables
+              run: |
+                  echo "PR_BRANCH_MILOLIBS_LIVE_URL=${{ github.event.inputs.branch }}" >> $GITHUB_ENV
+                  echo "MILO_LIBS=${{ github.event.inputs.milolibs }}" >> $GITHUB_ENV
+
+            - name: Set execute permission for gh.run.sh
+              run: chmod +x ./nala/utils/gh.run.sh
+
+            - name: Run Nala Tests with Milolibs via gh.run.sh
+              run: ./nala/utils/gh.run.sh
+              env:
+                  labels: ${{ inputs.tags }}
+                  IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
+                  IMS_PASS: ${{ secrets.IMS_PASS }}
+
+            - name: Persist JSON Artifact
+              uses: actions/upload-artifact@v4
+              if: failure()
+              with:
+                  name: test-results
+                  path: test-results
+                  retention-days: 30

@@ -92,12 +92,12 @@ vs
 
 ## Properties {#properties}
 
-| Property         | Description                                                                                  |
-| ---------------- | -------------------------------------------------------------------------------------------- |
-| `isInlinePrice` | on inline price elements, it will return `true`                                                     |
-| `onceSettled`    | Promise that resolves when the custom-element either resolves or fails to retrieve the price |
-| `options`        | JSON object with the complete set of properties used to resolve the price                    |
-| `value`          | The actual price data that is used to render the inline price.                               |
+| Property        | Description                                                                                  |
+| --------------- | -------------------------------------------------------------------------------------------- |
+| `isInlinePrice` | on inline price elements, it will return `true`                                              |
+| `onceSettled`   | Promise that resolves when the custom-element either resolves or fails to retrieve the price |
+| `options`       | JSON object with the complete set of properties used to resolve the price                    |
+| `value`         | The actual price data that is used to render the inline price.                               |
 
 ### Example
 

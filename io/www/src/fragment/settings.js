@@ -1,14 +1,9 @@
-const COLLECTION_MODEL_ID =
-    'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
+const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
 
 function applyCollectionSettings(context) {
     if (context.body?.references) {
         Object.entries(context.body.references).forEach(([key, ref]) => {
-            if (
-                ref &&
-                ref.type === 'content-fragment' &&
-                ref.value?.fields?.variant?.startsWith('plans')
-            ) {
+            if (ref && ref.type === 'content-fragment' && ref.value?.fields?.variant?.startsWith('plans')) {
                 applyPlansSettings(ref.value, context);
             }
         });
@@ -66,10 +61,8 @@ function applyPriceLiterals(fragment) {
             freeAriaLabel: '{{price-literal-free-aria-label}}',
             taxExclusiveLabel: '{{price-literal-tax-exclusive-label}}',
             taxInclusiveLabel: '{{price-literal-tax-inclusive-label}}',
-            alternativePriceAriaLabel:
-                '{{price-literal-alternative-price-aria-label}}',
-            strikethroughAriaLabel:
-                '{{price-literal-strikethrough-aria-label}}',
+            alternativePriceAriaLabel: '{{price-literal-alternative-price-aria-label}}',
+            strikethroughAriaLabel: '{{price-literal-strikethrough-aria-label}}',
             planTypeLabel: '{{price-literal-plan-type-label}}',
         };
     }
@@ -84,6 +77,13 @@ async function settings(context) {
         applyCollectionSettings(context);
     }
 
+    if (context.body?.references) {
+        Object.entries(context.body.references).forEach(([key, ref]) => {
+            if (ref && ref.type === 'content-fragment' && ref.value?.fields?.variant?.startsWith('plans')) {
+                applyPlansSettings(ref.value, locale);
+            }
+        });
+    }
     applyPriceLiterals(context.body);
 
     return context;

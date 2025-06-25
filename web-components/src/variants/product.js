@@ -67,14 +67,14 @@ export class Product extends VariantLayout {
         if (!isMobile()) {
             this.adjustProductBodySlots();
         }
-        this.adjustTitleWidth();
+        this.adjustTitleWidth(); 
     }
 
     get headingXSSlot() {
-        return this.card.shadowRoot
-            .querySelector('slot[name="heading-xs"]')
-            .assignedElements()[0];
-    }
+      return this.card.shadowRoot
+        .querySelector('slot[name="heading-xs"]')
+        .assignedElements()[0];
+  }
 
     get mainPrice() {
         const price = this.card.querySelector(
@@ -84,44 +84,35 @@ export class Product extends VariantLayout {
     }
 
     toggleAddon(merchAddon) {
-        const mainPrice = this.mainPrice;
-        const headingXSSlot = this.headingXSSlot;
-        if (!mainPrice && headingXSSlot) {
-            const planType = merchAddon?.getAttribute('plan-type');
-            let visibleSpan = null;
-            if (merchAddon && planType) {
-                const matchingP = merchAddon.querySelector(
-                    `p[data-plan-type="${planType}"]`,
-                );
-                visibleSpan = matchingP?.querySelector(
-                    'span[is="inline-price"]',
-                );
-            }
-            this.card
-                .querySelectorAll('p[slot="heading-xs"]')
-                .forEach((p) => p.remove());
-            if (merchAddon.checked) {
-                if (visibleSpan) {
-                    const replacementP = createTag(
+      const mainPrice = this.mainPrice;
+      const headingXSSlot = this.headingXSSlot;
+          if (!mainPrice && headingXSSlot) {
+              const planType = merchAddon?.getAttribute('plan-type');
+              let visibleSpan = null;
+              if (merchAddon && planType) {
+                  const matchingP = merchAddon.querySelector(`p[data-plan-type="${planType}"]`);
+                  visibleSpan = matchingP?.querySelector('span[is="inline-price"]');
+              }
+              this.card.querySelectorAll('p[slot="heading-xs"]').forEach(p => p.remove());
+              if (merchAddon.checked) {
+                  if (visibleSpan) {
+                      const replacementP = createTag(
                         'p',
-                        {
-                            class: 'addon-heading-xs-price-addon',
-                            slot: 'heading-xs',
-                        },
-                        visibleSpan.innerHTML,
-                    );
-                    this.card.appendChild(replacementP);
-                }
-            } else {
-                const freeP = createTag(
+                        { class: 'addon-heading-xs-price-addon', slot: 'heading-xs' },
+                        visibleSpan.innerHTML
+                      );
+                      this.card.appendChild(replacementP);
+                  }
+              } else {
+                  const freeP = createTag(
                     'p',
                     { class: 'card-heading', id: 'free', slot: 'heading-xs' },
-                    'Free',
-                );
-                this.card.appendChild(freeP);
-            }
-        }
-    }
+                    'Free'
+                  );
+                  this.card.appendChild(freeP);
+              }
+       }
+  }
 
     async adjustAddon() {
         await this.card.updateComplete;
@@ -164,7 +155,9 @@ export class Product extends VariantLayout {
             display: block;
         }
         :host([variant='product']) slot[name='addon'] {
-            min-height: var(--consonant-merch-card-product-addon-height);
+            min-height: var(
+                --consonant-merch-card-product-addon-height
+            );
         }
 
         :host([variant='product']) ::slotted([slot='heading-xs']) {

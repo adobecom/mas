@@ -384,12 +384,11 @@ const createPromoPriceTemplate = () => (context, value, attributes) => {
         displayOldPrice &&
         value.priceWithoutDiscount &&
         value.priceWithoutDiscount != value.price;
-    return `${
-        shouldDisplayOldPrice
-            ? createPriceTemplate({
-                  displayStrikethrough: true,
-              })(context, value, attributes) + '&nbsp;'
-            : ''
+    return `${shouldDisplayOldPrice
+        ? createPriceTemplate({
+          displayStrikethrough: true,
+        })(context, value, attributes) + '&nbsp;'
+        : ''
     }${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })(context, value, attributes)}`;
 };
 

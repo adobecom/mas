@@ -25,7 +25,7 @@ test-results/
 nala/.auth/
 *.js.map
 /.cursor*/
-.cursor\ 2/
+.CLAUDE.md
 
 # IO Runtime Config
 config.json

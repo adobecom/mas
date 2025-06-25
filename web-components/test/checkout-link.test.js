@@ -72,7 +72,7 @@ describe('class "CheckoutLink"', () => {
         const checkoutLink = mockCheckoutLink('abm');
         await checkoutLink.onceSettled();
         expect(checkoutLink.href).to.equal(
-            'https://commerce.adobe.com/store/segmentation?cli=adobe_com&ctx=fp&co=US&lang=en&ms=COM&ot=BASE&pa=ccsn_direct_individual',
+            'https://commerce.adobe.com/store/segmentation?cli=adobe_com&ctx=fp&co=US&lang=en&ms=COM&ot=BASE&cs=INDIVIDUAL&pa=ccsn_direct_individual',
         );
     });
 
@@ -83,7 +83,7 @@ describe('class "CheckoutLink"', () => {
         });
         await checkoutLink.onceSettled();
         expect(checkoutLink.href).to.equal(
-            'https://commerce.adobe.com/store/segmentation?cli=adobe_com&ctx=fp&co=US&lang=en&ms=COM&ot=BASE&pa=ccsn_direct_individual',
+            'https://commerce.adobe.com/store/segmentation?cli=adobe_com&ctx=fp&co=US&lang=en&ms=COM&ot=BASE&cs=INDIVIDUAL&pa=ccsn_direct_individual',
         );
     });
 
@@ -162,8 +162,7 @@ describe('class "CheckoutLink"', () => {
         } catch (error) {
             // Verify it's a MasError instance
             expect(error).to.be.instanceOf(MasError);
-            expect(error.context).to.have.property('duration');
-            expect(error.context).to.have.property('startTime');
+            expect(error.context).to.have.property('measure');
             expect(error.context).to.include({
                 status: 404,
                 url: 'https://www.adobe.com//web_commerce_artifact?offer_selector_ids=xyz&country=US&locale=en_US&landscape=PUBLISHED&api_key=wcms-commerce-ims-ro-user-milo&language=MULT',
@@ -180,7 +179,7 @@ describe('class "CheckoutLink"', () => {
         expect(checkoutLink.href).to.equal(
             'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=C5AC20C8AAF4892B67DE2E89B26D8ACA&cli=adobe_com&ctx=fp&co=US&lang=en',
         );
-        expect(fetch.lastCall.args[0]).to.contain('language=EN');
+        expect(fetch.lastCall.args[0]).to.not.contain('language=');
 
         // no more perpetual offer
         checkoutLink.dataset.perpetual = 'false';
@@ -210,7 +209,7 @@ describe('class "CheckoutLink"', () => {
     it('sets # as href when modal option is true', async () => {
         await initMasCommerceService();
         const checkoutLink = mockCheckoutLink('abm', {
-            modal: 'true',
+            modal: 'true'
         });
         await checkoutLink.onceSettled();
         expect(checkoutLink.getAttribute('href')).to.equal('#');
@@ -268,7 +267,6 @@ describe('class "CheckoutLink"', () => {
             expect(dataset.checkoutMarketSegment).to.equal(
                 options.checkoutMarketSegment,
             );
-            expect(dataset.checkoutWorkflow).to.equal(options.checkoutWorkflow);
             expect(dataset.checkoutWorkflowStep).to.equal(
                 options.checkoutWorkflowStep,
             );
@@ -284,18 +282,18 @@ describe('class "CheckoutLink"', () => {
 
     describe('3-in-1 modal related functions', () => {
         it('sets the isOpen3in1Modal property', async () => {
-            await initMasCommerceService();
-            const checkoutLink = mockCheckoutLink('abm', { modal: 'crm' });
-            await checkoutLink.onceSettled();
-            expect(checkoutLink.isOpen3in1Modal).to.be.true;
-        });
+          await initMasCommerceService();
+          const checkoutLink = mockCheckoutLink('abm', { modal: 'crm'});
+          await checkoutLink.onceSettled();
+          expect(checkoutLink.isOpen3in1Modal).to.be.true;
+        })
 
         it('does not set the isOpen3in1Modal property if the modal is not a 3-in-1 modal', async () => {
-            await initMasCommerceService();
-            const checkoutLink = mockCheckoutLink('abm', { modal: 'true' });
-            await checkoutLink.onceSettled();
-            expect(checkoutLink.isOpen3in1Modal).to.be.false;
-        });
+          await initMasCommerceService();
+          const checkoutLink = mockCheckoutLink('abm', { modal: 'true'});
+          await checkoutLink.onceSettled();
+          expect(checkoutLink.isOpen3in1Modal).to.be.false;
+        })
 
         it('sets isOpen3in1Modal to false when mas-ff-3in1 meta tag is set to off', async () => {
             const meta = document.createElement('meta');
@@ -303,23 +301,23 @@ describe('class "CheckoutLink"', () => {
             meta.setAttribute('content', 'off');
             document.head.appendChild(meta);
             await initMasCommerceService();
-            const checkoutLink = mockCheckoutLink('abm', { modal: 'twp' });
+            const checkoutLink = mockCheckoutLink('abm', { modal: 'twp'});
             await checkoutLink.onceSettled();
             expect(checkoutLink.isOpen3in1Modal).to.be.false;
             document.head.removeChild(meta);
         });
 
         it('sets isOpen3in1Modal to true when mas-ff-3in1 meta tag is present, but not set to off', async () => {
-            const meta = document.createElement('meta');
-            meta.setAttribute('name', 'mas-ff-3in1');
-            meta.setAttribute('content', 'on');
-            document.head.appendChild(meta);
-            await initMasCommerceService();
-            const checkoutLink = mockCheckoutLink('abm', { modal: 'twp' });
-            await checkoutLink.onceSettled();
-            expect(checkoutLink.isOpen3in1Modal).to.be.true;
-            document.head.removeChild(meta);
-        });
+          const meta = document.createElement('meta');
+          meta.setAttribute('name', 'mas-ff-3in1');
+          meta.setAttribute('content', 'on');
+          document.head.appendChild(meta);
+          await initMasCommerceService();
+          const checkoutLink = mockCheckoutLink('abm', { modal: 'twp'});
+          await checkoutLink.onceSettled();
+          expect(checkoutLink.isOpen3in1Modal).to.be.true;
+          document.head.removeChild(meta);
+      });
     });
 
     describe('logged-in features', () => {

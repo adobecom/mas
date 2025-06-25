@@ -3,10 +3,7 @@ import { styles } from './merch-quantity-select.css.js';
 import { debounce } from './utils.js';
 
 import { ARROW_DOWN, ARROW_UP, ENTER } from './focus.js';
-import {
-    EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-    EVENT_MERCH_CARD_QUANTITY_CHANGE,
-} from './constants.js';
+import { EVENT_MERCH_QUANTITY_SELECTOR_CHANGE, EVENT_MERCH_CARD_QUANTITY_CHANGE } from './constants.js';
 
 export class MerchQuantitySelect extends LitElement {
     static get properties() {
@@ -47,13 +44,20 @@ export class MerchQuantitySelect extends LitElement {
         this.toggleMenu = this.toggleMenu.bind(this);
         this.handleClickOutside = this.handleClickOutside.bind(this);
         this.boundKeydownListener = this.handleKeydown.bind(this);
+        this.handleKeyupDebounced = debounce(this.handleKeyup.bind(this), 500);
+        this.debouncedQuantityUpdate = debounce(
+            this.handleQuantityUpdate.bind(this),
+            500,
+        );
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
         this.addEventListener('keydown', this.boundKeydownListener);
         window.addEventListener('mousedown', this.handleClickOutside);
-        this.handleKeyupDebounced = debounce(this.handleKeyup.bind(this), 500);
-        this.handleQuantityUpdate = this.handleQuantityUpdate.bind(this);
         this.addEventListener(
             EVENT_MERCH_CARD_QUANTITY_CHANGE,
-            this.handleQuantityUpdate,
+            this.debouncedQuantityUpdate,
         );
     }
 
@@ -121,7 +125,7 @@ export class MerchQuantitySelect extends LitElement {
         this.removeEventListener('keydown', this.boundKeydownListener);
         this.removeEventListener(
             EVENT_MERCH_CARD_QUANTITY_CHANGE,
-            this.handleQuantityUpdate,
+            this.debouncedQuantityUpdate,
         );
     }
 
@@ -218,8 +222,7 @@ export class MerchQuantitySelect extends LitElement {
     handleQuantityUpdate({ detail: { quantity } }) {
         if (quantity && quantity !== this.selectedValue) {
             this.selectedValue = quantity;
-            const inputField =
-                this.shadowRoot.querySelector('.text-field-input');
+            const inputField = this.shadowRoot.querySelector('.text-field-input');
             if (inputField) {
                 inputField.value = quantity;
             }

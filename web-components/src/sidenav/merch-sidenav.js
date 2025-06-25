@@ -30,7 +30,8 @@ export class MerchSideNav extends LitElement {
             }
 
             :host h2 {
-                color: var(--spectrum-global-color-gray-900);
+              color: var(--spectrum-global-color-gray-900);
+              font-size: 12px;
             }
 
             :host(:not([modal])) {
@@ -46,6 +47,7 @@ export class MerchSideNav extends LitElement {
                 justify-content: center;
                 align-items: baseline;
             }
+            
 
             :host([modal]) ::slotted(merch-search) {
                 display: none;
@@ -98,7 +100,7 @@ export class MerchSideNav extends LitElement {
     get asDialog() {
         if (!this.modal) return;
         return html`
-            <sp-theme color="light" scale="medium">
+            <sp-theme  color="light" scale="medium">
                 <sp-dialog-base
                     slot="click-content"
                     dismissable
@@ -122,7 +124,7 @@ export class MerchSideNav extends LitElement {
     }
 
     get asAside() {
-        return html`<sp-theme color="light" scale="medium"
+        return html`<sp-theme  color="light" scale="medium"
             ><h2>${this.sidenavTitle}</h2>
             <slot></slot
         ></sp-theme>`;

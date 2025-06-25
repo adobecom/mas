@@ -24,9 +24,7 @@ export class Catalog extends VariantLayout {
     }
 
     get actionMenuContentSlot() {
-        return this.card.shadowRoot.querySelector(
-            'slot[name="action-menu-content"]',
-        );
+        return this.card.shadowRoot.querySelector('slot[name="action-menu-content"]');
     }
 
     renderLayout() {
@@ -44,9 +42,7 @@ export class Catalog extends VariantLayout {
                         tabindex="0"
                         aria-expanded="false"
                         role="button"
-                    >
-                        ${this.card.actionMenuLabel} - ${this.card.title}
-                    </div>
+                    >${this.card.actionMenuLabel} - ${this.card.title}</div>
                 </div>
                 <slot
                     name="action-menu-content"
@@ -77,34 +73,28 @@ export class Catalog extends VariantLayout {
     }
 
     dispatchActionMenuToggle = () => {
-        this.card.dispatchEvent(
-            new CustomEvent(EVENT_MERCH_CARD_ACTION_MENU_TOGGLE, {
-                bubbles: true,
-                composed: true,
-                detail: {
-                    card: this.card.name,
-                    type: 'action-menu',
-                },
-            }),
-        );
+      this.card.dispatchEvent(
+        new CustomEvent(EVENT_MERCH_CARD_ACTION_MENU_TOGGLE, {
+            bubbles: true,
+            composed: true,
+            detail: {
+                card: this.card.name,
+                type: 'action-menu',
+            },
+        }),
+      );
     };
 
     toggleActionMenu = (e) => {
-        if (
-            !this.actionMenuContentSlot ||
-            !e ||
-            (e.type !== 'click' && e.code !== 'Space' && e.code !== 'Enter')
-        )
-            return;
+      if (!this.actionMenuContentSlot || !e || (e.type !== 'click' && e.code !== 'Space' && e.code !== 'Enter')) return;
 
-        e.preventDefault();
-        this.actionMenuContentSlot.classList.toggle('hidden');
-        const isHidden =
-            this.actionMenuContentSlot.classList.contains('hidden');
-        if (!isHidden) this.dispatchActionMenuToggle();
-        this.setAriaExpanded(this.actionMenu, (!isHidden).toString());
+      e.preventDefault();
+      this.actionMenuContentSlot.classList.toggle('hidden');
+      const isHidden = this.actionMenuContentSlot.classList.contains('hidden');
+      if (!isHidden) this.dispatchActionMenuToggle();
+      this.setAriaExpanded(this.actionMenu, (!isHidden).toString());
     };
-
+    
     toggleActionMenuFromCard = (e) => {
         //beware this is an event on card, so this points to the card, not the layout
         const retract = e?.type === 'mouseleave' ? true : undefined;
@@ -116,12 +106,12 @@ export class Catalog extends VariantLayout {
         this.actionMenuContentSlot.classList.toggle('hidden', retract);
         this.setAriaExpanded(this.actionMenu, 'false');
     };
-
+    
     hideActionMenu = (e) => {
-        this.actionMenuContentSlot?.classList.add('hidden');
-        this.setAriaExpanded(this.actionMenu, 'false');
-    };
-
+      this.actionMenuContentSlot?.classList.add('hidden');
+      this.setAriaExpanded(this.actionMenu, 'false');
+    }
+    
     setAriaExpanded(element, value) {
         element.setAttribute('aria-expanded', value);
     }
@@ -131,10 +121,7 @@ export class Catalog extends VariantLayout {
     }
 
     disconnectedCallbackHook() {
-        this.card.removeEventListener(
-            'mouseleave',
-            this.toggleActionMenuFromCard,
-        );
+        this.card.removeEventListener('mouseleave', this.toggleActionMenuFromCard);
     }
 
     static variantStyle = css`

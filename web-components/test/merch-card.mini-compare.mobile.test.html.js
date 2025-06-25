@@ -15,7 +15,7 @@ runTests(async () => {
     mockLana();
     await mockFetch(withWcs);
     await import('../src/mas.js');
-
+    
     describe('[mobile] merch-card web component with mini-compare variant', () => {
         it('[mobile] mini-compare-chart should remove empty rows', async () => {
             const miniCompareChart = document.querySelector(

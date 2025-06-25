@@ -64,7 +64,7 @@ export class MerchWhatsIncluded extends LitElement {
             new CustomEvent('hide-see-more-elements', {
                 bubbles: true,
                 composed: true,
-            }),
+            })
         );
         this.requestUpdate();
     }

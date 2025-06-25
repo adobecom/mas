@@ -1,35 +1,34 @@
 import { VariantLayout } from './variant-layout';
-import { html, css } from 'lit';
+import { html, css, nothing } from 'lit';
 import { CSS } from './plans.css.js';
 import { isMobile, matchMobile } from '../utils.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
-    TEMPLATE_PRICE,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 
 export const PLANS_AEM_FRAGMENT_MAPPING = {
-    title: { tag: 'p', slot: 'heading-xs' },
+    title: { tag: 'h3', slot: 'heading-xs' },
     prices: { tag: 'p', slot: 'heading-m' },
     promoText: { tag: 'p', slot: 'promo-text' },
     description: { tag: 'div', slot: 'body-xs' },
     mnemonics: { size: 'l' },
     callout: { tag: 'div', slot: 'callout-content' },
     quantitySelect: { tag: 'div', slot: 'quantity-select' },
-    stockOffer: true /* @deprecated */,
     addon: true,
     secureLabel: true,
     planType: true,
     badge: { tag: 'div', slot: 'badge', default: 'spectrum-yellow-300-plans' },
     allowedBadgeColors: [
-        'spectrum-yellow-300-plans',
-        'spectrum-gray-300-plans',
-        'spectrum-gray-700-plans',
-        'spectrum-green-900-plans',
+      'spectrum-yellow-300-plans',
+      'spectrum-gray-300-plans',
+      'spectrum-gray-700-plans',
+      'spectrum-green-900-plans',
     ],
     allowedBorderColors: [
-        'spectrum-yellow-300-plans',
-        'spectrum-gray-300-plans',
+      'spectrum-yellow-300-plans',
+      'spectrum-gray-300-plans',
+      'spectrum-green-900-plans',
     ],
     borderColor: { attribute: 'border-color' },
     size: ['wide', 'super-wide'],
@@ -39,22 +38,21 @@ export const PLANS_AEM_FRAGMENT_MAPPING = {
 };
 
 export const PLANS_EDUCATION_AEM_FRAGMENT_MAPPING = {
-    ...(function () {
-        const { whatsIncluded, ...rest } = PLANS_AEM_FRAGMENT_MAPPING;
-        return rest;
-    })(),
-    title: { tag: 'p', slot: 'heading-s' },
-    subtitle: { tag: 'p', slot: 'subtitle' },
-    secureLabel: false,
-};
+  ...(function(){
+    const { whatsIncluded, ...rest } = PLANS_AEM_FRAGMENT_MAPPING;
+    return rest;
+  }()),
+  title: { tag: 'h3', slot: 'heading-s' },
+  subtitle: { tag: 'p', slot: 'subtitle' },
+  secureLabel: false
+}
 
 export const PLANS_STUDENTS_AEM_FRAGMENT_MAPPING = {
-    ...(function () {
-        const { whatsIncluded, size, quantitySelect, ...rest } =
-            PLANS_AEM_FRAGMENT_MAPPING;
-        return rest;
-    })(),
-};
+  ...(function(){
+    const { whatsIncluded, size, quantitySelect, ...rest } = PLANS_AEM_FRAGMENT_MAPPING;
+    return rest;
+  }())
+}
 
 export class Plans extends VariantLayout {
     constructor(card) {
@@ -74,7 +72,7 @@ export class Plans extends VariantLayout {
     adaptForMobile() {
         if (
             !this.card.closest(
-                'merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards',
+                'merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards, .columns',
             )
         ) {
             this.card.removeAttribute('size');
@@ -109,11 +107,37 @@ export class Plans extends VariantLayout {
         }
     }
 
+    adjustCallout() {
+        const tooltipIcon = this.card.querySelector('[slot="callout-content"] .icon-button');
+        if (tooltipIcon && tooltipIcon.title) {
+            tooltipIcon.dataset.tooltip = tooltipIcon.title;
+            tooltipIcon.removeAttribute('title');
+            tooltipIcon.classList.add('hide-tooltip');
+            document.addEventListener('touchstart', (event) => {
+                event.preventDefault();
+                if (event.target !== tooltipIcon) {
+                    tooltipIcon.classList.add('hide-tooltip');
+                } else {
+                    event.target.classList.toggle('hide-tooltip');
+                }
+            });
+            document.addEventListener('mouseover', (event) => {
+                event.preventDefault();
+                if (event.target !== tooltipIcon) {
+                    tooltipIcon.classList.add('hide-tooltip');
+                } else {
+                    event.target.classList.remove('hide-tooltip');
+                }
+            });
+        }
+    }
+
     postCardUpdateHook() {
         this.adaptForMobile();
         this.adjustTitleWidth();
         this.adjustLegal();
         this.adjustAddon();
+        this.adjustCallout();
     }
 
     get headingM() {
@@ -128,50 +152,46 @@ export class Plans extends VariantLayout {
     }
 
     get divider() {
-        return this.card.variant === 'plans-education'
-            ? html`<div class="divider"></div>`
-            : '';
+      return this.card.variant === 'plans-education'
+        ? html`<div class="divider"></div>` 
+        : nothing
     }
 
     async adjustLegal() {
         await this.card.updateComplete;
-        if (this.legal) return;
+        if (this.legalAdjusted) return;
+        this.legalAdjusted = true;
         const prices = [];
-        const headingPrice = this.card.querySelector(
-            `[slot="heading-m"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
-        );
+        const headingPrice = this.card.querySelector(`[slot="heading-m"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`);
         if (headingPrice) prices.push(headingPrice);
-        const bodyPrices = this.card.querySelectorAll(
-            `[slot="body-xs"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
-        );
-        bodyPrices.forEach((bodyPrice) => prices.push(bodyPrice));
+        const bodyPrices = this.card.querySelectorAll(`[slot="body-xs"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`);
+        bodyPrices.forEach(bodyPrice => prices.push(bodyPrice));
         const legalPromises = prices.map(async (price) => {
-            const legal = price.cloneNode(true);
-            if (price === headingPrice) this.legal = legal;
-            await price.onceSettled();
-            if (!price?.options) return;
-            if (price.options.displayPerUnit)
-                price.dataset.displayPerUnit = 'false';
-            if (price.options.displayTax) price.dataset.displayTax = 'false';
-            if (price.options.displayPlanType)
-                price.dataset.displayPlanType = 'false';
-            legal.setAttribute('data-template', 'legal');
-            price.parentNode.insertBefore(legal, price.nextSibling);
+          const legal = price.cloneNode(true);
+          await price.onceSettled();
+          if (!price?.options) return;
+          if (price.options.displayPerUnit)
+              price.dataset.displayPerUnit = 'false';
+          if (price.options.displayTax) price.dataset.displayTax = 'false';
+          if (price.options.displayPlanType)
+              price.dataset.displayPlanType = 'false';
+          legal.setAttribute('data-template', 'legal');
+          price.parentNode.insertBefore(legal, price.nextSibling);
         });
         await Promise.all(legalPromises);
     }
 
     async adjustAddon() {
-        await this.card.updateComplete;
-        const addon = this.card.addon;
-        if (!addon) return;
-        const price = this.mainPrice;
-        if (!price) return;
-        await price.onceSettled();
-        const planType = price.value?.[0]?.planType;
-        if (!planType) return;
-        addon.planType = planType;
-    }
+      await this.card.updateComplete;
+      const addon = this.card.addon;
+      if (!addon) return;
+      const price = this.mainPrice;
+      if (!price) return;
+      await price.onceSettled();
+      const planType = price.value?.[0]?.planType;
+      if (!planType) return;
+      addon.planType = planType;
+  }
 
     get stockCheckbox() {
         return this.card.checkboxLabel
@@ -180,12 +200,23 @@ export class Plans extends VariantLayout {
                 <span></span>
                 ${this.card.checkboxLabel}
             </label>`
-            : '';
+            : nothing;
     }
 
     get icons() {
-        if (!this.card.querySelector('[slot="icons"]')) return '';
+        if (!this.card.querySelector('[slot="icons"]') && !this.card.getAttribute('id')) return nothing;
         return html`<slot name="icons"></slot>`;
+    }
+
+    get addon() {
+        if (this.card.size === 'super-wide') return nothing;
+        return html`<slot name="addon"></slot>`
+    }
+
+    get plansSecureLabelFooter() {
+        if (this.card.size === 'super-wide') 
+            return html`<footer><slot name="addon"></slot>${this.secureLabel}<slot name="footer"></slot></footer>`;
+        return this.secureLabelFooter;
     }
 
     connectedCallbackHook() {
@@ -217,11 +248,11 @@ export class Plans extends VariantLayout {
                 <slot name="whats-included"></slot>
                 <slot name="callout-content"></slot>
                 ${this.stockCheckbox}
-                <slot name="addon"></slot>
+                ${this.addon}
                 <slot name="badge"></slot>
                 <slot name="quantity-select"></slot>
             </div>
-            ${this.secureLabelFooter}`;
+            ${this.plansSecureLabelFooter}`;
     }
 
     static variantStyle = css`
@@ -232,7 +263,7 @@ export class Plans extends VariantLayout {
             --merch-card-plans-max-width: 244px;
             --merch-card-plans-padding: 15px;
             --merch-card-plans-heading-min-height: 23px;
-            --merch-color-green-promo: #05834e;
+            --merch-color-green-promo: #05834E;
             --secure-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23505050' viewBox='0 0 12 15'%3E%3Cpath d='M11.5 6H11V5A5 5 0 1 0 1 5v1H.5a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5ZM3 5a3 3 0 1 1 6 0v1H3Zm4 6.111V12.5a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1.389a1.5 1.5 0 1 1 2 0Z'/%3E%3C/svg%3E");
             font-weight: 400;
         }
@@ -249,7 +280,7 @@ export class Plans extends VariantLayout {
         }
         :host([variant='plans-education']) .divider {
             border: 0;
-            border-top: 1px solid #e8e8e8;
+            border-top: 1px solid #E8E8E8;
             margin-top: 8px;
         }
 

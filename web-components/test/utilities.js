@@ -11,26 +11,24 @@ window.masPriceLiterals = priceLiteralsJson.data;
 
 use((chai) => {
     function normalise(val) {
-        return (
-            String(val)
-                .trim()
-                // Remove trailing semicolons
-                .replace(/;$/, '')
-                // Normalize HTML entities in attributes
-                .replace(/&quot;/g, '"')
-                // Normalize whitespace between tags
-                .replace(/>\s+</g, '><')
-                // Normalize whitespace before closing angle brackets
-                .replace(/\s+>/g, '>')
-                // Normalize whitespace after opening angle brackets
-                .replace(/\s+</g, '<')
-                // Normalize whitespace after closing angle brackets
-                .replace(/>\s+/g, '>')
-                // Normalize single quotes to double quotes in attributes
-                .replace(/='([^']*)'/g, '="$1"')
-                // Normalize extra spaces to single space
-                .replace(/\s{2,}/g, ' ')
-        );
+        return String(val)
+            .trim()
+            // Remove trailing semicolons
+            .replace(/;$/, '')
+            // Normalize HTML entities in attributes
+            .replace(/&quot;/g, '"')
+            // Normalize whitespace between tags
+            .replace(/>\s+</g, '><')
+            // Normalize whitespace before closing angle brackets
+            .replace(/\s+>/g, '>')
+            // Normalize whitespace after opening angle brackets
+            .replace(/\s+</g, '<')
+            // Normalize whitespace after closing angle brackets
+            .replace(/>\s+/g, '>')
+            // Normalize single quotes to double quotes in attributes
+            .replace(/='([^']*)'/g, '="$1"')
+            // Normalize extra spaces to single space
+            .replace(/\s{2,}/g, ' ');
     }
 
     chai.Assertion.addMethod('html', function assertHtml(snapshot) {

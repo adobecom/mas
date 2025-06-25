@@ -56,7 +56,7 @@ function processValue(value, maskObj, options) {
 
     // Fix the decimal first, toFixed will auto fill trailing zero.
     valObj.value = Number(valObj.value).toFixed(
-        maskObj.fraction && maskObj.fraction.length,
+        maskObj.fraction && maskObj.fraction.length
     );
     // Convert number to string to trim off *all* trailing decimal zero(es)
     valObj.value = Number(valObj.value).toString();

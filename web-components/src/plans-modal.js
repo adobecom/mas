@@ -40,7 +40,7 @@ export default class PlansModal extends LitElement {
 
     render() {
         return html`
-            <sp-theme color="light" scale="large">
+            <sp-theme  color="light" scale="large">
                 <sp-dialog-wrapper
                     slot="click-content"
                     title="${this.title}"

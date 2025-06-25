@@ -15,7 +15,7 @@ export const styles = css`
     }
 
     sp-action-menu {
-        z-index: 1;
+      z-index: 1;
     }
 
     #header {

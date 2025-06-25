@@ -1,4 +1,4 @@
-import { TABLET_UP, DESKTOP_UP } from '../media.js';
+import { TABLET_UP, DESKTOP_UP, } from '../media.js';
 export const CSS = `
 :root {
   --consonant-merch-card-image-width: 300px;

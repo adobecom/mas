@@ -17,6 +17,7 @@ import '../src/sidenav/merch-sidenav.js';
 import '../src/merch-card-collection.js';
 
 import { withWcs } from './mocks/wcs.js';
+import { withAem } from './mocks/aem.js';
 import '../src/mas.js';
 import { EVENT_AEM_LOAD } from '../src/constants.js';
 
@@ -76,7 +77,7 @@ runTests(async () => {
     let render;
     appendMiloStyles();
     mockLana();
-    await mockFetch(withWcs);
+    await mockFetch(withWcs, withAem);
 
     if (shouldSkipTests === 'true') return;
     describe('merch-card-collection web component on phones and tablets', () => {
@@ -217,30 +218,15 @@ runTests(async () => {
     });
 
     describe('merch-card-collection autoblock features', () => {
-        let individualPlansFragment, collectionElement;
-
-        before(async () => {
-            individualPlansFragment = await fetch(
-                'mocks/sites/fragments/fragment-individual-plans-collection.json',
-            ).then((res) => res.json());
-        });
+        let collectionElement;
 
         beforeEach(async () => {
             document.location.hash = '';
-            [collectionElement, render] = prepareTemplate(
-                'collectionAutoblock',
-                false,
-            );
+            [collectionElement, render] = prepareTemplate('collectionAutoblock', false);
         });
 
         it('should hydrate from child aem-fragment', async () => {
             render();
-            const aemFragment = collectionElement.querySelector('aem-fragment');
-            aemFragment.dispatchEvent(
-                new CustomEvent(EVENT_AEM_LOAD, {
-                    detail: individualPlansFragment,
-                }),
-            );
             await collectionElement.checkReady();
             const merchCard = collectionElement.querySelector('merch-card');
             expect(merchCard).to.exist;
@@ -248,71 +234,39 @@ runTests(async () => {
 
         it('should populate filters in hydration', async () => {
             render();
-            const aemFragment = collectionElement.querySelector('aem-fragment');
-            aemFragment.dispatchEvent(
-                new CustomEvent(EVENT_AEM_LOAD, {
-                    detail: individualPlansFragment,
-                }),
-            );
             await collectionElement.checkReady();
-            const merchCard = collectionElement.querySelector(
-                'merch-card[id="ca835d11-fe6b-40f8-96d1-50ac800c9f70"]',
-            );
-            expect(merchCard.getAttribute('filters')).to.equal(
-                'all:4:wide,cloud:2:wide,subcategory:1:wide',
-            );
+            const merchCard = collectionElement.querySelector('merch-card[id="ca835d11-fe6b-40f8-96d1-50ac800c9f70"]');
+            expect(merchCard.getAttribute('filters')).to.equal('all:4:wide,cloud:2:wide,subcategory:1:wide');
         });
-    });
+    })
 
     describe('merch-card-collection override feature', () => {
-        let individualPlansFragment, collectionElement;
+      let collectionElement;
 
-        before(async () => {
-            individualPlansFragment = await fetch(
-                'mocks/sites/fragments/fragment-individual-plans-collection.json',
-            ).then((res) => res.json());
-        });
+      beforeEach(async () => {
+          document.location.hash = '';
+          [collectionElement, render] = prepareTemplate('override', false);
+      });
 
-        beforeEach(async () => {
-            document.location.hash = '';
-            [collectionElement, render] = prepareTemplate('override', false);
-        });
-
-        it('should hydrate from child aem-fragment, with overriden ids', async () => {
-            render();
-            const aemFragment = collectionElement.querySelector('aem-fragment');
-            aemFragment.dispatchEvent(
-                new CustomEvent(EVENT_AEM_LOAD, {
-                    detail: individualPlansFragment,
-                }),
-            );
-            await collectionElement.checkReady();
-            const fragment1 = collectionElement.querySelector(
-                'aem-fragment[fragment="cafe-bebebe"]',
-            );
-            expect(fragment1).to.exist;
-            const filters1 = fragment1.parentNode.filters;
-            expect(filters1).to.exist;
-            expect(filters1.all?.order).to.equal(1);
-            const fragment2 = collectionElement.querySelector(
-                'aem-fragment[fragment="bebe-cafe"]',
-            );
-            const filters2 = fragment2.parentNode.filters;
-            expect(filters2).to.exist;
-            expect(filters2.all?.order).to.equal(3);
-            expect(filters2.cloud?.order).to.equal(1);
-            expect(
-                collectionElement.querySelector(
-                    'merch-card > aem-fragment[fragment="e58f8f75-b882-409a-9ff8-8826b36a8368"]',
-                ),
-            ).to.not.exist;
-            expect(
-                collectionElement.querySelector(
-                    'merch-card > aem-fragment[fragment="e58f8f75-b882-409a-9ff8-8826b36a8368"]',
-                ),
-            ).to.not.exist;
-        });
+      it('should hydrate from child aem-fragment, with overriden ids', async () => {
+        render();
+        const aemFragment = collectionElement.querySelector('aem-fragment');
+        await collectionElement.checkReady();
+        const fragment1 = collectionElement.querySelector('aem-fragment[fragment="cafe-bebebe"]');
+        expect(fragment1).to.exist;
+        const filters1 = fragment1.parentNode.filters;
+        expect(filters1).to.exist;
+        expect(filters1.all?.order).to.equal(1);
+        const fragment2 = collectionElement.querySelector('aem-fragment[fragment="bebe-cafe"]');
+        const filters2 = fragment2.parentNode.filters;
+        expect(filters2).to.exist;
+        expect(filters2.all?.order).to.equal(3);
+        expect(filters2.cloud?.order).to.equal(1);
+        expect(collectionElement.querySelector('merch-card > aem-fragment[fragment="e58f8f75-b882-409a-9ff8-8826b36a8368"]')).to.not.exist;
+        expect(collectionElement.querySelector('merch-card > aem-fragment[fragment="e58f8f75-b882-409a-9ff8-8826b36a8368"]')).to.not.exist;
+        aemFragment.cache.clear();
     });
+  })
 });
 
 document.getElementById('showMore').addEventListener('click', () => {

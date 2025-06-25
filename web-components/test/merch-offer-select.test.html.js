@@ -47,6 +47,7 @@ runTests(async () => {
     await mockFetch(withWcs);
     await import('../src/mas.js');
 
+
     describe('merch-offer-select web component', async () => {
         it('should exist, autoselect first offer and render price and cta', async () => {
             const { merchCard, merchOfferSelect } = await renderCard('card1');

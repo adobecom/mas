@@ -28,11 +28,7 @@ const click = async (value) => {
     );
     await elementClick(node);
 };
-const expectedSelection = (
-    expectedValue,
-    expectedExpand = false,
-    expectedParentExpand = false,
-) => {
+const expectedSelection = (expectedValue, expectedExpand = false, expectedParentExpand = false) => {
     const item = getCategories().querySelector(
         `sp-sidenav-item[value=${expectedValue}]`,
     );
@@ -177,12 +173,12 @@ runTests(async () => {
             expect(mobile.checked).to.be.true;
             web.click();
             await refreshElement(
-                document.querySelector('merch-sidenav-checkbox-group')
-                    .parentElement,
-            );
-            expect(parseState().types).to.equal('mobile');
-            expect(web.checked).to.be.false;
-            expect(mobile.checked).to.be.true;
+              document.querySelector('merch-sidenav-checkbox-group')
+                  .parentElement,
+          );
+          expect(parseState().types).to.equal('mobile');
+          expect(web.checked).to.be.false;
+          expect(mobile.checked).to.be.true;
         });
     });
 
@@ -222,9 +218,7 @@ runTests(async () => {
 
         it('does refresh from url state', async () => {
             const search = document.querySelector('sp-search');
-            const sidenavItemCD = document.querySelector(
-                'sp-sidenav-item[label="Creativity And Design"]',
-            );
+            const sidenavItemCD = document.querySelector('sp-sidenav-item[label="Creativity And Design"]');
             search.value = '';
             pushState({ search: 'photoshop', filter: 'creativitydesign' });
             await refreshElement(

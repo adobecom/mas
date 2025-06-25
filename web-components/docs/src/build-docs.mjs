@@ -52,16 +52,16 @@ const outputPath = path.join(targetFile);
 const inputContent = fs.readFileSync(inputPath, 'utf8');
 
 // depending on surface, load either Milo consonant or Spectrum styles
-const styleDependecy = ['plans.md'].includes(sourceFile)
-    ? '<link rel="stylesheet" href="../../../styles/styles.css">'
-    : '<link rel="stylesheet" href="spectrum.css">';
+const styleDependecy = ['plans.md'].includes(sourceFile) 
+  ? '<link rel="stylesheet" href="../../../styles/styles.css">' 
+  : '<link rel="stylesheet" href="spectrum.css">';
 
 // Render Markdown to HTML
 let htmlContent = md.render(inputContent);
 // wrap in sp-theme
-htmlContent = ['ccd.md'].includes(sourceFile)
-    ? htmlContent
-    : `<sp-theme color="light" scale="medium">\n${htmlContent}\n</sp-theme>`;
+htmlContent = ['ccd.md'].includes(sourceFile) 
+  ? htmlContent 
+  : `<sp-theme color="light" scale="medium">\n${htmlContent}\n</sp-theme>`;
 
 // HTML template with your custom element script
 const htmlTemplate = `

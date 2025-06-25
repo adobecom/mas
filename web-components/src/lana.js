@@ -70,7 +70,7 @@ const lanaAppender = {
         const { pathname, search } = window.location;
         let page = `${config.delimiter}page=${pathname}${search}`;
         if (page.length > PAGE_LIMIT) {
-            page = `${page.slice(0, PAGE_LIMIT)}<trunc>`;
+          page = `${page.slice(0, PAGE_LIMIT)}<trunc>`;
         }
         payload += page;
 
@@ -85,19 +85,19 @@ const lanaAppender = {
 
 // Allow dynamic config updates
 function updateConfig(newConfig) {
-    Object.assign(
-        config,
-        Object.fromEntries(
-            Object.entries(newConfig).filter(
-                ([key, value]) =>
-                    key in config &&
-                    value !== '' &&
-                    value !== null &&
-                    value !== undefined &&
-                    !Number.isNaN(value), // Correctly exclude NaN
-            ),
-        ),
-    );
+  Object.assign(
+      config,
+      Object.fromEntries(
+          Object.entries(newConfig).filter(
+              ([key, value]) =>
+                  key in config &&
+                  value !== '' &&
+                  value !== null &&
+                  value !== undefined &&
+                  !Number.isNaN(value), // Correctly exclude NaN
+          ),
+      ),
+  );
 }
 
 export { config, lanaAppender, updateConfig };

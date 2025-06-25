@@ -13,7 +13,7 @@ export class MasError extends Error {
      */
     constructor(message, context, cause) {
         super(message, { cause });
-
+        
         this.name = 'MasError';
 
         if (context.response) {

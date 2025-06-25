@@ -40,7 +40,7 @@ export function createTag(tag, attributes = {}, content = null, is = null) {
 }
 
 export function matchMobile() {
-    return window.matchMedia('(max-width: 767px)');
+  return window.matchMedia('(max-width: 767px)');
 }
 
 /**
@@ -48,7 +48,11 @@ export function matchMobile() {
  * @returns {boolean} True if the device is mobile, otherwise false.
  */
 export function isMobile() {
-    return matchMobile().matches;
+  return matchMobile().matches;
+}
+
+export function printMeasure(measure) {
+  return `startTime:${measure.startTime.toFixed(2)}|duration:${measure.duration.toFixed(2)}`;
 }
 
 /**
@@ -87,5 +91,5 @@ export function discoverService(getConfig, { once = false } = {}) {
 }
 
 export function getService() {
-    return document.getElementsByTagName(MAS_COMMERCE_SERVICE)?.[0];
+  return document.getElementsByTagName(MAS_COMMERCE_SERVICE)?.[0];
 }

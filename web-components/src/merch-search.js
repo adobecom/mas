@@ -1,7 +1,11 @@
 import { html, LitElement } from 'lit';
 import { debounce } from './utils.js';
 import { EVENT_MERCH_SEARCH_CHANGE } from './constants.js';
-import { deeplink, pushStateFromComponent, parseState } from './deeplink.js';
+import {
+    deeplink,
+    pushStateFromComponent,
+    parseState,
+} from './deeplink.js';
 
 export class MerchSearch extends LitElement {
     static properties = {

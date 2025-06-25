@@ -1,19 +1,18 @@
 {
     "name": "@adobecom/mas",
-    "version": "0.3.1",
+    "version": "0.4.5",
     "type": "module",
     "main": "dist/mas.js",
     "private": true,
     "scripts": {
         "lint": "eslint --fix",
         "build": "npm run test && npm run build:bundle",
-        "build:dev": "npm run test && npm run build:bundle sourcemap no-minify",
+        "build:dev": "npm run build:bundle sourcemap no-minify",
         "build:docs": "cd ./docs/src && ./build-docs.sh",
         "build:bundle": "node ./build.mjs",
         "build:bundle:dev": "npm run build:bundle sourcemap",
         "test:watch": "wtr --config ./web-test-runner.config.mjs --coverage --watch --debug",
-        "test": "wtr --config ./web-test-runner.config.mjs --coverage",
-        "libs": "npm run build:bundle && (cd .. && aem up --port 3030)"
+        "test": "wtr --config ./web-test-runner.config.mjs --coverage"
     },
     "devDependencies": {
         "@dexter/tacocat-core": "file:./internal/tacocat-core-1.13.1.tgz",

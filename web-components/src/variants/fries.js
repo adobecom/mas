@@ -11,21 +11,14 @@ export const FRIES_AEM_FRAGMENT_MAPPING = {
         maxCount: 2000,
         withSuffix: false,
     },
-    badge: { tag: 'div', slot: 'badge', default: 'spectrum-yellow-300' },
-    trialBadge: {
-        tag: 'div',
-        slot: 'trial-badge',
-        default: 'spectrum-green-800',
-    },
+    badge: { tag: 'div', slot: 'badge' , default: 'spectrum-yellow-300'},
+    trialBadge: { tag: 'div', slot: 'trial-badge', default: 'spectrum-green-800' },
     prices: { tag: 'p', slot: 'price' },
     ctas: { slot: 'cta', size: 'M' },
     addonConfirmation: { tag: 'div', slot: 'addon-confirmation' },
-    borderColor: {
-        attribute: 'border-color',
-        specialValues: {
-            gray: '--spectrum-gray-300',
-        },
-    },
+    borderColor: { attribute: 'border-color', specialValues: {
+        gray: '--spectrum-gray-300',
+    } },
 };
 
 export class FriesCard extends VariantLayout {
@@ -38,7 +31,7 @@ export class FriesCard extends VariantLayout {
     }
 
     renderLayout() {
-        return html`
+        return html`            
             <div class="content">
                 <div class="header">
                     <slot name="icons"></slot>
@@ -48,11 +41,11 @@ export class FriesCard extends VariantLayout {
                 <slot name="badge"></slot>
                 <slot name="body-s"></slot>
                 <div class="footer">
-                    <div class="cta">
-                        <slot name="cta"></slot>
-                        <slot name="addon-confirmation"></slot>
-                    </div>
-                    <slot name="price"></slot>
+                  <div class="cta">
+                    <slot name="cta"></slot>
+                    <slot name="addon-confirmation"></slot>
+                  </div>
+                  <slot name="price"></slot>
                 </div>
             </div>
             <slot></slot>
@@ -105,18 +98,18 @@ export class FriesCard extends VariantLayout {
         }
 
         :host([variant='fries']) .footer {
-            display: flex;
-            width: fit-content;
-            flex-wrap: nowrap;
-            gap: 8px;
-            flex-direction: row;
-            margin-top: auto;
-            align-items: end;
-            width: 100%;
-            justify-content: space-between;
+          display: flex;
+          width: fit-content;
+          flex-wrap: nowrap;
+          gap: 8px;
+          flex-direction: row;
+          margin-top: auto;
+          align-items: end;
+          width: 100%;
+          justify-content: space-between;
         }
 
-        :host([variant='fries']) .cta {
+        :host([variant='fries']) .cta  {
             display: flex;
             flex-direction: row;
             align-items: center;
@@ -126,4 +119,5 @@ export class FriesCard extends VariantLayout {
     `;
 }
 
-customElements.define('fries-card', FriesCard);
+customElements.define('fries-card', FriesCard); 
+

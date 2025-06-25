@@ -30,7 +30,7 @@
             "mimeType": "text/html"
         },
         "ctas": {
-            "value": "<a class=\"accent\" data-promotion-code=\"nicopromo\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\" target=\"_self\" data-analytics-id=\"buy-now\">{{select}}</a>",
+            "value": "<a class=\"accent\" data-promotion-code=\"NICOPROMO\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\" target=\"_self\" data-analytics-id=\"buy-now\">{{select}}</a>",
             "mimeType": "text/html"
         },
         "tags": ["mas:plan_type/abm", "mas:offer_type/base", "mas:product_family", "mas:commitment/access_pass"]

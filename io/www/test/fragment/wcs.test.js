@@ -58,7 +58,7 @@ describe('wcs typical cases', function () {
                 country: 'US',
                 locale: 'en_US',
                 landscape: 'PUBLISHED',
-                promotion_code: 'nicopromo',
+                promotion_code: 'NICOPROMO',
                 api_key: 'testing_wcs',
                 language: 'MULT',
             })
@@ -109,7 +109,7 @@ describe('wcs typical cases', function () {
                 country: 'GB',
                 locale: 'en_GB',
                 landscape: 'PUBLISHED',
-                promotion_code: 'nicopromo',
+                promotion_code: 'NICOPROMO',
                 api_key: 'testing_wcs',
             })
             .reply(200, { resolvedOffers: [{ foo: 'bar' }] });
@@ -213,7 +213,7 @@ describe('wcs corner cases', function () {
                 country: 'US',
                 locale: 'en_US',
                 landscape: 'PUBLISHED',
-                promotion_code: 'nicopromo',
+                promotion_code: 'NICOPROMO',
                 api_key: 'testing_wcs',
                 language: 'MULT',
             })

@@ -31,7 +31,12 @@ async function computeCache(tokens, wcsContext) {
                 const response = await fetchArtifact(osi, promotionCode, wcsContext);
                 if (response) {
                     const { resolvedOffers } = response;
-                    const cacheKey = [osi, wcsContext.country.toLowerCase(), wcsContext.language?.toLowerCase(), promotionCode]
+                    const cacheKey = [
+                        osi,
+                        wcsContext.country.toLowerCase(),
+                        wcsContext.language?.toLowerCase(),
+                        promotionCode?.toLowerCase(),
+                    ]
                         .filter((val) => val)
                         .join('-');
                     resolve({

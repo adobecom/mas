@@ -26,6 +26,7 @@ nala/.auth/
 *.js.map
 /.cursor*/
 .CLAUDE.md
+studio/CLAUDE.md
 
 # IO Runtime Config
 config.json

@@ -319,7 +319,7 @@ export default class StudioPage {
                 state: 'visible',
                 timeout: 30000,
             });
-            await this.page.waitForTimeout(1000); // Give editor time to stabilize
+            await this.page.waitForTimeout(1500); // Give editor time to stabilize
 
             await this.#retryOperation(async (attempt) => {
                 // Wait for delete button and ensure it's enabled

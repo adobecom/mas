@@ -29,7 +29,6 @@ const VARIANT_RTE_MARKS = {
 class MerchCardEditor extends LitElement {
     static properties = {
         fragmentStore: { type: Object, attribute: false },
-        currentVariantMapping: { type: Object, state: true },
         updateFragment: { type: Function },
     };
 
@@ -53,6 +52,7 @@ class MerchCardEditor extends LitElement {
             .join('; ');
     }
 
+    currentVariantMapping = null;
     availableSizes = [];
     availableColors = [];
     availableBorderColors = [];
@@ -64,7 +64,6 @@ class MerchCardEditor extends LitElement {
         super();
         this.fragmentStore = null;
         this.updateFragment = null;
-        this.currentVariantMapping = null;
     }
 
     createRenderRoot() {
@@ -82,6 +81,10 @@ class MerchCardEditor extends LitElement {
     willUpdate(changedProperties) {
         if (changedProperties.has('fragmentStore')) {
             this.#updateCurrentVariantMapping();
+            this.#updateAvailableSizes();
+            this.#updateAvailableColors();
+            this.#updateBackgroundColors();
+            this.toggleFields();
         }
     }
 
@@ -213,17 +216,6 @@ class MerchCardEditor extends LitElement {
     showQuantityFields(show) {
         const element = this.querySelector('#quantitySelector');
         if (element) element.style.display = show ? 'block' : 'none';
-    }
-
-    updated(changedProperties) {
-        super.updated(changedProperties);
-        if (changedProperties.has('fragmentStore')) {
-            this.#updateAvailableSizes();
-            this.#updateAvailableColors();
-            this.#updateBackgroundColors();
-            this.toggleFields();
-            this.requestUpdate();
-        }
     }
 
     toggleFields() {

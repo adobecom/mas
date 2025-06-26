@@ -95,10 +95,10 @@ async function wcs(context) {
                 return token;
             })
             .filter((token) => token.osi);
-        if (body.fields.osi && body.fields.promotionCode) {
+        if (body.fields.osi && body.fields.promoCode) {
             tokens.push({
                 osi: body.fields.osi,
-                promotionCode: body.fields.promotionCode,
+                promotionCode: body.fields.promoCode,
             });
         }
         const country = locale.split('_')[1];

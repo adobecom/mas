@@ -86,7 +86,7 @@ describe('wcs typical cases', function () {
             ]),
         );
         context.body.fields.osi = 'anotherOsiForUpt';
-        context.body.fields.promotionCode = 'UPT_PROMO-1';
+        context.body.fields.promoCode = 'UPT_PROMO-1';
         context = await wcs(context);
         expect(context.body.wcs).to.deep.equal({
             prod: {
@@ -143,7 +143,7 @@ describe('wcs typical cases', function () {
             ]),
         );
         delete context.body.fields.osi;
-        delete context.body.fields.promotionCode;
+        delete context.body.fields.promoCode;
         context.locale = 'en_GB';
         context = await wcs(context);
         expect(context.body.wcs).to.deep.equal({

@@ -1,4 +1,4 @@
-import { TABLET_UP, DESKTOP_UP, LARGE_DESKTOP,} from '../media.js';
+import { TABLET_UP, DESKTOP_UP, LARGE_DESKTOP } from '../media.js';
 
 export const CSS = `
 :root {

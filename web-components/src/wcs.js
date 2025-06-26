@@ -185,10 +185,7 @@ export function Wcs({ settings }) {
             /* c8 ignore next 2 */
             message = `Network error: ${e.message}`;
         } finally {
-            (measure = performance.measure(
-                measureName,
-                startMark,
-            ));
+            measure = performance.measure(measureName, startMark);
             // Clean up marks
             performance.clearMarks(startMark);
             performance.clearMeasures(measureName);
@@ -228,7 +225,7 @@ export function Wcs({ settings }) {
         );
     }
 
-    function prefillWcsCache(preloadedCache) {        
+    function prefillWcsCache(preloadedCache) {
         if (!preloadedCache || typeof preloadedCache !== 'object') {
             throw new TypeError('Cache must be a Map or similar object');
         }
@@ -300,7 +297,8 @@ export function Wcs({ settings }) {
                         locale,
                         offerSelectorIds: [],
                     };
-                    if (country !== 'GB' && !perpetual) options.language = language;
+                    if (country !== 'GB' && !perpetual)
+                        options.language = language;
                     const promises = new Map();
                     group = { options, promises };
                     queue.set(groupKey, group);

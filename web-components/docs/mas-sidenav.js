@@ -1,9 +1,9 @@
 class MasSidenav extends HTMLElement {
-  constructor() {
-    super();
-    this.classList.add('sidenav');
-    
-    this.innerHTML = `
+    constructor() {
+        super();
+        this.classList.add('sidenav');
+
+        this.innerHTML = `
       <a href="/libs/features/mas/docs/mas.html">Home</a>
       <a href="/libs/features/mas/docs/mas.js.html">mas.js</a>
       <a href="/libs/features/mas/docs/step-by-step.html">Step By Step - Enable M@S</a>
@@ -16,7 +16,7 @@ class MasSidenav extends HTMLElement {
       <a href="/libs/features/mas/docs/plans.html">Plans Gallery</a>
       <a href="/libs/features/mas/docs/benchmarks.html">Benchmarks</a>
     `;
-  }
+    }
 }
 
 customElements.define('mas-sidenav', MasSidenav, { extends: 'aside' });

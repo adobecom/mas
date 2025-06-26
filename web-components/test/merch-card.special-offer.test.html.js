@@ -16,7 +16,7 @@ runTests(async () => {
     mockLana();
     await mockFetch(withWcs);
     await import('../src/mas.js');
-    
+
     if (skipTests !== null) {
         appendMiloStyles();
         return;

@@ -20,15 +20,15 @@ export const PLANS_AEM_FRAGMENT_MAPPING = {
     planType: true,
     badge: { tag: 'div', slot: 'badge', default: 'spectrum-yellow-300-plans' },
     allowedBadgeColors: [
-      'spectrum-yellow-300-plans',
-      'spectrum-gray-300-plans',
-      'spectrum-gray-700-plans',
-      'spectrum-green-900-plans',
+        'spectrum-yellow-300-plans',
+        'spectrum-gray-300-plans',
+        'spectrum-gray-700-plans',
+        'spectrum-green-900-plans',
     ],
     allowedBorderColors: [
-      'spectrum-yellow-300-plans',
-      'spectrum-gray-300-plans',
-      'spectrum-green-900-plans',
+        'spectrum-yellow-300-plans',
+        'spectrum-gray-300-plans',
+        'spectrum-green-900-plans',
     ],
     borderColor: { attribute: 'border-color' },
     size: ['wide', 'super-wide'],
@@ -38,21 +38,22 @@ export const PLANS_AEM_FRAGMENT_MAPPING = {
 };
 
 export const PLANS_EDUCATION_AEM_FRAGMENT_MAPPING = {
-  ...(function(){
-    const { whatsIncluded, ...rest } = PLANS_AEM_FRAGMENT_MAPPING;
-    return rest;
-  }()),
-  title: { tag: 'h3', slot: 'heading-s' },
-  subtitle: { tag: 'p', slot: 'subtitle' },
-  secureLabel: false
-}
+    ...(function () {
+        const { whatsIncluded, ...rest } = PLANS_AEM_FRAGMENT_MAPPING;
+        return rest;
+    })(),
+    title: { tag: 'h3', slot: 'heading-s' },
+    subtitle: { tag: 'p', slot: 'subtitle' },
+    secureLabel: false,
+};
 
 export const PLANS_STUDENTS_AEM_FRAGMENT_MAPPING = {
-  ...(function(){
-    const { whatsIncluded, size, quantitySelect, ...rest } = PLANS_AEM_FRAGMENT_MAPPING;
-    return rest;
-  }())
-}
+    ...(function () {
+        const { whatsIncluded, size, quantitySelect, ...rest } =
+            PLANS_AEM_FRAGMENT_MAPPING;
+        return rest;
+    })(),
+};
 
 export class Plans extends VariantLayout {
     constructor(card) {
@@ -108,7 +109,9 @@ export class Plans extends VariantLayout {
     }
 
     adjustCallout() {
-        const tooltipIcon = this.card.querySelector('[slot="callout-content"] .icon-button');
+        const tooltipIcon = this.card.querySelector(
+            '[slot="callout-content"] .icon-button',
+        );
         if (tooltipIcon && tooltipIcon.title) {
             tooltipIcon.dataset.tooltip = tooltipIcon.title;
             tooltipIcon.removeAttribute('title');
@@ -152,9 +155,9 @@ export class Plans extends VariantLayout {
     }
 
     get divider() {
-      return this.card.variant === 'plans-education'
-        ? html`<div class="divider"></div>` 
-        : nothing
+        return this.card.variant === 'plans-education'
+            ? html`<div class="divider"></div>`
+            : nothing;
     }
 
     async adjustLegal() {
@@ -162,36 +165,40 @@ export class Plans extends VariantLayout {
         if (this.legalAdjusted) return;
         this.legalAdjusted = true;
         const prices = [];
-        const headingPrice = this.card.querySelector(`[slot="heading-m"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`);
+        const headingPrice = this.card.querySelector(
+            `[slot="heading-m"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
+        );
         if (headingPrice) prices.push(headingPrice);
-        const bodyPrices = this.card.querySelectorAll(`[slot="body-xs"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`);
-        bodyPrices.forEach(bodyPrice => prices.push(bodyPrice));
+        const bodyPrices = this.card.querySelectorAll(
+            `[slot="body-xs"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
+        );
+        bodyPrices.forEach((bodyPrice) => prices.push(bodyPrice));
         const legalPromises = prices.map(async (price) => {
-          const legal = price.cloneNode(true);
-          await price.onceSettled();
-          if (!price?.options) return;
-          if (price.options.displayPerUnit)
-              price.dataset.displayPerUnit = 'false';
-          if (price.options.displayTax) price.dataset.displayTax = 'false';
-          if (price.options.displayPlanType)
-              price.dataset.displayPlanType = 'false';
-          legal.setAttribute('data-template', 'legal');
-          price.parentNode.insertBefore(legal, price.nextSibling);
+            const legal = price.cloneNode(true);
+            await price.onceSettled();
+            if (!price?.options) return;
+            if (price.options.displayPerUnit)
+                price.dataset.displayPerUnit = 'false';
+            if (price.options.displayTax) price.dataset.displayTax = 'false';
+            if (price.options.displayPlanType)
+                price.dataset.displayPlanType = 'false';
+            legal.setAttribute('data-template', 'legal');
+            price.parentNode.insertBefore(legal, price.nextSibling);
         });
         await Promise.all(legalPromises);
     }
 
     async adjustAddon() {
-      await this.card.updateComplete;
-      const addon = this.card.addon;
-      if (!addon) return;
-      const price = this.mainPrice;
-      if (!price) return;
-      await price.onceSettled();
-      const planType = price.value?.[0]?.planType;
-      if (!planType) return;
-      addon.planType = planType;
-  }
+        await this.card.updateComplete;
+        const addon = this.card.addon;
+        if (!addon) return;
+        const price = this.mainPrice;
+        if (!price) return;
+        await price.onceSettled();
+        const planType = price.value?.[0]?.planType;
+        if (!planType) return;
+        addon.planType = planType;
+    }
 
     get stockCheckbox() {
         return this.card.checkboxLabel
@@ -204,18 +211,26 @@ export class Plans extends VariantLayout {
     }
 
     get icons() {
-        if (!this.card.querySelector('[slot="icons"]') && !this.card.getAttribute('id')) return nothing;
+        if (
+            !this.card.querySelector('[slot="icons"]') &&
+            !this.card.getAttribute('id')
+        )
+            return nothing;
         return html`<slot name="icons"></slot>`;
     }
 
     get addon() {
         if (this.card.size === 'super-wide') return nothing;
-        return html`<slot name="addon"></slot>`
+        return html`<slot name="addon"></slot>`;
     }
 
     get plansSecureLabelFooter() {
-        if (this.card.size === 'super-wide') 
-            return html`<footer><slot name="addon"></slot>${this.secureLabel}<slot name="footer"></slot></footer>`;
+        if (this.card.size === 'super-wide')
+            return html`<footer>
+                <slot name="addon"></slot>${this.secureLabel}<slot
+                    name="footer"
+                ></slot>
+            </footer>`;
         return this.secureLabelFooter;
     }
 
@@ -247,8 +262,7 @@ export class Plans extends VariantLayout {
                 <slot name="body-xs"></slot>
                 <slot name="whats-included"></slot>
                 <slot name="callout-content"></slot>
-                ${this.stockCheckbox}
-                ${this.addon}
+                ${this.stockCheckbox} ${this.addon}
                 <slot name="badge"></slot>
                 <slot name="quantity-select"></slot>
             </div>
@@ -263,7 +277,7 @@ export class Plans extends VariantLayout {
             --merch-card-plans-max-width: 244px;
             --merch-card-plans-padding: 15px;
             --merch-card-plans-heading-min-height: 23px;
-            --merch-color-green-promo: #05834E;
+            --merch-color-green-promo: #05834e;
             --secure-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23505050' viewBox='0 0 12 15'%3E%3Cpath d='M11.5 6H11V5A5 5 0 1 0 1 5v1H.5a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5ZM3 5a3 3 0 1 1 6 0v1H3Zm4 6.111V12.5a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1.389a1.5 1.5 0 1 1 2 0Z'/%3E%3C/svg%3E");
             font-weight: 400;
         }
@@ -280,7 +294,7 @@ export class Plans extends VariantLayout {
         }
         :host([variant='plans-education']) .divider {
             border: 0;
-            border-top: 1px solid #E8E8E8;
+            border-top: 1px solid #e8e8e8;
             margin-top: 8px;
         }
 

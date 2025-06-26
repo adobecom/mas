@@ -331,7 +331,11 @@ const formatAnnualPrice = (data) => {
             return formatPrice(data, RecurrenceTerm.YEAR, getAnnualPrice);
         }
         const {
-            displaySummary: { outcomeType, duration, minProductQuantity = 1 } = {},
+            displaySummary: {
+                outcomeType,
+                duration,
+                minProductQuantity = 1,
+            } = {},
         } = promotion;
         switch (outcomeType) {
             case 'PERCENTAGE_DISCOUNT': {

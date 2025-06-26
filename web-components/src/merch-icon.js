@@ -20,9 +20,17 @@ export default class MerchIcon extends LitElement {
         const { href } = this;
         return href
             ? html`<a href="${href}">
-                  <img src="${this.src}" alt="${this.alt}" loading="${this.loading}" />
+                  <img
+                      src="${this.src}"
+                      alt="${this.alt}"
+                      loading="${this.loading}"
+                  />
               </a>`
-            : html` <img src="${this.src}" alt="${this.alt}" loading="${this.loading}" />`;
+            : html` <img
+                  src="${this.src}"
+                  alt="${this.alt}"
+                  loading="${this.loading}"
+              />`;
     }
 
     static styles = css`

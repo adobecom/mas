@@ -62,7 +62,11 @@ export class MerchCard extends LitElement {
         size: { type: String, attribute: 'size', reflect: true },
         badgeColor: { type: String, attribute: 'badge-color', reflect: true },
         borderColor: { type: String, attribute: 'border-color', reflect: true },
-        backgroundColor: { type: String, attribute: 'background-color', reflect: true },
+        backgroundColor: {
+            type: String,
+            attribute: 'background-color',
+            reflect: true,
+        },
         badgeBackgroundColor: {
             type: String,
             attribute: 'badge-background-color',
@@ -174,7 +178,8 @@ export class MerchCard extends LitElement {
         this.spectrum = 'css';
         this.loading = 'lazy';
         this.handleAemFragmentEvents = this.handleAemFragmentEvents.bind(this);
-        this.handleMerchOfferSelectReady = this.handleMerchOfferSelectReady.bind(this);
+        this.handleMerchOfferSelectReady =
+            this.handleMerchOfferSelectReady.bind(this);
     }
 
     static getFragmentMapping = getFragmentMapping;
@@ -292,16 +297,18 @@ export class MerchCard extends LitElement {
 
     get checkoutLinksDescription() {
         return [
-            ...(this.descriptionSlot?.querySelectorAll(SELECTOR_MAS_CHECKOUT_LINK) ??
-            []),
-        ]
+            ...(this.descriptionSlot?.querySelectorAll(
+                SELECTOR_MAS_CHECKOUT_LINK,
+            ) ?? []),
+        ];
     }
 
     get checkoutLinkDescriptionCompare() {
         return [
-            ...(this.descriptionSlotCompare?.querySelectorAll(SELECTOR_MAS_CHECKOUT_LINK) ??
-            []),
-        ]
+            ...(this.descriptionSlotCompare?.querySelectorAll(
+                SELECTOR_MAS_CHECKOUT_LINK,
+            ) ?? []),
+        ];
     }
 
     get activeDescriptionLinks() {
@@ -439,7 +446,10 @@ export class MerchCard extends LitElement {
             EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
             this.handleAddonAndQuantityUpdate,
         );
-        this.addEventListener(EVENT_MERCH_OFFER_SELECT_READY, this.handleMerchOfferSelectReady);
+        this.addEventListener(
+            EVENT_MERCH_OFFER_SELECT_READY,
+            this.handleMerchOfferSelectReady,
+        );
 
         // aem-fragment logic
         this.addEventListener(EVENT_AEM_ERROR, this.handleAemFragmentEvents);
@@ -623,29 +633,40 @@ export class MerchCard extends LitElement {
 
     handleAddonAndQuantityUpdate({ detail: { id, items } }) {
         if (!id || !items?.length) return;
-      const cta = this.checkoutLinks.find(link => link.getAttribute('data-modal-id') === id);
+        const cta = this.checkoutLinks.find(
+            (link) => link.getAttribute('data-modal-id') === id,
+        );
         if (!cta) return;
         const url = new URL(cta.getAttribute('href'));
         const pa = url.searchParams.get('pa');
-      const mainProductQuantity = items.find(item => item.productArrangementCode === pa)?.quantity;
-      const isAddonIncluded = !!items.find(item => item.productArrangementCode !== pa);
+        const mainProductQuantity = items.find(
+            (item) => item.productArrangementCode === pa,
+        )?.quantity;
+        const isAddonIncluded = !!items.find(
+            (item) => item.productArrangementCode !== pa,
+        );
         if (mainProductQuantity) {
-        this.quantitySelect?.dispatchEvent(new CustomEvent(EVENT_MERCH_CARD_QUANTITY_CHANGE, {
+            this.quantitySelect?.dispatchEvent(
+                new CustomEvent(EVENT_MERCH_CARD_QUANTITY_CHANGE, {
                     detail: { quantity: mainProductQuantity },
                     bubbles: true,
-          composed: true
-        }));
-      }
-      if (this.addonCheckbox && this.addonCheckbox.checked !== isAddonIncluded) {
-        this.toggleStockOffer({ target: this.addonCheckbox });
-        const checkboxEvent = new Event('change', {
-          bubbles: true,
-          cancelable: true
+                    composed: true,
+                }),
+            );
+        }
+        if (
+            this.addonCheckbox &&
+            this.addonCheckbox.checked !== isAddonIncluded
+        ) {
+            this.toggleStockOffer({ target: this.addonCheckbox });
+            const checkboxEvent = new Event('change', {
+                bubbles: true,
+                cancelable: true,
             });
 
             Object.defineProperty(checkboxEvent, 'target', {
                 writable: false,
-          value: { checked: isAddonIncluded }
+                value: { checked: isAddonIncluded },
             });
             this.addonCheckbox.handleChange(checkboxEvent);
         }

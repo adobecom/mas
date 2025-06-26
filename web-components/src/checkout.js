@@ -1,5 +1,10 @@
 import { CheckoutLink } from './checkout-link.js';
-import { omitProperties, toBoolean, toEnumeration, computePromoStatus } from '@dexter/tacocat-core';
+import {
+    omitProperties,
+    toBoolean,
+    toEnumeration,
+    computePromoStatus,
+} from '@dexter/tacocat-core';
 import { CheckoutWorkflowStep } from './constants.js';
 
 import { buildCheckoutUrl } from './buildCheckoutUrl.js';
@@ -36,8 +41,12 @@ export function Checkout({ settings }) {
             wcsOsi,
             extraOptions,
             ...rest
-        } = Object.assign({}, placeholder?.dataset ?? {}, overrides ?? {});  
-        let workflowStep = toEnumeration(checkoutWorkflowStep, CheckoutWorkflowStep, Defaults.checkoutWorkflowStep);
+        } = Object.assign({}, placeholder?.dataset ?? {}, overrides ?? {});
+        let workflowStep = toEnumeration(
+            checkoutWorkflowStep,
+            CheckoutWorkflowStep,
+            Defaults.checkoutWorkflowStep,
+        );
         const options = omitProperties({
             ...rest,
             extraOptions,
@@ -64,7 +73,7 @@ export function Checkout({ settings }) {
      * @returns a checkout URL
      */
     function buildCheckoutURL(offers, options) {
-      /* c8 ignore next 3 */
+        /* c8 ignore next 3 */
         if (!Array.isArray(offers) || !offers.length || !options) {
             return '';
         }
@@ -77,27 +86,32 @@ export function Checkout({ settings }) {
             promotionCode: checkoutPromoCode,
             quantity: optionsQuantity,
             preselectPlan,
-            ms, 
+            ms,
             cs,
             ...rest
         } = collectCheckoutOptions(options);
         const masFF3in1 = document.querySelector('meta[name=mas-ff-3in1]');
-        const is3in1 = Object.values(MODAL_TYPE_3_IN_1).includes(options.modal) && (!masFF3in1 || masFF3in1.content !== 'off');
+        const is3in1 =
+            Object.values(MODAL_TYPE_3_IN_1).includes(options.modal) &&
+            (!masFF3in1 || masFF3in1.content !== 'off');
         const context = window.frameElement || is3in1 ? 'if' : 'fp';
         // even if CTA has multiple offers, they should have same ms, cs, ot values
-        const [{ 
-          productArrangementCode, 
-          marketSegments: [offerMarketSegment], 
-          customerSegment: offerCustomerSegment, 
-          offerType }] = offers;
+        const [
+            {
+                productArrangementCode,
+                marketSegments: [offerMarketSegment],
+                customerSegment: offerCustomerSegment,
+                offerType,
+            },
+        ] = offers;
         // cleanup checkoutMarketSegment  - not needed
         let marketSegment = ms ?? offerMarketSegment ?? checkoutMarketSegment;
         let customerSegment = cs ?? offerCustomerSegment;
         //used on catalog page by MEP to preselect plan
         if (preselectPlan?.toLowerCase() === 'edu') {
-          marketSegment = 'EDU';
+            marketSegment = 'EDU';
         } else if (preselectPlan?.toLowerCase() === 'team') {
-          customerSegment = 'TEAM';
+            customerSegment = 'TEAM';
         }
         const data = {
             is3in1,
@@ -116,7 +130,8 @@ export function Checkout({ settings }) {
             ...rest,
         };
         // even if there are multiple offers, only first main offer is used for quantity
-        const quantity = optionsQuantity[0] > 1 ? optionsQuantity[0] : undefined;
+        const quantity =
+            optionsQuantity[0] > 1 ? optionsQuantity[0] : undefined;
         if (offers.length === 1) {
             const { offerId } = offers[0];
             data.items.push({ id: offerId, quantity });
@@ -135,10 +150,10 @@ export function Checkout({ settings }) {
 
     const { createCheckoutLink } = CheckoutLink;
     return {
-      CheckoutLink,
-      CheckoutWorkflowStep,
-      buildCheckoutURL,
-      collectCheckoutOptions,
-      createCheckoutLink,
+        CheckoutLink,
+        CheckoutWorkflowStep,
+        buildCheckoutURL,
+        collectCheckoutOptions,
+        createCheckoutLink,
     };
 }

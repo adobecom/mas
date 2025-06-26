@@ -1,4 +1,10 @@
-import { MOBILE_LANDSCAPE, TABLET_DOWN, TABLET_UP, DESKTOP_UP, LARGE_DESKTOP } from "../media.js";
+import {
+    MOBILE_LANDSCAPE,
+    TABLET_DOWN,
+    TABLET_UP,
+    DESKTOP_UP,
+    LARGE_DESKTOP,
+} from '../media.js';
 export const CSS = `
   :root {
     --consonant-merch-card-mini-compare-chart-icon-size: 32px;

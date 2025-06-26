@@ -20,17 +20,22 @@ runTests(async () => {
     await mockFetch(withWcs);
 
     describe('merch-card web component', () => {
-      it('should exist in the HTML document', async () => {
-          expect(document.querySelector('merch-card[variant="ccd-suggested"]')).to.exist;
-      });
-  
-      it('should have strip with size wide for the ccd-suggested wide card', async () => {
-          const ccdSliceWideCard = document.querySelector('merch-card[variant="ccd-suggested"][background-image]');
-          expect(ccdSliceWideCard.getAttribute('variant')).to.equal('ccd-suggested');
-          expect(ccdSliceWideCard.getAttribute('background-image')).to.exist;
-          expect(ccdSliceWideCard.className).to.equal('');
+        it('should exist in the HTML document', async () => {
+            expect(
+                document.querySelector('merch-card[variant="ccd-suggested"]'),
+            ).to.exist;
+        });
 
-      });
+        it('should have strip with size wide for the ccd-suggested wide card', async () => {
+            const ccdSliceWideCard = document.querySelector(
+                'merch-card[variant="ccd-suggested"][background-image]',
+            );
+            expect(ccdSliceWideCard.getAttribute('variant')).to.equal(
+                'ccd-suggested',
+            );
+            expect(ccdSliceWideCard.getAttribute('background-image')).to.exist;
+            expect(ccdSliceWideCard.className).to.equal('');
+        });
 
         it('should have strip with size wide for the ccd-suggested wide card', async () => {
             const ccdSuggestedCard = document.querySelector(

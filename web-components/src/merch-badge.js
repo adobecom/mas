@@ -19,23 +19,33 @@ export default class MerchBadge extends LitElement {
 
     connectedCallback() {
         if (this.borderColor && this.borderColor !== 'Transparent') {
-            this.style.setProperty('--merch-badge-border', `1px solid var(--${this.borderColor})`);
+            this.style.setProperty(
+                '--merch-badge-border',
+                `1px solid var(--${this.borderColor})`,
+            );
         } else {
-            this.style.setProperty('--merch-badge-border', `1px solid var(--${this.backgroundColor})`);
+            this.style.setProperty(
+                '--merch-badge-border',
+                `1px solid var(--${this.backgroundColor})`,
+            );
         }
-        this.style.setProperty('--merch-badge-background-color', `var(--${this.backgroundColor})`);
+        this.style.setProperty(
+            '--merch-badge-background-color',
+            `var(--${this.backgroundColor})`,
+        );
         this.style.setProperty('--merch-badge-color', this.color);
         this.style.setProperty('--merch-badge-padding', '2px 10px 3px 10px');
         this.style.setProperty('--merch-badge-border-radius', '4px 0 0 4px');
-        this.style.setProperty('--merch-badge-font-size', 'var(--consonant-merch-card-body-xs-font-size)');
+        this.style.setProperty(
+            '--merch-badge-font-size',
+            'var(--consonant-merch-card-body-xs-font-size)',
+        );
         this.textContent = '';
         super.connectedCallback();
     }
 
     render() {
-        return html`<div class="badge">
-            ${this.text}
-        </div>`;
+        return html`<div class="badge">${this.text}</div>`;
     }
 
     static styles = css`

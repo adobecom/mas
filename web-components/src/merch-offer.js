@@ -1,6 +1,9 @@
 import { html, LitElement } from 'lit';
 import { styles } from './merch-offer.css.js';
-import { EVENT_MERCH_OFFER_READY, SELECTOR_MAS_CHECKOUT_LINK } from './constants.js';
+import {
+    EVENT_MERCH_OFFER_READY,
+    SELECTOR_MAS_CHECKOUT_LINK,
+} from './constants.js';
 
 const TAG_NAME = 'merch-offer';
 class MerchOffer extends LitElement {
@@ -106,7 +109,8 @@ class MerchOffer extends LitElement {
         this.dispatchEvent(
             new CustomEvent(EVENT_MERCH_OFFER_READY, { bubbles: true }),
         );
-    }tr
+    }
+    tr;
 }
 
 customElements.define(TAG_NAME, MerchOffer);

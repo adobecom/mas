@@ -25,7 +25,7 @@ const SORT_ORDER = {
 const VARIANT_CLASSES = {
     catalog: ['four-merch-cards'],
     plans: ['four-merch-cards'],
-}
+};
 
 const RESULT_TEXT_SLOT_NAMES = {
     // no search
@@ -99,10 +99,10 @@ export class MerchCardCollection extends LitElement {
         filtered: { type: String, attribute: 'filtered', reflect: true }, // freeze filter
         hasMore: { type: Boolean },
         limit: { type: Number, attribute: 'limit' },
-        overrides : { type: String },
+        overrides: { type: String },
         page: { type: Number, attribute: 'page', reflect: true },
         resultCount: {
-          type: Number,
+            type: Number,
         },
         search: { type: String, attribute: 'search', reflect: true },
         sidenav: { type: Object },
@@ -145,14 +145,17 @@ export class MerchCardCollection extends LitElement {
         const aemFragment = this.querySelector('aem-fragment');
         if (!aemFragment) return Promise.resolve(true);
         const timeoutPromise = new Promise((resolve) =>
-            setTimeout(() => resolve(false), MERCH_CARD_COLLECTION_LOAD_TIMEOUT),
+            setTimeout(
+                () => resolve(false),
+                MERCH_CARD_COLLECTION_LOAD_TIMEOUT,
+            ),
         );
         const hydration = async () => {
             await aemFragment.updateComplete;
             await this.hydrationReady;
             return true;
-        }
-        return Promise.race([hydration(), timeoutPromise])
+        };
+        return Promise.race([hydration(), timeoutPromise]);
     }
 
     updated(changedProperties) {
@@ -191,9 +194,9 @@ export class MerchCardCollection extends LitElement {
         }
         let reduced = new Map(result.reverse());
         for (const card of reduced.keys()) {
-          this.prepend(card);
+            this.prepend(card);
         }
-        
+
         children.forEach((child) => {
             if (reduced.has(child)) {
                 child.size = child.filters[this.filter]?.size;
@@ -213,13 +216,16 @@ export class MerchCardCollection extends LitElement {
                 ?.firstElementChild?.assignedElements?.()?.[0];
             if (!resultTextElement) return;
 
-            this.sidenav?.filters?.addEventListener(EVENT_MERCH_SIDENAV_SELECT, () => {
-              updateLiterals(resultTextElement, {
-                resultCount: this.resultCount,
-                searchTerm: this.search,
-                filter: this.sidenav?.filters.selectedText,
-              });
-            });
+            this.sidenav?.filters?.addEventListener(
+                EVENT_MERCH_SIDENAV_SELECT,
+                () => {
+                    updateLiterals(resultTextElement, {
+                        resultCount: this.resultCount,
+                        searchTerm: this.search,
+                        filter: this.sidenav?.filters.selectedText,
+                    });
+                },
+            );
 
             updateLiterals(resultTextElement, {
                 resultCount: this.resultCount,
@@ -230,13 +236,13 @@ export class MerchCardCollection extends LitElement {
     }
 
     buildOverrideMap() {
-      this.#overrideMap = {};
-      this.overrides?.split(',').forEach((token) => {
-        const [ key, value ] = token?.split(':');
-        if (key && value) {
-          this.#overrideMap[key] = value;
-        }
-      });
+        this.#overrideMap = {};
+        this.overrides?.split(',').forEach((token) => {
+            const [key, value] = token?.split(':');
+            if (key && value) {
+                this.#overrideMap[key] = value;
+            }
+        });
     }
 
     connectedCallback() {
@@ -248,14 +254,14 @@ export class MerchCardCollection extends LitElement {
     }
 
     async init() {
-      await this.hydrate();
-      this.sidenav = document.querySelector('merch-sidenav');
-      if (this.filtered) {
-          this.filter = this.filtered;
+        await this.hydrate();
+        this.sidenav = document.querySelector('merch-sidenav');
+        if (this.filtered) {
+            this.filter = this.filtered;
             this.page = 1;
-          } else {
-          this.startDeeplink();
-      }
+        } else {
+            this.startDeeplink();
+        }
     }
 
     disconnectedCallback() {
@@ -264,17 +270,17 @@ export class MerchCardCollection extends LitElement {
     }
 
     #fail(error, details = {}, dispatch = true) {
-      this.#log.error(`merch-card-collection: ${error}`, details);
-      this.failed = true;
-      if (!dispatch) return;
-      this.dispatchEvent(
-          new CustomEvent(EVENT_MAS_ERROR, {
-              detail: { ...details, message: error },
-              bubbles: true,
-              composed: true,
-          }),
-      );
-  }
+        this.#log.error(`merch-card-collection: ${error}`, details);
+        this.failed = true;
+        if (!dispatch) return;
+        this.dispatchEvent(
+            new CustomEvent(EVENT_MAS_ERROR, {
+                detail: { ...details, message: error },
+                bubbles: true,
+                composed: true,
+            }),
+        );
+    }
 
     async hydrate() {
         if (this.hydrating) return false;
@@ -289,38 +295,52 @@ export class MerchCardCollection extends LitElement {
         });
         const self = this;
         function normalizePayload(fragment, overrideMap) {
-            const payload = { cards: [], hierarchy: [], placeholders: fragment.placeholders };
+            const payload = {
+                cards: [],
+                hierarchy: [],
+                placeholders: fragment.placeholders,
+            };
 
             function traverseReferencesTree(root, references) {
                 for (const reference of references) {
                     if (reference.fieldName === 'cards') {
-                        if (payload.cards.findIndex(card => card.id === reference.identifier) !== -1) continue;
-                        payload.cards.push(fragment.references[reference.identifier].value);
+                        if (
+                            payload.cards.findIndex(
+                                (card) => card.id === reference.identifier,
+                            ) !== -1
+                        )
+                            continue;
+                        payload.cards.push(
+                            fragment.references[reference.identifier].value,
+                        );
                         continue;
                     }
-                    const { fields } = fragment.references[reference.identifier].value;
+                    const { fields } =
+                        fragment.references[reference.identifier].value;
                     const collection = {
                         label: fields.label,
                         icon: fields.icon,
                         iconLight: fields.iconLight,
                         navigationLabel: fields.navigationLabel,
-                        cards: fields.cards.map(cardId => overrideMap[cardId] || cardId),
-                        collections: []
+                        cards: fields.cards.map(
+                            (cardId) => overrideMap[cardId] || cardId,
+                        ),
+                        collections: [],
                     };
                     root.push(collection);
-                    traverseReferencesTree(collection.collections, reference.referencesTree);
+                    traverseReferencesTree(
+                        collection.collections,
+                        reference.referencesTree,
+                    );
                 }
             }
-            traverseReferencesTree(
-                payload.hierarchy,
-                fragment.referencesTree,
-            );
+            traverseReferencesTree(payload.hierarchy, fragment.referencesTree);
             if (payload.hierarchy.length === 0) {
-              self.filtered = 'all';
-          }
+                self.filtered = 'all';
+            }
             return payload;
         }
-        
+
         aemFragment.addEventListener(EVENT_AEM_ERROR, (event) => {
             this.#fail('Error loading AEM fragment', event.detail);
             this.hydrating = false;
@@ -332,7 +352,8 @@ export class MerchCardCollection extends LitElement {
             aemFragment.cache.add(...cards);
             for (const fragment of cards) {
                 const merchCard = document.createElement('merch-card');
-                const fragmentId = this.#overrideMap[fragment.id] || fragment.id;
+                const fragmentId =
+                    this.#overrideMap[fragment.id] || fragment.id;
                 merchCard.setAttribute('consonant', '');
                 merchCard.setAttribute('style', '');
 
@@ -341,7 +362,10 @@ export class MerchCardCollection extends LitElement {
                         const index = node.cards.indexOf(fragmentId);
                         if (index === -1) continue;
                         const name = node.label.toLowerCase();
-                        merchCard.filters[name] = { order: index + 1, size: fragment.fields.size };
+                        merchCard.filters[name] = {
+                            order: index + 1,
+                            size: fragment.fields.size,
+                        };
                         populateFilters(node.collections);
                     }
                 }
@@ -365,7 +389,11 @@ export class MerchCardCollection extends LitElement {
             let variant = cards[0]?.fields.variant;
             if (variant.startsWith('plans')) variant = 'plans';
             this.variant = variant;
-            this.classList.add('merch-card-collection', variant, ...(VARIANT_CLASSES[variant] || []));
+            this.classList.add(
+                'merch-card-collection',
+                variant,
+                ...(VARIANT_CLASSES[variant] || []),
+            );
             this.displayResult = true;
             this.hydrating = false;
             aemFragment.remove();
@@ -377,7 +405,7 @@ export class MerchCardCollection extends LitElement {
     get header() {
         if (this.filtered) return;
         return html`<div id="header">
-                <sp-theme  color="light" scale="medium">
+                <sp-theme color="light" scale="medium">
                     ${this.searchBar} ${this.filtersButton} ${this.sortButton}
                 </sp-theme>
             </div>
@@ -391,7 +419,7 @@ export class MerchCardCollection extends LitElement {
     get footer() {
         if (this.filtered) return;
         return html`<div id="footer">
-            <sp-theme  color="light" scale="medium">
+            <sp-theme color="light" scale="medium">
                 ${this.showMoreButton}
             </sp-theme>
         </div>`;

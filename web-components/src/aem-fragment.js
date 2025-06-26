@@ -100,13 +100,13 @@ export class AemFragment extends HTMLElement {
 
     attributeChangedCallback(name, oldValue, newValue) {
         if (name === ATTRIBUTE_FRAGMENT) {
-          this.#fragmentId = newValue;
+            this.#fragmentId = newValue;
         }
         if (name === ATTRIBUTE_AUTHOR) {
-          this.#author = ['', 'true'].includes(newValue);
+            this.#author = ['', 'true'].includes(newValue);
         }
         if (name === ATTRIBUTE_PREVIEW) {
-          this.#preview = newValue;
+            this.#preview = newValue;
         }
     }
 
@@ -146,7 +146,7 @@ export class AemFragment extends HTMLElement {
         const startMarkName = `${markPrefix}${MARK_START_SUFFIX}`;
         const measureName = `${markPrefix}${MARK_DURATION_SUFFIX}`;
         if (this.#preview) {
-          return await this.generatePreview();
+            return await this.generatePreview();
         }
         performance.mark(startMarkName);
         let response;
@@ -159,10 +159,9 @@ export class AemFragment extends HTMLElement {
             });
             this.#applyHeaders(response);
             this.#fetchInfo.status = response?.status;
-            this.#fetchInfo.measure = printMeasure(performance.measure(
-                measureName,
-                startMarkName,
-            ));
+            this.#fetchInfo.measure = printMeasure(
+                performance.measure(measureName, startMarkName),
+            );
             this.#fetchInfo.retryCount = response.retryCount;
             if (!response?.ok) {
                 throw new MasError('Unexpected fragment response', {
@@ -172,10 +171,9 @@ export class AemFragment extends HTMLElement {
             }
             return await response.json();
         } catch (e) {
-            this.#fetchInfo.measure = printMeasure(performance.measure(
-                measureName,
-                startMarkName,
-            ));
+            this.#fetchInfo.measure = printMeasure(
+                performance.measure(measureName, startMarkName),
+            );
             this.#fetchInfo.retryCount = e.retryCount;
             if (this.#rawData) {
                 this.#fetchInfo.stale = true;
@@ -308,10 +306,12 @@ export class AemFragment extends HTMLElement {
     }
 
     async generatePreview() {
-        const { previewFragment } = await import('https://mas.adobe.com/studio/libs/fragment-client.js');
+        const { previewFragment } = await import(
+            'https://mas.adobe.com/studio/libs/fragment-client.js'
+        );
         const data = await previewFragment(this.#fragmentId, {
-          locale: this.#service.settings.locale,
-          apiKey: this.#service.settings.wcsApiKey,
+            locale: this.#service.settings.locale,
+            apiKey: this.#service.settings.wcsApiKey,
         });
         return data;
     }

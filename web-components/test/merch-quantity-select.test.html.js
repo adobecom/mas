@@ -19,7 +19,7 @@ runTests(async () => {
     if (skipTests === null) {
         mockLana();
         await mockFetch(withWcs);
-    
+
         describe('merch-quantity-selector web component', () => {
             const quantitySelect = document.querySelector(
                 'merch-quantity-select',

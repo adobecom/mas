@@ -15,9 +15,7 @@ import '../../src/merch-search.js';
 const getFilters = () => document.querySelector('merch-sidenav-list');
 const getItems = () => getFilters().querySelectorAll('sp-sidenav-item');
 const click = async (value) => {
-    const node = getFilters().querySelector(
-        `sp-sidenav-item[value=${value}]`,
-    );
+    const node = getFilters().querySelector(`sp-sidenav-item[value=${value}]`);
     await elementClick(node);
 };
 const expectedSelection = (expectedValue) => {
@@ -65,7 +63,7 @@ runTests(async () => {
 
         it('renders navigation items element', async () => {
             await render();
-            expect(getItems().length).to.equal(3); 
+            expect(getItems().length).to.equal(3);
         });
 
         it('by default should be selected all', async () => {
@@ -79,7 +77,9 @@ runTests(async () => {
             const item = expectedSelection('creativitydesign');
             expect(window.location.hash).to.equal('#filter=creativitydesign');
             expect(item.label).to.equal('Creativity And Design');
-            expect(item.parentElement.parentElement.selectedText).to.equal('CREATE!');
+            expect(item.parentElement.parentElement.selectedText).to.equal(
+                'CREATE!',
+            );
         });
 
         it('updates the navigation item depending of state', async () => {

@@ -209,7 +209,7 @@ describe('class "CheckoutLink"', () => {
     it('sets # as href when modal option is true', async () => {
         await initMasCommerceService();
         const checkoutLink = mockCheckoutLink('abm', {
-            modal: 'true'
+            modal: 'true',
         });
         await checkoutLink.onceSettled();
         expect(checkoutLink.getAttribute('href')).to.equal('#');
@@ -282,18 +282,18 @@ describe('class "CheckoutLink"', () => {
 
     describe('3-in-1 modal related functions', () => {
         it('sets the isOpen3in1Modal property', async () => {
-          await initMasCommerceService();
-          const checkoutLink = mockCheckoutLink('abm', { modal: 'crm'});
-          await checkoutLink.onceSettled();
-          expect(checkoutLink.isOpen3in1Modal).to.be.true;
-        })
+            await initMasCommerceService();
+            const checkoutLink = mockCheckoutLink('abm', { modal: 'crm' });
+            await checkoutLink.onceSettled();
+            expect(checkoutLink.isOpen3in1Modal).to.be.true;
+        });
 
         it('does not set the isOpen3in1Modal property if the modal is not a 3-in-1 modal', async () => {
-          await initMasCommerceService();
-          const checkoutLink = mockCheckoutLink('abm', { modal: 'true'});
-          await checkoutLink.onceSettled();
-          expect(checkoutLink.isOpen3in1Modal).to.be.false;
-        })
+            await initMasCommerceService();
+            const checkoutLink = mockCheckoutLink('abm', { modal: 'true' });
+            await checkoutLink.onceSettled();
+            expect(checkoutLink.isOpen3in1Modal).to.be.false;
+        });
 
         it('sets isOpen3in1Modal to false when mas-ff-3in1 meta tag is set to off', async () => {
             const meta = document.createElement('meta');
@@ -301,23 +301,23 @@ describe('class "CheckoutLink"', () => {
             meta.setAttribute('content', 'off');
             document.head.appendChild(meta);
             await initMasCommerceService();
-            const checkoutLink = mockCheckoutLink('abm', { modal: 'twp'});
+            const checkoutLink = mockCheckoutLink('abm', { modal: 'twp' });
             await checkoutLink.onceSettled();
             expect(checkoutLink.isOpen3in1Modal).to.be.false;
             document.head.removeChild(meta);
         });
 
         it('sets isOpen3in1Modal to true when mas-ff-3in1 meta tag is present, but not set to off', async () => {
-          const meta = document.createElement('meta');
-          meta.setAttribute('name', 'mas-ff-3in1');
-          meta.setAttribute('content', 'on');
-          document.head.appendChild(meta);
-          await initMasCommerceService();
-          const checkoutLink = mockCheckoutLink('abm', { modal: 'twp'});
-          await checkoutLink.onceSettled();
-          expect(checkoutLink.isOpen3in1Modal).to.be.true;
-          document.head.removeChild(meta);
-      });
+            const meta = document.createElement('meta');
+            meta.setAttribute('name', 'mas-ff-3in1');
+            meta.setAttribute('content', 'on');
+            document.head.appendChild(meta);
+            await initMasCommerceService();
+            const checkoutLink = mockCheckoutLink('abm', { modal: 'twp' });
+            await checkoutLink.onceSettled();
+            expect(checkoutLink.isOpen3in1Modal).to.be.true;
+            document.head.removeChild(meta);
+        });
     });
 
     describe('logged-in features', () => {

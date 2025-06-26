@@ -31,15 +31,12 @@ import {
 
 //Import ah-promoted-plans
 import {
-  AH_PROMOTED_PLANS_AEM_FRAGMENT_MAPPING,
-  AHPromotedPlans,
-} from './variants/ah-promoted-plans.js'
+    AH_PROMOTED_PLANS_AEM_FRAGMENT_MAPPING,
+    AHPromotedPlans,
+} from './variants/ah-promoted-plans.js';
 
 //Import fries
-import {
-  FRIES_AEM_FRAGMENT_MAPPING,
-  FriesCard,
-} from './variants/fries.js';
+import { FRIES_AEM_FRAGMENT_MAPPING, FriesCard } from './variants/fries.js';
 
 // Register dynamic variants
 registerVariant(
@@ -61,14 +58,14 @@ registerVariant(
     AHTryBuyWidget.variantStyle,
 );
 registerVariant(
-  'ah-promoted-plans',
-  AHPromotedPlans,
-  AH_PROMOTED_PLANS_AEM_FRAGMENT_MAPPING,
-  AHPromotedPlans.variantStyle,
+    'ah-promoted-plans',
+    AHPromotedPlans,
+    AH_PROMOTED_PLANS_AEM_FRAGMENT_MAPPING,
+    AHPromotedPlans.variantStyle,
 );
 registerVariant(
-  'fries',
-  FriesCard,
-  FRIES_AEM_FRAGMENT_MAPPING,
-  FriesCard.variantStyle,
+    'fries',
+    FriesCard,
+    FRIES_AEM_FRAGMENT_MAPPING,
+    FriesCard.variantStyle,
 );

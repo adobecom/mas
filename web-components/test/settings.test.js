@@ -23,7 +23,7 @@ describe('getSettings', () => {
         ({ href } = window.location);
 
         const metaDefaultFlag = document.createElement('meta');
-        metaDefaultFlag.name = FF_DEFAULTS
+        metaDefaultFlag.name = FF_DEFAULTS;
         metaDefaultFlag.content = 'on';
         document.head.appendChild(metaDefaultFlag);
     });
@@ -120,21 +120,21 @@ describe('getSettings', () => {
     });
 
     it('host env "local" -> WCS prod origin + prod akamai', () => {
-      const config = { commerce: {}, env: { name: 'local' }, };
+        const config = { commerce: {}, env: { name: 'local' } };
         const settings = getSettings(config);
         expect(settings.wcsURL).to.equal(WCS_PROD_URL);
         expect(settings.env).to.equal(Env.PRODUCTION);
     });
 
     it('host env "stage" -> WCS prod origin + prod akamai', () => {
-      const config = { commerce: {}, env: { name: 'stage' }, };
+        const config = { commerce: {}, env: { name: 'stage' } };
         const settings = getSettings(config);
         expect(settings.wcsURL).to.equal(WCS_PROD_URL);
         expect(settings.env).to.equal(Env.PRODUCTION);
     });
 
     it('host env "prod" -> WCS prod origin + prod akamai', () => {
-      const config = { commerce: {}, env: { name: 'prod' }, };
+        const config = { commerce: {}, env: { name: 'prod' } };
         const settings = getSettings(config);
         expect(settings.wcsURL).to.equal(WCS_PROD_URL);
         expect(settings.env).to.equal(Env.PRODUCTION);
@@ -159,27 +159,36 @@ describe('getSettings', () => {
         expect(settings.landscape).to.equal(Landscape.PUBLISHED);
         expect(settings.env).to.equal(Env.PRODUCTION);
     });
-  
+
     it('sets correctly preview configuration from configuration', () => {
-      const config = { commerce: {}, preview: '' };
-      window.sessionStorage.setItem('wcsApiKey', 'wcms-commerce-ims-ro-user-milo');
-      const settings = getSettings(config);
-      expect(settings.preview).to.equal(true);
+        const config = { commerce: {}, preview: '' };
+        window.sessionStorage.setItem(
+            'wcsApiKey',
+            'wcms-commerce-ims-ro-user-milo',
+        );
+        const settings = getSettings(config);
+        expect(settings.preview).to.equal(true);
     });
-  
+
     it('sets correctly preview configuration from parameter mas.preview', () => {
-      const config = { commerce: {} };
-      window.sessionStorage.setItem('wcsApiKey', 'wcms-commerce-ims-ro-user-milo');
-      window.sessionStorage.setItem('mas.preview', 'on');
-      const settings = getSettings(config);
-      expect(settings.preview).to.equal(true);
+        const config = { commerce: {} };
+        window.sessionStorage.setItem(
+            'wcsApiKey',
+            'wcms-commerce-ims-ro-user-milo',
+        );
+        window.sessionStorage.setItem('mas.preview', 'on');
+        const settings = getSettings(config);
+        expect(settings.preview).to.equal(true);
     });
-  
+
     it('unset correctly preview configuration from parameter mas.preview', () => {
-      const config = { commerce: {}, preview: '' };
-      window.sessionStorage.setItem('wcsApiKey', 'wcms-commerce-ims-ro-user-milo');
-      window.sessionStorage.setItem('mas.preview', 'off');
-      const settings = getSettings(config);
-      expect(settings.preview).to.be.undefined;
+        const config = { commerce: {}, preview: '' };
+        window.sessionStorage.setItem(
+            'wcsApiKey',
+            'wcms-commerce-ims-ro-user-milo',
+        );
+        window.sessionStorage.setItem('mas.preview', 'off');
+        const settings = getSettings(config);
+        expect(settings.preview).to.be.undefined;
     });
 });

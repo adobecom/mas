@@ -76,7 +76,8 @@ export const EVENT_MERCH_QUANTITY_SELECTOR_CHANGE =
 
 export const EVENT_MERCH_CARD_QUANTITY_CHANGE = 'merch-card-quantity:change';
 
-export const EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE = 'merch-modal:addon-and-quantity-update';
+export const EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE =
+    'merch-modal:addon-and-quantity-update';
 
 export const EVENT_MERCH_SEARCH_CHANGE = 'merch-search:change';
 
@@ -105,7 +106,7 @@ export const EVENT_TYPE_RESOLVED = 'mas:resolved';
 
 export const LOG_NAMESPACE = 'mas/commerce';
 
-export const PARAM_MAS_PREVIEW = "mas.preview";
+export const PARAM_MAS_PREVIEW = 'mas.preview';
 export const PARAM_ENV = 'commerce.env';
 export const PARAM_LANDSCAPE = 'commerce.landscape';
 export const PARAM_AOS_API_KEY = 'commerce.aosKey';

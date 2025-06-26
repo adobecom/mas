@@ -21,9 +21,7 @@ runTests(async () => {
     describe('merch-card web component for fries', () => {
         let merchCard;
         beforeEach(() => {
-            merchCard = document.querySelector(
-                'merch-card[variant="fries"]',
-            );
+            merchCard = document.querySelector('merch-card[variant="fries"]');
         });
 
         it('should be registered and exist', async () => {
@@ -41,9 +39,11 @@ runTests(async () => {
         });
 
         it('should apply border-color attribute correctly', async () => {
-            expect(merchCard.style.getPropertyValue(
-                '--merch-card-custom-border-color',
-            )).to.equal('var(--spectrum-gray-300)');
+            expect(
+                merchCard.style.getPropertyValue(
+                    '--merch-card-custom-border-color',
+                ),
+            ).to.equal('var(--spectrum-gray-300)');
         });
 
         it('should apply background-color attribute correctly', async () => {
@@ -66,8 +66,7 @@ runTests(async () => {
             );
             expect(ctaButton).to.exist;
             expect(
-                ctaButton.querySelector('.spectrum-Button-label')
-                    .textContent,
+                ctaButton.querySelector('.spectrum-Button-label').textContent,
             ).to.equal('1-month free trial');
         });
     });

@@ -10,15 +10,15 @@ import {
 import { Defaults } from './defaults.js';
 import { Env, CheckoutWorkflow, CheckoutWorkflowStep } from './constants.js';
 
-import {
-    getParameter,
-    toBoolean,
-    toEnumeration,
-} from '@dexter/tacocat-core';
+import { getParameter, toBoolean, toEnumeration } from '@dexter/tacocat-core';
 
 import { toQuantity } from './utilities.js';
 
-const PREVIEW_REGISTERED_SURFACE = { 'wcms-commerce-ims-ro.+': 'acom', 'CreativeCloud_.+': 'ccd', "CCHome.+": 'adobe-home' };
+const PREVIEW_REGISTERED_SURFACE = {
+    'wcms-commerce-ims-ro.+': 'acom',
+    'CreativeCloud_.+': 'ccd',
+    'CCHome.+': 'adobe-home',
+};
 
 function getLocaleSettings({
     locale = undefined,
@@ -32,13 +32,13 @@ function getLocaleSettings({
 }
 
 function getPreviewSurface(wcsApiKey, previewParam) {
-  for (const [key, value] of Object.entries(PREVIEW_REGISTERED_SURFACE)) {
-    const pattern = new RegExp(key);
-    if (pattern.test(wcsApiKey)) {
-      return value;
+    for (const [key, value] of Object.entries(PREVIEW_REGISTERED_SURFACE)) {
+        const pattern = new RegExp(key);
+        if (pattern.test(wcsApiKey)) {
+            return value;
+        }
     }
-  }
-  return previewParam ?? wcsApiKey;
+    return previewParam ?? wcsApiKey;
 }
 
 function getSettings(config = {}) {
@@ -55,10 +55,10 @@ function getSettings(config = {}) {
     const checkoutClientId =
         getParameter('checkoutClientId', commerce) ?? Defaults.checkoutClientId;
     const checkoutWorkflowStep = toEnumeration(
-      getParameter('checkoutWorkflowStep', commerce),
-      CheckoutWorkflowStep,
-      Defaults.checkoutWorkflowStep,
-  );
+        getParameter('checkoutWorkflowStep', commerce),
+        CheckoutWorkflowStep,
+        Defaults.checkoutWorkflowStep,
+    );
     const displayOldPrice = toBoolean(
         getParameter('displayOldPrice', commerce),
         ffDefaults ? Defaults.displayOldPrice : !Defaults.displayOldPrice,
@@ -114,7 +114,10 @@ function getSettings(config = {}) {
     }
 
     const previewParam = getParameter(PARAM_MAS_PREVIEW) ?? config.preview;
-    const preview = (typeof previewParam != 'undefined') && previewParam !== 'off' && previewParam !== 'false';
+    const preview =
+        typeof previewParam != 'undefined' &&
+        previewParam !== 'off' &&
+        previewParam !== 'false';
     let previewSettings = {};
     if (preview) previewSettings = { preview };
     const masIOUrl =

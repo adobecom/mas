@@ -91,11 +91,11 @@ export class VariantLayout {
 
     /* c8 ignore next 3 */
     get theme() {
-      return document.querySelector('sp-theme');
+        return document.querySelector('sp-theme');
     }
 
     get evergreen() {
-      return this.card.classList.contains('intro-pricing');
+        return this.card.classList.contains('intro-pricing');
     }
 
     get promoBottom() {
@@ -107,15 +107,17 @@ export class VariantLayout {
     }
 
     get secureLabel() {
-        return this.card.secureLabel ? 
-            html`<span class="secure-transaction-label"
-                >${this.card.secureLabel}</span
-            >`
+        return this.card.secureLabel
+            ? html`<span class="secure-transaction-label"
+                  >${this.card.secureLabel}</span
+              >`
             : nothing;
     }
 
     get secureLabelFooter() {
-        return html`<footer>${this.secureLabel}<slot name="footer"></slot></footer>`;
+        return html`<footer>
+            ${this.secureLabel}<slot name="footer"></slot>
+        </footer>`;
     }
 
     async adjustTitleWidth() {

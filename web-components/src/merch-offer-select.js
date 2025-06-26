@@ -209,7 +209,7 @@ class MerchOfferSelect extends LitElement {
     }
 
     disconnectedCallback() {
-      super.disconnectedCallback();
+        super.disconnectedCallback();
         this.removeEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.#handleOfferSelectionByQuantityFn,

@@ -3,7 +3,10 @@ import { styles } from './merch-quantity-select.css.js';
 import { debounce } from './utils.js';
 
 import { ARROW_DOWN, ARROW_UP, ENTER } from './focus.js';
-import { EVENT_MERCH_QUANTITY_SELECTOR_CHANGE, EVENT_MERCH_CARD_QUANTITY_CHANGE } from './constants.js';
+import {
+    EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+    EVENT_MERCH_CARD_QUANTITY_CHANGE,
+} from './constants.js';
 
 export class MerchQuantitySelect extends LitElement {
     static get properties() {
@@ -222,7 +225,8 @@ export class MerchQuantitySelect extends LitElement {
     handleQuantityUpdate({ detail: { quantity } }) {
         if (quantity && quantity !== this.selectedValue) {
             this.selectedValue = quantity;
-            const inputField = this.shadowRoot.querySelector('.text-field-input');
+            const inputField =
+                this.shadowRoot.querySelector('.text-field-input');
             if (inputField) {
                 inputField.value = quantity;
             }

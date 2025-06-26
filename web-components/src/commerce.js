@@ -10,4 +10,11 @@ import { Log } from './log.js';
 import { resolvePriceTaxFlags } from './inline-price.js';
 
 import { applyPlanType } from './wcs.js';
-export { CheckoutWorkflow, CheckoutWorkflowStep, Defaults, Log, applyPlanType, resolvePriceTaxFlags };
+export {
+    CheckoutWorkflow,
+    CheckoutWorkflowStep,
+    Defaults,
+    Log,
+    applyPlanType,
+    resolvePriceTaxFlags,
+};

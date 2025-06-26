@@ -68,7 +68,7 @@ export function processMnemonics(fields, merchCard, mnemonicsConfig) {
 
     const slotIcons = merchCard.shadowRoot.querySelector('slot[name="icons"]');
     if (!mnemonics?.length && slotIcons) {
-      slotIcons.remove();
+        slotIcons.remove();
     }
 }
 
@@ -85,13 +85,14 @@ function processBadge(fields, merchCard, mapping) {
                 }
             }
 
-            const bgColorToUse = fields.badgeBackgroundColor || badgeDefaultBgColor;
+            const bgColorToUse =
+                fields.badgeBackgroundColor || badgeDefaultBgColor;
             let borderColorToUse = fields.borderColor || '';
             if (setBorderColorForBadge) {
                 borderColorToUse = mapping.badge?.default;
                 fields.borderColor = mapping.badge?.default;
             }
-            
+
             fields.badge = `<merch-badge variant="${fields.variant}" background-color="${bgColorToUse}" border-color="${borderColorToUse}">${fields.badge}</merch-badge>`;
         }
         appendSlot('badge', fields, merchCard, mapping);
@@ -122,7 +123,9 @@ function processBadge(fields, merchCard, mapping) {
 export function processTrialBadge(fields, merchCard, mapping) {
     if (mapping.trialBadge && fields.trialBadge) {
         if (!fields.trialBadge.startsWith('<merch-badge')) {
-            const borderColorToUse = fields.trialBadgeBorderColor || DEFAULT_TRIAL_BADGE_BORDER_COLOR;
+            const borderColorToUse =
+                fields.trialBadgeBorderColor ||
+                DEFAULT_TRIAL_BADGE_BORDER_COLOR;
             fields.trialBadge = `<merch-badge variant="${fields.variant}" border-color="${borderColorToUse}">${fields.trialBadge}</merch-badge>`;
         }
         appendSlot('trialBadge', fields, merchCard, mapping);
@@ -143,7 +146,12 @@ export function processSubtitle(fields, merchCard, mapping) {
     appendSlot('subtitle', fields, merchCard, mapping);
 }
 
-export function processBackgroundColor(fields, merchCard, allowedColors, backgroundColorConfig) {
+export function processBackgroundColor(
+    fields,
+    merchCard,
+    allowedColors,
+    backgroundColorConfig,
+) {
     if (
         !fields.backgroundColor ||
         fields.backgroundColor.toLowerCase() === 'default'
@@ -160,7 +168,10 @@ export function processBackgroundColor(fields, merchCard, allowedColors, backgro
         );
         merchCard.setAttribute('background-color', fields.backgroundColor);
     } else if (backgroundColorConfig?.attribute && fields.backgroundColor) {
-        merchCard.setAttribute(backgroundColorConfig.attribute, fields.backgroundColor);
+        merchCard.setAttribute(
+            backgroundColorConfig.attribute,
+            fields.backgroundColor,
+        );
         merchCard.style.removeProperty('--merch-card-custom-background-color');
     }
 }
@@ -171,7 +182,11 @@ export function processBorderColor(fields, merchCard, variantMapping) {
 
     if (fields.borderColor?.toLowerCase() === 'transparent') {
         merchCard.style.removeProperty(customBorderColor);
-        if (variantMapping?.allowedBorderColors?.includes(variantMapping?.badge?.default)) {
+        if (
+            variantMapping?.allowedBorderColors?.includes(
+                variantMapping?.badge?.default,
+            )
+        ) {
             merchCard.style.setProperty(customBorderColor, 'transparent');
         }
     } else if (fields.borderColor && borderColorConfig) {
@@ -225,9 +240,12 @@ export function processPrices(fields, merchCard, mapping) {
 }
 
 function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
-    const isCheckoutLink = linkElement.hasAttribute('data-wcs-osi') && Boolean(linkElement.getAttribute('data-wcs-osi'));
+    const isCheckoutLink =
+        linkElement.hasAttribute('data-wcs-osi') &&
+        Boolean(linkElement.getAttribute('data-wcs-osi'));
     const originalClassName = linkElement.className || '';
-    const checkoutLinkStyle = CHECKOUT_STYLE_PATTERN.exec(originalClassName)?.[0] ?? 'accent';
+    const checkoutLinkStyle =
+        CHECKOUT_STYLE_PATTERN.exec(originalClassName)?.[0] ?? 'accent';
     const isAccent = checkoutLinkStyle.includes('accent');
     const isPrimary = checkoutLinkStyle.includes('primary');
     const isSecondary = checkoutLinkStyle.includes('secondary');
@@ -239,7 +257,12 @@ function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
     let newButtonElement;
 
     if (merchCard.consonant) {
-        newButtonElement = createConsonantButton(linkElement, isAccent, isCheckoutLink, isLinkStyle);
+        newButtonElement = createConsonantButton(
+            linkElement,
+            isAccent,
+            isCheckoutLink,
+            isLinkStyle,
+        );
     } else if (isLinkStyle) {
         newButtonElement = linkElement;
     } else {
@@ -252,32 +275,39 @@ function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
             variant = 'secondary';
         }
 
-        newButtonElement = merchCard.spectrum === 'swc'
-            ? createSpectrumSwcButton(
-                  linkElement,
-                  aemFragmentMapping, 
-                  isOutline,
-                  variant,
-                  isCheckoutLink
-              )
-            : createSpectrumCssButton(
-                  linkElement,
-                  aemFragmentMapping,
-                  isOutline,
-                  variant,
-                  isCheckoutLink
-              );
+        newButtonElement =
+            merchCard.spectrum === 'swc'
+                ? createSpectrumSwcButton(
+                      linkElement,
+                      aemFragmentMapping,
+                      isOutline,
+                      variant,
+                      isCheckoutLink,
+                  )
+                : createSpectrumCssButton(
+                      linkElement,
+                      aemFragmentMapping,
+                      isOutline,
+                      variant,
+                      isCheckoutLink,
+                  );
     }
     return newButtonElement;
 }
 
 function processDescriptionLinks(merchCard, aemFragmentMapping) {
-    const { slot } = aemFragmentMapping?.description
-    const links = merchCard.querySelectorAll(`[slot="${slot}"] a[data-wcs-osi]`);
-    if(!links.length) return;
-    links.forEach(link => {
-            const checkoutLink = transformLinkToButton(link, merchCard, aemFragmentMapping);
-                link.replaceWith(checkoutLink);
+    const { slot } = aemFragmentMapping?.description;
+    const links = merchCard.querySelectorAll(
+        `[slot="${slot}"] a[data-wcs-osi]`,
+    );
+    if (!links.length) return;
+    links.forEach((link) => {
+        const checkoutLink = transformLinkToButton(
+            link,
+            merchCard,
+            aemFragmentMapping,
+        );
+        link.replaceWith(checkoutLink);
     });
 }
 
@@ -410,14 +440,19 @@ export function processUptLinks(fields, merchCard) {
     });
 }
 
-function createSpectrumCssButton(cta, aemFragmentMapping, isOutline, variant, isCheckout) {
+function createSpectrumCssButton(
+    cta,
+    aemFragmentMapping,
+    isOutline,
+    variant,
+    isCheckout,
+) {
     let button = cta;
     if (isCheckout) {
         const CheckoutButton = customElements.get('checkout-button');
         button = CheckoutButton.createCheckoutButton({}, cta.innerHTML);
-    }
-    else {
-        button.innerHTML = `<span>${button.textContent}</span>`
+    } else {
+        button.innerHTML = `<span>${button.textContent}</span>`;
     }
     button.setAttribute('tabindex', 0);
     for (const attr of cta.attributes) {
@@ -439,7 +474,13 @@ function createSpectrumCssButton(cta, aemFragmentMapping, isOutline, variant, is
     return button;
 }
 
-function createSpectrumSwcButton(cta, aemFragmentMapping, isOutline, variant, isCheckout) {
+function createSpectrumSwcButton(
+    cta,
+    aemFragmentMapping,
+    isOutline,
+    variant,
+    isCheckout,
+) {
     let button = cta;
     if (isCheckout) {
         const CheckoutButton = customElements.get('checkout-button');
@@ -468,9 +509,11 @@ function createSpectrumSwcButton(cta, aemFragmentMapping, isOutline, variant, is
     );
 
     spectrumCta.source = button;
-    (isCheckout ? button.onceSettled() : Promise.resolve(button)).then((target) => {
-        spectrumCta.setAttribute('data-navigation-url', target.href);
-    });
+    (isCheckout ? button.onceSettled() : Promise.resolve(button)).then(
+        (target) => {
+            spectrumCta.setAttribute('data-navigation-url', target.href);
+        },
+    );
 
     spectrumCta.addEventListener('click', (e) => {
         if (e.defaultPrevented) return;
@@ -484,12 +527,9 @@ function createConsonantButton(cta, isAccent, isCheckout, isLinkStyle) {
     let button = cta;
     if (isCheckout) {
         const CheckoutLink = customElements.get('checkout-link');
-        button = CheckoutLink.createCheckoutLink(
-            cta.dataset,
-            cta.innerHTML,
-        );
+        button = CheckoutLink.createCheckoutLink(cta.dataset, cta.innerHTML);
     }
-    if(!isLinkStyle) {
+    if (!isLinkStyle) {
         button.classList.add('con-button');
         if (isAccent) {
             button.classList.add('blue');
@@ -503,7 +543,11 @@ export function processCTAs(fields, merchCard, aemFragmentMapping, variant) {
         const { slot } = aemFragmentMapping.ctas;
         const footer = createTag('div', { slot }, fields.ctas);
         const ctas = [...footer.querySelectorAll('a')].map((cta) => {
-            const checkoutButton = transformLinkToButton(cta, merchCard, aemFragmentMapping);
+            const checkoutButton = transformLinkToButton(
+                cta,
+                merchCard,
+                aemFragmentMapping,
+            );
             return checkoutButton;
         });
 
@@ -579,14 +623,22 @@ export async function hydrate(fragment, merchCard) {
     // Guard against missing fragment or fragment.fields
     if (!fragment) {
         const cardIdForError = merchCard?.id || 'unknown';
-        console.error(`hydrate: Fragment is undefined. Cannot hydrate card (merchCard id: ${cardIdForError}).`);
-        throw new Error(`hydrate: Fragment is undefined for card (merchCard id: ${cardIdForError}).`);
+        console.error(
+            `hydrate: Fragment is undefined. Cannot hydrate card (merchCard id: ${cardIdForError}).`,
+        );
+        throw new Error(
+            `hydrate: Fragment is undefined for card (merchCard id: ${cardIdForError}).`,
+        );
     }
     if (!fragment.fields) {
         const problemId = fragment.id || 'unknown';
         const cardIdForError = merchCard?.id || 'unknown';
-        console.error(`hydrate: Fragment for card ID '${problemId}' (merchCard id: ${cardIdForError}) is missing 'fields'. Cannot hydrate.`);
-        throw new Error(`hydrate: Fragment for card ID '${problemId}' (merchCard id: ${cardIdForError}) is missing 'fields'.`);
+        console.error(
+            `hydrate: Fragment for card ID '${problemId}' (merchCard id: ${cardIdForError}) is missing 'fields'. Cannot hydrate.`,
+        );
+        throw new Error(
+            `hydrate: Fragment for card ID '${problemId}' (merchCard id: ${cardIdForError}) is missing 'fields'.`,
+        );
     }
 
     const { id, fields, settings = {} } = fragment;
@@ -599,7 +651,8 @@ export async function hydrate(fragment, merchCard) {
     await merchCard.updateComplete;
 
     const { aemFragmentMapping: mapping } = merchCard.variantLayout;
-    if (!mapping) throw new Error (`hydrate: variant mapping not found for ${id}`);
+    if (!mapping)
+        throw new Error(`hydrate: variant mapping not found for ${id}`);
 
     if (mapping.style === 'consonant') {
         merchCard.setAttribute('consonant', true);
@@ -611,22 +664,18 @@ export async function hydrate(fragment, merchCard) {
     processTitle(fields, merchCard, mapping.title);
     processSubtitle(fields, merchCard, mapping);
     processPrices(fields, merchCard, mapping);
-    processBackgroundImage(
+    processBackgroundImage(fields, merchCard, mapping.backgroundImage);
+    processBackgroundColor(
         fields,
         merchCard,
-        mapping.backgroundImage,
+        mapping.allowedColors,
+        mapping.backgroundColor,
     );
-    processBackgroundColor(fields, merchCard, mapping.allowedColors, mapping.backgroundColor);
     processBorderColor(fields, merchCard, mapping);
     processDescription(fields, merchCard, mapping);
     processAddon(fields, merchCard, mapping);
     processAddonConfirmation(fields, merchCard, mapping);
-    processStockOffersAndSecureLabel(
-        fields,
-        merchCard,
-        mapping,
-        settings,
-    );
+    processStockOffersAndSecureLabel(fields, merchCard, mapping, settings);
     processUptLinks(fields, merchCard);
     processCTAs(fields, merchCard, mapping, variant);
     processAnalytics(fields, merchCard);

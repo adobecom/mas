@@ -25,8 +25,8 @@ export class MerchSidenavCheckboxGroup extends LitElement {
     `;
 
     constructor() {
-      super();
-      this.selectedValues = [];
+        super();
+        this.selectedValues = [];
     }
 
     /**
@@ -56,24 +56,29 @@ export class MerchSidenavCheckboxGroup extends LitElement {
     }
 
     startDeeplink() {
-      this.stopDeeplink = deeplink(
-          ({ types }) => {
-              if (types) {
+        this.stopDeeplink = deeplink(({ types }) => {
+            if (types) {
                 const newTypes = types.split(',');
-                [...new Set([...newTypes, ...this.selectedValues])].forEach(name => {
-                  const checkbox = this.querySelector(`sp-checkbox[name=${name}]`)
-                  if (checkbox) checkbox.checked = newTypes.includes(name);
-                });
+                [...new Set([...newTypes, ...this.selectedValues])].forEach(
+                    (name) => {
+                        const checkbox = this.querySelector(
+                            `sp-checkbox[name=${name}]`,
+                        );
+                        if (checkbox)
+                            checkbox.checked = newTypes.includes(name);
+                    },
+                );
                 this.selectedValues = newTypes;
-              } else {
-                this.selectedValues.forEach(name => {
-                  const checkbox = this.querySelector(`sp-checkbox[name=${name}]`)
-                  if (checkbox) checkbox.checked = false;
+            } else {
+                this.selectedValues.forEach((name) => {
+                    const checkbox = this.querySelector(
+                        `sp-checkbox[name=${name}]`,
+                    );
+                    if (checkbox) checkbox.checked = false;
                 });
                 this.selectedValues = [];
-              }
-          },
-      );
+            }
+        });
     }
 
     connectedCallback() {
@@ -85,7 +90,7 @@ export class MerchSidenavCheckboxGroup extends LitElement {
     }
 
     disconnectedCallback() {
-      this.stopDeeplink?.();
+        this.stopDeeplink?.();
     }
 
     render() {

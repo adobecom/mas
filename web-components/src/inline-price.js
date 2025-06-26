@@ -85,19 +85,20 @@ const DISPLAY_TAX_MAP = {
 // For most countries where tax label is displayed the tax is included for Individuals and Students
 // and excluded for Business and Universities. This is the map of TaxExclusive values for other countries
 const TAX_EXCLUDED_MAP = {
-  ['MU_en']: [false, false, false, false],
-  ['NG_en']: [false, false, false, false],
-  ['AU_en']: [false, false, false, false],
-  ['JP_ja']: [false, false, false, false],
-  ['NZ_en']: [false, false, false, false],
-  ['TH_en']: [false, false, false, false],
-  ['TH_th']: [false, false, false, false],
-  ['CO_es']: [false, true, false, false],
-  ['AT_de']: [false, false, false, true],
-  ['SG_en']: [false, false, false, true],
+    ['MU_en']: [false, false, false, false],
+    ['NG_en']: [false, false, false, false],
+    ['AU_en']: [false, false, false, false],
+    ['JP_ja']: [false, false, false, false],
+    ['NZ_en']: [false, false, false, false],
+    ['TH_en']: [false, false, false, false],
+    ['TH_th']: [false, false, false, false],
+    ['CO_es']: [false, true, false, false],
+    ['AT_de']: [false, false, false, true],
+    ['SG_en']: [false, false, false, true],
 };
 const TAX_EXCLUDED_MAP_INDEX = [INDIVIDUAL, BUSINESS, STUDENT, UNIVERSITY];
-const defaultTaxExcluded = (segment) => [BUSINESS, UNIVERSITY].includes(segment);
+const defaultTaxExcluded = (segment) =>
+    [BUSINESS, UNIVERSITY].includes(segment);
 
 /**
  * Resolves the default value for forceTaxExclusive for the provided geo info and segments.
@@ -107,7 +108,12 @@ const defaultTaxExcluded = (segment) => [BUSINESS, UNIVERSITY].includes(segment)
  * @param {string} marketSegment - market segment: COM or EDU
  * @returns {boolean} true if price will be displayed without tax, otherwise false (default)
  */
-const resolveTaxExclusive = (country, language, customerSegment, marketSegment) => {
+const resolveTaxExclusive = (
+    country,
+    language,
+    customerSegment,
+    marketSegment,
+) => {
     const locale = `${country}_${language}`;
     const segment = `${customerSegment}_${marketSegment}`;
     const val = TAX_EXCLUDED_MAP[locale];
@@ -117,7 +123,7 @@ const resolveTaxExclusive = (country, language, customerSegment, marketSegment) 
     }
 
     return defaultTaxExcluded(segment);
-}
+};
 
 /**
  * Resolves the default value of displayTax property, for the provided geo info and segments.
@@ -127,14 +133,22 @@ const resolveTaxExclusive = (country, language, customerSegment, marketSegment) 
  * @param {string} marketSegment - market segment: COM or EDU
  * @returns {boolean} true if tax label will be displayed, otherwise false (default)
  */
-const resolveDisplayTaxForGeoAndSegment = (country, language, customerSegment, marketSegment) => {
+const resolveDisplayTaxForGeoAndSegment = (
+    country,
+    language,
+    customerSegment,
+    marketSegment,
+) => {
     const locale = `${country}_${language}`;
-    if (DISPLAY_ALL_TAX_COUNTRIES.includes(country)
-        || DISPLAY_ALL_TAX_COUNTRIES.includes(locale)) {
+    if (
+        DISPLAY_ALL_TAX_COUNTRIES.includes(country) ||
+        DISPLAY_ALL_TAX_COUNTRIES.includes(locale)
+    ) {
         return true;
     }
 
-    const segmentConfig = DISPLAY_TAX_MAP[`${customerSegment}_${marketSegment}`];
+    const segmentConfig =
+        DISPLAY_TAX_MAP[`${customerSegment}_${marketSegment}`];
     if (!segmentConfig) {
         return Defaults.displayTax;
     }
@@ -144,7 +158,7 @@ const resolveDisplayTaxForGeoAndSegment = (country, language, customerSegment, m
     }
 
     return Defaults.displayTax;
-}
+};
 
 /**
  * Resolves default values of displayTax and forceTaxExclusive, based on provided geo info and segments extracted from offers object.
@@ -156,13 +170,30 @@ const resolveDisplayTaxForGeoAndSegment = (country, language, customerSegment, m
  * @param {string} marketSegment - market segment: COM or EDU
  * @returns {Promise<{displayTax: boolean, forceTaxExclusive: boolean}>} A promise with boolean properties displayTax and forceTaxExclusive
  */
-export const resolvePriceTaxFlags = async (country, language, customerSegment, marketSegment) => {
-    const displayTax = resolveDisplayTaxForGeoAndSegment(country, language, customerSegment, marketSegment);
+export const resolvePriceTaxFlags = async (
+    country,
+    language,
+    customerSegment,
+    marketSegment,
+) => {
+    const displayTax = resolveDisplayTaxForGeoAndSegment(
+        country,
+        language,
+        customerSegment,
+        marketSegment,
+    );
     return {
         displayTax,
-        forceTaxExclusive: displayTax ? resolveTaxExclusive(country, language, customerSegment, marketSegment) : Defaults.forceTaxExclusive
+        forceTaxExclusive: displayTax
+            ? resolveTaxExclusive(
+                  country,
+                  language,
+                  customerSegment,
+                  marketSegment,
+              )
+            : Defaults.forceTaxExclusive,
     };
-}
+};
 
 export class InlinePrice extends HTMLSpanElement {
     static is = 'inline-price';
@@ -184,7 +215,6 @@ export class InlinePrice extends HTMLSpanElement {
     }
 
     static createInlinePrice(options) {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         const service = getService();
         if (!service) return null;
         const {
@@ -285,27 +315,37 @@ export class InlinePrice extends HTMLSpanElement {
      */
     async render(overrides = {}) {
         if (!this.isConnected) return false;
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         const service = getService();
         if (!service) return false;
         const options = service.collectPriceOptions(overrides, this);
         if (!options.wcsOsi.length) return false;
 
         const ffDefaults = getParameter(FF_DEFAULTS) === 'on';
-        if (ffDefaults && (!this.dataset.displayTax || !this.dataset.forceTaxExclusive)) {
-            const [offerSelectors] = await service.resolveOfferSelectors(options);
+        if (
+            ffDefaults &&
+            (!this.dataset.displayTax || !this.dataset.forceTaxExclusive)
+        ) {
+            const [offerSelectors] =
+                await service.resolveOfferSelectors(options);
             const offers = selectOffers(await offerSelectors, options);
             if (offers?.length) {
                 const { country, language } = options;
                 const offer = offers[0];
                 const [marketSegment = ''] = offer.marketSegments;
                 // set default value for displayTax and forceTaxExclusive if not set neither in OST nor in merch link
-                const flags = await resolvePriceTaxFlags(country, language, offer.customerSegment, marketSegment);
+                const flags = await resolvePriceTaxFlags(
+                    country,
+                    language,
+                    offer.customerSegment,
+                    marketSegment,
+                );
                 if (!this.dataset.displayTax) {
-                    options.displayTax = flags?.displayTax || options.displayTax;
+                    options.displayTax =
+                        flags?.displayTax || options.displayTax;
                 }
                 if (!this.dataset.forceTaxExclusive) {
-                    options.forceTaxExclusive = flags?.forceTaxExclusive || options.forceTaxExclusive;
+                    options.forceTaxExclusive =
+                        flags?.forceTaxExclusive || options.forceTaxExclusive;
                 }
             }
         }
@@ -320,8 +360,7 @@ export class InlinePrice extends HTMLSpanElement {
                 options,
                 version,
             );
-        }
-        catch(error) {
+        } catch (error) {
             this.innerHTML = '';
             throw error;
         }
@@ -338,7 +377,6 @@ export class InlinePrice extends HTMLSpanElement {
      */
     renderOffers(offers, overrides = {}, version = undefined) {
         if (!this.isConnected) return;
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         const service = getService();
         if (!service) return false;
         const options = service.collectPriceOptions(
@@ -355,17 +393,37 @@ export class InlinePrice extends HTMLSpanElement {
 
                 // Adding logic for options.alternativePrice to add <sr-only>Alternatively at</sr-only>
                 const parentEl = this.closest('p, h3, div');
-                if (!parentEl || !parentEl.querySelector('span[data-template="strikethrough"]') || parentEl.querySelector('.alt-aria-label')) return true;
-                const inlinePrices = parentEl?.querySelectorAll('span[is="inline-price"]');
-                if (inlinePrices.length > 1 && inlinePrices.length === parentEl.querySelectorAll('span[data-template="strikethrough"]').length * 2) {
+                if (
+                    !parentEl ||
+                    !parentEl.querySelector(
+                        'span[data-template="strikethrough"]',
+                    ) ||
+                    parentEl.querySelector('.alt-aria-label')
+                )
+                    return true;
+                const inlinePrices = parentEl?.querySelectorAll(
+                    'span[is="inline-price"]',
+                );
+                if (
+                    inlinePrices.length > 1 &&
+                    inlinePrices.length ===
+                        parentEl.querySelectorAll(
+                            'span[data-template="strikethrough"]',
+                        ).length *
+                            2
+                ) {
                     inlinePrices.forEach((price) => {
-                        if (price.dataset.template !== 'strikethrough' && 
-                            price.options && 
+                        if (
+                            price.dataset.template !== 'strikethrough' &&
+                            price.options &&
                             !price.options.alternativePrice &&
                             !price.isFailed
                         ) {
                             price.options.alternativePrice = true;
-                            price.innerHTML = service.buildPriceHTML(offers, price.options);
+                            price.innerHTML = service.buildPriceHTML(
+                                offers,
+                                price.options,
+                            );
                         }
                     });
                 }
@@ -383,7 +441,6 @@ export class InlinePrice extends HTMLSpanElement {
     }
 
     updateOptions(options) {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         const service = getService();
         if (!service) return false;
         const {

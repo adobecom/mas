@@ -81,9 +81,7 @@
                         container.append(masCommerceService, ai);
                         expect(ai).to.exist;
                         await delay(50); // time to render prices
-                        expect(ai.innerText).to.contain(
-                            'Acrobat AI Assistant',
-                        );
+                        expect(ai.innerText).to.contain('Acrobat AI Assistant');
                         ai.planType = 'PUF';
                         await ai.updateComplete;
                         await delay(50);

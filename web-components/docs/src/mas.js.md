@@ -6,21 +6,21 @@ This is a javasript library that enables M@S on any web surface.
 
 mas.js includes the followings custom elements:
 
--   [inline-price](/libs/features/mas/docs/inline-price.html)
--   [checkout-link](/libs/features/mas/docs/checkout-link.html)
--   [checkout-button](/libs/features/mas/docs/checkout-button.html)
--   [merch-card](/libs/features/mas/docs/merch-card.html)
+- [inline-price](/libs/features/mas/docs/inline-price.html)
+- [checkout-link](/libs/features/mas/docs/checkout-link.html)
+- [checkout-button](/libs/features/mas/docs/checkout-button.html)
+- [merch-card](/libs/features/mas/docs/merch-card.html)
 
 `inline-price`, `checkout-link`, `checkout-button` elements are loaded via WCS.
 In case of network issues, the requests will be retried up to 3 times with 500ms of delay between attempts.
 It will also fallback to last successfully loaded offers for the same OSI if available.
 
 ## Enablement `mas-commerce-service`
+
 ⚠️ Safari does not support customized built-in elements. Therefore, you need to load the following polyfill before `mas.js` for browser compatibility (not required for in-app usage).
+
 ```html
-<script
-    src="https://www.adobe.comlibs/deps/custom-elements.js"
-></script>
+<script src="https://www.adobe.comlibs/deps/custom-elements.js"></script>
 ```
 
 To add `mas.js` to your page or application, include it as shown below:
@@ -31,8 +31,6 @@ To add `mas.js` to your page or application, include it as shown below:
     type="module"
 ></script>
 ```
-
-
 
 ### Attributes
 

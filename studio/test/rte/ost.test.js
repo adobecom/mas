@@ -1,5 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
+import '@adobecom/milo/libs/features/mas/dist/mas.js';
 
 import { EVENT_OST_SELECT } from '../../src/constants.js';
 
@@ -9,6 +10,8 @@ describe('onPlaceholderSelect', () => {
     let onPlaceholderSelect;
 
     before(async () => {
+        const masCommerceService = document.createElement('mas-commerce-service');
+        document.head.appendChild(masCommerceService);
         ostRoot = document.createElement('div');
         ostRoot.id = 'ost';
         document.body.appendChild(ostRoot);
@@ -32,6 +35,7 @@ describe('onPlaceholderSelect', () => {
         onPlaceholderSelect(offerSelectorId, type, offer, options, promoOverride);
 
         const expectedAttributes = {
+            'data-display-old-price': false,
             'data-wcs-osi': offerSelectorId,
             'data-template': type,
             is: 'inline-price',

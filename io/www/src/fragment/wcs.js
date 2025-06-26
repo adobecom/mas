@@ -95,6 +95,12 @@ async function wcs(context) {
                 return token;
             })
             .filter((token) => token.osi);
+        if (body.fields.osi && body.fields.promotionCode) {
+            tokens.push({
+                osi: body.fields.osi,
+                promotionCode: body.fields.promotionCode,
+            });
+        }
         const country = locale.split('_')[1];
         const wcsContext = {
             locale,

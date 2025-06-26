@@ -218,7 +218,14 @@ class MerchCardEditor extends LitElement {
         if (element) element.style.display = show ? 'block' : 'none';
     }
 
-    toggleFields() {
+    updated(changedProperties) {
+        super.updated(changedProperties);
+        if (changedProperties.has('fragmentStore')) {
+            this.toggleFields();
+        }
+    }
+
+    async toggleFields() {
         if (!this.fragment) return;
         this.#updateCurrentVariantMapping();
         const variant = this.currentVariantMapping;
@@ -578,7 +585,6 @@ class MerchCardEditor extends LitElement {
         this.#updateAvailableSizes();
         this.#updateAvailableColors();
         this.#updateBackgroundColors();
-        this.toggleFields();
     }
 
     #handeTagsChange(e) {

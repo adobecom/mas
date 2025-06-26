@@ -34,7 +34,7 @@ const getPlanType = ({ commitment, term }) => {
 const paginatedOffers = (allProducts, landscape, locale, params, page = 0) => {
     const { AOS_URL, AOS_API_KEY } = params;
     const [, country] = locale.split('_');
-    const offersEndpoint = `${AOS_URL}?country=${country}&merchant=ADOBE&service_providers=MERCHANDISING&locale=${locale}&api_key=${AOS_API_KEY}&landscape=${landscape}&page_size=100&page=${page}`;
+    const offersEndpoint = `${AOS_URL}?country=${country}&merchant=ADOBE&service_providers=MERCHANDISING,PRODUCT_ARRANGEMENT_V2&locale=${locale}&api_key=${AOS_API_KEY}&landscape=${landscape}&page_size=100&page=${page}`;
     return fetch(offersEndpoint)
         .then((response) => response.json())
         .then((offers) => {
@@ -50,6 +50,8 @@ const paginatedOffers = (allProducts, landscape, locale, params, page = 0) => {
                                 name: offer.merchandising?.copy?.name,
                                 arrangement_code: pa,
                                 icon: offer.merchandising?.assets?.icons?.svg,
+                                product_code: offer.product_code,
+                                product_family: offer.product_arrangement_v2?.family,
                                 planTypes: {},
                                 customerSegments: {},
                                 marketSegments: {},
@@ -67,6 +69,50 @@ const paginatedOffers = (allProducts, landscape, locale, params, page = 0) => {
         });
 };
 
+const getProducts = async (params) => {
+    const options = [
+        { locale: 'en_US', landscape: 'DRAFT' },
+        { locale: 'en_US', landscape: 'PUBLISHED' },
+        { locale: 'en_CA', landscape: 'DRAFT' },
+        { locale: 'en_CA', landscape: 'PUBLISHED' },
+    ];
+    const allProducts = { DRAFT: {}, PUBLISHED: {} };
+    const promises = options.map((option) => {
+        console.log(`fetching ${option.landscape} products for locale: ${option.locale}`);
+        return paginatedOffers(allProducts, option.landscape, option.locale, params);
+    });
+    await Promise.all(promises);
+    console.log('awaited');
+    console.log('fetched all AOS responses, assembling...');
+    const combinedProducts = allProducts.PUBLISHED;
+    Object.keys(allProducts.DRAFT).forEach((pa) => {
+        const draftOffer = allProducts.DRAFT[pa];
+        if (!combinedProducts[pa]) {
+            console.log(`found ${pa} to be draft`);
+            combinedProducts[pa] = {
+                ...draftOffer,
+                draft: true,
+            };
+        } // merge planTypes, customerSegments and marketSegments for published and draft offers
+        else if (JSON.stringify(combinedProducts[pa]) !== JSON.stringify(draftOffer)) {
+            console.log(`found ${pa} to be draft, but there is already a published offer with the same PA.`);
+            combinedProducts[pa].planTypes = {
+                ...combinedProducts[pa].planTypes,
+                ...draftOffer.planTypes,
+            };
+            combinedProducts[pa].customerSegments = {
+                ...combinedProducts[pa].customerSegments,
+                ...draftOffer.customerSegments,
+            };
+            combinedProducts[pa].marketSegments = {
+                ...combinedProducts[pa].marketSegments,
+                ...draftOffer.marketSegments,
+            };
+        }
+    });
+    return combinedProducts;
+};
+
 async function main(params) {
     try {
         const { key, OST_WRITE_API_KEY } = params;
@@ -74,46 +120,7 @@ async function main(params) {
             throw new Error('Invalid or missing action api key');
         }
         const state = await stateLib.init();
-        const options = [
-            { locale: 'en_US', landscape: 'DRAFT' },
-            { locale: 'en_US', landscape: 'PUBLISHED' },
-            { locale: 'en_CA', landscape: 'DRAFT' },
-            { locale: 'en_CA', landscape: 'PUBLISHED' },
-        ];
-        const allProducts = { DRAFT: {}, PUBLISHED: {} };
-        const promises = options.map((option) => {
-            console.log(`fetching ${option.landscape} products for locale: ${option.locale}`);
-            return paginatedOffers(allProducts, option.landscape, option.locale, params);
-        });
-        await Promise.all(promises);
-        console.log('awaited');
-        console.log('fetched all AOS responses, assembling...');
-        const combinedProducts = allProducts.PUBLISHED;
-        Object.keys(allProducts.DRAFT).forEach((pa) => {
-            const draftOffer = allProducts.DRAFT[pa];
-            if (!combinedProducts[pa]) {
-                console.log(`found ${pa} to be draft`);
-                combinedProducts[pa] = {
-                    ...draftOffer,
-                    draft: true,
-                };
-            } // merge planTypes, customerSegments and marketSegments for published and draft offers
-            else if (JSON.stringify(combinedProducts[pa]) !== JSON.stringify(draftOffer)) {
-                console.log(`found ${pa} to be draft, but there is already a published offer with the same PA.`);
-                combinedProducts[pa].planTypes = {
-                    ...combinedProducts[pa].planTypes,
-                    ...draftOffer.planTypes,
-                };
-                combinedProducts[pa].customerSegments = {
-                    ...combinedProducts[pa].customerSegments,
-                    ...draftOffer.customerSegments,
-                };
-                combinedProducts[pa].marketSegments = {
-                    ...combinedProducts[pa].marketSegments,
-                    ...draftOffer.marketSegments,
-                };
-            }
-        });
+        const combinedProducts = await getProducts(params);
         const ostResult = {
             combinedProducts,
             dateTime: new Date().toString(),
@@ -134,3 +141,4 @@ async function main(params) {
 }
 
 exports.main = main;
+exports.getProducts = getProducts;

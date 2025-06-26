@@ -8,7 +8,7 @@ function applyCollectionSettings(context) {
                 if (variant?.startsWith('plans')) {
                     applyPlansSettings(ref.value, context);
                 }
-                if (variant?.startsWith('mini')) {
+                if (variant ==='mini') {
                     applyMiniSettings(ref.value, context);
                 }
             }

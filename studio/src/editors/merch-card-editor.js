@@ -28,6 +28,7 @@ const VARIANT_RTE_MARKS = {
 
 class MerchCardEditor extends LitElement {
     static properties = {
+        currentVariantMapping: { type: Object, attribute: false },
         fragmentStore: { type: Object, attribute: false },
         updateFragment: { type: Function },
     };
@@ -52,7 +53,6 @@ class MerchCardEditor extends LitElement {
             .join('; ');
     }
 
-    currentVariantMapping = null;
     availableSizes = [];
     availableColors = [];
     availableBorderColors = [];
@@ -64,6 +64,7 @@ class MerchCardEditor extends LitElement {
         super();
         this.fragmentStore = null;
         this.updateFragment = null;
+        this.currentVariantMapping = null;
     }
 
     createRenderRoot() {
@@ -585,6 +586,7 @@ class MerchCardEditor extends LitElement {
         this.#updateAvailableSizes();
         this.#updateAvailableColors();
         this.#updateBackgroundColors();
+        this.toggleFields();
     }
 
     #handeTagsChange(e) {

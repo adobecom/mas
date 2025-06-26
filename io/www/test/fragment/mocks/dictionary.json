@@ -95,7 +95,7 @@
                 }
             }
         },
-        "price-literal-tax-inclusive-label":{
+        "price-literal-tax-inclusive-label": {
             "value": {
                 "fields": {
                     "key": "price-literal-tax-inclusive-label",

@@ -113,7 +113,12 @@ async function wcs(context) {
             wcsContext.landscape = config.landscape || 'PUBLISHED';
             if (country !== 'GB') wcsContext.language = 'MULT';
             context.body.wcs ??= {};
-            context.body.wcs[config.env] = await computeCache(tokens, wcsContext);
+            try {
+                context.body.wcs[config.env] = await computeCache(tokens, wcsContext);
+            } catch (error) {
+                /* istanbul ignore next */
+                logError(`Error computing WCS cache for ${config.env}: ${error.message}`, context);
+            }
         }
     } else {
         log('No WCS placeholders found in fragment content', context);

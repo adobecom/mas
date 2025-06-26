@@ -55,7 +55,7 @@ var V=Object.defineProperty;var S=o=>{throw TypeError(o)};var H=(o,e,t)=>e in o?
             flex-direction: column;
         }
     `);customElements.define("merch-sidenav-checkbox-group",h);var w="(max-width: 700px)";var M="(max-width: 1199px)";var O=/iP(ad|hone|od)/.test(window?.navigator?.platform)||window?.navigator?.platform==="MacIntel"&&window.navigator.maxTouchPoints>1,x=!1,f,P=o=>{o&&(O?(document.body.style.position="fixed",o.ontouchmove=e=>{e.targetTouches.length===1&&e.stopPropagation()},x||(document.addEventListener("touchmove",e=>e.preventDefault()),x=!0)):(f=document.body.style.overflow,document.body.style.overflow="hidden"))},k=o=>{o&&(O?(o.ontouchstart=null,o.ontouchmove=null,document.body.style.position="",document.removeEventListener("touchmove",e=>e.preventDefault()),x=!1):f!==void 0&&(document.body.style.overflow=f,f=void 0))};var m,E=class extends X{constructor(){super();R(this,m);r(this,"mobileDevice",new d(this,w));r(this,"mobileAndTablet",new d(this,M));this.modal=!1}get filters(){return this.querySelector("merch-sidenav-list")}get search(){return this.querySelector("merch-search")}render(){return this.mobileAndTablet.matches?this.asDialog:this.asAside}get asDialog(){if(this.modal)return I`
-            <sp-theme  color="light" scale="medium">
+            <sp-theme color="light" scale="medium">
                 <sp-dialog-base
                     slot="click-content"
                     dismissable
@@ -75,7 +75,7 @@ var V=Object.defineProperty;var S=o=>{throw TypeError(o)};var H=(o,e,t)=>e in o?
                     </div>
                 </sp-dialog-base>
             </sp-theme>
-        `}get asAside(){return I`<sp-theme  color="light" scale="medium"
+        `}get asAside(){return I`<sp-theme color="light" scale="medium"
             ><h2>${this.sidenavTitle}</h2>
             <slot></slot
         ></sp-theme>`}get dialog(){return this.shadowRoot.querySelector("sp-dialog-base")}closeModal(t){t.preventDefault(),this.dialog?.close(),document.body.classList.remove("merch-modal")}openModal(){this.updateComplete.then(async()=>{P(this.dialog),document.body.classList.add("merch-modal");let t={trigger:v(this,m),notImmediatelyClosable:!0,type:"auto"},s=await window.__merch__spectrum_Overlay.open(this.dialog,t);s.addEventListener("close",()=>{this.modal=!1,document.body.classList.remove("merch-modal"),k(this.dialog)}),this.shadowRoot.querySelector("sp-theme").append(s)})}updated(){this.modal&&this.openModal()}showModal({target:t}){g(this,m,t),this.modal=!0}};m=new WeakMap,r(E,"properties",{sidenavTitle:{type:String},closeText:{type:String,attribute:"close-text"},modal:{type:Boolean,attribute:"modal",reflect:!0}}),r(E,"styles",[Q`
@@ -85,8 +85,8 @@ var V=Object.defineProperty;var S=o=>{throw TypeError(o)};var H=(o,e,t)=>e in o?
             }
 
             :host h2 {
-              color: var(--spectrum-global-color-gray-900);
-              font-size: 12px;
+                color: var(--spectrum-global-color-gray-900);
+                font-size: 12px;
             }
 
             :host(:not([modal])) {
@@ -102,7 +102,6 @@ var V=Object.defineProperty;var S=o=>{throw TypeError(o)};var H=(o,e,t)=>e in o?
                 justify-content: center;
                 align-items: baseline;
             }
-            
 
             :host([modal]) ::slotted(merch-search) {
                 display: none;

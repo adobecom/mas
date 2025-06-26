@@ -4,6 +4,7 @@ import {
     isPositiveFiniteNumber,
     toPositiveFiniteInteger,
 } from '@dexter/tacocat-core';
+
 import { HEADER_X_REQUEST_ID } from './constants';
 
 const MAS_COMMERCE_SERVICE = 'mas-commerce-service';

@@ -180,4 +180,47 @@ describe('settings transformer', () => {
             displayPlanType: false,
         });
     });
+
+    it('should not add plan type when variant is mini and locale is not en_AU', async () => {
+        context.body.fields = {
+            variant: 'mini',
+        };
+        const result = await settings(context);
+        expect(result.body.settings).to.be.undefined;
+    });
+
+    it('should add plan type when variant is mini and locale is en_AU', async () => {
+        context.locale = 'en_AU';
+        context.body.fields = {
+            variant: 'mini',
+        };
+        const result = await settings(context);
+        expect(result.body.settings).to.deep.equal({
+            displayPlanType: true,
+        });
+    });
+
+    it('should handle references with mini variant', async () => {
+        context.locale = 'en_AU';
+        context.body = {
+            model: {
+                id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
+            },
+            references: {
+                ref1: {
+                    type: 'content-fragment',
+                    value: {
+                        fields: {
+                            variant: 'mini',
+                        },
+                    },
+                },
+            },
+        };
+
+        const result = await settings(context);
+        expect(result.body.references.ref1.value.settings).to.deep.equal({
+            displayPlanType: true,
+        });
+    });
 });

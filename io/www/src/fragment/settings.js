@@ -3,8 +3,14 @@ const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGx
 function applyCollectionSettings(context) {
     if (context.body?.references) {
         Object.entries(context.body.references).forEach(([key, ref]) => {
-            if (ref && ref.type === 'content-fragment' && ref.value?.fields?.variant?.startsWith('plans')) {
-                applyPlansSettings(ref.value, context);
+            if (ref && ref.type === 'content-fragment') {
+                const variant = ref.value?.fields?.variant;
+                if (variant?.startsWith('plans')) {
+                    applyPlansSettings(ref.value, context);
+                }
+                if (variant?.startsWith('mini')) {
+                    applyMiniSettings(ref.value, context);
+                }
             }
         });
     }
@@ -50,6 +56,15 @@ function applyPlansSettings(fragment, context) {
     }
 }
 
+function applyMiniSettings(fragment, context) {
+    const { locale } = context;
+    if (locale === 'en_AU') {
+        fragment.settings = {
+            displayPlanType: true,
+        };
+    }
+}
+
 function applyPriceLiterals(fragment) {
     if (fragment) {
         fragment.priceLiterals = {
@@ -71,6 +86,10 @@ function applyPriceLiterals(fragment) {
 async function settings(context) {
     if (context.body?.fields?.variant?.startsWith('plans')) {
         applyPlansSettings(context.body, context);
+    }
+
+    if (context.body?.fields?.variant?.startsWith('mini')) {
+        applyMiniSettings(context.body, context);
     }
 
     if (context.body?.model?.id === COLLECTION_MODEL_ID) {

@@ -31,7 +31,12 @@ async function computeCache(tokens, wcsContext) {
                 const response = await fetchArtifact(osi, promotionCode, wcsContext);
                 if (response) {
                     const { resolvedOffers } = response;
-                    const cacheKey = [osi, wcsContext.country.toLowerCase(), wcsContext.language?.toLowerCase(), promotionCode]
+                    const cacheKey = [
+                        osi,
+                        wcsContext.country.toLowerCase(),
+                        wcsContext.language?.toLowerCase(),
+                        promotionCode?.toLowerCase(),
+                    ]
                         .filter((val) => val)
                         .join('-');
                     resolve({
@@ -90,6 +95,12 @@ async function wcs(context) {
                 return token;
             })
             .filter((token) => token.osi);
+        if (body.fields.osi && body.fields.promoCode) {
+            tokens.push({
+                osi: body.fields.osi,
+                promotionCode: body.fields.promoCode,
+            });
+        }
         const country = locale.split('_')[1];
         const wcsContext = {
             locale,

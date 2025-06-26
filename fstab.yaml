@@ -1,4 +1,2 @@
 mountpoints:
-    /:
-        url: https://content.da.live/adobecom/mas/
-        type: markup
+    /: https://adobe.sharepoint.com/:f:/r/sites/adobecom/Shared%20Documents/mas

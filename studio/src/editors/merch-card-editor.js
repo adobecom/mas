@@ -29,6 +29,7 @@ const VARIANT_RTE_MARKS = {
 class MerchCardEditor extends LitElement {
     static properties = {
         fragmentStore: { type: Object, attribute: false },
+        currentVariantMapping: { type: Object, state: true },
         updateFragment: { type: Function },
     };
 
@@ -52,7 +53,6 @@ class MerchCardEditor extends LitElement {
             .join('; ');
     }
 
-    currentVariantMapping = null;
     availableSizes = [];
     availableColors = [];
     availableBorderColors = [];
@@ -64,6 +64,7 @@ class MerchCardEditor extends LitElement {
         super();
         this.fragmentStore = null;
         this.updateFragment = null;
+        this.currentVariantMapping = null;
     }
 
     createRenderRoot() {
@@ -221,12 +222,13 @@ class MerchCardEditor extends LitElement {
             this.#updateAvailableColors();
             this.#updateBackgroundColors();
             this.toggleFields();
+            this.requestUpdate();
         }
     }
 
-    async toggleFields() {
+    toggleFields() {
         if (!this.fragment) return;
-        await this.#updateCurrentVariantMapping();
+        this.#updateCurrentVariantMapping();
         const variant = this.currentVariantMapping;
         if (!variant) return;
         this.querySelectorAll('sp-field-group.toggle').forEach((field) => {
@@ -578,9 +580,9 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
-    async #handleVariantChange(e) {
+    #handleVariantChange(e) {
         this.#handleFragmentUpdate(e);
-        await this.#updateCurrentVariantMapping();
+        this.#updateCurrentVariantMapping();
         this.#updateAvailableSizes();
         this.#updateAvailableColors();
         this.#updateBackgroundColors();
@@ -678,12 +680,12 @@ class MerchCardEditor extends LitElement {
             .join(' ');
     }
 
-    async #updateCurrentVariantMapping() {
+    #updateCurrentVariantMapping() {
         if (!this.fragment) {
             this.currentVariantMapping = null;
             return;
         }
-        this.currentVariantMapping = await getFragmentMapping(this.fragment.variant);
+        this.currentVariantMapping = getFragmentMapping(this.fragment.variant);
     }
 
     async #updateAvailableSizes() {

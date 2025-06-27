@@ -6,7 +6,7 @@ const { logDebug } = require('./common.js');
 async function corrector(context) {
     const { priceLiterals } = context.body;
     for (const [key, value] of Object.entries(priceLiterals)) {
-        if (typeof value === 'string' && /^price-literal-/.test(value)) {
+        if (typeof value === 'string' && /^(\{\{)?price-literal-/.test(value)) {
             logDebug(() => `no placeholder has been authored for ${key}`, context);
             delete context.body.priceLiterals[key];
         }

@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const nock = require('nock');
 const { MockState } = require('./mocks/MockState.js');
-const translate = require('../../src/fragment/translate.js').translate;
+const { getCorrespondingLocale, translate } = require('../../src/fragment/translate.js');
 const FRAGMENT_RESPONSE_FR = require('./mocks/fragment-fr.json');
 
 const FAKE_CONTEXT = {
@@ -87,6 +87,49 @@ describe('translate typical cases', function () {
         expect(result.status).to.equal(200);
         expect(result.body).to.deep.include({
             path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
+        });
+    });
+
+    it('should return en_US fragment (us fragment, en_AU locale)', async function () {
+        const usFragment = FRAGMENT_RESPONSE_FR;
+        usFragment.path = '/content/dam/mas/sandbox/en_US/some-en-us-fragment';
+        // french fragment by id
+        nock('https://odin.adobe.com')
+            .get(`/adobe/sites/fragments/some-en-us-fragment?references=all-hydrated`)
+            .reply(200, FRAGMENT_RESPONSE_FR);
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments')
+            .query({
+                path: '/content/dam/mas/sandbox/en_AU/some-en-us-fragment',
+            })
+            .reply(200, {
+                items: [],
+            });
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments')
+            .query({
+                path: '/content/dam/mas/sandbox/en_US/some-en-us-fragment',
+            })
+            .reply(200, {
+                items: [
+                    {
+                        path: '/content/dam/mas/sandbox/en_US/some-en-us-fragment',
+                        id: 'some-en-us-fragment',
+                        some: 'body',
+                    },
+                ],
+            });
+
+        const result = await translate({
+            ...FAKE_CONTEXT,
+            body: {
+                path: '/content/dam/mas/sandbox/en_US/some-en-us-fragment',
+            },
+            locale: 'en_AU',
+        });
+        expect(result.status).to.equal(200);
+        expect(result.body).to.deep.include({
+            path: '/content/dam/mas/sandbox/en_US/some-en-us-fragment',
         });
     });
 
@@ -237,5 +280,12 @@ describe('translate corner cases', function () {
             path: '/content/dam/mas/sandbox/fr_FR/someFragment',
             some: 'body',
         });
+    });
+});
+
+describe('corresponding local corner case', function () {
+    it('locale with no default should be returned', async function () {
+        const locale = getCorrespondingLocale('zh_TW');
+        expect(locale).to.equal('zh_TW');
     });
 });

@@ -82,6 +82,9 @@ async function translate(context) {
                 translatedBody = body;
                 translatedStatus = status;
                 translatedMessage = message;
+            } else if (defaultLocale === parsedLocale) {
+                //default is first fetched item, we'll just declare it done
+                translatedStatus = 200;
             }
         }
         if (translatedStatus !== 200) {

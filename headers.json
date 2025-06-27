@@ -1,9 +1,8 @@
 {
-  "/web-components/dist/*": {
+  "/web-components/dist/*.js": {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
     "Access-Control-Allow-Headers": "*",
-    "Access-Control-Allow-Credentials": "true",
-    "Access-Control-Max-Age": "86400"
+    "Content-Type": "application/javascript; charset=utf-8"
   }
 }

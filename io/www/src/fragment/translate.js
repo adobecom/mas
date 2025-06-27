@@ -109,5 +109,6 @@ async function translate(context) {
 }
 
 module.exports = {
+    getCorrespondingLocale,
     translate,
 };

@@ -84,6 +84,7 @@ async function replace(context) {
             } catch (e) {
                 /* istanbul ignore next */
                 logError(`[replace] ${e.message}`, context);
+                /* istanbul ignore next */
                 logDebug(() => `[replace] invalid json: ${bodyString}`, context);
             }
         }

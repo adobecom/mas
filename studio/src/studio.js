@@ -33,6 +33,7 @@ class MasStudio extends LitElement {
     static properties = {
         bucket: { type: String, attribute: 'aem-bucket' },
         baseUrl: { type: String, attribute: 'base-url' },
+        masJsReady: { type: Boolean, state: true },
     };
 
     #unsubscribeLocaleObserver;
@@ -41,12 +42,18 @@ class MasStudio extends LitElement {
     constructor() {
         super();
         this.bucket = 'e59433';
+        this.masJsReady = false;
     }
 
     connectedCallback() {
         super.connectedCallback();
         this.subscribeLocaleObserver();
         this.subscribeCommerceEnvObserver();
+        this.initMasJs();
+    }
+
+    initMasJs() {
+        customElements.whenDefined('mas-studio').then(() => (this.masJsReady = true));
     }
 
     get commerceService() {
@@ -121,6 +128,7 @@ class MasStudio extends LitElement {
     }
 
     render() {
+        if (!this.masJsReady) return nothing;
         return html`
             <mas-top-nav aem-env="${this.aemEnv}"></mas-top-nav>
             <mas-repository bucket="${this.bucket}" base-url="${this.baseUrl}"></mas-repository>

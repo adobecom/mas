@@ -12,6 +12,7 @@
     },
     "fields": {
         "variant": "ccd-slice",
+        "originalId": "0ef2a804-e788-4959-abb8-b4d96a18b0ef",
         "mnemonicIcon": ["/test/mocks/img/creative-cloud.svg"],
         "mnemonicAlt": [],
         "mnemonicLink": [],

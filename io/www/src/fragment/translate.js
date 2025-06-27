@@ -3,7 +3,7 @@ const { fetch, log } = require('./common.js');
 
 const LANGUAGE_DEFAULTS = ['en_US', 'fr_FR', 'de_DE', 'es_ES', 'it_IT', 'pt_BR', 'nl_NL'];
 
-getCorrespondingLocale = (locale) => {
+function getCorrespondingLocale(locale) {
     const [language] = locale.split('_');
     for (const defaultLocale of LANGUAGE_DEFAULTS) {
         if (defaultLocale.startsWith(language)) {
@@ -11,7 +11,7 @@ getCorrespondingLocale = (locale) => {
         }
     }
     return locale;
-};
+}
 
 /**
  * @returns a translated body for a given surface, fragment path and locale, calling path

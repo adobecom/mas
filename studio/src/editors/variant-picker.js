@@ -44,13 +44,8 @@ class VariantPicker extends LitElement {
     }
 
     get variants() {
-        return VARIANTS.filter(
-            (variant) => this.showAll || variant.value != 'all',
-        ).map(
-            (variant) =>
-                html`<sp-menu-item value="${variant.value}"
-                    >${variant.label}</sp-menu-item
-                >`,
+        return VARIANTS.filter((variant) => this.showAll || variant.value != 'all').map(
+            (variant) => html`<sp-menu-item value="${variant.value}">${variant.label}</sp-menu-item>`,
         );
     }
 

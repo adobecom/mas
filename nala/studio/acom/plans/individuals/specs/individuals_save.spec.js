@@ -63,10 +63,8 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
-                iconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
-                newIconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
+                iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
             },
             browserParams: '#query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',

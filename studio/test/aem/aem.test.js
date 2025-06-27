@@ -9,39 +9,26 @@ describe('aem.js', () => {
             const items = [
                 {
                     id: 'item1',
-                    tags: [
-                        { id: 'mas:plan_type/abm' },
-                        { id: 'mas:status/draft' },
-                    ],
+                    tags: [{ id: 'mas:plan_type/abm' }, { id: 'mas:status/draft' }],
                 },
                 {
                     id: 'item2',
-                    tags: [
-                        { id: 'mas:plan_type/m2m' },
-                        { id: 'mas:status/draft' },
-                    ],
+                    tags: [{ id: 'mas:plan_type/m2m' }, { id: 'mas:status/draft' }],
                 },
                 {
                     id: 'item3',
-                    tags: [
-                        { id: 'mas:plan_type/abm' },
-                        { id: 'mas:plan_type/m2m' },
-                    ],
+                    tags: [{ id: 'mas:plan_type/abm' }, { id: 'mas:plan_type/m2m' }],
                 },
             ];
 
             // OR logic within same root
             const sameRootTags = ['mas:plan_type/abm', 'mas:plan_type/m2m'];
-            const sameRootResult = items
-                .filter(filterByTags(sameRootTags))
-                .map((i) => i.id);
+            const sameRootResult = items.filter(filterByTags(sameRootTags)).map((i) => i.id);
             expect(sameRootResult).to.deep.equal(['item1', 'item2', 'item3']);
 
             // AND logic between different roots
             const diffRootTags = ['mas:plan_type/abm', 'mas:status/draft'];
-            const diffRootResult = items
-                .filter(filterByTags(diffRootTags))
-                .map((i) => i.id);
+            const diffRootResult = items.filter(filterByTags(diffRootTags)).map((i) => i.id);
             expect(diffRootResult).to.deep.equal(['item1']);
         });
     });

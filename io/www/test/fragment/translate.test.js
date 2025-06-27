@@ -19,9 +19,7 @@ describe('translate typical cases', function () {
     it('should return fr fragment (us fragment, fr locale)', async function () {
         // french fragment by id
         nock('https://odin.adobe.com')
-            .get(
-                `/adobe/sites/fragments/some-fr-fr-fragment?references=all-hydrated`,
-            )
+            .get(`/adobe/sites/fragments/some-fr-fr-fragment?references=all-hydrated`)
             .reply(200, FRAGMENT_RESPONSE_FR);
         nock('https://odin.adobe.com')
             .get('/adobe/sites/fragments')
@@ -44,6 +42,47 @@ describe('translate typical cases', function () {
                 path: '/content/dam/mas/sandbox/en_US/some-en-us-fragment',
             },
             locale: 'fr_FR',
+        });
+        expect(result.status).to.equal(200);
+        expect(result.body).to.deep.include({
+            path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
+        });
+    });
+
+    it('should return fr fragment (us fragment, fr_CA locale)', async function () {
+        // french fragment by id
+        nock('https://odin.adobe.com')
+            .get(`/adobe/sites/fragments/some-fr-fr-fragment?references=all-hydrated`)
+            .reply(200, FRAGMENT_RESPONSE_FR);
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments')
+            .query({
+                path: '/content/dam/mas/sandbox/fr_CA/some-en-us-fragment',
+            })
+            .reply(200, {
+                items: [],
+            });
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments')
+            .query({
+                path: '/content/dam/mas/sandbox/fr_FR/some-en-us-fragment',
+            })
+            .reply(200, {
+                items: [
+                    {
+                        path: '/content/dam/mas/sandbox/fr_FR/some-fr-fr-fragment',
+                        id: 'some-fr-fr-fragment',
+                        some: 'corps',
+                    },
+                ],
+            });
+
+        const result = await translate({
+            ...FAKE_CONTEXT,
+            body: {
+                path: '/content/dam/mas/sandbox/en_US/some-en-us-fragment',
+            },
+            locale: 'fr_CA',
         });
         expect(result.status).to.equal(200);
         expect(result.body).to.deep.include({

@@ -23,9 +23,7 @@
                 height: initial;
             }
         </style>
-        <mas-repository
-            base-url="http://localhost:2023/test/mocks"
-        ></mas-repository>
+        <mas-repository base-url="http://localhost:2023/test/mocks"></mas-repository>
     </head>
     <body>
         <script type="module">
@@ -45,18 +43,14 @@
             import { FragmentStore } from '../src/reactivity/fragment-store.js';
             import Store from '../src/store.js';
             import { generateCodeToUse } from '../src/utils.js';
-            import {
-                createFromTemplate,
-                delay,
-                triggerInput,
-            } from './utils.js';
+            import { createFromTemplate, delay, triggerInput } from './utils.js';
 
             runTests(async () => {
                 const spTheme = document.querySelector('sp-theme');
                 const originalFetch = window.fetch;
-                const fragmentData = await originalFetch(
-                    '/test/mocks/adobe/sites/cf/fragments/cc-all-apps',
-                ).then((res) => res.json());
+                const fragmentData = await originalFetch('/test/mocks/adobe/sites/cf/fragments/cc-all-apps').then((res) =>
+                    res.json(),
+                );
                 window.fetch = async function (args) {
                     const { pathname } = new URL(args);
                     if (/querybuilder.json?path=\/content\/cq:tags\/mas/.test(pathname)) {
@@ -75,40 +69,28 @@
                     beforeEach(async () => {
                         fragment = new Fragment(fragmentData);
                         fragmentStore = new FragmentStore(fragment);
-                        editorPanel = await fixture(
-                            html`<editor-panel></editor-panel>`,
-                            { parentNode: spTheme },
-                        );
+                        editorPanel = await fixture(html`<editor-panel></editor-panel>`, { parentNode: spTheme });
                         await editorPanel.editFragment(fragmentStore);
                         await editorPanel.updateComplete;
                     });
 
                     it('implements "discard changes"', async () => {
-                        const discardButton = document.querySelector(
-                            'sp-action-button[value="discard"]',
-                        );
-                        const titleField = () =>
-                            document.getElementById('card-title');
+                        const discardButton = document.querySelector('sp-action-button[value="discard"]');
+                        const titleField = () => document.getElementById('card-title');
                         expect(discardButton.disabled).to.be.true;
                         triggerInput(titleField(), 'test title');
-                        expect(
-                            fragment.getField('cardTitle').values,
-                        ).to.deep.equal(['test title']);
+                        expect(fragment.getField('cardTitle').values).to.deep.equal(['test title']);
                         await editorPanel.updateComplete;
-                        const merchCardEditor =
-                            document.querySelector('merch-card-editor');
+                        const merchCardEditor = document.querySelector('merch-card-editor');
                         await delay(100);
                         expect(Store.editor.hasChanges).to.be.true;
                         expect(discardButton.disabled).to.be.false;
                         discardButton.click();
                         await delay(100);
-                        const btnDiscard =
-                            document.querySelector('#btnDiscard');
+                        const btnDiscard = document.querySelector('#btnDiscard');
                         btnDiscard.click();
                         await delay(100);
-                        expect(
-                            fragment.getField('cardTitle').values,
-                        ).to.deep.equal([]);
+                        expect(fragment.getField('cardTitle').values).to.deep.equal([]);
                         expect(titleField().value).to.equal('');
                     });
 
@@ -119,23 +101,19 @@
                         }));
                         await editorPanel.updateComplete;
                         await editorPanel.refreshed;
-                        const titleField = () =>
-                            document.getElementById('card-title');
+                        const titleField = () => document.getElementById('card-title');
                         triggerInput(titleField(), 'test title');
                         await editorPanel.updateComplete;
-                        const { authorPath, href, richText } =
-                            generateCodeToUse(
-                                editorPanel.fragment,
-                                Store.search.get().path,
-                                Store.page.get(),
-                            );
+                        const { authorPath, href, richText } = generateCodeToUse(
+                            editorPanel.fragment,
+                            Store.search.get().path,
+                            Store.page.get(),
+                        );
                         const normalizedExpected =
                             '<ahref="https://mas.adobe.com/studio.html#content-type=merch-card&page=welcome&path=acom&query=cc-all-apps"target="_blank">merch-card:ACOM/Slice/CreativeCloudAllApps</a>';
                         const normalizedActual = richText.replace(/\s+/g, '');
                         expect(normalizedActual).to.equal(normalizedExpected);
-                        expect(authorPath).to.equal(
-                            'merch-card: ACOM / Slice / Creative Cloud All Apps',
-                        );
+                        expect(authorPath).to.equal('merch-card: ACOM / Slice / Creative Cloud All Apps');
                         expect(href).to.equal(
                             'https://mas.adobe.com/studio.html#content-type=merch-card&page=welcome&path=acom&query=cc-all-apps',
                         );

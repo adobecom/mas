@@ -1,8 +1,7 @@
 const { log, logError, fetch } = require('./common.js');
 
 const MAS_ELEMENT_REGEXP = /<[^>]+data-wcs-osi=\\"(?<osi>[^\\]+)\\"[^>]*?>/gm;
-const PROMOCODE_REGEXP =
-    /(?<promo>data-promotion-code=\\"(?<promotionCode>[^\\]+)\\")/;
+const PROMOCODE_REGEXP = /(?<promo>data-promotion-code=\\"(?<promotionCode>[^\\]+)\\")/;
 
 async function fetchArtifact(osi, promotionCode, wcsContext) {
     const url = new URL(wcsContext.wcsURL);
@@ -10,7 +9,9 @@ async function fetchArtifact(osi, promotionCode, wcsContext) {
     url.searchParams.set('locale', wcsContext.locale);
     url.searchParams.set('landscape', wcsContext.landscape);
     url.searchParams.set('api_key', wcsContext.context.api_key);
-    url.searchParams.set('language', wcsContext.language);
+    if (wcsContext.language) {
+        url.searchParams.set('language', wcsContext.language);
+    }
     url.searchParams.set('offer_selector_ids', osi);
     if (promotionCode) {
         url.searchParams.set('promotion_code', promotionCode);
@@ -22,24 +23,19 @@ async function fetchArtifact(osi, promotionCode, wcsContext) {
     return null;
 }
 
-async function computeCache(tokens, config, wcsContext) {
+async function computeCache(tokens, wcsContext) {
     const cache = {};
-    wcsContext.wcsURL = config.wcsURL;
     const promises = tokens.map(
         ({ osi, promotionCode }) =>
             new Promise(async (resolve, reject) => {
-                const response = await fetchArtifact(
-                    osi,
-                    promotionCode,
-                    wcsContext,
-                );
+                const response = await fetchArtifact(osi, promotionCode, wcsContext);
                 if (response) {
                     const { resolvedOffers } = response;
                     const cacheKey = [
                         osi,
                         wcsContext.country.toLowerCase(),
-                        wcsContext.language.toLowerCase(),
-                        promotionCode,
+                        wcsContext.language?.toLowerCase(),
+                        promotionCode?.toLowerCase(),
                     ]
                         .filter((val) => val)
                         .join('-');
@@ -63,14 +59,11 @@ async function computeCache(tokens, config, wcsContext) {
 }
 
 async function getWcsConfigurations(context) {
-    const wcsConfigurationStr =
-        (await context.state.get('wcs-configuration'))?.value || false;
+    const wcsConfigurationStr = (await context.state.get('wcs-configuration'))?.value || false;
     if (wcsConfigurationStr) {
         try {
             const arrayConfig = JSON.parse(wcsConfigurationStr);
-            return arrayConfig.filter((config) =>
-                config.api_keys?.includes(context.api_key),
-            );
+            return arrayConfig.filter((config) => config.api_keys?.includes(context.api_key));
         } catch (e) {
             logError(`Error parsing WCS configuration: ${e.message}`, context);
             return null;
@@ -83,10 +76,7 @@ async function wcs(context) {
     const startTime = Date.now();
     const wcsConfigs = await getWcsConfigurations(context);
     if (!wcsConfigs || wcsConfigs.length === 0) {
-        log(
-            `No WCS configurations found for API key ${context.api_key}`,
-            context,
-        );
+        log(`No WCS configurations found for API key ${context.api_key}`, context);
         return context;
     }
     const { body, locale } = context;
@@ -105,19 +95,29 @@ async function wcs(context) {
                 return token;
             })
             .filter((token) => token.osi);
+        if (body.fields.osi && body.fields.promoCode) {
+            tokens.push({
+                osi: body.fields.osi,
+                promotionCode: body.fields.promoCode,
+            });
+        }
         const country = locale.split('_')[1];
         const wcsContext = {
             locale,
             country,
-            language: country === 'GB' ? 'EN' : 'MULT',
-            landscape: 'PUBLISHED',
             context,
         };
+        context.body.wcs ??= {};
         for (const config of wcsConfigs) {
-            const cache = await computeCache(tokens, config, wcsContext);
-            if (cache) {
-                context.body.wcs ??= {};
-                context.body.wcs[config.env] = cache;
+            wcsContext.wcsURL = config.wcsURL;
+            wcsContext.landscape = config.landscape || 'PUBLISHED';
+            if (country !== 'GB') wcsContext.language = 'MULT';
+            context.body.wcs ??= {};
+            try {
+                context.body.wcs[config.env] = await computeCache(tokens, wcsContext);
+            } catch (error) {
+                /* istanbul ignore next */
+                logError(`Error computing WCS cache for ${config.env}: ${error.message}`, context);
             }
         }
     } else {

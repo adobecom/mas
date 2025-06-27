@@ -7,13 +7,10 @@ const FRAGMENT = require('./mocks/fragment.json');
 
 describe('MAS_ELEMENT_REGEXP', function () {
     it('should match a span with osi', function () {
-        const span =
-            '<span data-wcs-osi=\\"A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M\\" data-blah=\\"blah\\"></span>';
+        const span = '<span data-wcs-osi=\\"A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M\\" data-blah=\\"blah\\"></span>';
         const matches = span.matchAll(MAS_ELEMENT_REGEXP);
         expect(matches).to.not.be.null;
-        expect([...matches][0].groups.osi).to.equal(
-            'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-        );
+        expect([...matches][0].groups.osi).to.equal('A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M');
     });
 
     it('should match an a with promo code and osi', function () {
@@ -22,9 +19,7 @@ describe('MAS_ELEMENT_REGEXP', function () {
         const matches = span.matchAll(MAS_ELEMENT_REGEXP);
         expect(matches).to.not.be.null;
         const groups = [...matches][0].groups;
-        expect(groups.osi).to.equal(
-            'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-        );
+        expect(groups.osi).to.equal('A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M');
     });
 });
 
@@ -48,8 +43,7 @@ describe('wcs typical cases', function () {
         nock('https://www.adobe.com')
             .get('/web_commerce_artifact')
             .query({
-                offer_selector_ids:
-                    'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                offer_selector_ids: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 country: 'US',
                 locale: 'en_US',
                 landscape: 'PUBLISHED',
@@ -60,16 +54,27 @@ describe('wcs typical cases', function () {
         nock('https://www.adobe.com')
             .get('/web_commerce_artifact')
             .query({
-                offer_selector_ids:
-                    'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
+                offer_selector_ids: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
                 country: 'US',
                 locale: 'en_US',
                 landscape: 'PUBLISHED',
-                promotion_code: 'nicopromo',
+                promotion_code: 'NICOPROMO',
                 api_key: 'testing_wcs',
                 language: 'MULT',
             })
             .reply(200, { resolvedOffers: [{ foo: 'bar' }] });
+        nock('https://www.adobe.com')
+            .get('/web_commerce_artifact')
+            .query({
+                offer_selector_ids: 'anotherOsiForUpt',
+                country: 'US',
+                locale: 'en_US',
+                landscape: 'PUBLISHED',
+                promotion_code: 'UPT_PROMO-1',
+                api_key: 'testing_wcs',
+                language: 'MULT',
+            })
+            .reply(200, { resolvedOffers: [{ upt: 'foo' }] });
         await context.state.put(
             'wcs-configuration',
             JSON.stringify([
@@ -80,6 +85,8 @@ describe('wcs typical cases', function () {
                 },
             ]),
         );
+        context.body.fields.osi = 'anotherOsiForUpt';
+        context.body.fields.promoCode = 'UPT_PROMO-1';
         context = await wcs(context);
         expect(context.body.wcs).to.deep.equal({
             prod: {
@@ -88,12 +95,16 @@ describe('wcs typical cases', function () {
                         blah: 'blah',
                     },
                 ],
-                'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ-us-mult-nicopromo':
-                    [
-                        {
-                            foo: 'bar',
-                        },
-                    ],
+                'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ-us-mult-nicopromo': [
+                    {
+                        foo: 'bar',
+                    },
+                ],
+                'anotherOsiForUpt-us-mult-upt_promo-1': [
+                    {
+                        upt: 'foo',
+                    },
+                ],
             },
         });
     });
@@ -103,26 +114,22 @@ describe('wcs typical cases', function () {
         nock('https://www.adobe.com')
             .get('/web_commerce_artifact')
             .query({
-                offer_selector_ids:
-                    'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                offer_selector_ids: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 country: 'GB',
                 locale: 'en_GB',
                 landscape: 'PUBLISHED',
                 api_key: 'testing_wcs',
-                language: 'EN',
             })
             .reply(200, { resolvedOffers: [{ blah: 'blah' }] });
         nock('https://www.adobe.com')
             .get('/web_commerce_artifact')
             .query({
-                offer_selector_ids:
-                    'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
+                offer_selector_ids: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
                 country: 'GB',
                 locale: 'en_GB',
                 landscape: 'PUBLISHED',
-                promotion_code: 'nicopromo',
+                promotion_code: 'NICOPROMO',
                 api_key: 'testing_wcs',
-                language: 'EN',
             })
             .reply(200, { resolvedOffers: [{ foo: 'bar' }] });
         await context.state.put(
@@ -135,16 +142,18 @@ describe('wcs typical cases', function () {
                 },
             ]),
         );
+        delete context.body.fields.osi;
+        delete context.body.fields.promoCode;
         context.locale = 'en_GB';
         context = await wcs(context);
         expect(context.body.wcs).to.deep.equal({
             prod: {
-                'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-gb-en': [
+                'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-gb': [
                     {
                         blah: 'blah',
                     },
                 ],
-                'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ-gb-en-nicopromo': [
+                'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ-gb-nicopromo': [
                     {
                         foo: 'bar',
                     },
@@ -210,8 +219,7 @@ describe('wcs corner cases', function () {
         nock('https://www.adobe.com')
             .get('/web_commerce_artifact')
             .query({
-                offer_selector_ids:
-                    'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                offer_selector_ids: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 country: 'US',
                 locale: 'en_US',
                 landscape: 'PUBLISHED',
@@ -222,12 +230,11 @@ describe('wcs corner cases', function () {
         nock('https://www.adobe.com')
             .get('/web_commerce_artifact')
             .query({
-                offer_selector_ids:
-                    'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
+                offer_selector_ids: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
                 country: 'US',
                 locale: 'en_US',
                 landscape: 'PUBLISHED',
-                promotion_code: 'nicopromo',
+                promotion_code: 'NICOPROMO',
                 api_key: 'testing_wcs',
                 language: 'MULT',
             })
@@ -245,12 +252,11 @@ describe('wcs corner cases', function () {
         context = await wcs(context);
         expect(context.body.wcs).to.deep.equal({
             prod: {
-                'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ-us-mult-nicopromo':
-                    [
-                        {
-                            foo: 'bar',
-                        },
-                    ],
+                'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ-us-mult-nicopromo': [
+                    {
+                        foo: 'bar',
+                    },
+                ],
             },
         });
     });

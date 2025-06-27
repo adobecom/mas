@@ -28,8 +28,7 @@ export class ReactiveStore {
         if (typeof value === 'function') newValue = value(this.value);
         newValue = this.validate(newValue);
         // If primitive and equal, no need to update; 'notify' can be used instead if needed
-        if (this.value !== Object(this.value) && this.value === newValue)
-            return;
+        if (this.value !== Object(this.value) && this.value === newValue) return;
         const oldValue = structuredClone(this.value);
         this.value = newValue;
         this.notify(oldValue);
@@ -61,6 +60,13 @@ export class ReactiveStore {
     validate(value) {
         if (this.validator) return this.validator(value);
         return value;
+    }
+
+    /**
+     * @param {(value: any) => any} validator
+     */
+    registerValidator(validator) {
+        this.validator = validator;
     }
 
     // #region Meta

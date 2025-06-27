@@ -12,13 +12,7 @@ const { MockState } = require('./mocks/MockState.js');
 function decompress(response) {
     const body =
         response.body?.length > 0
-            ? JSON.parse(
-                  zlib
-                      .brotliDecompressSync(
-                          Buffer.from(response.body, 'base64'),
-                      )
-                      .toString('utf-8'),
-              )
+            ? JSON.parse(zlib.brotliDecompressSync(Buffer.from(response.body, 'base64')).toString('utf-8'))
             : undefined;
     return {
         ...response,
@@ -31,27 +25,20 @@ async function getFragment(params) {
 }
 
 const EXPECTED_HEADERS = {
-    'Access-Control-Expose-Headers':
-        'X-Request-Id,Etag,Last-Modified,server-timing',
+    'Access-Control-Expose-Headers': 'X-Request-Id,Etag,Last-Modified,server-timing',
     'Content-Encoding': 'br',
     'Content-Type': 'application/json',
 };
 
 function setupFragmentMocks({ id, path, fields = {} }, preview = false) {
     const odinDomain = `https://${preview ? 'odinpreview.corp' : 'odin'}.adobe.com`;
-    const odinUriRoot = preview
-        ? '/adobe/sites/cf/fragments'
-        : '/adobe/sites/fragments';
+    const odinUriRoot = preview ? '/adobe/sites/cf/fragments' : '/adobe/sites/fragments';
     // english fragment by id
-    nock(odinDomain)
-        .get(`${odinUriRoot}/some-en-us-fragment?references=all-hydrated`)
-        .reply(200, FRAGMENT_RESPONSE_EN);
+    nock(odinDomain).get(`${odinUriRoot}/some-en-us-fragment?references=all-hydrated`).reply(200, FRAGMENT_RESPONSE_EN);
 
     // french fragment by path
     nock(odinDomain)
-        .get(
-            `${odinUriRoot}?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app`,
-        )
+        .get(`${odinUriRoot}?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app`)
         .reply(200, {
             items: [
                 {
@@ -59,15 +46,15 @@ function setupFragmentMocks({ id, path, fields = {} }, preview = false) {
                 },
             ],
         });
+    // candadian french fragment by path
+    nock(odinDomain).get(`${odinUriRoot}?path=/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app`).reply(200, {
+        items: [],
+    });
     // french fragment by id
-    nock(odinDomain)
-        .get(`${odinUriRoot}/some-fr-fr-fragment?references=all-hydrated`)
-        .reply(200, FRAGMENT_RESPONSE_FR);
+    nock(odinDomain).get(`${odinUriRoot}/some-fr-fr-fragment?references=all-hydrated`).reply(200, FRAGMENT_RESPONSE_FR);
 
     // dictionary by id
-    nock(odinDomain)
-        .get(`${odinUriRoot}/dictionary?references=all-hydrated`)
-        .reply(200, mockDictionary());
+    nock(odinDomain).get(`${odinUriRoot}/dictionary?references=all-hydrated`).reply(200, mockDictionary());
 }
 
 const EXPECTED_BODY = {
@@ -75,8 +62,7 @@ const EXPECTED_BODY = {
     path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
 };
 //EXPECTED BODY SHA256 hash
-const EXPECTED_BODY_HASH =
-    'dd21bd2c42a0de4b5f0262fc47828f916bb3832a254c702189e6c6f72183641d';
+const EXPECTED_BODY_HASH = '5841245b48c3400d1f275e4c1379cef28d67a01695565f761aeda3a7e961e978';
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 
@@ -184,6 +170,29 @@ describe('pipeline full use case', () => {
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers['Last-Modified']).to.equal(RANDOM_OLD_DATE);
     });
+
+    it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment from fr_CA locale request', async () => {
+        setupFragmentMocks({
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        const state = new MockState();
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state: state,
+            locale: 'fr_CA',
+        });
+        expect(result.statusCode).to.equal(200);
+        expect(result.body).to.deep.include(EXPECTED_BODY);
+        expect(result.headers).to.have.property('Last-Modified');
+        expect(result.headers).to.have.property('ETag');
+        expect(Object.keys(state.store).length).to.equal(1);
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_CA');
+        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA']);
+        //we should not have translatedId as there is no guarantee it stays that way
+        expect(json.dictionaryId).to.not.equal('fr_FR_dictionary');
+        expect(json).to.not.have.property('translatedId');
+    });
 });
 
 describe('pipeline corner cases', () => {
@@ -210,9 +219,7 @@ describe('pipeline corner cases', () => {
     });
 
     it('should handle fetch exceptions', async () => {
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments/test-fragment')
-            .replyWithError('Network error');
+        nock('https://odin.adobe.com').get('/adobe/sites/fragments/test-fragment').replyWithError('Network error');
 
         const result = await getFragment({
             id: 'test-fragment',
@@ -230,18 +237,14 @@ describe('pipeline corner cases', () => {
     });
 
     it('should handle 404 response status', async () => {
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments/test-fragment')
-            .reply(404, {
-                message: 'Fragment not found',
-            });
+        nock('https://odin.adobe.com').get('/adobe/sites/fragments/test-fragment').reply(404, {
+            message: 'Fragment not found',
+        });
 
         // Also mock the request with references=all-hydrated parameter
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments/test-fragment?references=all-hydrated')
-            .reply(404, {
-                message: 'Fragment not found',
-            });
+        nock('https://odin.adobe.com').get('/adobe/sites/fragments/test-fragment?references=all-hydrated').reply(404, {
+            message: 'Fragment not found',
+        });
 
         const result = await getFragment({
             id: 'test-fragment',

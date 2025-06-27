@@ -31,10 +31,7 @@ test.beforeEach(async ({ page, browserName }) => {
 
 test.describe('M@S Studio Commerce Fries card test suite', () => {
     // @studio-fries-discard-edited-title - Validate discard edited title for fries card in mas studio
-    test(`${features[0].name},${features[0].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -66,9 +63,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
                 await studio.discardDialog.click();
             } catch (error) {
                 // If no confirmation dialog appears, that's also acceptable
-                console.log(
-                    'No confirmation dialog appeared - editor closed directly',
-                );
+                console.log('No confirmation dialog appeared - editor closed directly');
             }
             await expect(await editor.panel).not.toBeVisible();
         });
@@ -82,10 +77,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
     });
 
     // @studio-fries-discard-edited-description - Validate discard edited description field for fries card in mas studio
-    test(`${features[1].name},${features[1].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const { data } = features[1];
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -117,30 +109,21 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
                 await studio.discardDialog.click();
             } catch (error) {
                 // If no confirmation dialog appears, that's also acceptable
-                console.log(
-                    'No confirmation dialog appeared - editor closed directly',
-                );
+                console.log('No confirmation dialog appeared - editor closed directly');
             }
             await expect(await editor.panel).not.toBeVisible();
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            await expect(await fries.description).toContainText(
-                data.description,
-            );
+            await expect(await fries.description).toContainText(data.description);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.description).toContainText(
-                data.description,
-            );
+            await expect(await editor.description).toContainText(data.description);
         });
     });
 
     // @studio-fries-discard-edited-mnemonic - Validate discard edited mnemonic field for fries card in mas studio
-    test(`${features[2].name},${features[2].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
         const { data } = features[2];
         const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -172,18 +155,13 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
                 await studio.discardDialog.click();
             } catch (error) {
                 // If no confirmation dialog appears, that's also acceptable
-                console.log(
-                    'No confirmation dialog appeared - editor closed directly',
-                );
+                console.log('No confirmation dialog appeared - editor closed directly');
             }
             await expect(await editor.panel).not.toBeVisible();
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            await expect(await fries.icon.first()).toHaveAttribute(
-                'src',
-                data.iconURL,
-            );
+            await expect(await fries.icon.first()).toHaveAttribute('src', data.iconURL);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.iconURL).toHaveValue(data.iconURL);
@@ -191,10 +169,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
     });
 
     // @studio-fries-discard-edited-price - Validate discard edited price field for fries card in mas studio
-    test(`${features[3].name},${features[3].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
         const { data } = features[3];
         const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -229,26 +204,19 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
                 await studio.discardDialog.click();
             } catch (error) {
                 // If no confirmation dialog appears, that's also acceptable
-                console.log(
-                    'No confirmation dialog appeared - editor closed directly',
-                );
+                console.log('No confirmation dialog appeared - editor closed directly');
             }
             await expect(await editor.panel).not.toBeVisible();
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(await fries.price.first()).toContainText(data.price);
-            await expect(await fries.price.first()).toContainText(
-                data.strikethroughPrice,
-            );
+            await expect(await fries.price.first()).toContainText(data.strikethroughPrice);
         });
     });
 
     // @studio-fries-discard-edited-cta-label - Validate discard edited CTA label for fries card in mas studio
-    test(`${features[4].name},${features[4].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
         const { data } = features[4];
         const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -270,16 +238,12 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             const ctaCount = await fries.cta.count();
             const editorCtaCount = await editor.CTA.count();
 
-            console.log(
-                `CTA count on card: ${ctaCount}, CTA count in editor: ${editorCtaCount}`,
-            );
+            console.log(`CTA count on card: ${ctaCount}, CTA count in editor: ${editorCtaCount}`);
 
             if (editorCtaCount > 0) {
                 await expect(await editor.CTA).toContainText(data.ctaText);
                 await editor.CTA.click();
-                if (
-                    (await editor.footer.locator(editor.linkEdit).count()) > 0
-                ) {
+                if ((await editor.footer.locator(editor.linkEdit).count()) > 0) {
                     await editor.footer.locator(editor.linkEdit).click();
                     await editor.linkText.fill(data.newCtaText);
                 }
@@ -304,9 +268,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
                 await studio.discardDialog.click();
             } catch (error) {
                 // If no confirmation dialog appears, that's also acceptable
-                console.log(
-                    'No confirmation dialog appeared - editor closed directly',
-                );
+                console.log('No confirmation dialog appeared - editor closed directly');
             }
             await expect(await editor.panel).not.toBeVisible();
         });
@@ -332,9 +294,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             if (editorCtaCount > 0) {
                 await expect(await editor.CTA).toContainText(data.ctaText);
             } else {
-                console.log(
-                    'No CTA found in editor - skipping editor CTA validation',
-                );
+                console.log('No CTA found in editor - skipping editor CTA validation');
             }
         });
     });

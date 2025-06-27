@@ -1,6 +1,6 @@
 {
     "inputs": {
-        "src/constants.js": { "bytes": 5340, "imports": [], "format": "esm" },
+        "src/constants.js": { "bytes": 5225, "imports": [], "format": "esm" },
         "node_modules/@dexter/tacocat-core/src/utilities.js": {
             "bytes": 5700,
             "imports": [],
@@ -305,12 +305,17 @@
             "format": "esm"
         },
         "src/utilities.js": {
-            "bytes": 1824,
+            "bytes": 2901,
             "imports": [
                 {
                     "path": "node_modules/@dexter/tacocat-core/src/index.js",
                     "kind": "import-statement",
                     "original": "@dexter/tacocat-core"
+                },
+                {
+                    "path": "src/constants.js",
+                    "kind": "import-statement",
+                    "original": "./constants"
                 }
             ],
             "format": "esm"
@@ -349,7 +354,7 @@
             "format": "esm"
         },
         "src/mas-element.js": {
-            "bytes": 9323,
+            "bytes": 9260,
             "imports": [
                 {
                     "path": "src/constants.js",
@@ -380,7 +385,7 @@
             "format": "esm"
         },
         "src/checkout-mixin.js": {
-            "bytes": 8736,
+            "bytes": 8992,
             "imports": [
                 {
                     "path": "src/mas-element.js",
@@ -427,7 +432,7 @@
             "format": "esm"
         },
         "src/buildCheckoutUrl.js": {
-            "bytes": 8968,
+            "bytes": 7711,
             "imports": [
                 {
                     "path": "src/constants.js",
@@ -438,7 +443,7 @@
             "format": "esm"
         },
         "src/defaults.js": {
-            "bytes": 788,
+            "bytes": 710,
             "imports": [
                 {
                     "path": "src/constants.js",
@@ -449,7 +454,7 @@
             "format": "esm"
         },
         "src/checkout.js": {
-            "bytes": 5429,
+            "bytes": 5309,
             "imports": [
                 {
                     "path": "src/checkout-link.js",
@@ -517,7 +522,7 @@
             "format": "esm"
         },
         "node_modules/tslib/tslib.es6.mjs": {
-            "bytes": 17648,
+            "bytes": 17421,
             "imports": [],
             "format": "esm"
         },
@@ -847,8 +852,13 @@
             "format": "esm"
         },
         "src/inline-price.js": {
-            "bytes": 11035,
+            "bytes": 14691,
             "imports": [
+                {
+                    "path": "src/constants.js",
+                    "kind": "import-statement",
+                    "original": "./constants.js"
+                },
                 {
                     "path": "src/mas-element.js",
                     "kind": "import-statement",
@@ -858,6 +868,21 @@
                     "path": "src/utilities.js",
                     "kind": "import-statement",
                     "original": "./utilities.js"
+                },
+                {
+                    "path": "src/defaults.js",
+                    "kind": "import-statement",
+                    "original": "./defaults.js"
+                },
+                {
+                    "path": "src/constants.js",
+                    "kind": "import-statement",
+                    "original": "./constants.js"
+                },
+                {
+                    "path": "node_modules/@dexter/tacocat-core/src/index.js",
+                    "kind": "import-statement",
+                    "original": "@dexter/tacocat-core"
                 },
                 {
                     "path": "<runtime>",
@@ -904,7 +929,7 @@
             "format": "esm"
         },
         "src/settings.js": {
-            "bytes": 4308,
+            "bytes": 5076,
             "imports": [
                 {
                     "path": "src/constants.js",
@@ -935,12 +960,23 @@
             "format": "esm"
         },
         "src/utils/mas-fetch.js": {
-            "bytes": 1309,
+            "bytes": 1396,
             "imports": [],
             "format": "esm"
         },
+        "src/utils.js": {
+            "bytes": 2892,
+            "imports": [
+                {
+                    "path": "src/constants.js",
+                    "kind": "import-statement",
+                    "original": "./constants.js"
+                }
+            ],
+            "format": "esm"
+        },
         "src/wcs.js": {
-            "bytes": 12286,
+            "bytes": 13118,
             "imports": [
                 {
                     "path": "src/constants.js",
@@ -971,12 +1007,17 @@
                     "path": "src/utilities.js",
                     "kind": "import-statement",
                     "original": "./utilities.js"
+                },
+                {
+                    "path": "src/utils.js",
+                    "kind": "import-statement",
+                    "original": "./utils.js"
                 }
             ],
             "format": "esm"
         },
         "src/mas-commerce-service.js": {
-            "bytes": 7913,
+            "bytes": 7877,
             "imports": [
                 {
                     "path": "src/checkout.js",
@@ -1034,6 +1075,11 @@
                     "original": "./lana.js"
                 },
                 {
+                    "path": "src/utils.js",
+                    "kind": "import-statement",
+                    "original": "./utils.js"
+                },
+                {
                     "path": "<runtime>",
                     "kind": "import-statement",
                     "external": true
@@ -1057,17 +1103,6 @@
             ],
             "format": "esm"
         },
-        "src/utils.js": {
-            "bytes": 2753,
-            "imports": [
-                {
-                    "path": "src/constants.js",
-                    "kind": "import-statement",
-                    "original": "./constants.js"
-                }
-            ],
-            "format": "esm"
-        },
         "src/upt-link.js": {
             "bytes": 3310,
             "imports": [
@@ -1085,7 +1120,7 @@
             "format": "esm"
         },
         "src/commerce.js": {
-            "bytes": 420,
+            "bytes": 525,
             "imports": [
                 {
                     "path": "src/mas-commerce-service.js",
@@ -1128,6 +1163,11 @@
                     "original": "./log.js"
                 },
                 {
+                    "path": "src/inline-price.js",
+                    "kind": "import-statement",
+                    "original": "./inline-price.js"
+                },
+                {
                     "path": "src/wcs.js",
                     "kind": "import-statement",
                     "original": "./wcs.js"
@@ -1144,11 +1184,12 @@
                 "CheckoutWorkflowStep",
                 "Defaults",
                 "Log",
-                "applyPlanType"
+                "applyPlanType",
+                "resolvePriceTaxFlags"
             ],
             "entryPoint": "src/commerce.js",
             "inputs": {
-                "src/constants.js": { "bytesInOutput": 3909 },
+                "src/constants.js": { "bytesInOutput": 3861 },
                 "node_modules/@dexter/tacocat-core/src/utilities.js": {
                     "bytesInOutput": 1324
                 },
@@ -1167,16 +1208,16 @@
                 "node_modules/@dexter/tacocat-core/src/wcsUtils.js": {
                     "bytesInOutput": 1085
                 },
-                "src/utilities.js": { "bytesInOutput": 515 },
+                "src/utilities.js": { "bytesInOutput": 852 },
                 "src/lana.js": { "bytesInOutput": 1285 },
                 "src/log.js": { "bytesInOutput": 1191 },
                 "src/mas-error.js": { "bytesInOutput": 580 },
                 "src/mas-element.js": { "bytesInOutput": 3004 },
-                "src/checkout-mixin.js": { "bytesInOutput": 3536 },
+                "src/checkout-mixin.js": { "bytesInOutput": 3792 },
                 "src/checkout-link.js": { "bytesInOutput": 404 },
-                "src/buildCheckoutUrl.js": { "bytesInOutput": 3031 },
-                "src/defaults.js": { "bytesInOutput": 466 },
-                "src/checkout.js": { "bytesInOutput": 1896 },
+                "src/buildCheckoutUrl.js": { "bytesInOutput": 2698 },
+                "src/defaults.js": { "bytesInOutput": 444 },
+                "src/checkout.js": { "bytesInOutput": 1788 },
                 "src/ims.js": { "bytesInOutput": 618 },
                 "src/literals.js": { "bytesInOutput": 171 },
                 "node_modules/tslib/tslib.es6.mjs": { "bytesInOutput": 870 },
@@ -1230,23 +1271,23 @@
                 },
                 "src/price/numberFormat.js": { "bytesInOutput": 1700 },
                 "src/price/utilities.js": { "bytesInOutput": 2604 },
-                "src/price/template.js": { "bytesInOutput": 5478 },
+                "src/price/template.js": { "bytesInOutput": 5474 },
                 "src/price/legal.js": { "bytesInOutput": 917 },
                 "src/price/index.js": { "bytesInOutput": 202 },
                 "src/discount/template.js": { "bytesInOutput": 224 },
                 "src/discount/index.js": { "bytesInOutput": 12 },
-                "src/inline-price.js": { "bytesInOutput": 4320 },
+                "src/inline-price.js": { "bytesInOutput": 5091 },
                 "src/price.js": { "bytesInOutput": 1274 },
-                "src/settings.js": { "bytesInOutput": 1488 },
-                "src/utils/mas-fetch.js": { "bytesInOutput": 169 },
-                "src/wcs.js": { "bytesInOutput": 2455 },
-                "src/mas-commerce-service.js": { "bytesInOutput": 2891 },
+                "src/settings.js": { "bytesInOutput": 1591 },
+                "src/utils/mas-fetch.js": { "bytesInOutput": 207 },
+                "src/utils.js": { "bytesInOutput": 183 },
+                "src/wcs.js": { "bytesInOutput": 2795 },
+                "src/mas-commerce-service.js": { "bytesInOutput": 2917 },
                 "src/checkout-button.js": { "bytesInOutput": 517 },
-                "src/utils.js": { "bytesInOutput": 90 },
                 "src/upt-link.js": { "bytesInOutput": 1649 },
                 "src/commerce.js": { "bytesInOutput": 0 }
             },
-            "bytes": 124558
+            "bytes": 132645
         }
     }
 }

@@ -30,14 +30,15 @@ const VARIANT_CLASSES = {
 const RESULT_TEXT_SLOT_NAMES = {
     // no search
     filters: ['noResultText', 'resultText', 'resultsText'],
+    filtersMobile: ['noResultText', 'resultMobileText', 'resultsMobileText'],
+    // search on desktop
+    search: ['noSearchResultsText', 'searchResultText', 'searchResultsText'],
     // search on mobile
-    mobile: [
+    searchMobile: [
         'noSearchResultsMobileText',
         'searchResultMobileText',
         'searchResultsMobileText',
     ],
-    // search on desktop
-    desktop: ['noSearchResultsText', 'searchResultText', 'searchResultsText'],
 };
 
 export const updateLiterals = (el, values = {}) => {
@@ -319,6 +320,8 @@ export class MerchCardCollection extends LitElement {
                     const collection = {
                         label: fields.label,
                         icon: fields.icon,
+                        iconLight: fields.iconLight,
+                        navigationLabel: fields.navigationLabel,
                         cards: fields.cards.map(
                             (cardId) => overrideMap[cardId] || cardId,
                         ),
@@ -422,17 +425,17 @@ export class MerchCardCollection extends LitElement {
         </div>`;
     }
 
-    get resultTextSlotName() {
-        const slotName =
-            RESULT_TEXT_SLOT_NAMES[
-                this.search
-                    ? this.mobileAndTablet.matches
-                        ? 'mobile'
-                        : 'desktop'
-                    : 'filters'
-            ][Math.min(this.resultCount, 2)];
+    computeTextSlotName(forceDesktop = false) {
+        const key = `${this.search ? 'search' : 'filters'}${this.mobileAndTablet.matches && !forceDesktop ? 'Mobile' : ''}`;
+        return RESULT_TEXT_SLOT_NAMES[key][Math.min(this.resultCount, 2)];
+    }
 
-        return slotName;
+    get resultTextSlotName() {
+        const name = this.computeTextSlotName();
+        if (!getSlotText(this, name) && this.mobileAndTablet.matches) {
+            return this.computeTextSlotName(true);
+        }
+        return name;
     }
 
     get showMoreButton() {
@@ -474,10 +477,11 @@ export class MerchCardCollection extends LitElement {
 
     get sortButton() {
         const sortText = getSlotText(this, 'sortText');
+        if (!sortText) return;
         const popularityText = getSlotText(this, 'popularityText');
         const alphabeticallyText = getSlotText(this, 'alphabeticallyText');
 
-        if (!(sortText && popularityText && alphabeticallyText)) return;
+        if (!(popularityText && alphabeticallyText)) return;
         const alphabetical = this.sort === SORT_ORDER.alphabetical;
 
         return html`

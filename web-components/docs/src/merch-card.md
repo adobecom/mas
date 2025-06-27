@@ -1,4 +1,4 @@
-<script type="module" src="https://milo.adobe.com/libs/features/spectrum-web-components/button/sp-button.js"></script>
+<script type="module" src="../../spectrum-web-components/dist/button.js"></script>
 
 # merch-card custom element
 
@@ -18,10 +18,10 @@ Designs:
 
 **Adobe Home**: https://www.figma.com/design/7tUtNgFelfMjgPoJ5QcE1k/Merch%40Scale-Frameworks?node-id=2081-22654&m=dev
 
-**CCD Gallery**: [/web-components/docs/ccd.html](/web-components/docs/ccd.html)
+**CCD Gallery**: [/libs/features/mas/docs/ccd.html](/libs/features/mas/docs/ccd.html)
 CCD Gallery provides a comprehensive list of all supported card variants in CCD.
 
-**Adobe Home Gallery**: [/web-components/docs/adobe-home.html](/web-components/docs/adobe-home.html)
+**Adobe Home Gallery**: [/libs/features/mas/docs/adobe-home.html](/libs/features/mas/docs/adobe-home.html)
 Adobe Home Gallery provides a comprehensive list of all supported card variants in Adobe Home.
 
 ## Examples
@@ -165,6 +165,7 @@ The reason is that some merch cards are resolved very quickly and event could di
         const message = (e, type) => {
             const id =
                 e.target.getAttribute('id') ||
+                e.target.getAttribute('fragment') ||
                 e.target.getAttribute('data-wcs-osi');
             const detail = e.detail
                 ? `: ${JSON.stringify(e.detail, null, 2)}`
@@ -194,10 +195,6 @@ The reason is that some merch cards are resolved very quickly and event could di
                 message(event, 'mas:error'),
             );
         });
-        // success events
-        document.addEventListener('aem:ready', (event) =>
-            log(logReady, message(event, 'aem:ready')),
-        );
         document.addEventListener('mas:ready', (event) => {
             event.target.classList.add('ready');
             event.target.classList.remove('error');
@@ -321,12 +318,6 @@ aemFragment.addEventListener('aem:error', (event) => {
     console.error('AEM fragment error message:', event.detail.message);
     console.error('AEM fragment error context:', event.detail.context);
 });
-
-// Listen for AEM fragment load event
-aemFragment.addEventListener('aem:load', (event) => {
-    // event.detail contains the fragment data
-    console.log('AEM fragment loaded:', event.detail);
-});
 ```
 
 ### spectrum = 'swc'
@@ -347,7 +338,6 @@ However, it can be accessed via `e.target.source` property.
     const target = document.getElementById('log3');
 
     const cardSwc = document.getElementById('cardSwc');
-    console.log('cardSwc', cardSwc);
     cardSwc.addEventListener(
         'click',
         (e) => {

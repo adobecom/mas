@@ -3,7 +3,7 @@
 ## 1. Import polyfills, if required
 
 ```html
-<script src="https://mas.adobe.com/web-components/dist/custom-elements.js"></script>
+<script src="https://www.adobe.comlibs/deps/custom-elements.js"></script>
 ```
 
 Example how to load polyfill only if required:
@@ -16,9 +16,7 @@ document.createElement('div', {
     },
 });
 if (!isSupported) {
-    await import(
-        'https://mas.adobe.com/web-components/dist/custom-elements.js'
-    );
+    await import('https://www.adobe.com/libs/deps/custom-elements.js');
 }
 ```
 
@@ -26,7 +24,7 @@ if (!isSupported) {
 
 ```html
 <script
-    src="https://mas.adobe.com/web-components/dist/mas.js"
+    src="https://www.adobe.com/libs/features/mas/dist/mas.js"
     type="module"
 ></script>
 ```

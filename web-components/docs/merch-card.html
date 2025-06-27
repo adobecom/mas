@@ -30,7 +30,7 @@
             <sp-theme color="light" scale="medium">
                 <script
                     type="module"
-                    src="https://milo.adobe.com/libs/features/button/sp-button.js"
+                    src="https://milo.adobe.com/libs/features/spectrum-web-components/dist/button.js"
                 ></script>
                 <h1 id="merch-card-custom-element" tabindex="-1">
                     merch-card custom element
@@ -89,16 +89,16 @@
                 </p>
                 <p>
                     <strong>CCD Gallery</strong>:
-                    <a href="./ccd.html"
-                        >/libs/features/web-components/docs/ccd.html</a
+                    <a href="/libs/features/mas/docs/ccd.html"
+                        >/libs/features/mas/docs/ccd.html</a
                     >
                     CCD Gallery provides a comprehensive list of all supported
                     card variants in CCD.
                 </p>
                 <p>
                     <strong>Adobe Home Gallery</strong>:
-                    <a href="./adobe-home.html"
-                        >/libs/features/web-components/docs/adobe-home.html</a
+                    <a href="/libs/features/mas/docs/adobe-home.html"
+                        >/libs/features/mas/docs/adobe-home.html</a
                     >
                     Adobe Home Gallery provides a comprehensive list of all
                     supported card variants in Adobe Home.
@@ -262,10 +262,10 @@
                             <td><code>daa-lh</code></td>
                             <td>
                                 Analytics identifier of a card. Value is coming
-                                from the 'PRODUCT_CODE' tag set on the card (for
+                                from the ‘PRODUCT_CODE’ tag set on the card (for
                                 now manual authoring required, later will be
-                                tagged automatically). Sample values: 'ccsn' or
-                                'phlt.
+                                tagged automatically). Sample values: ‘ccsn’ or
+                                ‘phlt’.
                             </td>
                             <td></td>
                             <td><code>false</code></td>
@@ -319,8 +319,8 @@
                             <td>
                                 a promise that resolves when the
                                 <code>merch-card</code> finishes to execute
-                                render method. Doesn't mean that card is ready,
-                                for that use 'mas:ready' or 'mas:error' event.
+                                render method. Doesn’t mean that card is ready,
+                                for that use ‘mas:ready’ or ‘mas:error’ event.
                             </td>
                         </tr>
                     </tbody>
@@ -398,7 +398,7 @@
     { 
         <span class="hljs-keyword">const</span> logReady = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">getElementById</span>(<span class="hljs-string">&#x27;log-mas-ready&#x27;</span>);
         <span class="hljs-keyword">const</span> <span class="hljs-title function_">message</span> = (<span class="hljs-params">e, type</span>) =&gt; {
-          <span class="hljs-keyword">const</span> id = e.<span class="hljs-property">target</span>.<span class="hljs-title function_">getAttribute</span>(<span class="hljs-string">&#x27;id&#x27;</span>) || e.<span class="hljs-property">target</span>.<span class="hljs-title function_">getAttribute</span>(<span class="hljs-string">&#x27;data-wcs-osi&#x27;</span>);
+          <span class="hljs-keyword">const</span> id = e.<span class="hljs-property">target</span>.<span class="hljs-title function_">getAttribute</span>(<span class="hljs-string">&#x27;id&#x27;</span>) || e.<span class="hljs-property">target</span>.<span class="hljs-title function_">getAttribute</span>(<span class="hljs-string">&#x27;fragment&#x27;</span>) || e.<span class="hljs-property">target</span>.<span class="hljs-title function_">getAttribute</span>(<span class="hljs-string">&#x27;data-wcs-osi&#x27;</span>);
           <span class="hljs-keyword">const</span> detail = e.<span class="hljs-property">detail</span> ? <span class="hljs-string">`: <span class="hljs-subst">${<span class="hljs-built_in">JSON</span>.stringify(e.detail, <span class="hljs-literal">null</span>, <span class="hljs-number">2</span>)}</span>`</span> : <span class="hljs-string">&#x27;&#x27;</span>;
           <span class="hljs-keyword">return</span> <span class="hljs-string">`&#x27;<span class="hljs-subst">${type}</span>&#x27; on <span class="hljs-subst">${e.target.nodeName}</span> #<span class="hljs-subst">${id}</span><span class="hljs-subst">${detail}</span>`</span>;
         };
@@ -416,10 +416,6 @@
             event.<span class="hljs-property">target</span>.<span class="hljs-property">classList</span>.<span class="hljs-title function_">add</span>(<span class="hljs-string">&#x27;error&#x27;</span>);
             <span class="hljs-title function_">log</span>(<span class="hljs-variable language_">document</span>.<span class="hljs-title function_">getElementById</span>(<span class="hljs-string">&#x27;log-mas-error&#x27;</span>), <span class="hljs-title function_">message</span>(event, <span class="hljs-string">&#x27;mas:error&#x27;</span>));
         });
-        <span class="hljs-comment">// success events</span>
-        <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">addEventListener</span>(<span class="hljs-string">&#x27;aem:ready&#x27;</span>, <span class="hljs-function">(<span class="hljs-params">event</span>) =&gt;</span>
-            <span class="hljs-title function_">log</span>(logReady, <span class="hljs-title function_">message</span>(event, <span class="hljs-string">&#x27;aem:ready&#x27;</span>)),
-        );
         <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">addEventListener</span>(<span class="hljs-string">&#x27;mas:ready&#x27;</span>, <span class="hljs-function">(<span class="hljs-params">event</span>) =&gt;</span> {
             event.<span class="hljs-property">target</span>.<span class="hljs-property">classList</span>.<span class="hljs-title function_">add</span>(<span class="hljs-string">&#x27;ready&#x27;</span>);
             event.<span class="hljs-property">target</span>.<span class="hljs-property">classList</span>.<span class="hljs-title function_">remove</span>(<span class="hljs-string">&#x27;error&#x27;</span>);
@@ -538,7 +534,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>"Missing fragment id"</td>
+                            <td>“Missing fragment id”</td>
                             <td>
                                 Occurs when an <code>aem-fragment</code> is used
                                 without specifying a fragment ID
@@ -550,16 +546,16 @@
                             </td>
                         </tr>
                         <tr>
-                            <td>"Failed to fetch fragment"</td>
+                            <td>“Failed to fetch fragment”</td>
                             <td>
-                                Occurs when there's a network error fetching the
+                                Occurs when there’s a network error fetching the
                                 fragment
                             </td>
                             <td><code>aem:error</code></td>
                             <td>Network issues, CORS problems</td>
                         </tr>
                         <tr>
-                            <td>"Unexpected fragment response"</td>
+                            <td>“Unexpected fragment response”</td>
                             <td>
                                 Occurs when the server returns a non-OK response
                             </td>
@@ -567,7 +563,7 @@
                             <td>Server errors, invalid fragment ID</td>
                         </tr>
                         <tr>
-                            <td>"AEM fragment cannot be loaded"</td>
+                            <td>“AEM fragment cannot be loaded”</td>
                             <td>
                                 Occurs when the merch-card detects that the
                                 fragment failed to load
@@ -593,7 +589,7 @@
                             <td>Offers take too long to resolve</td>
                         </tr>
                         <tr>
-                            <td>"Contains unresolved offers"</td>
+                            <td>“Contains unresolved offers”</td>
                             <td>Occurs when offers cannot be resolved</td>
                             <td><code>mas:error</code></td>
                             <td>
@@ -696,15 +692,9 @@ aemFragment.<span class="hljs-title function_">addEventListener</span>(<span cla
     <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">error</span>(<span class="hljs-string">&#x27;AEM fragment error message:&#x27;</span>, event.<span class="hljs-property">detail</span>.<span class="hljs-property">message</span>);
     <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">error</span>(<span class="hljs-string">&#x27;AEM fragment error context:&#x27;</span>, event.<span class="hljs-property">detail</span>.<span class="hljs-property">context</span>);
 });
-
-<span class="hljs-comment">// Listen for AEM fragment load event</span>
-aemFragment.<span class="hljs-title function_">addEventListener</span>(<span class="hljs-string">&#x27;aem:load&#x27;</span>, <span class="hljs-function">(<span class="hljs-params">event</span>) =&gt;</span> {
-    <span class="hljs-comment">// event.detail contains the fragment data</span>
-    <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;AEM fragment loaded:&#x27;</span>, event.<span class="hljs-property">detail</span>);
-});
 </code></pre>
                 <h3 id="spectrum-%3D-%E2%80%98swc%E2%80%99" tabindex="-1">
-                    spectrum = 'swc'
+                    spectrum = ‘swc’
                     <a
                         class="header-anchor"
                         href="#spectrum-%3D-%E2%80%98swc%E2%80%99"
@@ -733,7 +723,6 @@ aemFragment.<span class="hljs-title function_">addEventListener</span>(<span cla
       <span class="hljs-keyword">const</span> target = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">getElementById</span>(<span class="hljs-string">&#x27;log3&#x27;</span>);
 
       <span class="hljs-keyword">const</span> cardSwc = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">getElementById</span>(<span class="hljs-string">&#x27;cardSwc&#x27;</span>);
-      <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;cardSwc&#x27;</span>, cardSwc);
       cardSwc.<span class="hljs-title function_">addEventListener</span>(
           <span class="hljs-string">&#x27;click&#x27;</span>,
           <span class="hljs-function">(<span class="hljs-params">e</span>) =&gt;</span> {

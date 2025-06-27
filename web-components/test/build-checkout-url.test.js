@@ -66,14 +66,14 @@ describe('buildCheckoutUrl', () => {
         const validateStub = sinon.stub().returns(true);
         const checkoutData = {
             env: PROVIDER_ENVIRONMENT.PRODUCTION,
-            workflowStep: CheckoutWorkflowStep.CHECKOUT,
+            workflowStep: CheckoutWorkflowStep.COMMITMENT,
             clientId: 'testClient',
             country: 'US',
             items: [{ quantity: 1, language: 'en' }],
         };
         const url = buildCheckoutUrl(checkoutData);
         expect(url).to.equal(
-            'https://commerce.adobe.com/store/checkout?items%5B0%5D%5Bq%5D=1&items%5B0%5D%5Blang%5D=en&cli=testClient&co=US',
+            'https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bq%5D=1&items%5B0%5D%5Blang%5D=en&cli=testClient&co=US',
         );
         sinon.restore();
     });
@@ -94,6 +94,7 @@ describe('buildCheckoutUrl', () => {
             customerSegment: 'INDIVIDUAL',
             marketSegment: 'EDU',
             modal: 'crm',
+            is3in1: true,
         };
         const url = buildCheckoutUrl(checkoutData);
         const parsedUrl = new URL(url);
@@ -113,6 +114,7 @@ describe('buildCheckoutUrl', () => {
             customerSegment: 'INDIVIDUAL',
             marketSegment: 'EDU',
             modal: 'twp',
+            is3in1: true,
         };
         const url = buildCheckoutUrl(checkoutData);
         const parsedUrl = new URL(url);
@@ -132,6 +134,7 @@ describe('buildCheckoutUrl', () => {
             customerSegment: 'INDIVIDUAL',
             marketSegment: 'EDU',
             modal: 'd2p',
+            is3in1: true,
         };
         const url = buildCheckoutUrl(checkoutData);
         const parsedUrl = new URL(url);
@@ -151,10 +154,11 @@ describe('buildCheckoutUrl', () => {
             customerSegment: 'INDIVIDUAL',
             marketSegment: 'EDU',
             modal: 'twp',
+            is3in1: true,
         };
         const url = buildCheckoutUrl(checkoutData);
         const parsedUrl = new URL(url);
-        expect(parsedUrl.searchParams.get('ms')).to.equal('e');
+        expect(parsedUrl.searchParams.get('ms')).to.equal('EDU');
     });
 
     it('should set customer segment for COM team customer', () => {
@@ -167,10 +171,11 @@ describe('buildCheckoutUrl', () => {
             customerSegment: 'TEAM',
             marketSegment: 'COM',
             modal: 'twp',
+            is3in1: true,
         };
         const url = buildCheckoutUrl(checkoutData);
         const parsedUrl = new URL(url);
-        expect(parsedUrl.searchParams.get('cs')).to.equal('t');
+        expect(parsedUrl.searchParams.get('cs')).to.equal('TEAM');
     });
 
     it('should handle addon product arrangement code for 3-in-1 modal', () => {
@@ -183,13 +188,14 @@ describe('buildCheckoutUrl', () => {
             modal: 'twp',
             customerSegment: 'INDIVIDUAL',
             marketSegment: 'EDU',
+            is3in1: true,
         };
         const url = buildCheckoutUrl(checkoutData);
         const parsedUrl = new URL(url);
         expect(parsedUrl.searchParams.get('ao')).to.equal('ADDON123');
     });
 
-    it('should respect mas-ff-3in1 meta tag when off', () => {
+    it('should not set 3in1 parameters when 3in1 is disabled', () => {
         const meta = document.createElement('meta');
         meta.name = 'mas-ff-3in1';
         meta.content = 'off';
@@ -204,6 +210,7 @@ describe('buildCheckoutUrl', () => {
             modal: 'twp',
             customerSegment: 'INDIVIDUAL',
             marketSegment: 'EDU',
+            is3in1: false,
         };
         const url = buildCheckoutUrl(checkoutData);
         const parsedUrl = new URL(url);
@@ -224,6 +231,7 @@ describe('buildCheckoutUrl', () => {
             modal: 'twp',
             customerSegment: 'INDIVIDUAL',
             marketSegment: 'EDU',
+            is3in1: true,
         };
         const url = buildCheckoutUrl(checkoutData);
         const parsedUrl = new URL(url);
@@ -282,22 +290,6 @@ describe('buildCheckoutUrl', () => {
         expect(parsedUrl.searchParams.get('q')).to.equal('2');
     });
 
-    it('should not set quantity parameter when quantity is 1', () => {
-        const checkoutData = {
-            env: PROVIDER_ENVIRONMENT.PRODUCTION,
-            workflowStep: CheckoutWorkflowStep.SEGMENTATION,
-            clientId: 'testClient',
-            country: 'US',
-            items: [{ quantity: 1 }],
-            modal: 'twp',
-            customerSegment: 'INDIVIDUAL',
-            marketSegment: 'EDU',
-        };
-        const url = buildCheckoutUrl(checkoutData);
-        const parsedUrl = new URL(url);
-        expect(parsedUrl.searchParams.has('q')).to.be.false;
-    });
-
     it('should handle addon product arrangement code when root pa is provided', () => {
         const checkoutData = {
             env: PROVIDER_ENVIRONMENT.PRODUCTION,
@@ -319,25 +311,6 @@ describe('buildCheckoutUrl', () => {
         expect(parsedUrl.searchParams.get('ao')).to.equal('ADDON123');
     });
 
-    it('should prioritize manually set cs and ms over marketSegment and customerSegment', () => {
-        const checkoutData = {
-            env: PROVIDER_ENVIRONMENT.PRODUCTION,
-            workflowStep: CheckoutWorkflowStep.SEGMENTATION,
-            clientId: 'testClient',
-            country: 'US',
-            items: [{ quantity: 1 }],
-            modal: 'twp',
-            customerSegment: 'INDIVIDUAL',
-            marketSegment: 'EDU',
-            cs: 'custom_cs',
-            ms: 'custom_ms',
-        };
-        const url = buildCheckoutUrl(checkoutData);
-        const parsedUrl = new URL(url);
-        expect(parsedUrl.searchParams.get('cs')).to.equal('custom_cs');
-        expect(parsedUrl.searchParams.get('ms')).to.equal('custom_ms');
-    });
-
     it('should remove the ot parameter when it is PROMOTION', () => {
         const checkoutData = {
             env: PROVIDER_ENVIRONMENT.PRODUCTION,
@@ -353,5 +326,58 @@ describe('buildCheckoutUrl', () => {
         const url = buildCheckoutUrl(checkoutData);
         const parsedUrl = new URL(url);
         expect(parsedUrl.searchParams.has('ot')).to.be.false;
+    });
+
+    it('should add af parameter when landscape is DRAFT', () => {
+        const checkoutData = {
+            env: PROVIDER_ENVIRONMENT.PRODUCTION,
+            workflowStep: CheckoutWorkflowStep.SEGMENTATION,
+            clientId: 'testClient',
+            country: 'US',
+            items: [{ quantity: 1 }],
+            landscape: 'DRAFT',
+        };
+        const url = buildCheckoutUrl(checkoutData);
+        const parsedUrl = new URL(url);
+        expect(parsedUrl.searchParams.get('af')).to.equal('p_draft_landscape');
+    });
+
+    it('should set af parameter with 3-in-1 values when landscape is not defined', () => {
+        const checkoutData = {
+            env: PROVIDER_ENVIRONMENT.PRODUCTION,
+            workflowStep: CheckoutWorkflowStep.SEGMENTATION,
+            clientId: 'testClient',
+            country: 'US',
+            items: [{ quantity: 1 }],
+            modal: 'twp',
+            is3in1: true,
+            customerSegment: 'INDIVIDUAL',
+            marketSegment: 'EDU',
+        };
+        const url = buildCheckoutUrl(checkoutData);
+        const parsedUrl = new URL(url);
+        expect(parsedUrl.searchParams.get('af')).to.equal(
+            'uc_new_user_iframe,uc_new_system_close',
+        );
+    });
+
+    it('should append 3-in-1 af values to existing draft landscape af parameter', () => {
+        const checkoutData = {
+            env: PROVIDER_ENVIRONMENT.PRODUCTION,
+            workflowStep: CheckoutWorkflowStep.SEGMENTATION,
+            clientId: 'testClient',
+            country: 'US',
+            items: [{ quantity: 1 }],
+            landscape: 'DRAFT',
+            modal: 'twp',
+            is3in1: true,
+            customerSegment: 'INDIVIDUAL',
+            marketSegment: 'EDU',
+        };
+        const url = buildCheckoutUrl(checkoutData);
+        const parsedUrl = new URL(url);
+        expect(parsedUrl.searchParams.get('af')).to.equal(
+            'p_draft_landscape,uc_new_user_iframe,uc_new_system_close',
+        );
     });
 });

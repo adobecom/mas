@@ -58,11 +58,23 @@ describe('wcs typical cases', function () {
                 country: 'US',
                 locale: 'en_US',
                 landscape: 'PUBLISHED',
-                promotion_code: 'nicopromo',
+                promotion_code: 'NICOPROMO',
                 api_key: 'testing_wcs',
                 language: 'MULT',
             })
             .reply(200, { resolvedOffers: [{ foo: 'bar' }] });
+        nock('https://www.adobe.com')
+            .get('/web_commerce_artifact')
+            .query({
+                offer_selector_ids: 'anotherOsiForUpt',
+                country: 'US',
+                locale: 'en_US',
+                landscape: 'PUBLISHED',
+                promotion_code: 'UPT_PROMO-1',
+                api_key: 'testing_wcs',
+                language: 'MULT',
+            })
+            .reply(200, { resolvedOffers: [{ upt: 'foo' }] });
         await context.state.put(
             'wcs-configuration',
             JSON.stringify([
@@ -73,6 +85,8 @@ describe('wcs typical cases', function () {
                 },
             ]),
         );
+        context.body.fields.osi = 'anotherOsiForUpt';
+        context.body.fields.promoCode = 'UPT_PROMO-1';
         context = await wcs(context);
         expect(context.body.wcs).to.deep.equal({
             prod: {
@@ -84,6 +98,11 @@ describe('wcs typical cases', function () {
                 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ-us-mult-nicopromo': [
                     {
                         foo: 'bar',
+                    },
+                ],
+                'anotherOsiForUpt-us-mult-upt_promo-1': [
+                    {
+                        upt: 'foo',
                     },
                 ],
             },
@@ -109,7 +128,7 @@ describe('wcs typical cases', function () {
                 country: 'GB',
                 locale: 'en_GB',
                 landscape: 'PUBLISHED',
-                promotion_code: 'nicopromo',
+                promotion_code: 'NICOPROMO',
                 api_key: 'testing_wcs',
             })
             .reply(200, { resolvedOffers: [{ foo: 'bar' }] });
@@ -123,6 +142,8 @@ describe('wcs typical cases', function () {
                 },
             ]),
         );
+        delete context.body.fields.osi;
+        delete context.body.fields.promoCode;
         context.locale = 'en_GB';
         context = await wcs(context);
         expect(context.body.wcs).to.deep.equal({
@@ -213,7 +234,7 @@ describe('wcs corner cases', function () {
                 country: 'US',
                 locale: 'en_US',
                 landscape: 'PUBLISHED',
-                promotion_code: 'nicopromo',
+                promotion_code: 'NICOPROMO',
                 api_key: 'testing_wcs',
                 language: 'MULT',
             })

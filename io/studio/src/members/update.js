@@ -19,11 +19,7 @@ async function main(params) {
         const requiredHeaders = ['Authorization'];
         // For POST, we also need the 'users' parameter in the body
         const requiredParams = ['users'];
-        const errorMessage = checkMissingRequestInputs(
-            params,
-            requiredParams,
-            requiredHeaders,
-        );
+        const errorMessage = checkMissingRequestInputs(params, requiredParams, requiredHeaders);
         if (errorMessage) {
             // return and log client errors
             return errorResponse(400, errorMessage, logger);
@@ -37,31 +33,19 @@ async function main(params) {
         logger.info(`Method: ${method}`);
 
         if (method !== 'POST') {
-            return errorResponse(
-                405,
-                `Method ${method} not allowed. Use POST.`,
-                logger,
-            );
+            return errorResponse(405, `Method ${method} not allowed. Use POST.`, logger);
         }
 
         // Validate the incoming users data
         const users = params.users;
         if (!Array.isArray(users)) {
-            return errorResponse(
-                400,
-                'Invalid input: users must be an array',
-                logger,
-            );
+            return errorResponse(400, 'Invalid input: users must be an array', logger);
         }
 
         // Validate each user object
         for (const user of users) {
             if (!user.userPrincipalName || !user.displayName) {
-                return errorResponse(
-                    400,
-                    'Invalid user data: each user must have userPrincipalName and displayName',
-                    logger,
-                );
+                return errorResponse(400, 'Invalid user data: each user must have userPrincipalName and displayName', logger);
             }
         }
 

@@ -6,13 +6,7 @@ const LDAP_BASE_URL = process.env.LDAP_BASE_URL;
 const TARGET_ENDPOINT = process.env.TARGET_ENDPOINT;
 const ORG_ID = process.env.ORG_ID;
 
-if (
-    !CLIENT_ID ||
-    !CLIENT_SECRET ||
-    !LDAP_BASE_URL ||
-    !TARGET_ENDPOINT ||
-    !ORG_ID
-) {
+if (!CLIENT_ID || !CLIENT_SECRET || !LDAP_BASE_URL || !TARGET_ENDPOINT || !ORG_ID) {
     console.error('Error: Missing required environment variables');
     process.exit(1);
 }
@@ -48,11 +42,7 @@ async function getAccessToken() {
             return data.access_token;
         } else {
             // Log the actual response if no token is found
-            reject(
-                new Error(
-                    `No access token in response. Check IMS server response for details.`,
-                ),
-            );
+            reject(new Error(`No access token in response. Check IMS server response for details.`));
         }
     } catch (error) {
         console.error('Error fetching access token:', error);
@@ -75,9 +65,7 @@ async function fetchLdapMembers(token) {
             },
         }).then(async (res) => {
             if (!res.ok) {
-                throw new Error(
-                    `Request to ${apiEndpoint} failed with status code ${res.status}`,
-                );
+                throw new Error(`Request to ${apiEndpoint} failed with status code ${res.status}`);
             }
             return res.json();
         });
@@ -87,12 +75,8 @@ async function fetchLdapMembers(token) {
     const mergedResults = [].concat(...results);
 
     // Deduplicate based on userPrincipalName and only return userPrincipalName, displayName
-    const uniqueUsers = Array.from(
-        new Set(mergedResults.map((user) => user.userPrincipalName)),
-    ).map((userPrincipalName) => {
-        const user = mergedResults.find(
-            (user) => user.userPrincipalName === userPrincipalName,
-        );
+    const uniqueUsers = Array.from(new Set(mergedResults.map((user) => user.userPrincipalName))).map((userPrincipalName) => {
+        const user = mergedResults.find((user) => user.userPrincipalName === userPrincipalName);
         return {
             userPrincipalName: user.userPrincipalName,
             displayName: user.displayName,
@@ -116,9 +100,7 @@ async function sendToEndpoint(users, token) {
         });
 
         if (!response.ok) {
-            throw new Error(
-                `Failed to send data to endpoint: ${response.status}`,
-            );
+            throw new Error(`Failed to send data to endpoint: ${response.status}`);
         }
 
         console.log('Successfully sent data to endpoint');

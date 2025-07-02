@@ -20,11 +20,7 @@ async function main(params) {
         // check for missing request input parameters and headers
         const requiredHeaders = ['Authorization'];
         const requiredParams = [];
-        const errorMessage = checkMissingRequestInputs(
-            params,
-            requiredParams,
-            requiredHeaders,
-        );
+        const errorMessage = checkMissingRequestInputs(params, requiredParams, requiredHeaders);
         if (errorMessage) {
             // return and log client errors
             return errorResponse(400, errorMessage, logger);
@@ -36,34 +32,19 @@ async function main(params) {
             const token = authHeader.slice(7);
             try {
                 const ims = new Ims('prod'); // Use 'prod' environment
-                const imsValidation = await ims.validateToken(
-                    token,
-                    'mas-studio',
-                );
+                const imsValidation = await ims.validateToken(token, 'mas-studio');
                 if (!imsValidation || !imsValidation.valid) {
                     logger.warn('IMS token validation failed');
-                    return errorResponse(
-                        401,
-                        'Unauthorized: Invalid IMS token',
-                        logger,
-                    );
+                    return errorResponse(401, 'Unauthorized: Invalid IMS token', logger);
                 }
                 logger.info('IMS token validated successfully');
             } catch (error) {
                 logger.error('IMS Token validation failed with error:', error);
-                return errorResponse(
-                    401,
-                    'Unauthorized: Token validation error',
-                    logger,
-                );
+                return errorResponse(401, 'Unauthorized: Token validation error', logger);
             }
         } else {
             logger.warn('Missing or invalid Authorization header');
-            return errorResponse(
-                401,
-                'Unauthorized: Bearer token is missing or invalid',
-                logger,
-            );
+            return errorResponse(401, 'Unauthorized: Bearer token is missing or invalid', logger);
         }
 
         const CACHE_KEY = 'mas-users';
@@ -77,11 +58,7 @@ async function main(params) {
             const cachedResponse = await state.get(CACHE_KEY);
 
             if (!cachedResponse || !cachedResponse.value) {
-                return errorResponse(
-                    404,
-                    'No user data found in cache',
-                    logger,
-                );
+                return errorResponse(404, 'No user data found in cache', logger);
             }
 
             const users = JSON.parse(cachedResponse.value);
@@ -90,11 +67,7 @@ async function main(params) {
                 body: users,
             };
         } else {
-            return errorResponse(
-                405,
-                `Method ${method} not allowed. Use GET.`,
-                logger,
-            );
+            return errorResponse(405, `Method ${method} not allowed. Use GET.`, logger);
         }
     } catch (error) {
         // log any server errors

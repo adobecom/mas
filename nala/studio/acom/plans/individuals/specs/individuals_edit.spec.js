@@ -71,8 +71,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
-                description:
-                    'Edit and organize photos. Save 25% for the first 6 months. Ends Feb 26.',
+                description: 'Edit and organize photos. Save 25% for the first 6 months. Ends Feb 26.',
                 newDescription: 'New Test Description',
             },
             browserParams: '#query=',
@@ -84,10 +83,8 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
-                iconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
-                newIconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
+                iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
             },
             browserParams: '#query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
@@ -180,12 +177,11 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 whatsIncludedText: 'List of items:',
-                iconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
+                iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
                 iconLabel: 'Photoshop icon',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit @nopr', //skip until regression is fixed
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '15',
@@ -278,7 +274,6 @@ export default {
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 checkoutParams: {
                     mv: '1',
-                    cs: 'individual',
                     promoid: 'ABC123',
                     mv2: '2',
                 },
@@ -294,7 +289,8 @@ export default {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 ctaText: 'Buy now',
-                newCtaText: 'Save now',
+                newCtaOption: 'Save now',
+                newCtaText: 'save-now',
                 ucv3: 'commerce.adobe.com/store/email',
                 country: 'US',
                 ctx: 'fp',

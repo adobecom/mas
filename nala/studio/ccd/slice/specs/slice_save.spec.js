@@ -62,10 +62,8 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
-                iconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
-                newIconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
+                newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-save',
@@ -116,11 +114,12 @@ export default {
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-                productCodeTag: 'product_code/PHSP',
+                productCodeTag: 'product_code/phsp',
                 offerTypeTag: 'offer_type/base',
                 marketSegmentsTag: 'market_segments/com',
                 planTypeTag: 'plan_type/abm',
                 newosi: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
+                newProductCodeTag: 'product_code/ccsn',
                 newPlanTypeTag: 'plan_type/puf',
                 newOfferTypeTag: 'offer_type/trial',
                 newMarketSegmentsTag: 'market_segments/edu',
@@ -157,7 +156,6 @@ export default {
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 checkoutParams: {
                     mv: '1',
-                    cs: 'individual',
                     promoid: 'ABC123',
                     mv2: '2',
                 },
@@ -173,7 +171,7 @@ export default {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
                 analyticsID: 'buy-now',
                 daaLL: 'buy-now-1',
-                daaLH: 'PHSP',
+                daaLH: 'phsp',
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-1',
             },

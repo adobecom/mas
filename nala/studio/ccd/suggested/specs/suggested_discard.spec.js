@@ -43,10 +43,8 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
-                iconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
-                newIconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
+                newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
@@ -84,7 +82,8 @@ export default {
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
                 ctaText: 'Buy now',
-                newCtaText: 'Save now',
+                newCtaOption: 'Save now',
+                newCtaText: 'save-now',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
@@ -118,7 +117,7 @@ export default {
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-                productCodeTag: 'product_code/PHSP',
+                productCodeTag: 'product_code/phsp',
                 offerTypeTag: 'offer_type/base',
                 marketSegmentsTag: 'market_segments/com',
                 planTypeTag: 'plan_type/abm',
@@ -151,7 +150,6 @@ export default {
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 checkoutParams: {
                     mv: '1',
-                    cs: 'individual',
                     promoid: 'ABC123',
                     mv2: '2',
                 },
@@ -167,7 +165,7 @@ export default {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
                 analyticsID: 'buy-now',
                 daaLL: 'buy-now-1',
-                daaLH: 'PHSP',
+                daaLH: 'phsp',
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-1',
             },

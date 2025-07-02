@@ -21,7 +21,7 @@ export default {
                 cardid: '27f9c659-7c83-497f-86c2-34c711b9791d',
                 standardBorderColor: 'Red 900',
                 standardBorderCSSColor: 'spectrum-red-900',
-                transparentBorderColor: 'Transparent',
+                transparentBorderColor: 'Default',
                 transparentBorderCSSColor: 'transparent',
             },
             browserParams: '#query=',
@@ -45,10 +45,8 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '27f9c659-7c83-497f-86c2-34c711b9791d',
-                description:
-                    'Create with Adobe on the web. Includes Firefly, Express, Photoshop, Lightroom, and more.',
-                newDescription:
-                    'Access the full power of Creative Cloud with all Adobe creative applications.',
+                description: 'Create with Adobe on the web. Includes Firefly, Express, Photoshop, Lightroom, and more.',
+                newDescription: 'Access the full power of Creative Cloud with all Adobe creative applications.',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-discard',
@@ -61,7 +59,7 @@ export default {
                 cardid: '27f9c659-7c83-497f-86c2-34c711b9791d',
                 analyticsID: 'buy-now',
                 daaLL: 'buy-now-2',
-                daaLH: 'CCSN',
+                daaLH: 'ccsn',
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-2',
             },

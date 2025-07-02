@@ -103,9 +103,7 @@ export class RteLinkEditor extends LitElement {
 
     get #checkoutParametersField() {
         if (this.checkoutParameters === undefined) return nothing;
-        return html` <sp-field-label for="checkoutParameters"
-                >Checkout Parameters</sp-field-label
-            >
+        return html` <sp-field-label for="checkoutParameters">Checkout Parameters</sp-field-label>
             <sp-textfield
                 id="checkoutParameters"
                 placeholder="Extra checkout parameters: e.g: promoid=12345&mv=1"
@@ -141,13 +139,9 @@ export class RteLinkEditor extends LitElement {
     }
 
     get #analyticsIdField() {
-        const options = this.#isCheckoutLink
-            ? Object.keys(CHECKOUT_CTA_TEXTS)
-            : [...ANALYTICS_LINK_IDS];
+        const options = this.#isCheckoutLink ? Object.keys(CHECKOUT_CTA_TEXTS) : [...ANALYTICS_LINK_IDS];
         options.push('');
-        return html` <sp-field-label for="analyticsId"
-                >Analytics Id</sp-field-label
-            >
+        return html` <sp-field-label for="analyticsId">Analytics Id</sp-field-label>
             <sp-picker
                 id="analyticsId"
                 .value=${this.analyticsId}
@@ -155,14 +149,7 @@ export class RteLinkEditor extends LitElement {
                     this.analyticsId = e.target.value;
                 }}
             >
-                <sp-menu>
-                    ${options.map(
-                        (option) =>
-                            html`<sp-menu-item value="${option}"
-                                >${option}</sp-menu-item
-                            >`,
-                    )}
-                </sp-menu>
+                <sp-menu> ${options.map((option) => html`<sp-menu-item value="${option}">${option}</sp-menu-item>`)} </sp-menu>
             </sp-picker>`;
     }
 
@@ -174,46 +161,50 @@ export class RteLinkEditor extends LitElement {
         return html`
             <sp-field-label for="linkVariant">Variant</sp-field-label>
             <sp-button-group id="linkVariant">
-                <sp-button
-                    class=${classMap({ selected: this.variant === 'accent' })}
-                    @click=${() => (this.variant = 'accent')}
-                    variant="accent"
-                    >Accent</sp-button
-                >
-                <sp-button
-                    @click=${() => (this.variant = 'primary')}
-                    class=${classMap({
-                        selected: this.variant === 'primary',
-                    })}
-                    variant="primary"
-                    >Primary</sp-button
-                >
-                <sp-button
-                    @click=${() => (this.variant = 'primary-outline')}
-                    class=${classMap({
-                        selected: this.variant === 'primary-outline',
-                    })}
-                    treatment="outline"
-                    variant="primary"
-                    >Primary outline</sp-button
-                >
-                <sp-button
-                    class=${classMap({
-                        selected: this.variant === 'secondary',
-                    })}
-                    @click=${() => (this.variant = 'secondary')}
-                    variant="secondary"
-                    >Secondary</sp-button
-                >
-                <sp-button
-                    @click=${() => (this.variant = 'secondary-outline')}
-                    class=${classMap({
-                        selected: this.variant === 'secondary-outline',
-                    })}
-                    treatment="outline"
-                    variant="secondary"
-                    >Secondary outline</sp-button
-                >
+                ${this.linkType === 'web'
+                    ? html`<sp-button
+                              class=${classMap({
+                                  selected: this.variant === 'accent',
+                              })}
+                              @click=${() => (this.variant = 'accent')}
+                              variant="accent"
+                              >Accent</sp-button
+                          >
+                          <sp-button
+                              @click=${() => (this.variant = 'primary')}
+                              class=${classMap({
+                                  selected: this.variant === 'primary',
+                              })}
+                              variant="primary"
+                              >Primary</sp-button
+                          >
+                          <sp-button
+                              @click=${() => (this.variant = 'primary-outline')}
+                              class=${classMap({
+                                  selected: this.variant === 'primary-outline',
+                              })}
+                              treatment="outline"
+                              variant="primary"
+                              >Primary outline</sp-button
+                          >
+                          <sp-button
+                              class=${classMap({
+                                  selected: this.variant === 'secondary',
+                              })}
+                              @click=${() => (this.variant = 'secondary')}
+                              variant="secondary"
+                              >Secondary</sp-button
+                          >
+                          <sp-button
+                              @click=${() => (this.variant = 'secondary-outline')}
+                              class=${classMap({
+                                  selected: this.variant === 'secondary-outline',
+                              })}
+                              treatment="outline"
+                              variant="secondary"
+                              >Secondary outline</sp-button
+                          >`
+                    : ''}
                 <sp-link
                     class=${classMap({
                         selected: this.variant === 'primary-link',
@@ -225,7 +216,6 @@ export class RteLinkEditor extends LitElement {
                     href="#"
                     >Primary link</sp-link
                 >
-
                 <sp-link
                     class=${classMap({
                         selected: this.variant === 'secondary-link',
@@ -259,29 +249,19 @@ export class RteLinkEditor extends LitElement {
     }
 
     get headingLinkLabel() {
-        return this.isPhone
-            ? 'Phone Link'
-            : this.#isCheckoutLink
-              ? 'Checkout Link'
-              : 'Link';
+        return this.isPhone ? 'Phone Link' : this.#isCheckoutLink ? 'Checkout Link' : 'Link';
     }
 
     get #editor() {
         return html`<sp-dialog close=${this.#handleClose}>
             <h2 slot="heading">Insert/Edit ${this.headingLinkLabel}</h2>
-            <sp-tabs
-                id="linkTypeNav"
-                selected="${this.linkType}"
-                @change=${this.#handleTypeChange}
-            >
+            <sp-tabs id="linkTypeNav" selected="${this.linkType}" @change=${this.#handleTypeChange}>
                 <sp-tab label="Web" value="web"></sp-tab>
                 <sp-tab label="Phone" value="phone"></sp-tab>
                 <sp-tab-panel value="web">
                     <div class="tab-panel">
                         ${this.#linkHrefField} ${this.#checkoutParametersField}
-                        <sp-field-label for="linkText"
-                            >Link Text</sp-field-label
-                        >
+                        <sp-field-label for="linkText">Link Text</sp-field-label>
                         <sp-textfield
                             id="linkText"
                             placeholder="Display text"
@@ -298,34 +278,20 @@ export class RteLinkEditor extends LitElement {
                         ></sp-textfield>
 
                         <sp-field-label for="linkTarget">Target</sp-field-label>
-                        <sp-picker
-                            id="linkTarget"
-                            .value=${this.target}
-                            @change=${(e) => (this.target = e.target.value)}
-                        >
+                        <sp-picker id="linkTarget" .value=${this.target} @change=${(e) => (this.target = e.target.value)}>
                             <sp-menu>
-                                <sp-menu-item value="_self"
-                                    >Same Window</sp-menu-item
-                                >
-                                <sp-menu-item value="_blank"
-                                    >New Window</sp-menu-item
-                                >
-                                <sp-menu-item value="_parent"
-                                    >Parent Frame</sp-menu-item
-                                >
-                                <sp-menu-item value="_top"
-                                    >Top Frame</sp-menu-item
-                                >
+                                <sp-menu-item value="_self">Same Window</sp-menu-item>
+                                <sp-menu-item value="_blank">New Window</sp-menu-item>
+                                <sp-menu-item value="_parent">Parent Frame</sp-menu-item>
+                                <sp-menu-item value="_top">Top Frame</sp-menu-item>
                             </sp-menu>
                         </sp-picker>
-                        ${this.#analyticsIdField} ${this.#linkVariants}
+                        ${this.#analyticsIdField}
                     </div>
                 </sp-tab-panel>
                 <sp-tab-panel value="phone">
                     <div class="tab-panel">
-                        <sp-field-label for="phoneNumber"
-                            >Phone Number</sp-field-label
-                        >
+                        <sp-field-label for="phoneNumber">Phone Number</sp-field-label>
                         <sp-textfield
                             id="phoneNumber"
                             type="tel"
@@ -344,6 +310,7 @@ export class RteLinkEditor extends LitElement {
                     </div>
                 </sp-tab-panel>
             </sp-tabs>
+            ${this.#linkVariants}
             <sp-button
                 id="cancelButton"
                 slot="button"
@@ -353,13 +320,7 @@ export class RteLinkEditor extends LitElement {
                 type="button"
                 >Cancel</sp-button
             >
-            <sp-button
-                id="saveButton"
-                slot="button"
-                variant="accent"
-                @click=${this.#handleSave}
-                >Save</sp-button
-            >
+            <sp-button id="saveButton" slot="button" variant="accent" @click=${this.#handleSave}>Save</sp-button>
         </sp-dialog>`;
     }
 
@@ -383,9 +344,7 @@ export class RteLinkEditor extends LitElement {
     #handleSave(e) {
         e.preventDefault();
 
-        const href = this.isPhone
-            ? `tel:${this.text.replace(/ /g, '')}`
-            : this.href;
+        const href = this.isPhone ? `tel:${this.text.replace(/ /g, '')}` : this.href;
 
         const data = {
             href,
@@ -413,9 +372,7 @@ export class RteLinkEditor extends LitElement {
 
     #handleClose() {
         this.open = false;
-        this.dispatchEvent(
-            new CustomEvent('close', { bubbles: false, composed: true }),
-        );
+        this.dispatchEvent(new CustomEvent('close', { bubbles: false, composed: true }));
     }
 }
 

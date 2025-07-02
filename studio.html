@@ -40,17 +40,12 @@
             if (isLocal) {
                 baseUrl = 'http://localhost:8080';
             } else {
-                bucket =
-                    envOverride && BUCKETS[envOverride]
-                        ? BUCKETS[envOverride]
-                        : BUCKETS.prod;
+                bucket = envOverride && BUCKETS[envOverride] ? BUCKETS[envOverride] : BUCKETS.prod;
                 baseUrl = `https://author-p22655-${bucket}.adobeaemcloud.com`;
             }
-            document
-                .querySelector('meta[name="aem-base-url"]')
-                ?.setAttribute('content', baseUrl);
+            document.querySelector('meta[name="aem-base-url"]')?.setAttribute('content', baseUrl);
         </script>
-        <script src="studio/src/maslib.js"></script>
+        <script src="studio/src/maslib.js" type="module"></script>
         <script src="studio/libs/swc.js" type="module"></script>
         <script src="studio/src/studio.js" type="module"></script>
 
@@ -74,22 +69,20 @@
                 profile_filter: `{"findFirst":true,"fallbackToAA":true,"searchEntireCluster":true};isOwnedByOrg('3B962FB55F5F922E0A495C88@AdobeOrg')`,
             };
             window.adobeid = {
+                api_parameters: {
+                    profile_filter: "isOwnedByOrg('3B962FB55F5F922E0A495C88@AdobeOrg')",
+                },
                 client_id: 'mas-studio',
                 environment: 'prod',
                 locale: 'en_US',
-                redirect_uri: location.href.substring(
-                    0,
-                    location.href.length - location.hash.length,
-                ),
+                redirect_uri: location.href.substring(0, location.href.length - location.hash.length),
                 response_type: 'id_token',
                 scope: 'additional_info,additional_info.projectedProductContext,additional_info.roles,AdobeID,openid,read_organizations,read_members',
                 useLocalStorage: true,
                 authorize() {
-                    const { expire, token } =
-                        window.adobeIMS?.getAccessToken() ?? {};
-                    if (token && (expire?.valueOf() ?? 0) > Date.now())
-                        return token;
-                    window.adobeIMS?.signIn(context);
+                    const { expire, token } = window.adobeIMS?.getAccessToken() ?? {};
+                    if (token && (expire?.valueOf() ?? 0) > Date.now()) return token;
+                    window.adobeIMS?.signIn();
                 },
                 onError(error) {
                     console.error('[M@S Studio] IMS error: ', error);
@@ -99,10 +92,7 @@
                         .validateToken()
                         .then(initMasStudio)
                         .catch((e) => {
-                            console.error(
-                                '[M@S Studio] failed to refresh IMS token: ',
-                                e,
-                            );
+                            console.error('[M@S Studio] failed to refresh IMS token: ', e);
                             console.info('[M@S Studio] Signing in');
                             adobeIMS.signIn(context);
                         });

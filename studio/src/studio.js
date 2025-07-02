@@ -17,8 +17,13 @@ import './mas-recently-updated.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './users.js';
-import Store from './store.js';
+import './placeholders/mas-placeholders.js';
+import './mas-recently-updated.js';
+import './editors/merch-card-editor.js';
+import './editors/merch-card-collection-editor.js';
+import './mas-confirm-dialog.js';
 import StoreController from './reactivity/store-controller.js';
+import Store from './store.js';
 import router from './router.js';
 import { PAGE_NAMES, WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
 
@@ -61,8 +66,7 @@ class MasStudio extends LitElement {
             }
         };
         Store.filters.subscribe(subscription);
-        this.#unsubscribeLocaleObserver = () =>
-            Store.filters.unsubscribe(subscription);
+        this.#unsubscribeLocaleObserver = () => Store.filters.unsubscribe(subscription);
     }
 
     subscribeCommerceEnvObserver() {
@@ -72,8 +76,7 @@ class MasStudio extends LitElement {
             }
         };
         Store.commerceEnv.subscribe(subscription);
-        this.#unsubscribeCommerceEnvObserver = () =>
-            Store.commerceEnv.unsubscribe(subscription);
+        this.#unsubscribeCommerceEnvObserver = () => Store.commerceEnv.unsubscribe(subscription);
     }
 
     disconnectedCallback() {
@@ -110,16 +113,11 @@ class MasStudio extends LitElement {
         if (this.page.value !== PAGE_NAMES.WELCOME) return nothing;
         const hash = window.location.hash.slice(1);
         const hashParams = new URLSearchParams(hash);
-        return html`<mas-splash-screen
-            base-url=${this.baseUrl}
-        ></mas-splash-screen>`;
+        return html`<mas-splash-screen base-url=${this.baseUrl}></mas-splash-screen>`;
     }
 
     renderCommerceService() {
-        const env =
-            this.commerceEnv.value === WCS_ENV_STAGE
-                ? WCS_ENV_STAGE
-                : WCS_ENV_PROD;
+        const env = this.commerceEnv.value === WCS_ENV_STAGE ? WCS_ENV_STAGE : WCS_ENV_PROD;
         this.commerceService.outerHTML = `<mas-commerce-service env="${env}" locale="${Store.filters.value.locale}"></mas-commerce-service>`;
     }
 
@@ -131,18 +129,14 @@ class MasStudio extends LitElement {
     render() {
         return html`
             <mas-top-nav aem-env="${this.aemEnv}"></mas-top-nav>
-            <mas-repository
-                bucket="${this.bucket}"
-                base-url="${this.baseUrl}"
-            ></mas-repository>
+            <mas-repository bucket="${this.bucket}" base-url="${this.baseUrl}"></mas-repository>
             <div class="studio-content">
                 <mas-side-nav></mas-side-nav>
-                <div class="main-container">
-                    ${this.splashScreen} ${this.content} ${this.placeholders}
-                </div>
+                <div class="main-container">${this.splashScreen} ${this.content} ${this.placeholders}</div>
             </div>
             <editor-panel></editor-panel>
             <mas-toast></mas-toast>
+            <mas-confirm-dialog></mas-confirm-dialog>
         `;
     }
 }

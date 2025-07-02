@@ -63,10 +63,8 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
-                iconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
-                newIconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
+                iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
             },
             browserParams: '#query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
@@ -154,7 +152,7 @@ export default {
                 whatsIncludedText: 'List of items:',
             },
             browserParams: '#query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save @nopr', //skip until regression is fixed
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
             tcid: '13',
@@ -237,7 +235,6 @@ export default {
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 checkoutParams: {
                     mv: '1',
-                    cs: 'individual',
                     promoid: 'ABC123',
                     mv2: '2',
                 },

@@ -24,15 +24,3 @@ application:
             runtime: nodejs:22
             annotations:
               require-adobe-auth: false
-          updateMembers:
-            function: src/members/update.js
-            web: "yes"
-            runtime: nodejs:22
-            annotations:
-              require-adobe-auth: true
-              final: false
-
-          listMembers:
-            function: src/members/list.js
-            web: "yes"
-            runtime: nodejs:22

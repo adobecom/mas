@@ -9,11 +9,13 @@
     ],
     "scripts": {
         "lint": "eslint --fix",
+        "format": "prettier . --write",
         "test": "npm run test:ci --workspaces",
         "build": "npm run build --workspaces",
         "studio": "cd studio && npm run proxy & aem up",
         "studio:qa": "cd studio && npm run proxy:qa & aem up",
-        "nala": "node nala/utils/nala.run.js"
+        "nala": "node nala/utils/nala.run.js",
+        "prepare": "husky"
     },
     "repository": {
         "type": "git",

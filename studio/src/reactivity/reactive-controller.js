@@ -7,20 +7,26 @@ import { ReactiveStore } from './reactive-store.js';
 export default class ReactiveController {
     host;
     stores;
+    callback;
 
     /**
      *
      * @param {LitElement} host
      * @param {ReactiveStore[]} stores
      */
-    constructor(host, stores = []) {
+    constructor(host, stores = [], callback) {
         this.stores = stores;
+        this.callback = callback;
         this.requestUpdate = this.requestUpdate.bind(this);
         (this.host = host).addController(this);
     }
 
     requestUpdate() {
         this.host.requestUpdate();
+        if (this.callback) {
+            const callback = this.callback.bind(this.host);
+            callback();
+        }
     }
 
     #register() {

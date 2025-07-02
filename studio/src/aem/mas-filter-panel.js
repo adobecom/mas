@@ -17,8 +17,10 @@ const EMPTY_TAGS = {
     plan_type: [],
     market_segments: [],
     customer_segment: [],
+    product_code: [],
     status: [],
     'studio/content-type': [],
+    variant: [],
 };
 
 class MasFilterPanel extends LitElement {
@@ -45,11 +47,7 @@ class MasFilterPanel extends LitElement {
         }
     `;
 
-    reactiveController = new ReactiveController(this, [
-        Store.profile,
-        Store.createdByUsers,
-        Store.users,
-    ]);
+    reactiveController = new ReactiveController(this, [Store.profile, Store.createdByUsers, Store.users]);
 
     constructor() {
         super();
@@ -69,9 +67,7 @@ class MasFilterPanel extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        router.removeEventListener('change', () =>
-            this.#initializeTagFilters(),
-        );
+        router.removeEventListener('change', () => this.#initializeTagFilters());
     }
 
     #initializeTagFilters() {
@@ -101,17 +97,37 @@ class MasFilterPanel extends LitElement {
                 // Construct the full path
                 const fullPath = `/content/cq:tags/mas/${tagPath}`;
                 // Get the title from the last value
-                const title =
-                    values.length > 0
-                        ? values[values.length - 1].toUpperCase()
-                        : '';
+                const title = values.length > 0 ? values[values.length - 1].toUpperCase() : '';
+
+                const picker = this.shadowRoot.querySelector(`aem-tag-picker-field[top="${type}"]`);
+                picker?.allTags.then?.(() => {
+                    // when tags are loaded
+                    this.tagsByType[type].forEach((displayedTag) => {
+                        picker.selectedTags.forEach((selTag) => {
+                            if (displayedTag.path === selTag.path) {
+                                displayedTag.title = selTag.title;
+                            }
+                        });
+                    });
+                    this.tagsByType = {
+                        ...this.tagsByType,
+                    };
+                });
+
+                let selectedTagTitle = '';
+                picker?.selectedTags.forEach((selectedTag) => {
+                    if (selectedTag.name.toLowerCase() === title.toLowerCase()) {
+                        selectedTagTitle = selectedTag.title;
+                    }
+                });
+
                 return {
                     ...acc,
                     [type]: [
                         ...(acc[type] || []),
                         {
                             path: fullPath,
-                            title,
+                            title: selectedTagTitle || title,
                             top: type,
                         },
                     ],
@@ -161,31 +177,23 @@ class MasFilterPanel extends LitElement {
         Store.createdByUsers.set([]);
 
         this.tagsByType = { ...EMPTY_TAGS };
-        this.shadowRoot
-            .querySelectorAll('aem-tag-picker-field')
-            .forEach((tagPicker) => {
-                tagPicker.clear();
-            });
+        this.shadowRoot.querySelectorAll('aem-tag-picker-field').forEach((tagPicker) => {
+            tagPicker.clear();
+        });
     }
 
     async #handleTagDelete(e) {
         const value = e.target.value;
         this.tagsByType = {
             ...this.tagsByType,
-            [value.top]: this.tagsByType[value.top].filter(
-                (tag) => tag.path !== value.path,
-            ),
+            [value.top]: this.tagsByType[value.top].filter((tag) => tag.path !== value.path),
         };
         this.#updateFiltersParams();
     }
 
     #handleUserDelete(e) {
         const value = e.target.value;
-        Store.createdByUsers.set(
-            Store.createdByUsers.value.filter(
-                (user) => user.userPrincipalName !== value,
-            ),
-        );
+        Store.createdByUsers.set(Store.createdByUsers.value.filter((user) => user.userPrincipalName !== value));
     }
 
     get createdByUsersTags() {
@@ -193,12 +201,7 @@ class MasFilterPanel extends LitElement {
             Store.createdByUsers.value,
             (user) => user.userPrincipalName,
             (user) => html`
-                <sp-tag
-                    size="s"
-                    deletable
-                    @delete=${this.#handleUserDelete}
-                    .value=${user.userPrincipalName}
-                >
+                <sp-tag size="s" deletable @delete=${this.#handleUserDelete} .value=${user.userPrincipalName}>
                     ${user.displayName}
                     <sp-icon-user slot="icon" size="s"></sp-icon-user>
                 </sp-tag>
@@ -254,6 +257,26 @@ class MasFilterPanel extends LitElement {
 
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
+                    top="product_code"
+                    multiple
+                    label="Product Code"
+                    selection="checkbox"
+                    value=${pathsToTagIds(this.tagsByType.product_code)}
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
+
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="variant"
+                    label="Variant"
+                    multiple
+                    selection="checkbox"
+                    value=${pathsToTagIds(this.tagsByType.variant)}
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
+
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
                     top="status"
                     label="Status"
                     multiple
@@ -268,9 +291,7 @@ class MasFilterPanel extends LitElement {
                     label="Content Type"
                     multiple
                     selection="checkbox"
-                    value=${pathsToTagIds(
-                        this.tagsByType['studio/content-type'],
-                    )}
+                    value=${pathsToTagIds(this.tagsByType['studio/content-type'])}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
@@ -281,10 +302,7 @@ class MasFilterPanel extends LitElement {
                     .users=${Store.users}
                 ></mas-user-picker>
 
-                <sp-action-button
-                    quiet
-                    @click=${this.#handleRefresh}
-                    title="Clear all filters"
+                <sp-action-button quiet @click=${this.#handleRefresh} title="Clear all filters"
                     >Reset Filters
                     <sp-icon-refresh slot="icon"></sp-icon-refresh>
                 </sp-action-button>
@@ -296,12 +314,7 @@ class MasFilterPanel extends LitElement {
                         .filter((tag) => tag),
                     (tag) => tag.path,
                     (tag) => html`
-                        <sp-tag
-                            key=${tag.path}
-                            size="s"
-                            deletable
-                            @delete=${this.#handleTagDelete}
-                            .value=${tag}
+                        <sp-tag key=${tag.path} size="s" deletable @delete=${this.#handleTagDelete} .value=${tag}
                             >${tag.title}</sp-tag
                         >
                     `,
@@ -312,9 +325,7 @@ class MasFilterPanel extends LitElement {
     }
 
     get filterIcon() {
-        return html`<sp-icon
-            style="inline-size: 20px; block-size: 20px;  color: var(--spectrum-white);"
-        >
+        return html`<sp-icon style="inline-size: 20px; block-size: 20px;  color: var(--spectrum-white);">
             <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 36 36"

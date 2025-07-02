@@ -1,0 +1,27 @@
+{
+    "path": "/content/dam/mas/acom/en_US/plans-individual",
+    "name": "",
+    "title": "Plans Page Collection: Individuals",
+    "id": "07f9729e-dc1f-4634-829d-7aa469bb0d33",
+    "description": "Plans Page Collection: Individuals",
+    "model": {
+        "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24"
+    },
+    "fields": {
+        "label": "Plans Page Collection: Individuals",
+        "cards": [],
+        "collections": []
+    },
+    "references": {},
+    "referencesTree": [],
+    "modelReferences": {
+        "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24": {
+            "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24",
+            "path": "/conf/mas/settings/dam/cfm/models/collection"
+        },
+        "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ": {
+            "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ",
+            "path": "/conf/mas/settings/dam/cfm/models/card"
+        }
+    }
+}

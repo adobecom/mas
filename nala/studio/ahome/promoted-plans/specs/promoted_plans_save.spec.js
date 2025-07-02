@@ -8,8 +8,7 @@ export default {
             data: {
                 cardid: '2cf0ed0e-84ea-4bd4-8e89-ddf527a7a75b',
                 initialBorderColor: 'gradient',
-                initialBorderCSSColor:
-                    'linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%)',
+                initialBorderCSSColor: 'linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%)',
                 transparentBorderColor: 'Transparent',
                 transparentBorderCSSColor: 'Transparent',
             },
@@ -48,7 +47,7 @@ export default {
                 cardid: '2cf0ed0e-84ea-4bd4-8e89-ddf527a7a75b',
                 analyticsID: 'buy-now',
                 daaLL: 'buy-now-2',
-                daaLH: 'CCSN',
+                daaLH: 'ccsn',
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-2',
             },

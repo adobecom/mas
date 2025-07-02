@@ -5,6 +5,8 @@ export const VARIANTS = [
     { label: 'All', value: 'all', surface: 'all' },
     { label: 'Catalog', value: 'catalog', surface: 'acom' },
     { label: 'Plans', value: 'plans', surface: 'acom' },
+    { label: 'Plans Students', value: 'plans-students', surface: 'acom' },
+    { label: 'Plans Education', value: 'plans-education', surface: 'acom' },
     { label: 'Slice', value: 'ccd-slice', surface: 'ccd' },
     { label: 'Special offers', value: 'special-offers', surface: 'acom' },
     { label: 'Suggested', value: 'ccd-suggested', surface: 'ccd' },
@@ -17,6 +19,11 @@ export const VARIANTS = [
         label: 'Promoted Plans',
         value: 'ah-promoted-plans',
         surface: 'adobe-home',
+    },
+    {
+        label: 'Fries',
+        value: 'fries',
+        surface: 'commerce',
     },
 ];
 
@@ -32,13 +39,8 @@ class VariantPicker extends LitElement {
     }
 
     get variants() {
-        return VARIANTS.filter(
-            (variant) => this.showAll || variant.value != 'all',
-        ).map(
-            (variant) =>
-                html`<sp-menu-item value="${variant.value}"
-                    >${variant.label}</sp-menu-item
-                >`,
+        return VARIANTS.filter((variant) => this.showAll || variant.value != 'all').map(
+            (variant) => html`<sp-menu-item value="${variant.value}">${variant.label}</sp-menu-item>`,
         );
     }
 

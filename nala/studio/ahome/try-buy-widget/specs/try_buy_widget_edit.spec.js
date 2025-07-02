@@ -21,7 +21,7 @@ export default {
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
                 originalBgColor: 'gray',
-                updatedBgColor: 'Default',
+                updatedBgColor: 'Transparent',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
@@ -58,10 +58,8 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
-                iconURL:
-                    'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
-                newIconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                iconURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
+                newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
@@ -100,7 +98,8 @@ export default {
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
                 ctaText: 'Free trial',
-                newCtaText: 'Save now',
+                newCtaOption: 'Save now',
+                newCtaText: 'save-now',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 ucv3: 'commerce.adobe.com/store/email',
                 country: 'US',
@@ -140,7 +139,8 @@ export default {
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
                 osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
-                productCodeTag: 'product_code/CCSN',
+                productCodeTag: 'product_code/ccsn',
+                newProductCodeTag: 'product_code/cces',
                 offerTypeTag: 'offer_type/base',
                 marketSegmentsTag: 'market_segments/com',
                 planTypeTag: 'plan_type/abm',
@@ -155,7 +155,7 @@ export default {
             data: {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
                 osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
-                productCodeTag: 'product_code/CCSN',
+                productCodeTag: 'product_code/ccsn',
                 offerTypeTag: 'offer_type/base',
                 marketSegmentsTag: 'market_segments/com',
                 planTypeTag: 'plan_type/abm',
@@ -197,7 +197,6 @@ export default {
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 checkoutParams: {
                     mv: '1',
-                    cs: 'individual',
                     promoid: 'ABC123',
                     mv2: '2',
                 },
@@ -213,7 +212,7 @@ export default {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
                 analyticsID: 'free-trial',
                 daaLL: 'free-trial-1',
-                daaLH: 'CCSN',
+                daaLH: 'ccsn',
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-1',
             },

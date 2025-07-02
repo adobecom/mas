@@ -82,14 +82,8 @@ class MasFragmentRender extends LitElement {
         if (!Store.selecting.value) return nothing;
         return html`<div class="overlay" @click="${this.select}">
             ${this.selected
-                ? html`<sp-icon-remove
-                      slot="icon"
-                      label="Remove from selection"
-                  ></sp-icon-remove>`
-                : html`<sp-icon-add
-                      slot="icon"
-                      label="Add to selection"
-                  ></sp-icon-add>`}
+                ? html`<sp-icon-remove slot="icon" label="Remove from selection"></sp-icon-remove>`
+                : html`<sp-icon-add slot="icon" label="Add to selection"></sp-icon-add>`}
         </div>`;
     }
 

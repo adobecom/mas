@@ -25,11 +25,7 @@
         <script type="module">
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
-            import {
-                delay,
-                initElementFromTemplate,
-                oneEvent,
-            } from '../utils.js';
+            import { delay, initElementFromTemplate, oneEvent } from '../utils.js';
             import '../../src/fields/user-picker.js';
             import { ReactiveStore } from '../../src/reactivity/reactive-store.js';
 
@@ -39,12 +35,9 @@
             async function initUserPicker(templateId, testTitle) {
                 const template = document.getElementById(templateId);
                 if (!template) {
-                    throw new Error(
-                        `Template with id "${templateId}" not found.`,
-                    );
+                    throw new Error(`Template with id "${templateId}" not found.`);
                 }
-                const picker =
-                    template.content.firstElementChild.cloneNode(true);
+                const picker = template.content.firstElementChild.cloneNode(true);
                 const title = document.createElement('p');
                 title.textContent = testTitle;
                 spTheme.appendChild(title);
@@ -79,11 +72,7 @@
             runTests(async () => {
                 describe('mas-user-picker custom element', async () => {
                     it('should display current user at the top of the list', async function () {
-                        const picker = await initUserPicker(
-                            'createdBy1',
-                            this.test.title,
-                            mockUsers,
-                        );
+                        const picker = await initUserPicker('createdBy1', this.test.title, mockUsers);
                         picker.users = new ReactiveStore(mockUsers);
                         picker.currentUser = new ReactiveStore({
                             email: 'user3@example.com',
@@ -91,17 +80,13 @@
                         picker.selectedUsers = new ReactiveStore([]);
                         await picker.updateComplete;
                         await delay(10);
-                        const actionButton =
-                            picker.shadowRoot.querySelector('sp-action-button');
+                        const actionButton = picker.shadowRoot.querySelector('sp-action-button');
                         actionButton.click();
                         picker.open = true;
                         await picker.updateComplete;
                         await delay(200);
-                        const checkbox =
-                            picker.shadowRoot.querySelector('sp-checkbox');
-                        expect(checkbox.innerText.trim()).to.equal(
-                            'Alex Johnson',
-                        );
+                        const checkbox = picker.shadowRoot.querySelector('sp-checkbox');
+                        expect(checkbox.innerText.trim()).to.equal('Alex Johnson');
                     });
                 });
             });

@@ -71,11 +71,7 @@ class MasUserPicker extends LitElement {
     updated(changedProperties) {
         const stores = ['users', 'currentUser', 'selectedUsers'];
         if (stores.some((store) => changedProperties.has(store))) {
-            this.reactiveController.updateStores([
-                this.users,
-                this.currentUser,
-                this.selectedUsers,
-            ]);
+            this.reactiveController.updateStores([this.users, this.currentUser, this.selectedUsers]);
         }
     }
 
@@ -83,17 +79,11 @@ class MasUserPicker extends LitElement {
         return [...this.users.value]
             .sort((a, b) => {
                 // If current user matches, put them first
-                if (a.userPrincipalName === this.currentUser.value.email)
-                    return -1;
-                if (b.userPrincipalName === this.currentUser.value.email)
-                    return 1;
+                if (a.userPrincipalName === this.currentUser.value.email) return -1;
+                if (b.userPrincipalName === this.currentUser.value.email) return 1;
                 return a.displayName.localeCompare(b.displayName);
             })
-            .filter((user) =>
-                user.displayName
-                    .toLowerCase()
-                    .includes(this.search.toLowerCase()),
-            );
+            .filter((user) => user.displayName.toLowerCase().includes(this.search.toLowerCase()));
     }
 
     get selectedText() {
@@ -113,8 +103,7 @@ class MasUserPicker extends LitElement {
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             this.updateComplete.then(() => {
-                const menuItems =
-                    this.shadowRoot.querySelectorAll('sp-menu-item');
+                const menuItems = this.shadowRoot.querySelectorAll('sp-menu-item');
                 if (menuItems[0]) {
                     menuItems[0].focus();
                 }
@@ -141,16 +130,12 @@ class MasUserPicker extends LitElement {
         this.search = '';
         this.requestUpdate();
         await this.updateComplete;
-        const checkboxes = this.shadowRoot.querySelectorAll(
-            'sp-menu sp-checkbox',
-        );
+        const checkboxes = this.shadowRoot.querySelectorAll('sp-menu sp-checkbox');
         const selectedUPNs = Array.from(checkboxes)
             .filter((cb) => cb.checked)
             .map((cb) => cb.getAttribute('value'));
 
-        const newSelection = this.users.value.filter((user) =>
-            selectedUPNs.includes(user.userPrincipalName),
-        );
+        const newSelection = this.users.value.filter((user) => selectedUPNs.includes(user.userPrincipalName));
 
         this.selectedUsers.set([]);
         await this.updateComplete;
@@ -187,9 +172,7 @@ class MasUserPicker extends LitElement {
                         <sp-menu-item @click="${this.handleCheckboxChange}">
                             <sp-checkbox
                                 .checked=${this.selectedUsers.value.some(
-                                    (selected) =>
-                                        selected.userPrincipalName ===
-                                        user.userPrincipalName,
+                                    (selected) => selected.userPrincipalName === user.userPrincipalName,
                                 )}
                                 value="${user.userPrincipalName}"
                             >
@@ -201,17 +184,8 @@ class MasUserPicker extends LitElement {
             </sp-menu>
             <div id="footer">
                 <span>${this.selectedText}</span>
-                <sp-button
-                    size="s"
-                    @click=${this.resetSelection}
-                    variant="secondary"
-                    treatment="outline"
-                >
-                    Reset
-                </sp-button>
-                <sp-button size="s" @click=${this.applySelection}>
-                    Apply
-                </sp-button>
+                <sp-button size="s" @click=${this.resetSelection} variant="secondary" treatment="outline"> Reset </sp-button>
+                <sp-button size="s" @click=${this.applySelection}> Apply </sp-button>
             </div>
         `;
     }
@@ -219,19 +193,13 @@ class MasUserPicker extends LitElement {
     render() {
         if (!this.users?.value) return nothing;
         return html`
-            <overlay-trigger
-                placement="bottom"
-                @sp-opened=${() => (this.open = true)}
-                @sp-closed=${() => (this.open = false)}
-            >
+            <overlay-trigger placement="bottom" @sp-opened=${() => (this.open = true)} @sp-closed=${() => (this.open = false)}>
                 <sp-action-button slot="trigger" dir="rtl" quiet>
                     ${this.label}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
 
-                <sp-popover slot="click-content">
-                    ${this.popoverContent}
-                </sp-popover>
+                <sp-popover slot="click-content"> ${this.popoverContent} </sp-popover>
             </overlay-trigger>
         `;
     }

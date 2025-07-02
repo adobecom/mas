@@ -11,11 +11,11 @@ This script fetches users from LDAP, deduplicates them, and sends them to a targ
 
 ## Required Environment Variables
 
-*   `CLIENT_ID`: Adobe I/O client ID.
-*   `CLIENT_SECRET`: Adobe I/O client secret.
-*   `LDAP_BASE_URL`: LDAP API base URL.
-*   `TARGET_ENDPOINT`: Endpoint URL for the user list.
-*   `ORG_ID`: Adobe Organization ID.
+- `CLIENT_ID`: Adobe I/O client ID.
+- `CLIENT_SECRET`: Adobe I/O client secret.
+- `LDAP_BASE_URL`: LDAP API base URL.
+- `TARGET_ENDPOINT`: Endpoint URL for the user list.
+- `ORG_ID`: Adobe Organization ID.
 
 Missing variables will cause the script to error and exit.
 
@@ -34,4 +34,5 @@ This script is designed to be run from Rundeck.
 ```bash
 node scripts/app/refreshUsers.mjs
 ```
+
 Ensure all environment variables are set before running.

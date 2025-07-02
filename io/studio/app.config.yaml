@@ -1,37 +1,37 @@
 application:
-  actions: actions
-  web: web-src
-  hooks:
-    test: npm run test
-  runtimeManifest:
-    packages:
-      MerchAtScaleStudio:
-        license: Apache-2.0
-        actions:
-          ost-products-write:
-            function: src/ost-products/write.js
-            web: "yes"
-            runtime: nodejs:22
-            inputs:
-              AOS_URL: $AOS_URL
-              AOS_API_KEY: $AOS_API_KEY
-              OST_WRITE_API_KEY: $OST_WRITE_API_KEY
-            annotations:
-              require-adobe-auth: false
-          ost-products-read:
-            function: src/ost-products/read.js
-            web: "yes"
-            runtime: nodejs:22
-            annotations:
-              require-adobe-auth: false
-          updateMembers:
-            function: src/members/update.js
-            web: "yes"
-            runtime: nodejs:22
-            annotations:
-              require-adobe-auth: true
-              final: false
-          listMembers:
-            function: src/members/list.js
-            web: "yes"
-            runtime: nodejs:22
+    actions: actions
+    web: web-src
+    hooks:
+        test: npm run test
+    runtimeManifest:
+        packages:
+            MerchAtScaleStudio:
+                license: Apache-2.0
+                actions:
+                    ost-products-write:
+                        function: src/ost-products/write.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AOS_URL: $AOS_URL
+                            AOS_API_KEY: $AOS_API_KEY
+                            OST_WRITE_API_KEY: $OST_WRITE_API_KEY
+                        annotations:
+                            require-adobe-auth: false
+                    ost-products-read:
+                        function: src/ost-products/read.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        annotations:
+                            require-adobe-auth: false
+                    updateMembers:
+                        function: src/members/update.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        annotations:
+                            require-adobe-auth: true
+                            final: false
+                    listMembers:
+                        function: src/members/list.js
+                        web: 'yes'
+                        runtime: nodejs:22

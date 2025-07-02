@@ -62,20 +62,13 @@ function getMissingKeys(obj, required) {
  * @returns {string} if the return value is not null, then it holds an error message describing the missing inputs.
  *
  */
-function checkMissingRequestInputs(
-    params,
-    requiredParams = [],
-    requiredHeaders = [],
-) {
+function checkMissingRequestInputs(params, requiredParams = [], requiredHeaders = []) {
     let errorMessage = null;
 
     // input headers are always lowercase
     requiredHeaders = requiredHeaders.map((h) => h.toLowerCase());
     // check for missing headers
-    const missingHeaders = getMissingKeys(
-        params.__ow_headers || {},
-        requiredHeaders,
-    );
+    const missingHeaders = getMissingKeys(params.__ow_headers || {}, requiredHeaders);
     if (missingHeaders.length > 0) {
         errorMessage = `missing header(s) '${missingHeaders}'`;
     }
@@ -104,11 +97,7 @@ function checkMissingRequestInputs(
  *
  */
 function getBearerToken(params) {
-    if (
-        params.__ow_headers &&
-        params.__ow_headers.authorization &&
-        params.__ow_headers.authorization.startsWith('Bearer ')
-    ) {
+    if (params.__ow_headers && params.__ow_headers.authorization && params.__ow_headers.authorization.startsWith('Bearer ')) {
         return params.__ow_headers.authorization.substring('Bearer '.length);
     }
     return undefined;

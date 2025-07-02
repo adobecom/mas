@@ -81,6 +81,8 @@ class MasUserPicker extends LitElement {
                 // If current user matches, put them first
                 if (a.userPrincipalName === this.currentUser.value.email) return -1;
                 if (b.userPrincipalName === this.currentUser.value.email) return 1;
+                if (this.selectedUsers.value.some((selected) => selected.userPrincipalName === a.userPrincipalName)) return -1;
+                if (this.selectedUsers.value.some((selected) => selected.userPrincipalName === b.userPrincipalName)) return 1;
                 return a.displayName.localeCompare(b.displayName);
             })
             .filter((user) => user.displayName.toLowerCase().includes(this.search.toLowerCase()));
@@ -149,7 +151,7 @@ class MasUserPicker extends LitElement {
     }
 
     handleCheckboxChange(e) {
-        const checkbox = e.target.firstElementChild;
+        const checkbox = e.target;
         checkbox.checked = !checkbox.checked;
     }
 

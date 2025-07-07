@@ -1,12 +1,13 @@
 'use strict';
 
-const crypto = require('crypto');
 const fetchFragment = require('./fetch.js').fetchFragment;
 const { log, logDebug, logError } = require('./common.js');
-const translate = require('./translate.js').translate;
+const corrector = require('./corrector.js').corrector;
+const crypto = require('crypto');
 const replace = require('./replace.js').replace;
 const settings = require('./settings.js').settings;
 const stateLib = require('@adobe/aio-lib-state');
+const translate = require('./translate.js').translate;
 const wcs = require('./wcs.js').wcs;
 const zlib = require('zlib');
 
@@ -50,7 +51,7 @@ async function main(params) {
         }
     }
 
-    for (const transformer of [fetchFragment, translate, settings, replace, wcs]) {
+    for (const transformer of [fetchFragment, translate, settings, replace, wcs, corrector]) {
         if (context.status != 200) {
             logError(context.message, context);
             break;

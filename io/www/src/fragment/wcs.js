@@ -107,14 +107,17 @@ async function wcs(context) {
             country,
             context,
         };
+        context.body.wcs ??= {};
         for (const config of wcsConfigs) {
             wcsContext.wcsURL = config.wcsURL;
             wcsContext.landscape = config.landscape || 'PUBLISHED';
             if (country !== 'GB') wcsContext.language = 'MULT';
-            const cache = await computeCache(tokens, wcsContext);
-            if (cache) {
-                context.body.wcs ??= {};
-                context.body.wcs[config.env] = cache;
+            context.body.wcs ??= {};
+            try {
+                context.body.wcs[config.env] = await computeCache(tokens, wcsContext);
+            } catch (error) {
+                /* istanbul ignore next */
+                logError(`Error computing WCS cache for ${config.env}: ${error.message}`, context);
             }
         }
     } else {

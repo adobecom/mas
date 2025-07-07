@@ -1,4 +1,3 @@
-/* eslint-disable */
 // Playwright will include ANSI color characters and regex from below
 // https://github.com/microsoft/playwright/issues/13522
 // https://github.com/chalk/ansi-regex/blob/main/index.js#L3

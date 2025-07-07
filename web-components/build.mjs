@@ -79,7 +79,7 @@ function rewriteImports() {
         setup(build) {
             build.onResolve({ filter: /^lit(\/.*)?$/ }, () => {
                 return {
-                    path: '../lit-all.min.js',
+                    path: 'https://milo.adobe.com/libs/deps/lit-all.min.js',
                     external: true,
                 };
             });
@@ -105,7 +105,7 @@ function rewriteImportsToLibsFolder() {
         setup(build) {
             build.onResolve({ filter: /^lit(\/.*)?$/ }, () => {
                 return {
-                    path: '/web-components/dist/lit-all.min.js',
+                    path: 'https://milo.adobe.com/libs/deps/lit-all.min.js',
                     external: true,
                 };
             });

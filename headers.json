@@ -1,8 +1,18 @@
 {
-  "/web-components/dist/*.js": {
+  "/web-components/dist/*": {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-    "Access-Control-Allow-Headers": "*",
+    "Access-Control-Allow-Headers": "*"
+  },
+  "/web-components/dist/*.js": {
+    "Content-Type": "application/javascript; charset=utf-8"
+  },
+  "/studio/libs/*": {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+    "Access-Control-Allow-Headers": "*"
+  },
+  "/studio/libs/*.js": {
     "Content-Type": "application/javascript; charset=utf-8"
   }
 }

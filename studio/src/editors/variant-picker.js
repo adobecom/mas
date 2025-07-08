@@ -28,7 +28,7 @@ export const VARIANTS = [
     {
         label: 'Simplified pricing Express',
         value: 'simplified-pricing-express',
-        surface: 'acom',
+        surface: 'express',
     },
 ];
 

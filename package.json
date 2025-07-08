@@ -5,7 +5,8 @@
     "main": "mas.js",
     "private": true,
     "workspaces": [
-        "studio"
+        "studio",
+        "web-components"
     ],
     "scripts": {
         "lint": "eslint --fix",

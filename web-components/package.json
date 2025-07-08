@@ -12,8 +12,8 @@
         "build:bundle": "node ./build.mjs",
         "build:bundle:dev": "npm run build:bundle sourcemap",
         "test:watch": "wtr --config ./web-test-runner.config.mjs --coverage --watch --debug",
-        "pretest": "[ -d node_modules/@dexter/tacocat-core ] || (echo 'Installing tacocat-core...' && npm install)",
         "test": "wtr --config ./web-test-runner.config.mjs --coverage",
+        "test:ci": "wtr --config ./web-test-runner.config.mjs --coverage",
         "libs": "npm run build:bundle && (cd .. && aem up --port 3030)"
     },
     "devDependencies": {

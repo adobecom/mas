@@ -90,6 +90,7 @@ const OST_IS_MAPPING = {
     priceAnnual: 'inline-price',
     priceOptical: 'inline-price',
     checkoutUrl: 'checkout-link',
+    legal: 'inline-price',
 };
 
 const OST_OPTION_ATTRIBUTE_MAPPING = {

@@ -43,6 +43,7 @@ export default {
                     imports: {
                         react: '/test/mocks/react.js',
                         '@pandora/fetch': '/test/mocks/pandora-fetch.js',
+                        '@dexter/tacocat-core': '/node_modules/@dexter/tacocat-core/src/index.js',
                     },
                 },
             },

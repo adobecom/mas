@@ -28,6 +28,10 @@ button.promo-tag-button {
 div[data-offer-selector-id] > .price {
   font-weight: bold;
 }
+.placeholder-list {
+  max-height: 260px;
+  overflow: auto;
+}
 
 ._t8qIa_i18nFontFamily {
   font-synthesis: weight;

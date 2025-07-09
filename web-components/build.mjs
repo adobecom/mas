@@ -49,19 +49,18 @@ Promise.all([
         stdin: { contents: '' },
         inject: ['./src/merch-offer.js', './src/merch-offer-select.js'],
         outfile: `${outfolder}/merch-offer-select.js`,
-        plugins: [rewriteImports()],
+        external: ['lit'],
     }),
     build({
         ...defaults,
         entryPoints: ['./src/merch-card-collection.js'],
-        plugins: [rewriteImports()],
+        external: ['lit'],
         outfile: `${outfolder}/merch-card-collection.js`,
     }),
     build({
         ...defaults,
         entryPoints: ['./src/sidenav/merch-sidenav.js'],
         outfile: `${outfolder}/merch-sidenav.js`,
-        plugins: [rewriteImportsToLibsFolder()],
         external: ['lit'],
     }),
     buildLitComponent('merch-card'),
@@ -73,20 +72,6 @@ Promise.all([
     buildLitComponent('merch-mnemonic-list'),
 ]).catch(() => process.exit(1));
 
-function rewriteImports() {
-    return {
-        name: 'rewrite-imports',
-        setup(build) {
-            build.onResolve({ filter: /^lit(\/.*)?$/ }, () => {
-                return {
-                    path: 'https://milo.adobe.com/libs/deps/lit-all.min.js',
-                    external: true,
-                };
-            });
-        },
-    };
-}
-
 async function buildLitComponent(name) {
     const { metafile } = await build({
         ...defaults,
@@ -94,21 +79,6 @@ async function buildLitComponent(name) {
         external: ['lit'],
         metafile: true,
         outfile: `${outfolder}/${name}.js`,
-        plugins: [rewriteImports()],
     });
     writeFileSync(`${outfolder}/${name}.json`, JSON.stringify(metafile));
-}
-
-function rewriteImportsToLibsFolder() {
-    return {
-        name: 'rewrite-imports-to-libs-folder',
-        setup(build) {
-            build.onResolve({ filter: /^lit(\/.*)?$/ }, () => {
-                return {
-                    path: 'https://milo.adobe.com/libs/deps/lit-all.min.js',
-                    external: true,
-                };
-            });
-        },
-    };
 }

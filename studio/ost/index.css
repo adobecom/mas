@@ -25,11 +25,11 @@ button.promo-tag-button {
 .price-strikethrough {
   text-decoration: line-through;
 }
-div[data-offer-selector-id] > .price {
-  font-weight: bold;
-}
 .placeholders-list {
   overflow: auto;
+}
+span[is="inline-price"] {
+  font-weight: bold;
 }
 
 ._t8qIa_i18nFontFamily {

@@ -57,24 +57,24 @@ class MasFragmentStatus extends LitElement {
         return toPascalCase(this.variant);
     }
 
-    get badgeVariant() {
+    get lightVariant() {
         switch (this.variant) {
             case 'new':
             case 'draft':
-                return 'cyan';
+                return 'info';
             case 'published':
-                return 'green';
+                return 'positive';
             case 'modified':
                 return 'yellow';
             case 'unpublished':
-                return 'blue';
+                return 'neutral';
             default:
                 return '';
         }
     }
 
     render() {
-        return html`<sp-status-light size="l" variant="${this.badgeVariant}"></sp-status-light> ${this.label}`;
+        return html`<sp-status-light size="l" variant="${this.lightVariant}"></sp-status-light> ${this.label}`;
     }
 }
 

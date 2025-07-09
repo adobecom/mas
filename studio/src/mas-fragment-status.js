@@ -74,7 +74,7 @@ class MasFragmentStatus extends LitElement {
     }
 
     render() {
-        return html`<sp-status-light size="l" variant="${this.lightVariant}"></sp-status-light> ${this.label}`;
+        return html`<sp-status-light size="l" variant="${this.badgeVariant}"></sp-status-light> ${this.label}`;
     }
 }
 

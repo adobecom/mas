@@ -38,6 +38,11 @@
                     throw new Error(`Template with id "${templateId}" not found.`);
                 }
                 const picker = template.content.firstElementChild.cloneNode(true);
+                picker.users = new ReactiveStore(mockUsers);
+                picker.currentUser = new ReactiveStore({
+                    email: 'user3@example.com',
+                });
+                picker.selectedUsers = new ReactiveStore([]);
                 const title = document.createElement('p');
                 title.textContent = testTitle;
                 spTheme.appendChild(title);
@@ -72,12 +77,12 @@
             runTests(async () => {
                 describe('mas-user-picker custom element', async () => {
                     it('should display current user at the top of the list', async function () {
-                        const picker = await initUserPicker('createdBy1', this.test.title, mockUsers);
-                        picker.users = new ReactiveStore(mockUsers);
-                        picker.currentUser = new ReactiveStore({
+                        const users = new ReactiveStore(mockUsers);
+                        const currentUser = new ReactiveStore({
                             email: 'user3@example.com',
                         });
-                        picker.selectedUsers = new ReactiveStore([]);
+                        const selectedUsers = new ReactiveStore([]);
+                        const picker = await initUserPicker('createdBy1', this.test.title, users, currentUser, selectedUsers);
                         await picker.updateComplete;
                         await delay(10);
                         const actionButton = picker.shadowRoot.querySelector('sp-action-button');

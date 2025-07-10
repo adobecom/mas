@@ -311,27 +311,35 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         await test.step('step-3: Edit price field', async () => {
             await expect(await editor.description).toBeVisible();
             await expect(await editor.description).toContainText(data.price);
-            await expect(await editor.description).not.toContainText(data.newPrice);
             await expect(await editor.description).toContainText(data.strikethroughPrice);
-            await expect(await editor.description).not.toContainText(data.newStrikethroughPrice);
 
             await editor.description.locator(editor.regularPrice).dblclick();
-            await expect(await ost.price).toBeVisible();
-            await expect(await ost.priceUse).toBeVisible();
-            await expect(await ost.unitCheckbox).toBeVisible();
-            await ost.unitCheckbox.click();
-            await ost.priceUse.click();
+            await expect(await ost.priceStrikethrough).toBeVisible();
+            await expect(await ost.priceStrikethroughUse).toBeVisible();
+            await expect(await ost.priceStrikethrough).not.toContainText(data.price);
+            await expect(await ost.priceStrikethrough).toContainText(data.strikethroughPrice);
+            await expect(await ost.priceStrikethrough.locator('.price-strikethrough')).toHaveCSS(
+                'text-decoration-line',
+                'line-through',
+            );
+            await ost.priceStrikethroughUse.click();
         });
 
         await test.step('step-4: Validate edited price field in Editor panel', async () => {
-            await expect(await editor.description).toContainText(data.newPrice);
-            await expect(await editor.description).toContainText(data.newStrikethroughPrice);
+            await expect(await editor.description).toContainText(data.strikethroughPrice);
+            await expect(await editor.description).not.toContainText(data.price);
+            await expect(await editor.description.locator(editor.strikethroughPrice).locator('.price-strikethrough')).toHaveCSS(
+                'text-decoration-line',
+                'line-through',
+            );
         });
 
         await test.step('step-5: Validate edited price field on the card', async () => {
-            await expect(await slice.cardDescription.locator(slice.cardPrice)).toContainText(data.newPrice);
-            await expect(await slice.cardDescription.locator(slice.cardPriceStrikethrough)).toContainText(
-                data.newStrikethroughPrice,
+            await expect(await slice.cardDescription).toContainText(data.strikethroughPrice);
+            await expect(await slice.cardDescription).not.toContainText(data.price);
+            await expect(await slice.cardDescription.locator(slice.cardPriceStrikethrough)).toHaveCSS(
+                'text-decoration-line',
+                'line-through',
             );
         });
     });

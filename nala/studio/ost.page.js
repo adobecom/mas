@@ -16,8 +16,12 @@ export default class OSTPage {
         this.entitlementsTab = this.page.locator('//div[@data-key="entitlements"]');
         this.backButton = this.page.locator('//button[contains(@aria-label, "previous-step")]');
         this.price = this.page.locator('span[is="inline-price"][data-template="price"]');
-        this.priceOptical = this.page.locator('span[is="inline-price"][data-template="priceOptical"]');
-        this.priceStrikethrough = this.page.locator('span[is="inline-price"][data-template="priceStrikethrough"]');
+        this.priceOptical = this.page.locator('span[is="inline-price"][data-template="optical"]');
+        this.priceStrikethrough = this.page.locator('span[is="inline-price"][data-template="strikethrough"]');
+        this.pricePromoStrikethrough = this.page.locator(
+            'span[is="inline-price"][data-template="price"] > .price-strikethrough',
+        );
+        this.priceAnnual = this.page.locator('span[is="inline-price"][data-template="annual"]');
         this.legalText = this.page.locator('span[is="inline-price"][data-template="legal"]');
         this.termCheckbox = this.page.locator('//input[@value="displayRecurrence"]');
         this.unitCheckbox = this.page.locator('//input[@value="displayPerUnit"]');
@@ -27,8 +31,9 @@ export default class OSTPage {
         this.priceUse = this.page.locator('div[id*="tabpanel-price"] button').first();
         this.priceOpticalUse = this.page.locator('button:near(:text("Optical price"))').first();
         this.priceStrikethroughUse = this.page.locator('button:near(:text("Strikethrough price"))').first();
+        this.priceAnnualUse = this.page.locator('button:near(:text("Annual price"))').first();
         this.checkoutTab = this.page.locator('//div[@data-key="checkout"]');
-        this.checkoutLink = this.page.locator('//a[@data-type="checkoutUrl"]');
+        this.checkoutLink = this.page.locator('//a[@is="checkout-link"]');
         this.workflowMenu = this.page.locator('button:near(label:text("Workflow"))').first();
         this.ctaTextMenu = this.page.locator('button:near(label:text("Cta text"))').first();
         this.promoField = this.page.locator('//input[contains(@class, "spectrum-Textfield-input")]');

@@ -47,6 +47,7 @@ export default class EditorPage {
         // Price templates
         this.regularPrice = page.locator('span[is="inline-price"][data-template="price"]');
         this.strikethroughPrice = page.locator('span[is="inline-price"][data-template="strikethrough"]');
+        this.promoStrikethroughPrice = page.locator('span[is="inline-price"][data-template="price"] > .price-strikethrough');
 
         // RTE content
         this.phoneLink = page.locator('a[href^="tel:"]');

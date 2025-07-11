@@ -52,12 +52,20 @@ export class MerchSidenavList extends LitElement {
     }
 
     selectElement(element, selected = true) {
+        element.selected = selected;
         if (element.parentNode.tagName === 'SP-SIDENAV-ITEM') {
             this.selectElement(element.parentNode, false);
         }
+        const selectionElement = element.querySelector('.selection');
+        selectionElement?.setAttribute('selected', selected);
+        const selection = selectionElement?.dataset;
+        const iconSrc = selected ? selection?.light : selection?.dark;
+        if (iconSrc) {
+            element.querySelector('img')?.setAttribute('src', iconSrc);
+        }
         if (selected) {
             this.selectedElement = element;
-            this.selectedText = element.label;
+            this.selectedText = selection?.selectedText || element.label;
             this.selectedValue = element.value;
             setTimeout(() => {
                 element.selected = true;
@@ -86,7 +94,6 @@ export class MerchSidenavList extends LitElement {
         if (parentNode?.tagName === 'SP-SIDENAV') {
             //swc does not consider, in multilevel, first level as a potential selection
             //and does not close other parents, we'll do that here
-            item.selected = true;
             parentNode
                 .querySelectorAll(
                     'sp-sidenav-item[expanded],sp-sidenav-item[selected]',
@@ -94,7 +101,16 @@ export class MerchSidenavList extends LitElement {
                 .forEach((item) => {
                     if (item.value !== value) {
                         item.expanded = false;
-                        item.selected = false;
+                        this.selectElement(item, false);
+                    }
+                });
+            //additional call to disable previous selection settings
+            parentNode
+                .querySelectorAll('.selection[selected=true]')
+                .forEach((selection) => {
+                    const item = selection.parentElement;
+                    if (item.value !== value) {
+                        this.selectElement(item, false);
                     }
                 });
         } else if (parentNode?.tagName === 'SP-SIDENAV-ITEM') {
@@ -111,7 +127,7 @@ export class MerchSidenavList extends LitElement {
                 ?.querySelectorAll('sp-sidenav-item[selected]')
                 .forEach((item) => {
                     if (item.value !== value) {
-                        item.selected = false;
+                        this.selectElement(item, false);
                     }
                 });
         }
@@ -124,7 +140,10 @@ export class MerchSidenavList extends LitElement {
      * leaf level item selection handler
      * @param {*} event
      */
-    selectionChanged({ target: { value, parentNode } }) {
+    selectionChanged(event) {
+        const {
+            target: { value, parentNode },
+        } = event;
         this.selectElement(
             this.querySelector(`sp-sidenav-item[value="${value}"]`),
         );

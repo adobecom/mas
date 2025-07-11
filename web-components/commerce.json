@@ -1,303 +1,303 @@
 {
     "inputs": {
         "src/constants.js": { "bytes": 5340, "imports": [], "format": "esm" },
-        "node_modules/@dexter/tacocat-core/src/utilities.js": {
+        "../node_modules/@dexter/tacocat-core/src/utilities.js": {
             "bytes": 5700,
             "imports": [],
             "format": "esm"
         },
-        "node_modules/@dexter/tacocat-core/src/log.js": {
+        "../node_modules/@dexter/tacocat-core/src/log.js": {
             "bytes": 2010,
             "imports": [
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/utilities.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/utilities.js",
                     "kind": "import-statement",
                     "original": "./utilities"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/@dexter/tacocat-core/src/scaffolds.js": {
+        "../node_modules/@dexter/tacocat-core/src/scaffolds.js": {
             "bytes": 1441,
             "imports": [
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/log.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/log.js",
                     "kind": "import-statement",
                     "original": "./log"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/utilities.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/utilities.js",
                     "kind": "import-statement",
                     "original": "./utilities"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/@dexter/tacocat-core/src/deferral.js": {
+        "../node_modules/@dexter/tacocat-core/src/deferral.js": {
             "bytes": 1184,
             "imports": [
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/scaffolds.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/scaffolds.js",
                     "kind": "import-statement",
                     "original": "./scaffolds"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/utilities.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/utilities.js",
                     "kind": "import-statement",
                     "original": "./utilities"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/@dexter/tacocat-core/src/lana.js": {
+        "../node_modules/@dexter/tacocat-core/src/lana.js": {
             "bytes": 6194,
             "imports": [
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/log.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/log.js",
                     "kind": "import-statement",
                     "original": "./log"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/@dexter/tacocat-core/src/placeholderContext.js": {
+        "../node_modules/@dexter/tacocat-core/src/placeholderContext.js": {
             "bytes": 1846,
             "imports": [
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/scaffolds.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/scaffolds.js",
                     "kind": "import-statement",
                     "original": "./scaffolds"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/utilities.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/utilities.js",
                     "kind": "import-statement",
                     "original": "./utilities"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/@dexter/tacocat-core/src/placeholderProvider.js": {
+        "../node_modules/@dexter/tacocat-core/src/placeholderProvider.js": {
             "bytes": 3010,
             "imports": [
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/placeholderContext.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/placeholderContext.js",
                     "kind": "import-statement",
                     "original": "./placeholderContext"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/scaffolds.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/scaffolds.js",
                     "kind": "import-statement",
                     "original": "./scaffolds"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/utilities.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/utilities.js",
                     "kind": "import-statement",
                     "original": "./utilities"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/@dexter/tacocat-core/src/placeholderStages.js": {
+        "../node_modules/@dexter/tacocat-core/src/placeholderStages.js": {
             "bytes": 433,
             "imports": [],
             "format": "esm"
         },
-        "node_modules/@dexter/tacocat-core/src/placeholderState.js": {
+        "../node_modules/@dexter/tacocat-core/src/placeholderState.js": {
             "bytes": 2957,
             "imports": [
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/placeholderContext.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/placeholderContext.js",
                     "kind": "import-statement",
                     "original": "./placeholderContext"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/placeholderStages.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/placeholderStages.js",
                     "kind": "import-statement",
                     "original": "./placeholderStages"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/scaffolds.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/scaffolds.js",
                     "kind": "import-statement",
                     "original": "./scaffolds"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/utilities.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/utilities.js",
                     "kind": "import-statement",
                     "original": "./utilities"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/@dexter/tacocat-core/src/placeholderTemplate.js": {
+        "../node_modules/@dexter/tacocat-core/src/placeholderTemplate.js": {
             "bytes": 1796,
             "imports": [
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/scaffolds.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/scaffolds.js",
                     "kind": "import-statement",
                     "original": "./scaffolds"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/placeholderStages.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/placeholderStages.js",
                     "kind": "import-statement",
                     "original": "./placeholderStages"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/utilities.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/utilities.js",
                     "kind": "import-statement",
                     "original": "./utilities"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/@dexter/tacocat-core/src/placeholderEngine.js": {
+        "../node_modules/@dexter/tacocat-core/src/placeholderEngine.js": {
             "bytes": 8668,
             "imports": [
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/deferral.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/deferral.js",
                     "kind": "import-statement",
                     "original": "./deferral"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/placeholderContext.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/placeholderContext.js",
                     "kind": "import-statement",
                     "original": "./placeholderContext"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/placeholderProvider.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/placeholderProvider.js",
                     "kind": "import-statement",
                     "original": "./placeholderProvider"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/placeholderState.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/placeholderState.js",
                     "kind": "import-statement",
                     "original": "./placeholderState"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/placeholderStages.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/placeholderStages.js",
                     "kind": "import-statement",
                     "original": "./placeholderStages"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/placeholderTemplate.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/placeholderTemplate.js",
                     "kind": "import-statement",
                     "original": "./placeholderTemplate"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/scaffolds.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/scaffolds.js",
                     "kind": "import-statement",
                     "original": "./scaffolds"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/@dexter/tacocat-core/src/retry.js": {
+        "../node_modules/@dexter/tacocat-core/src/retry.js": {
             "bytes": 1837,
             "imports": [
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/utilities.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/utilities.js",
                     "kind": "import-statement",
                     "original": "./utilities"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/@dexter/tacocat-core/src/promotion.js": {
+        "../node_modules/@dexter/tacocat-core/src/promotion.js": {
             "bytes": 1660,
             "imports": [],
             "format": "esm"
         },
-        "node_modules/@pandora/data-models-odm/esm/businessDimensions.js": {
+        "../node_modules/@pandora/data-models-odm/esm/businessDimensions.js": {
             "bytes": 2114,
             "imports": [],
             "format": "esm"
         },
-        "node_modules/@pandora/data-models-odm/esm/index.js": {
+        "../node_modules/@pandora/data-models-odm/esm/index.js": {
             "bytes": 130,
             "imports": [
                 {
-                    "path": "node_modules/@pandora/data-models-odm/esm/businessDimensions.js",
+                    "path": "../node_modules/@pandora/data-models-odm/esm/businessDimensions.js",
                     "kind": "import-statement",
                     "original": "./businessDimensions"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/@dexter/tacocat-core/src/wcsUtils.js": {
+        "../node_modules/@dexter/tacocat-core/src/wcsUtils.js": {
             "bytes": 3510,
             "imports": [
                 {
-                    "path": "node_modules/@pandora/data-models-odm/esm/index.js",
+                    "path": "../node_modules/@pandora/data-models-odm/esm/index.js",
                     "kind": "import-statement",
                     "original": "@pandora/data-models-odm"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/@dexter/tacocat-core/src/index.js": {
+        "../node_modules/@dexter/tacocat-core/src/index.js": {
             "bytes": 405,
             "imports": [
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/deferral.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/deferral.js",
                     "kind": "import-statement",
                     "original": "./deferral"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/log.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/log.js",
                     "kind": "import-statement",
                     "original": "./log"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/lana.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/lana.js",
                     "kind": "import-statement",
                     "original": "./lana"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/placeholderContext.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/placeholderContext.js",
                     "kind": "import-statement",
                     "original": "./placeholderContext"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/placeholderProvider.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/placeholderProvider.js",
                     "kind": "import-statement",
                     "original": "./placeholderProvider"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/placeholderEngine.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/placeholderEngine.js",
                     "kind": "import-statement",
                     "original": "./placeholderEngine"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/placeholderTemplate.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/placeholderTemplate.js",
                     "kind": "import-statement",
                     "original": "./placeholderTemplate"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/placeholderStages.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/placeholderStages.js",
                     "kind": "import-statement",
                     "original": "./placeholderStages"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/retry.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/retry.js",
                     "kind": "import-statement",
                     "original": "./retry"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/scaffolds.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/scaffolds.js",
                     "kind": "import-statement",
                     "original": "./scaffolds"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/utilities.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/utilities.js",
                     "kind": "import-statement",
                     "original": "./utilities"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/promotion.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/promotion.js",
                     "kind": "import-statement",
                     "original": "./promotion"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/wcsUtils.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/wcsUtils.js",
                     "kind": "import-statement",
                     "original": "./wcsUtils"
                 }
@@ -308,7 +308,7 @@
             "bytes": 1824,
             "imports": [
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/index.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/index.js",
                     "kind": "import-statement",
                     "original": "@dexter/tacocat-core"
                 }
@@ -325,7 +325,7 @@
                     "original": "./constants.js"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/index.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/index.js",
                     "kind": "import-statement",
                     "original": "@dexter/tacocat-core"
                 },
@@ -457,7 +457,7 @@
                     "original": "./checkout-link.js"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/index.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/index.js",
                     "kind": "import-statement",
                     "original": "@dexter/tacocat-core"
                 },
@@ -509,236 +509,236 @@
                     "original": "./defaults.js"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/index.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/index.js",
                     "kind": "import-statement",
                     "original": "@dexter/tacocat-core"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/tslib/tslib.es6.mjs": {
+        "../node_modules/tslib/tslib.es6.mjs": {
             "bytes": 17648,
             "imports": [],
             "format": "esm"
         },
-        "node_modules/@formatjs/icu-messageformat-parser/lib/error.js": {
+        "../node_modules/@formatjs/icu-messageformat-parser/lib/error.js": {
             "bytes": 4465,
             "imports": [],
             "format": "esm"
         },
-        "node_modules/@formatjs/icu-messageformat-parser/lib/types.js": {
+        "../node_modules/@formatjs/icu-messageformat-parser/lib/types.js": {
             "bytes": 2367,
             "imports": [],
             "format": "esm"
         },
-        "node_modules/@formatjs/icu-messageformat-parser/lib/regex.generated.js": {
+        "../node_modules/@formatjs/icu-messageformat-parser/lib/regex.generated.js": {
             "bytes": 186,
             "imports": [],
             "format": "esm"
         },
-        "node_modules/@formatjs/icu-skeleton-parser/lib/date-time.js": {
+        "../node_modules/@formatjs/icu-skeleton-parser/lib/date-time.js": {
             "bytes": 4886,
             "imports": [],
             "format": "esm"
         },
-        "node_modules/@formatjs/icu-skeleton-parser/lib/regex.generated.js": {
+        "../node_modules/@formatjs/icu-skeleton-parser/lib/regex.generated.js": {
             "bytes": 104,
             "imports": [],
             "format": "esm"
         },
-        "node_modules/@formatjs/icu-skeleton-parser/lib/number.js": {
+        "../node_modules/@formatjs/icu-skeleton-parser/lib/number.js": {
             "bytes": 11141,
             "imports": [
                 {
-                    "path": "node_modules/tslib/tslib.es6.mjs",
+                    "path": "../node_modules/tslib/tslib.es6.mjs",
                     "kind": "import-statement",
                     "original": "tslib"
                 },
                 {
-                    "path": "node_modules/@formatjs/icu-skeleton-parser/lib/regex.generated.js",
+                    "path": "../node_modules/@formatjs/icu-skeleton-parser/lib/regex.generated.js",
                     "kind": "import-statement",
                     "original": "./regex.generated"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/@formatjs/icu-skeleton-parser/lib/index.js": {
+        "../node_modules/@formatjs/icu-skeleton-parser/lib/index.js": {
             "bytes": 55,
             "imports": [
                 {
-                    "path": "node_modules/@formatjs/icu-skeleton-parser/lib/date-time.js",
+                    "path": "../node_modules/@formatjs/icu-skeleton-parser/lib/date-time.js",
                     "kind": "import-statement",
                     "original": "./date-time"
                 },
                 {
-                    "path": "node_modules/@formatjs/icu-skeleton-parser/lib/number.js",
+                    "path": "../node_modules/@formatjs/icu-skeleton-parser/lib/number.js",
                     "kind": "import-statement",
                     "original": "./number"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/@formatjs/icu-messageformat-parser/lib/time-data.generated.js": {
+        "../node_modules/@formatjs/icu-messageformat-parser/lib/time-data.generated.js": {
             "bytes": 15843,
             "imports": [],
             "format": "esm"
         },
-        "node_modules/@formatjs/icu-messageformat-parser/lib/date-time-pattern-generator.js": {
+        "../node_modules/@formatjs/icu-messageformat-parser/lib/date-time-pattern-generator.js": {
             "bytes": 2942,
             "imports": [
                 {
-                    "path": "node_modules/@formatjs/icu-messageformat-parser/lib/time-data.generated.js",
+                    "path": "../node_modules/@formatjs/icu-messageformat-parser/lib/time-data.generated.js",
                     "kind": "import-statement",
                     "original": "./time-data.generated"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/@formatjs/icu-messageformat-parser/lib/parser.js": {
+        "../node_modules/@formatjs/icu-messageformat-parser/lib/parser.js": {
             "bytes": 48754,
             "imports": [
                 {
-                    "path": "node_modules/tslib/tslib.es6.mjs",
+                    "path": "../node_modules/tslib/tslib.es6.mjs",
                     "kind": "import-statement",
                     "original": "tslib"
                 },
                 {
-                    "path": "node_modules/@formatjs/icu-messageformat-parser/lib/error.js",
+                    "path": "../node_modules/@formatjs/icu-messageformat-parser/lib/error.js",
                     "kind": "import-statement",
                     "original": "./error"
                 },
                 {
-                    "path": "node_modules/@formatjs/icu-messageformat-parser/lib/types.js",
+                    "path": "../node_modules/@formatjs/icu-messageformat-parser/lib/types.js",
                     "kind": "import-statement",
                     "original": "./types"
                 },
                 {
-                    "path": "node_modules/@formatjs/icu-messageformat-parser/lib/regex.generated.js",
+                    "path": "../node_modules/@formatjs/icu-messageformat-parser/lib/regex.generated.js",
                     "kind": "import-statement",
                     "original": "./regex.generated"
                 },
                 {
-                    "path": "node_modules/@formatjs/icu-skeleton-parser/lib/index.js",
+                    "path": "../node_modules/@formatjs/icu-skeleton-parser/lib/index.js",
                     "kind": "import-statement",
                     "original": "@formatjs/icu-skeleton-parser"
                 },
                 {
-                    "path": "node_modules/@formatjs/icu-messageformat-parser/lib/date-time-pattern-generator.js",
+                    "path": "../node_modules/@formatjs/icu-messageformat-parser/lib/date-time-pattern-generator.js",
                     "kind": "import-statement",
                     "original": "./date-time-pattern-generator"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/@formatjs/icu-messageformat-parser/lib/index.js": {
+        "../node_modules/@formatjs/icu-messageformat-parser/lib/index.js": {
             "bytes": 1642,
             "imports": [
                 {
-                    "path": "node_modules/tslib/tslib.es6.mjs",
+                    "path": "../node_modules/tslib/tslib.es6.mjs",
                     "kind": "import-statement",
                     "original": "tslib"
                 },
                 {
-                    "path": "node_modules/@formatjs/icu-messageformat-parser/lib/error.js",
+                    "path": "../node_modules/@formatjs/icu-messageformat-parser/lib/error.js",
                     "kind": "import-statement",
                     "original": "./error"
                 },
                 {
-                    "path": "node_modules/@formatjs/icu-messageformat-parser/lib/parser.js",
+                    "path": "../node_modules/@formatjs/icu-messageformat-parser/lib/parser.js",
                     "kind": "import-statement",
                     "original": "./parser"
                 },
                 {
-                    "path": "node_modules/@formatjs/icu-messageformat-parser/lib/types.js",
+                    "path": "../node_modules/@formatjs/icu-messageformat-parser/lib/types.js",
                     "kind": "import-statement",
                     "original": "./types"
                 },
                 {
-                    "path": "node_modules/@formatjs/icu-messageformat-parser/lib/types.js",
+                    "path": "../node_modules/@formatjs/icu-messageformat-parser/lib/types.js",
                     "kind": "import-statement",
                     "original": "./types"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/@formatjs/fast-memoize/lib/index.js": {
+        "../node_modules/@formatjs/fast-memoize/lib/index.js": {
             "bytes": 2452,
             "imports": [],
             "format": "esm"
         },
-        "node_modules/intl-messageformat/lib/src/error.js": {
+        "../node_modules/intl-messageformat/lib/src/error.js": {
             "bytes": 2285,
             "imports": [
                 {
-                    "path": "node_modules/tslib/tslib.es6.mjs",
+                    "path": "../node_modules/tslib/tslib.es6.mjs",
                     "kind": "import-statement",
                     "original": "tslib"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/intl-messageformat/lib/src/formatters.js": {
+        "../node_modules/intl-messageformat/lib/src/formatters.js": {
             "bytes": 7024,
             "imports": [
                 {
-                    "path": "node_modules/@formatjs/icu-messageformat-parser/lib/index.js",
+                    "path": "../node_modules/@formatjs/icu-messageformat-parser/lib/index.js",
                     "kind": "import-statement",
                     "original": "@formatjs/icu-messageformat-parser"
                 },
                 {
-                    "path": "node_modules/intl-messageformat/lib/src/error.js",
+                    "path": "../node_modules/intl-messageformat/lib/src/error.js",
                     "kind": "import-statement",
                     "original": "./error"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/intl-messageformat/lib/src/core.js": {
+        "../node_modules/intl-messageformat/lib/src/core.js": {
             "bytes": 8229,
             "imports": [
                 {
-                    "path": "node_modules/tslib/tslib.es6.mjs",
+                    "path": "../node_modules/tslib/tslib.es6.mjs",
                     "kind": "import-statement",
                     "original": "tslib"
                 },
                 {
-                    "path": "node_modules/@formatjs/icu-messageformat-parser/lib/index.js",
+                    "path": "../node_modules/@formatjs/icu-messageformat-parser/lib/index.js",
                     "kind": "import-statement",
                     "original": "@formatjs/icu-messageformat-parser"
                 },
                 {
-                    "path": "node_modules/@formatjs/fast-memoize/lib/index.js",
+                    "path": "../node_modules/@formatjs/fast-memoize/lib/index.js",
                     "kind": "import-statement",
                     "original": "@formatjs/fast-memoize"
                 },
                 {
-                    "path": "node_modules/intl-messageformat/lib/src/formatters.js",
+                    "path": "../node_modules/intl-messageformat/lib/src/formatters.js",
                     "kind": "import-statement",
                     "original": "./formatters"
                 }
             ],
             "format": "esm"
         },
-        "node_modules/intl-messageformat/lib/index.js": {
+        "../node_modules/intl-messageformat/lib/index.js": {
             "bytes": 324,
             "imports": [
                 {
-                    "path": "node_modules/intl-messageformat/lib/src/core.js",
+                    "path": "../node_modules/intl-messageformat/lib/src/core.js",
                     "kind": "import-statement",
                     "original": "./src/core"
                 },
                 {
-                    "path": "node_modules/intl-messageformat/lib/src/formatters.js",
+                    "path": "../node_modules/intl-messageformat/lib/src/formatters.js",
                     "kind": "import-statement",
                     "original": "./src/formatters"
                 },
                 {
-                    "path": "node_modules/intl-messageformat/lib/src/core.js",
+                    "path": "../node_modules/intl-messageformat/lib/src/core.js",
                     "kind": "import-statement",
                     "original": "./src/core"
                 },
                 {
-                    "path": "node_modules/intl-messageformat/lib/src/error.js",
+                    "path": "../node_modules/intl-messageformat/lib/src/error.js",
                     "kind": "import-statement",
                     "original": "./src/error"
                 }
@@ -770,12 +770,12 @@
             "bytes": 14727,
             "imports": [
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/index.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/index.js",
                     "kind": "import-statement",
                     "original": "@dexter/tacocat-core"
                 },
                 {
-                    "path": "node_modules/intl-messageformat/lib/index.js",
+                    "path": "../node_modules/intl-messageformat/lib/index.js",
                     "kind": "import-statement",
                     "original": "intl-messageformat"
                 },
@@ -791,7 +791,7 @@
             "bytes": 2962,
             "imports": [
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/index.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/index.js",
                     "kind": "import-statement",
                     "original": "@dexter/tacocat-core"
                 },
@@ -828,7 +828,7 @@
             "bytes": 914,
             "imports": [
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/index.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/index.js",
                     "kind": "import-statement",
                     "original": "@dexter/tacocat-core"
                 }
@@ -886,7 +886,7 @@
                     "original": "./discount/index.js"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/index.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/index.js",
                     "kind": "import-statement",
                     "original": "@dexter/tacocat-core"
                 },
@@ -922,7 +922,7 @@
                     "original": "./constants.js"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/index.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/index.js",
                     "kind": "import-statement",
                     "original": "@dexter/tacocat-core"
                 },
@@ -948,7 +948,7 @@
                     "original": "./constants.js"
                 },
                 {
-                    "path": "node_modules/@dexter/tacocat-core/src/index.js",
+                    "path": "../node_modules/@dexter/tacocat-core/src/index.js",
                     "kind": "import-statement",
                     "original": "@dexter/tacocat-core"
                 },
@@ -1149,22 +1149,22 @@
             "entryPoint": "src/commerce.js",
             "inputs": {
                 "src/constants.js": { "bytesInOutput": 3909 },
-                "node_modules/@dexter/tacocat-core/src/utilities.js": {
+                "../node_modules/@dexter/tacocat-core/src/utilities.js": {
                     "bytesInOutput": 1324
                 },
-                "node_modules/@dexter/tacocat-core/src/log.js": {
+                "../node_modules/@dexter/tacocat-core/src/log.js": {
                     "bytesInOutput": 541
                 },
-                "node_modules/@dexter/tacocat-core/src/promotion.js": {
+                "../node_modules/@dexter/tacocat-core/src/promotion.js": {
                     "bytesInOutput": 383
                 },
-                "node_modules/@pandora/data-models-odm/esm/businessDimensions.js": {
+                "../node_modules/@pandora/data-models-odm/esm/businessDimensions.js": {
                     "bytesInOutput": 1015
                 },
-                "node_modules/@pandora/data-models-odm/esm/index.js": {
+                "../node_modules/@pandora/data-models-odm/esm/index.js": {
                     "bytesInOutput": 0
                 },
-                "node_modules/@dexter/tacocat-core/src/wcsUtils.js": {
+                "../node_modules/@dexter/tacocat-core/src/wcsUtils.js": {
                     "bytesInOutput": 1085
                 },
                 "src/utilities.js": { "bytesInOutput": 515 },
@@ -1179,53 +1179,53 @@
                 "src/checkout.js": { "bytesInOutput": 1896 },
                 "src/ims.js": { "bytesInOutput": 618 },
                 "src/literals.js": { "bytesInOutput": 171 },
-                "node_modules/tslib/tslib.es6.mjs": { "bytesInOutput": 870 },
-                "node_modules/@formatjs/icu-messageformat-parser/lib/error.js": {
+                "../node_modules/tslib/tslib.es6.mjs": { "bytesInOutput": 870 },
+                "../node_modules/@formatjs/icu-messageformat-parser/lib/error.js": {
                     "bytesInOutput": 1683
                 },
-                "node_modules/@formatjs/icu-messageformat-parser/lib/types.js": {
+                "../node_modules/@formatjs/icu-messageformat-parser/lib/types.js": {
                     "bytesInOutput": 805
                 },
-                "node_modules/@formatjs/icu-messageformat-parser/lib/regex.generated.js": {
+                "../node_modules/@formatjs/icu-messageformat-parser/lib/regex.generated.js": {
                     "bytesInOutput": 54
                 },
-                "node_modules/@formatjs/icu-skeleton-parser/lib/date-time.js": {
+                "../node_modules/@formatjs/icu-skeleton-parser/lib/date-time.js": {
                     "bytesInOutput": 2124
                 },
-                "node_modules/@formatjs/icu-skeleton-parser/lib/index.js": {
+                "../node_modules/@formatjs/icu-skeleton-parser/lib/index.js": {
                     "bytesInOutput": 0
                 },
-                "node_modules/@formatjs/icu-skeleton-parser/lib/regex.generated.js": {
+                "../node_modules/@formatjs/icu-skeleton-parser/lib/regex.generated.js": {
                     "bytesInOutput": 47
                 },
-                "node_modules/@formatjs/icu-skeleton-parser/lib/number.js": {
+                "../node_modules/@formatjs/icu-skeleton-parser/lib/number.js": {
                     "bytesInOutput": 4371
                 },
-                "node_modules/@formatjs/icu-messageformat-parser/lib/time-data.generated.js": {
+                "../node_modules/@formatjs/icu-messageformat-parser/lib/time-data.generated.js": {
                     "bytesInOutput": 5077
                 },
-                "node_modules/@formatjs/icu-messageformat-parser/lib/date-time-pattern-generator.js": {
+                "../node_modules/@formatjs/icu-messageformat-parser/lib/date-time-pattern-generator.js": {
                     "bytesInOutput": 642
                 },
-                "node_modules/@formatjs/icu-messageformat-parser/lib/parser.js": {
+                "../node_modules/@formatjs/icu-messageformat-parser/lib/parser.js": {
                     "bytesInOutput": 16553
                 },
-                "node_modules/@formatjs/icu-messageformat-parser/lib/index.js": {
+                "../node_modules/@formatjs/icu-messageformat-parser/lib/index.js": {
                     "bytesInOutput": 517
                 },
-                "node_modules/@formatjs/fast-memoize/lib/index.js": {
+                "../node_modules/@formatjs/fast-memoize/lib/index.js": {
                     "bytesInOutput": 996
                 },
-                "node_modules/intl-messageformat/lib/src/error.js": {
+                "../node_modules/intl-messageformat/lib/src/error.js": {
                     "bytesInOutput": 941
                 },
-                "node_modules/intl-messageformat/lib/src/formatters.js": {
+                "../node_modules/intl-messageformat/lib/src/formatters.js": {
                     "bytesInOutput": 2245
                 },
-                "node_modules/intl-messageformat/lib/src/core.js": {
+                "../node_modules/intl-messageformat/lib/src/core.js": {
                     "bytesInOutput": 3140
                 },
-                "node_modules/intl-messageformat/lib/index.js": {
+                "../node_modules/intl-messageformat/lib/index.js": {
                     "bytesInOutput": 10
                 },
                 "src/price/numberFormat.js": { "bytesInOutput": 1700 },
@@ -1246,7 +1246,7 @@
                 "src/upt-link.js": { "bytesInOutput": 1649 },
                 "src/commerce.js": { "bytesInOutput": 0 }
             },
-            "bytes": 124558
+            "bytes": 131130
         }
     }
 }

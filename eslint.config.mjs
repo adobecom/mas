@@ -1,5 +1,18 @@
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 
+const ignoresConfig = {
+    ignores: [
+        '/node_modules/',
+        '**/node_modules/**',
+        '/libs/',
+        '**/libs/**',
+        '**/dist/**',
+        'studio/ost/index.js',
+        '**/nala/libs/auth.setup.cjs',
+        '**/nala/libs/webutil.js',
+    ],
+};
+
 const config = {
     rules: {
         'prefer-const': 'error',
@@ -17,8 +30,7 @@ const config = {
             require: 'readonly',
         },
     },
-    ignores: ['/node_modules/', '**/node_modules/**', '/libs/', '**/libs/**', '**/dist/**', 'studio/ost/index.js'],
     ...eslintPluginPrettierRecommended,
 };
 
-export default [config];
+export default [ignoresConfig, config];

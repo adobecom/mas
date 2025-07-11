@@ -185,7 +185,6 @@ export class MasElement {
      * Restores previous state of the component if the `render` method returned `false`.
      */
     requestUpdate(force = false) {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         if (!this.wrapperElement.isConnected || !getService()) return;
         // Batch consecutive updates
         if (this.timer) return;

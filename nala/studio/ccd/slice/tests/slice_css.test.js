@@ -238,7 +238,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(singleSliceCard).toBeVisible();
             expect(
                 await webUtil.verifyCSS(
-                    singleSliceCard.locator(slice.cardPriceStrikethrough),
+                    singleSliceCard.locator(slice.cardPromoPriceStrikethrough),
                     slice.cssProp.strikethroughPrice,
                 ),
             ).toBeTruthy();
@@ -254,7 +254,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(doubleSliceCard).toBeVisible();
             expect(
                 await webUtil.verifyCSS(
-                    doubleSliceCard.locator(slice.cardPriceStrikethrough),
+                    doubleSliceCard.locator(slice.cardPromoPriceStrikethrough),
                     slice.cssProp.strikethroughPrice,
                 ),
             ).toBeTruthy();

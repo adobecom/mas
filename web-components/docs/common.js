@@ -10,7 +10,7 @@ export async function polyfills() {
     if (isSupported) {
         polyfillsPromise = Promise.resolve();
     } else {
-        polyfillsPromise = await import('../dist/custom-elements.js');
+        polyfillsPromise = await import('../../../deps/custom-elements.js');
     }
     return polyfillsPromise;
 }

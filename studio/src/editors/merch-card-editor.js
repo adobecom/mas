@@ -384,6 +384,7 @@ class MerchCardEditor extends LitElement {
                 <sp-field-label for="prices">Prices</sp-field-label>
                 <rte-field
                     id="prices"
+                    styling
                     link
                     data-field="prices"
                     .osi=${form.osi.values[0]}

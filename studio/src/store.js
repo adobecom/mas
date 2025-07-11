@@ -48,6 +48,9 @@ const Store = {
             data: new ReactiveStore([{ value: 'disabled', itemText: 'disabled' }]),
         },
     },
+    profile: new ReactiveStore(),
+    createdByUsers: new ReactiveStore([]),
+    users: new ReactiveStore([]),
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
 };

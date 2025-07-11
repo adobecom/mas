@@ -192,14 +192,14 @@ sp-status-light {
     border-radius: 4px;
 }
 
-.render-fragment:hover {
-    border-color: var(--ccd-gray-200-light, #e6e6e6);
-}
-
 .render-fragment-header {
     display: flex;
     justify-content: space-between;
     padding-inline: 6px;
+}
+
+.unknown-fragment:hover {
+    background-color: var(--spectrum-background-base-color) !important;
 }
 
 rte-field {

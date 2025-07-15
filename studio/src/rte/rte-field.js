@@ -185,6 +185,8 @@ class RteField extends LitElement {
                     --consonant-merch-card-heading-s-line-height: 25px;
                     --consonant-merch-card-heading-m-font-size: 24px;
                     --consonant-merch-card-heading-m-line-height: 30px;
+                    --consonant-merch-card-heading-l-font-size: 28px;
+                    --consonant-merch-card-heading-l-line-height: 36.4px;
                     display: flex;
                     gap: 8px;
                     flex-direction: column;
@@ -452,6 +454,12 @@ class RteField extends LitElement {
                     &.heading-m {
                         font-size: var(--consonant-merch-card-heading-m-font-size);
                         line-height: var(--consonant-merch-card-heading-m-line-height);
+                    }
+
+                    &.heading-l {
+                        font-size: var(--consonant-merch-card-heading-l-font-size);
+                        line-height: var(--consonant-merch-card-heading-l-line-height);
+                        font-weight: 900;
                     }
                 }
 
@@ -817,6 +825,7 @@ class RteField extends LitElement {
                     ...this.getStylingMark('heading-xs', '4'),
                     ...this.getStylingMark('heading-s', '3'),
                     ...this.getStylingMark('heading-m', '2'),
+                    ...this.getStylingMark('heading-l', '2'),
                     ...this.getStylingMark('promo-text'),
                     ...this.getStylingMark('mnemonic-text'),
                 }),
@@ -1610,6 +1619,7 @@ class RteField extends LitElement {
             <sp-menu-item value="heading-xs">Heading XS - H4</sp-menu-item>
             <sp-menu-item value="heading-s">Heading S - H3</sp-menu-item>
             <sp-menu-item value="heading-m">Heading M - H2</sp-menu-item>
+            <sp-menu-item value="heading-l">Heading L - H2</sp-menu-item>
             <sp-menu-divider></sp-menu-divider>
             <sp-menu-item value="promo-text">Promo text</sp-menu-item>
             <sp-menu-item value="mnemonic-text">Mnemonic Text</sp-menu-item>

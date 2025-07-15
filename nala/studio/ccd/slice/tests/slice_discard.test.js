@@ -256,11 +256,11 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(await slice.cardDescription.locator(slice.cardPrice)).toContainText(data.price);
-            await expect(await slice.cardDescription.locator(slice.cardPriceStrikethrough)).toContainText(
+            await expect(await slice.cardDescription.locator(slice.cardPromoPriceStrikethrough)).toContainText(
                 data.strikethroughPrice,
             );
             await expect(await slice.cardDescription.locator(slice.cardPrice)).not.toContainText(data.newPrice);
-            await expect(await slice.cardDescription.locator(slice.cardPriceStrikethrough)).not.toContainText(
+            await expect(await slice.cardDescription.locator(slice.cardPromoPriceStrikethrough)).not.toContainText(
                 data.newStrikethroughPrice,
             );
             await (await studio.getCard(data.cardid)).dblclick();

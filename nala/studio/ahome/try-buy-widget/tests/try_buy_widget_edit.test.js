@@ -302,22 +302,22 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
             await (await editor.prices.locator(editor.regularPrice)).dblclick();
             await expect(await ost.price).toBeVisible();
-            await expect(await ost.priceUse).toBeVisible();
-            await expect(await ost.unitCheckbox).toBeVisible();
-            await ost.unitCheckbox.click();
-            await ost.priceUse.click();
+            await expect(await ost.priceAnnual).toBeVisible();
+            await expect(await ost.priceAnnualUse).toBeVisible();
+            await ost.priceAnnualUse.click();
         });
 
         await test.step('step-4: Validate edited price in Editor panel', async () => {
-            await expect(await editor.prices).toContainText(data.newPrice);
+            await expect(await editor.prices).toContainText(data.annualPrice);
             await expect(await editor.prices).toContainText(data.abmText);
         });
 
         await test.step('step-5: Validate edited price field on the card', async () => {
             await expect(await trybuywidget.cardPriceSlot).toBeVisible();
-            await expect(await trybuywidget.cardPrice).toBeVisible();
+            await expect(await trybuywidget.cardPrice).not.toBeVisible();
+            await expect(await trybuywidget.cardAnnualPrice).toBeVisible();
             await expect(await trybuywidget.cardPriceSlot).toContainText(data.abmText);
-            await expect(await trybuywidget.cardPrice).toContainText(data.newPrice);
+            await expect(await trybuywidget.cardAnnualPrice).toContainText(data.annualPrice);
         });
     });
 

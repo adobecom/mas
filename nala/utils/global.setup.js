@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { exit } from 'process';
 import { execSync } from 'child_process';
 import { isBranchURLValid } from '../libs/baseurl.js';

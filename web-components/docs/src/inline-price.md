@@ -17,17 +17,17 @@ See [MAS](mas.html#terminology) to learn more.
 
 ## Attributes {#attributes}
 
-| Attribute                 | Description                                                                                 | Default Value | Required |
-| ------------------------- | ------------------------------------------------------------------------------------------- | ------------- | -------- |
-| `data-wcs-osi`            | Offer Selector ID                                                                           |               | `true`   |
-| `data-display-old-price`  | Whether to display the old price (in case of flex or legacy promo offer)                    | `true`        | `false`  |
-| `data-display-per-unit`   | Whether to display the price per unit (e.g:, per license)                                   | `false`       | `false`  |
-| `data-display-recurrence` | Whether to display the recurrence information (e.g:, /mo)                                   | `true`        | `false`  |
-| `data-display-tax`        | Whether to display tax information                                                          | `false`       | `false`  |
-| `data-perpetual`          | Whether this is a perpetual offer                                                           | `false`       | `false`  |
-| `data-promotion-code`     | Flex promotion code to apply, if applicable                                                 |               | `false`  |
-| `data-tax-exclusive`      | Whether to force tax exclusive price, if `false`, it's automatic, driven by country service | `false`       | `false`  |
-| `data-template`           | One of price, discount, optical, strikethrough, priceAnnual                                 | price         | `false`  |
+| Attribute                  | Description                                                                                 | Default Value | Required |
+| -------------------------- | ------------------------------------------------------------------------------------------- | ------------- | -------- |
+| `data-wcs-osi`             | Offer Selector ID                                                                           |               | `true`   |
+| `data-display-old-price`   | Whether to display the old price (in case of flex or legacy promo offer)                    | `true`        | `false`  |
+| `data-display-per-unit`    | Whether to display the price per unit (e.g:, per license)                                   | `false`       | `false`  |
+| `data-display-recurrence`  | Whether to display the recurrence information (e.g:, /mo)                                   | `true`        | `false`  |
+| `data-display-tax`         | Whether to display tax information                                                          | `false`       | `false`  |
+| `data-perpetual`           | Whether this is a perpetual offer                                                           | `false`       | `false`  |
+| `data-promotion-code`      | Flex promotion code to apply, if applicable                                                 |               | `false`  |
+| `data-force-tax-exclusive` | Whether to force tax exclusive price, if `false`, it's automatic, driven by country service | `false`       | `false`  |
+| `data-template`            | One of price, discount, optical, strikethrough, priceAnnual                                 | price         | `false`  |
 
 ### data-template values
 

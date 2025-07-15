@@ -48,6 +48,29 @@ describe('onPlaceholderSelect', () => {
         expect(event.detail).to.deep.equal(expectedAttributes);
     });
 
+    it('should dispatch an event with correct attributes for legal', () => {
+        const offerSelectorId = 'test-id';
+        const type = 'legal';
+        const offer = {};
+        const options = {
+            displayPerUnit: true,
+        };
+
+        onPlaceholderSelect(offerSelectorId, type, offer, options);
+
+        const expectedAttributes = {
+            'data-wcs-osi': offerSelectorId,
+            'data-template': type,
+            'data-display-per-unit': true,
+            is: 'inline-price',
+        };
+
+        expect(dispatchEventStub.calledOnce).to.be.true;
+        const event = dispatchEventStub.getCall(0).args[0];
+        expect(event.type).to.equal(EVENT_OST_SELECT);
+        expect(event.detail).to.deep.equal(expectedAttributes);
+    });
+
     it('should dispatch an event with correct attributes for checkout link', () => {
         const offerSelectorId = 'test-id';
         const type = 'checkoutUrl';

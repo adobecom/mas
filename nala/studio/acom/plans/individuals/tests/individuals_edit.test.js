@@ -497,18 +497,34 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.prices).not.toContainText(data.newPrice);
             await expect(await editor.prices).toContainText(data.strikethroughPrice);
             await expect(await editor.prices).not.toContainText(data.newStrikethroughPrice);
-
+            await expect(await editor.prices.locator(editor.promoStrikethroughPrice)).toHaveCSS(
+                'text-decoration-line',
+                'line-through',
+            );
             await (await editor.prices.locator(editor.regularPrice)).dblclick();
             await expect(await ost.price).toBeVisible();
+            await expect(await ost.price).toContainText(data.price);
+            await expect(await ost.price).not.toContainText(data.newPrice);
+            await expect(await ost.price).toContainText(data.strikethroughPrice);
+            await expect(await ost.price).not.toContainText(data.newStrikethroughPrice);
+            await expect(await ost.pricePromoStrikethrough).toHaveCSS('text-decoration-line', 'line-through');
+
             await expect(await ost.priceUse).toBeVisible();
             await expect(await ost.unitCheckbox).toBeVisible();
             await ost.unitCheckbox.click();
+            await expect(await ost.price).toContainText(data.newPrice);
+            await expect(await ost.price).toContainText(data.newStrikethroughPrice);
+            await expect(await ost.pricePromoStrikethrough).toHaveCSS('text-decoration-line', 'line-through');
             await ost.priceUse.click();
         });
 
         await test.step('step-4: Validate edited price in Editor panel', async () => {
             await expect(await editor.prices).toContainText(data.newPrice);
             await expect(await editor.prices).toContainText(data.newStrikethroughPrice);
+            await expect(await editor.prices.locator(editor.promoStrikethroughPrice)).toHaveCSS(
+                'text-decoration-line',
+                'line-through',
+            );
         });
 
         await test.step('step-5: Validate edited price field on the card', async () => {
@@ -516,6 +532,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardPrice).not.toContainText(data.newStrikethroughPrice);
             await expect(await individuals.cardPrice).toContainText(data.price);
             await expect(await individuals.cardPrice).toContainText(data.strikethroughPrice);
+            await expect(await individuals.cardPriceStrikethrough).toHaveCSS('text-decoration-line', 'line-through');
             await expect(await individuals.cardPriceLegal).toBeVisible();
             await expect(await individuals.cardPriceLegal).toContainText(data.legalText);
         });
@@ -1078,12 +1095,17 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-3: Edit CTA in OST', async () => {
             await expect(await editor.footer).toBeVisible();
             await expect(await editor.footer).toContainText(data.ctaText);
+            await expect(await individuals.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
+            await expect(await individuals.cardCTA).toHaveAttribute('is', 'checkout-link');
+            await expect(await individuals.cardCTA).toHaveAttribute('data-checkout-workflow-step', data.workflowStep);
 
             await (await editor.CTA).dblclick();
             await expect(await ost.checkoutTab).toBeVisible();
             await expect(await ost.workflowMenu).toBeVisible();
             await expect(await ost.ctaTextMenu).toBeEnabled();
+            await expect(await ost.checkoutLink).toBeVisible();
             await expect(await ost.checkoutLinkUse).toBeVisible();
+            await expect(await ost.checkoutLink).toHaveAttribute('data-checkout-workflow-step', data.workflowStep);
             await expect(async () => {
                 await ost.ctaTextMenu.click();
                 await expect(
@@ -1099,6 +1121,22 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                     hasText: `${data.newCtaOption}`,
                 })
                 .click();
+            await expect(async () => {
+                await ost.workflowMenu.click();
+                await expect(
+                    page.locator('div[role="option"]', {
+                        hasText: `${data.newWorkflowStep}`,
+                    }),
+                ).toBeVisible({
+                    timeout: 500,
+                });
+            }).toPass();
+            await page
+                .locator('div[role="option"]', {
+                    hasText: `${data.newWorkflowOption}`,
+                })
+                .click();
+            await expect(await ost.checkoutLink).toHaveAttribute('data-checkout-workflow-step', data.newWorkflowStep);
             await ost.checkoutLinkUse.click();
         });
 
@@ -1110,12 +1148,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardCTA).toContainText(data.newCtaText);
             await expect(await individuals.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await individuals.cardCTA).toHaveAttribute('is', 'checkout-link');
+            await expect(await individuals.cardCTA).toHaveAttribute('data-checkout-workflow-step', data.newWorkflowStep);
 
             const CTAhref = await individuals.cardCTA.getAttribute('href');
             let workflowStep = decodeURI(CTAhref).split('?')[0];
             let searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
 
-            expect(workflowStep).toContain(data.ucv3);
+            expect(workflowStep).toContain(data.newUcv3);
             expect(searchParams.get('co')).toBe(data.country);
             expect(searchParams.get('ctx')).toBe(data.ctx);
             expect(searchParams.get('lang')).toBe(data.lang);

@@ -55,22 +55,22 @@
                 <p>mas.js includes the followings custom elements:</p>
                 <ul>
                     <li>
-                        <a href="/web-components/docs/inline-price.html"
+                        <a href="/libs/features/mas/docs/inline-price.html"
                             >inline-price</a
                         >
                     </li>
                     <li>
-                        <a href="/web-components/docs/checkout-link.html"
+                        <a href="/libs/features/mas/docs/checkout-link.html"
                             >checkout-link</a
                         >
                     </li>
                     <li>
-                        <a href="/web-components/docs/checkout-button.html"
+                        <a href="/libs/features/mas/docs/checkout-button.html"
                             >checkout-button</a
                         >
                     </li>
                     <li>
-                        <a href="/web-components/docs/merch-card.html"
+                        <a href="/libs/features/mas/docs/merch-card.html"
                             >merch-card</a
                         >
                     </li>
@@ -100,7 +100,7 @@
                     for in-app usage).
                 </p>
                 <pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">script</span>
-    <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;https://www.adobe.com/mas/dist/custom-elements.js&quot;</span>
+    <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;https://www.adobe.comlibs/deps/custom-elements.js&quot;</span>
 &gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
 </code></pre>
                 <p>
@@ -108,7 +108,7 @@
                     include it as shown below:
                 </p>
                 <pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">script</span>
-    <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;https://www.adobe.com/mas/dist/mas.js&quot;</span>
+    <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;https://www.adobe.com/libs/features/mas/dist/mas.js&quot;</span>
     <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;module&quot;</span>
 &gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
 </code></pre>
@@ -196,20 +196,6 @@
                             <td><code>false</code></td>
                         </tr>
                         <tr>
-                            <td><code>language</code></td>
-                            <td>
-                                language of the price literal, e.g: per license
-                            </td>
-                            <td>en or locale langauge if set</td>
-                            <td><code>false</code></td>
-                        </tr>
-                        <tr>
-                            <td><code>wcs-api-key</code></td>
-                            <td>api key used for making WCS calls</td>
-                            <td><code>wcms-commerce-ims-ro-user-milo</code></td>
-                            <td><code>false</code></td>
-                        </tr>
-                        <tr>
                             <td><code>lana-tags</code></td>
                             <td>
                                 Enables logging via lana<a
@@ -232,6 +218,30 @@
                                 for details.
                             </td>
                             <td>1</td>
+                            <td><code>false</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>language</code></td>
+                            <td>
+                                language of the price literal, e.g: per license
+                            </td>
+                            <td>en or locale language if set</td>
+                            <td><code>false</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>preview</code></td>
+                            <td>
+                                enable preview (will only work on corp network),
+                                can be overriden with parameter
+                                <code>mas.preview=off</code>
+                            </td>
+                            <td>false / off</td>
+                            <td><code>false</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>wcs-api-key</code></td>
+                            <td>api key used for making WCS calls</td>
+                            <td><code>wcms-commerce-ims-ro-user-milo</code></td>
                             <td><code>false</code></td>
                         </tr>
                     </tbody>
@@ -385,7 +395,11 @@
                         <tr>
                             <td>en_US</td>
                             <td>English (United States)</td>
-                            <td><a href="./mas.js.html">Try</a></td>
+                            <td>
+                                <a href="/libs/features/mas/docs/mas.js.html"
+                                    >Try</a
+                                >
+                            </td>
                         </tr>
                         <tr>
                             <td></td>

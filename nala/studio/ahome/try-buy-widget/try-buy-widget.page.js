@@ -8,6 +8,7 @@ export default class TryBuyWidgetPage {
         this.cardImage = page.locator('div[slot="image"] img');
         this.cardPriceSlot = page.locator('p[slot="price"]');
         this.cardPrice = page.locator('span[data-template="price"] > .price').first();
+        this.cardAnnualPrice = page.locator('span[data-template="annual"] > .price').first();
         this.cardPriceStrikethrough = page.locator('span[data-template="price"] > .price-strikethrough');
         this.cardCTASlot = page.locator('div[slot="cta"]');
         this.cardCTA = page.locator('div[slot="cta"] > button');

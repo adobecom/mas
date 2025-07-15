@@ -86,10 +86,11 @@ const OST_TYPE_MAPPING = {
 
 const OST_IS_MAPPING = {
     price: 'inline-price',
-    priceStrikethrough: 'inline-price',
-    priceAnnual: 'inline-price',
-    priceOptical: 'inline-price',
+    strikethrough: 'inline-price',
+    annual: 'inline-price',
+    optical: 'inline-price',
     checkoutUrl: 'checkout-link',
+    legal: 'inline-price',
 };
 
 const OST_OPTION_ATTRIBUTE_MAPPING = {

@@ -14,7 +14,6 @@ import { mockIms } from './mocks/ims.js';
 import { withWcs } from './mocks/wcs.js';
 import mas from './mas.js';
 
-// eslint-disable-next-line import/no-default-export
 export default async () => {
     return runTests(async () => {
         mockIms();

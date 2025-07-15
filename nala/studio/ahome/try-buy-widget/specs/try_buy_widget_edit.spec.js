@@ -85,7 +85,7 @@ export default {
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
                 price: 'US$22.99/mo',
-                newPrice: 'US$22.99/moper license',
+                annualPrice: 'US$275.88/yr',
                 abmText: 'Annual, billed monthly',
             },
             browserParams: '#query=',

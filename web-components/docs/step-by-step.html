@@ -48,7 +48,7 @@
                         >#</a
                     >
                 </h2>
-                <pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;https://www.adobe.com/mas/dist/custom-elements.js&quot;</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
+                <pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;https://www.adobe.comlibs/deps/custom-elements.js&quot;</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
 </code></pre>
                 <p>Example how to load polyfill only if required:</p>
                 <pre><code class="hljs language-js"><span class="hljs-keyword">let</span> isSupported = <span class="hljs-literal">false</span>;
@@ -58,7 +58,7 @@
   },
 });
 <span class="hljs-keyword">if</span> (!isSupported) {
-  <span class="hljs-keyword">await</span> <span class="hljs-keyword">import</span>(<span class="hljs-string">&#x27;https://www.adobe.com/mas/dist/custom-elements.js&#x27;</span>);
+  <span class="hljs-keyword">await</span> <span class="hljs-keyword">import</span>(<span class="hljs-string">&#x27;https://www.adobe.com/libs/deps/custom-elements.js&#x27;</span>);
 }
 </code></pre>
                 <h2 id="2.-import-mas.js" tabindex="-1">
@@ -71,7 +71,7 @@
                         >#</a
                     >
                 </h2>
-                <pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;https://www.adobe.com/mas/dist/mas.js&quot;</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;module&quot;</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
+                <pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;https://www.adobe.com/libs/features/mas/dist/mas.js&quot;</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;module&quot;</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
 </code></pre>
                 <h2
                     id="3.-add-%3Cmas-commerce-service%3E-element"
@@ -87,8 +87,9 @@
                     >
                 </h2>
                 <p>
-                    Preferrably, place it inside the &lt;head&gt; tag. (!) Mas
-                    Commerce Service should be attached to DOM <em>before</em>
+                    Preferrably, place it inside the
+                    <code>&lt;head&gt;</code> tag. (!) Mas Commerce Service
+                    should be attached to DOM <em>before</em>
                     <code>&lt;aem-fragment&gt;</code> elements are created.
                 </p>
                 <pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">head</span>&gt;</span>

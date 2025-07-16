@@ -635,7 +635,7 @@ export class MasRepository extends LitElement {
         }
     }
 
-    async addToIndexFragment(fragment, shouldPublish = false) {
+    async addToIndexFragment(fragment, shouldPublish = true) {
         const parentPath = this.getParentPath(fragment);
 
         const indexPath = `${parentPath}/index`;
@@ -669,7 +669,7 @@ export class MasRepository extends LitElement {
         }
     }
 
-    async removeFromIndexFragment(fragments, shouldPublish = false) {
+    async removeFromIndexFragment(fragments, shouldPublish = true) {
         const fragmentsToRemove = !Array.isArray(fragments) ? [fragments] : fragments;
 
         const parentPath = this.getParentPath(fragmentsToRemove[0]);
@@ -720,7 +720,7 @@ export class MasRepository extends LitElement {
      * @param {boolean} shouldPublish - Whether to publish the index after creation
      * @returns {Promise<boolean>} - Success status
      */
-    async createIndexFragment(parentPath, fragmentPath, shouldPublish = false) {
+    async createIndexFragment(parentPath, fragmentPath, shouldPublish = true) {
         try {
             const indexFragment = await this.aem.sites.cf.fragments.create({
                 parentPath,

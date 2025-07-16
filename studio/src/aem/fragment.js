@@ -40,8 +40,7 @@ export class Fragment {
     }
 
     get statusVariant() {
-        if (this.hasChanges) return 'modified';
-        return this.status === 'PUBLISHED' ? 'published' : 'draft';
+        return this.status.toLowerCase();
     }
 
     getTagTitle(id) {

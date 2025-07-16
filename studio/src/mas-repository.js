@@ -510,10 +510,10 @@ export class MasRepository extends LitElement {
      * @param {boolean} withToast Whether or not to display toasts
      * @returns {Promise<boolean>} Whether or not it was successful
      */
-    async publishFragment(fragment, withToast = true) {
+    async publishFragment(fragment, publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED'], withToast = true) {
         try {
             this.operation.set(OPERATIONS.PUBLISH);
-            await this.aem.sites.cf.fragments.publish(fragment);
+            await this.aem.sites.cf.fragments.publish(fragment, publishReferencesWithStatus);
             if (withToast) showToast('Fragment successfully published.', 'positive');
 
             return true;
@@ -658,7 +658,7 @@ export class MasRepository extends LitElement {
                 console.info(`Fragment already added to index: ${fragment.path}`);
             }
 
-            await this.publishFragment(updatedIndexFragment, false);
+            await this.publishFragment(updatedIndexFragment, [], false);
 
             return true;
         } catch (error) {
@@ -700,7 +700,7 @@ export class MasRepository extends LitElement {
                 console.info(`Fragment(s) already added to index.`);
             }
 
-            await this.publishFragment(updatedIndexFragment, false);
+            await this.publishFragment(updatedIndexFragment, [], false);
 
             return true;
         } catch (error) {
@@ -756,7 +756,7 @@ export class MasRepository extends LitElement {
                 return false;
             }
 
-            await this.publishFragment(indexFragment, false);
+            await this.publishFragment(indexFragment, [], false);
 
             return true;
         } catch (error) {

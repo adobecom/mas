@@ -104,6 +104,28 @@
                         let span = firstStyledElement();
                         expect(span.className).to.equal('promo-text');
                     });
+
+                    it('should apply promo duration text styles', async function () {
+                        rte = await createFromTemplate('rte-marks', this.test.title);
+                        await selectWordsInTextNode(rte.editorView, 'Styling');
+
+                        rte.handleStylingAction('promo-duration-text');
+                        await delay(100);
+
+                        let span = firstStyledElement();
+                        expect(span.className).to.equal('promo-duration-text');
+                    });
+
+                    it('should apply renewal text styles', async function () {
+                        rte = await createFromTemplate('rte-marks', this.test.title);
+                        await selectWordsInTextNode(rte.editorView, 'Styling');
+
+                        rte.handleStylingAction('renewal-text');
+                        await delay(100);
+
+                        let span = firstStyledElement();
+                        expect(span.className).to.equal('renewal-text');
+                    });
                 });
 
                 // Theses are not very stable in headless chrome. Enable them for localing.
@@ -380,6 +402,9 @@
                 <br />
                 <rte-field>some text</rte-field>
             </div>
+        </template>
+        <template id="rte-marks">
+            <rte-field styling marks="promo-text,promo-duration-text,renewal-text"> Styling </rte-field>
         </template>
     </body>
 </html>

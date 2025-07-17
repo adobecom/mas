@@ -833,17 +833,12 @@ export class MasRepository extends LitElement {
         if (Store.placeholders.addons.data.get().length > 1) return;
         Store.placeholders.addons.loading.set(true);
         try {
-            const cursor = await this.aem.sites.cf.fragments.search(
-                {
-                    path: `${this.parentPath}/dictionary`,
-                },
-                null,
-                this.#abortControllers.search,
-            );
-
-            const result = await cursor.next();
+            const options = {
+                path: `${this.parentPath}/dictionary`,
+            };
+            const fragments = await this.searchFragmentList(options);
             const addonFragments = [];
-            for await (const item of result.value) {
+            for await (const item of fragments) {
                 const key = item.fields.find((field) => field.name === 'key')?.values[0];
                 if (/^addon-/.test(key)) {
                     addonFragments.push({ value: key, itemText: key });

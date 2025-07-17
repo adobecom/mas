@@ -442,6 +442,231 @@ class AEM {
         return response; //204 No Content
     }
 
+    async moveFragment(fragment, newParentPath) {
+        if (!fragment || !fragment.path || fragment.path.trim() === '') {
+            throw new Error('Invalid fragment: missing or empty path');
+        }
+        
+        // Extract the asset name and locale from the path
+        const pathParts = fragment.path.split('/');
+        const assetName = pathParts.pop();
+        
+        // Check if the parent folder is a locale folder (e.g., en_US, fr_FR)
+        const localePattern = /^[a-z]{2}_[A-Z]{2}$/;
+        let locale = '';
+        
+        if (pathParts.length > 0 && localePattern.test(pathParts[pathParts.length - 1])) {
+            locale = pathParts[pathParts.length - 1];
+        }
+        
+        // Build the new path with locale if present
+        let finalNewPath = newParentPath;
+        if (locale) {
+            finalNewPath = `${newParentPath}/${locale}`;
+        }
+        
+        const oldAssetPath = fragment.path.replace('/content/dam/', '');
+        const newAssetPath = finalNewPath.replace('/content/dam/', '') + '/' + assetName;
+        const url = `${this.baseUrl}/api/assets/${oldAssetPath}`;
+        const destination = `/api/assets/${newAssetPath}`;
+        
+        // Get CSRF token
+        const csrfToken = await this.getCsrfToken();
+        
+        try {
+            // First attempt: Try the standard MOVE operation
+            const response = await fetch(url, {
+                method: 'MOVE',
+                headers: {
+                    ...this.headers,
+                    'Destination': destination,
+                    'CSRF-Token': csrfToken,
+                },
+            }).catch((err) => {
+                // If MOVE fails due to CORS, we'll catch it here
+                if (err.message.includes('CORS') || err.message.includes('Failed to fetch')) {
+                    throw new Error('CORS_ERROR');
+                }
+                throw err;
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Move failed: ${response.status} ${response.statusText}`);
+            }
+            
+        } catch (err) {
+            if (err.message === 'CORS_ERROR' || err.message.includes('Failed to fetch')) {
+                // CORS issue detected, try copy + delete approach
+                console.log('MOVE blocked by CORS, attempting copy + delete approach');
+                
+                // Copy the fragment using the create API
+                try {
+                    // First, get the full fragment data
+                    const fullFragment = await this.sites.cf.fragments.getById(fragment.id);
+                    
+                    // Check if a fragment with the same name already exists and generate unique name
+                    let finalAssetName = assetName;
+                    let nameAttempt = 0;
+                    const maxAttempts = 10;
+                    
+                    while (nameAttempt < maxAttempts) {
+                        try {
+                            const checkPath = `${finalNewPath}/${finalAssetName}`;
+                            await this.sites.cf.fragments.getByPath(checkPath);
+                            // If we get here, the fragment exists, so we need a new name
+                            nameAttempt++;
+                            
+                            // Extract base name and extension if present
+                            const lastDotIndex = assetName.lastIndexOf('.');
+                            let baseName = assetName;
+                            let extension = '';
+                            
+                            if (lastDotIndex > 0) {
+                                baseName = assetName.substring(0, lastDotIndex);
+                                extension = assetName.substring(lastDotIndex);
+                            }
+                            
+                            // Generate new name with number suffix
+                            finalAssetName = `${baseName}-${nameAttempt}${extension}`;
+                            console.warn(`Fragment '${assetName}' already exists. Trying '${finalAssetName}'`);
+                        } catch (err) {
+                            // Fragment doesn't exist, we can use this name
+                            break;
+                        }
+                    }
+                    
+                    if (nameAttempt >= maxAttempts) {
+                        throw new Error(`Cannot create unique name for fragment after ${maxAttempts} attempts`);
+                    }
+                    
+                    if (nameAttempt > 0) {
+                        console.log(`Fragment will be renamed from '${assetName}' to '${finalAssetName}' to avoid conflicts`);
+                    }
+                    
+                    // Create a copy in the new location
+                    const copyData = {
+                        title: fullFragment.title,
+                        description: fullFragment.description,
+                        modelId: fullFragment.model.id,
+                        parentPath: finalNewPath,
+                        name: finalAssetName,
+                        fields: fullFragment.fields,
+                    };
+                    
+                    const copyResponse = await fetch(this.cfFragmentsUrl, {
+                        method: 'POST',
+                        headers: {
+                            ...this.headers,
+                            'Content-Type': 'application/json',
+                            'CSRF-Token': csrfToken,
+                        },
+                        body: JSON.stringify(copyData),
+                    });
+                    
+                    if (!copyResponse.ok) {
+                        const errorText = await copyResponse.text().catch(() => '');
+                        throw new Error(`Copy failed: ${copyResponse.status} ${errorText}`);
+                    }
+                    
+                    const copiedFragment = await copyResponse.json();
+                    
+                    // Wait a bit for the copy to be fully created
+                    await this.wait(1000);
+                    
+                    // Add tags if the original had any
+                    if (fullFragment.tags && fullFragment.tags.length > 0) {
+                        try {
+                            await this.saveTags({ ...copiedFragment, newTags: fullFragment.tags });
+                        } catch (tagErr) {
+                            console.warn('Failed to copy tags to new fragment:', tagErr);
+                            // Don't fail the operation if tags couldn't be copied
+                        }
+                    }
+                    
+                    // Now delete the original with fresh ETag
+                    try {
+                        // Get fresh fragment data with current ETag
+                        const freshFragment = await this.getFragmentWithEtag(fragment.id);
+                        if (freshFragment) {
+                            await this.deleteFragment(freshFragment);
+                        } else {
+                            console.error('Could not get fresh fragment data for deletion');
+                            throw new Error('Could not get fragment data for deletion');
+                        }
+                    } catch (deleteErr) {
+                        console.error('Failed to delete original after copy:', deleteErr);
+                        
+                        // Try one more time with a delay in case of timing issues
+                        await this.wait(1000);
+                        try {
+                            const retryFragment = await this.getFragmentWithEtag(fragment.id);
+                            if (retryFragment) {
+                                await this.deleteFragment(retryFragment);
+                                console.log('Successfully deleted original on retry');
+                            }
+                        } catch (retryErr) {
+                            console.error('Failed to delete original on retry:', retryErr);
+                            // The copy succeeded, so we have a duplicate now
+                            // Check if it's a reference error
+                            let warningMessage;
+                            if (retryErr.message && retryErr.message.includes('referencing it')) {
+                                warningMessage = nameAttempt > 0 
+                                    ? `Fragment was copied and renamed to '${finalAssetName}'. The original could not be deleted because other content is referencing it. You now have both fragments.`
+                                    : `Fragment was copied successfully. The original could not be deleted because other content is referencing it. You now have a duplicate.`;
+                            } else {
+                                warningMessage = nameAttempt > 0 
+                                    ? `Fragment was copied and renamed to '${finalAssetName}' but the original could not be deleted. You now have both fragments.`
+                                    : `Fragment was copied but the original could not be deleted. You now have a duplicate.`;
+                            }
+                            
+                            // Store warning to show to user
+                            copiedFragment._moveWarning = warningMessage;
+                            copiedFragment._renamedTo = finalAssetName; // Store the new name
+                        }
+                    }
+                    
+                    // Return the copied fragment with metadata
+                    const finalFragment = await this.sites.cf.fragments.getById(copiedFragment.id);
+                    if (nameAttempt > 0) {
+                        finalFragment._renamedTo = finalAssetName;
+                    }
+                    if (copiedFragment._moveWarning) {
+                        finalFragment._moveWarning = copiedFragment._moveWarning;
+                    }
+                    return finalFragment;
+                    
+                } catch (copyErr) {
+                    throw new Error(`Alternative move approach failed: ${copyErr.message}`);
+                }
+            } else {
+                throw new Error(`Failed to move fragment: ${err.message}`);
+            }
+        }
+        
+        // Wait for move operation to complete
+        await this.wait(1000);
+        
+        // Get the moved fragment
+        const newPath = `${finalNewPath}/${assetName}`;
+        try {
+            const moved = await this.sites.cf.fragments.getByPath(newPath);
+            return await this.sites.cf.fragments.getById(moved.id);
+        } catch (err) {
+            // If we can't find it by path, try searching for it
+            console.warn('Could not find moved fragment by path, searching...');
+            const searchResults = this.searchFragment({ path: finalNewPath, query: assetName });
+            for await (const result of searchResults) {
+                if (result.items && result.items.length > 0) {
+                    const movedFragment = result.items.find(item => item.name === assetName);
+                    if (movedFragment) {
+                        return await this.sites.cf.fragments.getById(movedFragment.id);
+                    }
+                }
+            }
+            throw new Error('Move operation completed but could not retrieve moved fragment');
+        }
+    }
+
     async listFolders(path) {
         const name = path?.replace(/^\/content\/dam/, '');
         const response = await fetch(
@@ -490,7 +715,7 @@ class AEM {
             throw new Error('Fragment ID is required');
         }
 
-        const response = await fetch(`${this.cfFragmentsUrl}/${id}`, {
+        const response = await fetch(`${this.cfFragmentsUrl}/${id}?references=direct-hydrated`, {
             method: 'GET',
             headers: {
                 Accept: 'application/json',
@@ -547,6 +772,10 @@ class AEM {
                  * @see AEM#deleteFragment
                  */
                 delete: this.deleteFragment.bind(this),
+                /**
+                 * @see AEM#moveFragment
+                 */
+                move: this.moveFragment.bind(this),
             },
         },
     };

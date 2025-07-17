@@ -1,6 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { EVENT_KEYDOWN } from './constants.js';
 import ReactiveController from './reactivity/reactive-controller.js';
+import Store from './store.js';
 
 class MasSelectionPanel extends LitElement {
     static styles = css`
@@ -18,6 +19,7 @@ class MasSelectionPanel extends LitElement {
         onDelete: { type: Function, attribute: false },
         onPublish: { type: Function, attribute: false },
         onUnpublish: { type: Function, attribute: false },
+        onMove: { type: Function, attribute: false },
     };
 
     constructor() {
@@ -29,6 +31,7 @@ class MasSelectionPanel extends LitElement {
         this.onDelete = null;
         this.onPublish = null;
         this.onUnpublish = null;
+        this.onMove = null;
 
         this.close = this.close.bind(this);
     }
@@ -65,6 +68,28 @@ class MasSelectionPanel extends LitElement {
         this.onDelete(this.selection, event);
     }
 
+    handleMove() {
+        // Get the first selected item
+        const firstSelection = this.selection[0];
+        
+        // If it's a FragmentStore, get the fragment
+        if (firstSelection && typeof firstSelection.get === 'function') {
+            this.onMove(firstSelection.get());
+        } else if (typeof firstSelection === 'string') {
+            // If it's just an ID, we need to find the full fragment from fragment stores
+            const fragmentStores = Store.fragments.list.data.get();
+            const fragmentStore = fragmentStores.find(store => store.get().id === firstSelection);
+            if (fragmentStore) {
+                this.onMove(fragmentStore.get());
+            } else {
+                console.error('Could not find fragment with ID:', firstSelection);
+            }
+        } else {
+            // Assume it's already a fragment object
+            this.onMove(firstSelection);
+        }
+    }
+
     handlePublish(event) {
         this.onPublish(this.selection, event);
     }
@@ -81,14 +106,23 @@ class MasSelectionPanel extends LitElement {
             ${count} selected
             ${count === 1
                 ? html`<sp-action-button
-                      slot="buttons"
-                      label="Duplicate"
-                      ?disabled=${!this.onDuplicate}
-                      @click=${this.handleDuplicate}
-                  >
-                      <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
-                      <sp-tooltip self-managed placement="top">Duplicate</sp-tooltip>
-                  </sp-action-button>`
+                          slot="buttons"
+                          label="Duplicate"
+                          ?disabled=${!this.onDuplicate}
+                          @click=${this.handleDuplicate}
+                      >
+                          <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
+                          <sp-tooltip self-managed placement="top">Duplicate</sp-tooltip>
+                      </sp-action-button>
+                      <sp-action-button
+                          slot="buttons"
+                          label="Move"
+                          ?disabled=${!this.onMove}
+                          @click=${() => this.handleMove()}
+                      >
+                          <sp-icon-folder-open slot="icon"></sp-icon-folder-open>
+                          <sp-tooltip self-managed placement="top">Move to folder</sp-tooltip>
+                      </sp-action-button>`
                 : nothing}
             ${count > 0
                 ? html`<sp-action-button slot="buttons" label="Delete" ?disabled=${!this.onDelete} @click=${this.handleDelete}>

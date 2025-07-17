@@ -79,6 +79,14 @@ class MasContent extends LitElement {
         fragmentElement.scrollIntoView({ behavior: 'smooth' });
     }
 
+    updateTableSelection(event) {
+        const selectedIds = Array.from(event.target.selectedSet);
+        const selectedFragments = selectedIds
+            .map((id) => this.fragments.value.find((store) => store.get().id === id))
+            .filter(Boolean);
+        Store.selection.set(selectedFragments);
+    }
+
     get renderView() {
         return html`
             <div id="render">
@@ -86,9 +94,6 @@ class MasContent extends LitElement {
                     this.fragments.value.filter((fragmentStore) => {
                         const value = fragmentStore.get();
                         if (!value) return false;
-                        if (fragmentStore.new) return true;
-                        if (value.model?.path === CARD_MODEL_PATH && !variantValues.includes(fragmentStore.value.variant))
-                            return false;
                         return true;
                     }),
                     (fragmentStore) => fragmentStore.get()?.path || fragmentStore.id || Math.random(),
@@ -96,10 +101,6 @@ class MasContent extends LitElement {
                 )}
             </div>
         `;
-    }
-
-    updateTableSelection(event) {
-        Store.selection.set(Array.from(event.target.selectedSet));
     }
 
     get tableView() {

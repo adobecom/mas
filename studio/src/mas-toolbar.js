@@ -5,6 +5,7 @@ import './mas-folder-picker.js';
 import './aem/mas-filter-panel.js';
 import './mas-selection-panel.js';
 import './mas-create-dialog.js';
+import './mas-move-dialog.js';
 
 const renderModes = [
     {
@@ -35,6 +36,8 @@ class MasToolbar extends LitElement {
         createDialogOpen: { state: true },
         selectedContentType: { state: true },
         filterCount: { state: true },
+        moveDialogOpen: { state: true },
+        fragmentToMove: { state: true },
     };
 
     static styles = css`
@@ -128,6 +131,10 @@ class MasToolbar extends LitElement {
         this.createDialogOpen = false;
         this.selectedContentType = 'merch-card';
         this.filterCount = 0;
+        this.moveDialogOpen = false;
+        this.fragmentToMove = null;
+
+        this.handleMove = this.handleMove.bind(this);
     }
 
     filters = new StoreController(this, Store.filters);
@@ -282,6 +289,38 @@ class MasToolbar extends LitElement {
         Store.selecting.set(false);
     }
 
+    handleMove(fragmentOrSelection) {
+        let fragment = fragmentOrSelection;
+        
+        // Handle case where entire selection array is passed
+        if (Array.isArray(fragmentOrSelection) && fragmentOrSelection.length > 0) {
+            const firstId = fragmentOrSelection[0];
+            if (typeof firstId === 'string') {
+                // Find the fragment by ID
+                const fragmentStores = Store.fragments.list.data.get();
+                const fragmentStore = fragmentStores.find(store => store.get().id === firstId);
+                if (fragmentStore) {
+                    fragment = fragmentStore.get();
+                } else {
+                    console.error('Could not find fragment with ID:', firstId);
+                    return;
+                }
+            }
+        }
+        
+        if (fragment && !Array.isArray(fragment)) {
+            this.fragmentToMove = fragment;
+            this.moveDialogOpen = true;
+        }
+    }
+
+    handleFragmentMoved() {
+        this.moveDialogOpen = false;
+        this.fragmentToMove = null;
+        Store.selection.set([]);
+        Store.selecting.set(false);
+    }
+
     render() {
         return html`<div id="toolbar">
                 <div id="actions">${this.searchAndFilterControls} ${this.contentManagementControls} ${this.selectionPanel}</div>
@@ -290,6 +329,7 @@ class MasToolbar extends LitElement {
             <mas-selection-panel
                 ?open=${this.selecting.value}
                 .selectionStore=${Store.selection}
+                .onMove=${this.handleMove}
                 @close=${this.handleSelectionPanelClose}
             ></mas-selection-panel>
             ${this.createDialogOpen
@@ -297,6 +337,16 @@ class MasToolbar extends LitElement {
                       type=${this.selectedContentType}
                       @close=${() => (this.createDialogOpen = false)}
                   ></mas-create-dialog>`
+                : nothing}
+            ${this.moveDialogOpen && this.fragmentToMove
+                ? html`<mas-move-dialog
+                      .fragment=${this.fragmentToMove}
+                      @fragment-moved=${this.handleFragmentMoved}
+                      @dialog-closed=${() => {
+                          this.moveDialogOpen = false;
+                          this.fragmentToMove = null;
+                      }}
+                  ></mas-move-dialog>`
                 : nothing} `;
     }
 }

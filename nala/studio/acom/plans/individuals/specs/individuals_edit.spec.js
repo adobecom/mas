@@ -335,5 +335,19 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
         },
+        {
+            tcid: '25',
+            name: '@studio-plans-individuals-add-description-price-legal-disclamer',
+            path: '/studio.html',
+            data: {
+                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
+                newosi: 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8',
+                legalDisclaimer: 'per license (Annual, paid monthly.)',
+                cardLegalDisclaimer: 'per license',
+            },
+            browserParams: '#query=',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+        },
     ],
 };

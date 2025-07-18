@@ -113,6 +113,14 @@ class MasStudio extends LitElement {
     renderCommerceService() {
         const env = this.commerceEnv.value === WCS_ENV_STAGE ? WCS_ENV_STAGE : WCS_ENV_PROD;
         this.commerceService.outerHTML = `<mas-commerce-service env="${env}" locale="${Store.filters.value.locale}"></mas-commerce-service>`;
+        function rtePriceProvider(element, options) {
+            if (element.dataset.template !== 'legal') return;
+            if (!element.getRootNode()?.host?.nodeName === 'RTE-FIELD') return;
+            options.displayPlanType = true;
+        }
+        this.commerceService.addEventListener('wcms:commerce:ready', () => {
+            this.commerceService.providers.price(rtePriceProvider);
+        });
     }
 
     update() {

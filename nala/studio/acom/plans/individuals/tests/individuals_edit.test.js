@@ -1287,4 +1287,47 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardCTA).not.toHaveAttribute('href', /apc=/);
         });
     });
+
+    // @studio-plans-individuals-add-description-price-legal-disclamer - Validate adding legal disclamer in description for plans individuals card in mas studio
+    test(`${features[25].name},${features[25].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[25];
+        const testPage = `${baseURL}${features[25].path}${miloLibs}${features[25].browserParams}${data.cardid}`;
+        console.info('[Test Page]: ', testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'plans');
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Edit description field', async () => {
+            await expect(await editor.description).toBeVisible();
+            await expect(await editor.description).not.toContainText(data.legalDisclaimer);
+            await editor.descriptionFieldGroup.locator(editor.OSTButton).click();
+            await ost.backButton.click();
+            await page.waitForTimeout(2000);
+            await expect(await ost.searchField).toBeVisible();
+            await ost.searchField.fill(data.newosi);
+            await (await ost.nextButton).click();
+            await ost.legalDisclaimer.scrollIntoViewIfNeeded();
+            await expect(await ost.legalDisclaimer).not.toContainText(data.cardLegalDisclaimer);
+            await expect(await ost.unitCheckbox).toBeVisible();
+            await ost.unitCheckbox.click();
+            await expect(await ost.legalDisclaimer).toContainText(data.cardLegalDisclaimer);
+            await expect(await ost.legalDisclaimerUse).toBeVisible();
+            await ost.legalDisclaimerUse.click();
+            await page.waitForTimeout(5000);
+        });
+
+        await test.step('step-4: Validate description field updated', async () => {
+            await expect(await editor.description).toContainText(data.legalDisclaimer);
+            await expect(await individuals.cardDescription).toContainText(data.cardLegalDisclaimer);
+        });
+    });
 });

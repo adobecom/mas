@@ -118,7 +118,9 @@ class MasStudio extends LitElement {
             if (!element.getRootNode()?.host?.nodeName === 'RTE-FIELD') return;
             options.displayPlanType = true;
         }
-        this.commerceService.providers.price(rtePriceProvider);
+        this.commerceService.addEventListener('wcms:commerce:ready', () => {
+            this.commerceService.providers.price(rtePriceProvider);
+        });
     }
 
     update() {

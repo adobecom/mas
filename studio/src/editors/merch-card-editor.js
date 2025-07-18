@@ -386,6 +386,7 @@ class MerchCardEditor extends LitElement {
                     id="prices"
                     styling
                     link
+                    tooltip
                     data-field="prices"
                     .osi=${form.osi.values[0]}
                     default-link-style="primary-outline"
@@ -434,7 +435,7 @@ class MerchCardEditor extends LitElement {
                     link
                     upt-link
                     list
-                    mnemonic
+                    tooltip
                     data-field="description"
                     .osi=${form.osi.values[0]}
                     default-link-style="secondary-link"

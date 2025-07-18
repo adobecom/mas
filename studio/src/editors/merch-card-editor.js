@@ -10,6 +10,7 @@ import '../rte/osi-field.js';
 import { CARD_MODEL_PATH } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
+import '../fields/per-unit-label-field.js';
 import { getFragmentMapping } from '../utils.js';
 import '../fields/addon-field.js';
 import Store from '../store.js';
@@ -566,6 +567,16 @@ class MerchCardEditor extends LitElement {
                 value="${this.fragment.tags.map((tag) => tag.id).join(',')}"
                 @change=${this.#handeTagsChange}
             ></aem-tag-picker-field>
+            <sp-divider></sp-divider>
+            <sp-field-group id="perUnitLabel">
+                <mas-per-unit-label-field
+                    id="per-unit-label-field"
+                    label="Per Unit Label Override"
+                    data-field="perUnitLabel"
+                    value="${form.perUnitLabel?.values[0]}"
+                    @input="${this.updateFragment}"
+                ></mas-per-unit-label-field>
+            </sp-field-group>
         `;
     }
 

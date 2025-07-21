@@ -124,9 +124,7 @@ class MasStudio extends LitElement {
         if (!this.commerceService.providers.price) {
             console.log(typeof this.commerceService.providers.price === 'function');
         }
-        this.commerceService.addEventListener('wcms:commerce:ready', () => {
-            this.commerceService.providers.price(rtePriceProvider);
-        });
+        this.commerceService.providers.price(rtePriceProvider);
     }
 
     update() {

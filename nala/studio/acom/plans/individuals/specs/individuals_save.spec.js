@@ -242,5 +242,18 @@ export default {
             browserParams: '#query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
+        {
+            tcid: '19',
+            name: '@studio-plans-individuals-save-add-description-price-legal-disclamer',
+            path: '/studio.html',
+            data: {
+                cardid: 'c72789db-f4c0-4b72-a6ba-3b73b05ae91a',
+                osi: 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8',
+                legalDisclaimer: 'par licence (TVA comprise. Annual, paid monthly.)',
+                cardLegalDisclaimer: 'par licence (TVA comprise)',
+            },
+            browserParams: '#locale=fr_FR&query=',
+            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
+        },
     ],
 };

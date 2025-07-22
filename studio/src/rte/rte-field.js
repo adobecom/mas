@@ -788,6 +788,7 @@ class RteField extends LitElement {
                     'data-template': { default: null },
                     title: { default: null },
                     target: { default: null },
+                    'aria-label': { default: null },
                     'data-analytics-id': { default: null },
                     'data-modal': { default: null },
                     'data-entitlement': { default: null },
@@ -795,7 +796,7 @@ class RteField extends LitElement {
                     'data-cta-toggle-text': { default: null },
                 },
                 // Disallow styling marks inside links (they can still wrap them)
-                marks: 'em strong strikethrough underline',
+                marks: 'em strong strikethrough underline superscript',
                 parseDOM: [
                     {
                         tag: 'a',
@@ -820,6 +821,10 @@ class RteField extends LitElement {
                 underline: {
                     parseDOM: [{ tag: 'u' }],
                     toDOM: () => ['u', 0],
+                },
+                superscript: {
+                    parseDOM: [{ tag: 'sup' }],
+                    toDOM: () => ['sup', 0],
                 },
                 ...(this.styling && {
                     ...this.getStylingMark('heading-xxxs', '6'),
@@ -858,6 +863,7 @@ class RteField extends LitElement {
                 'Mod-k': () => this.openLinkEditor(),
                 'Mod-s': toggleMark(this.#editorSchema.marks.strikethrough),
                 'Mod-u': toggleMark(this.#editorSchema.marks.underline),
+                'Mod-Shift-.': toggleMark(this.#editorSchema.marks.superscript),
                 'Mod-z': undo,
                 'Mod-y': redo,
                 'Shift-Mod-z': redo,
@@ -1064,6 +1070,7 @@ class RteField extends LitElement {
                 text: selection.node.textContent || '',
                 target: selection.node.attrs.target || '_self',
                 variant: selection.node.attrs.class || '',
+                ariaLabel: selection.node.attrs['aria-label'] || '',
                 analyticsId: selection.node.attrs['data-analytics-id'] || '',
                 checkoutParameters,
                 ctaToggleText: selection.node.attrs['data-cta-toggle-text'] || '',
@@ -1082,6 +1089,7 @@ class RteField extends LitElement {
                 text,
                 target: '_self',
                 variant: this.defaultLinkStyle,
+                ariaLabel: '',
                 analyticsId: '',
                 checkoutParameters,
                 ctaToggleText: '',
@@ -1095,6 +1103,7 @@ class RteField extends LitElement {
             text: '',
             target: '_self',
             variant: this.defaultLinkStyle,
+            ariaLabel: '',
             analyticsId: '',
             checkoutParameters,
             ctaToggleText: '',
@@ -1114,7 +1123,7 @@ class RteField extends LitElement {
     }
 
     #handleLinkSave(event) {
-        const { href, text, title, target, variant, analyticsId, ctaToggleText } = event.detail;
+        const { href, text, title, ariaLabel, target, variant, analyticsId, ctaToggleText } = event.detail;
 
         let { checkoutParameters } = event.detail;
         const { state, dispatch } = this.editorView;
@@ -1134,6 +1143,7 @@ class RteField extends LitElement {
         const linkAttrs = {
             href,
             title,
+            'aria-label': ariaLabel || null,
             target: target || '_self',
             class: variant || 'primary-outline',
             tabIndex: '0',
@@ -1603,6 +1613,13 @@ class RteField extends LitElement {
                 @mousedown=${(e) => e.preventDefault()}
             >
                 <sp-icon-underline slot="icon"></sp-icon-underline>
+            </sp-action-button>
+            <sp-action-button
+                @click=${this.#handleToolbarAction('superscript')}
+                @mousedown=${(e) => e.preventDefault()}
+                title="Superscript (Command+Shift+.)"
+            >
+                <span slot="icon" style="font-family: sans-serif; font-size: 14px; font-weight: bold;">x²</span>
             </sp-action-button>
         `;
     }

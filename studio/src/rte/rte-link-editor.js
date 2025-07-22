@@ -11,6 +11,7 @@ export class RteLinkEditor extends LitElement {
         title: { type: String },
         target: { type: String },
         variant: { type: String },
+        ariaLabel: { type: String },
         checkoutParameters: {
             type: String,
             attribute: 'checkout-parameters',
@@ -89,6 +90,7 @@ export class RteLinkEditor extends LitElement {
         this.href = '';
         this.text = '';
         this.title = '';
+        this.ariaLabel = '';
         this.checkoutParameters = undefined;
         this.variant = 'accent';
         this.target = '_self';
@@ -277,6 +279,14 @@ export class RteLinkEditor extends LitElement {
                             @input=${(e) => (this.title = e.target.value)}
                         ></sp-textfield>
 
+                        <sp-field-label for="linkAriaLabel">Aria Label</sp-field-label>
+                        <sp-textfield
+                            id="linkAriaLabel"
+                            placeholder="Accessible label for screen readers"
+                            .value=${this.ariaLabel}
+                            @input=${(e) => (this.ariaLabel = e.target.value)}
+                        ></sp-textfield>
+
                         <sp-field-label for="linkTarget">Target</sp-field-label>
                         <sp-picker id="linkTarget" .value=${this.target} @change=${(e) => (this.target = e.target.value)}>
                             <sp-menu>
@@ -306,6 +316,14 @@ export class RteLinkEditor extends LitElement {
                             placeholder="Link title"
                             .value=${this.title}
                             @input=${(e) => (this.title = e.target.value)}
+                        ></sp-textfield>
+
+                        <sp-field-label for="phoneAriaLabel">Aria Label</sp-field-label>
+                        <sp-textfield
+                            id="phoneAriaLabel"
+                            placeholder="Accessible label for screen readers"
+                            .value=${this.ariaLabel}
+                            @input=${(e) => (this.ariaLabel = e.target.value)}
                         ></sp-textfield>
                     </div>
                 </sp-tab-panel>
@@ -350,6 +368,7 @@ export class RteLinkEditor extends LitElement {
             href,
             text: this.text,
             title: this.title,
+            ariaLabel: this.ariaLabel,
             target: this.target,
             variant: this.variant,
             analyticsId: this.analyticsId,

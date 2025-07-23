@@ -75,6 +75,8 @@ const getProducts = async (params) => {
         { locale: 'en_US', landscape: 'PUBLISHED' },
         { locale: 'en_CA', landscape: 'DRAFT' },
         { locale: 'en_CA', landscape: 'PUBLISHED' },
+        { locale: 'en_IN', landscape: 'DRAFT' },
+        { locale: 'en_IN', landscape: 'PUBLISHED' },
     ];
     const allProducts = { DRAFT: {}, PUBLISHED: {} };
     const promises = options.map((option) => {

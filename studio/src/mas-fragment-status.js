@@ -1,4 +1,4 @@
-import { html, css, LitElement } from 'lit';
+import { html, css, LitElement, nothing } from 'lit';
 import { toPascalCase } from './utils.js';
 
 class MasFragmentStatus extends LitElement {
@@ -50,7 +50,7 @@ class MasFragmentStatus extends LitElement {
     `;
 
     static properties = {
-        variant: { type: String, attribute: true },
+        variant: { type: String, attribute: true, reflect: true },
     };
 
     get label() {
@@ -59,12 +59,17 @@ class MasFragmentStatus extends LitElement {
 
     get lightVariant() {
         switch (this.variant) {
+            case 'new':
+            case 'draft':
+                return 'info';
             case 'published':
                 return 'positive';
             case 'modified':
                 return 'yellow';
+            case 'unpublished':
+                return 'neutral';
             default:
-                return 'info';
+                return '';
         }
     }
 

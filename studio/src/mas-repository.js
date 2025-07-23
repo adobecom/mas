@@ -1,10 +1,11 @@
 import { LitElement, nothing } from 'lit';
 import StoreController from './reactivity/store-controller.js';
+import { FragmentStore } from './reactivity/fragment-store.js';
+import ReactiveController from './reactivity/reactive-controller.js';
 import Store, { editFragment } from './store.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
-import { FragmentStore } from './reactivity/fragment-store.js';
 import { debounce, looseEquals, showToast, UserFriendlyError } from './utils.js';
 import {
     OPERATIONS,
@@ -72,6 +73,7 @@ export class MasRepository extends LitElement {
         this.filters = new StoreController(this, Store.filters);
         this.page = new StoreController(this, Store.page);
         this.foldersLoaded = new StoreController(this, Store.folders.loaded);
+        this.reactiveController = new ReactiveController(this, [Store.profile, Store.createdByUsers]);
         this.recentlyUpdatedLimit = new StoreController(this, Store.fragments.recentlyUpdated.limit);
         this.handleSearch = debounce(this.handleSearch.bind(this), 50);
     }
@@ -111,6 +113,7 @@ export class MasRepository extends LitElement {
     }
 
     handleSearch() {
+        if (!Store.profile.value) return;
         switch (this.page.value) {
             case PAGE_NAMES.CONTENT:
                 this.searchFragments();
@@ -177,6 +180,7 @@ export class MasRepository extends LitElement {
 
     async searchFragments() {
         if (this.page.value !== PAGE_NAMES.CONTENT) return;
+        if (!Store.profile.value) return;
 
         Store.fragments.list.loading.set(true);
 
@@ -196,6 +200,8 @@ export class MasRepository extends LitElement {
             }
         }
 
+        const createdBy = Store.createdByUsers.get().map((user) => user.userPrincipalName);
+
         let modelIds = tags.filter((tag) => tag.startsWith(TAG_STUDIO_CONTENT_TYPE)).map((tag) => TAG_MODEL_ID_MAPPING[tag]);
 
         if (modelIds.length === 0) modelIds = EDITABLE_FRAGMENT_MODEL_IDS;
@@ -211,6 +217,8 @@ export class MasRepository extends LitElement {
             modelIds,
             path: `${damPath}/${this.filters.value.locale}`,
             tags,
+            createdBy,
+            sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
         };
 
         const publishedTagIndex = tags.indexOf(TAG_STATUS_PUBLISHED);
@@ -259,8 +267,8 @@ export class MasRepository extends LitElement {
                         const fragment = await this.#addToCache(item);
                         fragmentStores.push(new FragmentStore(fragment));
                     }
+                    dataStore.set([...fragmentStores]);
                 }
-                dataStore.set(fragmentStores);
             }
 
             dataStore.setMeta('path', path);

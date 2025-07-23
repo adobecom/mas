@@ -515,10 +515,10 @@ export class MasRepository extends LitElement {
      * @param {boolean} withToast Whether or not to display toasts
      * @returns {Promise<boolean>} Whether or not it was successful
      */
-    async publishFragment(fragment, withToast = true) {
+    async publishFragment(fragment, publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED'], withToast = true) {
         try {
             this.operation.set(OPERATIONS.PUBLISH);
-            await this.aem.sites.cf.fragments.publish(fragment);
+            await this.aem.sites.cf.fragments.publish(fragment, publishReferencesWithStatus);
             if (withToast) showToast('Fragment successfully published.', 'positive');
 
             return true;
@@ -640,7 +640,7 @@ export class MasRepository extends LitElement {
         }
     }
 
-    async addToIndexFragment(fragment, shouldPublish = false) {
+    async addToIndexFragment(fragment) {
         const parentPath = this.getParentPath(fragment);
 
         const indexPath = `${parentPath}/index`;
@@ -649,7 +649,7 @@ export class MasRepository extends LitElement {
 
         try {
             if (!indexFragment) {
-                return this.createIndexFragment(parentPath, fragment.path, shouldPublish);
+                return this.createIndexFragment(parentPath, fragment.path);
             }
 
             const entries = indexFragment.getField('entries');
@@ -663,9 +663,7 @@ export class MasRepository extends LitElement {
                 console.info(`Fragment already added to index: ${fragment.path}`);
             }
 
-            if (shouldPublish) {
-                await this.publishFragment(updatedIndexFragment, false);
-            }
+            await this.publishFragment(updatedIndexFragment, [], false);
 
             return true;
         } catch (error) {
@@ -674,7 +672,7 @@ export class MasRepository extends LitElement {
         }
     }
 
-    async removeFromIndexFragment(fragments, shouldPublish = false) {
+    async removeFromIndexFragment(fragments) {
         const fragmentsToRemove = !Array.isArray(fragments) ? [fragments] : fragments;
 
         const parentPath = this.getParentPath(fragmentsToRemove[0]);
@@ -707,9 +705,7 @@ export class MasRepository extends LitElement {
                 console.info(`Fragment(s) already added to index.`);
             }
 
-            if (shouldPublish) {
-                await this.publishFragment(updatedIndexFragment, false);
-            }
+            await this.publishFragment(updatedIndexFragment, [], false);
 
             return true;
         } catch (error) {
@@ -722,10 +718,9 @@ export class MasRepository extends LitElement {
      * Creates a new index fragment with initial entries
      * @param {string} parentPath - Parent path for the index
      * @param {string} fragmentPath - Initial fragment path to include
-     * @param {boolean} shouldPublish - Whether to publish the index after creation
      * @returns {Promise<boolean>} - Success status
      */
-    async createIndexFragment(parentPath, fragmentPath, shouldPublish = false) {
+    async createIndexFragment(parentPath, fragmentPath) {
         try {
             const indexFragment = await this.aem.sites.cf.fragments.create({
                 parentPath,
@@ -766,9 +761,7 @@ export class MasRepository extends LitElement {
                 return false;
             }
 
-            if (shouldPublish) {
-                await this.publishFragment(indexFragment, false);
-            }
+            await this.publishFragment(indexFragment, [], false);
 
             return true;
         } catch (error) {
@@ -852,17 +845,12 @@ export class MasRepository extends LitElement {
         if (Store.placeholders.addons.data.get().length > 1) return;
         Store.placeholders.addons.loading.set(true);
         try {
-            const cursor = await this.aem.sites.cf.fragments.search(
-                {
-                    path: `${this.parentPath}/dictionary`,
-                },
-                null,
-                this.#abortControllers.search,
-            );
-
-            const result = await cursor.next();
+            const options = {
+                path: `${this.parentPath}/dictionary`,
+            };
+            const fragments = await this.searchFragmentList(options);
             const addonFragments = [];
-            for await (const item of result.value) {
+            for await (const item of fragments) {
                 const key = item.fields.find((field) => field.name === 'key')?.values[0];
                 if (/^addon-/.test(key)) {
                     addonFragments.push({ value: key, itemText: key });

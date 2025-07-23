@@ -109,7 +109,7 @@ class MasPlaceholdersItem extends LitElement {
         });
         if (!confirmed) return;
         showToast('Deleting placeholder...');
-        if (!(await this.repository.removeFromIndexFragment(this.placeholder, true))) return;
+        if (!(await this.repository.removeFromIndexFragment(this.placeholder))) return;
         this.repository.deleteFragment(this.placeholder, {
             startToast: false,
             endToast: false,

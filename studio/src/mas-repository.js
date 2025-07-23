@@ -787,9 +787,13 @@ export class MasRepository extends LitElement {
                 originalId.values = [latest.id];
             } else {
                 const enUsPath = latest.path.replace(this.filters.value.locale, LOCALE_DEFAULT);
-                const sourceFragment = await this.aem.sites.cf.fragments.getByPath(enUsPath);
-                if (sourceFragment) {
-                    originalId.values = [sourceFragment.id];
+                try {
+                    const sourceFragment = await this.aem.sites.cf.fragments.getByPath(enUsPath);
+                    if (sourceFragment) {
+                        originalId.values = [sourceFragment.id];
+                    }
+                } catch (error) {
+                    //not all fragments have en_US version, so we can ignore this error
                 }
             }
         }

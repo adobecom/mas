@@ -146,3 +146,12 @@ export const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);
 export const SORT_COLUMNS = {
     placeholders: ['key', 'value', 'status', 'locale', 'updatedBy', 'updatedAt'],
 };
+
+// Variant capabilities configuration
+export const VARIANT_CAPABILITIES = {
+    defaultCard: {
+        supported: ['simplified-pricing-express'],
+        label: 'Default Card',
+        helpText: 'Drag a card here to set as default',
+    },
+};

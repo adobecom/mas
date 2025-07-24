@@ -40,7 +40,7 @@ class MerchCardEditor extends LitElement {
             width: '16px',
             height: '16px',
             border: '1px solid var(--spectrum-global-color-gray-300)',
-            borderRadius: '3px',
+            'border-radius': '3px',
         },
     };
 
@@ -245,6 +245,13 @@ class MerchCardEditor extends LitElement {
 
         this.#displayBadgeColorFields(this.badgeText);
         this.#displayTrialBadgeColorFields(this.trialBadgeText);
+
+        if (variant.disabledAttributes && Array.isArray(variant.disabledAttributes)) {
+            variant.disabledAttributes.forEach((attributeId) => {
+                const field = this.querySelector(`sp-field-group#${attributeId}`);
+                if (field) field.style.display = 'none';
+            });
+        }
     }
 
     render() {

@@ -571,11 +571,11 @@ class MerchCardEditor extends LitElement {
                 <sp-field-label for="per-unit-label">Per Unit Label</sp-field-label>
                 <sp-textfield
                     id="per-unit-label"
-                    placeholder="Enter per unit label text"
+                    placeholder="Enter per unit label placeholder"
                     data-field="perUnitLabel"
-                    value="${form.perUnitLabel?.values[0] || ''}"
+                    value="${this.#getPerUnitDisplayValue(form.perUnitLabel?.values[0])}"
                     style="width: 100%;"
-                    @input="${this.#handleFragmentUpdate}"
+                    @input="${this.#handlePerUnitLabelUpdate}"
                 ></sp-textfield>
             </sp-field-group>
         `;
@@ -965,6 +965,34 @@ class MerchCardEditor extends LitElement {
         if (this.updateFragment) {
             this.updateFragment(event);
         }
+    };
+
+    #getPerUnitDisplayValue(value) {
+        if (!value) return '';
+        const match = value.match(/LICENSE\s+\{(.+?)\}\s+other/);
+        return match ? match[1].trim() : '';
+    }
+
+    #handlePerUnitLabelUpdate = (event) => {
+        const userInput = event.target.value.trim();
+        let transformedValue = '';
+
+        if (userInput) {
+            const cleanInput = userInput.trim();
+            transformedValue = `{perUnit, select, LICENSE {${cleanInput}} other {}}`;
+        }
+
+        const syntheticEvent = {
+            target: {
+                ...event.target,
+                value: transformedValue,
+                dataset: {
+                    field: 'perUnitLabel',
+                },
+            },
+        };
+
+        this.#handleFragmentUpdate(syntheticEvent);
     };
 
     #renderColorPicker(id, label, colors, selectedValue, dataField, onChange) {

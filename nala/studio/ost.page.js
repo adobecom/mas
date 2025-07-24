@@ -22,7 +22,7 @@ export default class OSTPage {
             'span[is="inline-price"][data-template="price"] > .price-strikethrough',
         );
         this.priceAnnual = this.page.locator('span[is="inline-price"][data-template="annual"]');
-        this.legalText = this.page.locator('span[is="inline-price"][data-template="legal"]');
+        this.legalDisclaimer = this.page.locator('span[is="inline-price"][data-template="legal"]');
         this.termCheckbox = this.page.locator('//input[@value="displayRecurrence"]');
         this.unitCheckbox = this.page.locator('//input[@value="displayPerUnit"]');
         this.taxlabelCheckbox = this.page.locator('//input[@value="displayTax"]');
@@ -32,6 +32,7 @@ export default class OSTPage {
         this.priceOpticalUse = this.page.locator('button:near(:text("Optical price"))').first();
         this.priceStrikethroughUse = this.page.locator('button:near(:text("Strikethrough price"))').first();
         this.priceAnnualUse = this.page.locator('button:near(:text("Annual price"))').first();
+        this.legalDisclaimerUse = this.page.locator('button:near(:text("Legal disclaimer"))').first();
         this.checkoutTab = this.page.locator('//div[@data-key="checkout"]');
         this.checkoutLink = this.page.locator('//a[@is="checkout-link"]');
         this.workflowMenu = this.page.locator('button:near(label:text("Workflow"))').first();

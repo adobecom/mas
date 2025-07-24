@@ -571,7 +571,7 @@ class MerchCardEditor extends LitElement {
                 <sp-field-label for="per-unit-label">Per Unit Label</sp-field-label>
                 <sp-textfield
                     id="per-unit-label"
-                    placeholder="Enter per unit label placeholder"
+                    placeholder="Enter per unit label"
                     data-field="perUnitLabel"
                     value="${this.#getPerUnitDisplayValue(form.perUnitLabel?.values[0])}"
                     style="width: 100%;"

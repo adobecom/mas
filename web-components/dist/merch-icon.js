@@ -1,4 +1,4 @@
-var r=Object.defineProperty;var m=(i,t,h)=>t in i?r(i,t,{enumerable:!0,configurable:!0,writable:!0,value:h}):i[t]=h;var s=(i,t,h)=>m(i,typeof t!="symbol"?t+"":t,h);import{LitElement as a,html as g,css as d}from"https://milo.adobe.com/libs/deps/lit-all.min.js";var e=class extends a{constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}render(){let{href:t}=this;return t?g`<a href="${t}">
+var r=Object.defineProperty;var m=(i,t,h)=>t in i?r(i,t,{enumerable:!0,configurable:!0,writable:!0,value:h}):i[t]=h;var s=(i,t,h)=>m(i,typeof t!="symbol"?t+"":t,h);import{LitElement as a,html as g,css as d}from"lit";var e=class extends a{constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}render(){let{href:t}=this;return t?g`<a href="${t}">
                   <img
                       src="${this.src}"
                       alt="${this.alt}"

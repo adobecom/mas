@@ -567,7 +567,7 @@ class MerchCardEditor extends LitElement {
                 @change=${this.#handeTagsChange}
             ></aem-tag-picker-field>
             <sp-divider></sp-divider>
-            <sp-field-group id="perUnitLabel">
+            <sp-field-group id="perUnitLabel" class="toggle">
                 <sp-field-label for="per-unit-label">Per Unit Label</sp-field-label>
                 <sp-textfield
                     id="per-unit-label"

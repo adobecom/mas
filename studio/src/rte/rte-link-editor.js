@@ -368,11 +368,16 @@ export class RteLinkEditor extends LitElement {
             href,
             text: this.text,
             title: this.title,
-            ariaLabel: this.ariaLabel,
             target: this.target,
             variant: this.variant,
             analyticsId: this.analyticsId,
         };
+
+        // Only include ariaLabel if it has a value
+        if (this.ariaLabel) {
+            data.ariaLabel = this.ariaLabel;
+        }
+
         if (this.checkoutParameters !== undefined) {
             delete data.href;
             Object.assign(data, {

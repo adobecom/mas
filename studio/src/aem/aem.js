@@ -294,10 +294,26 @@ class AEM {
 
     async pollUpdatedFragment(oldFragment) {
         let attempts = 0;
+
+        const oldDefaultChild = oldFragment.fields?.find((f) => f.name === 'defaultchild')?.values?.[0];
+
         while (attempts < MAX_POLL_ATTEMPTS) {
             attempts++;
             const newFragment = await this.sites.cf.fragments.getById(oldFragment.id);
-            if (newFragment.etag !== oldFragment.etag) return newFragment;
+
+            if (!newFragment) {
+                await this.wait(POLL_TIMEOUT);
+                continue;
+            }
+
+            const newDefaultChild = newFragment.fields?.find((f) => f.name === 'defaultchild')?.values?.[0];
+            const defaultChildChanged = oldDefaultChild !== newDefaultChild;
+
+            const wasModified = newFragment.modified !== oldFragment.modified;
+
+            if (newFragment.etag !== oldFragment.etag || defaultChildChanged || wasModified) {
+                return newFragment;
+            }
             await this.wait(POLL_TIMEOUT);
         }
         throw new UserFriendlyError('Save completed but the updated fragment could not be retrieved.');

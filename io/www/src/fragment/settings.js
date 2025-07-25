@@ -70,7 +70,7 @@ function applyPriceLiterals(fragment) {
         fragment.priceLiterals = {
             recurrenceLabel: '{{price-literal-recurrence-label}}',
             recurrenceAriaLabel: '{{price-literal-recurrence-aria-label}}',
-            perUnitLabel: '{{price-literal-per-unit-label}}',
+            perUnitLabel: fragment?.fields?.perUnitLabel || '{{price-literal-per-unit-label}}',
             perUnitAriaLabel: '{{price-literal-per-unit-aria-label}}',
             freeLabel: '{{price-literal-free-label}}',
             freeAriaLabel: '{{price-literal-free-aria-label}}',

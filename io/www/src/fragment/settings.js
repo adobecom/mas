@@ -7,6 +7,10 @@ function applyCollectionSettings(context) {
                 const variant = ref.value?.fields?.variant;
                 if (variant?.startsWith('plans')) {
                     applyPlansSettings(ref.value, context);
+                    if (ref.value?.fields?.perUnitLabel) {
+                        context.body.fields = context.body.fields || {};
+                        context.body.fields.perUnitLabel = ref.value.fields.perUnitLabel;
+                    }
                 }
                 if (variant === 'mini') {
                     applyMiniSettings(ref.value, context);
@@ -51,6 +55,9 @@ function applyPlansSettings(fragment, context) {
     if (fragment?.fields?.showPlanType != null) {
         fragment.settings.displayPlanType = fragment?.fields?.showPlanType;
     }
+    if (fragment?.fields?.perUnitLabel) {
+        fragment.settings.perUnitLabel = fragment?.fields?.perUnitLabel;
+    }
     if (locale === 'en_US') {
         fragment.settings.displayPlanType ??= true;
     }
@@ -66,6 +73,7 @@ function applyMiniSettings(fragment, context) {
 }
 
 function applyPriceLiterals(fragment) {
+    console.log('fragment', fragment);
     if (fragment) {
         fragment.priceLiterals = {
             recurrenceLabel: '{{price-literal-recurrence-label}}',
@@ -97,7 +105,6 @@ async function settings(context) {
     }
 
     applyPriceLiterals(context.body);
-
     return context;
 }
 

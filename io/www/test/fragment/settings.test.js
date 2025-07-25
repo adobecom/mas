@@ -23,6 +23,33 @@ describe('settings transformer', () => {
         });
     });
 
+    it('should add perUnitLabel when variant is plans and perUnitLabel is provided', async () => {
+        context.body.fields = {
+            variant: 'plans',
+            perUnitLabel: '{perUnit, select, LICENSE {per user} other {}}',
+        };
+
+        const result = await settings(context);
+        expect(result.body.settings).to.deep.equal({
+            secureLabel: '{{secure-label}}',
+            displayPlanType: true,
+            perUnitLabel: '{perUnit, select, LICENSE {per user} other {}}',
+        });
+    });
+
+    it('should not add perUnitLabel when variant is plans and perUnitLabel is not provided', async () => {
+        context.body.fields = {
+            variant: 'plans',
+        };
+
+        const result = await settings(context);
+        expect(result.body.settings).to.deep.equal({
+            secureLabel: '{{secure-label}}',
+            displayPlanType: true,
+        });
+        expect(result.body.settings.perUnitLabel).to.be.undefined;
+    });
+
     it('should add secure label when variant is plans and showSecureLabel is true', async () => {
         context.body.fields = {
             variant: 'plans',
@@ -222,5 +249,92 @@ describe('settings transformer', () => {
         expect(result.body.references.ref1.value.settings).to.deep.equal({
             displayPlanType: true,
         });
+    });
+
+    it('should add perUnitLabel when variant is plans and perUnitLabel is provided', async () => {
+        context.body.fields = {
+            variant: 'plans',
+            perUnitLabel: '{perUnit, select, LICENSE {per user} other {}}',
+        };
+
+        const result = await settings(context);
+        expect(result.body.settings).to.deep.equal({
+            secureLabel: '{{secure-label}}',
+            displayPlanType: true,
+            perUnitLabel: '{perUnit, select, LICENSE {per user} other {}}',
+        });
+    });
+
+    it('should not add perUnitLabel when variant is plans and perUnitLabel is not provided', async () => {
+        context.body.fields = {
+            variant: 'plans',
+        };
+
+        const result = await settings(context);
+        expect(result.body.settings).to.deep.equal({
+            secureLabel: '{{secure-label}}',
+            displayPlanType: true,
+        });
+        expect(result.body.settings.perUnitLabel).to.be.undefined;
+    });
+
+    it('should add perUnitLabel when variant is plans and perUnitLabel is empty string', async () => {
+        context.body.fields = {
+            variant: 'plans',
+            perUnitLabel: '',
+        };
+
+        const result = await settings(context);
+        expect(result.body.settings).to.deep.equal({
+            secureLabel: '{{secure-label}}',
+            displayPlanType: true,
+        });
+        expect(result.body.settings.perUnitLabel).to.be.undefined;
+    });
+
+    it('should handle references with perUnitLabel', async () => {
+        context.body = {
+            model: {
+                id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
+            },
+            references: {
+                ref1: {
+                    type: 'content-fragment',
+                    value: {
+                        fields: {
+                            variant: 'plans',
+                            perUnitLabel: '{perUnit, select, LICENSE {per license} other {}}',
+                        },
+                    },
+                },
+            },
+        };
+
+        const result = await settings(context);
+        expect(result.body.references.ref1.value.settings).to.deep.equal({
+            secureLabel: '{{secure-label}}',
+            displayPlanType: true,
+            perUnitLabel: '{perUnit, select, LICENSE {per license} other {}}',
+        });
+    });
+
+    it('should apply perUnitLabel to priceLiterals when provided', async () => {
+        context.body = {
+            fields: {
+                perUnitLabel: '{perUnit, select, LICENSE {per user} other {}}',
+            },
+        };
+
+        const result = await settings(context);
+        expect(result.body.priceLiterals.perUnitLabel).to.equal('{perUnit, select, LICENSE {per user} other {}}');
+    });
+
+    it('should use default perUnitLabel placeholder when not provided', async () => {
+        context.body = {
+            fields: {},
+        };
+
+        const result = await settings(context);
+        expect(result.body.priceLiterals.perUnitLabel).to.equal('{{price-literal-per-unit-label}}');
     });
 });

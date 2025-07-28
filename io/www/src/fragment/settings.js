@@ -7,10 +7,6 @@ function applyCollectionSettings(context) {
                 const variant = ref.value?.fields?.variant;
                 if (variant?.startsWith('plans')) {
                     applyPlansSettings(ref.value, context);
-                    if (ref.value?.fields?.perUnitLabel) {
-                        context.body.fields = context.body.fields || {};
-                        context.body.fields.perUnitLabel = ref.value.fields.perUnitLabel;
-                    }
                 }
                 if (variant === 'mini') {
                     applyMiniSettings(ref.value, context);
@@ -56,7 +52,8 @@ function applyPlansSettings(fragment, context) {
         fragment.settings.displayPlanType = fragment?.fields?.showPlanType;
     }
     if (fragment?.fields?.perUnitLabel) {
-        fragment.settings.perUnitLabel = fragment?.fields?.perUnitLabel;
+        fragment.priceLiterals = fragment.priceLiterals || {};
+        fragment.priceLiterals.perUnitLabel = fragment?.fields?.perUnitLabel;
     }
     if (locale === 'en_US') {
         fragment.settings.displayPlanType ??= true;
@@ -73,12 +70,11 @@ function applyMiniSettings(fragment, context) {
 }
 
 function applyPriceLiterals(fragment) {
-    console.log('fragment', fragment);
     if (fragment) {
         fragment.priceLiterals = {
             recurrenceLabel: '{{price-literal-recurrence-label}}',
             recurrenceAriaLabel: '{{price-literal-recurrence-aria-label}}',
-            perUnitLabel: fragment?.fields?.perUnitLabel || '{{price-literal-per-unit-label}}',
+            perUnitLabel: '{{price-literal-per-unit-label}}',
             perUnitAriaLabel: '{{price-literal-per-unit-aria-label}}',
             freeLabel: '{{price-literal-free-label}}',
             freeAriaLabel: '{{price-literal-free-aria-label}}',
@@ -92,6 +88,8 @@ function applyPriceLiterals(fragment) {
 }
 
 async function settings(context) {
+    applyPriceLiterals(context.body);
+
     if (context.body?.fields?.variant?.startsWith('plans')) {
         applyPlansSettings(context.body, context);
     }
@@ -104,7 +102,6 @@ async function settings(context) {
         applyCollectionSettings(context);
     }
 
-    applyPriceLiterals(context.body);
     return context;
 }
 

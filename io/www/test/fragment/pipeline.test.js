@@ -62,9 +62,9 @@ const EXPECTED_BODY = {
     path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
 };
 //EXPECTED BODY SHA256 hash
-const EXPECTED_BODY_HASH = '5841245b48c3400d1f275e4c1379cef28d67a01695565f761aeda3a7e961e978';
+const EXPECTED_BODY_HASH = '54155ef064f4d37a6797c394f1a6352833d94ce02d1d829c813f84c4b8783f09';
 
-const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
+const RANDOM_OLD_DATE = 'Mon, 28 Jul 2025 11:45:13 GMT';
 
 const runOnFilledState = async (entry, headers) => {
     setupFragmentMocks({
@@ -266,7 +266,7 @@ describe('pipeline corner cases', () => {
             JSON.stringify({
                 dictionaryId: 'fr_FR_dictionary',
                 translatedId: 'some-fr-fr-fragment',
-                lastModified: 'Tue, 21 Nov 2024 08:00:00 GMT',
+                lastModified: 'Mon, 29 Jul 2025 11:45:13 GMT',
                 hash: EXPECTED_BODY_HASH,
             }),
             {

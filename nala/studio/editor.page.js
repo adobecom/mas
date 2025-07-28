@@ -55,6 +55,7 @@ export default class EditorPage {
         // RTE panel toolbar
         this.linkEdit = page.locator('#linkEditorButton');
         this.addIcon = page.locator('#addIconButton');
+        this.OSTButton = page.locator('#offerSelectorToolButton');
 
         // Edit Link Panel
         this.checkoutParameters = page.locator('#checkoutParameters input');

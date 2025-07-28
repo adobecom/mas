@@ -246,7 +246,7 @@ class MasPlaceholders extends LitElement {
         this.pending = true;
         showToast('Deleting placeholders...');
 
-        await this.repository.removeFromIndexFragment(fragments, true);
+        await this.repository.removeFromIndexFragment(fragments);
         await this.repository.bulkDeleteFragments(fragments, {
             startToast: false,
             endToast: false,

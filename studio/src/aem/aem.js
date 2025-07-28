@@ -405,7 +405,7 @@ class AEM {
      * @param {Object} fragment
      * @returns {Promise<void>}
      */
-    async publishFragment(fragment) {
+    async publishFragment(fragment, publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED']) {
         const response = await fetch(this.cfPublishUrl, {
             method: 'POST',
             headers: {
@@ -415,7 +415,7 @@ class AEM {
             },
             body: JSON.stringify({
                 paths: [fragment.path],
-                filterReferencesByStatus: ['DRAFT', 'UNPUBLISHED'],
+                filterReferencesByStatus: publishReferencesWithStatus,
                 workflowModelId: '/var/workflow/models/scheduled_activation_with_references',
             }),
         }).catch((err) => {

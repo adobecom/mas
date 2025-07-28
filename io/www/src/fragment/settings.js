@@ -52,8 +52,8 @@ function applyPlansSettings(fragment, context) {
         fragment.settings.displayPlanType = fragment?.fields?.showPlanType;
     }
     if (fragment?.fields?.perUnitLabel) {
-        fragment.priceLiterals = fragment.priceLiterals || {};
-        fragment.priceLiterals.perUnitLabel = fragment?.fields?.perUnitLabel;
+        fragment.priceLiterals ??= {};
+        fragment.priceLiterals.perUnitLabel = fragment.fields.perUnitLabel;
     }
     if (locale === 'en_US') {
         fragment.settings.displayPlanType ??= true;

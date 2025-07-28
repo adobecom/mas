@@ -64,7 +64,7 @@ const EXPECTED_BODY = {
 //EXPECTED BODY SHA256 hash
 const EXPECTED_BODY_HASH = '54155ef064f4d37a6797c394f1a6352833d94ce02d1d829c813f84c4b8783f09';
 
-const RANDOM_OLD_DATE = 'Mon, 28 Jul 2025 11:45:13 GMT';
+const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 
 const runOnFilledState = async (entry, headers) => {
     setupFragmentMocks({
@@ -266,7 +266,7 @@ describe('pipeline corner cases', () => {
             JSON.stringify({
                 dictionaryId: 'fr_FR_dictionary',
                 translatedId: 'some-fr-fr-fragment',
-                lastModified: 'Mon, 29 Jul 2025 11:45:13 GMT',
+                lastModified: 'Tue, 21 Nov 2024 08:00:00 GMT',
                 hash: EXPECTED_BODY_HASH,
             }),
             {

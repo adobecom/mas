@@ -161,6 +161,13 @@ class MasToolbar extends LitElement {
         }
     }
 
+    update() {
+        if (Store.createdByUsers.value.length > 0) {
+            this.filtersShown = true;
+        }
+        super.update();
+    }
+
     updateFilterCount() {
         const filters = Store.filters.get();
         if (!filters || !filters.tags) {
@@ -174,6 +181,12 @@ class MasToolbar extends LitElement {
             this.filterCount = filters.tags.filter(Boolean).length;
         } else {
             this.filterCount = 0;
+        }
+        if (Store.createdByUsers.value.length > 0) {
+            this.filterCount += 1;
+        }
+        if (this.filterCount > 0) {
+            this.filtersShown = true;
         }
     }
 

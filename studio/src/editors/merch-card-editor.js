@@ -40,7 +40,7 @@ class MerchCardEditor extends LitElement {
             width: '16px',
             height: '16px',
             border: '1px solid var(--spectrum-global-color-gray-300)',
-            borderRadius: '3px',
+            'border-radius': '3px',
         },
     };
 
@@ -245,6 +245,13 @@ class MerchCardEditor extends LitElement {
 
         this.#displayBadgeColorFields(this.badgeText);
         this.#displayTrialBadgeColorFields(this.trialBadgeText);
+
+        if (variant.disabledAttributes && Array.isArray(variant.disabledAttributes)) {
+            variant.disabledAttributes.forEach((attributeId) => {
+                const field = this.querySelector(`sp-field-group#${attributeId}`);
+                if (field) field.style.display = 'none';
+            });
+        }
     }
 
     render() {
@@ -384,8 +391,9 @@ class MerchCardEditor extends LitElement {
                 <sp-field-label for="prices">Prices</sp-field-label>
                 <rte-field
                     id="prices"
-                    inline
+                    styling
                     link
+                    tooltip
                     data-field="prices"
                     .osi=${form.osi.values[0]}
                     default-link-style="primary-outline"
@@ -434,7 +442,7 @@ class MerchCardEditor extends LitElement {
                     link
                     upt-link
                     list
-                    mnemonic
+                    tooltip
                     data-field="description"
                     .osi=${form.osi.values[0]}
                     default-link-style="secondary-link"

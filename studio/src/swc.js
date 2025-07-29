@@ -42,6 +42,8 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-file-txt.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-filter-add.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-filter.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-folder.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-folder-add.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-folder-open.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-graph-bar-vertical.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-help-outline.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-help.js';

@@ -19,7 +19,7 @@ class MasSelectionPanel extends LitElement {
         onDelete: { type: Function, attribute: false },
         onPublish: { type: Function, attribute: false },
         onUnpublish: { type: Function, attribute: false },
-        onMove: { type: Function, attribute: false },
+        onCopyToFolder: { type: Function, attribute: false },
     };
 
     constructor() {
@@ -31,7 +31,7 @@ class MasSelectionPanel extends LitElement {
         this.onDelete = null;
         this.onPublish = null;
         this.onUnpublish = null;
-        this.onMove = null;
+        this.onCopyToFolder = null;
 
         this.close = this.close.bind(this);
     }
@@ -68,25 +68,25 @@ class MasSelectionPanel extends LitElement {
         this.onDelete(this.selection, event);
     }
 
-    handleMove() {
+    handleCopyToFolder() {
         // Get the first selected item
         const firstSelection = this.selection[0];
         
         // If it's a FragmentStore, get the fragment
         if (firstSelection && typeof firstSelection.get === 'function') {
-            this.onMove(firstSelection.get());
+            this.onCopyToFolder(firstSelection.get());
         } else if (typeof firstSelection === 'string') {
             // If it's just an ID, we need to find the full fragment from fragment stores
             const fragmentStores = Store.fragments.list.data.get();
             const fragmentStore = fragmentStores.find(store => store.get().id === firstSelection);
             if (fragmentStore) {
-                this.onMove(fragmentStore.get());
+                this.onCopyToFolder(fragmentStore.get());
             } else {
                 console.error('Could not find fragment with ID:', firstSelection);
             }
         } else {
             // Assume it's already a fragment object
-            this.onMove(firstSelection);
+            this.onCopyToFolder(firstSelection);
         }
     }
 
@@ -116,12 +116,12 @@ class MasSelectionPanel extends LitElement {
                       </sp-action-button>
                       <sp-action-button
                           slot="buttons"
-                          label="Move"
-                          ?disabled=${!this.onMove}
-                          @click=${() => this.handleMove()}
+                          label="Copy to folder"
+                          ?disabled=${!this.onCopyToFolder}
+                          @click=${() => this.handleCopyToFolder()}
                       >
-                          <sp-icon-folder-open slot="icon"></sp-icon-folder-open>
-                          <sp-tooltip self-managed placement="top">Move to folder</sp-tooltip>
+                          <sp-icon-folder-add slot="icon"></sp-icon-folder-add>
+                          <sp-tooltip self-managed placement="top">Copy to folder</sp-tooltip>
                       </sp-action-button>`
                 : nothing}
             ${count > 0

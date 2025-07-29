@@ -3,12 +3,13 @@ import { EVENT_KEYDOWN } from './constants.js';
 import Store from './store.js';
 import { showToast } from './utils.js';
 
-export class MasMoveDialog extends LitElement {
+export class MasCopyDialog extends LitElement {
     static properties = {
         fragment: { type: Object },
         selectedFolder: { state: true },
         loading: { state: true },
         error: { state: true },
+        fragmentName: { state: true },
     };
 
     static styles = css`
@@ -86,6 +87,10 @@ export class MasMoveDialog extends LitElement {
             font-size: 12px;
             margin-top: 8px;
         }
+
+        sp-textfield {
+            width: 100%;
+        }
     `;
 
     constructor() {
@@ -96,6 +101,7 @@ export class MasMoveDialog extends LitElement {
         this.error = null;
         this.merchFolders = [];
         this.aem = null;
+        this.fragmentName = '';
 
         // Bind methods
         this.handleSubmit = this.handleSubmit.bind(this);
@@ -107,6 +113,12 @@ export class MasMoveDialog extends LitElement {
         super.connectedCallback();
         document.addEventListener(EVENT_KEYDOWN, this.handleKeyDown);
         this.aem = document.querySelector('mas-repository')?.aem;
+        
+        // Set initial fragment name from the fragment
+        if (this.fragment?.name) {
+            this.fragmentName = this.fragment.name;
+        }
+        
         if (this.aem) {
             this.loadMerchFolders();
         } else {
@@ -117,6 +129,12 @@ export class MasMoveDialog extends LitElement {
 
     updated(changedProperties) {
         super.updated(changedProperties);
+        
+        // Update fragment name when fragment changes
+        if (changedProperties.has('fragment') && this.fragment?.name) {
+            this.fragmentName = this.fragment.name;
+        }
+        
         // If AEM becomes available and we haven't loaded folders yet
         if (this.aem && this.merchFolders.length === 0 && !this.loading) {
             this.loadMerchFolders();
@@ -181,13 +199,6 @@ export class MasMoveDialog extends LitElement {
     }
 
     selectFolder(folder) {
-        // Don't allow selecting the current folder
-        const currentFolder = this.fragment?.path?.split('/').slice(0, -1).join('/') ?? '';
-        if (folder.fullPath === currentFolder) {
-            this.error = 'Cannot move to the same folder';
-            return;
-        }
-
         this.selectedFolder = folder;
         this.error = null;
     }
@@ -198,16 +209,14 @@ export class MasMoveDialog extends LitElement {
             return;
         }
 
-        // Double-check not moving to same folder
-        const currentFolder = this.fragment?.path?.split('/').slice(0, -1).join('/') ?? '';
-        if (this.selectedFolder.fullPath === currentFolder) {
-            this.error = 'Cannot move to the same folder';
+        if (!this.fragmentName || this.fragmentName.trim() === '') {
+            this.error = 'Please enter a name for the fragment';
             return;
         }
 
         try {
             this.loading = true;
-            showToast(`Moving fragment to ${this.selectedFolder.displayName}...`);
+            showToast(`Copying fragment to ${this.selectedFolder.displayName}...`);
 
             const aem = this.aem;
             if (!aem) {
@@ -218,42 +227,31 @@ export class MasMoveDialog extends LitElement {
                 throw new Error('Fragment is missing path property');
             }
 
-            // Validate fragment still exists before moving
-            // try {
-            //     await aem.fragments.getWithEtag(this.fragment.id);
-            // } catch (err) {
-            //     throw new Error('Fragment no longer exists or has been modified');
-            // }
+            // Copy the fragment with custom name
+            const customName = this.fragmentName.trim();
+            const copiedFragment = await aem.sites.cf.fragments.copyToFolder(
+                this.fragment, 
+                this.selectedFolder.fullPath,
+                customName !== this.fragment.name ? customName : null
+            );
 
-            // Move the fragment
-            const movedFragment = await aem.sites.cf.fragments.move(this.fragment, this.selectedFolder.fullPath);
-
-            if (!movedFragment) {
-                throw new Error('Move operation completed but could not retrieve moved fragment');
+            if (!copiedFragment) {
+                throw new Error('Copy operation completed but could not retrieve copied fragment');
             }
 
-            // Update the store - remove from current view since it's in a different folder now
-            Store.fragments.list.data.set((prev) => prev.filter((f) => f.id !== this.fragment.id));
-
-            // Clear selection
-            Store.selection.set([]);
-
             // Show appropriate message based on the operation result
-            if (movedFragment._moveWarning) {
-                // Show warning if delete failed - the warning already includes rename info if applicable
-                showToast(movedFragment._moveWarning, 'warning');
-            } else if (movedFragment._renamedTo && movedFragment._renamedTo !== this.fragment.name) {
-                showToast(`Fragment moved to ${this.selectedFolder.displayName} and renamed to '${movedFragment._renamedTo}' to avoid conflicts`, 'positive');
-            } else if (movedFragment && movedFragment.name && movedFragment.name !== this.fragment.name) {
-                showToast(`Fragment moved to ${this.selectedFolder.displayName} and renamed to '${movedFragment.name}' to avoid conflicts`, 'positive');
+            if (copiedFragment._renamedTo && copiedFragment._renamedTo !== this.fragment.name) {
+                showToast(`Fragment copied to ${this.selectedFolder.displayName} and renamed to '${copiedFragment._renamedTo}' to avoid conflicts`, 'positive');
+            } else if (copiedFragment && copiedFragment.name && copiedFragment.name !== this.fragment.name) {
+                showToast(`Fragment copied to ${this.selectedFolder.displayName} and renamed to '${copiedFragment.name}' to avoid conflicts`, 'positive');
             } else {
-                showToast(`Fragment moved to ${this.selectedFolder.displayName}`, 'positive');
+                showToast(`Fragment copied to ${this.selectedFolder.displayName}`, 'positive');
             }
 
             // Dispatch success event
             this.dispatchEvent(
-                new CustomEvent('fragment-moved', {
-                    detail: { fragment: movedFragment },
+                new CustomEvent('fragment-copied', {
+                    detail: { fragment: copiedFragment },
                     bubbles: true,
                     composed: true,
                 }),
@@ -261,18 +259,18 @@ export class MasMoveDialog extends LitElement {
 
             this.close();
         } catch (err) {
-            this.error = err.message || 'Failed to move fragment';
+            this.error = err.message || 'Failed to copy fragment';
             this.loading = false;
 
             // Show more specific error messages
             if (err.message.includes('permission') || err.message.includes('403')) {
-                showToast('You do not have permission to move this fragment', 'negative');
+                showToast('You do not have permission to copy this fragment', 'negative');
             } else if (err.message.includes('not found') || err.message.includes('404')) {
                 showToast('Fragment not found. It may have been deleted.', 'negative');
             } else if (err.message.includes('network') || err.message.includes('Network')) {
                 showToast('Network error. Please check your connection and try again.', 'negative');
             } else {
-                showToast(`Failed to move fragment: ${err.message}`, 'negative');
+                showToast(`Failed to copy fragment: ${err.message}`, 'negative');
             }
         }
     }
@@ -291,15 +289,25 @@ export class MasMoveDialog extends LitElement {
         return html`
             <div class="dialog-backdrop" @click=${this.handleBackdropClick}>
                 <sp-dialog-wrapper
-                    headline="Move Fragment"
+                    headline="Copy Fragment to Folder"
                     mode="modal"
-                    confirm-label="Move"
+                    confirm-label="Copy"
                     cancel-label="Cancel"
                     @confirm=${this.handleSubmit}
                     @cancel=${this.close}
                     ?dismissable=${!this.loading}
                     @click=${(e) => e.stopPropagation()}
                 >
+                <div class="form-field">
+                    <sp-field-label for="fragment-name">Fragment Name</sp-field-label>
+                    <sp-textfield
+                        id="fragment-name"
+                        value=${this.fragmentName}
+                        @input=${(e) => this.fragmentName = e.target.value}
+                        placeholder="Enter fragment name"
+                    ></sp-textfield>
+                </div>
+
                 <div class="form-field">
                     <sp-field-label for="folder-picker">Select Destination Folder</sp-field-label>
                     <div class="current-path">Current location: ${this.fragment?.path || ''}</div>
@@ -311,22 +319,16 @@ export class MasMoveDialog extends LitElement {
                                   ${this.merchFolders.length === 0
                                       ? html`<div class="error-message">No folders available</div>`
                                       : this.merchFolders.map((folder) => {
-                                            const currentFolder = this.fragment?.path
-                                                ? this.fragment.path.split('/').slice(0, -1).join('/')
-                                                : '';
-                                            const isCurrentFolder = folder.fullPath === currentFolder;
-
                                             return html`
                                                 <div
                                                     class="folder-item ${this.selectedFolder?.fullPath === folder.fullPath
                                                         ? 'selected'
-                                                        : ''} ${isCurrentFolder ? 'disabled' : ''}"
-                                                    @click=${() => !isCurrentFolder && this.selectFolder(folder)}
-                                                    title="${isCurrentFolder ? 'Current folder' : folder.fullPath}"
+                                                        : ''}"
+                                                    @click=${() => this.selectFolder(folder)}
+                                                    title="${folder.fullPath}"
                                                 >
                                                     <sp-icon-folder class="folder-icon"></sp-icon-folder>
                                                     <span>${folder.displayName}</span>
-                                                    ${isCurrentFolder ? html`<span>(current)</span>` : ''}
                                                 </div>
                                             `;
                                         })}
@@ -347,4 +349,4 @@ export class MasMoveDialog extends LitElement {
     }
 }
 
-customElements.define('mas-move-dialog', MasMoveDialog);
+customElements.define('mas-copy-dialog', MasCopyDialog);

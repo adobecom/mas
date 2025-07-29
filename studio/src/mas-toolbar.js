@@ -5,7 +5,7 @@ import './mas-folder-picker.js';
 import './aem/mas-filter-panel.js';
 import './mas-selection-panel.js';
 import './mas-create-dialog.js';
-import './mas-move-dialog.js';
+import './mas-copy-dialog.js';
 
 const renderModes = [
     {
@@ -36,8 +36,8 @@ class MasToolbar extends LitElement {
         createDialogOpen: { state: true },
         selectedContentType: { state: true },
         filterCount: { state: true },
-        moveDialogOpen: { state: true },
-        fragmentToMove: { state: true },
+        copyDialogOpen: { state: true },
+        fragmentToCopy: { state: true },
     };
 
     static styles = css`
@@ -131,10 +131,10 @@ class MasToolbar extends LitElement {
         this.createDialogOpen = false;
         this.selectedContentType = 'merch-card';
         this.filterCount = 0;
-        this.moveDialogOpen = false;
-        this.fragmentToMove = null;
+        this.copyDialogOpen = false;
+        this.fragmentToCopy = null;
 
-        this.handleMove = this.handleMove.bind(this);
+        this.handleCopyToFolder = this.handleCopyToFolder.bind(this);
     }
 
     filters = new StoreController(this, Store.filters);
@@ -289,7 +289,7 @@ class MasToolbar extends LitElement {
         Store.selecting.set(false);
     }
 
-    handleMove(fragmentOrSelection) {
+    handleCopyToFolder(fragmentOrSelection) {
         let fragment = fragmentOrSelection;
         
         // Handle case where entire selection array is passed
@@ -309,14 +309,14 @@ class MasToolbar extends LitElement {
         }
         
         if (fragment && !Array.isArray(fragment)) {
-            this.fragmentToMove = fragment;
-            this.moveDialogOpen = true;
+            this.fragmentToCopy = fragment;
+            this.copyDialogOpen = true;
         }
     }
 
-    handleFragmentMoved() {
-        this.moveDialogOpen = false;
-        this.fragmentToMove = null;
+    handleFragmentCopied() {
+        this.copyDialogOpen = false;
+        this.fragmentToCopy = null;
         Store.selection.set([]);
         Store.selecting.set(false);
     }
@@ -329,7 +329,7 @@ class MasToolbar extends LitElement {
             <mas-selection-panel
                 ?open=${this.selecting.value}
                 .selectionStore=${Store.selection}
-                .onMove=${this.handleMove}
+                .onCopyToFolder=${this.handleCopyToFolder}
                 @close=${this.handleSelectionPanelClose}
             ></mas-selection-panel>
             ${this.createDialogOpen
@@ -338,15 +338,15 @@ class MasToolbar extends LitElement {
                       @close=${() => (this.createDialogOpen = false)}
                   ></mas-create-dialog>`
                 : nothing}
-            ${this.moveDialogOpen && this.fragmentToMove
-                ? html`<mas-move-dialog
-                      .fragment=${this.fragmentToMove}
-                      @fragment-moved=${this.handleFragmentMoved}
+            ${this.copyDialogOpen && this.fragmentToCopy
+                ? html`<mas-copy-dialog
+                      .fragment=${this.fragmentToCopy}
+                      @fragment-copied=${this.handleFragmentCopied}
                       @dialog-closed=${() => {
-                          this.moveDialogOpen = false;
-                          this.fragmentToMove = null;
+                          this.copyDialogOpen = false;
+                          this.fragmentToCopy = null;
                       }}
-                  ></mas-move-dialog>`
+                  ></mas-copy-dialog>`
                 : nothing} `;
     }
 }

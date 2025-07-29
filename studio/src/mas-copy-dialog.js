@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import { EVENT_KEYDOWN } from './constants.js';
+import { EVENT_KEYDOWN, LOCALES } from './constants.js';
 import Store from './store.js';
 import { showToast } from './utils.js';
 
@@ -7,6 +7,7 @@ export class MasCopyDialog extends LitElement {
     static properties = {
         fragment: { type: Object },
         selectedFolder: { state: true },
+        selectedLocale: { state: true },
         loading: { state: true },
         error: { state: true },
         fragmentName: { state: true },
@@ -25,11 +26,28 @@ export class MasCopyDialog extends LitElement {
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
         }
 
         sp-dialog-wrapper {
             z-index: 1000;
             position: relative;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        sp-dialog-wrapper::part(dialog) {
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        sp-dialog-wrapper::part(content) {
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0;
         }
 
         .form-field {
@@ -42,7 +60,7 @@ export class MasCopyDialog extends LitElement {
         }
 
         .folder-tree {
-            max-height: 400px;
+            max-height: 200px;
             overflow-y: auto;
             border: 1px solid var(--spectrum-global-color-gray-300);
             border-radius: 4px;
@@ -91,12 +109,17 @@ export class MasCopyDialog extends LitElement {
         sp-textfield {
             width: 100%;
         }
+
+        sp-picker {
+            width: 100%;
+        }
     `;
 
     constructor() {
         super();
         this.fragment = null;
         this.selectedFolder = null;
+        this.selectedLocale = 'en_US'; // Default to en_US
         this.loading = false;
         this.error = null;
         this.merchFolders = [];
@@ -227,12 +250,13 @@ export class MasCopyDialog extends LitElement {
                 throw new Error('Fragment is missing path property');
             }
 
-            // Copy the fragment with custom name
+            // Copy the fragment with custom name and selected locale
             const customName = this.fragmentName.trim();
             const copiedFragment = await aem.sites.cf.fragments.copyToFolder(
                 this.fragment,
                 this.selectedFolder.fullPath,
                 customName !== this.fragment.name ? customName : null,
+                this.selectedLocale,
             );
 
             if (!copiedFragment) {
@@ -312,6 +336,23 @@ export class MasCopyDialog extends LitElement {
                             @input=${(e) => (this.fragmentName = e.target.value)}
                             placeholder="Enter fragment name"
                         ></sp-textfield>
+                    </div>
+
+                    <div class="form-field">
+                        <sp-field-label for="locale-picker">Select Locale</sp-field-label>
+                        <sp-picker
+                            id="locale-picker"
+                            value=${this.selectedLocale}
+                            @change=${(e) => (this.selectedLocale = e.target.value)}
+                        >
+                            ${LOCALES.map(
+                                (locale) => html`
+                                    <sp-menu-item value="${locale.code}" ?selected="${locale.code === this.selectedLocale}">
+                                        ${locale.flag} ${locale.name} (${locale.code})
+                                    </sp-menu-item>
+                                `,
+                            )}
+                        </sp-picker>
                     </div>
 
                     <div class="form-field">

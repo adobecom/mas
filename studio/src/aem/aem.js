@@ -454,38 +454,27 @@ class AEM {
         return response; //204 No Content
     }
 
-    async copyToFolder(fragment, targetPath, customName = null) {
+    async copyToFolder(fragment, targetPath, customName = null, targetLocale = null) {
         if (!fragment || !fragment.path || fragment.path.trim() === '') {
             throw new Error('Invalid fragment: missing or empty path');
         }
 
-        // Extract the asset name and locale from the path
+        // Extract the asset name from the path
         const pathParts = fragment.path.split('/');
         const originalAssetName = pathParts.pop();
         const assetName = customName || originalAssetName;
 
-        // Check if the parent folder is a locale folder (e.g., en_US, fr_FR)
-        const localePattern = /^[a-z]{2}_[A-Z]{2}$/;
-        let locale = '';
+        // Use the provided targetLocale or default to en_US
+        const locale = targetLocale || 'en_US';
 
-        if (pathParts.length > 0 && localePattern.test(pathParts[pathParts.length - 1])) {
-            locale = pathParts[pathParts.length - 1];
-        }
+        console.log('Fragment path:', fragment.path);
+        console.log('Using locale:', locale);
 
-        // Build the new path with locale if present
-        let finalTargetPath = targetPath;
-        if (locale) {
-            finalTargetPath = `${targetPath}/${locale}`;
+        // Build the new path with locale (always present now)
+        const finalTargetPath = `${targetPath}/${locale}`;
 
-            // Check if locale folder exists, create if it doesn't
-            const localeExists = await this.folderExists(finalTargetPath);
-            if (!localeExists) {
-                console.log(`Locale folder ${finalTargetPath} doesn't exist, creating it...`);
-                await this.createFolder(finalTargetPath);
-                // Wait a bit for folder creation to complete
-                await this.wait(500);
-            }
-        }
+        console.log('Target path:', targetPath);
+        console.log('Final target path with locale:', finalTargetPath);
 
         // Get CSRF token for API calls
         const csrfToken = await this.getCsrfToken();
@@ -622,69 +611,6 @@ class AEM {
         };
     }
 
-    /**
-     * Check if a folder exists at the given path
-     * @param {string} path - The folder path to check
-     * @returns {Promise<boolean>} - True if folder exists, false otherwise
-     */
-    async folderExists(path) {
-        try {
-            const response = await fetch(
-                `${this.baseUrl}/bin/querybuilder.json?path=${path}&path.flat=true&type=sling:Folder&p.limit=1`,
-                {
-                    method: 'GET',
-                    headers: this.headers,
-                },
-            );
-
-            if (!response.ok) {
-                return false;
-            }
-
-            const result = await response.json();
-            // Check if the folder itself exists by checking the total results
-            return result.total > 0 || path === result.path;
-        } catch (error) {
-            console.error(`Error checking folder existence: ${error}`);
-            return false;
-        }
-    }
-
-    /**
-     * Create a folder at the given path
-     * @param {string} path - The folder path to create
-     * @returns {Promise<void>}
-     */
-    async createFolder(path) {
-        const csrfToken = await this.getCsrfToken();
-
-        // Extract parent path and folder name
-        const pathParts = path.split('/');
-        const folderName = pathParts.pop();
-        const parentPath = pathParts.join('/');
-
-        const response = await fetch(`${this.baseUrl}${parentPath}`, {
-            method: 'POST',
-            headers: {
-                ...this.headers,
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'CSRF-Token': csrfToken,
-            },
-            body: new URLSearchParams({
-                ':operation': 'createFolder',
-                ':name': folderName,
-                'jcr:primaryType': 'sling:Folder',
-            }).toString(),
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text().catch(() => '');
-            throw new Error(
-                `Failed to create folder: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ''}`,
-            );
-        }
-    }
-
     async listTags(root) {
         const response = await fetch(
             `${this.baseUrl}/bin/querybuilder.json?path=${root}&type=cq:Tag&orderby=@jcr:path&p.limit=-1`,
@@ -784,14 +710,6 @@ class AEM {
          * @see AEM#listFolders
          */
         list: this.listFolders.bind(this),
-        /**
-         * @see AEM#folderExists
-         */
-        exists: this.folderExists.bind(this),
-        /**
-         * @see AEM#createFolder
-         */
-        create: this.createFolder.bind(this),
     };
 }
 

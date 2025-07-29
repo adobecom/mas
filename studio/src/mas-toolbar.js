@@ -291,14 +291,14 @@ class MasToolbar extends LitElement {
 
     handleCopyToFolder(fragmentOrSelection) {
         let fragment = fragmentOrSelection;
-        
+
         // Handle case where entire selection array is passed
         if (Array.isArray(fragmentOrSelection) && fragmentOrSelection.length > 0) {
             const firstId = fragmentOrSelection[0];
             if (typeof firstId === 'string') {
                 // Find the fragment by ID
                 const fragmentStores = Store.fragments.list.data.get();
-                const fragmentStore = fragmentStores.find(store => store.get().id === firstId);
+                const fragmentStore = fragmentStores.find((store) => store.get().id === firstId);
                 if (fragmentStore) {
                     fragment = fragmentStore.get();
                 } else {
@@ -307,7 +307,7 @@ class MasToolbar extends LitElement {
                 }
             }
         }
-        
+
         if (fragment && !Array.isArray(fragment)) {
             this.fragmentToCopy = fragment;
             this.copyDialogOpen = true;

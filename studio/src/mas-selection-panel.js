@@ -71,14 +71,14 @@ class MasSelectionPanel extends LitElement {
     handleCopyToFolder() {
         // Get the first selected item
         const firstSelection = this.selection[0];
-        
+
         // If it's a FragmentStore, get the fragment
         if (firstSelection && typeof firstSelection.get === 'function') {
             this.onCopyToFolder(firstSelection.get());
         } else if (typeof firstSelection === 'string') {
             // If it's just an ID, we need to find the full fragment from fragment stores
             const fragmentStores = Store.fragments.list.data.get();
-            const fragmentStore = fragmentStores.find(store => store.get().id === firstSelection);
+            const fragmentStore = fragmentStores.find((store) => store.get().id === firstSelection);
             if (fragmentStore) {
                 this.onCopyToFolder(fragmentStore.get());
             } else {

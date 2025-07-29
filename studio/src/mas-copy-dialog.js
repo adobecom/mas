@@ -113,12 +113,12 @@ export class MasCopyDialog extends LitElement {
         super.connectedCallback();
         document.addEventListener(EVENT_KEYDOWN, this.handleKeyDown);
         this.aem = document.querySelector('mas-repository')?.aem;
-        
+
         // Set initial fragment name from the fragment
         if (this.fragment?.name) {
             this.fragmentName = this.fragment.name;
         }
-        
+
         if (this.aem) {
             this.loadMerchFolders();
         } else {
@@ -129,12 +129,12 @@ export class MasCopyDialog extends LitElement {
 
     updated(changedProperties) {
         super.updated(changedProperties);
-        
+
         // Update fragment name when fragment changes
         if (changedProperties.has('fragment') && this.fragment?.name) {
             this.fragmentName = this.fragment.name;
         }
-        
+
         // If AEM becomes available and we haven't loaded folders yet
         if (this.aem && this.merchFolders.length === 0 && !this.loading) {
             this.loadMerchFolders();
@@ -230,9 +230,9 @@ export class MasCopyDialog extends LitElement {
             // Copy the fragment with custom name
             const customName = this.fragmentName.trim();
             const copiedFragment = await aem.sites.cf.fragments.copyToFolder(
-                this.fragment, 
+                this.fragment,
                 this.selectedFolder.fullPath,
-                customName !== this.fragment.name ? customName : null
+                customName !== this.fragment.name ? customName : null,
             );
 
             if (!copiedFragment) {
@@ -241,9 +241,15 @@ export class MasCopyDialog extends LitElement {
 
             // Show appropriate message based on the operation result
             if (copiedFragment._renamedTo && copiedFragment._renamedTo !== this.fragment.name) {
-                showToast(`Fragment copied to ${this.selectedFolder.displayName} and renamed to '${copiedFragment._renamedTo}' to avoid conflicts`, 'positive');
+                showToast(
+                    `Fragment copied to ${this.selectedFolder.displayName} and renamed to '${copiedFragment._renamedTo}' to avoid conflicts`,
+                    'positive',
+                );
             } else if (copiedFragment && copiedFragment.name && copiedFragment.name !== this.fragment.name) {
-                showToast(`Fragment copied to ${this.selectedFolder.displayName} and renamed to '${copiedFragment.name}' to avoid conflicts`, 'positive');
+                showToast(
+                    `Fragment copied to ${this.selectedFolder.displayName} and renamed to '${copiedFragment.name}' to avoid conflicts`,
+                    'positive',
+                );
             } else {
                 showToast(`Fragment copied to ${this.selectedFolder.displayName}`, 'positive');
             }
@@ -298,44 +304,44 @@ export class MasCopyDialog extends LitElement {
                     ?dismissable=${!this.loading}
                     @click=${(e) => e.stopPropagation()}
                 >
-                <div class="form-field">
-                    <sp-field-label for="fragment-name">Fragment Name</sp-field-label>
-                    <sp-textfield
-                        id="fragment-name"
-                        value=${this.fragmentName}
-                        @input=${(e) => this.fragmentName = e.target.value}
-                        placeholder="Enter fragment name"
-                    ></sp-textfield>
-                </div>
+                    <div class="form-field">
+                        <sp-field-label for="fragment-name">Fragment Name</sp-field-label>
+                        <sp-textfield
+                            id="fragment-name"
+                            value=${this.fragmentName}
+                            @input=${(e) => (this.fragmentName = e.target.value)}
+                            placeholder="Enter fragment name"
+                        ></sp-textfield>
+                    </div>
 
-                <div class="form-field">
-                    <sp-field-label for="folder-picker">Select Destination Folder</sp-field-label>
-                    <div class="current-path">Current location: ${this.fragment?.path || ''}</div>
+                    <div class="form-field">
+                        <sp-field-label for="folder-picker">Select Destination Folder</sp-field-label>
+                        <div class="current-path">Current location: ${this.fragment?.path || ''}</div>
 
-                    ${this.loading
-                        ? html` <sp-progress-circle indeterminate></sp-progress-circle> `
-                        : html`
-                              <div class="folder-tree">
-                                  ${this.merchFolders.length === 0
-                                      ? html`<div class="error-message">No folders available</div>`
-                                      : this.merchFolders.map((folder) => {
-                                            return html`
-                                                <div
-                                                    class="folder-item ${this.selectedFolder?.fullPath === folder.fullPath
-                                                        ? 'selected'
-                                                        : ''}"
-                                                    @click=${() => this.selectFolder(folder)}
-                                                    title="${folder.fullPath}"
-                                                >
-                                                    <sp-icon-folder class="folder-icon"></sp-icon-folder>
-                                                    <span>${folder.displayName}</span>
-                                                </div>
-                                            `;
-                                        })}
-                              </div>
-                          `}
-                    ${this.error ? html` <div class="error-message">${this.error}</div> ` : ''}
-                </div>
+                        ${this.loading
+                            ? html` <sp-progress-circle indeterminate></sp-progress-circle> `
+                            : html`
+                                  <div class="folder-tree">
+                                      ${this.merchFolders.length === 0
+                                          ? html`<div class="error-message">No folders available</div>`
+                                          : this.merchFolders.map((folder) => {
+                                                return html`
+                                                    <div
+                                                        class="folder-item ${this.selectedFolder?.fullPath === folder.fullPath
+                                                            ? 'selected'
+                                                            : ''}"
+                                                        @click=${() => this.selectFolder(folder)}
+                                                        title="${folder.fullPath}"
+                                                    >
+                                                        <sp-icon-folder class="folder-icon"></sp-icon-folder>
+                                                        <span>${folder.displayName}</span>
+                                                    </div>
+                                                `;
+                                            })}
+                                  </div>
+                              `}
+                        ${this.error ? html` <div class="error-message">${this.error}</div> ` : ''}
+                    </div>
                 </sp-dialog-wrapper>
             </div>
         `;

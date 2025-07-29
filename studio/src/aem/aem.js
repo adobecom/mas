@@ -443,11 +443,13 @@ class AEM {
             } catch (e) {
                 // If we can't parse the error, continue with default message
             }
-            
+
             if (response.status === 409 && errorDetail.includes('referencing it')) {
                 throw new Error(`Failed to delete fragment: ${response.status} - Fragment has references. ${errorDetail}`);
             }
-            throw new Error(`Failed to delete fragment: ${response.status} ${response.statusText}${errorDetail ? ` - ${errorDetail}` : ''}`);
+            throw new Error(
+                `Failed to delete fragment: ${response.status} ${response.statusText}${errorDetail ? ` - ${errorDetail}` : ''}`,
+            );
         }
         return response; //204 No Content
     }
@@ -456,55 +458,64 @@ class AEM {
         if (!fragment || !fragment.path || fragment.path.trim() === '') {
             throw new Error('Invalid fragment: missing or empty path');
         }
-        
+
         // Extract the asset name and locale from the path
         const pathParts = fragment.path.split('/');
         const originalAssetName = pathParts.pop();
         const assetName = customName || originalAssetName;
-        
+
         // Check if the parent folder is a locale folder (e.g., en_US, fr_FR)
         const localePattern = /^[a-z]{2}_[A-Z]{2}$/;
         let locale = '';
-        
+
         if (pathParts.length > 0 && localePattern.test(pathParts[pathParts.length - 1])) {
             locale = pathParts[pathParts.length - 1];
         }
-        
+
         // Build the new path with locale if present
         let finalTargetPath = targetPath;
         if (locale) {
             finalTargetPath = `${targetPath}/${locale}`;
+
+            // Check if locale folder exists, create if it doesn't
+            const localeExists = await this.folderExists(finalTargetPath);
+            if (!localeExists) {
+                console.log(`Locale folder ${finalTargetPath} doesn't exist, creating it...`);
+                await this.createFolder(finalTargetPath);
+                // Wait a bit for folder creation to complete
+                await this.wait(500);
+            }
         }
-        
+
         // Get CSRF token for API calls
         const csrfToken = await this.getCsrfToken();
-        
+
         try {
             // Get the full fragment data
             const fullFragment = await this.sites.cf.fragments.getById(fragment.id);
-            
+
             // Check if a fragment with the same name already exists and generate unique name
             let finalAssetName = assetName;
             let nameAttempt = 0;
             const maxAttempts = 10;
-            
+
             while (nameAttempt < maxAttempts) {
                 try {
                     const checkPath = `${finalTargetPath}/${finalAssetName}`;
                     await this.sites.cf.fragments.getByPath(checkPath);
                     // If we get here, the fragment exists, so we need a new name
                     nameAttempt++;
-                    
+
                     // Extract base name and extension if present
                     const lastDotIndex = assetName.lastIndexOf('.');
                     let baseName = assetName;
                     let extension = '';
-                    
+
                     if (lastDotIndex > 0) {
                         baseName = assetName.substring(0, lastDotIndex);
                         extension = assetName.substring(lastDotIndex);
                     }
-                    
+
                     // Generate new name with number suffix
                     finalAssetName = `${baseName}-${nameAttempt}${extension}`;
                     console.warn(`Fragment '${assetName}' already exists. Trying '${finalAssetName}'`);
@@ -513,15 +524,15 @@ class AEM {
                     break;
                 }
             }
-            
+
             if (nameAttempt >= maxAttempts) {
                 throw new Error(`Cannot create unique name for fragment after ${maxAttempts} attempts`);
             }
-            
+
             if (nameAttempt > 0) {
                 console.log(`Fragment will be renamed from '${assetName}' to '${finalAssetName}' to avoid conflicts`);
             }
-            
+
             // Create a copy in the new location
             const copyData = {
                 title: fullFragment.title,
@@ -531,7 +542,7 @@ class AEM {
                 name: finalAssetName,
                 fields: fullFragment.fields,
             };
-            
+
             const copyResponse = await fetch(this.cfFragmentsUrl, {
                 method: 'POST',
                 headers: {
@@ -541,32 +552,32 @@ class AEM {
                 },
                 body: JSON.stringify(copyData),
             });
-            
+
             if (!copyResponse.ok) {
                 const errorText = await copyResponse.text().catch(() => '');
                 throw new Error(`Copy failed: ${copyResponse.status} ${errorText}`);
             }
-            
+
             const copiedFragment = await copyResponse.json();
-            
+
             // Wait a bit for the copy to be fully created
             await this.wait(1000);
-            
+
             // Add tags if the original had any
             if (fullFragment.tags && fullFragment.tags.length > 0) {
                 try {
                     // Extract tag IDs from tag objects
-                    const tagIds = fullFragment.tags.map(tag => tag.id || tag);
+                    const tagIds = fullFragment.tags.map((tag) => tag.id || tag);
                     await this.saveTags({ ...copiedFragment, newTags: tagIds });
                 } catch (tagErr) {
                     console.warn('Failed to copy tags to new fragment:', tagErr);
                     // Don't fail the operation if tags couldn't be copied
                 }
             }
-            
+
             // Get the final fragment with all data
             const finalFragment = await this.sites.cf.fragments.getById(copiedFragment.id);
-            
+
             // Always publish the copied fragment
             try {
                 await this.publishFragment(finalFragment);
@@ -575,19 +586,17 @@ class AEM {
                 console.warn('Failed to publish the copied fragment:', publishErr);
                 // Don't fail the copy operation if publish fails
             }
-            
+
             // Add metadata about rename if it happened
             if (nameAttempt > 0) {
                 finalFragment._renamedTo = finalAssetName;
             }
-            
+
             return finalFragment;
-            
         } catch (err) {
             throw new Error(`Failed to copy fragment: ${err.message}`);
         }
     }
-
 
     async listFolders(path) {
         const name = path?.replace(/^\/content\/dam/, '');
@@ -611,6 +620,69 @@ class AEM {
                 path: `${path}/${name}`,
             })),
         };
+    }
+
+    /**
+     * Check if a folder exists at the given path
+     * @param {string} path - The folder path to check
+     * @returns {Promise<boolean>} - True if folder exists, false otherwise
+     */
+    async folderExists(path) {
+        try {
+            const response = await fetch(
+                `${this.baseUrl}/bin/querybuilder.json?path=${path}&path.flat=true&type=sling:Folder&p.limit=1`,
+                {
+                    method: 'GET',
+                    headers: this.headers,
+                },
+            );
+
+            if (!response.ok) {
+                return false;
+            }
+
+            const result = await response.json();
+            // Check if the folder itself exists by checking the total results
+            return result.total > 0 || path === result.path;
+        } catch (error) {
+            console.error(`Error checking folder existence: ${error}`);
+            return false;
+        }
+    }
+
+    /**
+     * Create a folder at the given path
+     * @param {string} path - The folder path to create
+     * @returns {Promise<void>}
+     */
+    async createFolder(path) {
+        const csrfToken = await this.getCsrfToken();
+
+        // Extract parent path and folder name
+        const pathParts = path.split('/');
+        const folderName = pathParts.pop();
+        const parentPath = pathParts.join('/');
+
+        const response = await fetch(`${this.baseUrl}${parentPath}`, {
+            method: 'POST',
+            headers: {
+                ...this.headers,
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'CSRF-Token': csrfToken,
+            },
+            body: new URLSearchParams({
+                ':operation': 'createFolder',
+                ':name': folderName,
+                'jcr:primaryType': 'sling:Folder',
+            }).toString(),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new Error(
+                `Failed to create folder: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ''}`,
+            );
+        }
     }
 
     async listTags(root) {
@@ -712,6 +784,14 @@ class AEM {
          * @see AEM#listFolders
          */
         list: this.listFolders.bind(this),
+        /**
+         * @see AEM#folderExists
+         */
+        exists: this.folderExists.bind(this),
+        /**
+         * @see AEM#createFolder
+         */
+        create: this.createFolder.bind(this),
     };
 }
 

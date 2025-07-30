@@ -23,7 +23,16 @@ describe('FragmentClient', () => {
         it('should fetch and transform card fragment for preview', async () => {
             nock(baseUrl).get(`/${mockCardFragment.id}?references=all-hydrated`).reply(200, mockCardFragment);
             nock(baseUrl).get(`/${mockPlaceholders.id}?references=all-hydrated`).reply(200, mockPlaceholders);
-
+            nock(baseUrl)
+                .get('?path=/content/dam/mas/sandbox/en_US/dictionary/index')
+                .reply(200, {
+                    items: [
+                        {
+                            id: mockPlaceholders.id,
+                            type: 'dictionary',
+                        },
+                    ],
+                });
             const result = await previewFragment(mockCardFragment.id, {
                 surface: 'sandbox',
                 locale: 'en_US',

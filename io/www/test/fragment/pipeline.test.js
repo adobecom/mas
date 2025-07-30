@@ -218,6 +218,29 @@ describe('pipeline corner cases', () => {
         });
     });
 
+    it('should handle fetch timeouts', async () => {
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments/test-fragment?references=all-hydrated')
+            .delay(150)
+            .reply(200, {});
+
+        const state = new MockState();
+        state.put('network-config', '{"fetchTimeout":100,"retries": 1}');
+        const result = await getFragment({
+            id: 'test-fragment',
+            state,
+            locale: 'fr_FR',
+        });
+
+        expect(result).to.deep.equal({
+            statusCode: 504,
+            headers: EXPECTED_HEADERS,
+            body: {
+                message: 'fetch timeout',
+            },
+        });
+    });
+
     it('should handle fetch exceptions', async () => {
         nock('https://odin.adobe.com').get('/adobe/sites/fragments/test-fragment').replyWithError('Network error');
 
@@ -228,12 +251,28 @@ describe('pipeline corner cases', () => {
         });
 
         expect(result).to.deep.equal({
-            statusCode: 500,
+            statusCode: 503,
             headers: EXPECTED_HEADERS,
             body: {
-                message: 'nok',
+                message: 'fetch error',
             },
         });
+    });
+
+    it('should handle main timeout', async () => {
+        setupFragmentMocks({
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        const state = new MockState();
+        state.put('network-config', '{"mainTimeout":3,"retries": 1}');
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state: state,
+            locale: 'fr_FR',
+        });
+        expect(result.statusCode).to.equal(504);
+        expect(result.message).to.equal('Request timed out');
     });
 
     it('should handle 404 response status', async () => {
@@ -325,7 +364,7 @@ describe('collection placeholders', () => {
         );
         const result = await getFragment({
             id: '07f9729e-dc1f-4634-829d-7aa469bb0d33',
-            state: state,
+            state,
             locale: 'en_US',
         });
         expect(result.body.placeholders.searchResultsMobileText).to.equal(

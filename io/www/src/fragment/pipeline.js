@@ -1,7 +1,15 @@
 'use strict';
 
 const fetchFragment = require('./fetch.js').fetchFragment;
-const { log, logDebug, logError } = require('./common.js');
+const {
+    createTimeoutPromise,
+    log,
+    logDebug,
+    logError,
+    getElapsedTime,
+    getFromState,
+    getJsonFromState,
+} = require('./common.js');
 const corrector = require('./corrector.js').corrector;
 const crypto = require('crypto');
 const replace = require('./replace.js').replace;
@@ -10,10 +18,17 @@ const stateLib = require('@adobe/aio-lib-state');
 const translate = require('./translate.js').translate;
 const wcs = require('./wcs.js').wcs;
 const zlib = require('zlib');
+const { get } = require('http');
 
 function calculateHash(body) {
     return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
 }
+
+const RESPONSE_HEADERS = {
+    'Access-Control-Expose-Headers': 'X-Request-Id,Etag,Last-Modified,server-timing',
+    'Content-Type': 'application/json',
+    'Content-Encoding': 'br',
+};
 
 async function main(params) {
     const startTime = Date.now();
@@ -27,6 +42,7 @@ async function main(params) {
         ...params,
         api_key,
         requestId,
+        startTime,
         transformer: 'pipeline',
         DEFAULT_HEADERS,
         status: 200,
@@ -36,19 +52,38 @@ async function main(params) {
     if (!context.state) {
         context.state = await stateLib.init();
     }
-    context.debugLogs = (await context.state.get('debugFragmentLogs'))?.value || false;
-    const requestKey = `req-${context.id}-${context.locale}`;
-    const cachedMetadataStr = (await context.state.get(requestKey))?.value;
-    let cachedMetadata = {};
-    if (cachedMetadataStr) {
-        log(`(${Date.now() - startTime}ms) found cached metadata for ${requestKey} -> ${cachedMetadataStr}`, context);
-        try {
-            cachedMetadata = JSON.parse(cachedMetadataStr);
-            const { translatedId, dictionaryId } = cachedMetadata || {};
-            context = { ...context, translatedId, dictionaryId };
-        } catch (e) {
-            logError(`Error parsing cached metadata ${cachedMetadataStr}: ${e.message}`, context);
+    try {
+        const { json } = await getJsonFromState('network-config', context);
+        context.networkConfig = json || {};
+        const timeout = context.networkConfig.mainTimeout || 5000;
+        return await Promise.race([mainProcess(context), createTimeoutPromise(timeout)]);
+    } catch (error) {
+        logError(`Error occurred while processing request: ${error.message} ${error.stack}`, context);
+        /* istanbul ignore next */
+        if (error.isTimeout) {
+            return {
+                statusCode: 504,
+                headers: RESPONSE_HEADERS,
+                message: 'Request timed out',
+            };
         }
+        /* istanbul ignore next */
+        return {
+            statusCode: 503,
+            message: error?.message || 'Internal Server Error',
+            headers: RESPONSE_HEADERS,
+        };
+    }
+}
+
+async function mainProcess(context) {
+    context.debugLogs = getFromState('debugFragmentLogs', context);
+    const requestKey = `req-${context.id}-${context.locale}`;
+    const { json: cachedMetadata, str: cachedMetadataStr } = await getJsonFromState(requestKey, context);
+    if (cachedMetadata) {
+        log(`(${getElapsedTime(context)}) found cached metadata for ${requestKey} -> ${cachedMetadataStr}`, context);
+        const { translatedId, dictionaryId } = cachedMetadata;
+        context = { ...context, translatedId, dictionaryId };
     }
 
     for (const transformer of [fetchFragment, translate, settings, replace, wcs, corrector]) {
@@ -86,7 +121,7 @@ async function main(params) {
             lastModified = new Date(cachedMetadata.lastModified);
         }
         // Check If-Modified-Since header
-        const ifModifiedSince = params.__ow_headers?.['if-modified-since'];
+        const ifModifiedSince = context.__ow_headers?.['if-modified-since'];
         if (ifModifiedSince) {
             const modifiedSince = new Date(ifModifiedSince);
             if (lastModified.getTime() <= modifiedSince.getTime()) {
@@ -106,19 +141,15 @@ async function main(params) {
     }
     returnValue.headers = {
         ...returnValue.headers,
-        'Access-Control-Expose-Headers': 'X-Request-Id,Etag,Last-Modified,server-timing',
-        'Content-Type': 'application/json',
-        'Content-Encoding': 'br',
+        ...RESPONSE_HEADERS,
     };
     returnValue.body = responseBody?.length > 0 ? zlib.brotliCompressSync(responseBody).toString('base64') : undefined;
     logDebug(() => 'full response: ' + JSON.stringify(returnValue), context);
     log(
-        `pipeline completed: ${context.id} ${context.locale} -> ${id} (${returnValue.statusCode}) in ${Date.now() - startTime}ms`,
+        `pipeline completed: ${context.id} ${context.locale} -> ${id} (${returnValue.statusCode}) in ${getElapsedTime(context)}`,
         {
             ...context,
             transformer: 'pipeline',
-            requestId,
-            api_key,
         },
     );
     return returnValue;

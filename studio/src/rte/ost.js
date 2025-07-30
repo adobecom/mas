@@ -23,10 +23,8 @@ const ostDefaultSettings = () => {
         displayPlanType,
         displayRecurrence,
         displayTax,
-        forceTaxExclusive,
         isPerpetual,
-        workflow,
-        workflowStep,
+        checkoutWorkflowStep,
     } = document.querySelector('mas-commerce-service').settings;
     return {
         displayOldPrice,
@@ -34,47 +32,10 @@ const ostDefaultSettings = () => {
         displayPlanType,
         displayRecurrence,
         displayTax,
-        forceTaxExclusive,
+        forceTaxExclusive: true, // see https://git.corp.adobe.com/wcms/tacocat.js/blob/develop/packages/offer-selector-tool/src/PlaceholderKey.jsx#L38
         isPerpetual,
-        workflow,
-        workflowStep,
+        workflowStep: checkoutWorkflowStep,
     };
-};
-
-export const ostDefaults = {
-    aosApiKey: 'wcms-commerce-ims-user-prod',
-    checkoutClientId: 'creative',
-    country: 'US',
-    language: 'en',
-    environment: 'PROD',
-    landscape: 'PUBLISHED',
-    searchParameters: {},
-    searchOfferSelectorId: null,
-    wcsApiKey: 'wcms-commerce-ims-ro-user-cc',
-    ctaTextOption: {
-        ctaTexts: Object.entries(CHECKOUT_CTA_TEXTS).map(([id, name]) => ({
-            id,
-            name,
-        })),
-        getDefaultText() {
-            return this.ctaTexts[0].id;
-        },
-
-        getTexts() {
-            return this.ctaTexts;
-        },
-
-        getSelectedText(searchParameters) {
-            const ctaLabel = searchParameters.get('text');
-            let selectedText;
-            if (ctaLabel)
-                selectedText =
-                    this.ctaTexts.find(({ id, name }) => [id, name].includes(ctaLabel)) ||
-                    this.ctaTexts.find(({ id, name }) => [id, name].includes(ctaLabel.replace('{{', '').replace('}}', '')));
-            if (selectedText) return selectedText.id;
-            return ctaLabel || this.getDefaultText();
-        },
-    },
 };
 
 // Function to get the difference between two objects
@@ -240,13 +201,44 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
         ostRoot.style.display = 'block';
 
         closeFunction = window.ost.openOfferSelectorTool({
-            ...ostDefaults,
+            aosApiKey: 'wcms-commerce-ims-user-prod',
+            checkoutClientId: 'creative',
+            environment: 'PROD',
+            wcsApiKey: 'wcms-commerce-ims-ro-user-cc',
+            ctaTextOption: {
+                ctaTexts: Object.entries(CHECKOUT_CTA_TEXTS).map(([id, name]) => ({
+                    id,
+                    name,
+                })),
+                getDefaultText() {
+                    return this.ctaTexts[0].id;
+                },
+
+                getTexts() {
+                    return this.ctaTexts;
+                },
+
+                getSelectedText(searchParameters) {
+                    const ctaLabel = searchParameters.get('text');
+                    let selectedText;
+                    if (ctaLabel)
+                        selectedText =
+                            this.ctaTexts.find(({ id, name }) => [id, name].includes(ctaLabel)) ||
+                            this.ctaTexts.find(({ id, name }) =>
+                                [id, name].includes(ctaLabel.replace('{{', '').replace('}}', '')),
+                            );
+                    if (selectedText) return selectedText.id;
+                    return ctaLabel || this.getDefaultText();
+                },
+            },
             rootElement: ostRoot,
             zIndex: 20,
             aosAccessToken,
             landscape,
             searchParameters,
             searchOfferSelectorId,
+            country: masCommerceService.settings.country,
+            language: masCommerceService.settings.language,
             defaultPlaceholderOptions: ostDefaultSettings(),
             offerSelectorPlaceholderOptions,
             modalsAndEntitlements: ['acom', 'sandbox', 'nala'].includes(Store.search.get().path),

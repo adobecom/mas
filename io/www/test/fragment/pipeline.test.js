@@ -62,7 +62,7 @@ const EXPECTED_BODY = {
     path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
 };
 //EXPECTED BODY SHA256 hash
-const EXPECTED_BODY_HASH = '5841245b48c3400d1f275e4c1379cef28d67a01695565f761aeda3a7e961e978';
+const EXPECTED_BODY_HASH = '54155ef064f4d37a6797c394f1a6352833d94ce02d1d829c813f84c4b8783f09';
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 

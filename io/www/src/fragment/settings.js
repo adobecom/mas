@@ -51,6 +51,10 @@ function applyPlansSettings(fragment, context) {
     if (fragment?.fields?.showPlanType != null) {
         fragment.settings.displayPlanType = fragment?.fields?.showPlanType;
     }
+    if (fragment?.fields?.perUnitLabel) {
+        fragment.priceLiterals ??= {};
+        fragment.priceLiterals.perUnitLabel = fragment.fields.perUnitLabel;
+    }
     if (locale === 'en_US') {
         fragment.settings.displayPlanType ??= true;
     }
@@ -84,6 +88,8 @@ function applyPriceLiterals(fragment) {
 }
 
 async function settings(context) {
+    applyPriceLiterals(context.body);
+
     if (context.body?.fields?.variant?.startsWith('plans')) {
         applyPlansSettings(context.body, context);
     }
@@ -95,8 +101,6 @@ async function settings(context) {
     if (context.body?.model?.id === COLLECTION_MODEL_ID) {
         applyCollectionSettings(context);
     }
-
-    applyPriceLiterals(context.body);
 
     return context;
 }

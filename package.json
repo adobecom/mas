@@ -15,8 +15,7 @@
         "build": "npm run build --workspaces",
         "studio": "cd studio && npm run proxy & aem up",
         "studio:qa": "cd studio && npm run proxy:qa & aem up",
-        "nala": "node nala/utils/nala.run.js",
-        "prepare": "husky"
+        "nala": "node nala/utils/nala.run.js"
     },
     "repository": {
         "type": "git",
@@ -68,7 +67,7 @@
         "@spectrum-web-components/tooltip": "^0.47.2",
         "@spectrum-web-components/top-nav": "^0.47.2",
         "@spectrum-web-components/tray": "^0.47.2",
-        "axios": "^1.7.9",
+        "axios": "^1.11.0",
         "prosemirror-commands": "^1.6.1",
         "prosemirror-example-setup": "^1.2.3",
         "prosemirror-keymap": "^1.2.2",
@@ -95,7 +94,6 @@
         "eslint-plugin-mocha": "^10.5.0",
         "eslint-plugin-prettier": "^5.1.3",
         "globals": "^16.0.0",
-        "husky": "^9.0.11",
         "prettier": "^3.3.2",
         "prettier-eslint": "^16.3.0",
         "sinon": "13.0.1"

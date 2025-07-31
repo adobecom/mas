@@ -777,12 +777,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.description).not.toContainText(data.legalDisclaimer);
             await editor.descriptionFieldGroup.locator(editor.OSTButton).click();
             await ost.legalDisclaimer.scrollIntoViewIfNeeded();
-            await expect(await ost.legalDisclaimer).not.toContainText(data.cardLegalDisclaimer);
+            await expect(await ost.legalDisclaimer).not.toContainText(data.legalDisclaimer);
             await expect(await ost.unitCheckbox).toBeVisible();
             await expect(await ost.taxlabelCheckbox).toBeVisible();
             await ost.unitCheckbox.click();
             await ost.taxlabelCheckbox.click();
-            await expect(await ost.legalDisclaimer).toContainText(data.cardLegalDisclaimer);
+            await expect(await ost.legalDisclaimer).toContainText(data.legalDisclaimer);
             await expect(await ost.legalDisclaimerUse).toBeVisible();
             await ost.legalDisclaimerUse.click();
             await studio.saveCard();

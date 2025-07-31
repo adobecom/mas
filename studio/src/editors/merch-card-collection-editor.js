@@ -94,6 +94,10 @@ class MerchCardCollectionEditor extends LitElement {
         if (fragmentStore) editFragment(fragmentStore);
     }
 
+    get queryLabel() {
+        return this.fragment?.fields?.find((f) => f.name === 'queryLabel')?.values?.[0] || '';
+    }
+
     get label() {
         return this.fragment?.fields?.find((f) => f.name === 'label')?.values?.[0] || '';
     }
@@ -680,6 +684,15 @@ class MerchCardCollectionEditor extends LitElement {
     get #form() {
         return html`
             <div class="form-container">
+                <div class="form-row">
+                    <sp-field-label for="queryLabel">Query label</sp-field-label>
+                    <sp-textfield
+                        id="queryLabel"
+                        data-field="queryLabel"
+                        .value=${this.queryLabel}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
                 <div class="form-row">
                     <sp-field-label for="label">label</sp-field-label>
                     <sp-textfield

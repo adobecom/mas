@@ -102,10 +102,6 @@ class MerchCardCollectionEditor extends LitElement {
         return this.fragment?.fields?.find((f) => f.name === 'label')?.values?.[0] || '';
     }
 
-    get navigationLabel() {
-        return this.fragment?.fields?.find((f) => f.name === 'navigationLabel')?.values?.[0] || '';
-    }
-
     get icon() {
         return this.fragment?.fields?.find((f) => f.name === 'icon')?.values?.[0] || '';
     }
@@ -699,15 +695,6 @@ class MerchCardCollectionEditor extends LitElement {
                         id="label"
                         data-field="label"
                         .value=${this.label}
-                        @input=${this.updateFragment}
-                    ></sp-textfield>
-                </div>
-                <div class="form-row">
-                    <sp-field-label for="navigationLabel">Navigation label</sp-field-label>
-                    <sp-textfield
-                        id="navigationLabel"
-                        data-field="navigationLabel"
-                        .value=${this.navigationLabel}
                         @input=${this.updateFragment}
                     ></sp-textfield>
                 </div>

@@ -343,7 +343,7 @@ export default {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 newosi: 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8',
-                legalDisclaimer: 'per license (Annual, paid monthly.)',
+                legalDisclaimer: 'per licenseAnnual, billed monthly',
                 cardLegalDisclaimer: 'per license',
             },
             browserParams: '#query=',

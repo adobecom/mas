@@ -94,12 +94,12 @@ class MerchCardCollectionEditor extends LitElement {
         if (fragmentStore) editFragment(fragmentStore);
     }
 
-    get label() {
-        return this.fragment?.fields?.find((f) => f.name === 'label')?.values?.[0] || '';
+    get queryLabel() {
+        return this.fragment?.fields?.find((f) => f.name === 'queryLabel')?.values?.[0] || '';
     }
 
-    get navigationLabel() {
-        return this.fragment?.fields?.find((f) => f.name === 'navigationLabel')?.values?.[0] || '';
+    get label() {
+        return this.fragment?.fields?.find((f) => f.name === 'label')?.values?.[0] || '';
     }
 
     get icon() {
@@ -681,20 +681,20 @@ class MerchCardCollectionEditor extends LitElement {
         return html`
             <div class="form-container">
                 <div class="form-row">
+                    <sp-field-label for="queryLabel">Query label</sp-field-label>
+                    <sp-textfield
+                        id="queryLabel"
+                        data-field="queryLabel"
+                        .value=${this.queryLabel}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
+                <div class="form-row">
                     <sp-field-label for="label">label</sp-field-label>
                     <sp-textfield
                         id="label"
                         data-field="label"
                         .value=${this.label}
-                        @input=${this.updateFragment}
-                    ></sp-textfield>
-                </div>
-                <div class="form-row">
-                    <sp-field-label for="navigationLabel">Navigation label</sp-field-label>
-                    <sp-textfield
-                        id="navigationLabel"
-                        data-field="navigationLabel"
-                        .value=${this.navigationLabel}
                         @input=${this.updateFragment}
                     ></sp-textfield>
                 </div>

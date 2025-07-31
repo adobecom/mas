@@ -681,7 +681,7 @@ class MerchCardCollectionEditor extends LitElement {
         return html`
             <div class="form-container">
                 <div class="form-row">
-                    <sp-field-label for="label">label</sp-field-label>
+                    <sp-field-label for="label">Query label</sp-field-label>
                     <sp-textfield
                         id="label"
                         data-field="label"

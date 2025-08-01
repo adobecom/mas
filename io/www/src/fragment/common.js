@@ -117,9 +117,8 @@ async function fetchAttempt(path, context, timeout) {
  * @param {*} retries
  */
 async function internalFetch(path, context) {
-    const retries = context.networkConfig?.retries || 3; // Default to 3 retries
-    const timeout = context.networkConfig?.fetchTimeout || 2000; // Default timeout of 2 seconds
-    let delay = context.networkConfig?.retryDelay || 100; // Default delay of 100ms
+    const { retries = 3, timeout = 2000, retryDelay = 100 } = context.networkConfig || {};
+    let delay = retryDelay;
     let response;
     for (let attempt = 0; attempt < retries; attempt++) {
         // Race the fetch promise with a timeout

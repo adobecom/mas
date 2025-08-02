@@ -108,9 +108,14 @@ describe('replace', () => {
             status: 200,
             surface: 'sandbox',
             locale: 'fr_FR',
+            networkConfig: {
+                retries: 2,
+                retryDelay: 1,
+            },
             body: odinResponse('{{description}}', 'Buy now'),
         };
         const EXPECTED = {
+            ...FAKE_CONTEXT,
             body: {
                 fields: {
                     cta: 'Buy now',
@@ -120,17 +125,11 @@ describe('replace', () => {
                 id: 'test',
                 path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
             },
-            locale: 'fr_FR',
-            status: 200,
-            surface: 'sandbox',
         };
 
         it('manages gracefully fetch failure to find dictionary', async () => {
             nock('https://odin.adobe.com')
-                .get('/adobe/sites/fragments')
-                .query({
-                    path: '/content/dam/mas/sandbox/fr_FR/dictionary/index',
-                })
+                .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
                 .replyWithError('fetch error');
             const context = await replace(FAKE_CONTEXT);
             expect(context).to.deep.equal(EXPECTED);
@@ -149,10 +148,7 @@ describe('replace', () => {
 
         it('manages gracefully fetch no dictionary index', async () => {
             nock('https://odin.adobe.com')
-                .get('/adobe/sites/fragments')
-                .query({
-                    path: '/content/dam/mas/sandbox/fr_FR/dictionary/index',
-                })
+                .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
                 .reply(200, { items: [] });
             const context = await replace(FAKE_CONTEXT);
             expect(context).to.deep.equal(EXPECTED);

@@ -6,9 +6,13 @@ const FRAGMENT_RESPONSE_FR = require('./mocks/fragment-fr.json');
 
 const FAKE_CONTEXT = {
     status: 200,
+    state: new MockState(),
+    networkConfig: {
+        retries: 1,
+        retryDelay: 0,
+    },
     transformer: 'translate',
     requestId: 'mas-translate-ut',
-    state: new MockState(),
 };
 
 describe('translate typical cases', function () {
@@ -23,9 +27,7 @@ describe('translate typical cases', function () {
             .reply(200, FRAGMENT_RESPONSE_FR);
         nock('https://odin.adobe.com')
             .get('/adobe/sites/fragments')
-            .query({
-                path: '/content/dam/mas/sandbox/fr_FR/some-en-us-fragment',
-            })
+            .query({ path: '/content/dam/mas/sandbox/fr_FR/some-en-us-fragment' })
             .reply(200, {
                 items: [
                     {
@@ -55,18 +57,12 @@ describe('translate typical cases', function () {
             .get(`/adobe/sites/fragments/some-fr-fr-fragment?references=all-hydrated`)
             .reply(200, FRAGMENT_RESPONSE_FR);
         nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments')
-            .query({
-                path: '/content/dam/mas/sandbox/fr_CA/some-en-us-fragment',
-            })
+            .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_CA/some-en-us-fragment')
             .reply(200, {
                 items: [],
             });
         nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments')
-            .query({
-                path: '/content/dam/mas/sandbox/fr_FR/some-en-us-fragment',
-            })
+            .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/some-en-us-fragment')
             .reply(200, {
                 items: [
                     {
@@ -98,18 +94,12 @@ describe('translate typical cases', function () {
             .get(`/adobe/sites/fragments/some-en-us-fragment?references=all-hydrated`)
             .reply(200, FRAGMENT_RESPONSE_FR);
         nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments')
-            .query({
-                path: '/content/dam/mas/sandbox/en_AU/some-en-us-fragment',
-            })
+            .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/en_AU/some-en-us-fragment')
             .reply(200, {
                 items: [],
             });
         nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments')
-            .query({
-                path: '/content/dam/mas/sandbox/en_US/some-en-us-fragment',
-            })
+            .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/en_US/some-en-us-fragment')
             .reply(200, {
                 items: [
                     {
@@ -200,8 +190,7 @@ describe('translate corner cases', function () {
 
     it('should return 500 when translation fetch failed', async function () {
         nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments')
-            .query({ path: '/content/dam/mas/sandbox/fr_FR/someFragment' })
+            .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/someFragment')
             .reply(404, {
                 message: 'Not found',
             });
@@ -219,8 +208,7 @@ describe('translate corner cases', function () {
 
     it('should return 500 when translation fetch by id failed', async function () {
         nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments')
-            .query({ path: '/content/dam/mas/sandbox/fr_FR/someFragment' })
+            .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/someFragment')
             .reply(200, {
                 items: [
                     {
@@ -230,12 +218,9 @@ describe('translate corner cases', function () {
                 ],
             });
 
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments')
-            .query({ path: '/some-fr-fr-fragment-server-error' })
-            .reply(500, {
-                message: 'Error',
-            });
+        nock('https://odin.adobe.com').get('/adobe/sites/fragments?path=/some-fr-fr-fragment-server-error').reply(500, {
+            message: 'Error',
+        });
 
         const result = await translate({
             ...FAKE_CONTEXT,

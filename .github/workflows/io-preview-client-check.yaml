@@ -32,8 +32,8 @@ jobs:
             - name: Check fragment-client.js before build
               id: before-build
               run: |
-                  if [ -f "studio/libs/fragment-client.js" ]; then
-                    echo "before_hash=$(sha256sum studio/libs/fragment-client.js | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+                  if [ -f "../../studio/libs/fragment-client.js" ]; then
+                    echo "before_hash=$(sha256sum ../../studio/libs/fragment-client.js | cut -d' ' -f1)" >> $GITHUB_OUTPUT
                   else
                     echo "before_hash=file_not_found" >> $GITHUB_OUTPUT
                   fi
@@ -44,8 +44,8 @@ jobs:
             - name: Check fragment-client.js after build
               id: after-build
               run: |
-                  if [ -f "studio/libs/fragment-client.js" ]; then
-                    echo "after_hash=$(sha256sum studio/libs/fragment-client.js | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+                  if [ -f "../../studio/libs/fragment-client.js" ]; then
+                    echo "after_hash=$(sha256sum ../../studio/libs/fragment-client.js | cut -d' ' -f1)" >> $GITHUB_OUTPUT
                   else
                     echo "after_hash=file_not_found" >> $GITHUB_OUTPUT
                   fi

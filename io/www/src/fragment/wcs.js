@@ -101,7 +101,7 @@ async function wcs(context) {
                 promotionCode: body.fields.promoCode,
             });
         }
-        const country = locale.split('_')[1];
+        const country = context.country || locale.split('_')[1];
         const wcsContext = {
             locale,
             country,

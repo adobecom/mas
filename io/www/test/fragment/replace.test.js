@@ -108,9 +108,14 @@ describe('replace', () => {
             status: 200,
             surface: 'sandbox',
             locale: 'fr_FR',
+            networkConfig: {
+                retries: 2,
+                retryDelay: 1,
+            },
             body: odinResponse('{{description}}', 'Buy now'),
         };
         const EXPECTED = {
+            ...FAKE_CONTEXT,
             body: {
                 fields: {
                     cta: 'Buy now',
@@ -120,19 +125,14 @@ describe('replace', () => {
                 id: 'test',
                 path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
             },
-            locale: 'fr_FR',
-            status: 200,
-            surface: 'sandbox',
         };
 
         it('manages gracefully fetch failure to find dictionary', async () => {
             nock('https://odin.adobe.com')
                 .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
                 .replyWithError('fetch error');
-            const inputContext = { ...FAKE_CONTEXT, networkConfig: { retries: 1 } };
-            const context = await replace(inputContext);
-            const expected = { ...EXPECTED, networkConfig: { retries: 1 } };
-            expect(context).to.deep.equal(expected);
+            const context = await replace(FAKE_CONTEXT);
+            expect(context).to.deep.equal(EXPECTED);
         });
 
         it('manages gracefully non 2xx to find dictionary', async () => {

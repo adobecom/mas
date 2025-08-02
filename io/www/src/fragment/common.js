@@ -117,12 +117,12 @@ async function fetchAttempt(path, context, timeout) {
  * @param {*} retries
  */
 async function internalFetch(path, context) {
-    const { retries = 3, timeout = 2000, retryDelay = 100 } = context.networkConfig || {};
+    const { retries = 3, fetchTimeout = 2000, retryDelay = 100 } = context.networkConfig || {};
     let delay = retryDelay;
     let response;
     for (let attempt = 0; attempt < retries; attempt++) {
         // Race the fetch promise with a timeout
-        response = await fetchAttempt(path, context, timeout);
+        response = await fetchAttempt(path, context, fetchTimeout);
         if ([503, 504].includes(response.status)) {
             log(
                 `fetch ${path} (attempt #${attempt}) failed with status ${response.status}, retrying in ${delay}ms...`,

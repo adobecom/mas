@@ -6,9 +6,13 @@ const FRAGMENT_RESPONSE_FR = require('./mocks/fragment-fr.json');
 
 const FAKE_CONTEXT = {
     status: 200,
+    state: new MockState(),
+    networkConfig: {
+        retries: 1,
+        retryDelay: 0,
+    },
     transformer: 'translate',
     requestId: 'mas-translate-ut',
-    state: new MockState(),
 };
 
 describe('translate typical cases', function () {

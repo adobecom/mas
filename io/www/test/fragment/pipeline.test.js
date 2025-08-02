@@ -172,6 +172,9 @@ describe('pipeline full use case', () => {
     });
 
     it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment from fr_CA locale request', async () => {
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_CA/dictionary/index')
+            .reply(404, {});
         setupFragmentMocks({
             id: 'some-en-us-fragment',
             path: 'someFragment',
@@ -221,11 +224,11 @@ describe('pipeline corner cases', () => {
     it('should handle fetch timeouts', async () => {
         nock('https://odin.adobe.com')
             .get('/adobe/sites/fragments/test-fragment?references=all-hydrated')
-            .delay(150)
+            .delay(50)
             .reply(200, {});
 
         const state = new MockState();
-        state.put('network-config', '{"fetchTimeout":100,"retries": 1}');
+        state.put('network-config', '{"fetchTimeout":20,"retries":1,"retryDelay":1}');
         const result = await getFragment({
             id: 'test-fragment',
             state,
@@ -243,10 +246,12 @@ describe('pipeline corner cases', () => {
 
     it('should handle fetch exceptions', async () => {
         nock('https://odin.adobe.com').get('/adobe/sites/fragments/test-fragment').replyWithError('Network error');
+        const state = new MockState();
+        state.put('network-config', '{"retries": 2, "retryDelay": 1}');
 
         const result = await getFragment({
             id: 'test-fragment',
-            state: new MockState(),
+            state,
             locale: 'fr_FR',
         });
 

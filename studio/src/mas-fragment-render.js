@@ -85,13 +85,15 @@ class MasFragmentRender extends LitElement {
 
     get selectionOverlay() {
         if (!Store.selecting.value) return nothing;
-        return html`<div class="overlay" @click="${this.select}" @pointerdown="${(e) => e.stopPropagation()}" @touchstart="${(e) => e.stopPropagation()}">
-            ${this.selected
-                ? html`<sp-icon-remove></sp-icon-remove>`
-                : html`<sp-icon-add></sp-icon-add>`}
+        return html`<div
+            class="overlay"
+            @click="${this.select}"
+            @pointerdown="${(e) => e.stopPropagation()}"
+            @touchstart="${(e) => e.stopPropagation()}"
+        >
+            ${this.selected ? html`<sp-icon-remove></sp-icon-remove>` : html`<sp-icon-add></sp-icon-add>`}
         </div>`;
     }
-
 
     get unknown() {
         const label = this.fragment.fields.find((field) => field.name === 'label')?.values[0];
@@ -115,21 +117,22 @@ class MasFragmentRender extends LitElement {
                 aria-grabbed="${this.isDragging}"
                 aria-label="Draggable fragment ${this.fragment?.title || ''}"
             >
-                ${this.fragment.model.path === CARD_MODEL_PATH 
+                ${this.fragment.model.path === CARD_MODEL_PATH
                     ? html`<div class="merch-card-wrapper">
-                        <overlay-trigger placement="top">
-                            <merch-card slot="trigger" class="${this.selected ? 'selected' : ''}">
-                                <aem-fragment author fragment="${this.fragment.id}"></aem-fragment>
-                            </merch-card>
-                            <sp-tooltip slot="hover-content" placement="top">Double click the card to start editing.</sp-tooltip>
-                        </overlay-trigger>
-                        ${this.selectionOverlay}
+                          <overlay-trigger placement="top">
+                              <merch-card slot="trigger" class="${this.selected ? 'selected' : ''}">
+                                  <aem-fragment author fragment="${this.fragment.id}"></aem-fragment>
+                              </merch-card>
+                              <sp-tooltip slot="hover-content" placement="top"
+                                  >Double click the card to start editing.</sp-tooltip
+                              >
+                          </overlay-trigger>
+                          ${this.selectionOverlay}
                       </div>`
                     : html`<overlay-trigger placement="top">
-                        ${this.unknown}
-                        <sp-tooltip slot="hover-content" placement="top">Double click the card to start editing.</sp-tooltip>
-                      </overlay-trigger>`
-                }
+                          ${this.unknown}
+                          <sp-tooltip slot="hover-content" placement="top">Double click the card to start editing.</sp-tooltip>
+                      </overlay-trigger>`}
             </div>
         </div>`;
     }

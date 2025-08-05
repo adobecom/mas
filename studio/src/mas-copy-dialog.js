@@ -1,7 +1,12 @@
 import { LitElement, html, css } from 'lit';
 import { EVENT_KEYDOWN, LOCALES } from './constants.js';
-import Store from './store.js';
 import { showToast } from './utils.js';
+
+const ERROR_TYPES = {
+    PERMISSION: { patterns: ['permission', '403'], message: 'You do not have permission to copy this fragment' },
+    NOT_FOUND: { patterns: ['not found', '404'], message: 'Fragment not found. It may have been deleted.' },
+    NETWORK: { patterns: ['network', 'Network'], message: 'Network error. Please check your connection and try again.' },
+};
 
 export class MasCopyDialog extends LitElement {
     static properties = {
@@ -119,14 +124,13 @@ export class MasCopyDialog extends LitElement {
         super();
         this.fragment = null;
         this.selectedFolder = null;
-        this.selectedLocale = 'en_US'; // Default to en_US
+        this.selectedLocale = 'en_US';
         this.loading = false;
         this.error = null;
         this.merchFolders = [];
         this.aem = null;
         this.fragmentName = '';
 
-        // Bind methods
         this.handleSubmit = this.handleSubmit.bind(this);
         this.close = this.close.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -137,7 +141,6 @@ export class MasCopyDialog extends LitElement {
         document.addEventListener(EVENT_KEYDOWN, this.handleKeyDown);
         this.aem = document.querySelector('mas-repository')?.aem;
 
-        // Set initial fragment name from the fragment
         if (this.fragment?.name) {
             this.fragmentName = this.fragment.name;
         }
@@ -153,12 +156,10 @@ export class MasCopyDialog extends LitElement {
     updated(changedProperties) {
         super.updated(changedProperties);
 
-        // Update fragment name when fragment changes
         if (changedProperties.has('fragment') && this.fragment?.name) {
             this.fragmentName = this.fragment.name;
         }
 
-        // If AEM becomes available and we haven't loaded folders yet
         if (this.aem && this.merchFolders.length === 0 && !this.loading) {
             this.loadMerchFolders();
         }
@@ -192,18 +193,15 @@ export class MasCopyDialog extends LitElement {
         try {
             this.loading = true;
 
-            // Use the store controller to get AEM
             const aem = this.aem;
             if (!aem) {
                 throw new Error('AEM instance not available');
             }
 
-            // Get the folders directly from /content/dam/mas
             const rootPath = '/content/dam/mas';
             const result = await aem.folders.list(rootPath);
 
-            // Filter to only show the allowed folders
-            const allowedFolders = ['acom', 'adobe-home', 'ccd', 'commerce', 'docs', 'express', 'nala', 'sandbox'];
+            const allowedFolders = ['nala', 'sandbox'];
 
             this.merchFolders = result.children
                 .filter((folder) => allowedFolders.includes(folder.name.toLowerCase()))
@@ -226,59 +224,90 @@ export class MasCopyDialog extends LitElement {
         this.error = null;
     }
 
-    async handleSubmit() {
+    validateInputs() {
         if (!this.selectedFolder) {
             this.error = 'Please select a destination folder';
-            return;
+            return false;
         }
 
-        if (!this.fragmentName || this.fragmentName.trim() === '') {
+        if (!this.fragmentName?.trim()) {
             this.error = 'Please enter a name for the fragment';
-            return;
+            return false;
         }
+
+        if (!this.aem) {
+            this.error = 'AEM instance not available';
+            return false;
+        }
+
+        if (!this.fragment?.path) {
+            this.error = 'Fragment is missing path property';
+            return false;
+        }
+
+        return true;
+    }
+
+    showSuccessMessage(copiedFragment) {
+        const folderName = this.selectedFolder.displayName;
+
+        if (copiedFragment.renamedTo && copiedFragment.renamedTo !== this.fragment.name) {
+            showToast(
+                `Fragment copied to ${folderName} and renamed to '${copiedFragment.renamedTo}' to avoid conflicts`,
+                'positive',
+            );
+        } else if (copiedFragment.name && copiedFragment.name !== this.fragment.name) {
+            showToast(
+                `Fragment copied to ${folderName} and renamed to '${copiedFragment.name}' to avoid conflicts`,
+                'positive',
+            );
+        } else {
+            showToast(`Fragment copied to ${folderName}`, 'positive');
+        }
+    }
+
+    handleCopyError(error) {
+        this.error = error.message || 'Failed to copy fragment';
+        this.loading = false;
+
+        const errorMessage = error.message || '';
+
+        for (const [, config] of Object.entries(ERROR_TYPES)) {
+            if (config.patterns.some((pattern) => errorMessage.includes(pattern))) {
+                showToast(config.message, 'negative');
+                return;
+            }
+        }
+
+        showToast(`Failed to copy fragment: ${error.message}`, 'negative');
+    }
+
+    async performCopy() {
+        const customName = this.fragmentName.trim();
+        const copiedFragment = await this.aem.sites.cf.fragments.copyToFolder(
+            this.fragment,
+            this.selectedFolder.fullPath,
+            customName !== this.fragment.name ? customName : null,
+            this.selectedLocale,
+        );
+
+        if (!copiedFragment) {
+            throw new Error('Copy operation completed but could not retrieve copied fragment');
+        }
+
+        return copiedFragment;
+    }
+
+    async handleSubmit() {
+        if (!this.validateInputs()) return;
 
         try {
             this.loading = true;
             showToast(`Copying fragment to ${this.selectedFolder.displayName}...`);
 
-            const aem = this.aem;
-            if (!aem) {
-                throw new Error('AEM instance not available');
-            }
+            const copiedFragment = await this.performCopy();
+            this.showSuccessMessage(copiedFragment);
 
-            if (!this.fragment?.path) {
-                throw new Error('Fragment is missing path property');
-            }
-
-            // Copy the fragment with custom name and selected locale
-            const customName = this.fragmentName.trim();
-            const copiedFragment = await aem.sites.cf.fragments.copyToFolder(
-                this.fragment,
-                this.selectedFolder.fullPath,
-                customName !== this.fragment.name ? customName : null,
-                this.selectedLocale,
-            );
-
-            if (!copiedFragment) {
-                throw new Error('Copy operation completed but could not retrieve copied fragment');
-            }
-
-            // Show appropriate message based on the operation result
-            if (copiedFragment._renamedTo && copiedFragment._renamedTo !== this.fragment.name) {
-                showToast(
-                    `Fragment copied to ${this.selectedFolder.displayName} and renamed to '${copiedFragment._renamedTo}' to avoid conflicts`,
-                    'positive',
-                );
-            } else if (copiedFragment && copiedFragment.name && copiedFragment.name !== this.fragment.name) {
-                showToast(
-                    `Fragment copied to ${this.selectedFolder.displayName} and renamed to '${copiedFragment.name}' to avoid conflicts`,
-                    'positive',
-                );
-            } else {
-                showToast(`Fragment copied to ${this.selectedFolder.displayName}`, 'positive');
-            }
-
-            // Dispatch success event
             this.dispatchEvent(
                 new CustomEvent('fragment-copied', {
                     detail: { fragment: copiedFragment },
@@ -289,19 +318,7 @@ export class MasCopyDialog extends LitElement {
 
             this.close();
         } catch (err) {
-            this.error = err.message || 'Failed to copy fragment';
-            this.loading = false;
-
-            // Show more specific error messages
-            if (err.message.includes('permission') || err.message.includes('403')) {
-                showToast('You do not have permission to copy this fragment', 'negative');
-            } else if (err.message.includes('not found') || err.message.includes('404')) {
-                showToast('Fragment not found. It may have been deleted.', 'negative');
-            } else if (err.message.includes('network') || err.message.includes('Network')) {
-                showToast('Network error. Please check your connection and try again.', 'negative');
-            } else {
-                showToast(`Failed to copy fragment: ${err.message}`, 'negative');
-            }
+            this.handleCopyError(err);
         }
     }
 
@@ -389,7 +406,6 @@ export class MasCopyDialog extends LitElement {
     }
 
     handleBackdropClick(event) {
-        // Close dialog when clicking on backdrop
         if (event.target.classList.contains('dialog-backdrop') && !this.loading) {
             this.close();
         }

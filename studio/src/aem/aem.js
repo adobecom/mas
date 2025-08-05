@@ -3,6 +3,8 @@ import { UserFriendlyError } from '../utils.js';
 const NETWORK_ERROR_MESSAGE = 'Network error';
 const MAX_POLL_ATTEMPTS = 10;
 const POLL_TIMEOUT = 250;
+const MAX_NAME_ATTEMPTS = 10;
+const COPY_WAIT_TIME = 1000;
 
 const defaultSearchOptions = {
     sort: [{ on: 'created', order: 'ASC' }],
@@ -442,7 +444,6 @@ class AEM {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
         if (!response.ok) {
-            // Try to get detailed error message from response body
             let errorDetail = '';
             try {
                 const errorData = await response.json();
@@ -461,131 +462,146 @@ class AEM {
         return response; //204 No Content
     }
 
-    async copyToFolder(fragment, targetPath, customName = null, targetLocale = null) {
-        if (!fragment || !fragment.path || fragment.path.trim() === '') {
+    /**
+     * Validates that a fragment has the required properties for copying
+     * @param {Object} fragment - The fragment to validate
+     * @throws {Error} If fragment is invalid
+     */
+    validateFragmentForCopy(fragment) {
+        if (!fragment?.path?.trim()) {
             throw new Error('Invalid fragment: missing or empty path');
         }
+    }
 
-        // Extract the asset name from the path
-        const pathParts = fragment.path.split('/');
-        const originalAssetName = pathParts.pop();
-        const assetName = customName || originalAssetName;
+    /**
+     * Generates a unique name by appending a number suffix if the name already exists
+     * @param {string} basePath - The target directory path
+     * @param {string} assetName - The desired asset name
+     * @returns {Promise<{name: string, renamed: boolean}>} The final name and whether it was renamed
+     */
+    async generateUniqueName(basePath, assetName) {
+        let finalName = assetName;
+        let attempt = 0;
 
-        // Use the provided targetLocale or default to en_US
-        const locale = targetLocale || 'en_US';
+        while (attempt < MAX_NAME_ATTEMPTS) {
+            try {
+                await this.sites.cf.fragments.getByPath(`${basePath}/${finalName}`);
+                // Name exists, generate new one
+                attempt++;
+                const dotIndex = assetName.lastIndexOf('.');
+                const [base, ext] =
+                    dotIndex > 0 ? [assetName.substring(0, dotIndex), assetName.substring(dotIndex)] : [assetName, ''];
+                finalName = `${base}-${attempt}${ext}`;
+            } catch {
+                // Name available
+                return { name: finalName, renamed: attempt > 0 };
+            }
+        }
 
-        console.log('Fragment path:', fragment.path);
-        console.log('Using locale:', locale);
+        throw new Error(`Cannot create unique name after ${MAX_NAME_ATTEMPTS} attempts`);
+    }
 
-        // Build the new path with locale (always present now)
-        const finalTargetPath = `${targetPath}/${locale}`;
+    /**
+     * Creates a copy of a fragment in the specified location
+     * @param {Object} fullFragment - The complete fragment data to copy
+     * @param {string} targetPath - The destination path for the copy
+     * @param {string} name - The name for the copied fragment
+     * @param {string} csrfToken - CSRF token for authentication
+     * @returns {Promise<Object>} The newly created fragment
+     */
+    async createFragmentCopy(fullFragment, targetPath, name, csrfToken) {
+        const copyData = {
+            title: fullFragment.title,
+            description: fullFragment.description,
+            modelId: fullFragment.model.id,
+            parentPath: targetPath,
+            name,
+            fields: fullFragment.fields,
+        };
 
-        console.log('Target path:', targetPath);
-        console.log('Final target path with locale:', finalTargetPath);
+        const response = await fetch(this.cfFragmentsUrl, {
+            method: 'POST',
+            headers: {
+                ...this.headers,
+                'Content-Type': 'application/json',
+                'CSRF-Token': csrfToken,
+            },
+            body: JSON.stringify(copyData),
+        });
 
-        // Get CSRF token for API calls
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`Copy failed: ${response.status} ${errorText}`);
+        }
+
+        return response.json();
+    }
+
+    /**
+     * Copies tags from the original fragment to the copied fragment
+     * @param {Object} copiedFragment - The newly copied fragment
+     * @param {Array} tags - Array of tags to copy
+     * @returns {Promise<void>}
+     */
+    async copyFragmentTags(copiedFragment, tags) {
+        if (!tags?.length) return;
+
+        try {
+            const tagIds = tags.map((tag) => tag.id || tag);
+            await this.saveTags({ ...copiedFragment, newTags: tagIds });
+        } catch {
+            // Silent fail - tags are not critical
+        }
+    }
+
+    /**
+     * Attempts to publish a fragment, failing silently if unsuccessful
+     * @param {Object} fragment - The fragment to publish
+     * @returns {Promise<void>}
+     */
+    async publishFragmentSafely(fragment) {
+        try {
+            await this.publishFragment(fragment);
+        } catch {
+            // Silent fail - publishing is not critical
+        }
+    }
+
+    /**
+     * Copies a fragment to a new folder location with optional renaming and locale support
+     * @param {Object} fragment - The fragment to copy (must have path and id properties)
+     * @param {string} targetPath - The destination folder path
+     * @param {string} customName - Optional custom name for the copied fragment
+     * @param {string} targetLocale - Target locale (defaults to 'en_US')
+     * @param {boolean} shouldPublish - Whether to publish after copying (defaults to true)
+     * @returns {Promise<Object>} The copied fragment with metadata
+     */
+    async copyToFolder(fragment, targetPath, customName = null, targetLocale = 'en_US', shouldPublish = true) {
+        this.validateFragmentForCopy(fragment);
+
+        const originalName = fragment.path.split('/').pop();
+        const assetName = customName || originalName;
+        const finalTargetPath = `${targetPath}/${targetLocale}`;
+
         const csrfToken = await this.getCsrfToken();
 
         try {
-            // Get the full fragment data
             const fullFragment = await this.sites.cf.fragments.getById(fragment.id);
+            const { name: finalName, renamed } = await this.generateUniqueName(finalTargetPath, assetName);
 
-            // Check if a fragment with the same name already exists and generate unique name
-            let finalAssetName = assetName;
-            let nameAttempt = 0;
-            const maxAttempts = 10;
+            const copiedFragment = await this.createFragmentCopy(fullFragment, finalTargetPath, finalName, csrfToken);
 
-            while (nameAttempt < maxAttempts) {
-                try {
-                    const checkPath = `${finalTargetPath}/${finalAssetName}`;
-                    await this.sites.cf.fragments.getByPath(checkPath);
-                    // If we get here, the fragment exists, so we need a new name
-                    nameAttempt++;
+            await this.wait(COPY_WAIT_TIME);
+            await this.copyFragmentTags(copiedFragment, fullFragment.tags);
 
-                    // Extract base name and extension if present
-                    const lastDotIndex = assetName.lastIndexOf('.');
-                    let baseName = assetName;
-                    let extension = '';
-
-                    if (lastDotIndex > 0) {
-                        baseName = assetName.substring(0, lastDotIndex);
-                        extension = assetName.substring(lastDotIndex);
-                    }
-
-                    // Generate new name with number suffix
-                    finalAssetName = `${baseName}-${nameAttempt}${extension}`;
-                    console.warn(`Fragment '${assetName}' already exists. Trying '${finalAssetName}'`);
-                } catch (err) {
-                    // Fragment doesn't exist, we can use this name
-                    break;
-                }
-            }
-
-            if (nameAttempt >= maxAttempts) {
-                throw new Error(`Cannot create unique name for fragment after ${maxAttempts} attempts`);
-            }
-
-            if (nameAttempt > 0) {
-                console.log(`Fragment will be renamed from '${assetName}' to '${finalAssetName}' to avoid conflicts`);
-            }
-
-            // Create a copy in the new location
-            const copyData = {
-                title: fullFragment.title,
-                description: fullFragment.description,
-                modelId: fullFragment.model.id,
-                parentPath: finalTargetPath,
-                name: finalAssetName,
-                fields: fullFragment.fields,
-            };
-
-            const copyResponse = await fetch(this.cfFragmentsUrl, {
-                method: 'POST',
-                headers: {
-                    ...this.headers,
-                    'Content-Type': 'application/json',
-                    'CSRF-Token': csrfToken,
-                },
-                body: JSON.stringify(copyData),
-            });
-
-            if (!copyResponse.ok) {
-                const errorText = await copyResponse.text().catch(() => '');
-                throw new Error(`Copy failed: ${copyResponse.status} ${errorText}`);
-            }
-
-            const copiedFragment = await copyResponse.json();
-
-            // Wait a bit for the copy to be fully created
-            await this.wait(1000);
-
-            // Add tags if the original had any
-            if (fullFragment.tags && fullFragment.tags.length > 0) {
-                try {
-                    // Extract tag IDs from tag objects
-                    const tagIds = fullFragment.tags.map((tag) => tag.id || tag);
-                    await this.saveTags({ ...copiedFragment, newTags: tagIds });
-                } catch (tagErr) {
-                    console.warn('Failed to copy tags to new fragment:', tagErr);
-                    // Don't fail the operation if tags couldn't be copied
-                }
-            }
-
-            // Get the final fragment with all data
             const finalFragment = await this.sites.cf.fragments.getById(copiedFragment.id);
 
-            // Always publish the copied fragment
-            try {
-                await this.publishFragment(finalFragment);
-                console.log('Successfully published the copied fragment');
-            } catch (publishErr) {
-                console.warn('Failed to publish the copied fragment:', publishErr);
-                // Don't fail the copy operation if publish fails
+            if (shouldPublish) {
+                await this.publishFragmentSafely(finalFragment);
             }
 
-            // Add metadata about rename if it happened
-            if (nameAttempt > 0) {
-                finalFragment._renamedTo = finalAssetName;
+            if (renamed) {
+                finalFragment.renamedTo = finalName;
             }
 
             return finalFragment;

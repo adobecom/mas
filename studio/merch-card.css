@@ -6,7 +6,6 @@ merch-card {
     cursor: pointer;
     user-select: none;
     box-sizing: border-box;
-    position: relative;
 }
 
 merch-card a,
@@ -46,7 +45,7 @@ merch-card .overlay {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 9999;
+    z-index: 99;
     pointer-events: auto;
     cursor: pointer;
 }

@@ -51,11 +51,10 @@ class MasFragment extends LitElement {
 
     get renderView() {
         if (this.view !== 'render') return nothing;
-        const fragment = this.fragmentStore.get();
-        const selected = this.selection.value.includes(this.fragmentStore);
+        const selected = this.selection.value.includes(this.fragmentStore.id);
         return html`<mas-fragment-render
             class="mas-fragment"
-            data-id=${fragment?.id}
+            data-id=${this.fragmentStore.id}
             .fragmentStore=${this.fragmentStore}
             ?selected=${selected}
             @click=${this.handleClick}

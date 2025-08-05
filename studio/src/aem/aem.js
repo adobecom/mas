@@ -444,20 +444,7 @@ class AEM {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
         if (!response.ok) {
-            let errorDetail = '';
-            try {
-                const errorData = await response.json();
-                errorDetail = errorData.detail || '';
-            } catch (e) {
-                // If we can't parse the error, continue with default message
-            }
-
-            if (response.status === 409 && errorDetail.includes('referencing it')) {
-                throw new Error(`Failed to delete fragment: ${response.status} - Fragment has references. ${errorDetail}`);
-            }
-            throw new Error(
-                `Failed to delete fragment: ${response.status} ${response.statusText}${errorDetail ? ` - ${errorDetail}` : ''}`,
-            );
+            throw new Error(`Failed to delete fragment: ${response.status} ${response.statusText}`);
         }
         return response; //204 No Content
     }
@@ -658,7 +645,7 @@ class AEM {
             throw new Error('Fragment ID is required');
         }
 
-        const response = await fetch(`${this.cfFragmentsUrl}/${id}?references=direct-hydrated`, {
+        const response = await fetch(`${this.cfFragmentsUrl}/${id}`, {
             method: 'GET',
             headers: {
                 Accept: 'application/json',

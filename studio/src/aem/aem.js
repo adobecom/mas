@@ -279,9 +279,7 @@ class AEM {
             await fetch(`${this.cfFragmentsUrl}/${fragment.id}/tags`, {
                 method: 'PUT',
                 headers,
-                body: JSON.stringify({
-                    tags: newTags,
-                }),
+                body: JSON.stringify({ tags: newTags }),
             }).catch((err) => {
                 throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
             });
@@ -444,9 +442,156 @@ class AEM {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
         if (!response.ok) {
-            throw new Error(`Failed to delete fragment: ${response.status} ${response.statusText}`);
+            // Try to get detailed error message from response body
+            let errorDetail = '';
+            try {
+                const errorData = await response.json();
+                errorDetail = errorData.detail || '';
+            } catch (e) {
+                // If we can't parse the error, continue with default message
+            }
+
+            if (response.status === 409 && errorDetail.includes('referencing it')) {
+                throw new Error(`Failed to delete fragment: ${response.status} - Fragment has references. ${errorDetail}`);
+            }
+            throw new Error(
+                `Failed to delete fragment: ${response.status} ${response.statusText}${errorDetail ? ` - ${errorDetail}` : ''}`,
+            );
         }
         return response; //204 No Content
+    }
+
+    async copyToFolder(fragment, targetPath, customName = null, targetLocale = null) {
+        if (!fragment || !fragment.path || fragment.path.trim() === '') {
+            throw new Error('Invalid fragment: missing or empty path');
+        }
+
+        // Extract the asset name from the path
+        const pathParts = fragment.path.split('/');
+        const originalAssetName = pathParts.pop();
+        const assetName = customName || originalAssetName;
+
+        // Use the provided targetLocale or default to en_US
+        const locale = targetLocale || 'en_US';
+
+        console.log('Fragment path:', fragment.path);
+        console.log('Using locale:', locale);
+
+        // Build the new path with locale (always present now)
+        const finalTargetPath = `${targetPath}/${locale}`;
+
+        console.log('Target path:', targetPath);
+        console.log('Final target path with locale:', finalTargetPath);
+
+        // Get CSRF token for API calls
+        const csrfToken = await this.getCsrfToken();
+
+        try {
+            // Get the full fragment data
+            const fullFragment = await this.sites.cf.fragments.getById(fragment.id);
+
+            // Check if a fragment with the same name already exists and generate unique name
+            let finalAssetName = assetName;
+            let nameAttempt = 0;
+            const maxAttempts = 10;
+
+            while (nameAttempt < maxAttempts) {
+                try {
+                    const checkPath = `${finalTargetPath}/${finalAssetName}`;
+                    await this.sites.cf.fragments.getByPath(checkPath);
+                    // If we get here, the fragment exists, so we need a new name
+                    nameAttempt++;
+
+                    // Extract base name and extension if present
+                    const lastDotIndex = assetName.lastIndexOf('.');
+                    let baseName = assetName;
+                    let extension = '';
+
+                    if (lastDotIndex > 0) {
+                        baseName = assetName.substring(0, lastDotIndex);
+                        extension = assetName.substring(lastDotIndex);
+                    }
+
+                    // Generate new name with number suffix
+                    finalAssetName = `${baseName}-${nameAttempt}${extension}`;
+                    console.warn(`Fragment '${assetName}' already exists. Trying '${finalAssetName}'`);
+                } catch (err) {
+                    // Fragment doesn't exist, we can use this name
+                    break;
+                }
+            }
+
+            if (nameAttempt >= maxAttempts) {
+                throw new Error(`Cannot create unique name for fragment after ${maxAttempts} attempts`);
+            }
+
+            if (nameAttempt > 0) {
+                console.log(`Fragment will be renamed from '${assetName}' to '${finalAssetName}' to avoid conflicts`);
+            }
+
+            // Create a copy in the new location
+            const copyData = {
+                title: fullFragment.title,
+                description: fullFragment.description,
+                modelId: fullFragment.model.id,
+                parentPath: finalTargetPath,
+                name: finalAssetName,
+                fields: fullFragment.fields,
+            };
+
+            const copyResponse = await fetch(this.cfFragmentsUrl, {
+                method: 'POST',
+                headers: {
+                    ...this.headers,
+                    'Content-Type': 'application/json',
+                    'CSRF-Token': csrfToken,
+                },
+                body: JSON.stringify(copyData),
+            });
+
+            if (!copyResponse.ok) {
+                const errorText = await copyResponse.text().catch(() => '');
+                throw new Error(`Copy failed: ${copyResponse.status} ${errorText}`);
+            }
+
+            const copiedFragment = await copyResponse.json();
+
+            // Wait a bit for the copy to be fully created
+            await this.wait(1000);
+
+            // Add tags if the original had any
+            if (fullFragment.tags && fullFragment.tags.length > 0) {
+                try {
+                    // Extract tag IDs from tag objects
+                    const tagIds = fullFragment.tags.map((tag) => tag.id || tag);
+                    await this.saveTags({ ...copiedFragment, newTags: tagIds });
+                } catch (tagErr) {
+                    console.warn('Failed to copy tags to new fragment:', tagErr);
+                    // Don't fail the operation if tags couldn't be copied
+                }
+            }
+
+            // Get the final fragment with all data
+            const finalFragment = await this.sites.cf.fragments.getById(copiedFragment.id);
+
+            // Always publish the copied fragment
+            try {
+                await this.publishFragment(finalFragment);
+                console.log('Successfully published the copied fragment');
+            } catch (publishErr) {
+                console.warn('Failed to publish the copied fragment:', publishErr);
+                // Don't fail the copy operation if publish fails
+            }
+
+            // Add metadata about rename if it happened
+            if (nameAttempt > 0) {
+                finalFragment._renamedTo = finalAssetName;
+            }
+
+            return finalFragment;
+        } catch (err) {
+            throw new Error(`Failed to copy fragment: ${err.message}`);
+        }
     }
 
     async listFolders(path) {
@@ -497,7 +642,7 @@ class AEM {
             throw new Error('Fragment ID is required');
         }
 
-        const response = await fetch(`${this.cfFragmentsUrl}/${id}`, {
+        const response = await fetch(`${this.cfFragmentsUrl}/${id}?references=direct-hydrated`, {
             method: 'GET',
             headers: {
                 Accept: 'application/json',
@@ -554,6 +699,10 @@ class AEM {
                  * @see AEM#deleteFragment
                  */
                 delete: this.deleteFragment.bind(this),
+                /**
+                 * @see AEM#copyToFolder
+                 */
+                copyToFolder: this.copyToFolder.bind(this),
             },
         },
     };

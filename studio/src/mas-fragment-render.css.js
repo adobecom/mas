@@ -49,6 +49,9 @@ export const styles = css`
         color: white;
         font-size: 24px;
         cursor: pointer;
+        z-index: 9999;
+        width: 100%;
+        height: 100%;
     }
 
     .unknown-fragment {
@@ -59,5 +62,42 @@ export const styles = css`
         display: flex;
         align-items: center;
         gap: 8px;
+    }
+
+    .merch-card-wrapper {
+        position: relative;
+        display: inline-flex;
+        width: fit-content;
+        height: fit-content;
+    }
+
+    .merch-card-wrapper merch-card {
+        display: block;
+        position: relative;
+    }
+
+    .merch-card-wrapper .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        z-index: 9999;
+        pointer-events: auto;
+        box-sizing: border-box;
+    }
+
+    .merch-card-wrapper .overlay sp-icon-add,
+    .merch-card-wrapper .overlay sp-icon-remove {
+        width: 32px;
+        height: 32px;
+        color: white;
     }
 `;

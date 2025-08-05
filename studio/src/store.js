@@ -111,17 +111,8 @@ const editorPanel = () => document.querySelector('editor-panel');
  */
 export function toggleSelection(id) {
     const selection = Store.selection.get();
-    const allFragments = Store.fragments.list.data.get();
-    const fragmentStore = allFragments.find((store) => store.get()?.id === id);
-
-    if (!fragmentStore) return;
-
-    const isSelected = selection.includes(fragmentStore);
-    if (isSelected) {
-        Store.selection.set(selection.filter((store) => store !== fragmentStore));
-    } else {
-        Store.selection.set([...selection, fragmentStore]);
-    }
+    if (selection.includes(id)) Store.selection.set(selection.filter((selectedId) => selectedId !== id));
+    else Store.selection.set([...selection, id]);
 }
 
 /**

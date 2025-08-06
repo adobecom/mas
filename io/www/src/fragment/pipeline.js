@@ -92,7 +92,7 @@ async function main(params) {
 }
 
 async function mainProcess(context) {
-    context.debugLogs = getFromState('debugFragmentLogs', context);
+    context.debugLogs = await getFromState('debugFragmentLogs', context);
     const originalContext = context;
     const requestKey = `req-${context.id}-${context.locale}`;
     const { json: cachedMetadata, str: cachedMetadataStr } = await getJsonFromState(requestKey, context);

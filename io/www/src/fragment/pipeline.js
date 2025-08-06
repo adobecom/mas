@@ -47,6 +47,7 @@ async function main(params) {
         DEFAULT_HEADERS,
         status: 200,
     };
+    let returnValue;
     log(`starting request pipeline for ${JSON.stringify(context)}`, context);
     /* istanbul ignore next */
     if (!context.state) {
@@ -56,28 +57,43 @@ async function main(params) {
         const { json } = await getJsonFromState('network-config', context);
         context.networkConfig = json || {};
         const timeout = context.networkConfig.mainTimeout || 5000;
-        return await Promise.race([mainProcess(context), createTimeoutPromise(timeout)]);
+        returnValue = await Promise.race([
+            mainProcess(context),
+            createTimeoutPromise(timeout, () => {
+                context.timedOut = true;
+            }),
+        ]);
     } catch (error) {
         logError(`Error occurred while processing request: ${error.message} ${error.stack}`, context);
         /* istanbul ignore next */
         if (error.isTimeout) {
-            return {
+            returnValue = {
                 statusCode: 504,
                 headers: RESPONSE_HEADERS,
-                message: 'Request timed out',
+                message: 'Fragment pipeline timed out',
+            };
+        } else {
+            /* istanbul ignore next */
+            returnValue = {
+                statusCode: 503,
+                message: error?.message || 'Internal Server Error',
+                headers: RESPONSE_HEADERS,
             };
         }
-        /* istanbul ignore next */
-        return {
-            statusCode: 503,
-            message: error?.message || 'Internal Server Error',
-            headers: RESPONSE_HEADERS,
-        };
     }
+    log(
+        `pipeline completed: ${context.id} ${context.locale} -> ${context.body?.id} (${returnValue.statusCode}) in ${getElapsedTime(context)}`,
+        {
+            ...context,
+            transformer: 'pipeline',
+        },
+    );
+    return returnValue;
 }
 
 async function mainProcess(context) {
     context.debugLogs = getFromState('debugFragmentLogs', context);
+    const originalContext = context;
     const requestKey = `req-${context.id}-${context.locale}`;
     const { json: cachedMetadata, str: cachedMetadataStr } = await getJsonFromState(requestKey, context);
     if (cachedMetadata) {
@@ -87,6 +103,10 @@ async function mainProcess(context) {
     }
 
     for (const transformer of [fetchFragment, translate, settings, replace, wcs, corrector]) {
+        if (originalContext.timedOut) {
+            logError(`Pipeline timed out during ${transformer.name}, aborting...`, context);
+            break;
+        }
         if (context.status != 200) {
             logError(context.message, context);
             break;
@@ -145,13 +165,6 @@ async function mainProcess(context) {
     };
     returnValue.body = responseBody?.length > 0 ? zlib.brotliCompressSync(responseBody).toString('base64') : undefined;
     logDebug(() => 'full response: ' + JSON.stringify(returnValue), context);
-    log(
-        `pipeline completed: ${context.id} ${context.locale} -> ${id} (${returnValue.statusCode}) in ${getElapsedTime(context)}`,
-        {
-            ...context,
-            transformer: 'pipeline',
-        },
-    );
     return returnValue;
 }
 

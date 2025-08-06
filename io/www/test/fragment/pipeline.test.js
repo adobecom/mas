@@ -277,7 +277,7 @@ describe('pipeline corner cases', () => {
             locale: 'fr_FR',
         });
         expect(result.statusCode).to.equal(504);
-        expect(result.message).to.equal('Request timed out');
+        expect(result.message).to.equal('Fragment pipeline timed out');
     });
 
     it('should handle 404 response status', async () => {

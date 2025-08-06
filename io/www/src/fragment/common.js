@@ -44,11 +44,12 @@ async function computeBody(response, context) {
     return body;
 }
 
-function createTimeoutPromise(timeout) {
+function createTimeoutPromise(timeout, handler) {
     return new Promise((_, reject) => {
         setTimeout(() => {
             const error = new Error(`Request timed out after ${timeout}ms`);
             error.isTimeout = true;
+            handler?.(error);
             reject(error);
         }, timeout);
     });

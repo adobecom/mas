@@ -12,11 +12,15 @@ this action sits behind mas/io/fragment in CDN and treats multiple odin related 
 ## configuration
 
 you can configure a few things via state with `aio app state put/del` command
+to see all configuration in place, type `aio app state list`
+
+please don't forget that every state item has TTL defaulting to 24h! typical long live TTL to add to your command would be `--ttl=31536000`
 
 | Configuration Key    | Description                                                                                                                                                                                 | Type    | Default |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------- |
-| `wcs_configurations` | WCS (Web Content Service) configurations for prefilling cache, e.g. `[{"api_keys":["wcms-commerce-ims-ro-user-milo"],"wcsURL":"https://www.adobe.com/web_commerce_artifact","env":"prod"}]` | Array   | ``      |
+| `wcs-configurations` | WCS (Web Content Service) configurations for prefilling cache, e.g. `[{"api_keys":["wcms-commerce-ims-ro-user-milo"],"wcsURL":"https://www.adobe.com/web_commerce_artifact","env":"prod"}]` | Array   | ``      |
 | `debugFragmentLogs`  | turns debug log on                                                                                                                                                                          | Boolean | `false` |
+| `network-config`     | Sets of threshold for timing out main process (`mainTimeout`) & subsequent fetches (`fetchTimeout`), e.g. `{"fetchTimeout":100,"mainTimeout":100,"retries":2,"retryDelay":500}`             | Array   | ``      |
 
 Each configuration can be managed using the following commands:
 

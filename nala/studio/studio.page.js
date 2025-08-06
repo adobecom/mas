@@ -40,6 +40,28 @@ export default class StudioPage {
         this.cloneCardButton = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="clone"]');
         this.deleteCardButton = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="delete"]');
         this.saveCardButton = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="save"]');
+        
+        // Copy dialog selectors
+        this.copyToFolderButton = page.locator('sp-action-button:has(sp-icon-folder-add)');
+        this.copyDialog = page.locator('mas-copy-dialog');
+        this.copyDialogWrapper = page.locator('mas-copy-dialog sp-dialog-wrapper');
+        this.copyDialogFragmentName = page.locator('mas-copy-dialog sp-textfield#fragment-name');
+        this.copyDialogLocalePicker = page.locator('mas-copy-dialog sp-picker#locale-picker');
+        this.copyDialogFolderTree = page.locator('mas-copy-dialog .folder-tree');
+        this.copyDialogNalaFolder = page.locator('mas-copy-dialog .folder-item:has-text("Nala")');
+        this.copyDialogSandboxFolder = page.locator('mas-copy-dialog .folder-item:has-text("Sandbox")');
+        this.copyDialogConfirmButton = page.locator('mas-copy-dialog sp-dialog-wrapper[confirm-label="Copy"]');
+        this.copyDialogCancelButton = page.locator('mas-copy-dialog sp-dialog-wrapper[cancel-label="Cancel"]');
+        this.copyDialogError = page.locator('mas-copy-dialog .error-message');
+        
+        // Selection panel
+        this.selectionPanel = page.locator('mas-selection-panel');
+        this.selectionPanelCopyButton = page.locator('mas-selection-panel sp-action-button[label="Copy to folder"]');
+        
+        // Selection mode
+        this.selectButton = page.locator('sp-action-button[label="Select"]');
+        this.cardOverlay = page.locator('.overlay');
+        this.actionBar = page.locator('sp-action-bar');
     }
 
     async getCard(id, cloned, secondID) {

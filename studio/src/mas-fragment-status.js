@@ -1,4 +1,4 @@
-import { html, css, LitElement } from 'lit';
+import { html, css, LitElement, nothing } from 'lit';
 import { toPascalCase } from './utils.js';
 
 class MasFragmentStatus extends LitElement {
@@ -23,28 +23,19 @@ class MasFragmentStatus extends LitElement {
         }
 
         :host([variant='draft']) {
-            --mas-status-background-color: rgba(
-                var(--spectrum-blue-100-rgb),
-                0.4
-            );
+            --mas-status-background-color: rgba(var(--spectrum-blue-100-rgb), 0.4);
             --mas-status-hover-color: var(--spectrum-blue-100);
             --mas-status-accent-color: var(--spectrum-blue-800);
         }
 
         :host([variant='modified']) {
-            --mas-status-background-color: rgba(
-                var(--spectrum-yellow-100-rgb),
-                0.4
-            );
+            --mas-status-background-color: rgba(var(--spectrum-yellow-100-rgb), 0.4);
             --mas-status-hover-color: var(--spectrum-yellow-100);
             --mas-status-accent-color: var(--spectrum-yellow-600);
         }
 
         :host([variant='published']) {
-            --mas-status-background-color: rgba(
-                var(--spectrum-green-100-rgb),
-                0.4
-            );
+            --mas-status-background-color: rgba(var(--spectrum-green-100-rgb), 0.4);
             --mas-status-hover-color: var(--spectrum-green-100);
             --mas-status-accent-color: var(--spectrum-green-700);
         }
@@ -59,7 +50,7 @@ class MasFragmentStatus extends LitElement {
     `;
 
     static properties = {
-        variant: { type: String, attribute: true },
+        variant: { type: String, attribute: true, reflect: true },
     };
 
     get label() {
@@ -68,21 +59,22 @@ class MasFragmentStatus extends LitElement {
 
     get lightVariant() {
         switch (this.variant) {
+            case 'new':
+            case 'draft':
+                return 'info';
             case 'published':
                 return 'positive';
             case 'modified':
                 return 'yellow';
+            case 'unpublished':
+                return 'neutral';
             default:
-                return 'info';
+                return '';
         }
     }
 
     render() {
-        return html`<sp-status-light
-                size="l"
-                variant="${this.lightVariant}"
-            ></sp-status-light>
-            ${this.label}`;
+        return html`<sp-status-light size="l" variant="${this.lightVariant}"></sp-status-light> ${this.label}`;
     }
 }
 

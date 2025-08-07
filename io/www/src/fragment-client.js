@@ -4,11 +4,12 @@
  */
 
 // Import the modules
-import { fetchFragment } from './fragment/fetch.js';
 import { logError } from './fragment/common.js';
-import { translate } from './fragment/translate.js';
+import { corrector } from './fragment/corrector.js';
+import { fetchFragment } from './fragment/fetch.js';
 import { replace } from './fragment/replace.js';
 import { settings } from './fragment/settings.js';
+import { translate } from './fragment/translate.js';
 
 async function previewFragment(id, options) {
     const {
@@ -22,10 +23,15 @@ async function previewFragment(id, options) {
         status: 200,
         preview,
         requestId: 'preview',
+        networkConfig: {
+            mainTimeout: 15000,
+            fetchTimeout: 10000,
+            retries: 3,
+        },
         api_key: 'n/a',
         locale,
     };
-    for (const transformer of [fetchFragment, translate, settings, replace]) {
+    for (const transformer of [fetchFragment, translate, settings, replace, corrector]) {
         if (context.status != 200) {
             logError(context.message, context);
             break;

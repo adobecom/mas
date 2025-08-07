@@ -28,6 +28,7 @@ class MasContent extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         Events.fragmentAdded.subscribe(this.goToFragment);
+        Events.fragmentDeleted.subscribe(this.onFragmentDeleted);
 
         this.subscriptions.push(
             Store.fragments.list.data.subscribe(() => {
@@ -45,6 +46,7 @@ class MasContent extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         Events.fragmentAdded.unsubscribe(this.goToFragment);
+        Events.fragmentDeleted.unsubscribe(this.onFragmentDeleted);
 
         if (this.subscriptions && this.subscriptions.length) {
             this.subscriptions.forEach((subscription) => {
@@ -56,12 +58,22 @@ class MasContent extends LitElement {
         this.subscriptions = [];
     }
 
+    onFragmentDeleted(fragment) {
+        Store.fragments.list.data.set((prev) => {
+            const result = [...prev];
+            const index = result.findIndex((fragmentStore) => fragmentStore.get().id === fragment.id);
+            if (index !== -1) {
+                result.splice(index, 1);
+            }
+            return result;
+        });
+        Store.fragments.inEdit.set(null);
+    }
+
     async goToFragment(id, skipUpdate = false) {
         if (!skipUpdate) await this.updateComplete;
 
-        const fragmentElement = document.querySelector(
-            `.mas-fragment[data-id="${id}"]`,
-        );
+        const fragmentElement = document.querySelector(`.mas-fragment[data-id="${id}"]`);
         if (!fragmentElement) return;
 
         fragmentElement.scrollIntoView({ behavior: 'smooth' });
@@ -75,22 +87,12 @@ class MasContent extends LitElement {
                         const value = fragmentStore.get();
                         if (!value) return false;
                         if (fragmentStore.new) return true;
-                        if (
-                            value.model?.path === CARD_MODEL_PATH &&
-                            !variantValues.includes(fragmentStore.value.variant)
-                        )
+                        if (value.model?.path === CARD_MODEL_PATH && !variantValues.includes(fragmentStore.value.variant))
                             return false;
                         return true;
                     }),
-                    (fragmentStore) =>
-                        fragmentStore.get()?.path ||
-                        fragmentStore.id ||
-                        Math.random(),
-                    (fragmentStore) =>
-                        html`<mas-fragment
-                            .fragmentStore=${fragmentStore}
-                            view="render"
-                        ></mas-fragment>`,
+                    (fragmentStore) => fragmentStore.get()?.path || fragmentStore.id || Math.random(),
+                    (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="render"></mas-fragment>`,
                 )}
             </div>
         `;
@@ -109,37 +111,19 @@ class MasContent extends LitElement {
             @change=${this.updateTableSelection}
         >
             <sp-table-head>
-                <sp-table-head-cell sortable class="name"
-                    >Name</sp-table-head-cell
-                >
-                <sp-table-head-cell sortable class="title"
-                    >Title</sp-table-head-cell
-                >
-                <sp-table-head-cell sortable class="offer-type"
-                    >Offer type</sp-table-head-cell
-                >
-                <sp-table-head-cell sortable class="price"
-                    >Price</sp-table-head-cell
-                >
-                <sp-table-head-cell sortable class="offer-id"
-                    >Offer ID</sp-table-head-cell
-                >
+                <sp-table-head-cell sortable class="name">Path</sp-table-head-cell>
+                <sp-table-head-cell sortable class="title">Title</sp-table-head-cell>
+                <sp-table-head-cell sortable class="offer-type">Offer type</sp-table-head-cell>
+                <sp-table-head-cell sortable class="price">Price</sp-table-head-cell>
+                <sp-table-head-cell sortable class="offer-id">Offer ID</sp-table-head-cell>
                 <slot name="headers"></slot>
-                <sp-table-head-cell sortable class="status"
-                    >Status</sp-table-head-cell
-                >
+                <sp-table-head-cell sortable class="status">Status</sp-table-head-cell>
             </sp-table-head>
             <sp-table-body>
                 ${repeat(
-                    this.fragments.value.filter(
-                        (fragmentStore) => fragmentStore.get() !== null,
-                    ),
+                    this.fragments.value.filter((fragmentStore) => fragmentStore.get() !== null),
                     (fragmentStore) => fragmentStore.get().path,
-                    (fragmentStore) =>
-                        html`<mas-fragment
-                            .fragmentStore=${fragmentStore}
-                            view="table"
-                        ></mas-fragment>`,
+                    (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
                 )}
             </sp-table-body>
         </sp-table>`;
@@ -147,11 +131,7 @@ class MasContent extends LitElement {
 
     get loadingIndicator() {
         if (!this.loading.value) return nothing;
-        return html`<sp-progress-circle
-            class="fragments"
-            indeterminate
-            size="l"
-        ></sp-progress-circle>`;
+        return html`<sp-progress-circle class="fragments" indeterminate size="l"></sp-progress-circle>`;
     }
 
     render() {

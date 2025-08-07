@@ -5,7 +5,6 @@
 - [fragment pipeline service](./src/fragment/README.md)
 - [healthcheck service](./src/fragment/README.md)
 
-
 ## Setup / First Steps
 
 - install aio cli running `npm install -g @adobe/aio-cli`
@@ -13,14 +12,15 @@
 - navigate to Developer Console https://developer.adobe.com/console
 - in 'Merch at Scale' project, create a workspace with your ldap
 - in your workspace click on 'Download all' and copy the auth .json in root of this project
-- run `aio app use <filename>` 
+- run `aio app use <filename>`
 - this should populate the `.env` and the `.aio` file in the project root
 - ask a colleague for values:
-    - for health-check action, 
-    add ODIN_CDN_ENDPOINT,ODIN_ORIGIN_ENDPOINT,WCS_CDN_ENDPOINT,WCS_ORIGIN_ENDPOINT env vars to .env file
+    - for health-check action,
+      add ODIN_CDN_ENDPOINT,ODIN_ORIGIN_ENDPOINT,WCS_CDN_ENDPOINT,WCS_ORIGIN_ENDPOINT env vars to .env file
     - for ost-products, add AOS_URL and AOS_API_KEY env vars to .env file
 - run `npm i`
 - run `aio where` and verify output is:
+
 ```
 aio where
 You are currently in:
@@ -35,10 +35,9 @@ You are currently in:
 - App will run on `localhost:9080` by default
 - open https://localhost:9080/api/v1/web/MerchAtScale/health-check
 
-
 ## Test & Coverage
 
-- Run `aio app test` to run unit tests for ui and actions
+- Run `aio app test` to run unit tests for ui and actions (_Note: If tests fail, make sure to have the latest node version installed._)
 
 ## Deploy & Cleanup
 
@@ -46,15 +45,16 @@ You are currently in:
 - `aio app undeploy` to undeploy the app
 
 If you need to force re-deploy:
+
 - `aio app deploy --force-deploy --no-publish`
-To deploy specific action
+  To deploy specific action
 - `aio app deploy -a ost-products-read`
 
 ## Config
 
 ### `.env`
 
-You can generate this file using the command `aio app use`. 
+You can generate this file using the command `aio app use`.
 
 ```bash
 # This file must **not** be committed to source control
@@ -66,4 +66,4 @@ You can generate this file using the command `aio app use`.
 
 ### `app.config.yaml`
 
-Main configuration file that defines an application's implementation. 
+Main configuration file that defines an application's implementation.

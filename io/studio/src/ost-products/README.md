@@ -1,12 +1,15 @@
 # ost-products-write
 
 This action generate will:
-* query AOS API 
-* generate a light-weight list of products
-This list is used in the initial Product List screen of OST.
-The list will be stored in action worspace Store for a year.
-Action is autotriggered by Github daily (see ost-products.yaml in .github/workflows)
-Action has a simple api key security mechanism.
+
+- query AOS API
+- generate a light-weight list of products
+  This list is used in the initial Product List screen of OST.
+  The list will be stored in action worspace Store for a year.
+  Action is autotriggered by Github daily (see ost-products.yaml in .github/workflows)
+  Action has a simple api key security mechanism.
+
+Sample AOS query: https://aos.adobe.io/offers?api_key=wcms-commerce-ims-user-prod&country=US&merchant=ADOBE&service_providers=MERCHANDISING,PRODUCT_ARRANGEMENT_V2&locale=en_US&landscape=PUBLISHED&page_size=2&page=1
 
 # ost-products-read
 
@@ -16,3 +19,10 @@ Action is protected by IMS token authorization mechanism.
 ## Setup / First Steps
 
 Follow README in 'io-actions' folder
+run
+`aio app dev`
+In browser open https://localhost:9080/api/v1/web/MerchAtScaleStudio/ost-products-write?key=
+observe log in terminal
+
+Bearer token can
+curl -k https://localhost:9080/api/v1/web/MerchAtScaleStudio/ost-products-read -H "Authorization: Bearer "

@@ -4,9 +4,7 @@ import { tmpdir } from 'os';
 import path from 'path';
 
 async function getItems(host, path) {
-    const response = await fetch(
-        `https://${host}/adobe/sites/cf/fragments?path=/content/dam/mas/${path}`,
-    );
+    const response = await fetch(`https://${host}/adobe/sites/cf/fragments?path=/content/dam/mas/${path}`);
     if (response.ok) {
         const data = await response.json();
         return data.items;
@@ -23,16 +21,14 @@ async function getFragmentMap(host, path, filter) {
     for (const item of items) {
         if (filter(item)) {
             filteredItems.push(item);
-            const url = `https://${host}/adobe/sites/fragments/${item.id}`;
+            const url = `https://${host}/adobe/sites/fragments/${item.id}?references=all-hydrated`;
             console.log(`fetching: ${url}`);
 
             promises.push(
                 fetch(url)
                     .then((response) => {
                         if (!response.ok) {
-                            throw new Error(
-                                `Failed to fetch ${url}: ${response.status} ${response.statusText}`,
-                            );
+                            throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
                         }
                         return response.json();
                     })
@@ -44,9 +40,7 @@ async function getFragmentMap(host, path, filter) {
         }
     }
 
-    console.log(
-        `Filtered ${filteredItems.length} items out of ${items.length}`,
-    );
+    console.log(`Filtered ${filteredItems.length} items out of ${items.length}`);
 
     if (filteredItems.length === 0) {
         console.log('No items matched the filter criteria');
@@ -76,24 +70,16 @@ async function getFragmentMap(host, path, filter) {
         }
     }
 
-    console.log(
-        `Successfully processed ${successCount} items, ${failureCount} failed`,
-    );
+    console.log(`Successfully processed ${successCount} items, ${failureCount} failed`);
     return map;
 }
 
 async function getProdMap(path, prodIds) {
-    return getFragmentMap('odin.adobe.com', path, (item) =>
-        prodIds.includes(item.id),
-    );
+    return getFragmentMap('odin.adobe.com', path, (item) => prodIds.includes(item.id));
 }
 
 async function getStageMap(prodMap, path) {
-    return getFragmentMap(
-        'stage-odin.adobe.com',
-        path,
-        (item) => prodMap[item.path],
-    );
+    return getFragmentMap('stage-odin.adobe.com', path, (item) => prodMap[item.path]);
 }
 
 async function main() {
@@ -107,43 +93,28 @@ async function main() {
     console.log(`Comparing ${contentPath}`);
     const prodMap = await getProdMap(contentPath, prodIds);
     const stageMap = await getStageMap(prodMap, contentPath);
-    
     const tempDir = tmpdir();
     let diffCount = 0;
     let onlyInProdCount = 0;
     let onlyInStageCount = 0;
-    
     for (const [key, value] of Object.entries(prodMap)) {
         if (stageMap[key]) {
             const prodItem = value;
             const stageItem = stageMap[key];
-            
             if (JSON.stringify(prodItem) !== JSON.stringify(stageItem)) {
                 diffCount++;
                 console.log(`\nDifferences for ${key}:`);
-                
                 // Create temp files for diff
-                const prodFile = path.join(
-                    tempDir,
-                    `prod-${path.basename(key)}.json`,
-                );
-                const stageFile = path.join(
-                    tempDir,
-                    `stage-${path.basename(key)}.json`,
-                );
-                
+                const prodFile = path.join(tempDir, `prod-${path.basename(key)}.json`);
+                const stageFile = path.join(tempDir, `stage-${path.basename(key)}.json`);
                 fs.writeFileSync(prodFile, JSON.stringify(prodItem, null, 2));
                 fs.writeFileSync(stageFile, JSON.stringify(stageItem, null, 2));
-                
                 try {
                     // Run diff command
-                    const result = execSync(
-                        `diff --color=always -u ${prodFile} ${stageFile}`,
-                        {
-                            encoding: 'utf-8',
-                            stdio: ['pipe', 'pipe', 'ignore'],
-                        },
-                    );
+                    const result = execSync(`diff --color=always -u ${prodFile} ${stageFile}`, {
+                        encoding: 'utf-8',
+                        stdio: ['pipe', 'pipe', 'ignore'],
+                    });
                     // Strip first two lines (file paths)
                     const lines = result.split('\n');
                     console.log(lines.slice(2).join('\n'));
@@ -166,7 +137,7 @@ async function main() {
             console.log(`\n${key}: Only in prod, not in stage`);
         }
     }
-    
+
     // Check for items in stage that aren't in prod
     for (const key of Object.keys(stageMap)) {
         if (!prodMap[key]) {
@@ -174,7 +145,6 @@ async function main() {
             console.log(`\n${key}: Only in stage, not in prod`);
         }
     }
-    
     // Print summary
     console.log('\n\n--- Summary ---');
     console.log(`Files with differences: ${diffCount}`);

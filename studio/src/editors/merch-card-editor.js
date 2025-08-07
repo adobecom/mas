@@ -10,8 +10,9 @@ import '../rte/osi-field.js';
 import { CARD_MODEL_PATH } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
-import { getFragmentMapping, getMerchCardElement } from '../utils.js';
+import { getFragmentMapping } from '../utils.js';
 import '../fields/addon-field.js';
+import Store from '../store.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -26,6 +27,7 @@ class MerchCardEditor extends LitElement {
         availableBadgeColors: { type: Array, state: true },
         availableBackgroundColors: { type: Array, state: true },
         quantitySelectorValues: { type: String, state: true },
+        currentVariantMapping: { type: Object, state: true },
     };
 
     styles = {
@@ -57,6 +59,7 @@ class MerchCardEditor extends LitElement {
         this.availableBadgeColors = [];
         this.availableBackgroundColors = [];
         this.quantitySelectorValues = '';
+        this.currentVariantMapping = null;
     }
 
     createRenderRoot() {
@@ -72,12 +75,8 @@ class MerchCardEditor extends LitElement {
     }
 
     get whatsIncludedElement() {
-        const whatsIncludedValues =
-            this.fragment.fields.find((f) => f.name === WHAT_IS_INCLUDED)
-                ?.values ?? [];
-        const whatsIncludedHtml = whatsIncludedValues?.length
-            ? whatsIncludedValues[0]
-            : '';
+        const whatsIncludedValues = this.fragment.fields.find((f) => f.name === WHAT_IS_INCLUDED)?.values ?? [];
+        const whatsIncludedHtml = whatsIncludedValues?.length ? whatsIncludedValues[0] : '';
 
         if (!whatsIncludedHtml) return undefined;
 
@@ -87,22 +86,17 @@ class MerchCardEditor extends LitElement {
     }
 
     get whatsIncluded() {
-        const label =
-            this.whatsIncludedElement?.querySelector('[slot="heading"]')
-                ?.textContent || '';
+        const label = this.whatsIncludedElement?.querySelector('[slot="heading"]')?.textContent || '';
         const values = [];
-        this.whatsIncludedElement
-            ?.querySelectorAll('merch-mnemonic-list')
-            .forEach((listEl) => {
-                const icon = listEl.querySelector('merch-icon')?.src || '';
-                const text =
-                    listEl.querySelector('[slot="description"]')?.textContent ||
-                    '';
-                values.push({
-                    icon,
-                    text,
-                });
+        this.whatsIncludedElement?.querySelectorAll('merch-mnemonic-list').forEach((listEl) => {
+            const iconEl = listEl.querySelector('merch-icon');
+            const icon = iconEl?.getAttribute('src') || '';
+            const text = listEl.querySelector('[slot="description"]')?.textContent || '';
+            values.push({
+                icon,
+                text,
             });
+        });
 
         return {
             label,
@@ -113,20 +107,18 @@ class MerchCardEditor extends LitElement {
     get mnemonics() {
         if (!this.fragment) return [];
 
-        const mnemonicIcon =
-            this.fragment.fields.find((f) => f.name === 'mnemonicIcon')
-                ?.values ?? [];
-        const mnemonicAlt =
-            this.fragment.fields.find((f) => f.name === 'mnemonicAlt')
-                ?.values ?? [];
-        const mnemonicLink =
-            this.fragment.fields.find((f) => f.name === 'mnemonicLink')
-                ?.values ?? [];
+        const mnemonicIcon = this.fragment.fields.find((f) => f.name === 'mnemonicIcon')?.values ?? [];
+        const mnemonicAlt = this.fragment.fields.find((f) => f.name === 'mnemonicAlt')?.values ?? [];
+        const mnemonicLink = this.fragment.fields.find((f) => f.name === 'mnemonicLink')?.values ?? [];
+        const mnemonicTooltipText = this.fragment.fields.find((f) => f.name === 'mnemonicTooltipText')?.values ?? [];
+        const mnemonicTooltipPlacement = this.fragment.fields.find((f) => f.name === 'mnemonicTooltipPlacement')?.values ?? [];
         return (
             mnemonicIcon?.map((icon, index) => ({
                 icon,
                 alt: mnemonicAlt[index] ?? '',
                 link: mnemonicLink[index] ?? '',
+                tooltipText: mnemonicTooltipText[index] ?? '',
+                tooltipPlacement: mnemonicTooltipPlacement[index] ?? 'top',
             })) ?? []
         );
     }
@@ -140,10 +132,7 @@ class MerchCardEditor extends LitElement {
     }
 
     get fragmentQuantityValue() {
-        return (
-            this.fragment?.fields.find((f) => f.name === QUANTITY_MODEL)
-                ?.values[0] || ''
-        );
+        return this.fragment?.fields.find((f) => f.name === QUANTITY_MODEL)?.values[0] || '';
     }
 
     getQuantityAttribute(name) {
@@ -181,11 +170,7 @@ class MerchCardEditor extends LitElement {
     }
 
     #updateQuantityValues(event) {
-        const vals = [
-            this.quantityStart,
-            this.quantityStep,
-            this.quantityTitle,
-        ];
+        const vals = [this.quantityStart, this.quantityStep, this.quantityTitle];
         if (event.target.dataset.field === 'startQuantity') {
             vals[0] = event.target.value;
         } else if (event.target.dataset.field === 'stepQuantity') {
@@ -204,15 +189,9 @@ class MerchCardEditor extends LitElement {
 
         let html = '';
         if (e.target.checked) {
-            html = this.createQsElement(
-                this.quantityStart,
-                this.quantityStep,
-                this.quantityTitle,
-            ).outerHTML;
+            html = this.createQsElement(this.quantityStart, this.quantityStep, this.quantityTitle).outerHTML;
         } else {
-            const qsValues = this.fragmentStore
-                .get()
-                .getField(QUANTITY_MODEL)?.values;
+            const qsValues = this.fragmentStore.get().getField(QUANTITY_MODEL)?.values;
             this.quantitySelectorValues = qsValues?.length ? qsValues[0] : '';
         }
         const fragment = this.fragmentStore.get();
@@ -228,21 +207,23 @@ class MerchCardEditor extends LitElement {
     updated(changedProperties) {
         super.updated(changedProperties);
         if (changedProperties.has('fragmentStore')) {
-            this.#updateAvailableSizes();
-            this.#updateAvailableColors();
-            this.#updateBackgroundColors();
-            this.toggleFields();
+            this.#updateCurrentVariantMapping().then(() => {
+                this.#updateAvailableSizes();
+                this.#updateAvailableColors();
+                this.#updateBackgroundColors();
+                this.toggleFields();
+            });
         }
     }
 
     async toggleFields() {
         if (!this.fragment) return;
-        const variant = await getFragmentMapping(this.fragment.variant);
+        await this.#updateCurrentVariantMapping();
+        const variant = this.currentVariantMapping;
         if (!variant) return;
         this.querySelectorAll('sp-field-group.toggle').forEach((field) => {
             field.style.display = 'none';
         });
-        if (!variant) return;
         Object.entries(variant).forEach(([key, value]) => {
             if (Array.isArray(value) && value.length === 0) return;
             const field = this.querySelector(`sp-field-group.toggle#${key}`);
@@ -250,30 +231,27 @@ class MerchCardEditor extends LitElement {
         });
         this.showQuantityFields(this.quantitySelectorDisplayed);
         if (variant.borderColor) {
-            const borderField = this.querySelector(
-                'sp-field-group.toggle#border-color',
-            );
+            const borderField = this.querySelector('sp-field-group.toggle#border-color');
             if (borderField) borderField.style.display = 'block';
         }
         if (variant.borderColor || variant.badge?.tag) {
-            this.availableBorderColors =
-                variant.allowedBorderColors || SPECTRUM_COLORS;
-            this.availableBadgeColors =
-                variant.allowedBadgeColors || SPECTRUM_COLORS;
+            this.availableBorderColors = variant.allowedBorderColors || SPECTRUM_COLORS;
+            this.availableBadgeColors = variant.allowedBadgeColors || SPECTRUM_COLORS;
         } else {
             this.availableBorderColors = [];
             this.availableBadgeColors = [];
         }
         this.availableColors = variant?.allowedColors || [];
+
+        this.#displayBadgeColorFields(this.badgeText);
+        this.#displayTrialBadgeColorFields(this.trialBadgeText);
     }
 
     render() {
         if (!this.fragment) return nothing;
         if (this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
 
-        const form = Object.fromEntries([
-            ...this.fragment.fields.map((f) => [f.name, f]),
-        ]);
+        const form = Object.fromEntries([...this.fragment.fields.map((f) => [f.name, f])]);
         return html`
             <sp-field-group id="variant">
                 <sp-field-label for="card-variant">Variant</sp-field-label>
@@ -295,11 +273,7 @@ class MerchCardEditor extends LitElement {
                     @change="${this.#handleFragmentUpdate}"
                 >
                     ${(this.availableSizes || []).map(
-                        (size) => html`
-                            <sp-menu-item value="${size}"
-                                >${this.#formatName(size)}</sp-menu-item
-                            >
-                        `,
+                        (size) => html` <sp-menu-item value="${size}">${this.#formatName(size)}</sp-menu-item> `,
                     )}
                 </sp-picker>
             </sp-field-group>
@@ -337,9 +311,7 @@ class MerchCardEditor extends LitElement {
                 </mas-multifield>
             </sp-field-group>
             <sp-field-group class="toggle" id="whatsIncluded">
-                <sp-field-label for="whatsIncludedLabel"
-                    >What's included</sp-field-label
-                >
+                <sp-field-label for="whatsIncludedLabel">What's included</sp-field-label>
                 <sp-textfield
                     id="whatsIncludedLabel"
                     placeholder="Enter the label text"
@@ -367,6 +339,17 @@ class MerchCardEditor extends LitElement {
                 ></sp-textfield>
                 ${this.#renderBadgeColors()}
             </sp-field-group>
+            <sp-field-group class="toggle" id="trialBadge">
+                <sp-field-label for="card-trial-badge">Trial Badge</sp-field-label>
+                <sp-textfield
+                    placeholder="Enter trial badge text"
+                    id="card-trial-badge"
+                    data-field="trialBadge"
+                    value="${this.trialBadge.text}"
+                    @input="${this.#updateTrialBadgeText}"
+                ></sp-textfield>
+                ${this.#renderTrialBadgeColors()}
+            </sp-field-group>
             ${this.#renderColorPicker(
                 'border-color',
                 'Border Color',
@@ -380,9 +363,7 @@ class MerchCardEditor extends LitElement {
                 'backgroundColor',
             )}
             <sp-field-group class="toggle" id="backgroundImage">
-                <sp-field-label for="background-image"
-                    >Background Image</sp-field-label
-                >
+                <sp-field-label for="background-image">Background Image</sp-field-label>
                 <sp-textfield
                     placeholder="Enter background image URL"
                     id="background-image"
@@ -390,9 +371,7 @@ class MerchCardEditor extends LitElement {
                     value="${form.backgroundImage.values[0]}"
                     @input="${this.#handleFragmentUpdate}"
                 ></sp-textfield>
-                <sp-field-label for="background-image-alt-text"
-                    >Background Image Alt Text</sp-field-label
-                >
+                <sp-field-label for="background-image-alt-text">Background Image Alt Text</sp-field-label>
                 <sp-textfield
                     placeholder="Enter background image Alt Text"
                     id="background-image-alt-text"
@@ -408,6 +387,7 @@ class MerchCardEditor extends LitElement {
                     inline
                     link
                     data-field="prices"
+                    .osi=${form.osi.values[0]}
                     default-link-style="primary-outline"
                     @change="${this.#handleFragmentUpdate}"
                     >${unsafeHTML(form.prices.values[0])}</rte-field
@@ -435,6 +415,17 @@ class MerchCardEditor extends LitElement {
                     ?disabled=${this.disabled}
                 ></sp-textfield>
             </sp-field-group>
+            <sp-field-group class="toggle" id="addonConfirmation">
+                <sp-field-label for="addon-confirmation">Addon Confirmation</sp-field-label>
+                <sp-textfield
+                    placeholder="Enter addon confirmation text"
+                    id="addon-confirmation"
+                    data-field="addonConfirmation"
+                    value="${form.addonConfirmation?.values[0]}"
+                    @input="${this.#handleFragmentUpdate}"
+                    ?disabled=${this.disabled}
+                ></sp-textfield>
+            </sp-field-group>
             <sp-field-group class="toggle" id="description">
                 <sp-field-label for="description">Description</sp-field-label>
                 <rte-field
@@ -442,7 +433,10 @@ class MerchCardEditor extends LitElement {
                     styling
                     link
                     upt-link
+                    list
+                    mnemonic
                     data-field="description"
+                    .osi=${form.osi.values[0]}
                     default-link-style="secondary-link"
                     @change="${this.#handleFragmentUpdate}"
                     >${unsafeHTML(form.description.values[0])}</rte-field
@@ -455,6 +449,7 @@ class MerchCardEditor extends LitElement {
                     link
                     icon
                     data-field="callout"
+                    .osi=${form.osi.values[0]}
                     default-link-style="secondary-link"
                     @change="${this.#handleFragmentUpdate}"
                     ?readonly=${this.disabled}
@@ -511,9 +506,7 @@ class MerchCardEditor extends LitElement {
                     >Show Quantity selector</sp-checkbox
                 >
                 <sp-field-group id="quantitySelector">
-                    <sp-field-label for="title-quantity"
-                        >Quantity selector title</sp-field-label
-                    >
+                    <sp-field-label for="title-quantity">Quantity selector title</sp-field-label>
                     <sp-textfield
                         id="title-quantity"
                         data-field="titleQuantity"
@@ -521,9 +514,7 @@ class MerchCardEditor extends LitElement {
                         @input="${this.#updateQuantityValues}"
                         ?disabled=${this.disabled}
                     ></sp-textfield>
-                    <sp-field-label for="start-quantity"
-                        >Start quantity</sp-field-label
-                    >
+                    <sp-field-label for="start-quantity">Start quantity</sp-field-label>
                     <sp-textfield
                         id="start-quantity"
                         data-field="startQuantity"
@@ -531,9 +522,7 @@ class MerchCardEditor extends LitElement {
                         value="${this.quantityStart}"
                         @input="${this.#updateQuantityValues}"
                         ?disabled=${this.disabled}
-                        ><sp-help-text slot="negative-help-text"
-                            >Numeric values only</sp-help-text
-                        ></sp-textfield
+                        ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield
                     >
                     <sp-field-label for="step-quantity">Step</sp-field-label>
                     <sp-textfield
@@ -543,9 +532,7 @@ class MerchCardEditor extends LitElement {
                         value="${this.quantityStep}"
                         @input="${this.#updateQuantityValues}"
                         ?disabled=${this.disabled}
-                        ><sp-help-text slot="negative-help-text"
-                            >Numeric values only</sp-help-text
-                        ></sp-textfield
+                        ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield
                     >
                 </sp-field-group>
             </sp-field-group>
@@ -556,6 +543,7 @@ class MerchCardEditor extends LitElement {
                     link
                     inline
                     data-field="ctas"
+                    .osi=${form.osi.values[0]}
                     default-link-style="primary-outline"
                     @change="${this.#handleFragmentUpdate}"
                     >${unsafeHTML(form.ctas.values[0])}</rte-field
@@ -578,11 +566,24 @@ class MerchCardEditor extends LitElement {
                 value="${this.fragment.tags.map((tag) => tag.id).join(',')}"
                 @change=${this.#handeTagsChange}
             ></aem-tag-picker-field>
+            <sp-field-group id="perUnitLabel" class="toggle">
+                <sp-divider></sp-divider>
+                <sp-field-label for="per-unit-label">Per Unit Label</sp-field-label>
+                <sp-textfield
+                    id="per-unit-label"
+                    placeholder="Enter per unit label"
+                    data-field="perUnitLabel"
+                    value="${this.#getPerUnitDisplayValue(form.perUnitLabel?.values[0])}"
+                    style="width: 100%;"
+                    @input="${this.#handlePerUnitLabelUpdate}"
+                ></sp-textfield>
+            </sp-field-group>
         `;
     }
 
-    #handleVariantChange(e) {
+    async #handleVariantChange(e) {
         this.#handleFragmentUpdate(e);
+        await this.#updateCurrentVariantMapping();
         this.#updateAvailableSizes();
         this.#updateAvailableColors();
         this.#updateBackgroundColors();
@@ -590,6 +591,8 @@ class MerchCardEditor extends LitElement {
     }
 
     #handeTagsChange(e) {
+        if (Store.showCloneDialog.get()) return;
+
         const value = e.target.getAttribute('value');
         const newTags = value ? value.split(',') : []; // do not overwrite the tags array
         this.fragmentStore.updateField('tags', newTags);
@@ -646,24 +649,28 @@ class MerchCardEditor extends LitElement {
             values = this.whatsIncluded.values;
         }
         const element = this.createIncludedElement(label, values);
-        this.fragmentStore.updateField(WHAT_IS_INCLUDED, [
-            element?.outerHTML || '',
-        ]);
+        this.fragmentStore.updateField(WHAT_IS_INCLUDED, [element?.outerHTML || '']);
     }
 
     #updateMnemonics(event) {
         const mnemonicIcon = [];
         const mnemonicAlt = [];
         const mnemonicLink = [];
-        event.target.value.forEach(({ icon, alt, link }) => {
+        const mnemonicTooltipText = [];
+        const mnemonicTooltipPlacement = [];
+        event.target.value.forEach(({ icon, alt, link, tooltipText, tooltipPlacement }) => {
             mnemonicIcon.push(icon ?? '');
             mnemonicAlt.push(alt ?? '');
             mnemonicLink.push(link ?? '');
+            mnemonicTooltipText.push(tooltipText ?? '');
+            mnemonicTooltipPlacement.push(tooltipPlacement ?? 'top');
         });
         const fragment = this.fragmentStore.get();
         fragment.updateField('mnemonicIcon', mnemonicIcon);
         fragment.updateField('mnemonicAlt', mnemonicAlt);
         fragment.updateField('mnemonicLink', mnemonicLink);
+        fragment.updateField('mnemonicTooltipText', mnemonicTooltipText);
+        fragment.updateField('mnemonicTooltipPlacement', mnemonicTooltipPlacement);
         this.fragmentStore.set(fragment);
     }
 
@@ -674,38 +681,64 @@ class MerchCardEditor extends LitElement {
             .join(' ');
     }
 
+    async #updateCurrentVariantMapping() {
+        if (!this.fragment) {
+            this.currentVariantMapping = null;
+            return;
+        }
+        this.currentVariantMapping = await getFragmentMapping(this.fragment.variant);
+    }
+
     async #updateAvailableSizes() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await getMerchCardElement();
-        const variant = merchCardCustomElement?.getFragmentMapping(
-            this.fragment.variant,
-        );
-        this.availableSizes = ['Default', ...(variant?.size || ['Default'])];
+        if (!this.currentVariantMapping) {
+            this.availableSizes = ['Default'];
+            return;
+        }
+
+        const variantSizes = this.currentVariantMapping?.size || [];
+        if (Array.isArray(variantSizes) && variantSizes.length > 0) {
+            this.availableSizes = ['Default', ...variantSizes];
+        } else {
+            this.availableSizes = ['Default'];
+        }
     }
 
     async #updateAvailableColors() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await getMerchCardElement();
-        const variant = merchCardCustomElement?.getFragmentMapping(
-            this.fragment.variant,
-        );
-        this.availableColors = variant?.allowedColors || [];
-        this.#displayBadgeColorFields(this.badge.text);
+        if (!this.currentVariantMapping) {
+            this.availableColors = [];
+            return;
+        }
+        this.availableColors = this.currentVariantMapping?.allowedColors || [];
+        this.#displayBadgeColorFields(this.badgeText);
+        this.#displayTrialBadgeColorFields(this.trialBadgeText);
+    }
+
+    get supportsBadgeColors() {
+        if (!this.fragment || !this.currentVariantMapping) {
+            return false;
+        }
+        const variantMapping = this.currentVariantMapping;
+        const supports = !!(variantMapping && variantMapping.badge && variantMapping.badge.tag);
+        return supports;
     }
 
     #displayBadgeColorFields(text) {
-        if (!this.isPlans) return;
-        document.querySelector('#badgeColor').style.display = text
-            ? 'block'
-            : 'none';
-        document.querySelector('#badgeBorderColor').style.display = text
-            ? 'block'
-            : 'none';
+        if (!this.supportsBadgeColors) return;
+        const badgeColorField = document.querySelector('#badgeColor');
+        const badgeBorderColorField = document.querySelector('#badgeBorderColor');
+
+        if (badgeColorField) {
+            badgeColorField.style.display = text ? 'block' : 'none';
+        }
+        if (badgeBorderColorField) {
+            badgeBorderColorField.style.display = text ? 'block' : 'none';
+        }
     }
 
     get badgeText() {
-        const badgeValues =
-            this.fragment.fields.find((f) => f.name === 'badge')?.values ?? [];
+        const badgeValues = this.fragment.fields.find((f) => f.name === 'badge')?.values ?? [];
         return badgeValues?.length ? badgeValues[0] : '';
     }
 
@@ -726,34 +759,68 @@ class MerchCardEditor extends LitElement {
     }
 
     get isPlans() {
-        return this.fragment.variant.startsWith('plans');
+        return this.fragment.variant?.startsWith('plans');
     }
 
     get badge() {
-        if (!this.isPlans) {
+        if (!this.supportsBadgeColors) {
             return {
                 text: this.badgeText,
             };
         }
 
         const text = this.badgeElement?.textContent || '';
-        const bgColorAttr =
-            this.badgeElement?.getAttribute?.('background-color');
-        const bgColorSelected = document.querySelector(
-            'sp-picker[data-field="badgeColor"]',
-        )?.value;
-        const bgColor =
-            bgColorAttr?.toLowerCase() ||
-            bgColorSelected ||
-            'spectrum-yellow-300';
+        const bgColorAttr = this.badgeElement?.getAttribute?.('background-color');
+        const bgColorSelected = document.querySelector('sp-picker[data-field="badgeColor"]')?.value;
+        const bgColor = bgColorAttr?.toLowerCase() || bgColorSelected || 'spectrum-yellow-300';
 
-        const borderColorAttr =
-            this.badgeElement?.getAttribute?.('border-color');
-        const borderColorSelected = document.querySelector(
-            'sp-picker[data-field="badgeBorderColor"]',
-        )?.value;
-        const borderColor =
-            borderColorAttr?.toLowerCase() || borderColorSelected;
+        const borderColorAttr = this.badgeElement?.getAttribute?.('border-color');
+        const borderColorSelected = document.querySelector('sp-picker[data-field="badgeBorderColor"]')?.value;
+        const borderColor = borderColorAttr?.toLowerCase() || borderColorSelected;
+
+        return {
+            text,
+            bgColor,
+            borderColor,
+        };
+    }
+
+    get trialBadgeText() {
+        const trialBadgeValues = this.fragment.fields.find((f) => f.name === 'trialBadge')?.values ?? [];
+        return trialBadgeValues?.length ? trialBadgeValues[0] : '';
+    }
+
+    get trialBadgeElement() {
+        const trialBadgeHtml = this.trialBadgeText;
+
+        if (!trialBadgeHtml) return undefined;
+
+        if (trialBadgeHtml?.startsWith('<merch-badge')) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(trialBadgeHtml, 'text/html');
+            return doc.querySelector('merch-badge');
+        }
+
+        return {
+            textContent: trialBadgeHtml,
+        };
+    }
+
+    get trialBadge() {
+        if (!this.supportsBadgeColors) {
+            return {
+                text: this.trialBadgeText,
+            };
+        }
+
+        const text = this.trialBadgeElement?.textContent || '';
+        const bgColorAttr = this.trialBadgeElement?.getAttribute?.('background-color');
+        const bgColorSelected = document.querySelector('sp-picker[data-field="trialBadgeColor"]')?.value;
+        const bgColor = bgColorAttr?.toLowerCase() || bgColorSelected || 'spectrum-yellow-300';
+
+        const borderColorAttr = this.trialBadgeElement?.getAttribute?.('border-color');
+        const borderColorSelected = document.querySelector('sp-picker[data-field="trialBadgeBorderColor"]')?.value;
+        const borderColor = borderColorAttr?.toLowerCase() || borderColorSelected;
 
         return {
             text,
@@ -766,13 +833,14 @@ class MerchCardEditor extends LitElement {
         if (!text) return;
 
         const element = document.createElement('merch-badge');
-        element.setAttribute('background-color', bgColor);
-        if (
-            bgColor === 'spectrum-green-900-plans' ||
-            bgColor === 'spectrum-gray-700-plans'
-        )
-            element.setAttribute('color', '#fff');
-        element.setAttribute('border-color', borderColor);
+        if (bgColor) {
+            element.setAttribute('background-color', bgColor);
+            if (bgColor === 'spectrum-green-900-plans' || bgColor === 'spectrum-gray-700-plans')
+                element.setAttribute('color', '#fff');
+        }
+        if (borderColor) {
+            element.setAttribute('border-color', borderColor);
+        }
         element.setAttribute('variant', this.fragment.variant);
         element.textContent = text;
         return element;
@@ -780,7 +848,7 @@ class MerchCardEditor extends LitElement {
 
     #updateBadgeText(event) {
         const text = event.target.value?.trim() || '';
-        if (this.isPlans) {
+        if (this.supportsBadgeColors) {
             this.#displayBadgeColorFields(text);
             this.#updateBadge(text, this.badge.bgColor, this.badge.borderColor);
         } else {
@@ -788,20 +856,30 @@ class MerchCardEditor extends LitElement {
         }
     }
 
+    #updateTrialBadgeText(event) {
+        const text = event.target.value?.trim() || '';
+        if (this.supportsBadgeColors) {
+            this.#displayTrialBadgeColorFields(text);
+            this.#updateTrialBadge(text, this.trialBadge.bgColor, this.trialBadge.borderColor);
+        } else {
+            this.fragmentStore.updateField('trialBadge', [text]);
+        }
+    }
+
     #onBadgeColorChange = (event) => {
-        this.#updateBadge(
-            this.badge.text,
-            event.target.value,
-            this.badge.borderColor,
-        );
+        this.#updateBadge(this.badge.text, event.target.value, this.badge.borderColor);
     };
 
     #onBadgeBorderColorChange = (event) => {
-        this.#updateBadge(
-            this.badge.text,
-            this.badge.bgColor,
-            event.target.value,
-        );
+        this.#updateBadge(this.badge.text, this.badge.bgColor, event.target.value);
+    };
+
+    #onTrialBadgeColorChange = (event) => {
+        this.#updateTrialBadge(this.trialBadge.text, event.target.value, this.trialBadge.borderColor);
+    };
+
+    #onTrialBadgeBorderColorChange = (event) => {
+        this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, event.target.value);
     };
 
     #updateBadge = (text, bgColor, borderColor) => {
@@ -809,15 +887,33 @@ class MerchCardEditor extends LitElement {
         this.fragmentStore.updateField('badge', [element?.outerHTML || '']);
     };
 
+    #updateTrialBadge = (text, bgColor, borderColor) => {
+        const element = this.#createBadgeElement(text, bgColor, borderColor);
+        this.fragmentStore.updateField('trialBadge', [element?.outerHTML || '']);
+    };
+
+    #displayTrialBadgeColorFields(text) {
+        if (!this.supportsBadgeColors) return;
+        const trialBadgeColorField = document.querySelector('#trialBadgeColor');
+        const trialBadgeBorderColorField = document.querySelector('#trialBadgeBorderColor');
+
+        if (trialBadgeColorField) {
+            trialBadgeColorField.style.display = text ? 'block' : 'none';
+        }
+        if (trialBadgeBorderColorField) {
+            trialBadgeBorderColorField.style.display = text ? 'block' : 'none';
+        }
+    }
+
     async #updateBackgroundColors() {
         if (!this.fragment) return;
-        const merchCardCustomElement = await getMerchCardElement();
-        const variant = merchCardCustomElement?.getFragmentMapping(
-            this.fragment.variant,
-        );
+        if (!this.currentVariantMapping) {
+            this.availableBackgroundColors = { Default: undefined };
+            return;
+        }
         this.availableBackgroundColors = {
             Default: undefined,
-            ...(variant.allowedColors ?? []),
+            ...(this.currentVariantMapping.allowedColors ?? []),
         };
     }
 
@@ -830,24 +926,37 @@ class MerchCardEditor extends LitElement {
     }
 
     #renderBadgeColors() {
-        if (!this.isPlans) return;
+        if (!this.supportsBadgeColors) return;
 
         return html`
-            ${this.#renderColorPicker(
-                'badgeColor',
-                'Badge Color',
-                this.availableBadgeColors,
-                this.badge.bgColor,
-                'badgeColor',
-                this.#onBadgeColorChange,
-            )}
+            ${this.#renderColorPicker('badgeColor', 'Badge Color', this.availableBadgeColors, this.badge.bgColor, 'badgeColor')}
             ${this.#renderColorPicker(
                 'badgeBorderColor',
                 'Badge Border Color',
                 this.availableBadgeColors,
                 this.badge.borderColor,
                 'badgeBorderColor',
-                this.#onBadgeBorderColorChange,
+            )}
+        `;
+    }
+
+    #renderTrialBadgeColors() {
+        if (!this.supportsBadgeColors) return;
+
+        return html`
+            ${this.#renderColorPicker(
+                'trialBadgeColor',
+                'Trial Badge Color',
+                this.availableBadgeColors,
+                this.trialBadge.bgColor,
+                'trialBadgeColor',
+            )}
+            ${this.#renderColorPicker(
+                'trialBadgeBorderColor',
+                'Trial Badge Border Color',
+                this.availableBadgeColors,
+                this.trialBadge.borderColor,
+                'trialBadgeBorderColor',
             )}
         `;
     }
@@ -858,66 +967,141 @@ class MerchCardEditor extends LitElement {
         }
     };
 
+    #getPerUnitDisplayValue(value) {
+        if (!value) return '';
+        const match = value.match(/LICENSE\s+\{(.+?)\}\s+other/);
+        return match ? match[1].trim() : '';
+    }
+
+    #handlePerUnitLabelUpdate = (event) => {
+        const userInput = event.target.value.trim();
+        let transformedValue = '';
+
+        if (userInput) {
+            const cleanInput = userInput.trim();
+            transformedValue = `{perUnit, select, LICENSE {${cleanInput}} other {}}`;
+        }
+
+        const syntheticEvent = {
+            target: {
+                ...event.target,
+                value: transformedValue,
+                dataset: {
+                    field: 'perUnitLabel',
+                },
+            },
+        };
+
+        this.#handleFragmentUpdate(syntheticEvent);
+    };
+
     #renderColorPicker(id, label, colors, selectedValue, dataField, onChange) {
         const isBackground = dataField === 'backgroundColor';
         const isBorder = dataField === 'borderColor';
+        const isBadgeColor = dataField === 'badgeColor' || dataField === 'trialBadgeColor';
+        const isBadgeBorderColor = dataField === 'badgeBorderColor' || dataField === 'trialBadgeBorderColor';
 
-        let colorArray = Array.isArray(colors)
-            ? colors
-            : Object.keys(colors || {});
+        let colorArray = Array.isArray(colors) ? colors : Object.keys(colors || {});
 
         let variantSpecialValues = {};
-        if (this.fragment && isBorder) {
-            const merchCardCustomElement = customElements.get('merch-card');
-            const variant = merchCardCustomElement?.getFragmentMapping(
-                this.fragment.variant,
-            );
+        if (this.fragment && isBorder && this.currentVariantMapping) {
+            const variant = this.currentVariantMapping;
             variantSpecialValues = variant?.borderColor?.specialValues || {};
-            if (
-                variantSpecialValues &&
-                Object.keys(variantSpecialValues).length > 0
-            ) {
-                const specialKeys = Object.keys(variantSpecialValues);
-                colorArray = colorArray.filter(
-                    (color) => !specialKeys.includes(color),
-                );
+            if (variantSpecialValues && Object.keys(variantSpecialValues).length > 0) {
+                colorArray = [...colorArray, ...Object.keys(variantSpecialValues)];
             }
         }
 
-        const isSpecialValue = (color) =>
-            isBorder && Object.keys(variantSpecialValues).includes(color);
+        const isSpecialValue = (color) => isBorder && Object.keys(variantSpecialValues).includes(color);
 
         let displaySelectedValue = selectedValue;
         if (isBorder && variantSpecialValues && selectedValue) {
-            const specialValueKey = Object.entries(variantSpecialValues).find(
-                ([, value]) => value === selectedValue,
-            )?.[0];
+            const specialValueKey = Object.entries(variantSpecialValues).find(([, value]) => value === selectedValue)?.[0];
 
             if (specialValueKey) {
                 displaySelectedValue = specialValueKey;
             }
         }
 
+        const hasNoExplicitColor = !selectedValue || selectedValue === '';
+        const isTransparent = selectedValue === 'transparent';
+
+        if (hasNoExplicitColor && (isBadgeColor || isBadgeBorderColor || isBorder)) {
+            displaySelectedValue = 'Default';
+        } else if (isTransparent) {
+            displaySelectedValue = 'Transparent';
+        }
+
         const options = isBackground
-            ? ['Default', ...colorArray]
-            : dataField === 'borderColor' || dataField === 'badgeBorderColor'
-              ? [
-                    '',
-                    ...(isBorder ? Object.keys(variantSpecialValues) : []),
-                    ...colorArray,
-                ]
-              : colorArray;
+            ? ['Default', 'Transparent', ...colorArray]
+            : ['Default', 'Transparent', ...(isBorder ? Object.keys(variantSpecialValues) : []), ...colorArray];
 
         const handleChange = (e) => {
             const value = e.target.value;
 
-            if (isBorder && isSpecialValue(value)) {
+            if (value === 'Default') {
+                if (isBadgeColor) {
+                    if (dataField === 'badgeColor') {
+                        this.#updateBadge(this.badge.text, '', this.badge.borderColor);
+                    } else if (dataField === 'trialBadgeColor') {
+                        this.#updateTrialBadge(this.trialBadge.text, '', this.trialBadge.borderColor);
+                    }
+                } else if (isBadgeBorderColor) {
+                    if (dataField === 'badgeBorderColor') {
+                        this.#updateBadge(this.badge.text, this.badge.bgColor, '');
+                    } else if (dataField === 'trialBadgeBorderColor') {
+                        this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, '');
+                    }
+                } else if (isBorder) {
+                    const fragment = this.fragmentStore.get();
+                    fragment.updateField(dataField, ['']);
+                    this.fragmentStore.set(fragment);
+                } else if (isBackground) {
+                    const fragment = this.fragmentStore.get();
+                    fragment.updateField(dataField, ['']);
+                    this.fragmentStore.set(fragment);
+                }
+            } else if (value === 'Transparent') {
+                if (isBadgeColor) {
+                    if (dataField === 'badgeColor') {
+                        this.#updateBadge(this.badge.text, 'transparent', this.badge.borderColor);
+                    } else if (dataField === 'trialBadgeColor') {
+                        this.#updateTrialBadge(this.trialBadge.text, 'transparent', this.trialBadge.borderColor);
+                    }
+                } else if (isBadgeBorderColor) {
+                    if (dataField === 'badgeBorderColor') {
+                        this.#updateBadge(this.badge.text, this.badge.bgColor, 'transparent');
+                    } else if (dataField === 'trialBadgeBorderColor') {
+                        this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, 'transparent');
+                    }
+                } else if (isBorder) {
+                    const fragment = this.fragmentStore.get();
+                    fragment.updateField(dataField, ['transparent']);
+                    this.fragmentStore.set(fragment);
+                }
+            } else if (isBorder && isSpecialValue(value)) {
                 const actualValue = variantSpecialValues[value];
                 const fragment = this.fragmentStore.get();
                 fragment.updateField(dataField, [actualValue]);
                 this.fragmentStore.set(fragment);
+            } else if (isBadgeColor) {
+                if (dataField === 'badgeColor') {
+                    this.#updateBadge(this.badge.text, value, this.badge.borderColor);
+                } else if (dataField === 'trialBadgeColor') {
+                    this.#updateTrialBadge(this.trialBadge.text, value, this.trialBadge.borderColor);
+                }
+            } else if (isBadgeBorderColor) {
+                if (dataField === 'badgeBorderColor') {
+                    this.#updateBadge(this.badge.text, this.badge.bgColor, value);
+                } else if (dataField === 'trialBadgeBorderColor') {
+                    this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, value);
+                }
             } else {
-                this.#handleFragmentUpdate(e);
+                if (onChange) {
+                    onChange(e);
+                } else {
+                    this.#handleFragmentUpdate(e);
+                }
             }
         };
 
@@ -928,72 +1112,48 @@ class MerchCardEditor extends LitElement {
                     id="${id}"
                     data-field="${dataField}"
                     value="${displaySelectedValue ||
-                    (isBackground ? 'Default' : '')}"
-                    data-default-value="${isBackground ? 'Default' : ''}"
-                    @change="${isBorder
-                        ? handleChange
-                        : onChange || this.#handleFragmentUpdate}"
+                    (isBackground || isBadgeColor || isBadgeBorderColor || isBorder ? 'Default' : '')}"
+                    data-default-value="${isBackground || isBadgeColor || isBadgeBorderColor || isBorder ? 'Default' : ''}"
+                    @change="${handleChange}"
                 >
                     ${options.map(
                         (color) => html`
                             <sp-menu-item value="${color}">
-                                <div
-                                    style="${this.styleObjectToString(
-                                        this.styles.menuItemContainer,
-                                    )}"
-                                >
-                                    ${color
-                                        ? html`
-                                              ${!isBackground &&
-                                              !isSpecialValue(color)
-                                                  ? html`
-                                                        <div
-                                                            style="${this.styleObjectToString(
-                                                                {
-                                                                    ...this
-                                                                        .styles
-                                                                        .colorSwatch,
+                                <div style="${this.styleObjectToString(this.styles.menuItemContainer)}">
+                                    ${color === 'Default'
+                                        ? html`<span>Default</span>`
+                                        : color === 'Transparent'
+                                          ? html`<span>Transparent</span>`
+                                          : color
+                                            ? html`
+                                                  ${!isBackground && !isSpecialValue(color)
+                                                      ? html`
+                                                            <div
+                                                                style="${this.styleObjectToString({
+                                                                    ...this.styles.colorSwatch,
                                                                     background: `var(--${color})`,
-                                                                },
-                                                            )}"
-                                                        ></div>
-                                                    `
-                                                  : isSpecialValue(color)
-                                                    ? html`
-                                                          <div
-                                                              style="${this.styleObjectToString(
-                                                                  {
-                                                                      ...this
-                                                                          .styles
-                                                                          .colorSwatch,
-                                                                      background:
-                                                                          variantSpecialValues[
-                                                                              color
-                                                                          ],
-                                                                  },
-                                                              )}"
-                                                          ></div>
-                                                      `
-                                                    : nothing}
-                                              <span
-                                                  >${isBackground
-                                                      ? this.#formatName(color)
+                                                                })}"
+                                                            ></div>
+                                                        `
                                                       : isSpecialValue(color)
-                                                        ? this.#formatName(
-                                                              color,
-                                                          )
-                                                        : this.#formatColorName(
-                                                              color,
-                                                          )}</span
-                                              >
-                                          `
-                                        : html`
-                                              <span
-                                                  >${isBackground
-                                                      ? 'Default'
-                                                      : 'Transparent'}</span
-                                              >
-                                          `}
+                                                        ? html`
+                                                              <div
+                                                                  style="${this.styleObjectToString({
+                                                                      ...this.styles.colorSwatch,
+                                                                      background: variantSpecialValues[color],
+                                                                  })}"
+                                                              ></div>
+                                                          `
+                                                        : nothing}
+                                                  <span
+                                                      >${isBackground
+                                                          ? this.#formatName(color)
+                                                          : isSpecialValue(color)
+                                                            ? this.#formatName(color)
+                                                            : this.#formatColorName(color)}</span
+                                                  >
+                                              `
+                                            : html` <span>Transparent</span> `}
                                 </div>
                             </sp-menu-item>
                         `,
@@ -1004,46 +1164,58 @@ class MerchCardEditor extends LitElement {
     }
 
     #backgroundColorSelection(colors, selectedValue, dataField) {
-        const options = { Default: undefined, ...colors };
+        const options = {
+            Default: undefined,
+            Transparent: 'transparent',
+            ...colors,
+        };
+
+        const handleBackgroundChange = (e) => {
+            const value = e.target.value;
+            if (value === 'Default') {
+                const fragment = this.fragmentStore.get();
+                fragment.updateField(dataField, ['']);
+                this.fragmentStore.set(fragment);
+            } else if (value === 'Transparent') {
+                const fragment = this.fragmentStore.get();
+                fragment.updateField(dataField, ['transparent']);
+                this.fragmentStore.set(fragment);
+            } else {
+                this.#handleFragmentUpdate(e);
+            }
+        };
+
         return html`
             <sp-field-group class="toggle" id="backgroundColor">
-                <sp-field-label for="backgroundColor"
-                    >Background Color</sp-field-label
-                >
+                <sp-field-label for="backgroundColor">Background Color</sp-field-label>
                 <sp-picker
                     id="backgroundColor"
                     data-field="${dataField}"
-                    value="${selectedValue || 'Default'}"
-                    data-default-value="${selectedValue || 'Default'}"
-                    @change="${this.#handleFragmentUpdate}"
+                    value="${selectedValue === 'transparent' ? 'Transparent' : selectedValue || 'Default'}"
+                    data-default-value="${selectedValue === 'transparent' ? 'Transparent' : selectedValue || 'Default'}"
+                    @change="${handleBackgroundChange}"
                 >
                     ${Object.entries(options)
                         .sort(([a], [b]) =>
-                            a === 'Default' ? -1 : b === 'Default' ? 1 : 0,
+                            a === 'Default' ? -1 : b === 'Default' ? 1 : a === 'Transparent' ? -1 : b === 'Transparent' ? 1 : 0,
                         )
                         .map(
                             ([colorName, colorValue]) => html`
                                 <sp-menu-item value="${colorName}">
-                                    <div
-                                        style="${this.styleObjectToString(
-                                            this.styles.menuItemContainer,
-                                        )}"
-                                    >
+                                    <div style="${this.styleObjectToString(this.styles.menuItemContainer)}">
                                         ${colorName === 'Default'
                                             ? html`<span>Default</span>`
-                                            : html`
-                                                  <div
-                                                      style="${this.styleObjectToString(
-                                                          {
-                                                              ...this.styles
-                                                                  .colorSwatch,
-                                                              background:
-                                                                  colorValue,
-                                                          },
-                                                      )}"
-                                                  ></div>
-                                                  <span>${colorName}</span>
-                                              `}
+                                            : colorName === 'Transparent'
+                                              ? html`<span>Transparent</span>`
+                                              : html`
+                                                    <div
+                                                        style="${this.styleObjectToString({
+                                                            ...this.styles.colorSwatch,
+                                                            background: colorValue,
+                                                        })}"
+                                                    ></div>
+                                                    <span>${colorName}</span>
+                                                `}
                                     </div>
                                 </sp-menu-item>
                             `,

@@ -20,6 +20,11 @@ export const VARIANTS = [
         value: 'ah-promoted-plans',
         surface: 'adobe-home',
     },
+    {
+        label: 'Fries',
+        value: 'fries',
+        surface: 'commerce',
+    },
 ];
 
 class VariantPicker extends LitElement {
@@ -34,13 +39,8 @@ class VariantPicker extends LitElement {
     }
 
     get variants() {
-        return VARIANTS.filter(
-            (variant) => this.showAll || variant.value != 'all',
-        ).map(
-            (variant) =>
-                html`<sp-menu-item value="${variant.value}"
-                    >${variant.label}</sp-menu-item
-                >`,
+        return VARIANTS.filter((variant) => this.showAll || variant.value != 'all').map(
+            (variant) => html`<sp-menu-item value="${variant.value}">${variant.label}</sp-menu-item>`,
         );
     }
 

@@ -21,7 +21,7 @@ export default {
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
                 originalBgColor: 'gray',
-                updatedBgColor: 'Default',
+                updatedBgColor: 'Transparent',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
@@ -58,10 +58,8 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
-                iconURL:
-                    'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
-                newIconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                iconURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
+                newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
@@ -72,8 +70,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: 'a07239e9-7216-403c-b1ee-3b1d0982a64b',
-                backgroundURL:
-                    'https://main--milo--adobecom.hlx.live/assets/img/commerce/media_1305cc40709da2533a0133ba8d920662e65925fc1.png?nocache=1740437377436',
+                backgroundURL: 'https://milo.adobe.com/assets/img/commerce/media_1305cc40709da2533a0133ba8d920662e65925fc1.png',
                 newBackgroundURL:
                     'https://milo.adobe.com/assets/img/commerce/media_158c1c22b1322dd28d7912d30fb27f29aa79f79b1.png',
             },
@@ -87,7 +84,7 @@ export default {
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
                 price: 'US$22.99/mo',
-                newPrice: 'US$22.99/moper license',
+                annualPrice: 'US$275.88/yr',
                 abmText: 'Annual, billed monthly',
             },
             browserParams: '#query=',
@@ -100,7 +97,8 @@ export default {
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
                 ctaText: 'Free trial',
-                newCtaText: 'Save now',
+                newCtaOption: 'Save now',
+                newCtaText: 'save-now',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 ucv3: 'commerce.adobe.com/store/email',
                 country: 'US',
@@ -141,6 +139,7 @@ export default {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
                 osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
                 productCodeTag: 'product_code/ccsn',
+                newProductCodeTag: 'product_code/cces',
                 offerTypeTag: 'offer_type/base',
                 marketSegmentsTag: 'market_segments/com',
                 planTypeTag: 'plan_type/abm',
@@ -197,7 +196,6 @@ export default {
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 checkoutParams: {
                     mv: '1',
-                    cs: 'individual',
                     promoid: 'ABC123',
                     mv2: '2',
                 },

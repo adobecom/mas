@@ -1,47 +1,29 @@
 application:
-  actions: actions
-  web: web-src
-  hooks:
-    test: npm run test
-  runtimeManifest:
-    packages:
-      MerchAtScale:
-        license: Apache-2.0
-        actions:      
-          fragment:
-            function: src/fragment/pipeline.js
-            web: 'yes'
-            runtime: nodejs:22
-            annotations:
-              require-adobe-auth: false      
-              final: true
-          health-check:
-            function: src/health-check/index.js
-            web: 'yes'
-            runtime: nodejs:22
-            inputs:
-              ODIN_CDN_ENDPOINT: $ODIN_CDN_ENDPOINT
-              ODIN_ORIGIN_ENDPOINT: $ODIN_ORIGIN_ENDPOINT
-              WCS_CDN_ENDPOINT: $WCS_CDN_ENDPOINT
-              WCS_ORIGIN_ENDPOINT: $WCS_ORIGIN_ENDPOINT
-            annotations:
-              require-adobe-auth: false
-              final: true
-          ost-products-write:
-            function: src/ost-products/write.js
-            web: 'yes'
-            runtime: nodejs:22
-            inputs:
-              AOS_URL: $AOS_URL
-              AOS_API_KEY: $AOS_API_KEY
-              OST_WRITE_API_KEY: $OST_WRITE_API_KEY
-            annotations:
-              require-adobe-auth: false
-          ost-products-read:
-            function: src/ost-products/read.js
-            web: 'yes'
-            runtime: nodejs:22
-            annotations:
-              require-adobe-auth: false
-
-              
+    actions: actions
+    web: web-src
+    hooks:
+        test: npm run test
+    runtimeManifest:
+        packages:
+            MerchAtScale:
+                license: Apache-2.0
+                actions:
+                    fragment:
+                        function: src/fragment/pipeline.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    health-check:
+                        function: src/health-check/index.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            ODIN_CDN_ENDPOINT: $ODIN_CDN_ENDPOINT
+                            ODIN_ORIGIN_ENDPOINT: $ODIN_ORIGIN_ENDPOINT
+                            WCS_CDN_ENDPOINT: $WCS_CDN_ENDPOINT
+                            WCS_ORIGIN_ENDPOINT: $WCS_ORIGIN_ENDPOINT
+                        annotations:
+                            require-adobe-auth: false
+                            final: true

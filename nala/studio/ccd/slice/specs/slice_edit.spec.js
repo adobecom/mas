@@ -52,10 +52,8 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
-                iconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
-                newIconURL:
-                    'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
+                newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
@@ -82,8 +80,6 @@ export default {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
                 price: 'US$17.24/mo',
                 strikethroughPrice: 'US$34.49/mo',
-                newPrice: 'US$17.24/moper license',
-                newStrikethroughPrice: 'US$34.49/moper license',
             },
             browserParams: '#query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
@@ -96,7 +92,8 @@ export default {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 ctaText: 'Buy now',
-                newCtaText: 'Save now',
+                newCtaOption: 'Save now',
+                newCtaText: 'save-now',
                 ucv3: 'commerce.adobe.com/store/email',
                 country: 'US',
                 ctx: 'fp',
@@ -187,6 +184,7 @@ export default {
                 marketSegmentsTag: 'market_segments/com',
                 planTypeTag: 'plan_type/abm',
                 newosi: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
+                newProductCodeTag: 'product_code/ccsn',
                 newPlanTypeTag: 'plan_type/puf',
                 newOfferTypeTag: 'offer_type/trial',
                 newMarketSegmentsTag: 'market_segments/edu',
@@ -223,7 +221,6 @@ export default {
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 checkoutParams: {
                     mv: '1',
-                    cs: 'individual',
                     promoid: 'ABC123',
                     mv2: '2',
                 },

@@ -48,9 +48,11 @@ export const ostDefaults = {
 
         getSelectedText(searchParameters) {
             const ctaLabel = searchParameters.get('text');
-            const selectedText = this.ctaTexts.find(({ id, name }) =>
-                [id, name].includes(ctaLabel),
-            );
+            let selectedText;
+            if (ctaLabel)
+                selectedText =
+                    this.ctaTexts.find(({ id, name }) => [id, name].includes(ctaLabel)) ||
+                    this.ctaTexts.find(({ id, name }) => [id, name].includes(ctaLabel.replace('{{', '').replace('}}', '')));
             if (selectedText) return selectedText.id;
             return ctaLabel || this.getDefaultText();
         },
@@ -72,8 +74,7 @@ function getObjectDifference(values, defaults) {
     return difference;
 }
 
-export const attributeFilter = (key) =>
-    /^(class|data-|is|href|title|target)/.test(key);
+export const attributeFilter = (key) => /^(class|data-|is|href|title|target)/.test(key);
 
 const OST_TYPE_MAPPING = {
     price: null,
@@ -85,10 +86,11 @@ const OST_TYPE_MAPPING = {
 
 const OST_IS_MAPPING = {
     price: 'inline-price',
-    priceStrikethrough: 'inline-price',
-    priceAnnual: 'inline-price',
-    priceOptical: 'inline-price',
+    strikethrough: 'inline-price',
+    annual: 'inline-price',
+    optical: 'inline-price',
     checkoutUrl: 'checkout-link',
+    legal: 'inline-price',
 };
 
 const OST_OPTION_ATTRIBUTE_MAPPING = {
@@ -108,10 +110,7 @@ const OST_OPTION_ATTRIBUTE_MAPPING = {
 };
 
 export const OST_OPTION_ATTRIBUTE_MAPPING_REVERSE = Object.fromEntries(
-    Object.entries(OST_OPTION_ATTRIBUTE_MAPPING).map(([key, value]) => [
-        value,
-        key,
-    ]),
+    Object.entries(OST_OPTION_ATTRIBUTE_MAPPING).map(([key, value]) => [value, key]),
 );
 
 const OST_OPTION_DEFAULTS = {
@@ -130,13 +129,7 @@ const OST_VALUE_MAPPING = {
     false: false,
 };
 
-export function onPlaceholderSelect(
-    offerSelectorId,
-    type,
-    offer,
-    options,
-    promoOverride,
-) {
+export function onPlaceholderSelect(offerSelectorId, type, offer, options, promoOverride) {
     const changes = getObjectDifference(options, OST_OPTION_DEFAULTS);
 
     const attributes = { 'data-wcs-osi': offerSelectorId };
@@ -152,7 +145,7 @@ export function onPlaceholderSelect(
 
     const ctaText = CHECKOUT_CTA_TEXTS[options.ctaText]; // no placeholder key support.
     if (ctaText) {
-        attributes['text'] = ctaText;
+        attributes['text'] = ['acom', 'sandbox', 'nala'].includes(Store.search.get().path) ? `{{${options.ctaText}}}` : ctaText;
         attributes['data-analytics-id'] = options.ctaText;
     }
 
@@ -195,18 +188,13 @@ export function getOffferSelectorTool() {
 
 export function openOfferSelectorTool(triggerElement, offerElement) {
     try {
-        const landscape =
-            Store.commerceEnv?.value == 'stage'
-                ? WCS_LANDSCAPE_DRAFT
-                : WCS_LANDSCAPE_PUBLISHED;
+        const landscape = Store.commerceEnv?.value == 'stage' ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED;
         if (!ostRoot) {
             ostRoot = document.createElement('div');
             document.body.appendChild(ostRoot);
         }
         let searchOfferSelectorId;
-        const aosAccessToken =
-            localStorage.getItem('masAccessToken') ??
-            window.adobeid.authorize();
+        const aosAccessToken = localStorage.getItem('masAccessToken') ?? window.adobeid.authorize();
         const searchParameters = new URLSearchParams();
 
         const defaultPlaceholderOptions = {
@@ -214,10 +202,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
         };
         const offerSelectorPlaceholderOptions = {};
         if (offerElement) {
-            searchParameters.append(
-                'type',
-                offerElement.isInlinePrice ? 'price' : 'checkout',
-            );
+            searchParameters.append('type', offerElement.isInlinePrice ? 'price' : 'checkout');
             if (!offerElement.isInlinePrice) {
                 searchParameters.append('text', offerElement.innerText);
             }
@@ -247,9 +232,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 if (value) searchParameters.append(key, value);
             });
         }
-        const masCommerceService = document.querySelector(
-            'mas-commerce-service',
-        );
+        const masCommerceService = document.querySelector('mas-commerce-service');
         ostRoot.style.display = 'block';
         closeFunction = window.ost.openOfferSelectorTool({
             ...ostDefaults,
@@ -262,14 +245,9 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             searchOfferSelectorId,
             defaultPlaceholderOptions,
             offerSelectorPlaceholderOptions,
-            modalsAndEntitlements: ['acom', 'sandbox', 'nala'].includes(
-                Store.search.get().path,
-            ),
+            modalsAndEntitlements: ['acom', 'sandbox', 'nala'].includes(Store.search.get().path),
             dialog: true,
-            onSelect:
-                triggerElement.tagName === 'OSI-FIELD'
-                    ? onOfferSelect
-                    : onPlaceholderSelect,
+            onSelect: triggerElement.tagName === 'OSI-FIELD' ? onOfferSelect : onPlaceholderSelect,
         });
     } catch (error) {
         console.error('Error opening offer selector tool:', error);

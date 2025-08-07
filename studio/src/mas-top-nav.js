@@ -6,14 +6,11 @@ import ReactiveController from './reactivity/reactive-controller.js';
 class MasTopNav extends LitElement {
     async profileBuilder() {
         const accessToken = window.adobeIMS.getAccessToken();
-        const ioResp = await fetch(
-            `https://${ENVS[this.aemEnv].adobeIO}/profile`,
-            {
-                headers: new Headers({
-                    Authorization: `Bearer ${accessToken.token}`,
-                }),
-            },
-        );
+        const ioResp = await fetch(`https://${ENVS[this.aemEnv].adobeIO}/profile`, {
+            headers: new Headers({
+                Authorization: `Bearer ${accessToken.token}`,
+            }),
+        });
         const profiles = {};
         profiles.ims = await window.adobeIMS.getProfile();
         profiles.io = await ioResp.json();
@@ -217,22 +214,14 @@ class MasTopNav extends LitElement {
                     <span id="mas-studio">M@S Studio</span>
                 </a>
                 <a>
-                    <sp-badge size="s" variant="${this.envIndicator}"
-                        >${this.aemEnv}</sp-badge
-                    >
+                    <sp-badge size="s" variant="${this.envIndicator}">${this.aemEnv}</sp-badge>
                 </a>
                 <a>
-                    <sp-switch
-                        label="Switch"
-                        @change="${this.#toggleCommerce}"
-                        .checked=${this.isStageEnvironment}
-                    >
+                    <sp-switch label="Switch" @change="${this.#toggleCommerce}" .checked=${this.isStageEnvironment}>
                         Stage Commerce
                     </sp-switch>
                 </a>
-                ${until(
-                    this.profileBuilder().then((profile) => html`${profile}`),
-                )}
+                ${until(this.profileBuilder().then((profile) => html`${profile}`))}
             </nav>
             <sp-divider></sp-divider>
         `;

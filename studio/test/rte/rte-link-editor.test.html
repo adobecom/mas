@@ -31,10 +31,7 @@
             runTests(async () => {
                 describe('RTE regular link editor', () => {
                     it('should render empty form', async function () {
-                        const linkEditor = await createFromTemplate(
-                            'default',
-                            this.test.title,
-                        );
+                        const linkEditor = await createFromTemplate('default', this.test.title);
                         expect(linkEditor.shadowRoot).to.exist;
 
                         // Check default property values
@@ -49,8 +46,7 @@
                         expect(linkEditor.linkTitleElement).to.exist;
                         expect(linkEditor.linkTargetElement).to.exist;
                         expect(linkEditor.linkStyleElement).to.not.exist;
-                        expect(linkEditor.checkoutParametersElement).to.not
-                            .exist;
+                        expect(linkEditor.checkoutParametersElement).to.not.exist;
                         expect(linkEditor.linkAnalyticsIdElement).to.exist;
                     });
 
@@ -58,51 +54,29 @@
                         /**
                          * @type {RteLinkEditor}
                          */
-                        const linkEditor = await createFromTemplate(
-                            'values',
-                            this.test.title,
-                        );
+                        const linkEditor = await createFromTemplate('values', this.test.title);
                         expect(linkEditor.shadowRoot).to.exist;
 
                         // Verify initialized properties
-                        expect(linkEditor.href).to.equal(
-                            'https://www.adobe.com',
-                        );
+                        expect(linkEditor.href).to.equal('https://www.adobe.com');
                         expect(linkEditor.text).to.equal('link text');
                         expect(linkEditor.title).to.equal('test title');
                         expect(linkEditor.target).to.equal('_blank');
 
                         // Verify form field values
-                        expect(linkEditor.linkHrefElement.value).to.equal(
-                            'https://www.adobe.com',
-                        );
-                        expect(linkEditor.linkTextElement.value).to.equal(
-                            'link text',
-                        );
-                        expect(linkEditor.linkTitleElement.value).to.equal(
-                            'test title',
-                        );
-                        expect(linkEditor.linkTargetElement.value).to.equal(
-                            '_blank',
-                        );
-                        expect(linkEditor.linkAnalyticsIdElement.value).to.equal(
-                            'see-terms',
-                        );
+                        expect(linkEditor.linkHrefElement.value).to.equal('https://www.adobe.com');
+                        expect(linkEditor.linkTextElement.value).to.equal('link text');
+                        expect(linkEditor.linkTitleElement.value).to.equal('test title');
+                        expect(linkEditor.linkTargetElement.value).to.equal('_blank');
+                        expect(linkEditor.linkAnalyticsIdElement.value).to.equal('see-terms');
                     });
 
                     it('should emit save event with form data', async function () {
-                        const linkEditor = await createFromTemplate(
-                            'values',
-                            this.test.title,
-                        );
+                        const linkEditor = await createFromTemplate('values', this.test.title);
 
-                        const listener = oneEvent(linkEditor, 'save').then(
-                            (e) => e.detail,
-                        );
+                        const listener = oneEvent(linkEditor, 'save').then((e) => e.detail);
 
-                        linkEditor.shadowRoot
-                            .getElementById('saveButton')
-                            .click();
+                        linkEditor.shadowRoot.getElementById('saveButton').click();
                         expect(await listener).to.deep.equal({
                             href: 'https://www.adobe.com',
                             text: 'link text',
@@ -114,16 +88,10 @@
                     });
 
                     it('should emit close event', async function () {
-                        const linkEditor = await createFromTemplate(
-                            'default',
-                            this.test.title,
-                        );
+                        const linkEditor = await createFromTemplate('default', this.test.title);
                         const listener = oneEvent(linkEditor, 'close');
 
-                        const cancelButton =
-                            linkEditor.shadowRoot.querySelector(
-                                '#cancelButton',
-                            );
+                        const cancelButton = linkEditor.shadowRoot.querySelector('#cancelButton');
                         cancelButton.click();
                         expect((await listener).type).to.equal('close');
                     });
@@ -131,37 +99,22 @@
 
                 describe('RTE checkout link editor', () => {
                     it('should render empty form with extra checkout parameters field', async function () {
-                        const linkEditor = await createFromTemplate(
-                            'checkout',
-                            this.test.title,
-                        );
-                        expect(
-                            linkEditor.checkoutParametersElement.value,
-                        ).to.equal('');
+                        const linkEditor = await createFromTemplate('checkout', this.test.title);
+                        expect(linkEditor.checkoutParametersElement.value).to.equal('');
                         expect(linkEditor.linkAnalyticsIdElement.value).to.equal('');
                     });
 
                     it('should support checkout and variant parameters', async function () {
-                        const linkEditor = await createFromTemplate(
-                            'checkoutFilled',
-                            this.test.title,
-                        );
+                        const linkEditor = await createFromTemplate('checkoutFilled', this.test.title);
                         expect(linkEditor.variant).to.equal('outline');
-                        expect(
-                            linkEditor.checkoutParametersElement.value,
-                        ).to.equal('promoid=test&mv=other');
+                        expect(linkEditor.checkoutParametersElement.value).to.equal('promoid=test&mv=other');
 
-                        const listener = oneEvent(linkEditor, 'save').then(
-                            (e) => e.detail,
-                        );
+                        const listener = oneEvent(linkEditor, 'save').then((e) => e.detail);
 
-                        linkEditor.checkoutParameters =
-                            'promoid=test&mv=1&mv2=2';
+                        linkEditor.checkoutParameters = 'promoid=test&mv=1&mv2=2';
                         linkEditor.variant = 'quiet';
                         linkEditor.analyticsId = 'free-trial';
-                        linkEditor.shadowRoot
-                            .getElementById('saveButton')
-                            .click();
+                        linkEditor.shadowRoot.getElementById('saveButton').click();
 
                         expect(await listener).to.deep.equal({
                             checkoutParameters: 'promoid=test&mv=1&mv2=2',

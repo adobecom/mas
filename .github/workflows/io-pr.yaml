@@ -1,0 +1,57 @@
+name: IO WWW PR Check
+on:
+    pull_request:
+        types: [opened, synchronize, reopened]
+        paths:
+            - 'io/www/**'
+
+jobs:
+    tests:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: io/www
+
+        strategy:
+            matrix:
+                node-version: [22.x]
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ matrix.node-version }}
+                  cache: 'npm'
+                  cache-dependency-path: io/www/package.json
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Run tests
+              run: npm test
+
+    deploy:
+        needs: tests
+        if: success() && github.event_name == 'pull_request'
+        uses: ./.github/workflows/io-deploy.yaml
+        secrets:
+            workspace: ${{ secrets[format('AIO_NS_{0}', github.actor)] || secrets.AIO_NS_QA }}
+            auth: ${{ secrets[format('AIO_AUTH_{0}', github.actor)] || secrets.AIO_AUTH_QA }}
+            AIO_APIHOST: ${{ secrets.AIO_APIHOST }}
+            AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
+            AOS_URL: ${{ secrets.AOS_URL }}
+            ODIN_CDN_ENDPOINT: ${{ secrets.ODIN_CDN_ENDPOINT }}
+            ODIN_ORIGIN_ENDPOINT: ${{ secrets.ODIN_ORIGIN_ENDPOINT }}
+            OST_WRITE_API_KEY: ${{ secrets.OST_WRITE_API_KEY }}
+            WCS_CDN_ENDPOINT: ${{ secrets.WCS_CDN_ENDPOINT }}
+            WCS_ORIGIN_ENDPOINT: ${{ secrets.WCS_ORIGIN_ENDPOINT }}
+
+    test-deployed:
+        needs: deploy
+        if: success() && github.event_name == 'pull_request'
+        uses: ./.github/workflows/io-tests.yaml
+        secrets:
+            workspace: ${{ secrets[format('AIO_NS_{0}', github.actor)] || secrets.AIO_NS_QA }}

@@ -12,20 +12,7 @@ export class Fragment {
     /**
      * @param {*} AEM Fragment JSON object
      */
-    constructor({
-        id,
-        etag,
-        model,
-        path,
-        title,
-        description,
-        status,
-        created,
-        modified,
-        fields,
-        tags,
-        references,
-    }) {
+    constructor({ id, etag, model, path, title, description, status, created, modified, published, fields, tags, references }) {
         this.id = id;
         this.model = model;
         this.etag = etag;
@@ -36,6 +23,7 @@ export class Fragment {
         this.status = status;
         this.created = created;
         this.modified = modified;
+        this.published = published;
         this.tags = tags;
         this.fields = fields;
         this.references = references;
@@ -44,8 +32,7 @@ export class Fragment {
     }
 
     get variant() {
-        return this.fields.find((field) => field.name === 'variant')
-            ?.values?.[0];
+        return this.fields.find((field) => field.name === 'variant')?.values?.[0];
     }
 
     get fragmentName() {
@@ -53,8 +40,7 @@ export class Fragment {
     }
 
     get statusVariant() {
-        if (this.hasChanges) return 'modified';
-        return this.status === 'PUBLISHED' ? 'published' : 'draft';
+        return this.status.toLowerCase();
     }
 
     getTagTitle(id) {
@@ -85,9 +71,7 @@ export class Fragment {
     }
 
     getFieldValue(fieldName, index = 0) {
-        return this.fields.find((field) => field.name === fieldName)?.values?.[
-            index
-        ];
+        return this.fields.find((field) => field.name === fieldName)?.values?.[index];
     }
 
     updateField(fieldName, value) {
@@ -95,12 +79,19 @@ export class Fragment {
         this.fields
             .filter((field) => field.name === fieldName)
             .forEach((field) => {
+                //handles encoding of values for characters like ✓
+                const encodedValues = value.map((v) => {
+                    if (typeof v === 'string') {
+                        return v.normalize('NFC');
+                    }
+                    return v;
+                });
                 if (
-                    field.values.length === value.length &&
-                    field.values.every((v, index) => v === value[index])
+                    field.values.length === encodedValues.length &&
+                    field.values.every((v, index) => v === encodedValues[index])
                 )
                     return;
-                field.values = value;
+                field.values = encodedValues;
                 this.hasChanges = true;
                 change = true;
             });

@@ -63,25 +63,21 @@
                         Store.search.set({ path: 'sandbox' });
                         Store.filters.set({ locale: 'en_US' });
 
+                        dialog._onOstSelect({
+                            detail: { offerSelectorId: 'ABC123', offer: {} },
+                        });
+
                         // Fill in the form
-                        const titleField =
-                            dialog.shadowRoot.querySelector('#fragment-title');
-                        const nameField =
-                            dialog.shadowRoot.querySelector('#fragment-name');
+                        const titleField = dialog.shadowRoot.querySelector('#fragment-title');
 
                         // Get the dialog wrapper
                         const dialogWrapper = dialog.shadowRoot.querySelector('sp-dialog-wrapper');
 
                         // Set title
                         titleField.value = 'Test Merch Card';
-                        titleField.dispatchEvent(
-                            new Event('input', { bubbles: true }),
-                        );
+                        titleField.dispatchEvent(new Event('input', { bubbles: true }));
 
                         await dialog.updateComplete;
-
-                        // Verify name was auto-generated
-                        expect(nameField.value).to.equal('test-merch-card');
 
                         // Submit the form by triggering the confirm event directly on dialog wrapper
                         dialogWrapper.dispatchEvent(new CustomEvent('confirm'));
@@ -98,14 +94,7 @@
 
                         // Parse the request body
                         const requestBody = JSON.parse(options.body);
-                        expect(requestBody).to.have.property(
-                            'title',
-                            'Test Merch Card',
-                        );
-                        expect(requestBody).to.have.property(
-                            'name',
-                            'test-merch-card',
-                        );
+                        expect(requestBody).to.have.property('title', 'Test Merch Card');
                         expect(requestBody).to.have.property('modelId');
                     });
 
@@ -115,14 +104,13 @@
                         dialog.type = 'merch-card';
                         await dialog.updateComplete;
 
-                        
                         let heading = dialogWrapper.shadowRoot.querySelector('h2[slot="heading"]');
                         expect(heading.innerText).to.equal('Create New Merch Card');
-                        
+
                         // Test with merch-card-collection type
                         dialog.type = 'merch-card-collection';
                         await dialog.updateComplete;
-                        
+
                         heading = dialogWrapper.shadowRoot.querySelector('h2[slot="heading"]');
                         expect(heading.innerText).to.equal('Create New Merch Card Collection');
                     });
@@ -130,10 +118,7 @@
             });
         </script>
         <main>
-            <mas-repository
-                bucket="test"
-                base-url="http://localhost:2023/test/mocks"
-            ></mas-repository>
+            <mas-repository bucket="test" base-url="http://localhost:2023/test/mocks"></mas-repository>
             <sp-theme color="light" scale="medium">
                 <mas-create-dialog open></mas-create-dialog>
             </sp-theme>

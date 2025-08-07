@@ -114,9 +114,7 @@ class MasMultifield extends LitElement {
     }
 
     getFieldIndex(element) {
-        return Array.from(
-            this.shadowRoot.querySelectorAll('.field-wrapper'),
-        ).indexOf(element.closest('.field-wrapper'));
+        return Array.from(this.shadowRoot.querySelectorAll('.field-wrapper')).indexOf(element.closest('.field-wrapper'));
     }
 
     // Remove a field by its index
@@ -238,10 +236,7 @@ class MasMultifield extends LitElement {
                 @dragend=${this.dragEnd}
             >
                 ${fieldEl}
-                <sp-icon-close
-                    label="Remove field"
-                    @click=${() => this.removeField(index)}
-                ></sp-icon-close>
+                <sp-icon-close label="Remove field" @click=${() => this.removeField(index)}></sp-icon-close>
                 <sp-icon-drag-handle label="Order"></sp-icon-drag-handle>
             </div>
         `;
@@ -251,9 +246,7 @@ class MasMultifield extends LitElement {
         if (!this.#template || !this.value) return nothing;
         return html`
             <div @change="${this.handleChange}" @input="${this.handleInput}">
-                ${this.value.map((field, index) =>
-                    this.renderField(field, index),
-                )}
+                ${this.value.map((field, index) => this.renderField(field, index))}
                 <sp-action-button quiet @click=${this.addField}>
                     <sp-icon-add label="Add" slot="icon"></sp-icon-add>Add
                 </sp-action-button>

@@ -18,7 +18,6 @@ const stateLib = require('@adobe/aio-lib-state');
 const translate = require('./translate.js').translate;
 const wcs = require('./wcs.js').wcs;
 const zlib = require('zlib');
-const { get } = require('http');
 
 function calculateHash(body) {
     return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
@@ -82,7 +81,7 @@ async function main(params) {
         }
     }
     log(
-        `pipeline completed: ${context.id} ${context.locale} -> ${context.body?.id} (${returnValue.statusCode}) in ${getElapsedTime(context)}`,
+        `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.body?.id} (${returnValue.statusCode}) in ${getElapsedTime(context)}`,
         {
             ...context,
             transformer: 'pipeline',

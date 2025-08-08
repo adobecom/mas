@@ -81,12 +81,19 @@ async function main(params) {
         }
     }
     log(
-        `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.body?.id} (${returnValue.statusCode}) in ${getElapsedTime(context)}`,
+        `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.id} (${returnValue.statusCode}) in ${getElapsedTime(context)}`,
         {
             ...context,
             transformer: 'pipeline',
         },
     );
+    delete returnValue.id; // id is not part of the response
+    returnValue.headers = {
+        ...returnValue.headers,
+        ...RESPONSE_HEADERS,
+    };
+    returnValue.body = returnValue.body?.length > 0 ? zlib.brotliCompressSync(returnValue.body).toString('base64') : undefined;
+    logDebug(() => 'full response: ' + JSON.stringify(returnValue), context);
     return returnValue;
 }
 
@@ -116,11 +123,10 @@ async function mainProcess(context) {
     context.transformer = 'pipeline';
     const returnValue = {
         statusCode: context.status,
+        id: context.body?.id,
     };
-    let id = undefined;
     let responseBody = undefined;
     if (context.status == 200) {
-        id = context.body.id;
         responseBody = JSON.stringify(context.body, null, 0);
         logDebug(() => `response body: ${responseBody}`, context);
         // Calculate hash of response body
@@ -158,12 +164,7 @@ async function mainProcess(context) {
             message: context.message,
         });
     }
-    returnValue.headers = {
-        ...returnValue.headers,
-        ...RESPONSE_HEADERS,
-    };
-    returnValue.body = responseBody?.length > 0 ? zlib.brotliCompressSync(responseBody).toString('base64') : undefined;
-    logDebug(() => 'full response: ' + JSON.stringify(returnValue), context);
+    returnValue.body = responseBody;
     return returnValue;
 }
 

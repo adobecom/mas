@@ -1,4 +1,4 @@
-const { log, logError, fetch } = require('./common.js');
+const { log, logError, fetch, getJsonFromState } = require('./common.js');
 
 const MAS_ELEMENT_REGEXP = /<[^>]+data-wcs-osi=\\"(?<osi>[^\\]+)\\"[^>]*?>/gm;
 const PROMOCODE_REGEXP = /(?<promo>data-promotion-code=\\"(?<promotionCode>[^\\]+)\\")/;
@@ -59,15 +59,9 @@ async function computeCache(tokens, wcsContext) {
 }
 
 async function getWcsConfigurations(context) {
-    const wcsConfigurationStr = (await context.state.get('wcs-configuration'))?.value || false;
-    if (wcsConfigurationStr) {
-        try {
-            const arrayConfig = JSON.parse(wcsConfigurationStr);
-            return arrayConfig.filter((config) => config.api_keys?.includes(context.api_key));
-        } catch (e) {
-            logError(`Error parsing WCS configuration: ${e.message}`, context);
-            return null;
-        }
+    const { json: wcsConfiguration } = await getJsonFromState('wcs-configuration', context);
+    if (wcsConfiguration) {
+        return wcsConfiguration.filter((config) => config.api_keys?.includes(context.api_key));
     }
     return null;
 }
@@ -101,7 +95,7 @@ async function wcs(context) {
                 promotionCode: body.fields.promoCode,
             });
         }
-        const country = locale.split('_')[1];
+        const country = context.country || locale.split('_')[1];
         const wcsContext = {
             locale,
             country,

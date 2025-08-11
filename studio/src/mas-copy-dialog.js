@@ -19,6 +19,16 @@ export class MasCopyDialog extends LitElement {
     };
 
     static styles = css`
+        :host {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 999;
+            display: block;
+        }
+
         .dialog-backdrop {
             position: fixed;
             top: 0;

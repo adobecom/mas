@@ -504,7 +504,7 @@ export class MasRepository extends LitElement {
             const newFragment = await this.#addToCache(savedResult);
 
             const newFragmentStore = new FragmentStore(newFragment);
-            Store.fragments.list.data.set((prev) => [...prev, newFragmentStore]);
+            Store.fragments.list.data.set((prev) => [newFragmentStore, ...prev]);
             editFragment(newFragmentStore);
 
             this.operation.set();

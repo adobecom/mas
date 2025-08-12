@@ -35,18 +35,32 @@ class MerchCardEditor extends LitElement {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
+            overflow: 'hidden',
+            minWidth: 0,
+            width: '100%',
         },
         colorSwatch: {
             width: '16px',
             height: '16px',
             border: '1px solid var(--spectrum-global-color-gray-300)',
             'border-radius': '3px',
+            flexShrink: 0,
+        },
+        colorNameText: {
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            minWidth: 0,
         },
     };
 
     styleObjectToString(styleObj) {
         return Object.entries(styleObj)
-            .map(([key, value]) => `${key}: ${value}`)
+            .map(([key, value]) => {
+                // Convert camelCase to kebab-case for CSS properties
+                const cssKey = key.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+                return `${cssKey}: ${value}`;
+            })
             .join('; ');
     }
 
@@ -1154,6 +1168,12 @@ class MerchCardEditor extends LitElement {
                                                           `
                                                         : nothing}
                                                   <span
+                                                      style="${this.styleObjectToString(this.styles.colorNameText)}"
+                                                      title="${isBackground
+                                                          ? this.#formatName(color)
+                                                          : isSpecialValue(color)
+                                                            ? this.#formatName(color)
+                                                            : this.#formatColorName(color)}"
                                                       >${isBackground
                                                           ? this.#formatName(color)
                                                           : isSpecialValue(color)
@@ -1222,7 +1242,12 @@ class MerchCardEditor extends LitElement {
                                                             background: colorValue,
                                                         })}"
                                                     ></div>
-                                                    <span>${colorName}</span>
+                                                    <span
+                                                        style="${this.styleObjectToString(this.styles.colorNameText)}"
+                                                        title="${colorName}"
+                                                    >
+                                                        ${colorName}
+                                                    </span>
                                                 `}
                                     </div>
                                 </sp-menu-item>

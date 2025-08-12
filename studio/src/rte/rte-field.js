@@ -322,6 +322,7 @@ class RteField extends LitElement {
                     vertical-align: middle;
                     margin: 0 2px;
                     line-height: normal;
+                    padding-right: 5px;
                 }
 
                 .ProseMirror merch-icon {

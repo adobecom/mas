@@ -9,6 +9,7 @@ const {
     getElapsedTime,
     getFromState,
     getJsonFromState,
+    getElapsedTimeMs,
 } = require('./common.js');
 const corrector = require('./corrector.js').corrector;
 const crypto = require('crypto');
@@ -55,7 +56,9 @@ async function main(params) {
     try {
         const { json } = await getJsonFromState('network-config', context);
         context.networkConfig = json || {};
-        const timeout = context.networkConfig.mainTimeout || 5000;
+        const initTime = getElapsedTimeMs(context);
+        let timeout = context.networkConfig.mainTimeout || 5000;
+        timeout = Math.max(timeout - initTime, 0);
         returnValue = await Promise.race([
             mainProcess(context),
             createTimeoutPromise(timeout, () => {

@@ -138,8 +138,12 @@ async function internalFetch(path, context) {
     return response;
 }
 
+function getElapsedTimeMs(context) {
+    return Date.now() - context.startTime;
+}
+
 function getElapsedTime(context) {
-    return `${Date.now() - context.startTime}ms`;
+    return `${getElapsedTimeMs(context)}ms`;
 }
 
 async function getFromState(key, context) {
@@ -162,6 +166,7 @@ module.exports = {
     createTimeoutPromise,
     fetch: internalFetch,
     getElapsedTime,
+    getElapsedTimeMs,
     getErrorContext,
     getJsonFromState,
     getFromState,

@@ -19,8 +19,8 @@ jobs:
             - name: Setup Node.js
               uses: actions/setup-node@v4
               with:
-                  node-version: '22.x'
-                  cache: 'npm'
+                  node-version: "22.x"
+                  cache: "npm"
                   cache-dependency-path: io/www/package.json
 
             - name: Install dependencies
@@ -28,7 +28,7 @@ jobs:
 
             - name: Run Playwright Tests
               env:
-                  TEST_URL: https://stage--milo--adobecom.hlx.live/libs/features/mas/docs/ccd.html?mas-io-url=https://${{ secrets.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScale
+                  TEST_URL: https://stage--milo--adobecom.aem.live/libs/features/mas/docs/ccd.html?mas-io-url=https://${{ secrets.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScale
                   HEALTH_CHECK_URL: https://${{ secrets.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScale/health-check
               working-directory: nala/io
               run: |

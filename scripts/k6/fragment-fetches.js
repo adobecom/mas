@@ -25,7 +25,7 @@ const fragments = new SharedArray('fragments', () => {
     console.log('Fragments:', fragmentArray);
     return fragmentArray;
 });
-const locales = ['de_DE', 'en_US', 'fr_FR', 'it_IT', 'ja_JP', 'ko_KR', 'pt_BR', 'pl_PL', 'tr_TR', 'uk_UA'];
+const locales = ['en_US'];
 
 const NB_USER = __ENV.USERS || 1;
 

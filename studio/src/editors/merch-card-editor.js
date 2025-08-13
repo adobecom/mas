@@ -277,6 +277,16 @@ class MerchCardEditor extends LitElement {
                     )}
                 </sp-picker>
             </sp-field-group>
+            <sp-field-group class="toggle" id="cardName">
+                <sp-field-label for="card-name">Card name</sp-field-label>
+                <sp-textfield
+                    placeholder="Enter card name"
+                    id="card-name"
+                    data-field="cardName"
+                    value="${form.cardName.values[0]}"
+                    @input="${this.#handleFragmentUpdate}"
+                ></sp-textfield>
+            </sp-field-group>
             <sp-field-group class="toggle" id="title">
                 <sp-field-label for="card-title">Title</sp-field-label>
                 <sp-textfield

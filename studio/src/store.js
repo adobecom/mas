@@ -1,6 +1,5 @@
-import { PAGE_NAMES, SORT_COLUMNS, WCS_ENV_PROD } from './constants.js';
+import { PAGE_NAMES, SORT_COLUMNS, WCS_ENV_PROD, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
-import { getHashParam } from './utils.js';
 
 // Store definition with default values - no URL parsing here
 const Store = {
@@ -34,6 +33,7 @@ const Store = {
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
     commerceEnv: new ReactiveStore(WCS_ENV_PROD),
+    landscape: new ReactiveStore(WCS_LANDSCAPE_PUBLISHED),
     placeholders: {
         search: new ReactiveStore(''),
         list: {

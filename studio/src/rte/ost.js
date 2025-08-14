@@ -4,7 +4,6 @@ import {
     EVENT_OST_SELECT,
     EVENT_OST_OFFER_SELECT,
     WCS_LANDSCAPE_PUBLISHED,
-    WCS_LANDSCAPE_DRAFT,
 } from '../constants.js';
 import Store from '../store.js';
 
@@ -188,7 +187,7 @@ export function getOffferSelectorTool() {
 
 export function openOfferSelectorTool(triggerElement, offerElement) {
     try {
-        const landscape = Store.commerceEnv?.value == 'stage' ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED;
+        const landscape = Store.landscape?.value ?? WCS_LANDSCAPE_PUBLISHED;
         if (!ostRoot) {
             ostRoot = document.createElement('div');
             document.body.appendChild(ostRoot);

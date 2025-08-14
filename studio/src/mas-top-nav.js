@@ -64,7 +64,7 @@ class MasTopNav extends LitElement {
         aemEnv: { type: String, attribute: 'aem-env' },
     };
 
-    reactiveStore = new ReactiveController(this, [Store.commerceEnv]);
+    // reactiveStore = new ReactiveController(this, [Store.commerceEnv]);
     reactiveStore = new ReactiveController(this, [Store.landscape]);
 
     constructor() {

@@ -1,10 +1,5 @@
 import { html } from 'lit';
-import {
-    CHECKOUT_CTA_TEXTS,
-    EVENT_OST_SELECT,
-    EVENT_OST_OFFER_SELECT,
-    WCS_LANDSCAPE_PUBLISHED,
-} from '../constants.js';
+import { CHECKOUT_CTA_TEXTS, EVENT_OST_SELECT, EVENT_OST_OFFER_SELECT, WCS_LANDSCAPE_PUBLISHED } from '../constants.js';
 import Store from '../store.js';
 
 let ostRoot = document.getElementById('ost');

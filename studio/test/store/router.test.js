@@ -204,16 +204,16 @@ describe('Router URL parameter handling', async () => {
     it('should handle multiple landscape values correctly', async () => {
         const router = new Router({ hash: '#commerce.landscape=DRAFT' });
         router.start();
-        
+
         // Verify initial state
         expect(Store.landscape.get()).to.equal('DRAFT');
         expect(router.location.hash).to.equal('#commerce.landscape=DRAFT');
-        
+
         // Test switching between different landscape values
         Store.landscape.set(WCS_LANDSCAPE_PUBLISHED);
         await delay(60);
         expect(router.location.hash).to.equal(''); // PUBLISHED is default, so hash is empty
-        
+
         Store.landscape.set(WCS_LANDSCAPE_DRAFT);
         await delay(60);
         expect(router.location.hash).to.equal('commerce.landscape=DRAFT');
@@ -222,10 +222,10 @@ describe('Router URL parameter handling', async () => {
     it('should remove invalid landscape hash parameter in start method', async () => {
         const router = new Router({ hash: '#page=content&commerce.landscape=INVALID' });
         router.start();
-        
+
         // Wait for hash to be updated
         await delay(60);
-        
+
         // Invalid landscape value should be removed from hash
         expect(Store.landscape.get()).to.equal(WCS_LANDSCAPE_PUBLISHED);
         expect(router.location.hash).to.equal('page=content');

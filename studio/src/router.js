@@ -56,7 +56,7 @@ export class Router extends EventTarget {
         this.currentParams ??= new URLSearchParams(this.location.hash.slice(1));
         let newValue = isObject ? structuredClone(currentValue) : currentValue;
         let hashUpdated = false;
-        
+
         for (const key of keysArray) {
             if (this.currentParams.has(key)) {
                 let value = this.currentParams.get(key);
@@ -67,7 +67,7 @@ export class Router extends EventTarget {
                     // Not JSON, use as is
                     parsedValue = value;
                 }
-                
+
                 // Validate landscape parameter
                 if (key === 'commerce.landscape') {
                     const validLandscapeValues = ['DRAFT', 'PUBLISHED'];
@@ -78,7 +78,7 @@ export class Router extends EventTarget {
                         continue;
                     }
                 }
-                
+
                 if (isObject) {
                     newValue[key] = parsedValue;
                 } else {
@@ -93,12 +93,12 @@ export class Router extends EventTarget {
                 }
             }
         }
-        
+
         // Update hash if invalid parameters were removed
         if (hashUpdated) {
             this.updateHistory();
         }
-        
+
         if (JSON.stringify(store.value) !== JSON.stringify(newValue)) {
             store.set(newValue);
             this.dispatchEvent(new Event('change'));

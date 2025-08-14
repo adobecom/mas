@@ -42,6 +42,7 @@ class MasStudio extends LitElement {
 
     #unsubscribeLocaleObserver;
     #unsubscribeCommerceEnvObserver;
+    #unsubscribeLandscapeObserver;
 
     constructor() {
         super();
@@ -52,6 +53,7 @@ class MasStudio extends LitElement {
         super.connectedCallback();
         this.subscribeLocaleObserver();
         this.subscribeCommerceEnvObserver();
+        this.subscribeLandscapeObserver();
     }
 
     get commerceService() {
@@ -78,10 +80,21 @@ class MasStudio extends LitElement {
         this.#unsubscribeCommerceEnvObserver = () => Store.commerceEnv.unsubscribe(subscription);
     }
 
+    subscribeLandscapeObserver() {
+        const subscription = (value, oldValue) => {
+            if (value !== oldValue) {
+                this.commerceService.refreshOffers();
+            }
+        };
+        Store.landscape.subscribe(subscription);
+        this.#unsubscribeLandscapeObserver = () => Store.landscape.unsubscribe(subscription);
+    }
+
     disconnectedCallback() {
         super.disconnectedCallback();
         this.#unsubscribeLocaleObserver();
         this.#unsubscribeCommerceEnvObserver();
+        this.#unsubscribeLandscapeObserver();
     }
 
     createRenderRoot() {
@@ -94,6 +107,7 @@ class MasStudio extends LitElement {
 
     page = new StoreController(this, Store.page);
     commerceEnv = new StoreController(this, Store.commerceEnv);
+    landscape = new StoreController(this, Store.commerceEnv);
 
     get content() {
         if (this.page.value !== PAGE_NAMES.CONTENT) return nothing;

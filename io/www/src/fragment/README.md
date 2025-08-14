@@ -20,9 +20,14 @@ please don't forget that every state item has TTL defaulting to 24h! typical lon
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------- |
 | `wcs-configurations` | WCS (Web Content Service) configurations for prefilling cache, e.g. `[{"api_keys":["wcms-commerce-ims-ro-user-milo"],"wcsURL":"https://www.adobe.com/web_commerce_artifact","env":"prod"}]` | Array   | ``      |
 | `debugFragmentLogs`  | turns debug log on                                                                                                                                                                          | Boolean | `false` |
-| `network-config`     | Sets of threshold for timing out main process (`mainTimeout`) & subsequent fetches (`fetchTimeout`), e.g. `{"fetchTimeout":100,"mainTimeout":100,"retries":2,"retryDelay":500}`             | Array   | ``      |
+| `network-config`     | Sets of threshold for timing out main process (`mainTimeout`) & subsequent fetches (`fetchTimeout`), e.g. `{"fetchTimeout":2000,"mainTimeout":15000,"retries":3,"retryDelay":500}`             | Array   | ``      |
 
 Each configuration can be managed using the following commands:
+https://wiki.corp.adobe.com/pages/viewpage.action?pageId=3587728545
+
+### prod 
+In prod main timeout is 15seconds, it includes time that action takes to fetch `network-config`. Main timeout is from start of the action till end of execution.
+Fetch timeout is 2seconds and applied to each fetch call separately. There are multiple fetch calls to Odin and WCS. WCS ones could be disabled. 
 
 ## preview
 

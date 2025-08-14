@@ -64,6 +64,7 @@ class MasTopNav extends LitElement {
         aemEnv: { type: String, attribute: 'aem-env' },
     };
 
+    // TODO: Uncomment this when we want to enable Stage Commerce radio button.
     // reactiveStore = new ReactiveController(this, [Store.commerceEnv]);
     reactiveStore = new ReactiveController(this, [Store.landscape]);
 

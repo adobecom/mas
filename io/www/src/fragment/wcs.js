@@ -1,4 +1,4 @@
-const { log, logError, fetch, getJsonFromState, getFromState } = require('./common.js');
+const { log, logError, fetch, getJsonFromState } = require('./common.js');
 const MAS_ELEMENT_REGEXP = /<[^>]+data-wcs-osi=\\"(?<osi>[^\\]+)\\"[^>]*?>/gm;
 const PROMOCODE_REGEXP = /(?<promo>data-promotion-code=\\"(?<promotionCode>[^\\]+)\\")/;
 

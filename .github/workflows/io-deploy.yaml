@@ -49,7 +49,7 @@ jobs:
 
             - name: Install AIO CLI
               if: success()
-              run: npm install -g @adobe/aio-cli
+              run: npm install -g @adobe/aio-cli@10.3.4
 
             - name: Deploy action
               env:

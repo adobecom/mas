@@ -65,6 +65,7 @@ function applyMiniSettings(fragment, context) {
     if (locale === 'en_AU') {
         fragment.settings = {
             displayPlanType: true,
+            displayAnnual: true,
         };
     }
 }

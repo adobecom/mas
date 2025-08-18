@@ -1,0 +1,41 @@
+name: Web Components PR Validation
+
+on:
+    pull_request:
+        paths:
+            - 'web-components/**'
+        types: [opened, synchronize, reopened]
+
+# Prevent multiple runs from happening at the same time
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    build-and-test:
+        name: Build and Test Web Components
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        defaults:
+            run:
+                working-directory: web-components
+        strategy:
+            matrix:
+                node-version: [22.x]
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ matrix.node-version }}
+                  cache: 'npm'
+                  cache-dependency-path: web-components/package-lock.json
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Run build
+              run: npm run build

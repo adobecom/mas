@@ -101,7 +101,7 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     get queryLabel() {
-        return this.fragment?.fields?.find((f) => f.name === 'queryLabel')?.values?.[0] || '';
+        return this.#getFieldValue('queryLabel');
     }
 
     get label() {

@@ -38,3 +38,15 @@ jobs:
 
             - name: Run build
               run: npm run build
+
+            - name: Check for uncommitted changes
+              run: |
+                if [ -n "$(git status --porcelain)" ]; then
+                  echo "❌ Build generated changes that are not committed:"
+                  git status --porcelain
+                  echo ""
+                  echo "Please run 'npm run build' locally and commit the generated files."
+                  exit 1
+                else
+                  echo "✅ No uncommitted changes after build"
+                fi

@@ -680,5 +680,4 @@ export async function hydrate(fragment, merchCard) {
     processCTAs(fields, merchCard, mapping, variant);
     processAnalytics(fields, merchCard);
     updateLinksCSS(merchCard);
-    console.log('test');
 }

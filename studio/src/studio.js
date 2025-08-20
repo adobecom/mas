@@ -132,12 +132,12 @@ class MasStudio extends LitElement {
     renderCommerceService() {
         const env = this.commerceEnv.value === WCS_ENV_STAGE ? WCS_ENV_STAGE : WCS_ENV_PROD;
         this.commerceService.outerHTML = `<mas-commerce-service env="${env}" locale="${Store.filters.value.locale}"></mas-commerce-service>`;
-        
+
         // Update service landscape settings based on Store.landscape
         if (this.commerceService?.settings && Store.landscape.value) {
             this.commerceService.settings.landscape = Store.landscape.value;
         }
-        
+
         function rtePriceProvider(element, options) {
             if (element.dataset.template !== 'legal') return;
             if (!element.getRootNode()?.host?.nodeName === 'RTE-FIELD') return;

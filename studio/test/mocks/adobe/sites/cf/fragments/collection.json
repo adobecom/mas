@@ -16,6 +16,12 @@
         },
         {
             "type": "text",
+            "name": "originalId",
+            "multiple": false,
+            "values": ["collection.json"]
+        },
+        {
+            "type": "text",
             "name": "icon",
             "multiple": false,
             "values": ["/test/mocks/img/collection.svg"]

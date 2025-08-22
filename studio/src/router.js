@@ -68,17 +68,6 @@ export class Router extends EventTarget {
                     parsedValue = value;
                 }
 
-                // Validate landscape parameter
-                if (key === 'commerce.landscape') {
-                    const validLandscapeValues = ['DRAFT', 'PUBLISHED'];
-                    if (!validLandscapeValues.includes(parsedValue)) {
-                        // Remove invalid landscape parameter from hash
-                        this.currentParams.delete(key);
-                        hashUpdated = true;
-                        continue;
-                    }
-                }
-
                 if (isObject) {
                     newValue[key] = parsedValue;
                 } else {

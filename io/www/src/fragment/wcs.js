@@ -118,7 +118,7 @@ async function wcs(context) {
         for (const config of wcsConfigs) {
             wcsContext.env = config.env;
             wcsContext.wcsURL = config.wcsURL;
-            wcsContext.ttl = config.ttl || 600; // Default TTL to 10 minutes
+            wcsContext.ttl = config.ttl || 60; // Default TTL to 1 minute
             wcsContext.landscape = config.landscape || 'PUBLISHED';
             if (country !== 'GB') wcsContext.language = 'MULT';
             context.body.wcs ??= {};

@@ -27,6 +27,7 @@ nala/.auth/
 /.cursor*/
 .CLAUDE.md
 **/CLAUDE.md
+.claude/
 
 # IO Runtime Config
 config.json

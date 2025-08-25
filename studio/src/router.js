@@ -1,4 +1,4 @@
-import { PAGE_NAMES, SORT_COLUMNS, WCS_ENV_PROD, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
+import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
 import Store from './store.js';
 import { debounce } from './utils.js';
 
@@ -171,7 +171,6 @@ export class Router extends EventTarget {
         });
         this.linkStoreToHash(Store.sort, ['sortBy', 'sortDirection'], getSortDefaultValue);
         this.linkStoreToHash(Store.placeholders.search, 'search');
-        this.linkStoreToHash(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
         this.linkStoreToHash(Store.landscape, 'commerce.landscape', WCS_LANDSCAPE_PUBLISHED);
         if (Store.search.value.query) {
             Store.page.set(PAGE_NAMES.CONTENT);

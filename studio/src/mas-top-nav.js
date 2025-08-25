@@ -64,10 +64,6 @@ class MasTopNav extends LitElement {
         aemEnv: { type: String, attribute: 'aem-env' },
     };
 
-    // TODO: Uncomment this when we want to enable Stage Commerce radio button.
-    // reactiveStore = new ReactiveController(this, [Store.commerceEnv]);
-    reactiveStore = new ReactiveController(this, [Store.landscape]);
-
     constructor() {
         super();
         this.aemEnv = 'prod';
@@ -184,18 +180,10 @@ class MasTopNav extends LitElement {
         `;
     }
 
-    #toggleCommerce(e) {
-        Store.commerceEnv.set(e.target.checked ? 'stage' : 'prod');
-    }
-
     #toggleLandscape(e) {
         const service = getService();
         service.settings.landscape = e.target.checked ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED;
         Store.landscape.set(e.target.checked ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED);
-    }
-
-    get isStageEnvironment() {
-        return Store.commerceEnv.value === 'stage';
     }
 
     get isDraftLandscape() {
@@ -229,13 +217,6 @@ class MasTopNav extends LitElement {
                 <a>
                     <sp-badge size="s" variant="${this.envIndicator}">${this.aemEnv}</sp-badge>
                 </a>
-                <!-- Disabling Stage Commerce switch for now
-                <a>
-                    <sp-switch label="Switch" @change="${this.#toggleCommerce}" .checked=${this.isStageEnvironment}>
-                        Stage Commerce
-                    </sp-switch>
-                </a>
-                -->
                 <a>
                     <sp-switch label="Switch" @change="${this.#toggleLandscape}" .checked=${this.isDraftLandscape}>
                         Draft Landscape Offer

@@ -115,7 +115,7 @@ class MasStudio extends LitElement {
         return html`<mas-splash-screen base-url=${this.baseUrl}></mas-splash-screen>`;
     }
 
-    renderCommerceService() { 
+    renderCommerceService() {
         this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}"></mas-commerce-service>`;
 
         // Update service landscape settings based on Store.landscape

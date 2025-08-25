@@ -1,9 +1,9 @@
 import { LitElement, html, css } from 'lit';
 
 /**
- * A modal editor for adding mnemonic images to the RTE
+ * A modal editor for adding tooltip images to the RTE
  */
-class RteMnemonicEditor extends LitElement {
+class RteTooltipEditor extends LitElement {
     static properties = {
         open: { type: Boolean, reflect: true },
         dialog: { type: Boolean, reflect: true },
@@ -143,8 +143,8 @@ class RteMnemonicEditor extends LitElement {
         const isEditing = !!this.imageUrl;
         return html`
             <sp-dialog close=${this.#handleClose}>
-                <h2 slot="heading">${isEditing ? 'Edit' : 'Add'} Inline Icon</h2>
-                <p>${isEditing ? 'Edit the' : 'Add an'} icon that will appear inline with your text</p>
+                <h2 slot="heading">${isEditing ? 'Edit' : 'Add'} Inline Tooltip</h2>
+                <p>${isEditing ? 'Edit the' : 'Add an'} tooltip that will appear inline with your text</p>
                 <form @submit=${this.#handleSubmit}>
                     <div class="form-field">
                         <sp-field-label for="imageUrl" required> Icon URL </sp-field-label>
@@ -227,4 +227,4 @@ class RteMnemonicEditor extends LitElement {
     }
 }
 
-customElements.define('rte-mnemonic-editor', RteMnemonicEditor);
+customElements.define('rte-tooltip-editor', RteTooltipEditor);

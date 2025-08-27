@@ -21,7 +21,23 @@ export const WCS_LANDSCAPE_DRAFT = 'DRAFT';
 export const WCS_ENV_PROD = 'prod';
 export const WCS_ENV_STAGE = 'stage';
 
-export const ANALYTICS_LINK_IDS = ['learn-more', 'see-terms', 'what-is-included', 'register-now'];
+export const ANALYTICS_LINK_IDS = [
+    'buy-now',
+    'change-plan-team-payment',
+    'change-plan-team-plans',
+    'free-trial',
+    'get-offer',
+    'learn-more',
+    'register-now',
+    'see-all-plans-and-pricing',
+    'see-more',
+    'see-terms',
+    'select',
+    'start-free-trial',
+    'take-the-quiz',
+    'upgrade-now',
+    'what-is-included',
+];
 
 // TODO remove these?
 export const EVENT_CHANGE = 'change';

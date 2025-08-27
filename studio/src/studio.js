@@ -58,7 +58,7 @@ class MasStudio extends LitElement {
     }
 
     initMasJs() {
-        customElements.whenDefined('mas-studio').then(() => (this.masJsReady = true));
+        customElements.whenDefined('mas-commerce-service').then(() => (this.masJsReady = true));
     }
 
     get commerceService() {
@@ -117,8 +117,6 @@ class MasStudio extends LitElement {
 
     get splashScreen() {
         if (this.page.value !== PAGE_NAMES.WELCOME) return nothing;
-        const hash = window.location.hash.slice(1);
-        const hashParams = new URLSearchParams(hash);
         return html`<mas-splash-screen base-url=${this.baseUrl}></mas-splash-screen>`;
     }
 
@@ -145,13 +143,17 @@ class MasStudio extends LitElement {
     }
 
     render() {
-        if (!this.masJsReady) return nothing;
+        if (!this.masJsReady) {
+            console.log('mas.js not ready', this.masJsReady);
+        }
         return html`
             <mas-top-nav aem-env="${this.aemEnv}"></mas-top-nav>
             <mas-repository bucket="${this.bucket}" base-url="${this.baseUrl}"></mas-repository>
             <div class="studio-content">
                 <mas-side-nav></mas-side-nav>
-                <div class="main-container">${this.splashScreen} ${this.content} ${this.placeholders}</div>
+                ${this.masJsReady
+                    ? html`<div class="main-container">${this.splashScreen} ${this.content} ${this.placeholders}</div>`
+                    : nothing}
             </div>
             <editor-panel></editor-panel>
             <mas-toast></mas-toast>

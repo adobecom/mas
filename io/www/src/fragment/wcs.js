@@ -77,24 +77,29 @@ async function wcs(context) {
     let bodyString = JSON.stringify(body);
     const matches = [...bodyString.matchAll(MAS_ELEMENT_REGEXP)];
     if (matches.length > 0) {
-        const tokens = matches
-            .map((match) => {
-                const token = {
-                    osi: match.groups.osi,
-                };
-                const promoMatch = match[0].match(PROMOCODE_REGEXP);
-                if (promoMatch && promoMatch.groups?.promotionCode) {
-                    token.promotionCode = promoMatch.groups.promotionCode;
-                }
-                return token;
-            })
-            .filter((token) => token.osi);
-        if (body.fields.osi && body.fields.promoCode) {
-            tokens.push({
+        const tokenMap = new Map();
+        const tokenKey = ({ osi, promotionCode }) => `${osi}-${promotionCode || ''}`;
+        matches.forEach((match) => {
+            const token = {
+                osi: match.groups.osi,
+            };
+            const promoMatch = match[0].match(PROMOCODE_REGEXP);
+            if (promoMatch && promoMatch.groups?.promotionCode) {
+                token.promotionCode = promoMatch.groups.promotionCode;
+            }
+            tokenMap.set(tokenKey(token), token);
+        });
+
+        if (body.fields.osi) {
+            const token = {
                 osi: body.fields.osi,
                 promotionCode: body.fields.promoCode,
-            });
+            };
+            tokenMap.set(tokenKey(token), token);
         }
+
+        // Convert Map values back to array
+        const tokens = Array.from(tokenMap.values());
         const country = context.country || locale.split('_')[1];
         const wcsContext = {
             locale,

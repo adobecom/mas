@@ -321,7 +321,7 @@ export class MerchCardCollection extends LitElement {
                         label: fields.label,
                         icon: fields.icon,
                         iconLight: fields.iconLight,
-                        navigationLabel: fields.navigationLabel,
+                        queryLabel: fields.queryLabel,
                         cards: fields.cards.map(
                             (cardId) => overrideMap[cardId] || cardId,
                         ),

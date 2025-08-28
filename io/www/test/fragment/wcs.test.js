@@ -23,12 +23,28 @@ describe('MAS_ELEMENT_REGEXP', function () {
     });
 });
 
+async function enableWcsConfiguration(context) {
+    await context.state.put(
+        'wcs-configuration',
+        JSON.stringify([
+            {
+                api_keys: ['foo', 'testing_wcs', 'bar'],
+                wcsURL: 'https://www.adobe.com/web_commerce_artifact',
+                env: 'prod',
+            },
+        ]),
+    );
+}
+
 describe('wcs typical cases', function () {
     let context = {};
     beforeEach(function () {
         context = {
             api_key: 'testing_wcs',
             locale: 'en_US',
+            networkConfig: {
+                fetchTimeout: 50,
+            },
         };
         context.body = FRAGMENT;
         context.state = new MockState();
@@ -75,15 +91,10 @@ describe('wcs typical cases', function () {
                 language: 'MULT',
             })
             .reply(200, { resolvedOffers: [{ upt: 'foo' }] });
+        await enableWcsConfiguration(context);
         await context.state.put(
-            'wcs-configuration',
-            JSON.stringify([
-                {
-                    api_keys: ['foo', 'testing_wcs', 'bar'],
-                    wcsURL: 'https://www.adobe.com/web_commerce_artifact',
-                    env: 'prod',
-                },
-            ]),
+            'wcs-prod-US-en_US-PUBLISHED-MULT-A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+            '{"resolvedOffers":[{"blah":"blah"}]}',
         );
         context.body.fields.osi = 'anotherOsiForUpt';
         context.body.fields.promoCode = 'UPT_PROMO-1';
@@ -132,16 +143,7 @@ describe('wcs typical cases', function () {
                 api_key: 'testing_wcs',
             })
             .reply(200, { resolvedOffers: [{ foo: 'bar' }] });
-        await context.state.put(
-            'wcs-configuration',
-            JSON.stringify([
-                {
-                    api_keys: ['foo', 'testing_wcs', 'bar'],
-                    wcsURL: 'https://www.adobe.com/web_commerce_artifact',
-                    env: 'prod',
-                },
-            ]),
-        );
+        await enableWcsConfiguration(context);
         delete context.body.fields.osi;
         delete context.body.fields.promoCode;
         context.locale = 'en_GB';
@@ -191,25 +193,13 @@ describe('wcs corner cases', function () {
 
     it('should not do much if no wcs placeholder is found', async function () {
         context.body = { content: '<p>no wcs placeholder here</p>' };
-        await context.state.put(
-            'wcs-configuration',
-            JSON.stringify([
-                {
-                    api_keys: ['foo', 'testing_wcs', 'bar'],
-                    wcsURL: 'https://www.adobe.com/web_commerce_artifact',
-                    env: 'prod',
-                },
-            ]),
-        );
+        await enableWcsConfiguration(context);
         context = wcs(context);
         expect(context.body?.wcs).to.be.undefined;
     });
 
     it('should not do much if no api key is found', async function () {
-        await context.state.put(
-            'wcs-configuration',
-            '[{"api_keys":["some-other-key"],"wcsURL":"https://www.adobe.com/web_commerce_artifact","env":"prod"}]',
-        );
+        enableWcsConfiguration(context);
         context = wcs(context);
         expect(context.body?.wcs).to.be.undefined;
     });
@@ -239,16 +229,7 @@ describe('wcs corner cases', function () {
                 language: 'MULT',
             })
             .reply(200, { resolvedOffers: [{ foo: 'bar' }] });
-        await context.state.put(
-            'wcs-configuration',
-            JSON.stringify([
-                {
-                    api_keys: ['foo', 'testing_wcs', 'bar'],
-                    wcsURL: 'https://www.adobe.com/web_commerce_artifact',
-                    env: 'prod',
-                },
-            ]),
-        );
+        enableWcsConfiguration(context);
         context = await wcs(context);
         expect(context.body.wcs).to.deep.equal({
             prod: {

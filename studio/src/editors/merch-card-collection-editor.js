@@ -242,7 +242,7 @@ class MerchCardCollectionEditor extends LitElement {
                                 <div class="item-content">
                                     <div class="item-text">
                                         <div class="item-label">${label}</div>
-                                        <div class="item-subtext">${fragment.name}</div>
+                                        <div class="item-subtext">${fragment.title}</div>
                                     </div>
                                     ${iconPaths.length > 0
                                         ? html`

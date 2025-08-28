@@ -455,6 +455,16 @@ class RteField extends LitElement {
                     }
                 }
 
+                div.ProseMirror span.text-s {
+                    font-size: 14px;
+                    line-height: 18px;
+                }
+
+                div.ProseMirror span.text-l {
+                    font-size: 18px;
+                    line-height: 23px;
+                }
+
                 div.ProseMirror span.promo-text {
                     display: block;
                     color: var(--merch-color-green-promo);
@@ -817,6 +827,8 @@ class RteField extends LitElement {
                     ...this.getStylingMark('heading-xs', '4'),
                     ...this.getStylingMark('heading-s', '3'),
                     ...this.getStylingMark('heading-m', '2'),
+                    ...this.getStylingMark('text-s'),
+                    ...this.getStylingMark('text-l'),
                     ...this.getStylingMark('promo-text'),
                     ...this.getStylingMark('mnemonic-text'),
                 }),
@@ -1610,6 +1622,9 @@ class RteField extends LitElement {
             <sp-menu-item value="heading-xs">Heading XS - H4</sp-menu-item>
             <sp-menu-item value="heading-s">Heading S - H3</sp-menu-item>
             <sp-menu-item value="heading-m">Heading M - H2</sp-menu-item>
+            <sp-menu-divider></sp-menu-divider>
+            <sp-menu-item value="text-s">Text S</sp-menu-item>
+            <sp-menu-item value="text-l">Text L</sp-menu-item>
             <sp-menu-divider></sp-menu-divider>
             <sp-menu-item value="promo-text">Promo text</sp-menu-item>
             <sp-menu-item value="mnemonic-text">Mnemonic Text</sp-menu-item>

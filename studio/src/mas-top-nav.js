@@ -1,6 +1,7 @@
-import { ENVS, EnvColorCode } from './constants.js';
+import { ENVS, EnvColorCode, WCS_LANDSCAPE_PUBLISHED, WCS_LANDSCAPE_DRAFT } from './constants.js';
 import { LitElement, html, css, until } from 'lit';
 import Store from './store.js';
+import { getService } from './utils.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 
 class MasTopNav extends LitElement {
@@ -62,8 +63,6 @@ class MasTopNav extends LitElement {
     static properties = {
         aemEnv: { type: String, attribute: 'aem-env' },
     };
-
-    reactiveStore = new ReactiveController(this, [Store.commerceEnv]);
 
     constructor() {
         super();
@@ -181,12 +180,14 @@ class MasTopNav extends LitElement {
         `;
     }
 
-    #toggleCommerce(e) {
-        Store.commerceEnv.set(e.target.checked ? 'stage' : 'prod');
+    #toggleLandscape(e) {
+        const service = getService();
+        service.settings.landscape = e.target.checked ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED;
+        Store.landscape.set(e.target.checked ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED);
     }
 
-    get isStageEnvironment() {
-        return Store.commerceEnv.value === 'stage';
+    get isDraftLandscape() {
+        return Store.landscape.value === WCS_LANDSCAPE_DRAFT;
     }
 
     render() {
@@ -217,8 +218,8 @@ class MasTopNav extends LitElement {
                     <sp-badge size="s" variant="${this.envIndicator}">${this.aemEnv}</sp-badge>
                 </a>
                 <a>
-                    <sp-switch label="Switch" @change="${this.#toggleCommerce}" .checked=${this.isStageEnvironment}>
-                        Stage Commerce
+                    <sp-switch label="Switch" @change="${this.#toggleLandscape}" .checked=${this.isDraftLandscape}>
+                        Draft Landscape Offer
                     </sp-switch>
                 </a>
                 ${until(this.profileBuilder().then((profile) => html`${profile}`))}

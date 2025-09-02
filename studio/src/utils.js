@@ -194,6 +194,7 @@ function getFragmentPartsToUse(fragment, path) {
     switch (fragment?.model?.path) {
         case CARD_MODEL_PATH:
             const props = {
+                cardName: fragment?.getField('name')?.values[0],
                 cardTitle: fragment?.getField('cardTitle')?.values[0],
                 variantCode: fragment?.getField('variant')?.values[0],
                 marketSegment: fragment?.getTagTitle('market_segment'),

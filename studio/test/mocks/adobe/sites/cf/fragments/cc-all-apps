@@ -10,7 +10,9 @@
             "type": "text",
             "multiple": false,
             "locked": false,
-            "values": ["ccd-slice"]
+            "values": [
+                "ccd-slice"
+            ]
         },
         {
             "name": "osi",
@@ -31,7 +33,9 @@
             "type": "text",
             "multiple": true,
             "locked": false,
-            "values": ["/test/mocks/img/creative-cloud.svg"]
+            "values": [
+                "/test/mocks/img/creative-cloud.svg"
+            ]
         },
         {
             "name": "mnemonicAlt",
@@ -60,10 +64,19 @@
             "type": "text",
             "multiple": false,
             "locked": false,
-            "values": ["/test/img/pixel.png"]
+            "values": [
+                "/test/img/pixel.png"
+            ]
         },
         {
             "name": "backgroundImageAltText",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
+            "name": "cardName",
             "type": "text",
             "multiple": false,
             "locked": false,
@@ -153,14 +166,18 @@
             "type": "boolean",
             "multiple": false,
             "locked": false,
-            "values": [false]
+            "values": [
+                false
+            ]
         },
         {
             "name": "tags",
             "type": "tag",
             "multiple": true,
             "locked": false,
-            "values": ["mas:product/cc/creativecloud"]
+            "values": [
+                "mas:product/cc/creativecloud"
+            ]
         }
     ],
     "variations": [],

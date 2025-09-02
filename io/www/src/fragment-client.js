@@ -23,6 +23,11 @@ async function previewFragment(id, options) {
         status: 200,
         preview,
         requestId: 'preview',
+        networkConfig: {
+            mainTimeout: 15000,
+            fetchTimeout: 10000,
+            retries: 3,
+        },
         api_key: 'n/a',
         locale,
     };

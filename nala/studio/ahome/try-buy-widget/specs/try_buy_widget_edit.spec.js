@@ -70,8 +70,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: 'a07239e9-7216-403c-b1ee-3b1d0982a64b',
-                backgroundURL:
-                    'https://main--milo--adobecom.hlx.live/assets/img/commerce/media_1305cc40709da2533a0133ba8d920662e65925fc1.png?nocache=1740437377436',
+                backgroundURL: 'https://milo.adobe.com/assets/img/commerce/media_1305cc40709da2533a0133ba8d920662e65925fc1.png',
                 newBackgroundURL:
                     'https://milo.adobe.com/assets/img/commerce/media_158c1c22b1322dd28d7912d30fb27f29aa79f79b1.png',
             },

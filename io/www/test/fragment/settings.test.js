@@ -232,6 +232,7 @@ describe('settings transformer', () => {
         const result = await settings(context);
         expect(result.body.settings).to.deep.equal({
             displayPlanType: true,
+            displayAnnual: true,
         });
     });
 
@@ -256,6 +257,7 @@ describe('settings transformer', () => {
         const result = await settings(context);
         expect(result.body.references.ref1.value.settings).to.deep.equal({
             displayPlanType: true,
+            displayAnnual: true,
         });
     });
 

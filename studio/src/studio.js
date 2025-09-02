@@ -143,8 +143,8 @@ class MasStudio extends LitElement {
     }
 
     render() {
-        if (!this.masJsReady) {
-            console.log('mas.js not ready', this.masJsReady);
+        if (this.masJsReady) {
+            console.log('mas.js is ready', this.masJsReady);
         }
         return html`
             <mas-top-nav aem-env="${this.aemEnv}"></mas-top-nav>

@@ -24,7 +24,7 @@ import './mas-confirm-dialog.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import router from './router.js';
-import { PAGE_NAMES, WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
+import { PAGE_NAMES, WCS_ENV_PROD } from './constants.js';
 
 const BUCKET_TO_ENV = {
     e155390: 'qa',
@@ -42,7 +42,7 @@ class MasStudio extends LitElement {
     };
 
     #unsubscribeLocaleObserver;
-    #unsubscribeCommerceEnvObserver;
+    #unsubscribeLandscapeObserver;
 
     constructor() {
         super();
@@ -53,8 +53,8 @@ class MasStudio extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         this.subscribeLocaleObserver();
-        this.subscribeCommerceEnvObserver();
         this.initMasJs();
+        this.subscribeLandscapeObserver();
     }
 
     initMasJs() {
@@ -75,20 +75,20 @@ class MasStudio extends LitElement {
         this.#unsubscribeLocaleObserver = () => Store.filters.unsubscribe(subscription);
     }
 
-    subscribeCommerceEnvObserver() {
+    subscribeLandscapeObserver() {
         const subscription = (value, oldValue) => {
             if (value !== oldValue) {
                 this.commerceService.refreshOffers();
             }
         };
-        Store.commerceEnv.subscribe(subscription);
-        this.#unsubscribeCommerceEnvObserver = () => Store.commerceEnv.unsubscribe(subscription);
+        Store.landscape.subscribe(subscription);
+        this.#unsubscribeLandscapeObserver = () => Store.landscape.unsubscribe(subscription);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         this.#unsubscribeLocaleObserver();
-        this.#unsubscribeCommerceEnvObserver();
+        this.#unsubscribeLandscapeObserver();
     }
 
     createRenderRoot() {
@@ -100,7 +100,7 @@ class MasStudio extends LitElement {
     }
 
     page = new StoreController(this, Store.page);
-    commerceEnv = new StoreController(this, Store.commerceEnv);
+    landscape = new StoreController(this, Store.landscape);
 
     get content() {
         if (this.page.value !== PAGE_NAMES.CONTENT) return nothing;
@@ -121,8 +121,13 @@ class MasStudio extends LitElement {
     }
 
     renderCommerceService() {
-        const env = this.commerceEnv.value === WCS_ENV_STAGE ? WCS_ENV_STAGE : WCS_ENV_PROD;
-        this.commerceService.outerHTML = `<mas-commerce-service env="${env}" locale="${Store.filters.value.locale}"></mas-commerce-service>`;
+        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}"></mas-commerce-service>`;
+
+        // Update service landscape settings based on Store.landscape
+        if (this.commerceService?.settings && Store.landscape.value) {
+            this.commerceService.settings.landscape = Store.landscape.value;
+        }
+
         function rtePriceProvider(element, options) {
             if (element.dataset.template !== 'legal') return;
             if (!element.getRootNode()?.host?.nodeName === 'RTE-FIELD') return;

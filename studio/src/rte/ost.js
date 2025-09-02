@@ -1,11 +1,5 @@
 import { html } from 'lit';
-import {
-    CHECKOUT_CTA_TEXTS,
-    EVENT_OST_SELECT,
-    EVENT_OST_OFFER_SELECT,
-    WCS_LANDSCAPE_PUBLISHED,
-    WCS_LANDSCAPE_DRAFT,
-} from '../constants.js';
+import { CHECKOUT_CTA_TEXTS, EVENT_OST_SELECT, EVENT_OST_OFFER_SELECT, WCS_LANDSCAPE_PUBLISHED } from '../constants.js';
 import Store from '../store.js';
 
 let ostRoot = document.getElementById('ost');
@@ -157,7 +151,7 @@ export function getOffferSelectorTool() {
 export function openOfferSelectorTool(triggerElement, offerElement) {
     const masCommerceService = document.querySelector('mas-commerce-service');
     try {
-        const landscape = Store.commerceEnv?.value == 'stage' ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED;
+        const landscape = Store.landscape?.value ?? WCS_LANDSCAPE_PUBLISHED;
         if (!ostRoot) {
             ostRoot = document.createElement('div');
             document.body.appendChild(ostRoot);

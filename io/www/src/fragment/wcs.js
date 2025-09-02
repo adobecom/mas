@@ -67,7 +67,6 @@ async function getWcsConfigurations(context) {
 }
 
 async function wcs(context) {
-    const startTime = Date.now();
     const wcsConfigs = await getWcsConfigurations(context);
     if (!wcsConfigs || wcsConfigs.length === 0) {
         log(`No WCS configurations found for API key ${context.api_key}`, context);
@@ -122,7 +121,7 @@ async function wcs(context) {
     } else {
         log('No WCS placeholders found in fragment content', context);
     }
-    log(`WCS processing completed in ${Date.now() - startTime}ms`, context);
+
     return context;
 }
 

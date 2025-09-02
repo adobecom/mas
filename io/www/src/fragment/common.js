@@ -63,20 +63,21 @@ function createTimeoutPromise(timeout, handler) {
  * @returns response with status, out of which status 200 is success, 503 is fetch error, 504 is timeout,
  * other errors code from the server
  */
-async function fetchAttempt(path, context, timeout) {
-    const start = Date.now();
+async function fetchAttempt(path, context, timeout, marker) {
     try {
+        performance.mark(`start-${marker}`);
         const responsePromise = fetch(path, {
             headers: context.DEFAULT_HEADERS,
         });
 
         // Race the fetch promise with a timeout
         const response = await Promise.race([responsePromise, createTimeoutPromise(timeout)]);
-
+        performance.mark(`end-${marker}`);
+        const measure = performance.measure(`fetch-${marker}`, `start-${marker}`, `end-${marker}`);
         const success = response.status === 200;
         response.message = success ? 'ok' : response.message || (await getErrorMessage(response));
         log(
-            `fetch ${path} (${response?.status}) ${response?.message} in ${Date.now() - start}ms`,
+            `fetch ${path} (${response?.status}) ${response?.message} in ${measure.duration.toFixed(2)}ms`,
             context,
             success ? 'info' : 'error',
         );
@@ -90,9 +91,11 @@ async function fetchAttempt(path, context, timeout) {
         }
         return response;
     } catch (e) {
+        performance.mark(`fetch-error-${marker}-end`);
+        const errorMeasure = performance.measure(`fetch-error-${marker}`, `start-${marker}`, `fetch-error-${marker}-end`);
         // Check if this is a timeout error
         if (e.isTimeout) {
-            logError(`[fetch] ${path} timed out after ${Date.now() - start}ms`, context);
+            logError(`[fetch] ${path} timed out after ${errorMeasure.duration.toFixed(2)}ms`, context);
             return {
                 ...context,
                 status: 504, // Request Timeout
@@ -101,7 +104,7 @@ async function fetchAttempt(path, context, timeout) {
         }
 
         // This is a fetch error (network, DNS, etc.)
-        logError(`[fetch] ${path} fetch error: ${e.message}  after ${Date.now() - start}ms`, context);
+        logError(`[fetch] ${path} fetch error: ${e.message} after ${errorMeasure.duration.toFixed(2)}ms`, context);
         return {
             ...context,
             status: 503,
@@ -117,13 +120,14 @@ async function fetchAttempt(path, context, timeout) {
  * @param {*} timeout
  * @param {*} retries
  */
-async function internalFetch(path, context) {
+async function internalFetch(path, context, marker = '') {
+    performance.mark(`start-${marker}`);
     const { retries = 3, fetchTimeout = 2000, retryDelay = 100 } = context.networkConfig || {};
     let delay = retryDelay;
     let response;
     for (let attempt = 0; attempt < retries; attempt++) {
         // Race the fetch promise with a timeout
-        response = await fetchAttempt(path, context, fetchTimeout);
+        response = await fetchAttempt(path, context, fetchTimeout, `${marker}-${attempt}`);
         if ([503, 504].includes(response.status)) {
             log(
                 `fetch ${path} (attempt #${attempt}) failed with status ${response.status}, retrying in ${delay}ms...`,
@@ -135,19 +139,17 @@ async function internalFetch(path, context) {
             break;
         }
     }
+    performance.mark(`end-${marker}`);
+    performance.measure(`main-fetch-${marker}`, `start-${marker}`, `end-${marker}`);
     return response;
 }
 
-function getElapsedTimeMs(context) {
-    return Date.now() - context.startTime;
-}
-
-function getElapsedTime(context) {
-    return `${getElapsedTimeMs(context)}ms`;
-}
-
 async function getFromState(key, context) {
-    return (await context.state.get(key))?.value;
+    performance.mark(`state-${key}-start`);
+    const value = (await context?.state?.get(key))?.value;
+    performance.mark(`state-${key}-end`);
+    performance.measure(`state-${key}`, `state-${key}-start`, `state-${key}-end`);
+    return value;
 }
 
 async function getJsonFromState(key, context) {
@@ -165,8 +167,6 @@ async function getJsonFromState(key, context) {
 module.exports = {
     createTimeoutPromise,
     fetch: internalFetch,
-    getElapsedTime,
-    getElapsedTimeMs,
     getErrorContext,
     getJsonFromState,
     getFromState,

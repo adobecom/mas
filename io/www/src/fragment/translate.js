@@ -20,7 +20,7 @@ function getCorrespondingLocale(locale) {
 async function getTranslatedBody(surface, fragmentPath, locale, context) {
     const { preview } = context;
     const translatedPath = odinPath(surface, locale, fragmentPath, preview);
-    const response = await fetch(translatedPath, context);
+    const response = await fetch(translatedPath, context, 'translate-id');
     if (response.status != 200) {
         return {
             status: 500,
@@ -32,7 +32,7 @@ async function getTranslatedBody(surface, fragmentPath, locale, context) {
     } = response.body;
     if (id) {
         const translatedPath = odinReferences(id, true, preview);
-        const response = await fetch(translatedPath, context);
+        const response = await fetch(translatedPath, context, 'translate-fragment');
         if (response.status != 200) {
             return {
                 status: 500,

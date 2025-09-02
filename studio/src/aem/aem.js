@@ -1,4 +1,5 @@
 import { UserFriendlyError } from '../utils.js';
+import { COLLECTION_MODEL_PATH } from '../constants.js';
 
 const NETWORK_ERROR_MESSAGE = 'Network error';
 const MAX_POLL_ATTEMPTS = 10;
@@ -302,7 +303,10 @@ class AEM {
     async pollUpdatedFragment(oldFragment) {
         let attempts = 0;
 
-        const oldDefaultChild = oldFragment.fields?.find((f) => f.name === 'defaultchild')?.values?.[0];
+        const isCollection = oldFragment.model?.path === COLLECTION_MODEL_PATH;
+        const oldDefaultChild = isCollection
+            ? oldFragment.fields?.find((f) => f.name === 'defaultchild')?.values?.[0]
+            : undefined;
 
         while (attempts < MAX_POLL_ATTEMPTS) {
             attempts++;
@@ -313,8 +317,10 @@ class AEM {
                 continue;
             }
 
-            const newDefaultChild = newFragment.fields?.find((f) => f.name === 'defaultchild')?.values?.[0];
-            const defaultChildChanged = oldDefaultChild !== newDefaultChild;
+            const newDefaultChild = isCollection
+                ? newFragment.fields?.find((f) => f.name === 'defaultchild')?.values?.[0]
+                : undefined;
+            const defaultChildChanged = isCollection && oldDefaultChild !== newDefaultChild;
 
             const wasModified = newFragment.modified !== oldFragment.modified;
 

@@ -65,7 +65,7 @@ describe('Mnemonic field', () => {
         modal.dispatchEvent(
             new CustomEvent('save', {
                 detail: {
-                    icon: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
+                    icon: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
                     alt: 'Photoshop icon',
                     link: 'https://www.adobe.com/photoshop',
                 },
@@ -74,7 +74,7 @@ describe('Mnemonic field', () => {
 
         await listener;
 
-        expect(el.icon).to.equal('https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg');
+        expect(el.icon).to.equal('https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg');
         expect(el.alt).to.equal('Photoshop icon');
         expect(el.link).to.equal('https://www.adobe.com/photoshop');
     });

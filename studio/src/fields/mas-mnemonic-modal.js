@@ -275,7 +275,7 @@ class MasMnemonicModal extends LitElement {
 
         if (this.selectedTab === 'product-icon') {
             if (this.selectedProductId) {
-                iconValue = `https://www.adobe.com/content/dam/shared/images/product-icons/svg/${this.selectedProductId}.svg`;
+                iconValue = `https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${this.selectedProductId}.svg`;
             } else {
                 iconValue = '';
             }
@@ -317,7 +317,7 @@ class MasMnemonicModal extends LitElement {
                                 @click=${() => this.#handleProductSelect(product.id)}
                             >
                                 <img
-                                    src="https://www.adobe.com/content/dam/shared/images/product-icons/svg/${product.id}.svg"
+                                    src="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${product.id}.svg"
                                     alt="${product.name}"
                                     @error=${(e) => {
                                         e.target.style.display = 'none';

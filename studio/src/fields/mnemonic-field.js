@@ -1,5 +1,5 @@
 import { css, html, LitElement } from 'lit';
-import { EVENT_CHANGE, EVENT_INPUT } from '../constants.js';
+import { EVENT_CHANGE } from '../constants.js';
 import './mas-mnemonic-modal.js';
 
 class MnemonicField extends LitElement {

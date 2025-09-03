@@ -32,6 +32,7 @@ const RESPONSE_HEADERS = {
 
 async function main(params) {
     const requestId = params.__ow_headers?.['x-request-id'] || 'mas-' + Date.now();
+    const region = params.__ow_region || 'unknown';
     const api_key = params.api_key || 'n/a';
     const DEFAULT_HEADERS = {
         Accept: 'application/json',
@@ -91,9 +92,9 @@ async function main(params) {
         },
     );
     const measures = context.measures
-        .map((measure) => `${measure.label} s:${measure.startTime}, d:${measure.duration}`)
+        .map((measure) => `${measure.label} t:${measure.startTime}, d:${measure.duration}`)
         .join('|');
-    log(`timings: ${measures}`, context);
+    log(`timings (_t_ime and _d_uration) region: ${region}: ${measures}`, context);
     delete returnValue.id; // id is not part of the response
     returnValue.headers = {
         ...returnValue.headers,

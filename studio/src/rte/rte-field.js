@@ -11,7 +11,7 @@ import { openOfferSelectorTool, attributeFilter, closeOfferSelectorTool } from '
 import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
 import throttle from '../utils/throttle.js';
-import './rte-tooltip-editor.js';
+import './rte-mnemonic-editor.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
@@ -78,7 +78,7 @@ class LinkNodeView {
     }
 }
 
-class TooltipNodeView {
+class MnemonicNodeView {
     constructor(node, view, getPos) {
         this.node = node;
         this.view = view;
@@ -87,19 +87,19 @@ class TooltipNodeView {
         // In the editor, we only render the icon part for better editing experience
         this.dom = document.createElement('merch-icon');
         this.dom.setAttribute('contenteditable', 'false');
-        this.dom.classList.add('tooltip-icon');
+        this.dom.classList.add('mnemonic-icon');
         if (node.attrs.src) {
             this.dom.setAttribute('src', node.attrs.src);
             this.dom.setAttribute('size', node.attrs.size || 'xs');
             if (node.attrs.alt) {
                 this.dom.setAttribute('alt', node.attrs.alt);
             }
-            // Store tooltip data as data attributes for reference
-            if (node.attrs.tooltipText) {
-                this.dom.setAttribute('data-tooltip-text', node.attrs.tooltipText);
+            // Store mnemonic data as data attributes for reference
+            if (node.attrs.mnemonicText) {
+                this.dom.setAttribute('data-mnemonic-text', node.attrs.mnemonicText);
             }
-            if (node.attrs.tooltipPlacement) {
-                this.dom.setAttribute('data-tooltip-placement', node.attrs.tooltipPlacement);
+            if (node.attrs.mnemonicPlacement) {
+                this.dom.setAttribute('data-mnemonic-placement', node.attrs.mnemonicPlacement);
             }
         }
     }
@@ -116,16 +116,16 @@ class TooltipNodeView {
             } else {
                 this.dom.removeAttribute('alt');
             }
-            // Update data attributes for tooltip info
-            if (node.attrs.tooltipText) {
-                this.dom.setAttribute('data-tooltip-text', node.attrs.tooltipText);
+            // Update data attributes for mnemonic info
+            if (node.attrs.mnemonicText) {
+                this.dom.setAttribute('data-mnemonic-text', node.attrs.mnemonicText);
             } else {
-                this.dom.removeAttribute('data-tooltip-text');
+                this.dom.removeAttribute('data-mnemonic-text');
             }
-            if (node.attrs.tooltipPlacement) {
-                this.dom.setAttribute('data-tooltip-placement', node.attrs.tooltipPlacement);
+            if (node.attrs.mnemonicPlacement) {
+                this.dom.setAttribute('data-mnemonic-placement', node.attrs.mnemonicPlacement);
             } else {
-                this.dom.removeAttribute('data-tooltip-placement');
+                this.dom.removeAttribute('data-mnemonic-placement');
             }
         }
         return true;
@@ -158,14 +158,14 @@ class RteField extends LitElement {
         list: { type: Boolean, attribute: 'list' },
         link: { type: Boolean, attribute: 'link' },
         icon: { type: Boolean, attribute: 'icon' },
-        tooltip: { type: Boolean, attribute: 'tooltip' },
+        mnemonic: { type: Boolean, attribute: 'mnemonic' },
         uptLink: { type: Boolean, attribute: 'upt-link' },
         isLinkSelected: { type: Boolean, state: true },
         priceSelected: { type: Boolean, state: true },
         readOnly: { type: Boolean, attribute: 'readonly' },
         showLinkEditor: { type: Boolean, state: true },
         showIconEditor: { type: Boolean, state: true },
-        showTooltipEditor: { type: Boolean, state: true },
+        showMnemonicEditor: { type: Boolean, state: true },
         defaultLinkStyle: { type: String, attribute: 'default-link-style' },
         maxLength: { type: Number, attribute: 'max-length' },
         length: { type: Number, state: true },
@@ -332,7 +332,7 @@ class RteField extends LitElement {
                     vertical-align: text-bottom;
                 }
 
-                .ProseMirror merch-icon.tooltip-icon {
+                .ProseMirror merch-icon.mnemonic-icon {
                     display: inline-flex;
                     width: 13px;
                     height: 13px;
@@ -364,7 +364,7 @@ class RteField extends LitElement {
                 div.ProseMirror-focused span[is='inline-price'].ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode,
-                div.ProseMirror-focused merch-icon.tooltip-icon.ProseMirror-selectednode {
+                div.ProseMirror-focused merch-icon.mnemonic-icon.ProseMirror-selectednode {
                     outline: 2px dashed var(--spectrum-global-color-blue-500);
                     outline-offset: 2px;
                     border-radius: 16px;
@@ -524,13 +524,13 @@ class RteField extends LitElement {
         this.priceSelected = false;
         this.showLinkEditor = false;
         this.showIconEditor = false;
-        this.showTooltipEditor = false;
+        this.showMnemonicEditor = false;
         this.inline = false;
         this.styling = false;
         this.list = false;
         this.link = false;
         this.uptLink = false;
-        this.tooltip = false;
+        this.mnemonic = false;
         this.maxLength = 70;
         this.length = 0;
         this.hideOfferSelector = false;
@@ -541,7 +541,7 @@ class RteField extends LitElement {
             addUptLink: this.#addUptLink.bind(this),
             linkSave: this.#handleLinkSave.bind(this),
             iconSave: this.#handleIconSave.bind(this),
-            tooltipSave: this.#handleTooltipSave.bind(this),
+            mnemonicSave: this.#handleMnemonicSave.bind(this),
             focusout: this.#handleFocusout.bind(this),
             focus: this.#handleFocus.bind(this),
             doubleClickOn: this.#handleDoubleClickOn.bind(this),
@@ -638,8 +638,8 @@ class RteField extends LitElement {
             });
         }
 
-        if (this.tooltip) {
-            nodes = nodes.addToStart('tooltip', {
+        if (this.mnemonic) {
+            nodes = nodes.addToStart('mnemonic', {
                 group: 'inline',
                 atom: true,
                 inline: true,
@@ -648,12 +648,12 @@ class RteField extends LitElement {
                     src: { default: null },
                     alt: { default: null },
                     size: { default: 'xs' },
-                    tooltipText: { default: null },
-                    tooltipPlacement: { default: null },
+                    mnemonicText: { default: null },
+                    mnemonicPlacement: { default: null },
                 },
                 parseDOM: [
                     {
-                        tag: 'mas-tooltip',
+                        tag: 'mas-mnemonic',
                         priority: 50,
                         getAttrs: (domNode) => {
                             return {
@@ -661,8 +661,8 @@ class RteField extends LitElement {
                                 alt: domNode.getAttribute('alt'),
                                 size: domNode.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
-                                tooltipText: domNode.getAttribute('tooltip-text'),
-                                tooltipPlacement: domNode.getAttribute('tooltip-placement') || 'top',
+                                mnemonicText: domNode.getAttribute('mnemonic-text'),
+                                mnemonicPlacement: domNode.getAttribute('mnemonic-placement') || 'top',
                             };
                         },
                     },
@@ -670,22 +670,22 @@ class RteField extends LitElement {
                         tag: 'overlay-trigger',
                         getAttrs: (domNode) => {
                             const triggerIcon = domNode.querySelector('merch-icon[slot="trigger"]');
-                            const tooltipContent = domNode.querySelector('sp-tooltip[slot="hover-content"]');
+                            const mnemonicContent = domNode.querySelector('sp-tooltip[slot="hover-content"]');
 
                             if (!triggerIcon) return false;
 
-                            let textFromTooltip = tooltipContent ? tooltipContent.textContent.trim() : null;
+                            let textFromMnemonic = mnemonicContent ? mnemonicContent.textContent.trim() : null;
                             let textFromAriaLabel = triggerIcon.getAttribute('aria-label');
 
-                            let parsedTooltipText = textFromTooltip || textFromAriaLabel || null;
+                            let parsedMnemonicText = textFromMnemonic || textFromAriaLabel || null;
 
                             return {
                                 src: triggerIcon.getAttribute('src'),
                                 alt: triggerIcon.getAttribute('alt'),
                                 size: triggerIcon.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
-                                tooltipText: parsedTooltipText,
-                                tooltipPlacement: domNode.getAttribute('placement') || 'top',
+                                mnemonicText: parsedMnemonicText,
+                                mnemonicPlacement: domNode.getAttribute('placement') || 'top',
                             };
                         },
                     },
@@ -707,13 +707,13 @@ class RteField extends LitElement {
                                 alt: domNode.getAttribute('alt'),
                                 size: domNode.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
-                                tooltipText: domNode.getAttribute('data-tooltip'),
-                                tooltipPlacement: domNode.getAttribute('data-tooltip-placement'),
+                                mnemonicText: domNode.getAttribute('data-mnemonic'),
+                                mnemonicPlacement: domNode.getAttribute('data-mnemonic-placement'),
                             };
                         },
                     },
                     {
-                        tag: 'merch-icon[data-tooltip]',
+                        tag: 'merch-icon[data-mnemonic]',
                         priority: 40,
                         getAttrs: (domNode) => {
                             if (
@@ -727,8 +727,8 @@ class RteField extends LitElement {
                                 alt: domNode.getAttribute('alt'),
                                 size: domNode.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
-                                tooltipText: domNode.getAttribute('data-tooltip'),
-                                tooltipPlacement: domNode.getAttribute('data-tooltip-placement'),
+                                mnemonicText: domNode.getAttribute('data-mnemonic'),
+                                mnemonicPlacement: domNode.getAttribute('data-mnemonic-placement'),
                             };
                         },
                     },
@@ -749,24 +749,24 @@ class RteField extends LitElement {
                                 alt: icon.getAttribute('alt'),
                                 size: icon.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
-                                tooltipText: icon.getAttribute('data-tooltip'),
-                                tooltipPlacement: icon.getAttribute('data-tooltip-placement'),
+                                mnemonicText: icon.getAttribute('data-mnemonic'),
+                                mnemonicPlacement: icon.getAttribute('data-mnemonic-placement'),
                             };
                         },
                     },
                 ],
                 toDOM: (node) => {
-                    const { src, alt, size, tooltipText, tooltipPlacement } = node.attrs;
+                    const { src, alt, size, mnemonicText, mnemonicPlacement } = node.attrs;
                     const attrs = {
                         src: src || '',
                         size: size || 'xs',
                     };
                     if (alt) attrs.alt = alt;
-                    if (tooltipText && tooltipText.trim() !== '') {
-                        attrs['tooltip-text'] = tooltipText.trim();
-                        attrs['tooltip-placement'] = tooltipPlacement || 'top';
+                    if (mnemonicText && mnemonicText.trim() !== '') {
+                        attrs['mnemonic-text'] = mnemonicText.trim();
+                        attrs['mnemonic-placement'] = mnemonicPlacement || 'top';
                     }
-                    return ['mas-tooltip', attrs];
+                    return ['mas-mnemonic', attrs];
                 },
             });
         }
@@ -951,7 +951,7 @@ class RteField extends LitElement {
             handleDoubleClickOn: this.#boundHandlers.doubleClickOn,
             nodeViews: {
                 link: (node, view, getPos) => new LinkNodeView(node, view, getPos),
-                tooltip: (node, view, getPos) => new TooltipNodeView(node, view, getPos),
+                mnemonic: (node, view, getPos) => new MnemonicNodeView(node, view, getPos),
             },
         });
 
@@ -1200,8 +1200,8 @@ class RteField extends LitElement {
             } else if (this.showIconEditor) {
                 this.showIconEditor = false;
                 this.requestUpdate();
-            } else if (this.showTooltipEditor) {
-                this.showTooltipEditor = false;
+            } else if (this.showMnemonicEditor) {
+                this.showMnemonicEditor = false;
                 this.requestUpdate();
             }
             closeOfferSelectorTool();
@@ -1448,21 +1448,21 @@ class RteField extends LitElement {
             }
         }
 
-        if (node && node.type.name === 'tooltip') {
+        if (node && node.type.name === 'mnemonic') {
             event.stopPropagation();
             event.preventDefault();
 
-            this.currentTooltipPos = nodePos;
+            this.currentMnemonicPos = nodePos;
             // --- Restore selection and modal opening ---
-            this.selectTooltip(nodePos);
-            this.openTooltipEditorForExisting(node);
+            this.selectMnemonic(nodePos);
+            this.openMnemonicEditorForExisting(node);
             return true;
         }
 
         return false;
     }
 
-    selectTooltip(pos) {
+    selectMnemonic(pos) {
         const { state } = this.editorView;
         const resolvedPos = state.doc.resolve(pos);
         const selection = NodeSelection.create(state.doc, resolvedPos.pos);
@@ -1470,18 +1470,18 @@ class RteField extends LitElement {
         this.editorView.dispatch(tr);
     }
 
-    async openTooltipEditorForExisting(node) {
-        this.showTooltipEditor = true;
+    async openMnemonicEditorForExisting(node) {
+        this.showMnemonicEditor = true;
         await this.updateComplete;
 
-        // Populate the editor with the existing tooltip's properties
-        Object.assign(this.tooltipEditorElement, {
+        // Populate the editor with the existing mnemonic's properties
+        Object.assign(this.mnemonicEditorElement, {
             open: true,
             imageUrl: node.attrs.src || '',
             altText: node.attrs.alt || '',
             size: node.attrs.size || 'xs',
-            tooltipText: node.attrs.tooltipText || '',
-            tooltipPlacement: node.attrs.tooltipPlacement || 'top',
+            mnemonicText: node.attrs.mnemonicText || '',
+            mnemonicPlacement: node.attrs.mnemonicPlacement || 'top',
         });
     }
 
@@ -1500,15 +1500,15 @@ class RteField extends LitElement {
         return html`<rte-icon-editor dialog @save="${this.#boundHandlers.iconSave}"></rte-icon-editor>`;
     }
 
-    get tooltipEditor() {
-        if (!this.showTooltipEditor) return nothing;
-        return html`<rte-tooltip-editor
+    get mnemonicEditor() {
+        if (!this.showMnemonicEditor) return nothing;
+        return html`<rte-mnemonic-editor
             dialog
-            @save="${this.#boundHandlers.tooltipSave}"
+            @save="${this.#boundHandlers.mnemonicSave}"
             @close="${() => {
-                this.showTooltipEditor = false;
+                this.showMnemonicEditor = false;
             }}"
-        ></rte-tooltip-editor>`;
+        ></rte-mnemonic-editor>`;
     }
 
     get linkEditorElement() {
@@ -1519,8 +1519,8 @@ class RteField extends LitElement {
         return this.shadowRoot.querySelector('rte-icon-editor');
     }
 
-    get tooltipEditorElement() {
-        return this.shadowRoot.querySelector('rte-tooltip-editor');
+    get mnemonicEditorElement() {
+        return this.shadowRoot.querySelector('rte-mnemonic-editor');
     }
 
     render() {
@@ -1529,11 +1529,11 @@ class RteField extends LitElement {
             <sp-action-group quiet size="m" aria-label="RTE toolbar actions">
                 ${this.#formatButtons} ${this.stylingButton} ${this.#listButtons} ${this.#linkEditorButton}
                 ${this.#unlinkEditorButton} ${this.#offerSelectorToolButton} ${this.#iconsButton} ${this.#uptLinkButton}
-                ${this.#tooltipButton}
+                ${this.#mnemonicButton}
             </sp-action-group>
             <div id="editor"></div>
             <p id="counter"><span class="${lengthExceeded ? 'exceeded' : ''}">${this.length}</span>/${this.maxLength}</p>
-            ${this.linkEditor} ${this.iconEditor} ${this.tooltipEditor}
+            ${this.linkEditor} ${this.iconEditor} ${this.mnemonicEditor}
         `;
     }
 
@@ -1546,10 +1546,10 @@ class RteField extends LitElement {
         `;
     }
 
-    get #tooltipButton() {
-        if (!this.tooltip) return nothing;
+    get #mnemonicButton() {
+        if (!this.mnemonic) return nothing;
         return html`
-            <sp-action-button emphasized id="addTooltipButton" @click=${this.openTooltipEditor} title="Add Inline Tooltip">
+            <sp-action-button emphasized id="addMnemonicButton" @click=${this.openMnemonicEditor} title="Add Inline Mnemonic">
                 <sp-icon-image slot="icon"></sp-icon-image>
             </sp-action-button>
         `;
@@ -1659,43 +1659,43 @@ class RteField extends LitElement {
         `;
     }
 
-    #handleTooltipSave(event) {
-        const { imageUrl, altText, size, tooltipText, tooltipPlacement } = event.detail;
+    #handleMnemonicSave(event) {
+        const { imageUrl, altText, size, mnemonicText, mnemonicPlacement } = event.detail;
         const { state } = this.editorView;
 
         const attributesToSet = {
             src: imageUrl || null,
             alt: altText || null,
             size: size || 'xs',
-            tooltipText: tooltipText || null,
-            tooltipPlacement: tooltipPlacement || (tooltipText ? 'top' : null),
+            mnemonicText: mnemonicText || null,
+            mnemonicPlacement: mnemonicPlacement || (mnemonicText ? 'top' : null),
             class: 'mnemonic',
         };
 
         let tr;
-        if (this.currentTooltipPos != null) {
-            tr = state.tr.setNodeMarkup(this.currentTooltipPos, null, attributesToSet);
-            this.currentTooltipPos = null;
+        if (this.currentMnemonicPos != null) {
+            tr = state.tr.setNodeMarkup(this.currentMnemonicPos, null, attributesToSet);
+            this.currentMnemonicPos = null;
         } else {
-            const tooltipNodeInstance = state.schema.nodes.tooltip.create(attributesToSet);
-            tr = state.tr.replaceSelectionWith(tooltipNodeInstance);
+            const mnemonicNodeInstance = state.schema.nodes.mnemonic.create(attributesToSet);
+            tr = state.tr.replaceSelectionWith(mnemonicNodeInstance);
         }
         this.editorView.dispatch(tr);
         this.editorView.focus();
-        this.showTooltipEditor = false;
+        this.showMnemonicEditor = false;
     }
 
-    async openTooltipEditor() {
-        this.showTooltipEditor = true;
+    async openMnemonicEditor() {
+        this.showMnemonicEditor = true;
         await this.updateComplete;
-        // Reset the editor values for a new tooltip
-        Object.assign(this.tooltipEditorElement, {
+        // Reset the editor values for a new mnemonic
+        Object.assign(this.mnemonicEditorElement, {
             open: true,
             imageUrl: '',
             altText: '',
             size: 'xs',
-            tooltipText: '', // Ensure tooltip fields are reset too
-            tooltipPlacement: 'top',
+            mnemonicText: '', // Ensure mnemonic fields are reset too
+            mnemonicPlacement: 'top',
         });
     }
 }

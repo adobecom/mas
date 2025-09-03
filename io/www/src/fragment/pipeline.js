@@ -32,7 +32,7 @@ const RESPONSE_HEADERS = {
 
 async function main(params) {
     const requestId = params.__ow_headers?.['x-request-id'] || 'mas-' + Date.now();
-    const region = params.__OW_REGION || 'unknown';
+    const region = process.env.__OW_REGION || 'unknown';
     const api_key = params.api_key || 'n/a';
     const DEFAULT_HEADERS = {
         Accept: 'application/json',

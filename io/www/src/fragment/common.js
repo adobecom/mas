@@ -55,6 +55,22 @@ function createTimeoutPromise(timeout, handler) {
     });
 }
 
+function mark(context, label) {
+    context.marks = context.marks || {};
+    context.marks[label] = performance.now().toFixed(2);
+}
+
+function measureTiming(context, label, startLabel = label) {
+    const measure = { label, duration: 0 };
+    if (context.marks && context.marks[startLabel]) {
+        measure.startTime = context.marks[startLabel];
+        measure.duration = (performance.now() - context.marks[startLabel]).toFixed(2);
+    }
+    context.measures = context.measures || [];
+    context.measures.push(measure);
+    return measure;
+}
+
 /**
  * fetch attempt with a timeout
  * @param {*} path
@@ -65,19 +81,18 @@ function createTimeoutPromise(timeout, handler) {
  */
 async function fetchAttempt(path, context, timeout, marker) {
     try {
-        performance.mark(`start-${marker}`);
+        mark(context, marker);
         const responsePromise = fetch(path, {
             headers: context.DEFAULT_HEADERS,
         });
 
         // Race the fetch promise with a timeout
         const response = await Promise.race([responsePromise, createTimeoutPromise(timeout)]);
-        performance.mark(`end-${marker}`);
-        const measure = performance.measure(`fetch-${marker}`, `start-${marker}`, `end-${marker}`);
+        const measure = measureTiming(context, marker);
         const success = response.status === 200;
         response.message = success ? 'ok' : response.message || (await getErrorMessage(response));
         log(
-            `fetch ${path} (${response?.status}) ${response?.message} in ${measure.duration.toFixed(2)}ms`,
+            `fetch ${path} (${response?.status}) ${response?.message} in ${measure.duration}ms`,
             context,
             success ? 'info' : 'error',
         );
@@ -91,11 +106,10 @@ async function fetchAttempt(path, context, timeout, marker) {
         }
         return response;
     } catch (e) {
-        performance.mark(`fetch-error-${marker}-end`);
-        const errorMeasure = performance.measure(`fetch-error-${marker}`, `start-${marker}`, `fetch-error-${marker}-end`);
+        const errorMeasure = measureTiming(context, `fetch-error-${marker}`, marker);
         // Check if this is a timeout error
         if (e.isTimeout) {
-            logError(`[fetch] ${path} timed out after ${errorMeasure.duration.toFixed(2)}ms`, context);
+            logError(`[fetch] ${path} timed out after ${errorMeasure.duration}ms`, context);
             return {
                 ...context,
                 status: 504, // Request Timeout
@@ -104,7 +118,7 @@ async function fetchAttempt(path, context, timeout, marker) {
         }
 
         // This is a fetch error (network, DNS, etc.)
-        logError(`[fetch] ${path} fetch error: ${e.message} after ${errorMeasure.duration.toFixed(2)}ms`, context);
+        logError(`[fetch] ${path} fetch error: ${e.message} after ${errorMeasure.duration}ms`, context);
         return {
             ...context,
             status: 503,
@@ -121,7 +135,7 @@ async function fetchAttempt(path, context, timeout, marker) {
  * @param {*} retries
  */
 async function internalFetch(path, context, marker = '') {
-    performance.mark(`start-${marker}`);
+    mark(context, `${marker}`);
     const { retries = 3, fetchTimeout = 2000, retryDelay = 100 } = context.networkConfig || {};
     let delay = retryDelay;
     let response;
@@ -139,16 +153,14 @@ async function internalFetch(path, context, marker = '') {
             break;
         }
     }
-    performance.mark(`end-${marker}`);
-    performance.measure(`main-fetch-${marker}`, `start-${marker}`, `end-${marker}`);
+    measureTiming(context, `main-fetch-${marker}`, marker);
     return response;
 }
 
 async function getFromState(key, context) {
-    performance.mark(`state-${key}-start`);
+    mark(context, `state-${key}`);
     const value = (await context?.state?.get(key))?.value;
-    performance.mark(`state-${key}-end`);
-    performance.measure(`state-${key}`, `state-${key}-start`, `state-${key}-end`);
+    measureTiming(context, `state-${key}`);
     return value;
 }
 
@@ -173,4 +185,6 @@ module.exports = {
     log,
     logDebug,
     logError,
+    mark,
+    measureTiming,
 };

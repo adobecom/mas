@@ -1,7 +1,16 @@
 'use strict';
 
 const fetchFragment = require('./fetch.js').fetchFragment;
-const { createTimeoutPromise, log, logDebug, logError, getFromState, getJsonFromState } = require('./common.js');
+const {
+    createTimeoutPromise,
+    log,
+    logDebug,
+    logError,
+    mark,
+    measureTiming,
+    getFromState,
+    getJsonFromState,
+} = require('./common.js');
 const corrector = require('./corrector.js').corrector;
 const crypto = require('crypto');
 const replace = require('./replace.js').replace;
@@ -22,7 +31,6 @@ const RESPONSE_HEADERS = {
 };
 
 async function main(params) {
-    performance.mark('start');
     const requestId = params.__ow_headers?.['x-request-id'] || 'mas-' + Date.now();
     const api_key = params.api_key || 'n/a';
     const DEFAULT_HEADERS = {
@@ -37,6 +45,7 @@ async function main(params) {
         DEFAULT_HEADERS,
         status: 200,
     };
+    mark(context, 'start');
     let returnValue;
     log(`starting request pipeline for ${JSON.stringify(context)}`, context);
     /* istanbul ignore next */
@@ -46,8 +55,7 @@ async function main(params) {
     try {
         const { json } = await getJsonFromState('network-config', context);
         context.networkConfig = json || {};
-        performance.mark('network-config-loaded');
-        const initTime = performance.measure('init', 'start', 'network-config-loaded').duration.toFixed(2);
+        const initTime = measureTiming(context, 'init', 'start').duration;
         let timeout = context.networkConfig.mainTimeout || 5000;
         timeout = Math.max(timeout - initTime, 0);
         returnValue = await Promise.race([
@@ -74,22 +82,18 @@ async function main(params) {
             };
         }
     }
-    performance.mark('end');
-    const pipelineMeasure = performance.measure('pipeline', 'start', 'end');
+    const pipelineMeasure = measureTiming(context, 'pipeline', 'start');
     log(
-        `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.id} (${returnValue.statusCode}) in ${pipelineMeasure.duration.toFixed(2)}ms`,
+        `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.id} (${returnValue.statusCode}) in ${pipelineMeasure.duration}ms`,
         {
             ...context,
             transformer: 'pipeline',
         },
     );
-    const measures = performance
-        .getEntriesByType('measure')
-        .map((measure) => `${measure.name} s:${measure.startTime.toFixed(2)}, d:${measure.duration.toFixed(2)}`)
+    const measures = context.measures
+        .map((measure) => `${measure.label} s:${measure.startTime}, d:${measure.duration}`)
         .join('|');
     log(`timings: ${measures}`, context);
-    performance.clearMeasures();
-    performance.clearMarks();
     delete returnValue.id; // id is not part of the response
     returnValue.headers = {
         ...returnValue.headers,
@@ -122,10 +126,9 @@ async function mainProcess(context) {
             break;
         }
         context.transformer = transformer.name;
-        performance.mark(`start-${transformer.name}`);
+        mark(context, transformer.name);
         context = await transformer(context);
-        performance.mark(`end-${transformer.name}`);
-        performance.measure(`transformer-${transformer.name}`, `start-${transformer.name}`, `end-${transformer.name}`);
+        measureTiming(context, transformer.name);
     }
     context.transformer = 'pipeline';
     const returnValue = {

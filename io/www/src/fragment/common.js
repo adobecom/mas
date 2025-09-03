@@ -64,7 +64,7 @@ function measureTiming(context, label, startLabel = label) {
     const measure = { label, duration: 0 };
     if (context.marks && context.marks[startLabel]) {
         const start = context.marks.start;
-        measure.startTime = context.marks[startLabel] - start;
+        measure.startTime = (context.marks[startLabel] - start).toFixed(2);
         measure.duration = (performance.now() - context.marks[startLabel]).toFixed(2);
     }
     context.measures = context.measures || [];

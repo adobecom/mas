@@ -142,7 +142,7 @@ async function internalFetch(path, context, marker = '') {
     let response;
     for (let attempt = 0; attempt < retries; attempt++) {
         // Race the fetch promise with a timeout
-        response = await fetchAttempt(path, context, fetchTimeout, `${marker}-${attempt}`);
+        response = await fetchAttempt(path, context, fetchTimeout, `fetch-${marker}-${attempt}`);
         if ([503, 504].includes(response.status)) {
             log(
                 `fetch ${path} (attempt #${attempt}) failed with status ${response.status}, retrying in ${delay}ms...`,

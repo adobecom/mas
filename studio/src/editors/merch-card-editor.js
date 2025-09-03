@@ -131,8 +131,8 @@ class MerchCardEditor extends LitElement {
                 icon,
                 alt: mnemonicAlt[index] ?? '',
                 link: mnemonicLink[index] ?? '',
-                tooltipText: mnemonicTooltipText[index] ?? '',
-                tooltipPlacement: mnemonicTooltipPlacement[index] ?? 'top',
+                mnemonicText: mnemonicTooltipText[index] ?? '',
+                mnemonicPlacement: mnemonicTooltipPlacement[index] ?? 'top',
             })) ?? []
         );
     }
@@ -417,7 +417,7 @@ class MerchCardEditor extends LitElement {
                     id="prices"
                     styling
                     link
-                    tooltip
+                    mnemonic
                     data-field="prices"
                     .osi=${form.osi.values[0]}
                     default-link-style="primary-outline"
@@ -466,7 +466,7 @@ class MerchCardEditor extends LitElement {
                     link
                     upt-link
                     list
-                    tooltip
+                    mnemonic
                     data-field="description"
                     .osi=${form.osi.values[0]}
                     default-link-style="secondary-link"
@@ -690,12 +690,12 @@ class MerchCardEditor extends LitElement {
         const mnemonicLink = [];
         const mnemonicTooltipText = [];
         const mnemonicTooltipPlacement = [];
-        event.target.value.forEach(({ icon, alt, link, tooltipText, tooltipPlacement }) => {
+        event.target.value.forEach(({ icon, alt, link, mnemonicText, mnemonicPlacement }) => {
             mnemonicIcon.push(icon ?? '');
             mnemonicAlt.push(alt ?? '');
             mnemonicLink.push(link ?? '');
-            mnemonicTooltipText.push(tooltipText ?? '');
-            mnemonicTooltipPlacement.push(tooltipPlacement ?? 'top');
+            mnemonicTooltipText.push(mnemonicText ?? '');
+            mnemonicTooltipPlacement.push(mnemonicPlacement ?? 'top');
         });
         const fragment = this.fragmentStore.get();
         fragment.updateField('mnemonicIcon', mnemonicIcon);

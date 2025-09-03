@@ -16,7 +16,7 @@ async function fetchArtifact(osi, promotionCode, wcsContext) {
     if (promotionCode) {
         url.searchParams.set('promotion_code', promotionCode);
     }
-    const response = await fetch(url.toString(), wcsContext.context, `wcs-${osi}-${promotionCode || 'nopromo'}`);
+    const response = await fetch(url.toString(), wcsContext.context, 'wcs-last-request');
     if (response.status === 200) {
         return response.body;
     }

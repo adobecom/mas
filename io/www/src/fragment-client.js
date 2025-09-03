@@ -45,4 +45,40 @@ async function previewFragment(id, options) {
     return context.body;
 }
 
-export { previewFragment };
+async function previewStudioFragment(body, options) {
+    const {
+        locale = 'en_US',
+        preview = {
+            url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+        },
+        ...rest
+    } = options;
+    let context = {
+        body,
+        status: 200,
+        preview,
+        requestId: 'preview',
+        networkConfig: {
+            mainTimeout: 15000,
+            fetchTimeout: 10000,
+            retries: 3,
+        },
+        api_key: 'n/a',
+        locale,
+        ...rest,
+    };
+    for (const transformer of [settings, replace, corrector]) {
+        if (context.status != 200) {
+            logError(context.message, context);
+            break;
+        }
+        context.transformer = transformer.name;
+        context = await transformer(context);
+    }
+    if (context.status != 200) {
+        logError(context.message, context);
+    }
+    return context.body;
+}
+
+export { previewFragment, previewStudioFragment, translate, settings, replace, corrector };

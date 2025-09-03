@@ -52,6 +52,7 @@ const Store = {
     users: new ReactiveStore([]),
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
+    preview: new ReactiveStore(null, previewValidator),
 };
 
 // #region Validators
@@ -109,6 +110,14 @@ function sortValidator(value) {
 // ReactiveStore contructor - it gets registered separately
 Store.sort.registerValidator(sortValidator);
 
+function previewValidator(value) {
+    const defaultPosition = { top: 0, right: undefined, bottom: undefined, left: 0 };
+    if (!value || typeof value !== 'object') return { id: null, position: defaultPosition };
+    if (!value.position) return { ...value, position: defaultPosition };
+    value.position = { ...defaultPosition, ...value.position };
+    return value;
+}
+
 // #endregion
 
 const editorPanel = () => document.querySelector('editor-panel');
@@ -138,3 +147,30 @@ export default Store;
 Store.page.subscribe((value) => {
     Store.sort.set({ sortBy: SORT_COLUMNS[value]?.[0], sortDirection: 'asc' });
 });
+
+// Derived values
+
+const placeholdersDict = {
+    value: {},
+};
+
+Store.placeholders.list.data.subscribe((value) => {
+    // Update placeholders dict
+    placeholdersDict.value = {};
+    const extractValue = (ref) => {
+        const value = ref.getFieldValue('value') || ref.getFieldValue('richTextValue') || '';
+        // Escape control characters and double quotes before parsing
+        return value.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').replace(/"/g, '\\"');
+    };
+    for (const placeholderStore of value) {
+        const placeholder = placeholderStore.get();
+        placeholdersDict.value[placeholder.getFieldValue('key')] = extractValue(placeholder);
+    }
+    // If on the content page, trigger fragment resolve
+    if (Store.page.value !== PAGE_NAMES.CONTENT) return;
+    for (const fragmentStore of Store.fragments.list.data.value) {
+        fragmentStore.resolvePreviewFragment();
+    }
+});
+
+export { placeholdersDict };

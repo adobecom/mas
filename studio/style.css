@@ -328,6 +328,28 @@ sp-table-cell {
         font-size: 12px;
         font-weight: 700;
         word-break: break-all;
+        outline: none;
+        margin: 0;
+        padding: 0;
+        align-self: stretch;
+
+        &.new,
+        &.draft {
+            color: var(--spectrum-blue-800);
+        }
+
+        &.modified {
+            color: var(--spectrum-yellow-600);
+        }
+
+        &.published {
+            color: var(--spectrum-green-700);
+        }
+    }
+
+    &.preview {
+        flex-grow: 0.1;
+        text-align: end;
     }
 }
 
@@ -528,7 +550,6 @@ sp-underlay + sp-dialog {
     position: fixed;
     min-width: 320px;
     min-height: 320px;
-    background-color: var(--spectrum-global-color-gray-50);
     border-radius: 4px;
     z-index: 9999;
     overflow: hidden;

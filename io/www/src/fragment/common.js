@@ -147,7 +147,7 @@ function getElapsedTime(context) {
 }
 
 async function getFromState(key, context) {
-    return (await context.state.get(key))?.value;
+    return (await context?.state?.get(key))?.value;
 }
 
 async function getJsonFromState(key, context) {

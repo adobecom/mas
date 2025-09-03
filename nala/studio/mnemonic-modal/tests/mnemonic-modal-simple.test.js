@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import StudioPage from '../../studio.page.js';
 import EditorPage from '../../editor.page.js';
 
-const cardId = '5a5ca143-a417-4087-b466-5b72ac68a830'; // Acrobat Pro card
+const cardId = '88915824-6dd6-4b67-9f22-bd01b8b26816'; // Acrobat Pro card
 const miloLibs = process.env.MILO_LIBS || '';
 
 let studio;

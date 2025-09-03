@@ -8,7 +8,7 @@ export default {
             tags: '@mas-studio @mnemonic-modal @smoke',
             browserParams: '#page=content&path=nala&query=',
             data: {
-                cardid: '5a5ca143-a417-4087-b466-5b72ac68a830',
+                cardid: '88915824-6dd6-4b67-9f22-bd01b8b26816',
                 originalIcon: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/acrobat.svg',
                 newProductName: 'Lightroom',
                 newProductId: 'lightroom',
@@ -22,7 +22,7 @@ export default {
             tags: '@mas-studio @mnemonic-modal @regression',
             browserParams: '#page=content&path=nala&query=',
             data: {
-                cardid: '5a5ca143-a417-4087-b466-5b72ac68a830',
+                cardid: '88915824-6dd6-4b67-9f22-bd01b8b26816',
                 originalIcon: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/acrobat.svg',
                 newProductName: 'Premiere Pro',
                 customURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/premiere-pro.svg',
@@ -35,7 +35,7 @@ export default {
             tags: '@mas-studio @mnemonic-modal @integration',
             browserParams: '#page=content&path=nala&query=',
             data: {
-                cardid: '5a5ca143-a417-4087-b466-5b72ac68a830',
+                cardid: '88915824-6dd6-4b67-9f22-bd01b8b26816',
                 originalTitle: 'Acrobat Pro',
                 newTitle: 'Modified Title',
                 originalIcon: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/acrobat.svg',
@@ -50,7 +50,7 @@ export default {
             tags: '@mas-studio @mnemonic-modal @regression',
             browserParams: '#page=content&path=nala&query=',
             data: {
-                cardid: '5a5ca143-a417-4087-b466-5b72ac68a830',
+                cardid: '88915824-6dd6-4b67-9f22-bd01b8b26816',
                 originalIcon: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/acrobat.svg',
                 newProductName: 'Dreamweaver',
             },

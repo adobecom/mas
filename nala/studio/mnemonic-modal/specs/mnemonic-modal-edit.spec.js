@@ -8,7 +8,7 @@ export default {
             tags: '@mas-studio @mnemonic-modal @regression',
             browserParams: '#page=content&path=nala&query=',
             data: {
-                cardid: '5a5ca143-a417-4087-b466-5b72ac68a830',
+                cardid: '88915824-6dd6-4b67-9f22-bd01b8b26816',
                 cardVariant: 'plans',
                 currentIcon: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/acrobat-pro.svg',
                 modalTitle: 'Edit Mnemonic Icon',
@@ -21,7 +21,7 @@ export default {
             tags: '@mas-studio @mnemonic-modal @smoke',
             browserParams: '#page=content&path=nala&query=',
             data: {
-                cardid: '5a5ca143-a417-4087-b466-5b72ac68a830',
+                cardid: '88915824-6dd6-4b67-9f22-bd01b8b26816',
                 productName: 'Photoshop',
                 productId: 'photoshop',
                 newIconURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
@@ -36,7 +36,7 @@ export default {
             tags: '@mas-studio @mnemonic-modal @smoke',
             browserParams: '#page=content&path=nala&query=',
             data: {
-                cardid: '5a5ca143-a417-4087-b466-5b72ac68a830',
+                cardid: '88915824-6dd6-4b67-9f22-bd01b8b26816',
                 productName: 'Illustrator',
                 productId: 'illustrator',
                 newIconURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg',
@@ -51,7 +51,7 @@ export default {
             tags: '@mas-studio @mnemonic-modal @regression',
             browserParams: '#page=content&path=nala&query=',
             data: {
-                cardid: '5a5ca143-a417-4087-b466-5b72ac68a830',
+                cardid: '88915824-6dd6-4b67-9f22-bd01b8b26816',
                 customIconURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/firefly.svg',
                 altText: 'Custom Product Icon',
                 linkURL: 'https://www.adobe.com/products/firefly.html',
@@ -64,7 +64,7 @@ export default {
             tags: '@mas-studio @mnemonic-modal @regression',
             browserParams: '#page=content&path=nala&query=',
             data: {
-                cardid: '5a5ca143-a417-4087-b466-5b72ac68a830',
+                cardid: '88915824-6dd6-4b67-9f22-bd01b8b26816',
                 emptyURL: '',
                 validURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/acrobat-pro.svg',
             },
@@ -76,7 +76,7 @@ export default {
             tags: '@mas-studio @mnemonic-modal @regression',
             browserParams: '#page=content&path=nala&query=',
             data: {
-                cardid: '5a5ca143-a417-4087-b466-5b72ac68a830',
+                cardid: '88915824-6dd6-4b67-9f22-bd01b8b26816',
                 productName: 'Premiere Pro',
                 productId: 'premiere-pro',
                 customURL: 'https://example.com/custom-icon.svg',
@@ -89,7 +89,7 @@ export default {
             tags: '@mas-studio @mnemonic-modal @comprehensive',
             browserParams: '#page=content&path=nala&query=',
             data: {
-                cardid: '5a5ca143-a417-4087-b466-5b72ac68a830',
+                cardid: '88915824-6dd6-4b67-9f22-bd01b8b26816',
                 products: [
                     { id: 'creative-cloud', name: 'Creative Cloud' },
                     { id: 'photoshop', name: 'Photoshop' },

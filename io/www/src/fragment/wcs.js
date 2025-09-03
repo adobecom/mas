@@ -121,7 +121,6 @@ async function wcs(context) {
     } else {
         log('No WCS placeholders found in fragment content', context);
     }
-
     return context;
 }
 

@@ -6,7 +6,7 @@ const PH_REGEXP = /{{(\s*([\w\-\_]+)\s*)}}/gi;
 async function getDictionaryId(context) {
     const { surface, locale, preview } = context;
     const dictionaryPath = odinPath(surface, locale, DICTIONARY_ID_PATH, preview);
-    const response = await fetch(dictionaryPath, context);
+    const response = await fetch(dictionaryPath, context, 'dictionary-id');
     if (response.status == 200) {
         const { items } = response.body;
         if (items?.length > 0) {
@@ -31,7 +31,7 @@ async function getDictionary(context) {
     if (!id) {
         return dictionary;
     }
-    const response = await fetch(odinReferences(id, true, context.preview), context);
+    const response = await fetch(odinReferences(id, true, context.preview), context, 'dictionary');
     if (response.status == 200) {
         const references = response.body.references;
         Object.keys(references).forEach((id) => {

@@ -6,10 +6,10 @@ const {
     log,
     logDebug,
     logError,
-    getElapsedTime,
+    mark,
+    measureTiming,
     getFromState,
     getJsonFromState,
-    getElapsedTimeMs,
 } = require('./common.js');
 const corrector = require('./corrector.js').corrector;
 const crypto = require('crypto');
@@ -31,8 +31,8 @@ const RESPONSE_HEADERS = {
 };
 
 async function main(params) {
-    const startTime = Date.now();
     const requestId = params.__ow_headers?.['x-request-id'] || 'mas-' + Date.now();
+    const region = process.env.__OW_REGION || 'unknown';
     const api_key = params.api_key || 'n/a';
     const DEFAULT_HEADERS = {
         Accept: 'application/json',
@@ -42,11 +42,11 @@ async function main(params) {
         ...params,
         api_key,
         requestId,
-        startTime,
         transformer: 'pipeline',
         DEFAULT_HEADERS,
         status: 200,
     };
+    mark(context, 'start');
     let returnValue;
     log(`starting request pipeline for ${JSON.stringify(context)}`, context);
     /* istanbul ignore next */
@@ -56,7 +56,7 @@ async function main(params) {
     try {
         const { json } = await getJsonFromState('network-config', context);
         context.networkConfig = json || {};
-        const initTime = getElapsedTimeMs(context);
+        const initTime = measureTiming(context, 'init', 'start').duration;
         let timeout = context.networkConfig.mainTimeout || 5000;
         timeout = Math.max(timeout - initTime, 0);
         returnValue = await Promise.race([
@@ -83,13 +83,18 @@ async function main(params) {
             };
         }
     }
+    const pipelineMeasure = measureTiming(context, 'pipeline', 'start');
     log(
-        `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.id} (${returnValue.statusCode}) in ${getElapsedTime(context)}`,
+        `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.id} (${returnValue.statusCode}) in ${pipelineMeasure.duration}ms`,
         {
             ...context,
             transformer: 'pipeline',
         },
     );
+    const measures = context.measures
+        .map((measure) => `${measure.label} t:${measure.startTime}, d:${measure.duration}`)
+        .join('|');
+    log(`timings (time and duration) region: ${region}: ${measures}`, context);
     delete returnValue.id; // id is not part of the response
     returnValue.headers = {
         ...returnValue.headers,
@@ -106,12 +111,13 @@ async function mainProcess(context) {
     const requestKey = `req-${context.id}-${context.locale}`;
     const { json: cachedMetadata, str: cachedMetadataStr } = await getJsonFromState(requestKey, context);
     if (cachedMetadata) {
-        log(`(${getElapsedTime(context)}) found cached metadata for ${requestKey} -> ${cachedMetadataStr}`, context);
+        log(`found cached metadata for ${requestKey} -> ${cachedMetadataStr}`, context);
         const { translatedId, dictionaryId } = cachedMetadata;
         context = { ...context, translatedId, dictionaryId };
     }
 
     for (const transformer of [fetchFragment, translate, settings, replace, wcs, corrector]) {
+        /* istanbul ignore next */
         if (originalContext.timedOut) {
             logError(`Pipeline timed out during ${transformer.name}, aborting...`, context);
             break;
@@ -121,7 +127,9 @@ async function mainProcess(context) {
             break;
         }
         context.transformer = transformer.name;
+        mark(context, transformer.name);
         context = await transformer(context);
+        measureTiming(context, transformer.name);
     }
     context.transformer = 'pipeline';
     const returnValue = {

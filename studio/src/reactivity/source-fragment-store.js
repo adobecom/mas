@@ -3,7 +3,6 @@ import { FragmentStore } from './fragment-store.js';
 import { PreviewFragmentStore } from './preview-fragment-store.js';
 
 export class SourceFragmentStore extends FragmentStore {
-    loading = false;
     /** @type {PreviewFragmentStore} */
     previewStore;
 
@@ -20,11 +19,6 @@ export class SourceFragmentStore extends FragmentStore {
     set(value) {
         super.set(value);
         this.previewStore.set(value);
-    }
-
-    setLoading(loading = false) {
-        this.loading = loading;
-        this.notify();
     }
 
     updateField(name, value) {

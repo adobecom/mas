@@ -25,6 +25,7 @@ function extractValue(ref) {
 }
 
 async function getDictionary(context) {
+    if (context.hasExternalDictionary) return context.dictionary;
     const dictionary = context.dictionary || {};
     const id = context.dictionaryId ?? (await getDictionaryId(context));
     if (!id) {

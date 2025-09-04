@@ -54,6 +54,14 @@ export class Fragment {
         this.hasChanges = false;
     }
 
+    /**
+     * Updates the fragment entirely while preserving the initial value & hasChange status
+     * @param {object} fragmentData
+     */
+    replaceFrom(fragmentData) {
+        Object.assign(this, fragmentData);
+    }
+
     discardChanges() {
         if (!this.hasChanges) return;
         Object.assign(this, this.initialValue);

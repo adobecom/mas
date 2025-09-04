@@ -21,6 +21,7 @@ import {
     CARD_MODEL_PATH,
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
+import generateFragmentStore from './reactivity/source-fragment-store.js';
 
 let fragmentCache;
 
@@ -117,6 +118,7 @@ export class MasRepository extends LitElement {
         switch (this.page.value) {
             case PAGE_NAMES.CONTENT:
                 this.searchFragments();
+                this.loadPlaceholders();
                 break;
             case PAGE_NAMES.WELCOME:
                 this.loadRecentlyUpdatedFragments();
@@ -246,7 +248,8 @@ export class MasRepository extends LitElement {
                 );
                 if (fragmentData && fragmentData.path.indexOf(damPath) == 0) {
                     const fragment = await this.#addToCache(fragmentData);
-                    dataStore.set([new FragmentStore(fragment)]);
+                    const sourceStore = generateFragmentStore(fragment);
+                    dataStore.set([sourceStore]);
 
                     const folderPath = fragmentData.path.substring(fragmentData.path.indexOf(damPath) + damPath.length + 1);
                     const folderName = folderPath.substring(0, folderPath.indexOf('/'));
@@ -265,7 +268,8 @@ export class MasRepository extends LitElement {
                     for await (const item of result) {
                         if (this.skipVariant(variants, item)) continue;
                         const fragment = await this.#addToCache(item);
-                        fragmentStores.push(new FragmentStore(fragment));
+                        const sourceStore = generateFragmentStore(fragment);
+                        fragmentStores.push(sourceStore);
                     }
                     dataStore.set([...fragmentStores]);
                 }
@@ -312,7 +316,8 @@ export class MasRepository extends LitElement {
             const fragmentStores = [];
             for await (const item of result.value) {
                 const fragment = await this.#addToCache(item);
-                fragmentStores.push(new FragmentStore(fragment));
+                const sourceStore = generateFragmentStore(fragment);
+                fragmentStores.push(sourceStore);
             }
             dataStore.set(fragmentStores);
 
@@ -497,10 +502,9 @@ export class MasRepository extends LitElement {
                 savedResult = await this.aem.sites.cf.fragments.getById(savedResult.id);
             }
             const newFragment = await this.#addToCache(savedResult);
-
-            const newFragmentStore = new FragmentStore(newFragment);
-            Store.fragments.list.data.set((prev) => [...prev, newFragmentStore]);
-            editFragment(newFragmentStore);
+            const sourceStore = generateFragmentStore(newFragment);
+            Store.fragments.list.data.set((prev) => [...prev, sourceStore]);
+            editFragment(sourceStore);
 
             this.operation.set();
             Events.fragmentAdded.emit(newFragment.id);

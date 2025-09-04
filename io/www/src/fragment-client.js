@@ -51,6 +51,7 @@ async function previewStudioFragment(body, options) {
         preview = {
             url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
         },
+        dictionary,
         ...rest
     } = options;
     let context = {
@@ -65,6 +66,8 @@ async function previewStudioFragment(body, options) {
         },
         api_key: 'n/a',
         locale,
+        dictionary,
+        hasExternalDictionary: Boolean(dictionary),
         ...rest,
     };
     for (const transformer of [settings, replace, corrector]) {

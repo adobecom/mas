@@ -16,7 +16,7 @@ async function fetchArtifact(osi, promotionCode, wcsContext) {
     if (promotionCode) {
         url.searchParams.set('promotion_code', promotionCode);
     }
-    const response = await fetch(url.toString(), wcsContext.context);
+    const response = await fetch(url.toString(), wcsContext.context, 'wcs-last-request');
     if (response.status === 200) {
         return response.body;
     }
@@ -67,7 +67,6 @@ async function getWcsConfigurations(context) {
 }
 
 async function wcs(context) {
-    const startTime = Date.now();
     const wcsConfigs = await getWcsConfigurations(context);
     if (!wcsConfigs || wcsConfigs.length === 0) {
         log(`No WCS configurations found for API key ${context.api_key}`, context);
@@ -122,7 +121,6 @@ async function wcs(context) {
     } else {
         log('No WCS placeholders found in fragment content', context);
     }
-    log(`WCS processing completed in ${Date.now() - startTime}ms`, context);
     return context;
 }
 

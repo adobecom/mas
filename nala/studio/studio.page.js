@@ -21,6 +21,7 @@ export default class StudioPage {
         this.cancelDialog = page.locator('sp-button:has-text("Cancel")');
         this.deleteDialog = page.locator('sp-button:has-text("Delete")');
         this.discardDialog = page.locator('sp-button:has-text("Discard")');
+        this.discardConfirm = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Discard")');
         this.toastPositive = page.locator('mas-toast >> sp-toast[variant="positive"]');
         this.toastNegative = page.locator('mas-toast >> sp-toast[variant="negative"]');
         this.suggestedCard = page.locator('merch-card[variant="ccd-suggested"]');
@@ -40,6 +41,7 @@ export default class StudioPage {
         this.cloneCardButton = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="clone"]');
         this.deleteCardButton = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="delete"]');
         this.saveCardButton = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="save"]');
+        this.discardCardButton = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="discard"]');
     }
 
     async getCard(id, cloned, secondID) {
@@ -391,5 +393,15 @@ export default class StudioPage {
         } finally {
             this.page.removeListener('console', consoleListener);
         }
+    }
+
+    async discardCard() {
+        // Click the X button to close the editor
+        const closeButton = this.page.locator('editor-panel >> sp-action-button[value="close"]');
+        await closeButton.waitFor({ state: 'visible', timeout: 5000 });
+        await closeButton.click();
+
+        // Wait for confirmation dialog
+        await expect(this.confirmationDialog).toBeVisible({ timeout: 5000 });
     }
 }

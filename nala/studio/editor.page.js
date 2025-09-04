@@ -44,6 +44,12 @@ export default class EditorPage {
         this.whatsIncludedIconRemoveButton = this.panel.locator('#whatsIncluded sp-icon-close');
         this.closeEditor = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="close"]');
 
+        // Mnemonic field selectors - using >> for shadow DOM piercing
+        this.mnemonicField = this.panel.locator('mas-mnemonic-field');
+        this.mnemonicEditButton = this.panel.locator('mas-mnemonic-field >> .edit-button');
+        this.mnemonicPreview = this.panel.locator('mas-mnemonic-field >> .mnemonic-preview');
+        this.mnemonicIcon = this.panel.locator('mas-mnemonic-field >> .icon-preview img');
+
         // Price templates
         this.regularPrice = page.locator('span[is="inline-price"][data-template="price"]');
         this.strikethroughPrice = page.locator('span[is="inline-price"][data-template="strikethrough"]');

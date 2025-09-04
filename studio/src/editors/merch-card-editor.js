@@ -418,6 +418,7 @@ class MerchCardEditor extends LitElement {
                     styling
                     link
                     mnemonic
+                    multiline
                     data-field="prices"
                     .osi=${form.osi.values[0]}
                     default-link-style="primary-outline"

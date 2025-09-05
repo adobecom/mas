@@ -20,6 +20,7 @@ class MasContent extends LitElement {
     }
 
     loading = new StoreController(this, Store.fragments.list.loading);
+    firstPageLoaded = new StoreController(this, Store.fragments.list.firstPageLoaded);
     fragments = new StoreController(this, Store.fragments.list.data);
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
@@ -129,9 +130,16 @@ class MasContent extends LitElement {
         </sp-table>`;
     }
 
-    get loadingIndicator() {
-        if (!this.loading.value) return nothing;
+    /** main spinner to show while loading the first page */
+    get firstPageLoadingSpinner() {
+        if (!this.loading.value || this.firstPageLoaded.value) return nothing;
         return html`<sp-progress-circle class="fragments" indeterminate size="l"></sp-progress-circle>`;
+    }
+
+    /** spinner to show at the bottom of the page if next page is being loaded */
+    get pageLoadingSpinner() {
+        if (!this.loading.value || !this.firstPageLoaded.value) return nothing;
+        return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
     }
 
     render() {
@@ -146,7 +154,8 @@ class MasContent extends LitElement {
             default:
                 view = this.renderView;
         }
-        return html`<div id="content">${view} ${this.loadingIndicator}</div>`;
+        return html`<div id="content">${view} ${this.firstPageLoadingSpinner}</div>
+            ${this.pageLoadingSpinner}`;
     }
 }
 

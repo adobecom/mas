@@ -259,9 +259,12 @@ mas-recently-updated > .container {
 }
 
 mas-content {
-    width: 100%;
-    padding-inline: 30px;
+    align-items: center;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    padding-inline: 30px;
+    width: 100%;
 }
 
 #content {

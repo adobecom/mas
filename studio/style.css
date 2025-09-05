@@ -263,7 +263,6 @@ mas-content {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    padding-inline: 30px;
     width: 100%;
 }
 

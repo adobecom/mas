@@ -149,10 +149,4 @@ export const SORT_COLUMNS = {
 };
 
 // Variant capabilities configuration
-export const VARIANT_CAPABILITIES = {
-    defaultCard: {
-        supported: ['simplified-pricing-express'],
-        label: 'Default Card',
-        helpText: 'Drag a card here to set as default',
-    },
-};
+export const VARIANT_CAPABILITIES = {};

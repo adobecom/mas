@@ -3,7 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import { Fragment } from '../aem/fragment.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { styles } from './merch-card-collection-editor.css.js';
-import { FIELD_MODEL_MAPPING, COLLECTION_MODEL_PATH, CARD_MODEL_PATH, VARIANT_CAPABILITIES } from '../constants.js';
+import { FIELD_MODEL_MAPPING, COLLECTION_MODEL_PATH, CARD_MODEL_PATH } from '../constants.js';
 import Store, { editFragment } from '../store.js';
 import { getFromFragmentCache } from '../mas-repository.js';
 import { showToast } from '../utils.js';
@@ -85,10 +85,6 @@ class MerchCardCollectionEditor extends LitElement {
         }
 
         this.requestUpdate();
-
-        if (this.defaultChild) {
-            this.requestUpdate();
-        }
     }
 
     editFragment(item) {
@@ -128,31 +124,6 @@ class MerchCardCollectionEditor extends LitElement {
         return this.fragment?.fields?.find((field) => field.name === fieldName);
     }
 
-    get defaultChild() {
-        return this.#getFieldValue('defaultchild');
-    }
-
-    get #firstCardVariant() {
-        if (!this.fragment) return null;
-
-        const cardsField = this.#getField('cards');
-        if (!cardsField?.values?.length) return null;
-
-        const firstCardPath = cardsField.values[0];
-        const firstCardStore = this.#fragmentReferencesMap.get(firstCardPath);
-        if (!firstCardStore) return null;
-
-        const firstCardFragment = firstCardStore.get();
-        return firstCardFragment?.fields?.find((f) => f.name === 'variant')?.values?.[0];
-    }
-
-    get #supportsDefaultCard() {
-        const variant = this.#firstCardVariant;
-        if (!variant) return false;
-
-        return VARIANT_CAPABILITIES.defaultCard.supported.includes(variant);
-    }
-
     get #cardsHeader() {
         return html`
             <div class="section-header">
@@ -180,66 +151,6 @@ class MerchCardCollectionEditor extends LitElement {
         `;
     }
 
-    get #defaultCardDropZone() {
-        const hasDefaultCard = !!this.defaultChild;
-        const defaultCardPath = hasDefaultCard ? this.getCardPathById(this.defaultChild) : null;
-        const defaultCardStore = defaultCardPath ? this.#fragmentReferencesMap.get(defaultCardPath) : null;
-        const defaultCardFragment = defaultCardStore?.get();
-        const config = VARIANT_CAPABILITIES.defaultCard;
-
-        return html`
-            <div class="default-card-section">
-                <div class="default-card-header">
-                    <sp-icon-star size="s"></sp-icon-star>
-                    <span>${config.label}</span>
-                </div>
-                <div
-                    class="default-card-drop-zone ${hasDefaultCard ? 'has-default' : 'empty'}"
-                    @dragover=${this.handleDefaultCardDragOver}
-                    @dragleave=${this.handleDefaultCardDragLeave}
-                    @drop=${this.handleDefaultCardDrop}
-                    @dragenter=${(e) => e.preventDefault()}
-                >
-                    ${hasDefaultCard
-                        ? html`
-                              <div class="default-card-content">
-                                  <div class="default-card-info">
-                                      <div class="default-card-details">
-                                          <span class="default-card-title"
-                                              >${defaultCardFragment?.title ||
-                                              defaultCardFragment?.fields?.find((f) => f.name === 'cardTitle')?.values?.[0] ||
-                                              'Default Card'}</span
-                                          >
-                                          <span class="default-card-name">${defaultCardFragment?.name || ''}</span>
-                                      </div>
-                                  </div>
-                                  <sp-action-button quiet size="s" @click=${this.removeDefaultCard}>
-                                      <sp-icon-close slot="icon"></sp-icon-close>
-                                  </sp-action-button>
-                              </div>
-                          `
-                        : html`
-                              <div class="drop-zone-placeholder">
-                                  <sp-icon-drag-handle size="l"></sp-icon-drag-handle>
-                                  <p>${config.helpText}</p>
-                              </div>
-                          `}
-                </div>
-            </div>
-        `;
-    }
-
-    getCardPathById(fragmentId) {
-        const cardsField = this.#getField('cards');
-        if (!cardsField?.values) return null;
-
-        const cardPath = cardsField.values.find((path) => {
-            const cardStore = this.#fragmentReferencesMap.get(path);
-            return cardStore?.get()?.id === fragmentId;
-        });
-
-        return cardPath || this.fragment?.references?.find((ref) => ref.id === fragmentId)?.path || null;
-    }
 
     get #collections() {
         if (!this.fragment) return nothing;
@@ -336,14 +247,10 @@ class MerchCardCollectionEditor extends LitElement {
                         if (!fragment) return nothing;
 
                         const { label, iconPaths } = this.#getFragmentInfo(fragment);
-                        const isDefaultCard =
-                            this.#supportsDefaultCard &&
-                            fragment.id === this.defaultChild &&
-                            fragment.model?.path === CARD_MODEL_PATH;
 
                         return html`
                             <div
-                                class="item-wrapper ${isDefaultCard ? 'is-default-card' : ''}"
+                                class="item-wrapper"
                                 draggable="true"
                                 @dragstart="${(e) => this.#dragStart(e, index, fragment.model)}"
                                 @dragover="${(e) => this.#dragOver(e, index, fragment.model)}"
@@ -352,9 +259,6 @@ class MerchCardCollectionEditor extends LitElement {
                                 @dragend="${this.#dragEnd}"
                             >
                                 <div class="item-content">
-                                    ${isDefaultCard
-                                        ? html` <sp-icon-star class="default-indicator" size="s"></sp-icon-star> `
-                                        : nothing}
                                     <div class="item-text">
                                         <div class="item-label">${label}</div>
                                         <div class="item-subtext">${fragment.title}</div>
@@ -435,10 +339,6 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     #drop(e, index, model) {
-        if (e.composedPath().find((el) => el.classList?.contains('default-card-drop-zone'))) {
-            return;
-        }
-
         e.preventDefault();
         e.stopPropagation();
         if (!this.fragment) return;
@@ -695,19 +595,6 @@ class MerchCardCollectionEditor extends LitElement {
         this.hideCards = event.target.checked;
     }
 
-    handleDefaultCardDragOver(event) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.dataTransfer.dropEffect = 'copy';
-        event.currentTarget.classList.add('dragover');
-    }
-
-    handleDefaultCardDragLeave(event) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.currentTarget.classList.remove('dragover');
-    }
-
     #handleItemsContainerDragOver(e, field) {
         if (this.draggingIndex === -1) {
             e.preventDefault();
@@ -735,87 +622,6 @@ class MerchCardCollectionEditor extends LitElement {
             event.dataTransfer.getData('text');
 
         return data ? JSON.parse(data) : null;
-    }
-
-    #isCardInCollection(fragmentId) {
-        const cardsField = this.#getField('cards');
-        if (!cardsField?.values) return false;
-
-        return cardsField.values.some((cardPath) => {
-            const cardStore = this.#fragmentReferencesMap.get(cardPath);
-            return cardStore?.get()?.id === fragmentId;
-        });
-    }
-
-    #updateDefaultChild(fragmentId) {
-        if (this.updateFragment) {
-            this.updateFragment({
-                target: {
-                    dataset: { field: 'defaultchild' },
-                    multiline: false,
-                },
-                values: [fragmentId],
-            });
-        } else {
-            this.fragmentStore.updateField('defaultchild', [fragmentId]);
-        }
-    }
-
-    handleDefaultCardDrop(event) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.currentTarget.classList.remove('dragover');
-
-        try {
-            const parsedData = this.#parseDropData(event);
-            if (!parsedData) return;
-
-            const modelPath = parsedData.model?.path || parsedData.model;
-            if (modelPath === COLLECTION_MODEL_PATH) {
-                showToast('Cannot set a collection as default card', 'negative');
-                return;
-            }
-
-            const fragmentId = parsedData.id;
-            if (!fragmentId) return;
-
-            if (!this.#isCardInCollection(fragmentId)) {
-                showToast('Card is not in this collection', 'negative');
-                return;
-            }
-
-            this.#updateDefaultChild(fragmentId);
-
-            const cardPath = this.getCardPathById(fragmentId);
-            const cardStore = this.#fragmentReferencesMap.get(cardPath);
-            const cardFragment = cardStore?.get();
-            const cardTitle =
-                cardFragment?.title || this.#getFieldValue.call({ fragment: cardFragment }, 'cardTitle') || 'Card';
-
-            showToast(`${cardTitle} set as default card`, 'positive');
-            this.requestUpdate();
-        } catch (error) {
-            showToast('Error setting default card', 'negative');
-        }
-    }
-
-    removeDefaultCard() {
-        if (this.updateFragment) {
-            this.updateFragment({
-                target: {
-                    dataset: { field: 'defaultchild' },
-                    multiline: false,
-                },
-                values: [],
-            });
-        } else {
-            const defaultChildField = this.fragment.fields?.find((f) => f.name === 'defaultchild');
-            if (defaultChildField) {
-                this.fragmentStore.updateField('defaultchild', []);
-            }
-        }
-        showToast('Default card removed', 'positive');
-        this.requestUpdate();
     }
 
     showItemPreview(event, fragment) {
@@ -921,10 +727,9 @@ class MerchCardCollectionEditor extends LitElement {
     render() {
         const cardsField = this.#getField('cards');
         const hasCards = cardsField?.values?.length > 0;
-        const supportsDefault = this.#supportsDefaultCard;
 
         return html`<div class="editor-container">
-            ${this.#form} ${hasCards && supportsDefault ? this.#defaultCardDropZone : nothing}
+            ${this.#form}
             <div data-field-name="${CARDS_SECTION}">${this.#cards}</div>
             ${this.#collections} ${this.#tip}
         </div>`;

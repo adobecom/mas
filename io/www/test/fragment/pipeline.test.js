@@ -77,7 +77,7 @@ const runOnFilledState = async (entry, headers) => {
     });
     const state = new MockState();
     await state.put('req-some-en-us-fragment-fr_FR', entry);
-    await state.put('debugFragmentLogs', true);
+    await state.put('configuration', JSON.stringify({ debugLogs: true }));
     return await getFragment({
         id: 'some-en-us-fragment',
         state,
@@ -228,7 +228,7 @@ describe('pipeline corner cases', () => {
             .reply(200, {});
 
         const state = new MockState();
-        state.put('network-config', '{"fetchTimeout":20,"retries":1,"retryDelay":1}');
+        state.put('configuration', '{"networkConfig":{"fetchTimeout":20,"retries":1,"retryDelay":1}}');
         const result = await getFragment({
             id: 'test-fragment',
             state,
@@ -247,8 +247,7 @@ describe('pipeline corner cases', () => {
     it('should handle fetch exceptions', async () => {
         nock('https://odin.adobe.com').get('/adobe/sites/fragments/test-fragment').replyWithError('Network error');
         const state = new MockState();
-        state.put('network-config', '{"retries": 2, "retryDelay": 1}');
-
+        state.put('configuration', '{"networkConfig":{"retries": 2, "retryDelay": 1}}');
         const result = await getFragment({
             id: 'test-fragment',
             state,
@@ -270,7 +269,7 @@ describe('pipeline corner cases', () => {
             path: 'someFragment',
         });
         const state = new MockState();
-        state.put('network-config', '{"mainTimeout":3,"retries": 1}');
+        state.put('configuration', '{"networkConfig":{"mainTimeout":3,"retries": 1}}');
         const result = await getFragment({
             id: 'some-en-us-fragment',
             state: state,

@@ -4,6 +4,13 @@ const { MAS_ELEMENT_REGEXP, wcs } = require('../../src/fragment/wcs.js');
 
 const { MockState } = require('./mocks/MockState.js');
 const FRAGMENT = require('./mocks/fragment.json');
+const CONFIGURATION = (keys = ['foo', 'testing_wcs', 'bar']) => [
+    {
+        api_keys: keys,
+        wcsURL: 'https://www.adobe.com/web_commerce_artifact',
+        env: 'prod',
+    },
+];
 
 describe('MAS_ELEMENT_REGEXP', function () {
     it('should match a span with osi', function () {
@@ -31,7 +38,6 @@ describe('wcs typical cases', function () {
             locale: 'en_US',
         };
         context.body = FRAGMENT;
-        context.state = new MockState();
     });
 
     afterEach(function () {
@@ -75,16 +81,7 @@ describe('wcs typical cases', function () {
                 language: 'MULT',
             })
             .reply(200, { resolvedOffers: [{ upt: 'foo' }] });
-        await context.state.put(
-            'wcs-configuration',
-            JSON.stringify([
-                {
-                    api_keys: ['foo', 'testing_wcs', 'bar'],
-                    wcsURL: 'https://www.adobe.com/web_commerce_artifact',
-                    env: 'prod',
-                },
-            ]),
-        );
+        context.wcsConfiguration = CONFIGURATION();
         context.body.fields.osi = 'anotherOsiForUpt';
         context.body.fields.promoCode = 'UPT_PROMO-1';
         context = await wcs(context);
@@ -132,16 +129,7 @@ describe('wcs typical cases', function () {
                 api_key: 'testing_wcs',
             })
             .reply(200, { resolvedOffers: [{ foo: 'bar' }] });
-        await context.state.put(
-            'wcs-configuration',
-            JSON.stringify([
-                {
-                    api_keys: ['foo', 'testing_wcs', 'bar'],
-                    wcsURL: 'https://www.adobe.com/web_commerce_artifact',
-                    env: 'prod',
-                },
-            ]),
-        );
+        context.wcsConfiguration = CONFIGURATION();
         delete context.body.fields.osi;
         delete context.body.fields.promoCode;
         context.locale = 'en_GB';
@@ -171,7 +159,6 @@ describe('wcs corner cases', function () {
             locale: 'en_US',
         };
         context.body = FRAGMENT;
-        context.state = new MockState();
     });
 
     afterEach(function () {
@@ -184,32 +171,20 @@ describe('wcs corner cases', function () {
     });
 
     it('should not do much if bad configuration is is found', async function () {
-        await context.state.put('wcs-configuration', "[{ api_keys: 'bad json'");
+        context.wcsConfiguration = 'unexpected string';
         context = wcs(context);
         expect(context.body?.wcs).to.be.undefined;
     });
 
     it('should not do much if no wcs placeholder is found', async function () {
         context.body = { content: '<p>no wcs placeholder here</p>' };
-        await context.state.put(
-            'wcs-configuration',
-            JSON.stringify([
-                {
-                    api_keys: ['foo', 'testing_wcs', 'bar'],
-                    wcsURL: 'https://www.adobe.com/web_commerce_artifact',
-                    env: 'prod',
-                },
-            ]),
-        );
+        context.wcsConfiguration = CONFIGURATION();
         context = wcs(context);
         expect(context.body?.wcs).to.be.undefined;
     });
 
     it('should not do much if no api key is found', async function () {
-        await context.state.put(
-            'wcs-configuration',
-            '[{"api_keys":["some-other-key"],"wcsURL":"https://www.adobe.com/web_commerce_artifact","env":"prod"}]',
-        );
+        context.wcsConfiguration = CONFIGURATION(['some-other-key']);
         context = wcs(context);
         expect(context.body?.wcs).to.be.undefined;
     });
@@ -239,16 +214,7 @@ describe('wcs corner cases', function () {
                 language: 'MULT',
             })
             .reply(200, { resolvedOffers: [{ foo: 'bar' }] });
-        await context.state.put(
-            'wcs-configuration',
-            JSON.stringify([
-                {
-                    api_keys: ['foo', 'testing_wcs', 'bar'],
-                    wcsURL: 'https://www.adobe.com/web_commerce_artifact',
-                    env: 'prod',
-                },
-            ]),
-        );
+        context.wcsConfiguration = CONFIGURATION();
         context = await wcs(context);
         expect(context.body.wcs).to.deep.equal({
             prod: {

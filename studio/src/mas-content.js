@@ -139,7 +139,7 @@ class MasContent extends LitElement {
     /** spinner to show at the bottom of the page if next page is being loaded */
     get pageLoadingSpinner() {
         if (!this.loading.value || !this.firstPageLoaded.value) return nothing;
-        return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
+        return html`<sp-progress-circle class="next-page" indeterminate size="l"></sp-progress-circle>`;
     }
 
     render() {

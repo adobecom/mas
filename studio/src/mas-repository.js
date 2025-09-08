@@ -261,6 +261,8 @@ export class MasRepository extends LitElement {
                     }
                 }
             } else {
+                Store.fragments.list.loading.set(true);
+                Store.fragments.list.firstPageLoaded.set(false);
                 dataStore.set([]);
                 const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
                 const fragmentStores = [];

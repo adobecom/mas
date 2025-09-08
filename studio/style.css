@@ -259,7 +259,6 @@ mas-recently-updated > .container {
 }
 
 mas-content {
-    align-items: center;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -555,6 +554,10 @@ sp-progress-circle.preview {
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 1000;
+}
+
+sp-progress-circle.next-page {
+    align-self: center;
 }
 
 .clone-dialog sp-progress-circle {

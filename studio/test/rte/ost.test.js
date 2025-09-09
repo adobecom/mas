@@ -35,7 +35,6 @@ describe('onPlaceholderSelect', () => {
         onPlaceholderSelect(offerSelectorId, type, offer, options, promoOverride);
 
         const expectedAttributes = {
-            'data-display-old-price': false,
             'data-wcs-osi': offerSelectorId,
             'data-template': type,
             is: 'inline-price',

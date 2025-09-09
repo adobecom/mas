@@ -144,6 +144,7 @@ export class MasRepository extends LitElement {
             Store.fragments.list.data.set([]);
         } catch (error) {
             Store.fragments.list.loading.set(false);
+            Store.fragments.list.firstPageLoaded.set(false);
             Store.fragments.recentlyUpdated.loading.set(false);
             this.processError(error, 'Could not load folders.');
         }
@@ -183,6 +184,7 @@ export class MasRepository extends LitElement {
         if (!Store.profile.value) return;
 
         Store.fragments.list.loading.set(true);
+        Store.fragments.list.firstPageLoaded.set(false);
 
         const path = this.search.value.path;
         const dataStore = Store.fragments.list.data;
@@ -237,6 +239,7 @@ export class MasRepository extends LitElement {
                 if (currentFragment?.value.id === this.search.value.query) {
                     // Skip search if we already have exactly this fragment)
                     Store.fragments.list.loading.set(false);
+                    Store.fragments.list.firstPageLoaded.set(true);
                     return;
                 }
                 dataStore.set([]);
@@ -258,6 +261,8 @@ export class MasRepository extends LitElement {
                     }
                 }
             } else {
+                Store.fragments.list.loading.set(true);
+                Store.fragments.list.firstPageLoaded.set(false);
                 dataStore.set([]);
                 const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
                 const fragmentStores = [];
@@ -268,6 +273,7 @@ export class MasRepository extends LitElement {
                         fragmentStores.push(new FragmentStore(fragment));
                     }
                     dataStore.set([...fragmentStores]);
+                    Store.fragments.list.firstPageLoaded.set(true);
                 }
             }
 

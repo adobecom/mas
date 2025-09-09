@@ -135,7 +135,7 @@ async function fetchAttempt(path, context, timeout, marker) {
  * @param {*} timeout
  * @param {*} retries
  */
-async function internalFetch(path, context, marker = '') {
+async function internalFetch(path, context, marker) {
     mark(context, `${marker}`);
     const { retries = 3, fetchTimeout = 2000, retryDelay = 100 } = context.networkConfig || {};
     let delay = retryDelay;

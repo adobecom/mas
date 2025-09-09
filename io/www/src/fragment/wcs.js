@@ -16,7 +16,7 @@ async function fetchArtifact(osi, promotionCode, wcsContext) {
     if (promotionCode) {
         url.searchParams.set('promotion_code', promotionCode);
     }
-    const response = await fetch(url.toString(), wcsContext.context);
+    const response = await fetch(url.toString(), wcsContext.context, 'wcs-last-request');
     if (response.status === 200) {
         return response.body;
     }
@@ -67,7 +67,6 @@ async function getWcsConfigurations(context) {
 }
 
 async function wcs(context) {
-    const startTime = Date.now();
     const wcsConfigs = await getWcsConfigurations(context);
     if (!wcsConfigs || wcsConfigs.length === 0) {
         log(`No WCS configurations found for API key ${context.api_key}`, context);
@@ -77,25 +76,30 @@ async function wcs(context) {
     let bodyString = JSON.stringify(body);
     const matches = [...bodyString.matchAll(MAS_ELEMENT_REGEXP)];
     if (matches.length > 0) {
-        const tokens = matches
-            .map((match) => {
-                const token = {
-                    osi: match.groups.osi,
-                };
-                const promoMatch = match[0].match(PROMOCODE_REGEXP);
-                if (promoMatch && promoMatch.groups?.promotionCode) {
-                    token.promotionCode = promoMatch.groups.promotionCode;
-                }
-                return token;
-            })
-            .filter((token) => token.osi);
-        if (body.fields.osi && body.fields.promoCode) {
-            tokens.push({
+        const tokenMap = new Map();
+        const tokenKey = ({ osi, promotionCode }) => `${osi}-${promotionCode || ''}`;
+        matches.forEach((match) => {
+            const token = {
+                osi: match.groups.osi,
+            };
+            const promoMatch = match[0].match(PROMOCODE_REGEXP);
+            if (promoMatch && promoMatch.groups?.promotionCode) {
+                token.promotionCode = promoMatch.groups.promotionCode;
+            }
+            tokenMap.set(tokenKey(token), token);
+        });
+
+        if (body.fields.osi) {
+            const token = {
                 osi: body.fields.osi,
                 promotionCode: body.fields.promoCode,
-            });
+            };
+            tokenMap.set(tokenKey(token), token);
         }
-        const country = locale.split('_')[1];
+
+        // Convert Map values back to array
+        const tokens = Array.from(tokenMap.values());
+        const country = context.country || locale.split('_')[1];
         const wcsContext = {
             locale,
             country,
@@ -117,7 +121,6 @@ async function wcs(context) {
     } else {
         log('No WCS placeholders found in fragment content', context);
     }
-    log(`WCS processing completed in ${Date.now() - startTime}ms`, context);
     return context;
 }
 

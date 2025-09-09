@@ -54,10 +54,10 @@ async function main(params) {
         context.state = await stateLib.init();
     }
     try {
-        const { json } = await getJsonFromState('network-config', context);
-        context.networkConfig = json || {};
+        const { json: configuration } = await getJsonFromState('configuration', context);
+        context = configuration ? { ...context, ...configuration } : context;
         const initTime = measureTiming(context, 'init', 'start').duration;
-        let timeout = context.networkConfig.mainTimeout || 5000;
+        let timeout = context.networkConfig?.mainTimeout || 5000;
         timeout = Math.max(timeout - initTime, 0);
         returnValue = await Promise.race([
             mainProcess(context),
@@ -106,7 +106,6 @@ async function main(params) {
 }
 
 async function mainProcess(context) {
-    context.debugLogs = await getFromState('debugFragmentLogs', context);
     const originalContext = context;
     const requestKey = `req-${context.id}-${context.locale}`;
     const { json: cachedMetadata, str: cachedMetadataStr } = await getJsonFromState(requestKey, context);

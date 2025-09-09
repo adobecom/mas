@@ -154,7 +154,7 @@ export default class StudioPage {
 
                 // Enter fragment title
                 const titleInput = this.page.locator('sp-dialog[variant="confirmation"] sp-textfield input');
-                await titleInput.fill('Cloned Fragment');
+                await titleInput.fill('MAS Nala Automation Cloned Fragment');
 
                 await this.page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Clone")').click();
 

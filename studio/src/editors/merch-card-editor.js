@@ -475,6 +475,22 @@ class MerchCardEditor extends LitElement {
                     >${unsafeHTML(form.description.values[0])}</rte-field
                 >
             </sp-field-group>
+            <sp-field-group class="toggle" id="description2">
+                <sp-field-label for="description2">Description 2</sp-field-label>
+                <rte-field
+                    id="description2"
+                    styling
+                    link
+                    upt-link
+                    list
+                    mnemonic
+                    data-field="description2"
+                    .osi=${form.osi.values[0]}
+                    default-link-style="secondary-link"
+                    @change="${this.#handleFragmentUpdate}"
+                    >${unsafeHTML(form.description2?.values[0] || '')}</rte-field
+                >
+            </sp-field-group>
             <sp-field-group class="toggle" id="callout">
                 <sp-field-label for="callout"> Callout text </sp-field-label>
                 <rte-field

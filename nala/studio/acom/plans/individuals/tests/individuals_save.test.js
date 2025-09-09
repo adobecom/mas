@@ -238,13 +238,44 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic field and save card', async () => {
-            await expect(await editor.iconURL).toBeVisible();
-            await editor.iconURL.fill(data.newIconURL);
+            // Check if we have the new mnemonic field or old icon field
+            const hasMnemonicField = await editor.mnemonicField.isVisible().catch(() => false);
+
+            if (hasMnemonicField) {
+                // New mnemonic field with modal
+                await editor.mnemonicEditButton.click();
+                await page.waitForTimeout(1000); // Wait for modal to open
+                await expect(await editor.mnemonicModalDialog).toBeVisible();
+
+                // Switch to URL tab
+                await editor.mnemonicUrlTab.click();
+
+                // Fill in the new icon URL
+                await editor.mnemonicUrlIconInput.fill(data.newIconURL);
+
+                // Save the changes in modal
+                await editor.mnemonicModalSaveButton.click();
+                await page.waitForTimeout(500); // Wait for modal to close
+            } else {
+                // Fallback to old icon field
+                await expect(await editor.iconURL).toBeVisible();
+                await editor.iconURL.fill(data.newIconURL);
+            }
+
+            // Save the card
             await studio.saveCard();
         });
 
         await test.step('step-4: Verify mnemonic change is saved', async () => {
-            await expect(await editor.iconURL).toHaveValue(data.newIconURL);
+            // Verify the icon was updated
+            const hasMnemonicField = await editor.mnemonicField.isVisible().catch(() => false);
+
+            if (hasMnemonicField) {
+                await expect(await editor.mnemonicIcon).toHaveAttribute('src', data.newIconURL);
+            } else {
+                await expect(await editor.iconURL).toHaveValue(data.newIconURL);
+            }
+
             await expect(await clonedCard.locator(individuals.cardIcon)).toHaveAttribute('src', data.newIconURL);
         });
     });

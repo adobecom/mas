@@ -241,8 +241,29 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            await expect(await editor.iconURL).toBeVisible();
-            await editor.iconURL.fill(data.newIconURL);
+            // Check if we have the new mnemonic field or old icon field
+            const hasMnemonicField = await editor.mnemonicField.isVisible().catch(() => false);
+
+            if (hasMnemonicField) {
+                // New mnemonic field with modal
+                await editor.mnemonicEditButton.click();
+                await page.waitForTimeout(1000); // Wait for modal to open
+                await expect(await editor.mnemonicModalDialog).toBeVisible();
+
+                // Switch to URL tab
+                await editor.mnemonicUrlTab.click();
+
+                // Fill in the new icon URL
+                await editor.mnemonicUrlIconInput.fill(data.newIconURL);
+
+                // Save the changes in modal
+                await editor.mnemonicModalSaveButton.click();
+                await page.waitForTimeout(500); // Wait for modal to close
+            } else {
+                // Fallback to old icon field
+                await expect(await editor.iconURL).toBeVisible();
+                await editor.iconURL.fill(data.newIconURL);
+            }
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -256,7 +277,14 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardIcon).toHaveAttribute('src', data.iconURL);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.iconURL).toHaveValue(data.iconURL);
+
+            // Verify the icon still shows the original URL
+            const hasMnemonicField = await editor.mnemonicField.isVisible().catch(() => false);
+            if (hasMnemonicField) {
+                await expect(await editor.mnemonicIcon).toHaveAttribute('src', data.iconURL);
+            } else {
+                await expect(await editor.iconURL).toHaveValue(data.iconURL);
+            }
         });
     });
 

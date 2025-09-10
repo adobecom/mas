@@ -6,6 +6,7 @@ const Store = {
     fragments: {
         list: {
             loading: new ReactiveStore(true),
+            firstPageLoaded: new ReactiveStore(false),
             data: new ReactiveStore([]),
         },
         recentlyUpdated: {

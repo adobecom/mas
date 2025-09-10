@@ -121,7 +121,7 @@ class MasStudio extends LitElement {
     }
 
     renderCommerceService() {
-        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}"></mas-commerce-service>`;
+        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}" data-mas-ff-defaults="on"></mas-commerce-service>`;
 
         // Update service landscape settings based on Store.landscape
         if (this.commerceService?.settings && Store.landscape.value) {

@@ -97,45 +97,49 @@ class MnemonicNodeView {
         this.view = view;
         this.getPos = getPos;
 
-        this.dom = document.createElement('span');
-        this.dom.classList.add('mnemonic');
-
-        const merchIcon = document.createElement('merch-icon');
+        // In the editor, we only render the icon part for better editing experience
+        this.dom = document.createElement('merch-icon');
+        this.dom.setAttribute('contenteditable', 'false');
+        this.dom.classList.add('mnemonic-icon');
         if (node.attrs.src) {
-            merchIcon.setAttribute('src', node.attrs.src);
-            merchIcon.setAttribute('size', node.attrs.size || 'xs');
+            this.dom.setAttribute('src', node.attrs.src);
+            this.dom.setAttribute('size', node.attrs.size || 'xs');
             if (node.attrs.alt) {
-                merchIcon.setAttribute('alt', node.attrs.alt);
+                this.dom.setAttribute('alt', node.attrs.alt);
+            }
+            // Store mnemonic data as data attributes for reference
+            if (node.attrs.mnemonicText) {
+                this.dom.setAttribute('data-mnemonic-text', node.attrs.mnemonicText);
+            }
+            if (node.attrs.mnemonicPlacement) {
+                this.dom.setAttribute('data-mnemonic-placement', node.attrs.mnemonicPlacement);
             }
         }
-        this.dom.appendChild(merchIcon);
     }
 
     update(node) {
         if (node.type !== this.node.type) return false;
         this.node = node;
 
-        const merchIcon = this.dom.querySelector('merch-icon');
-        if (merchIcon) {
-            if (node.attrs.src) {
-                merchIcon.setAttribute('src', node.attrs.src || '');
-                merchIcon.setAttribute('size', node.attrs.size || 'xs');
-                if (node.attrs.alt) {
-                    merchIcon.setAttribute('alt', node.attrs.alt);
-                } else {
-                    merchIcon.removeAttribute('alt');
-                }
+        if (node.attrs.src) {
+            this.dom.setAttribute('src', node.attrs.src || '');
+            this.dom.setAttribute('size', node.attrs.size || 'xs');
+            if (node.attrs.alt) {
+                this.dom.setAttribute('alt', node.attrs.alt);
+            } else {
+                this.dom.removeAttribute('alt');
             }
-        } else {
-            const newMerchIcon = document.createElement('merch-icon');
-            if (node.attrs.src) {
-                newMerchIcon.setAttribute('src', node.attrs.src);
-                newMerchIcon.setAttribute('size', node.attrs.size || 'xs');
-                if (node.attrs.alt) {
-                    newMerchIcon.setAttribute('alt', node.attrs.alt);
-                }
+            // Update data attributes for mnemonic info
+            if (node.attrs.mnemonicText) {
+                this.dom.setAttribute('data-mnemonic-text', node.attrs.mnemonicText);
+            } else {
+                this.dom.removeAttribute('data-mnemonic-text');
             }
-            this.dom.appendChild(newMerchIcon);
+            if (node.attrs.mnemonicPlacement) {
+                this.dom.setAttribute('data-mnemonic-placement', node.attrs.mnemonicPlacement);
+            } else {
+                this.dom.removeAttribute('data-mnemonic-placement');
+            }
         }
         return true;
     }
@@ -205,6 +209,8 @@ class RteField extends LitElement {
                     --consonant-merch-card-heading-s-line-height: 25px;
                     --consonant-merch-card-heading-m-font-size: 24px;
                     --consonant-merch-card-heading-m-line-height: 30px;
+                    --consonant-merch-card-heading-l-font-size: 28px;
+                    --consonant-merch-card-heading-l-line-height: 36.4px;
                     display: flex;
                     gap: 8px;
                     flex-direction: column;
@@ -342,6 +348,7 @@ class RteField extends LitElement {
                     vertical-align: middle;
                     margin: 0 2px;
                     line-height: normal;
+                    padding-right: 5px;
                 }
 
                 .ProseMirror merch-icon {
@@ -349,6 +356,15 @@ class RteField extends LitElement {
                     width: 20px;
                     height: 20px;
                     vertical-align: text-bottom;
+                }
+
+                .ProseMirror merch-icon.mnemonic-icon {
+                    display: inline-flex;
+                    width: 13px;
+                    height: 13px;
+                    vertical-align: text-bottom;
+                    margin: 0 2px;
+                    cursor: pointer;
                 }
 
                 .ProseMirror merch-icon-text {
@@ -373,7 +389,8 @@ class RteField extends LitElement {
 
                 div.ProseMirror-focused span[is='inline-price'].ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode,
-                div.ProseMirror-focused a.ProseMirror-selectednode {
+                div.ProseMirror-focused a.ProseMirror-selectednode,
+                div.ProseMirror-focused merch-icon.mnemonic-icon.ProseMirror-selectednode {
                     outline: 2px dashed var(--spectrum-global-color-blue-500);
                     outline-offset: 2px;
                     border-radius: 16px;
@@ -478,6 +495,12 @@ class RteField extends LitElement {
                     &.heading-m {
                         font-size: var(--consonant-merch-card-heading-m-font-size);
                         line-height: var(--consonant-merch-card-heading-m-line-height);
+                    }
+
+                    &.heading-l {
+                        font-size: var(--consonant-merch-card-heading-l-font-size);
+                        line-height: var(--consonant-merch-card-heading-l-line-height);
+                        font-weight: 900;
                     }
                 }
 
@@ -665,30 +688,44 @@ class RteField extends LitElement {
                     src: { default: null },
                     alt: { default: null },
                     size: { default: 'xs' },
-                    tooltipText: { default: null },
-                    tooltipPlacement: { default: null },
+                    mnemonicText: { default: null },
+                    mnemonicPlacement: { default: null },
                 },
                 parseDOM: [
+                    {
+                        tag: 'mas-mnemonic',
+                        priority: 50,
+                        getAttrs: (domNode) => {
+                            return {
+                                src: domNode.getAttribute('src'),
+                                alt: domNode.getAttribute('alt'),
+                                size: domNode.getAttribute('size') || 'xs',
+                                class: 'mnemonic',
+                                mnemonicText: domNode.getAttribute('mnemonic-text'),
+                                mnemonicPlacement: domNode.getAttribute('mnemonic-placement') || 'top',
+                            };
+                        },
+                    },
                     {
                         tag: 'overlay-trigger',
                         getAttrs: (domNode) => {
                             const triggerIcon = domNode.querySelector('merch-icon[slot="trigger"]');
-                            const tooltipContent = domNode.querySelector('sp-tooltip[slot="hover-content"]');
+                            const mnemonicContent = domNode.querySelector('sp-tooltip[slot="hover-content"]');
 
                             if (!triggerIcon) return false;
 
-                            let textFromTooltip = tooltipContent ? tooltipContent.textContent.trim() : null;
+                            let textFromMnemonic = mnemonicContent ? mnemonicContent.textContent.trim() : null;
                             let textFromAriaLabel = triggerIcon.getAttribute('aria-label');
 
-                            let parsedTooltipText = textFromTooltip || textFromAriaLabel || null;
+                            let parsedMnemonicText = textFromMnemonic || textFromAriaLabel || null;
 
                             return {
                                 src: triggerIcon.getAttribute('src'),
                                 alt: triggerIcon.getAttribute('alt'),
                                 size: triggerIcon.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
-                                tooltipText: parsedTooltipText,
-                                tooltipPlacement: domNode.getAttribute('placement') || 'top',
+                                mnemonicText: parsedMnemonicText,
+                                mnemonicPlacement: domNode.getAttribute('placement') || 'top',
                             };
                         },
                     },
@@ -710,13 +747,13 @@ class RteField extends LitElement {
                                 alt: domNode.getAttribute('alt'),
                                 size: domNode.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
-                                tooltipText: domNode.getAttribute('data-tooltip'),
-                                tooltipPlacement: domNode.getAttribute('data-tooltip-placement'),
+                                mnemonicText: domNode.getAttribute('data-mnemonic'),
+                                mnemonicPlacement: domNode.getAttribute('data-mnemonic-placement'),
                             };
                         },
                     },
                     {
-                        tag: 'merch-icon[data-tooltip]',
+                        tag: 'merch-icon[data-mnemonic]',
                         priority: 40,
                         getAttrs: (domNode) => {
                             if (
@@ -730,8 +767,8 @@ class RteField extends LitElement {
                                 alt: domNode.getAttribute('alt'),
                                 size: domNode.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
-                                tooltipText: domNode.getAttribute('data-tooltip'),
-                                tooltipPlacement: domNode.getAttribute('data-tooltip-placement'),
+                                mnemonicText: domNode.getAttribute('data-mnemonic'),
+                                mnemonicPlacement: domNode.getAttribute('data-mnemonic-placement'),
                             };
                         },
                     },
@@ -752,50 +789,24 @@ class RteField extends LitElement {
                                 alt: icon.getAttribute('alt'),
                                 size: icon.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
-                                tooltipText: icon.getAttribute('data-tooltip'),
-                                tooltipPlacement: icon.getAttribute('data-tooltip-placement'),
+                                mnemonicText: icon.getAttribute('data-mnemonic'),
+                                mnemonicPlacement: icon.getAttribute('data-mnemonic-placement'),
                             };
                         },
                     },
                 ],
                 toDOM: (node) => {
-                    const { src, alt, size, tooltipText, tooltipPlacement } = node.attrs;
-
-                    if (tooltipText && tooltipText.trim() !== '') {
-                        const overlayAttrs = {
-                            placement: tooltipPlacement || 'top',
-                        };
-                        const iconAttrs = {
-                            src: src || '',
-                            size: size || 'xs',
-                            slot: 'trigger',
-                            'aria-label': tooltipText.trim(),
-                        };
-                        if (alt) {
-                            iconAttrs.alt = alt;
-                        }
-
-                        const tooltipDOMAttrs = {
-                            slot: 'hover-content',
-                            dir: 'ltr',
-                        };
-
-                        return [
-                            'overlay-trigger',
-                            overlayAttrs,
-                            ['merch-icon', iconAttrs],
-                            ['sp-tooltip', tooltipDOMAttrs, tooltipText.trim()],
-                        ];
-                    } else {
-                        const iconAttrs = {
-                            src: src || '',
-                            size: size || 'xs',
-                        };
-                        if (alt) {
-                            iconAttrs.alt = alt;
-                        }
-                        return ['merch-icon', iconAttrs];
+                    const { src, alt, size, mnemonicText, mnemonicPlacement } = node.attrs;
+                    const attrs = {
+                        src: src || '',
+                        size: size || 'xs',
+                    };
+                    if (alt) attrs.alt = alt;
+                    if (mnemonicText && mnemonicText.trim() !== '') {
+                        attrs['mnemonic-text'] = mnemonicText.trim();
+                        attrs['mnemonic-placement'] = mnemonicPlacement || 'top';
                     }
+                    return ['mas-mnemonic', attrs];
                 },
             });
         }
@@ -818,6 +829,7 @@ class RteField extends LitElement {
                     'data-template': { default: null },
                     title: { default: null },
                     target: { default: null },
+                    'aria-label': { default: null },
                     'data-analytics-id': { default: null },
                     'data-modal': { default: null },
                     'data-entitlement': { default: null },
@@ -825,7 +837,7 @@ class RteField extends LitElement {
                     'data-cta-toggle-text': { default: null },
                 },
                 // Disallow styling marks inside links (they can still wrap them)
-                marks: 'em strong strikethrough underline',
+                marks: 'em strong strikethrough underline superscript',
                 parseDOM: [
                     {
                         tag: 'a',
@@ -866,6 +878,10 @@ class RteField extends LitElement {
                     parseDOM: [{ tag: 'u' }],
                     toDOM: () => ['u', 0],
                 },
+                superscript: {
+                    parseDOM: [{ tag: 'sup' }],
+                    toDOM: () => ['sup', 0],
+                },
                 ...stylingMarks,
             });
 
@@ -894,6 +910,7 @@ class RteField extends LitElement {
                 'Mod-k': () => this.openLinkEditor(),
                 'Mod-s': toggleMark(this.#editorSchema.marks.strikethrough),
                 'Mod-u': toggleMark(this.#editorSchema.marks.underline),
+                'Mod-Shift-.': toggleMark(this.#editorSchema.marks.superscript),
                 'Mod-z': undo,
                 'Mod-y': redo,
                 'Shift-Mod-z': redo,
@@ -1100,6 +1117,7 @@ class RteField extends LitElement {
                 text: selection.node.textContent || '',
                 target: selection.node.attrs.target || '_self',
                 variant: selection.node.attrs.class || '',
+                ariaLabel: selection.node.attrs['aria-label'] || '',
                 analyticsId: selection.node.attrs['data-analytics-id'] || '',
                 checkoutParameters,
                 ctaToggleText: selection.node.attrs['data-cta-toggle-text'] || '',
@@ -1118,6 +1136,7 @@ class RteField extends LitElement {
                 text,
                 target: '_self',
                 variant: this.defaultLinkStyle,
+                ariaLabel: '',
                 analyticsId: '',
                 checkoutParameters,
                 ctaToggleText: '',
@@ -1131,6 +1150,7 @@ class RteField extends LitElement {
             text: '',
             target: '_self',
             variant: this.defaultLinkStyle,
+            ariaLabel: '',
             analyticsId: '',
             checkoutParameters,
             ctaToggleText: '',
@@ -1150,7 +1170,7 @@ class RteField extends LitElement {
     }
 
     #handleLinkSave(event) {
-        const { href, text, title, target, variant, analyticsId, ctaToggleText } = event.detail;
+        const { href, text, title, ariaLabel, target, variant, analyticsId, ctaToggleText } = event.detail;
 
         let { checkoutParameters } = event.detail;
         const { state, dispatch } = this.editorView;
@@ -1170,6 +1190,7 @@ class RteField extends LitElement {
         const linkAttrs = {
             href,
             title,
+            'aria-label': ariaLabel || null,
             target: target || '_self',
             class: variant || 'primary-outline',
             tabIndex: '0',
@@ -1470,8 +1491,8 @@ class RteField extends LitElement {
         }
 
         if (node && node.type.name === 'mnemonic') {
-            event.stopPropagation(); // Keep stopping propagation might be good
-            event.preventDefault(); // Keep preventing default
+            event.stopPropagation();
+            event.preventDefault();
 
             this.currentMnemonicPos = nodePos;
             // --- Restore selection and modal opening ---
@@ -1501,8 +1522,8 @@ class RteField extends LitElement {
             imageUrl: node.attrs.src || '',
             altText: node.attrs.alt || '',
             size: node.attrs.size || 'xs',
-            tooltipText: node.attrs.tooltipText || '',
-            tooltipPlacement: node.attrs.tooltipPlacement || 'top',
+            mnemonicText: node.attrs.mnemonicText || '',
+            mnemonicPlacement: node.attrs.mnemonicPlacement || 'top',
         });
     }
 
@@ -1570,7 +1591,7 @@ class RteField extends LitElement {
     get #mnemonicButton() {
         if (!this.mnemonic) return nothing;
         return html`
-            <sp-action-button emphasized id="addMnemonicButton" @click=${this.openMnemonicEditor} title="Add Inline Icon">
+            <sp-action-button emphasized id="addMnemonicButton" @click=${this.openMnemonicEditor} title="Add Inline Mnemonic">
                 <sp-icon-image slot="icon"></sp-icon-image>
             </sp-action-button>
         `;
@@ -1636,6 +1657,13 @@ class RteField extends LitElement {
             >
                 <sp-icon-underline slot="icon"></sp-icon-underline>
             </sp-action-button>
+            <sp-action-button
+                @click=${this.#handleToolbarAction('superscript')}
+                @mousedown=${(e) => e.preventDefault()}
+                title="Superscript (Command+Shift+.)"
+            >
+                <span slot="icon" style="font-family: sans-serif; font-size: 14px; font-weight: bold;">x²</span>
+            </sp-action-button>
         `;
     }
 
@@ -1649,10 +1677,22 @@ class RteField extends LitElement {
             @change=${this.#handleStylingSelection}
         >
             <sp-icon-brush slot="icon"></sp-icon-brush>
+            <<<<<<< HEAD
             ${this.#stylingMarksData.map(([mark, label]) => {
                 if (!mark) return html`<sp-divider size="s"></sp-divider>`;
                 return html`<sp-menu-item value="${mark}">${label}</sp-menu-item>`;
             })}
+            =======
+            <sp-menu-item value="heading-xxxs">Heading XXXS - H6</sp-menu-item>
+            <sp-menu-item value="heading-xxs">Heading XXS - H5</sp-menu-item>
+            <sp-menu-item value="heading-xs">Heading XS - H4</sp-menu-item>
+            <sp-menu-item value="heading-s">Heading S - H3</sp-menu-item>
+            <sp-menu-item value="heading-m">Heading M - H2</sp-menu-item>
+            <sp-menu-item value="heading-l">Heading L - H2</sp-menu-item>
+            <sp-menu-divider></sp-menu-divider>
+            <sp-menu-item value="promo-text">Promo text</sp-menu-item>
+            <sp-menu-item value="mnemonic-text">Mnemonic Text</sp-menu-item>
+            >>>>>>> 0717884151d6ab55b4d4224ceb92ba86a219fcfc
         </sp-action-menu>`;
     }
 
@@ -1670,15 +1710,15 @@ class RteField extends LitElement {
     }
 
     #handleMnemonicSave(event) {
-        const { imageUrl, altText, size, tooltipText, tooltipPlacement } = event.detail;
+        const { imageUrl, altText, size, mnemonicText, mnemonicPlacement } = event.detail;
         const { state } = this.editorView;
 
         const attributesToSet = {
             src: imageUrl || null,
             alt: altText || null,
             size: size || 'xs',
-            tooltipText: tooltipText || null,
-            tooltipPlacement: tooltipPlacement || (tooltipText ? 'top' : null),
+            mnemonicText: mnemonicText || null,
+            mnemonicPlacement: mnemonicPlacement || (mnemonicText ? 'top' : null),
             class: 'mnemonic',
         };
 
@@ -1704,8 +1744,8 @@ class RteField extends LitElement {
             imageUrl: '',
             altText: '',
             size: 'xs',
-            tooltipText: '', // Ensure tooltip fields are reset too
-            tooltipPlacement: 'top',
+            mnemonicText: '', // Ensure mnemonic fields are reset too
+            mnemonicPlacement: 'top',
         });
     }
 }

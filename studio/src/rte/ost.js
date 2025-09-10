@@ -114,6 +114,9 @@ export function onPlaceholderSelect(offerSelectorId, type, offer, options, promo
     if (promoOverride) {
         attributes['data-promotion-code'] = promoOverride;
     }
+    if (!options.isPerpetual) {
+        delete changes.isPerpetual;
+    }
     for (const [key, value] of Object.entries(changes)) {
         const attribute = OST_OPTION_ATTRIBUTE_MAPPING[key];
         if (attribute) {

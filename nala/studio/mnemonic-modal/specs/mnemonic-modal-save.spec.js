@@ -1,0 +1,63 @@
+export default {
+    name: 'MAS Studio Mnemonic Modal Save Tests',
+    features: [
+        {
+            tcid: '0',
+            name: '@studio-mnemonic-modal-save-product',
+            path: '/studio.html',
+            tags: '@mas-studio @mnemonic-modal @smoke',
+            browserParams: '#page=content&path=nala&query=',
+            data: {
+                cardid: '88915824-6dd6-4b67-9f22-bd01b8b26816',
+                productName: 'After Effects',
+                productId: 'after-effects',
+                newIconURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/after-effects.svg',
+                altText: 'Adobe After Effects',
+                linkURL: 'https://www.adobe.com/products/aftereffects.html',
+            },
+        },
+        {
+            tcid: '1',
+            name: '@studio-mnemonic-modal-save-custom',
+            path: '/studio.html',
+            tags: '@mas-studio @mnemonic-modal @regression',
+            browserParams: '#page=content&path=nala&query=',
+            data: {
+                cardid: '88915824-6dd6-4b67-9f22-bd01b8b26816',
+                customIconURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/xd.svg',
+                altText: 'Adobe XD',
+                linkURL: 'https://www.adobe.com/products/xd.html',
+            },
+        },
+        {
+            tcid: '2',
+            name: '@studio-mnemonic-modal-save-persist',
+            path: '/studio.html',
+            tags: '@mas-studio @mnemonic-modal @regression',
+            browserParams: '#page=content&path=nala&query=',
+            data: {
+                cardid: '88915824-6dd6-4b67-9f22-bd01b8b26816',
+                productName: 'InDesign',
+                productId: 'indesign',
+                newIconURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/indesign.svg',
+                altText: 'Adobe InDesign',
+                linkURL: 'https://www.adobe.com/products/indesign.html',
+            },
+        },
+        {
+            tcid: '3',
+            name: '@studio-mnemonic-modal-save-with-card',
+            path: '/studio.html',
+            tags: '@mas-studio @mnemonic-modal @integration',
+            browserParams: '#page=content&path=nala&query=',
+            data: {
+                cardid: '88915824-6dd6-4b67-9f22-bd01b8b26816',
+                cardTitle: 'Updated Acrobat Pro',
+                productName: 'Acrobat Pro',
+                productId: 'acrobat-pro',
+                newIconURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/acrobat-pro.svg',
+                altText: 'Adobe Acrobat',
+            },
+        },
+    ],
+};

@@ -24,7 +24,7 @@ import './mas-confirm-dialog.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import router from './router.js';
-import { PAGE_NAMES, WCS_ENV_PROD } from './constants.js';
+import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, WCS_ENV_PROD } from './constants.js';
 
 const BUCKET_TO_ENV = {
     e155390: 'qa',
@@ -38,20 +38,28 @@ class MasStudio extends LitElement {
     static properties = {
         bucket: { type: String, attribute: 'aem-bucket' },
         baseUrl: { type: String, attribute: 'base-url' },
+        masJsReady: { type: Boolean, state: true },
     };
 
     #unsubscribeLocaleObserver;
     #unsubscribeLandscapeObserver;
-
+    #unsubscribeConsumerObserver;
     constructor() {
         super();
         this.bucket = 'e59433';
+        this.masJsReady = false;
     }
 
     connectedCallback() {
         super.connectedCallback();
         this.subscribeLocaleObserver();
+        this.initMasJs();
         this.subscribeLandscapeObserver();
+        this.subscribeConsumerObserver();
+    }
+
+    initMasJs() {
+        customElements.whenDefined('mas-commerce-service').then(() => (this.masJsReady = true));
     }
 
     get commerceService() {
@@ -78,10 +86,21 @@ class MasStudio extends LitElement {
         this.#unsubscribeLandscapeObserver = () => Store.landscape.unsubscribe(subscription);
     }
 
+    subscribeConsumerObserver() {
+        const subscription = (value, oldValue) => {
+            if (value.path !== oldValue.path) {
+                this.renderCommerceService();
+            }
+        };
+        Store.search.subscribe(subscription);
+        this.#unsubscribeConsumerObserver = () => Store.search.unsubscribe(subscription);
+    }
+
     disconnectedCallback() {
         super.disconnectedCallback();
         this.#unsubscribeLocaleObserver();
         this.#unsubscribeLandscapeObserver();
+        this.#unsubscribeConsumerObserver();
     }
 
     createRenderRoot() {
@@ -110,13 +129,12 @@ class MasStudio extends LitElement {
 
     get splashScreen() {
         if (this.page.value !== PAGE_NAMES.WELCOME) return nothing;
-        const hash = window.location.hash.slice(1);
-        const hashParams = new URLSearchParams(hash);
         return html`<mas-splash-screen base-url=${this.baseUrl}></mas-splash-screen>`;
     }
 
     renderCommerceService() {
-        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}"></mas-commerce-service>`;
+        const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.search.value.path]?.['mas-ff-defaults'] ?? 'off';
+        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
 
         // Update service landscape settings based on Store.landscape
         if (this.commerceService?.settings && Store.landscape.value) {
@@ -143,12 +161,17 @@ class MasStudio extends LitElement {
     }
 
     render() {
+        if (this.masJsReady) {
+            console.log('mas.js is ready', this.masJsReady);
+        }
         return html`
             <mas-top-nav aem-env="${this.aemEnv}"></mas-top-nav>
             <mas-repository bucket="${this.bucket}" base-url="${this.baseUrl}"></mas-repository>
             <div class="studio-content">
                 <mas-side-nav></mas-side-nav>
-                <div class="main-container">${this.splashScreen} ${this.content} ${this.placeholders}</div>
+                ${this.masJsReady
+                    ? html`<div class="main-container">${this.splashScreen} ${this.content} ${this.placeholders}</div>`
+                    : nothing}
             </div>
             <editor-panel></editor-panel>
             <mas-toast></mas-toast>

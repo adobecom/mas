@@ -72,7 +72,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.subtitle).toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.mnemonicField).toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.prices).toBeVisible();
             await expect(await editor.footer).toBeVisible();
@@ -133,7 +133,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.subtitle).not.toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.mnemonicField).toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.prices).not.toBeVisible();
             await expect(await editor.footer).toBeVisible();
@@ -195,7 +195,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.subtitle).not.toBeVisible();
             await expect(await editor.badge).not.toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.mnemonicField).toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.borderColor).toBeVisible();
             await expect(await editor.backgroundColor).toBeVisible();
@@ -405,7 +405,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 await page.waitForTimeout(500); // Wait for modal to close
             } else {
                 // Fallback to old icon field
-                await expect(await editor.iconURL).toBeVisible();
+                await expect(await editor.mnemonicField).toBeVisible();
                 await expect(await editor.iconURL).toHaveValue(data.iconURL);
                 await editor.iconURL.fill(data.newIconURL);
             }

@@ -11,15 +11,12 @@ if (!ostRoot) {
 }
 
 const ostDefaultSettings = () => {
-    const {
-        displayOldPrice,
-        displayPerUnit,
-        displayPlanType,
-        displayRecurrence,
-        displayTax,
-        isPerpetual,
-        checkoutWorkflowStep,
-    } = document.querySelector('mas-commerce-service').settings;
+    const masCommerceService = document.querySelector('mas-commerce-service');
+    let { displayOldPrice, displayPerUnit, displayPlanType, displayRecurrence, displayTax, isPerpetual, checkoutWorkflowStep } =
+        masCommerceService.settings;
+    if (masCommerceService.featureFlags['mas-ff-defaults'] !== 'on') {
+        displayOldPrice = true;
+    }
     return {
         displayOldPrice,
         displayPerUnit,

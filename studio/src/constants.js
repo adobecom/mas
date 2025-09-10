@@ -39,6 +39,12 @@ export const ANALYTICS_LINK_IDS = [
     'what-is-included',
 ];
 
+export const CONSUMER_FEATURE_FLAGS = {
+    ccd: {
+        'mas-ff-defaults': 'on',
+    },
+};
+
 // TODO remove these?
 export const EVENT_CHANGE = 'change';
 export const EVENT_INPUT = 'input';

@@ -24,7 +24,7 @@ import './mas-confirm-dialog.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import router from './router.js';
-import { PAGE_NAMES, WCS_ENV_PROD } from './constants.js';
+import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, WCS_ENV_PROD } from './constants.js';
 
 const BUCKET_TO_ENV = {
     e155390: 'qa',
@@ -43,7 +43,7 @@ class MasStudio extends LitElement {
 
     #unsubscribeLocaleObserver;
     #unsubscribeLandscapeObserver;
-
+    #unsubscribeConsumerObserver;
     constructor() {
         super();
         this.bucket = 'e59433';
@@ -55,6 +55,7 @@ class MasStudio extends LitElement {
         this.subscribeLocaleObserver();
         this.initMasJs();
         this.subscribeLandscapeObserver();
+        this.subscribeConsumerObserver();
     }
 
     initMasJs() {
@@ -85,10 +86,21 @@ class MasStudio extends LitElement {
         this.#unsubscribeLandscapeObserver = () => Store.landscape.unsubscribe(subscription);
     }
 
+    subscribeConsumerObserver() {
+        const subscription = (value, oldValue) => {
+            if (value.path !== oldValue.path) {
+                this.renderCommerceService();
+            }
+        };
+        Store.search.subscribe(subscription);
+        this.#unsubscribeConsumerObserver = () => Store.search.unsubscribe(subscription);
+    }
+
     disconnectedCallback() {
         super.disconnectedCallback();
         this.#unsubscribeLocaleObserver();
         this.#unsubscribeLandscapeObserver();
+        this.#unsubscribeConsumerObserver();
     }
 
     createRenderRoot() {
@@ -121,7 +133,8 @@ class MasStudio extends LitElement {
     }
 
     renderCommerceService() {
-        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}" data-mas-ff-defaults="on"></mas-commerce-service>`;
+        const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.search.value.path]?.['mas-ff-defaults'] ?? 'off';
+        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
 
         // Update service landscape settings based on Store.landscape
         if (this.commerceService?.settings && Store.landscape.value) {

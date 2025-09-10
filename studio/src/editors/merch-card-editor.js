@@ -13,21 +13,24 @@ import '../fields/plan-type-field.js';
 import { getFragmentMapping } from '../utils.js';
 import '../fields/addon-field.js';
 import Store from '../store.js';
+import { VARIANT_NAMES } from './variant-picker.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
 
+const VARIANT_RTE_MARKS = {
+    [VARIANT_NAMES.MINI]: {
+        description: {
+            marks: ['promo-text', 'promo-duration-text', 'renewal-text'],
+        },
+    },
+};
+
 class MerchCardEditor extends LitElement {
     static properties = {
+        currentVariantMapping: { type: Object, attribute: false },
         fragmentStore: { type: Object, attribute: false },
         updateFragment: { type: Function },
-        availableSizes: { type: Array, state: true },
-        availableColors: { type: Array, state: true },
-        availableBorderColors: { type: Array, state: true },
-        availableBadgeColors: { type: Array, state: true },
-        availableBackgroundColors: { type: Array, state: true },
-        quantitySelectorValues: { type: String, state: true },
-        currentVariantMapping: { type: Object, state: true },
     };
 
     styles = {
@@ -64,15 +67,17 @@ class MerchCardEditor extends LitElement {
             .join('; ');
     }
 
+    availableSizes = [];
+    availableColors = [];
+    availableBorderColors = [];
+    availableBadgeColors = [];
+    availableBackgroundColors = [];
+    quantitySelectorValues = '';
+
     constructor() {
         super();
+        this.fragmentStore = null;
         this.updateFragment = null;
-        this.availableSizes = [];
-        this.availableColors = [];
-        this.availableBorderColors = [];
-        this.availableBadgeColors = [];
-        this.availableBackgroundColors = [];
-        this.quantitySelectorValues = '';
         this.currentVariantMapping = null;
     }
 
@@ -86,6 +91,16 @@ class MerchCardEditor extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+    }
+
+    willUpdate(changedProperties) {
+        if (changedProperties.has('fragmentStore')) {
+            this.#updateCurrentVariantMapping();
+            this.#updateAvailableSizes();
+            this.#updateAvailableColors();
+            this.#updateBackgroundColors();
+            this.toggleFields();
+        }
     }
 
     get whatsIncludedElement() {
@@ -221,18 +236,13 @@ class MerchCardEditor extends LitElement {
     updated(changedProperties) {
         super.updated(changedProperties);
         if (changedProperties.has('fragmentStore')) {
-            this.#updateCurrentVariantMapping().then(() => {
-                this.#updateAvailableSizes();
-                this.#updateAvailableColors();
-                this.#updateBackgroundColors();
-                this.toggleFields();
-            });
+            this.toggleFields();
         }
     }
 
     async toggleFields() {
         if (!this.fragment) return;
-        await this.#updateCurrentVariantMapping();
+        this.#updateCurrentVariantMapping();
         const variant = this.currentVariantMapping;
         if (!variant) return;
         this.querySelectorAll('sp-field-group.toggle').forEach((field) => {
@@ -468,6 +478,7 @@ class MerchCardEditor extends LitElement {
                     upt-link
                     list
                     mnemonic
+                    .marks=${VARIANT_RTE_MARKS[this.fragment.variant]?.description?.marks}
                     data-field="description"
                     .osi=${form.osi.values[0]}
                     default-link-style="secondary-link"
@@ -614,9 +625,9 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
-    async #handleVariantChange(e) {
+    #handleVariantChange(e) {
         this.#handleFragmentUpdate(e);
-        await this.#updateCurrentVariantMapping();
+        this.#updateCurrentVariantMapping();
         this.#updateAvailableSizes();
         this.#updateAvailableColors();
         this.#updateBackgroundColors();
@@ -714,12 +725,12 @@ class MerchCardEditor extends LitElement {
             .join(' ');
     }
 
-    async #updateCurrentVariantMapping() {
+    #updateCurrentVariantMapping() {
         if (!this.fragment) {
             this.currentVariantMapping = null;
             return;
         }
-        this.currentVariantMapping = await getFragmentMapping(this.fragment.variant);
+        this.currentVariantMapping = getFragmentMapping(this.fragment.variant);
     }
 
     async #updateAvailableSizes() {

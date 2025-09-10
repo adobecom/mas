@@ -74,6 +74,10 @@ export class Fragment {
         return this.fields.find((field) => field.name === fieldName)?.values?.[index];
     }
 
+    getOriginalIdField() {
+        return this.fields.find((field) => field.name === 'originalId');
+    }
+
     updateField(fieldName, value) {
         let change = false;
         this.fields

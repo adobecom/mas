@@ -1,4 +1,7 @@
-import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
+import { EMPTY_TAGS, PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
+import { DerivedStore } from './reactivity/derived-store.js';
+import { MapStore } from './reactivity/map-store.js';
+import { PaginationStore } from './reactivity/pagination-store.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
 
 // Store definition with default values - no URL parsing here
@@ -7,6 +10,7 @@ const Store = {
         list: {
             loading: new ReactiveStore(true),
             data: new ReactiveStore([]),
+            pagination: new PaginationStore(),
         },
         recentlyUpdated: {
             loading: new ReactiveStore(true),
@@ -53,7 +57,109 @@ const Store = {
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
     preview: new ReactiveStore(null, previewValidator),
+    // NEW STUFF
+    data: {
+        content: {
+            loaded: new MapStore(),
+            showing: new ReactiveStore([]),
+            recentlyUpdated: new ReactiveStore([]),
+            total: new ReactiveStore(0),
+            loading: new ReactiveStore(true),
+            search: new ReactiveStore({ field: null, query: '' }),
+            filters: new ReactiveStore({ tags: EMPTY_TAGS }),
+            sort: new ReactiveStore({}),
+            pagination: new PaginationStore(),
+        },
+        placeholders: {
+            loaded: new MapStore(),
+            showing: new ReactiveStore([]),
+            total: new ReactiveStore(0),
+            loading: new ReactiveStore(true),
+            search: new ReactiveStore(),
+            filters: new ReactiveStore(),
+            sort: new ReactiveStore({}),
+            pagination: new PaginationStore(),
+        },
+    },
+    surface: new ReactiveStore(null),
+    locale: new ReactiveStore('en_US', localeValidator),
 };
+
+function updateShowingContent() {
+    const { search, filters, pagination } = Store.data.content;
+    const filteredItems = [];
+    for (const [, itemStore] of Store.data.content.loaded.value) {
+        const item = itemStore.get();
+        /* Search */
+        if (search.value.query) {
+            let searchTarget = '';
+            if (search.value.field && search.value.field !== 'all') {
+                const field = item.fields.find((f) => f.name === search.value.field);
+                if (field) {
+                    if (field.multiple) searchTarget = field.values.join(' ');
+                    else searchTarget = field.values[0]?.toString() || '';
+                }
+            } else {
+                searchTarget = item.fields
+                    .map((f) => f.values)
+                    .flat()
+                    .join(' ');
+            }
+            if (!searchTarget.toLowerCase().includes(search.value.query.toLowerCase())) continue;
+        }
+        /* Filters */
+        const { variant, status, ...restTagCategories } = filters.value.tags;
+
+        const variants = variant.map((v) => v.replace('mas:variant/', ''));
+        if (variants.length > 0 && !variants.includes(item.getFieldValue('variant'))) continue;
+
+        const statuses = status.map((s) => s.replace('mas:status/', ''));
+        if (statuses.length > 0 && !statuses.includes(item.status.toLowerCase())) continue;
+
+        const createdBy = Store.createdByUsers.value.map((user) => user.userPrincipalName);
+        if (createdBy.length > 0 && !createdBy.includes(item.created.by)) continue;
+
+        let shouldInclude = true;
+        for (const tags of Object.values(restTagCategories)) {
+            if (tags.length === 0) continue;
+            let hasATag = false;
+            for (const tag of tags) {
+                if (item.tags.some((t) => t.id === tag)) {
+                    hasATag = true;
+                    continue;
+                }
+            }
+            if (!hasATag) {
+                shouldInclude = false;
+                continue;
+            }
+        }
+        if (!shouldInclude) continue;
+        filteredItems.push(itemStore);
+    }
+    /* Sort - no sorting yet */
+    Store.data.content.total.set(filteredItems.length);
+    const paginatedItems = filteredItems.slice(
+        (pagination.value.page - 1) * pagination.value.size,
+        (pagination.value.page - 1) * pagination.value.size + pagination.value.size,
+    );
+    Store.data.content.showing.set(paginatedItems);
+}
+
+function resetPage() {
+    Store.data.content.pagination.selectPage(1);
+}
+
+Store.data.content.search.subscribe(resetPage);
+Store.data.content.filters.subscribe(resetPage);
+Store.createdByUsers.subscribe(resetPage);
+
+Store.data.content.loaded.subscribe(updateShowingContent);
+Store.data.content.search.subscribe(updateShowingContent);
+Store.data.content.filters.subscribe(updateShowingContent);
+Store.data.content.sort.subscribe(updateShowingContent);
+Store.data.content.pagination.subscribe(updateShowingContent);
+Store.createdByUsers.subscribe(updateShowingContent);
 
 // #region Validators
 
@@ -73,6 +179,11 @@ function filtersValidator(value) {
     } else if (typeof value.tags !== 'string') {
         value.tags = String(value.tags);
     }
+    return value;
+}
+
+function localeValidator(value) {
+    if (!value || typeof value !== 'string') return 'en_US';
     return value;
 }
 
@@ -150,25 +261,28 @@ Store.page.subscribe((value) => {
 
 // Derived values
 
-const placeholdersDict = {
-    value: {},
-};
-
-Store.placeholders.list.data.subscribe((value) => {
-    // Update placeholders dict
-    placeholdersDict.value = {};
+const placeholdersDict = new DerivedStore(Store.data.placeholders.loaded, (value) => {
+    const result = {};
     const extractValue = (ref) => {
         const value = ref.getFieldValue('value') || ref.getFieldValue('richTextValue') || '';
         // Escape control characters and double quotes before parsing
         return value.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').replace(/"/g, '\\"');
     };
-    for (const placeholderStore of value) {
+    for (const [, placeholderStore] of value) {
         const placeholder = placeholderStore.get();
-        placeholdersDict.value[placeholder.getFieldValue('key')] = extractValue(placeholder);
+        result[placeholder.getFieldValue('key')] = extractValue(placeholder);
     }
-    // If on the content page, trigger fragment resolve
-    if (Store.page.value !== PAGE_NAMES.CONTENT) return;
-    for (const fragmentStore of Store.fragments.list.data.value) {
+    return result;
+});
+
+Store.data.content.loaded.subscribeToAddition((values) => {
+    for (const fragmentStore of values) {
+        fragmentStore.resolvePreviewFragment();
+    }
+});
+
+placeholdersDict.subscribe(() => {
+    for (const [, fragmentStore] of Store.data.content.loaded.value) {
         fragmentStore.resolvePreviewFragment();
     }
 });

@@ -106,8 +106,8 @@
                         await editorPanel.updateComplete;
                         const { authorPath, href, richText } = generateCodeToUse(
                             editorPanel.fragment,
-                            Store.search.get().path,
-                            Store.page.get(),
+                            Store.surface.value,
+                            Store.page.value,
                         );
                         const normalizedExpected =
                             '<ahref="https://mas.adobe.com/studio.html#content-type=merch-card&page=welcome&path=acom&query=cc-all-apps"target="_blank">merch-card:ACOM/Slice/CreativeCloudAllApps</a>';

@@ -19,9 +19,12 @@ import {
     DICTIONARY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
+    CONTENT_MODEL_IDS,
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
+
+const BATCH_SIZE = 50;
 
 let fragmentCache;
 
@@ -70,12 +73,8 @@ export class MasRepository extends LitElement {
         this.copyFragment = this.copyFragment.bind(this);
         this.publishFragment = this.publishFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
-        this.search = new StoreController(this, Store.search);
-        this.filters = new StoreController(this, Store.filters);
-        this.page = new StoreController(this, Store.page);
         this.foldersLoaded = new StoreController(this, Store.folders.loaded);
-        this.reactiveController = new ReactiveController(this, [Store.profile, Store.createdByUsers]);
-        this.recentlyUpdatedLimit = new StoreController(this, Store.fragments.recentlyUpdated.limit);
+        this.reactiveController = new ReactiveController(this, [Store.profile, Store.surface, Store.locale]);
         this.handleSearch = debounce(this.handleSearch.bind(this), 50);
     }
 
@@ -115,18 +114,20 @@ export class MasRepository extends LitElement {
 
     handleSearch() {
         if (!Store.profile.value) return;
-        switch (this.page.value) {
-            case PAGE_NAMES.CONTENT:
-                this.searchFragments();
-                this.loadPlaceholders();
-                break;
-            case PAGE_NAMES.WELCOME:
-                this.loadRecentlyUpdatedFragments();
-                break;
-            case PAGE_NAMES.PLACEHOLDERS:
-                this.loadPlaceholders();
-                break;
-        }
+        // switch (this.page.value) {
+        //     case PAGE_NAMES.CONTENT:
+        //         this.searchFragments();
+        //         this.loadPlaceholders();
+        //         break;
+        //     case PAGE_NAMES.WELCOME:
+        //         this.loadRecentlyUpdatedFragments();
+        //         break;
+        //     case PAGE_NAMES.PLACEHOLDERS:
+        //         this.loadPlaceholders();
+        //         break;
+        // }
+        this.lloadContent();
+        this.lloadPlaceholders();
     }
 
     async loadFolders() {
@@ -138,15 +139,12 @@ export class MasRepository extends LitElement {
             Store.folders.loaded.set(true);
             Store.folders.data.set(folders);
 
-            if (!folders.includes(this.search.value.path) && !this.search.value.query)
-                Store.search.set((prev) => ({
-                    ...prev,
-                    path: folders.at(0),
-                }));
+            if (!folders.includes(Store.surface.value) && !Store.data.content.search.value.query)
+                Store.surface.set(folders.at(0));
             Store.fragments.list.data.set([]);
         } catch (error) {
-            Store.fragments.list.loading.set(false);
-            Store.fragments.recentlyUpdated.loading.set(false);
+            Store.data.content.loading.set(false);
+            Store.data.placeholders.loading.set(false);
             this.processError(error, 'Could not load folders.');
         }
     }
@@ -178,6 +176,48 @@ export class MasRepository extends LitElement {
     skipVariant(variants, item) {
         const variant = item.fields.find((field) => field.name === 'variant')?.values?.[0];
         return variants.length && !variants.includes(variant);
+    }
+
+    async lloadContent() {
+        const damPath = getDamPath(Store.surface.value);
+        const options = {
+            modelIds: CONTENT_MODEL_IDS,
+            path: `${damPath}/${Store.locale.value}`,
+            sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
+        };
+        Store.data.content.loading.set(true);
+        Store.data.content.loaded.clear();
+        const cursor = await this.aem.sites.cf.fragments.search(options, BATCH_SIZE);
+        for await (const result of cursor) {
+            const batch = [];
+            for await (const item of result) {
+                const fragment = await this.#addToCache(item);
+                const store = generateFragmentStore(fragment);
+                batch.push(store);
+            }
+            Store.data.content.loaded.add(batch);
+        }
+        Store.data.content.loading.set(false);
+    }
+
+    async lloadPlaceholders() {
+        const dictionaryPath = this.getDictionaryPath();
+        const options = {
+            path: dictionaryPath,
+        };
+        Store.data.placeholders.loading.set(true);
+        Store.data.placeholders.loaded.clear();
+        const cursor = await this.aem.sites.cf.fragments.search(options, BATCH_SIZE);
+        for await (const result of cursor) {
+            const batch = [];
+            for await (const item of result) {
+                const fragment = await this.#addToCache(item);
+                const store = new FragmentStore(new Placeholder(fragment));
+                batch.push(store);
+            }
+            Store.data.placeholders.loaded.add(batch);
+        }
+        Store.data.placeholders.loading.set(false);
     }
 
     async searchFragments() {
@@ -346,7 +386,6 @@ export class MasRepository extends LitElement {
             Store.placeholders.list.loading.set(true);
 
             const fragments = await this.searchFragmentList(searchOptions, 50, this.#abortControllers.placeholders);
-
             const indexFragment = fragments.find((fragment) => fragment.path.endsWith('/index'));
             if (indexFragment) Store.placeholders.index.set(indexFragment);
             else console.error('No index fragment found:', error);
@@ -364,7 +403,7 @@ export class MasRepository extends LitElement {
     }
 
     getDictionaryPath() {
-        return `${ROOT_PATH}/${this.search.value.path}/${this.filters.value.locale}/dictionary`;
+        return `${ROOT_PATH}/${Store.surface.value}/${Store.locale.value}/dictionary`;
     }
 
     /**

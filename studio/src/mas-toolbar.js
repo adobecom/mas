@@ -62,6 +62,7 @@ class MasToolbar extends LitElement {
         #read,
         #write {
             display: flex;
+            align-items: center;
             gap: 10px;
         }
 
@@ -75,6 +76,10 @@ class MasToolbar extends LitElement {
 
         sp-button {
             white-space: nowrap;
+        }
+
+        #field-picker {
+            width: 120px;
         }
 
         .filters-button {
@@ -131,7 +136,7 @@ class MasToolbar extends LitElement {
     }
 
     filters = new StoreController(this, Store.filters);
-    search = new StoreController(this, Store.search);
+    search = new StoreController(this, Store.data.content.search);
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
     loading = new StoreController(this, Store.fragments.list.loading);
@@ -189,7 +194,7 @@ class MasToolbar extends LitElement {
     }
 
     updateQuery(value) {
-        Store.search.set((prev) => ({ ...prev, query: value }));
+        Store.data.content.search.set((prev) => ({ ...prev, query: value }));
     }
 
     get popover() {
@@ -217,6 +222,10 @@ class MasToolbar extends LitElement {
         }
     }
 
+    handleFieldChange(ev) {
+        Store.data.content.search.set((prev) => ({ ...prev, field: ev.target.value }));
+    }
+
     get searchAndFilterControls() {
         return html`<div id="read">
             <sp-action-button
@@ -230,13 +239,30 @@ class MasToolbar extends LitElement {
                     : html`<div slot="icon" class="filters-badge">${this.filterCount}</div>`}
                 Filter</sp-action-button
             >
+            Search in
+            <sp-combobox
+                id="field-picker"
+                label="Field"
+                value=${Store.data.content.search.value.field}
+                @change=${this.handleFieldChange}
+            >
+                <sp-menu-item value="all">all</sp-menu-item>
+                <sp-menu-item value="cardTitle">cardTitle</sp-menu-item>
+                <sp-menu-item value="subtitle">subtitle</sp-menu-item>
+                <sp-menu-item value="promoText">promoText</sp-menu-item>
+                <sp-menu-item value="description">description</sp-menu-item>
+                <sp-menu-item value="whatsIncluded">whatsIncluded</sp-menu-item>
+                <sp-menu-item value="callout">callout</sp-menu-item>
+            </sp-combobox>
             <sp-search
                 placeholder="Search"
                 @submit="${this.handleSearchSubmit}"
                 @change=${this.handleChange}
                 value=${this.search.value.query}
                 size="m"
-            ></sp-search>
+            >
+                <div class="field-picker">a</div></sp-search
+            >
         </div>`;
     }
 

@@ -16,10 +16,10 @@ export const MODEL_WEB_COMPONENT_MAPPING = {
     [COLLECTION_MODEL_PATH]: 'merch-card-collection',
 };
 
-export function getFragmentPartsToUse(store, fragment) {
+export function getFragmentPartsToUse(fragment) {
     let fragmentParts = '';
     let title = '';
-    const surface = store.search.value.path?.toUpperCase();
+    const surface = Store.surface.value?.toUpperCase();
     switch (fragment?.model?.path) {
         case CARD_MODEL_PATH:
             const props = {
@@ -610,7 +610,7 @@ export default class EditorPanel extends LitElement {
     }
 
     get authorPath() {
-        return generateCodeToUse(this.fragment, Store.search.get().path, Store.page.get()).authorPath;
+        return generateCodeToUse(this.fragment, Store.surface.value, Store.page.value).authorPath;
     }
 
     render() {

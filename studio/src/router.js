@@ -165,11 +165,14 @@ export class Router extends EventTarget {
     start() {
         this.currentParams = new URLSearchParams(this.location.hash.slice(1));
         this.linkStoreToHash(Store.page, 'page', PAGE_NAMES.WELCOME);
-        this.linkStoreToHash(Store.search, ['path', 'query'], {});
-        this.linkStoreToHash(Store.filters, ['locale', 'tags'], {
-            locale: 'en_US',
-        });
-        this.linkStoreToHash(Store.sort, ['sortBy', 'sortDirection'], getSortDefaultValue);
+        // this.linkStoreToHash(Store.search, ['path', 'query'], {});
+        // this.linkStoreToHash(Store.filters, ['locale', 'tags'], {
+        //     locale: 'en_US',
+        // });
+        // this.linkStoreToHash(Store.sort, ['sortBy', 'sortDirection'], getSortDefaultValue);
+        this.linkStoreToHash(Store.surface, 'surface');
+        this.linkStoreToHash(Store.locale, 'locale', 'en_US');
+        this.linkStoreToHash(Store.data.content.search, ['field', 'query'], { field: 'all' });
         this.linkStoreToHash(Store.placeholders.search, 'search');
         this.linkStoreToHash(Store.landscape, 'commerce.landscape', WCS_LANDSCAPE_PUBLISHED);
         if (Store.search.value.query) {
@@ -185,9 +188,9 @@ export class Router extends EventTarget {
             if (!page && Store.page.value) {
                 this.currentParams.set('page', Store.page.value);
             }
-            const path = this.currentParams.get('path');
-            if (!path && Store.search.value.path) {
-                this.currentParams.set('path', Store.search.value.path);
+            const surface = this.currentParams.get('surface');
+            if (!surface && Store.surface.value) {
+                this.currentParams.set('surface', Store.surface.value);
             }
             // Sync all linked stores from the current hash
             this.linkedStores.forEach(({ store, keysArray, defaultValue }) => {

@@ -6,6 +6,7 @@ import Store from './store.js';
 import './mas-fragment.js';
 import Events from './events.js';
 import { CARD_MODEL_PATH } from './constants.js';
+import './mas-pagination.js';
 
 const variantValues = VARIANTS.map((v) => v.value);
 class MasContent extends LitElement {
@@ -19,11 +20,13 @@ class MasContent extends LitElement {
         this.subscriptions = [];
     }
 
-    loading = new StoreController(this, Store.fragments.list.loading);
-    fragments = new StoreController(this, Store.fragments.list.data);
+    loading = new StoreController(this, Store.data.content.loading);
+    fragments = new StoreController(this, Store.data.content.showing);
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
     selection = new StoreController(this, Store.selection);
+    total = new StoreController(this, Store.data.content.total);
+    pagination = new StoreController(this, Store.data.content.pagination);
 
     connectedCallback() {
         super.connectedCallback();
@@ -130,11 +133,6 @@ class MasContent extends LitElement {
         </sp-table>`;
     }
 
-    get loadingIndicator() {
-        if (!this.loading.value) return nothing;
-        return html`<sp-progress-circle class="fragments" indeterminate size="l"></sp-progress-circle>`;
-    }
-
     render() {
         let view = nothing;
         switch (this.renderMode.value) {
@@ -147,7 +145,12 @@ class MasContent extends LitElement {
             default:
                 view = this.renderView;
         }
-        return html`<div id="content">${view} ${this.loadingIndicator}</div>`;
+        return html`<div id="content">
+            ${view}
+            <sp-popover class="pagination-wrapper" open>
+                <mas-pagination .store=${Store.data.content.pagination} total=${this.total.value}></mas-pagination>
+            </sp-popover>
+        </div>`;
     }
 }
 

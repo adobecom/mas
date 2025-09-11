@@ -36,7 +36,7 @@ class MasLocalePicker extends LitElement {
         }
     `;
 
-    reactiveController = new ReactiveController(this, [Store.filters]);
+    reactiveController = new ReactiveController(this, [Store.locale]);
 
     constructor() {
         super();
@@ -53,7 +53,7 @@ class MasLocalePicker extends LitElement {
         );
 
         // Find the currently selected locale (if any).
-        const currentValue = Store.filters.value.locale;
+        const currentValue = Store.locale.value;
 
         return html`
             <overlay-trigger placement="bottom">
@@ -102,7 +102,7 @@ class MasLocalePicker extends LitElement {
 
     handleSelect(e) {
         const selectedValue = e.currentTarget.getAttribute('value');
-        Store.filters.set((prev) => ({ ...prev, locale: selectedValue }));
+        Store.locale.set(selectedValue);
         e.target.closest('overlay-trigger').open = false;
     }
 }

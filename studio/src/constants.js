@@ -141,9 +141,25 @@ export const TAG_MODEL_ID_MAPPING = {
     'mas:studio/content-type/merch-card': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
 };
 
+export const CONTENT_MODEL_IDS = [
+    'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
+    'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
+];
+
 export const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);
 
 // The first value in the array should be the default value
 export const SORT_COLUMNS = {
     placeholders: ['key', 'value', 'status', 'locale', 'updatedBy', 'updatedAt'],
 };
+
+export const EMPTY_TAGS = Object.freeze({
+    offer_type: [],
+    plan_type: [],
+    market_segments: [],
+    customer_segment: [],
+    product_code: [],
+    status: [],
+    'studio/content-type': [],
+    variant: [],
+});

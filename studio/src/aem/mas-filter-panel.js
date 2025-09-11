@@ -3,6 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import router from '../router.js';
+import { EMPTY_TAGS } from '../constants.js';
 
 function pathToTagId(path) {
     return `mas:${path.replace('/content/cq:tags/mas/', '')}`;
@@ -11,17 +12,6 @@ function pathToTagId(path) {
 function pathsToTagIds(paths) {
     return paths.map(({ path }) => pathToTagId(path)).join(',');
 }
-
-const EMPTY_TAGS = {
-    offer_type: [],
-    plan_type: [],
-    market_segments: [],
-    customer_segment: [],
-    product_code: [],
-    status: [],
-    'studio/content-type': [],
-    variant: [],
-};
 
 class MasFilterPanel extends LitElement {
     static properties = {
@@ -44,6 +34,7 @@ class MasFilterPanel extends LitElement {
             min-height: 32px;
             align-items: center;
             flex-wrap: wrap;
+            gap: 4px;
         }
     `;
 
@@ -138,15 +129,11 @@ class MasFilterPanel extends LitElement {
     }
 
     #updateFiltersParams() {
-        const tagValues = Object.values(this.tagsByType ?? EMPTY_TAGS)
-            .flat()
-            .map((tag) => pathToTagId(tag.path))
-            .filter(Boolean);
-
-        Store.filters.set((prev) => ({
-            ...prev,
-            tags: tagValues.join(','),
-        }));
+        const tagValues = {};
+        Object.entries(this.tagsByType ?? EMPTY_TAGS).forEach(([key, value]) => {
+            tagValues[key] = value.map((tag) => pathToTagId(tag.path)).filter(Boolean);
+        });
+        Store.data.content.filters.set((prev) => ({ ...prev, tags: tagValues }));
     }
 
     #handleTagChange(e) {
@@ -164,19 +151,19 @@ class MasFilterPanel extends LitElement {
     }
 
     #handleRefresh() {
-        Store.search.set((prev) => ({
-            ...prev,
+        Store.data.content.search.set({
+            field: 'all',
             query: '',
-        }));
+        });
 
-        Store.filters.set((prev) => ({
+        Store.data.content.filters.set((prev) => ({
             ...prev,
-            tags: '',
+            tags: EMPTY_TAGS,
         }));
 
         Store.createdByUsers.set([]);
 
-        this.tagsByType = { ...EMPTY_TAGS };
+        this.tagsByType = EMPTY_TAGS;
         this.shadowRoot.querySelectorAll('aem-tag-picker-field').forEach((tagPicker) => {
             tagPicker.clear();
         });
@@ -232,8 +219,6 @@ class MasFilterPanel extends LitElement {
                     value=${pathsToTagIds(this.tagsByType.plan_type)}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
-
-                <mas-locale-picker></mas-locale-picker>
 
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"

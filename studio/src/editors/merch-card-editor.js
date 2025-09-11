@@ -310,13 +310,16 @@ class MerchCardEditor extends LitElement {
             </sp-field-group>
             <sp-field-group class="toggle" id="title">
                 <sp-field-label for="card-title">Title</sp-field-label>
-                <sp-textfield
-                    placeholder="Enter card title"
+                <rte-field
                     id="card-title"
+                    inline
+                    mnemonic
+                    divider
                     data-field="cardTitle"
-                    value="${form.cardTitle.values[0]}"
-                    @input="${this.#handleFragmentUpdate}"
-                ></sp-textfield>
+                    .osi=${form.osi.values[0]}
+                    @change="${this.#handleFragmentUpdate}"
+                    >${unsafeHTML(form.cardTitle.values[0] || '')}</rte-field
+                >
             </sp-field-group>
             <sp-field-group class="toggle" id="subtitle">
                 <sp-field-label for="card-subtitle">Subtitle</sp-field-label>
@@ -418,6 +421,7 @@ class MerchCardEditor extends LitElement {
                     styling
                     link
                     mnemonic
+                    divider
                     multiline
                     data-field="prices"
                     .osi=${form.osi.values[0]}
@@ -468,6 +472,7 @@ class MerchCardEditor extends LitElement {
                     upt-link
                     list
                     mnemonic
+                    divider
                     data-field="description"
                     .osi=${form.osi.values[0]}
                     default-link-style="secondary-link"
@@ -484,6 +489,7 @@ class MerchCardEditor extends LitElement {
                     upt-link
                     list
                     mnemonic
+                    divider
                     data-field="description2"
                     .osi=${form.osi.values[0]}
                     default-link-style="secondary-link"
@@ -591,6 +597,7 @@ class MerchCardEditor extends LitElement {
                     id="ctas"
                     link
                     inline
+                    divider
                     data-field="ctas"
                     .osi=${form.osi.values[0]}
                     default-link-style="primary-outline"

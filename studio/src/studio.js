@@ -15,7 +15,7 @@ import './fields/user-picker.js';
 import './mas-recently-updated.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
-import './users.js';
+import { initUsers } from './users.js';
 import './placeholders/mas-placeholders.js';
 import './mas-recently-updated.js';
 import './editors/merch-card-editor.js';
@@ -56,6 +56,7 @@ class MasStudio extends LitElement {
         this.initMasJs();
         this.subscribeLandscapeObserver();
         this.subscribeConsumerObserver();
+        initUsers();
     }
 
     initMasJs() {

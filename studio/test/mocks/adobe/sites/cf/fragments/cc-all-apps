@@ -15,6 +15,13 @@
             ]
         },
         {
+            "name": "originalId",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": ["0ef2a804-e788-4959-abb8-b4d96a18b0ef"]
+        },
+        {
             "name": "osi",
             "type": "text",
             "multiple": false,

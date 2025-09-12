@@ -3,7 +3,7 @@ const { log, logError, fetch, getJsonFromState } = require('./common.js');
 const MAS_ELEMENT_REGEXP = /<[^>]+data-wcs-osi=\\"(?<osi>[^\\]+)\\"[^>]*?>/gm;
 const PROMOCODE_REGEXP = /(?<promo>data-promotion-code=\\"(?<promotionCode>[^\\]+)\\")/;
 
-async function fetchArtifact(osi, promotionCode, wcsContext) {
+async function fetchArtifact(osi, promotionCode, wcsContext, idx) {
     const url = new URL(wcsContext.wcsURL);
     url.searchParams.set('country', wcsContext.country);
     url.searchParams.set('locale', wcsContext.locale);
@@ -16,7 +16,7 @@ async function fetchArtifact(osi, promotionCode, wcsContext) {
     if (promotionCode) {
         url.searchParams.set('promotion_code', promotionCode);
     }
-    const response = await fetch(url.toString(), wcsContext.context);
+    const response = await fetch(url.toString(), wcsContext.context, `wcs-req-${idx}`);
     if (response.status === 200) {
         return response.body;
     }
@@ -25,10 +25,11 @@ async function fetchArtifact(osi, promotionCode, wcsContext) {
 
 async function computeCache(tokens, wcsContext) {
     const cache = {};
+    let idx = 0;
     const promises = tokens.map(
         ({ osi, promotionCode }) =>
             new Promise(async (resolve, reject) => {
-                const response = await fetchArtifact(osi, promotionCode, wcsContext);
+                const response = await fetchArtifact(osi, promotionCode, wcsContext, idx++);
                 if (response) {
                     const { resolvedOffers } = response;
                     const cacheKey = [
@@ -59,15 +60,13 @@ async function computeCache(tokens, wcsContext) {
 }
 
 async function getWcsConfigurations(context) {
-    const { json: wcsConfiguration } = await getJsonFromState('wcs-configuration', context);
-    if (wcsConfiguration) {
-        return wcsConfiguration.filter((config) => config.api_keys?.includes(context.api_key));
+    if (context.wcsConfiguration) {
+        return context.wcsConfiguration.filter((config) => config.api_keys?.includes(context.api_key));
     }
     return null;
 }
 
 async function wcs(context) {
-    const startTime = Date.now();
     const wcsConfigs = await getWcsConfigurations(context);
     if (!wcsConfigs || wcsConfigs.length === 0) {
         log(`No WCS configurations found for API key ${context.api_key}`, context);
@@ -122,7 +121,6 @@ async function wcs(context) {
     } else {
         log('No WCS placeholders found in fragment content', context);
     }
-    log(`WCS processing completed in ${Date.now() - startTime}ms`, context);
     return context;
 }
 

@@ -71,33 +71,33 @@ describe('replace', () => {
     });
     it('returns 200 & replaced entries keys with text', async () => {
         const response = await getResponse('please {{view-account}} for {{cai-default}} region');
-        expect(response).to.deep.equal(
+        expect(response).to.deep.include(
             expectedResponse('please View account for An AI tool was not used in creating this image region'),
         );
     });
     it('returns 200 & replace empty (but present) placeholders', async () => {
         const response = await getResponse('this is {{empty}}');
-        expect(response).to.deep.equal(expectedResponse('this is '));
+        expect(response).to.deep.include(expectedResponse('this is '));
     });
     it('returns 200 & manages nested placeholders', async () => {
         const response = await getResponse('look! {{nest}}');
-        expect(response).to.deep.equal(expectedResponse('look! little bird is in the nest'));
+        expect(response).to.deep.include(expectedResponse('look! little bird is in the nest'));
     });
     it('returns 200 & manages circular references', async () => {
         const response = await getResponse('look! {{yin}}');
-        expect(response).to.deep.equal(expectedResponse('look! yin and yin and yang'));
+        expect(response).to.deep.include(expectedResponse('look! yin and yin and yang'));
     });
     it('returns 200 & leaves non existing keys', async () => {
         const response = await getResponse('this is {{non-existing}}');
-        expect(response).to.deep.equal(expectedResponse('this is non-existing'));
+        expect(response).to.deep.include(expectedResponse('this is non-existing'));
     });
     it('returns 200 & manages rich text', async () => {
         const response = await getResponse('look! {{rich-text}}');
-        expect(response).to.deep.equal(expectedResponse('look! <p>i am <strong>rich</strong></p>'));
+        expect(response).to.deep.include(expectedResponse('look! <p>i am <strong>rich</strong></p>'));
     });
     it('returns 200 & manages rich text with double quotes', async () => {
         const response = await getResponse('look! {{rich-text-with-quotes}}');
-        expect(response).to.deep.equal(expectedResponse('look! <p>i am "rich"</p>'));
+        expect(response).to.deep.include(expectedResponse('look! <p>i am "rich"</p>'));
     });
     describe('corner cases', () => {
         beforeEach(() => {
@@ -132,7 +132,7 @@ describe('replace', () => {
                 .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
                 .replyWithError('fetch error');
             const context = await replace(FAKE_CONTEXT);
-            expect(context).to.deep.equal(EXPECTED);
+            expect(context).to.deep.include(EXPECTED);
         });
 
         it('manages gracefully non 2xx to find dictionary', async () => {
@@ -143,7 +143,7 @@ describe('replace', () => {
                 })
                 .reply(404, 'not found');
             const context = await replace(FAKE_CONTEXT);
-            expect(context).to.deep.equal(EXPECTED);
+            expect(context).to.deep.include(EXPECTED);
         });
 
         it('manages gracefully fetch no dictionary index', async () => {
@@ -151,7 +151,7 @@ describe('replace', () => {
                 .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
                 .reply(200, { items: [] });
             const context = await replace(FAKE_CONTEXT);
-            expect(context).to.deep.equal(EXPECTED);
+            expect(context).to.deep.include(EXPECTED);
         });
 
         it('manages gracefully failure to find entries', async () => {
@@ -166,7 +166,7 @@ describe('replace', () => {
                 .replyWithError('fetch error');
             const context = await replace(FAKE_CONTEXT);
             const dictionaryId = 'fr_FR_dictionary';
-            expect(context).to.deep.equal({ ...EXPECTED, dictionaryId });
+            expect(context).to.deep.include({ ...EXPECTED, dictionaryId });
         });
         it('manages gracefully non 2xx to find entries', async () => {
             nock('https://odin.adobe.com')

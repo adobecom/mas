@@ -1,12 +1,12 @@
-import { PAGE_NAMES, SORT_COLUMNS, WCS_ENV_PROD } from './constants.js';
+import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
-import { getHashParam } from './utils.js';
 
 // Store definition with default values - no URL parsing here
 const Store = {
     fragments: {
         list: {
             loading: new ReactiveStore(true),
+            firstPageLoaded: new ReactiveStore(false),
             data: new ReactiveStore([]),
         },
         recentlyUpdated: {
@@ -33,7 +33,7 @@ const Store = {
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
-    commerceEnv: new ReactiveStore(WCS_ENV_PROD),
+    landscape: new ReactiveStore(WCS_LANDSCAPE_PUBLISHED, landscapeValidator),
     placeholders: {
         search: new ReactiveStore(''),
         list: {
@@ -83,6 +83,14 @@ function filtersValidator(value) {
 function pageValidator(value) {
     const validPages = [PAGE_NAMES.WELCOME, PAGE_NAMES.CONTENT, PAGE_NAMES.PLACEHOLDERS];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
+}
+
+/**
+ * @param {string} value
+ * @returns {string}
+ */
+function landscapeValidator(value) {
+    return [WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED].includes(value) ? value : WCS_LANDSCAPE_PUBLISHED;
 }
 
 function sortValidator(value) {

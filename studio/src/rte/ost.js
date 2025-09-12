@@ -1,11 +1,5 @@
 import { html } from 'lit';
-import {
-    CHECKOUT_CTA_TEXTS,
-    EVENT_OST_SELECT,
-    EVENT_OST_OFFER_SELECT,
-    WCS_LANDSCAPE_PUBLISHED,
-    WCS_LANDSCAPE_DRAFT,
-} from '../constants.js';
+import { CHECKOUT_CTA_TEXTS, EVENT_OST_SELECT, EVENT_OST_OFFER_SELECT, WCS_LANDSCAPE_PUBLISHED } from '../constants.js';
 import Store from '../store.js';
 
 let ostRoot = document.getElementById('ost');
@@ -16,47 +10,23 @@ if (!ostRoot) {
     document.body.appendChild(ostRoot);
 }
 
-export const ostDefaults = {
-    aosApiKey: 'wcms-commerce-ims-user-prod',
-    checkoutClientId: 'creative',
-    country: 'US',
-    language: 'en',
-    environment: 'PROD',
-    landscape: 'PUBLISHED',
-    searchParameters: {},
-    searchOfferSelectorId: null,
-    defaultPlaceholderOptions: {
-        displayRecurrence: true,
-        displayPerUnit: false,
-        displayTax: false,
-        displayOldPrice: true,
-        forceTaxExclusive: true,
-    },
-    wcsApiKey: 'wcms-commerce-ims-ro-user-cc',
-    ctaTextOption: {
-        ctaTexts: Object.entries(CHECKOUT_CTA_TEXTS).map(([id, name]) => ({
-            id,
-            name,
-        })),
-        getDefaultText() {
-            return this.ctaTexts[0].id;
-        },
-
-        getTexts() {
-            return this.ctaTexts;
-        },
-
-        getSelectedText(searchParameters) {
-            const ctaLabel = searchParameters.get('text');
-            let selectedText;
-            if (ctaLabel)
-                selectedText =
-                    this.ctaTexts.find(({ id, name }) => [id, name].includes(ctaLabel)) ||
-                    this.ctaTexts.find(({ id, name }) => [id, name].includes(ctaLabel.replace('{{', '').replace('}}', '')));
-            if (selectedText) return selectedText.id;
-            return ctaLabel || this.getDefaultText();
-        },
-    },
+const ostDefaultSettings = () => {
+    const masCommerceService = document.querySelector('mas-commerce-service');
+    let { displayOldPrice, displayPerUnit, displayPlanType, displayRecurrence, displayTax, isPerpetual, checkoutWorkflowStep } =
+        masCommerceService.settings;
+    if (masCommerceService.featureFlags['mas-ff-defaults'] !== 'on') {
+        displayOldPrice = true;
+    }
+    return {
+        displayOldPrice,
+        displayPerUnit,
+        displayPlanType,
+        displayRecurrence,
+        displayTax,
+        forceTaxExclusive: true, // see https://git.corp.adobe.com/wcms/tacocat.js/blob/develop/packages/offer-selector-tool/src/PlaceholderKey.jsx#L38
+        isPerpetual,
+        workflowStep: checkoutWorkflowStep,
+    };
 };
 
 // Function to get the difference between two objects
@@ -113,24 +83,13 @@ export const OST_OPTION_ATTRIBUTE_MAPPING_REVERSE = Object.fromEntries(
     Object.entries(OST_OPTION_ATTRIBUTE_MAPPING).map(([key, value]) => [value, key]),
 );
 
-const OST_OPTION_DEFAULTS = {
-    displayOldPrice: true,
-    displayPerUnit: false,
-    displayRecurrence: true,
-    displayTax: false,
-    forceTaxExclusive: false,
-    isPerpetual: false,
-    workflow: 'UCv3',
-    workflowStep: 'email',
-};
-
 const OST_VALUE_MAPPING = {
     true: true,
     false: false,
 };
 
 export function onPlaceholderSelect(offerSelectorId, type, offer, options, promoOverride) {
-    const changes = getObjectDifference(options, OST_OPTION_DEFAULTS);
+    const changes = getObjectDifference(options, ostDefaultSettings());
 
     const attributes = { 'data-wcs-osi': offerSelectorId };
 
@@ -151,6 +110,9 @@ export function onPlaceholderSelect(offerSelectorId, type, offer, options, promo
 
     if (promoOverride) {
         attributes['data-promotion-code'] = promoOverride;
+    }
+    if (!options.isPerpetual) {
+        delete changes.isPerpetual;
     }
     for (const [key, value] of Object.entries(changes)) {
         const attribute = OST_OPTION_ATTRIBUTE_MAPPING[key];
@@ -187,8 +149,9 @@ export function getOffferSelectorTool() {
 }
 
 export function openOfferSelectorTool(triggerElement, offerElement) {
+    const masCommerceService = document.querySelector('mas-commerce-service');
     try {
-        const landscape = Store.commerceEnv?.value == 'stage' ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED;
+        const landscape = Store.landscape?.value ?? WCS_LANDSCAPE_PUBLISHED;
         if (!ostRoot) {
             ostRoot = document.createElement('div');
             document.body.appendChild(ostRoot);
@@ -197,9 +160,6 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
         const aosAccessToken = localStorage.getItem('masAccessToken') ?? window.adobeid.authorize();
         const searchParameters = new URLSearchParams();
 
-        const defaultPlaceholderOptions = {
-            ...ostDefaults.defaultPlaceholderOptions,
-        };
         const offerSelectorPlaceholderOptions = {};
         if (offerElement) {
             searchParameters.append('type', offerElement.isInlinePrice ? 'price' : 'checkout');
@@ -232,18 +192,48 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 if (value) searchParameters.append(key, value);
             });
         }
-        const masCommerceService = document.querySelector('mas-commerce-service');
         ostRoot.style.display = 'block';
+
         closeFunction = window.ost.openOfferSelectorTool({
-            ...ostDefaults,
-            ...masCommerceService.settings,
+            aosApiKey: 'wcms-commerce-ims-user-prod',
+            checkoutClientId: 'creative',
+            environment: 'PROD',
+            wcsApiKey: 'wcms-commerce-ims-ro-user-cc',
+            ctaTextOption: {
+                ctaTexts: Object.entries(CHECKOUT_CTA_TEXTS).map(([id, name]) => ({
+                    id,
+                    name,
+                })),
+                getDefaultText() {
+                    return this.ctaTexts[0].id;
+                },
+
+                getTexts() {
+                    return this.ctaTexts;
+                },
+
+                getSelectedText(searchParameters) {
+                    const ctaLabel = searchParameters.get('text');
+                    let selectedText;
+                    if (ctaLabel)
+                        selectedText =
+                            this.ctaTexts.find(({ id, name }) => [id, name].includes(ctaLabel)) ||
+                            this.ctaTexts.find(({ id, name }) =>
+                                [id, name].includes(ctaLabel.replace('{{', '').replace('}}', '')),
+                            );
+                    if (selectedText) return selectedText.id;
+                    return ctaLabel || this.getDefaultText();
+                },
+            },
             rootElement: ostRoot,
             zIndex: 20,
             aosAccessToken,
             landscape,
             searchParameters,
             searchOfferSelectorId,
-            defaultPlaceholderOptions,
+            country: masCommerceService.settings.country,
+            language: masCommerceService.settings.language,
+            defaultPlaceholderOptions: ostDefaultSettings(),
             offerSelectorPlaceholderOptions,
             modalsAndEntitlements: ['acom', 'sandbox', 'nala'].includes(Store.search.get().path),
             dialog: true,

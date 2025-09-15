@@ -126,9 +126,7 @@ class RteDividerEditor extends LitElement {
                         </sp-picker>
                     </div>
                     <div class="form-field">
-                        <sp-checkbox id="vertical" .checked=${this.vertical}>
-                            Vertical orientation
-                        </sp-checkbox>
+                        <sp-checkbox id="vertical" .checked=${this.vertical}> Vertical orientation </sp-checkbox>
                     </div>
                 </form>
                 <sp-button
@@ -141,9 +139,7 @@ class RteDividerEditor extends LitElement {
                 >
                     Cancel
                 </sp-button>
-                <sp-button id="saveButton" slot="button" variant="accent" @click=${this.#handleSubmit}>
-                    Add Divider
-                </sp-button>
+                <sp-button id="saveButton" slot="button" variant="accent" @click=${this.#handleSubmit}> Add Divider </sp-button>
             </sp-dialog>
         `;
     }

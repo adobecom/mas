@@ -28,23 +28,25 @@ export async function loadUsers() {
     }
 }
 
-async function init() {
-    const profile = await window.adobeIMS.getProfile();
-    Store.profile.set(profile);
-    const uniqueEditors = await loadUsers();
-    if (uniqueEditors.length > 0) {
-        Store.users.set(uniqueEditors);
+export async function initUsers() {
+    try {
+        const profile = await window.adobeIMS.getProfile();
+        Store.profile.set(profile);
+        const uniqueEditors = await loadUsers();
+        if (uniqueEditors.length > 0) {
+            Store.users.set(uniqueEditors);
+        }
+
+        Store.search.subscribe(async ({ path }) => {
+            if (path !== 'sandbox') return;
+            Store.createdByUsers.set([
+                {
+                    displayName: profile.displayName,
+                    userPrincipalName: profile.email,
+                },
+            ]);
+        });
+    } catch (e) {
+        console.error('Error initializing users', e);
     }
-
-    Store.search.subscribe(async ({ path }) => {
-        if (path !== 'sandbox') return;
-        Store.createdByUsers.set([
-            {
-                displayName: profile.displayName,
-                userPrincipalName: profile.email,
-            },
-        ]);
-    });
 }
-
-init();

@@ -1677,22 +1677,10 @@ class RteField extends LitElement {
             @change=${this.#handleStylingSelection}
         >
             <sp-icon-brush slot="icon"></sp-icon-brush>
-            <<<<<<< HEAD
             ${this.#stylingMarksData.map(([mark, label]) => {
                 if (!mark) return html`<sp-divider size="s"></sp-divider>`;
                 return html`<sp-menu-item value="${mark}">${label}</sp-menu-item>`;
             })}
-            =======
-            <sp-menu-item value="heading-xxxs">Heading XXXS - H6</sp-menu-item>
-            <sp-menu-item value="heading-xxs">Heading XXS - H5</sp-menu-item>
-            <sp-menu-item value="heading-xs">Heading XS - H4</sp-menu-item>
-            <sp-menu-item value="heading-s">Heading S - H3</sp-menu-item>
-            <sp-menu-item value="heading-m">Heading M - H2</sp-menu-item>
-            <sp-menu-item value="heading-l">Heading L - H2</sp-menu-item>
-            <sp-menu-divider></sp-menu-divider>
-            <sp-menu-item value="promo-text">Promo text</sp-menu-item>
-            <sp-menu-item value="mnemonic-text">Mnemonic Text</sp-menu-item>
-            >>>>>>> 0717884151d6ab55b4d4224ceb92ba86a219fcfc
         </sp-action-menu>`;
     }
 

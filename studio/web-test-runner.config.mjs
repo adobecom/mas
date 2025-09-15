@@ -27,6 +27,9 @@ export default {
     files: ['test/**/*.test.(js|html)'],
     middleware: [
         async (ctx, next) => {
+            if (ctx.path.startsWith('/test/mocks/adobe/sites')) {
+                ctx.set('Content-Type', 'application/json');
+            }
             await next();
             ctx.set('Access-Control-Allow-Credentials', true);
             ctx.set('Access-Control-Allow-Origin', '*');

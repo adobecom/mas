@@ -15,7 +15,7 @@ import './fields/user-picker.js';
 import './mas-recently-updated.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
-import './users.js';
+import { initUsers } from './users.js';
 import './placeholders/mas-placeholders.js';
 import './mas-recently-updated.js';
 import './editors/merch-card-editor.js';
@@ -24,7 +24,7 @@ import './mas-confirm-dialog.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import router from './router.js';
-import { PAGE_NAMES, WCS_ENV_PROD, WCS_ENV_STAGE } from './constants.js';
+import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, WCS_ENV_PROD } from './constants.js';
 
 const BUCKET_TO_ENV = {
     e155390: 'qa',
@@ -38,20 +38,29 @@ class MasStudio extends LitElement {
     static properties = {
         bucket: { type: String, attribute: 'aem-bucket' },
         baseUrl: { type: String, attribute: 'base-url' },
+        masJsReady: { type: Boolean, state: true },
     };
 
     #unsubscribeLocaleObserver;
-    #unsubscribeCommerceEnvObserver;
-
+    #unsubscribeLandscapeObserver;
+    #unsubscribeConsumerObserver;
     constructor() {
         super();
         this.bucket = 'e59433';
+        this.masJsReady = false;
     }
 
     connectedCallback() {
         super.connectedCallback();
         this.subscribeLocaleObserver();
-        this.subscribeCommerceEnvObserver();
+        this.initMasJs();
+        this.subscribeLandscapeObserver();
+        this.subscribeConsumerObserver();
+        initUsers();
+    }
+
+    initMasJs() {
+        customElements.whenDefined('mas-commerce-service').then(() => (this.masJsReady = true));
     }
 
     get commerceService() {
@@ -68,20 +77,31 @@ class MasStudio extends LitElement {
         this.#unsubscribeLocaleObserver = () => Store.filters.unsubscribe(subscription);
     }
 
-    subscribeCommerceEnvObserver() {
+    subscribeLandscapeObserver() {
         const subscription = (value, oldValue) => {
             if (value !== oldValue) {
                 this.commerceService.refreshOffers();
             }
         };
-        Store.commerceEnv.subscribe(subscription);
-        this.#unsubscribeCommerceEnvObserver = () => Store.commerceEnv.unsubscribe(subscription);
+        Store.landscape.subscribe(subscription);
+        this.#unsubscribeLandscapeObserver = () => Store.landscape.unsubscribe(subscription);
+    }
+
+    subscribeConsumerObserver() {
+        const subscription = (value, oldValue) => {
+            if (value.path !== oldValue.path) {
+                this.renderCommerceService();
+            }
+        };
+        Store.search.subscribe(subscription);
+        this.#unsubscribeConsumerObserver = () => Store.search.unsubscribe(subscription);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         this.#unsubscribeLocaleObserver();
-        this.#unsubscribeCommerceEnvObserver();
+        this.#unsubscribeLandscapeObserver();
+        this.#unsubscribeConsumerObserver();
     }
 
     createRenderRoot() {
@@ -93,7 +113,7 @@ class MasStudio extends LitElement {
     }
 
     page = new StoreController(this, Store.page);
-    commerceEnv = new StoreController(this, Store.commerceEnv);
+    landscape = new StoreController(this, Store.landscape);
 
     get content() {
         if (this.page.value !== PAGE_NAMES.CONTENT) return nothing;
@@ -110,14 +130,18 @@ class MasStudio extends LitElement {
 
     get splashScreen() {
         if (this.page.value !== PAGE_NAMES.WELCOME) return nothing;
-        const hash = window.location.hash.slice(1);
-        const hashParams = new URLSearchParams(hash);
         return html`<mas-splash-screen base-url=${this.baseUrl}></mas-splash-screen>`;
     }
 
     renderCommerceService() {
-        const env = this.commerceEnv.value === WCS_ENV_STAGE ? WCS_ENV_STAGE : WCS_ENV_PROD;
-        this.commerceService.outerHTML = `<mas-commerce-service env="${env}" locale="${Store.filters.value.locale}"></mas-commerce-service>`;
+        const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.search.value.path]?.['mas-ff-defaults'] ?? 'off';
+        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
+
+        // Update service landscape settings based on Store.landscape
+        if (this.commerceService?.settings && Store.landscape.value) {
+            this.commerceService.settings.landscape = Store.landscape.value;
+        }
+
         function rtePriceProvider(element, options) {
             if (element.dataset.template !== 'legal') return;
             if (!element.getRootNode()?.host?.nodeName === 'RTE-FIELD') return;
@@ -138,12 +162,17 @@ class MasStudio extends LitElement {
     }
 
     render() {
+        if (this.masJsReady) {
+            console.log('mas.js is ready', this.masJsReady);
+        }
         return html`
             <mas-top-nav aem-env="${this.aemEnv}"></mas-top-nav>
             <mas-repository bucket="${this.bucket}" base-url="${this.baseUrl}"></mas-repository>
             <div class="studio-content">
                 <mas-side-nav></mas-side-nav>
-                <div class="main-container">${this.splashScreen} ${this.content} ${this.placeholders}</div>
+                ${this.masJsReady
+                    ? html`<div class="main-container">${this.splashScreen} ${this.content} ${this.placeholders}</div>`
+                    : nothing}
             </div>
             <editor-panel></editor-panel>
             <mas-toast></mas-toast>

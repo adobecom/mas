@@ -21,7 +21,29 @@ export const WCS_LANDSCAPE_DRAFT = 'DRAFT';
 export const WCS_ENV_PROD = 'prod';
 export const WCS_ENV_STAGE = 'stage';
 
-export const ANALYTICS_LINK_IDS = ['learn-more', 'see-terms', 'what-is-included', 'register-now'];
+export const ANALYTICS_LINK_IDS = [
+    'buy-now',
+    'change-plan-team-payment',
+    'change-plan-team-plans',
+    'free-trial',
+    'get-offer',
+    'learn-more',
+    'register-now',
+    'see-all-plans-and-pricing',
+    'see-more',
+    'see-terms',
+    'select',
+    'start-free-trial',
+    'take-the-quiz',
+    'upgrade-now',
+    'what-is-included',
+];
+
+export const CONSUMER_FEATURE_FLAGS = {
+    ccd: {
+        'mas-ff-defaults': 'on',
+    },
+};
 
 // TODO remove these?
 export const EVENT_CHANGE = 'change';
@@ -146,4 +168,13 @@ export const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);
 // The first value in the array should be the default value
 export const SORT_COLUMNS = {
     placeholders: ['key', 'value', 'status', 'locale', 'updatedBy', 'updatedAt'],
+};
+
+// Variant capabilities configuration
+export const VARIANT_CAPABILITIES = {
+    defaultCard: {
+        supported: ['simplified-pricing-express'],
+        label: 'Default Card',
+        helpText: 'Drag a card here to set as default',
+    },
 };

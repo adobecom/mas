@@ -6,7 +6,7 @@ async function fetchFragment(context) {
         //either we have a translatedId that we can fetch directly or we use the id
         const toFetchId = translatedId || id;
         const path = odinReferences(toFetchId, true, preview);
-        const response = await fetch(path, context);
+        const response = await fetch(path, context, 'fragment');
         if (response.status == 200) {
             return {
                 ...context,

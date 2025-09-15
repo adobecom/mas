@@ -1,4 +1,4 @@
-import { PAGE_NAMES, SORT_COLUMNS, WCS_ENV_PROD } from './constants.js';
+import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
 import Store from './store.js';
 import { debounce } from './utils.js';
 
@@ -55,6 +55,8 @@ export class Router extends EventTarget {
     syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue = undefined) {
         this.currentParams ??= new URLSearchParams(this.location.hash.slice(1));
         let newValue = isObject ? structuredClone(currentValue) : currentValue;
+        let hashUpdated = false;
+
         for (const key of keysArray) {
             if (this.currentParams.has(key)) {
                 let value = this.currentParams.get(key);
@@ -65,6 +67,7 @@ export class Router extends EventTarget {
                     // Not JSON, use as is
                     parsedValue = value;
                 }
+
                 if (isObject) {
                     newValue[key] = parsedValue;
                 } else {
@@ -79,6 +82,12 @@ export class Router extends EventTarget {
                 }
             }
         }
+
+        // Update hash if invalid parameters were removed
+        if (hashUpdated) {
+            this.updateHistory();
+        }
+
         if (JSON.stringify(store.value) !== JSON.stringify(newValue)) {
             store.set(newValue);
             this.dispatchEvent(new Event('change'));
@@ -162,7 +171,7 @@ export class Router extends EventTarget {
         });
         this.linkStoreToHash(Store.sort, ['sortBy', 'sortDirection'], getSortDefaultValue);
         this.linkStoreToHash(Store.placeholders.search, 'search');
-        this.linkStoreToHash(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
+        this.linkStoreToHash(Store.landscape, 'commerce.landscape', WCS_LANDSCAPE_PUBLISHED);
         if (Store.search.value.query) {
             Store.page.set(PAGE_NAMES.CONTENT);
         }

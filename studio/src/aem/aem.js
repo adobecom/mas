@@ -1,4 +1,5 @@
 import { UserFriendlyError } from '../utils.js';
+import { COLLECTION_MODEL_PATH } from '../constants.js';
 
 const NETWORK_ERROR_MESSAGE = 'Network error';
 const MAX_POLL_ATTEMPTS = 10;
@@ -301,10 +302,31 @@ class AEM {
 
     async pollUpdatedFragment(oldFragment) {
         let attempts = 0;
+
+        const isCollection = oldFragment.model?.path === COLLECTION_MODEL_PATH;
+        const oldDefaultChild = isCollection
+            ? oldFragment.fields?.find((f) => f.name === 'defaultchild')?.values?.[0]
+            : undefined;
+
         while (attempts < MAX_POLL_ATTEMPTS) {
             attempts++;
             const newFragment = await this.sites.cf.fragments.getById(oldFragment.id);
-            if (newFragment.etag !== oldFragment.etag) return newFragment;
+
+            if (!newFragment) {
+                await this.wait(POLL_TIMEOUT);
+                continue;
+            }
+
+            const newDefaultChild = isCollection
+                ? newFragment.fields?.find((f) => f.name === 'defaultchild')?.values?.[0]
+                : undefined;
+            const defaultChildChanged = isCollection && oldDefaultChild !== newDefaultChild;
+
+            const wasModified = newFragment.modified !== oldFragment.modified;
+
+            if (newFragment.etag !== oldFragment.etag || defaultChildChanged || wasModified) {
+                return newFragment;
+            }
             await this.wait(POLL_TIMEOUT);
         }
         throw new UserFriendlyError('Save completed but the updated fragment could not be retrieved.');

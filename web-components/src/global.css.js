@@ -37,6 +37,8 @@ styles.innerHTML = `
     --consonant-merch-card-heading-s-line-height: 25px;
     --consonant-merch-card-heading-m-font-size: 24px;
     --consonant-merch-card-heading-m-line-height: 30px;
+    --consonant-merch-card-heading-l-font-size: 28px;
+    --consonant-merch-card-heading-l-line-height: 36.4px;
 
     /* detail */
     --consonant-merch-card-detail-xs-line-height: 12px;

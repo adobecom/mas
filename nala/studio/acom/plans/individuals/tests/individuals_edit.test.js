@@ -439,7 +439,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 await expect(await editor.mnemonicModalDialog).not.toBeVisible({ timeout: 10000 });
 
                 // Additional wait to ensure the icon update completes
-                await page.waitForTimeout(1000)
+                await page.waitForTimeout(1000);
             } else {
                 // Fallback to old icon field
                 await expect(await editor.mnemonicField).toBeVisible();

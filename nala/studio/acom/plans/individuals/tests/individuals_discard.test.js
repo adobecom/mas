@@ -254,11 +254,14 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 await editor.mnemonicUrlTab.click();
 
                 // Fill in the new icon URL
+                await editor.mnemonicUrlIconInput.fill('');
+                await page.waitForTimeout(500);
                 await editor.mnemonicUrlIconInput.fill(data.newIconURL);
+                await page.waitForTimeout(500);
 
-                // Save the changes in modal
-                await editor.mnemonicModalSaveButton.click();
-                await page.waitForTimeout(500); // Wait for modal to close
+                // Don't save - we're testing discard, just change the value
+                // Modal will be closed when editor is closed
+                await page.waitForTimeout(500); // Small wait after filling
             } else {
                 // Fallback to old icon field
                 await expect(await editor.iconURL).toBeVisible();

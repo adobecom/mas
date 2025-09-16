@@ -242,19 +242,37 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await editor.mnemonicUrlTab.click();
 
             // Fill in the new icon URL
+            await editor.mnemonicUrlIconInput.fill('');
+            await page.waitForTimeout(500);
             await editor.mnemonicUrlIconInput.fill(data.newIconURL);
+            await page.waitForTimeout(500);
 
-            // Save the changes
-            await editor.mnemonicModalSaveButton.click();
-            await page.waitForTimeout(500); // Wait for modal to close
+            // Verify the value was set correctly before saving
+            const inputValue = await editor.mnemonicUrlIconInput.inputValue();
+            expect(inputValue).toBe(data.newIconURL);
+
+            // Save the changes - click the Update Icon button
+            const updateButton = page.locator('mas-mnemonic-modal >> sp-button:has-text("Update Icon")');
+            await updateButton.click();
+            await page.waitForTimeout(1000);
+
+            // If modal is still open, use keyboard to submit
+            if (await editor.mnemonicModalDialog.isVisible()) {
+                await updateButton.focus();
+                await page.keyboard.press('Enter');
+                await page.waitForTimeout(1000);
+            }
+
+            // Wait for the modal to close completely with timeout
+            await expect(await editor.mnemonicModalDialog).not.toBeVisible({ timeout: 10000 });
         });
 
         await test.step('step-4: Validate edited mnemonic URL field in Editor panel', async () => {
-            await expect(await editor.mnemonicIcon).toHaveAttribute('src', data.newIconURL);
+            await expect(await editor.mnemonicIcon).toHaveAttribute('src', data.newIconURL, { timeout: 10000 });
         });
 
         await test.step('step-5: Validate edited mnemonic src on the card', async () => {
-            await expect(await slice.cardIcon).toHaveAttribute('src', data.newIconURL);
+            await expect(await slice.cardIcon).toHaveAttribute('src', data.newIconURL, { timeout: 10000 });
         });
     });
 

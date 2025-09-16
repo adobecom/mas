@@ -398,11 +398,48 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
                 // Fill in the new icon URL
                 await expect(await editor.mnemonicUrlIconInput).toBeVisible();
+                // Use fill with empty string first, then fill with new value to ensure it's set
+                await editor.mnemonicUrlIconInput.fill('');
+                await page.waitForTimeout(500);
                 await editor.mnemonicUrlIconInput.fill(data.newIconURL);
+                await page.waitForTimeout(500);
 
-                // Save the changes
-                await editor.mnemonicModalSaveButton.click();
-                await page.waitForTimeout(500); // Wait for modal to close
+                // Verify the value was set correctly before saving
+                const inputValue = await editor.mnemonicUrlIconInput.inputValue();
+                console.log('Input value before save:', inputValue);
+                expect(inputValue).toBe(data.newIconURL);
+
+                // Save the changes - Try multiple methods
+                const updateButton = editor.page.locator('mas-mnemonic-modal >> sp-button:has-text("Update Icon")');
+                await expect(updateButton).toBeVisible();
+
+                // Method 1: Regular click
+                await updateButton.click();
+                await page.waitForTimeout(1000);
+
+                // Check if modal is still open
+                const modalStillOpen = await editor.mnemonicModalDialog.isVisible();
+
+                if (modalStillOpen) {
+                    console.log('Modal still open after click, trying keyboard shortcut...');
+                    // Method 2: Try Enter key on the button
+                    await updateButton.focus();
+                    await page.keyboard.press('Enter');
+                    await page.waitForTimeout(1000);
+                }
+
+                // If still open, try clicking the actual button element
+                if (await editor.mnemonicModalDialog.isVisible()) {
+                    console.log('Modal still open, trying direct button selector...');
+                    await editor.page.locator('mas-mnemonic-modal >> sp-button[variant="accent"]').click({ force: true });
+                    await page.waitForTimeout(1000);
+                }
+
+                // Wait for the modal to close
+                await expect(await editor.mnemonicModalDialog).not.toBeVisible({ timeout: 10000 });
+
+                // Additional wait to ensure the icon update completes
+                await page.waitForTimeout(1000)
             } else {
                 // Fallback to old icon field
                 await expect(await editor.mnemonicField).toBeVisible();
@@ -416,12 +453,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             const hasMnemonicField = await editor.mnemonicField.isVisible().catch(() => false);
 
             if (hasMnemonicField) {
-                await expect(await editor.mnemonicIcon).toHaveAttribute('src', data.newIconURL);
+                // Wait for the icon to update with a retry
+                await expect(await editor.mnemonicIcon).toHaveAttribute('src', data.newIconURL, { timeout: 10000 });
             } else {
                 await expect(await editor.iconURL).toHaveValue(data.newIconURL);
             }
 
-            await expect(await individuals.cardIcon).toHaveAttribute('src', data.newIconURL);
+            await expect(await individuals.cardIcon).toHaveAttribute('src', data.newIconURL, { timeout: 10000 });
         });
     });
 

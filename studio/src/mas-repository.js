@@ -24,6 +24,7 @@ import {
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
+import { getDictionary } from '../libs/fragment-client.js';
 
 let fragmentCache;
 
@@ -120,7 +121,7 @@ export class MasRepository extends LitElement {
         switch (this.page.value) {
             case PAGE_NAMES.CONTENT:
                 this.searchFragments();
-                this.loadPlaceholders();
+                this.loadPreviewPlaceholders();
                 break;
             case PAGE_NAMES.WELCOME:
                 this.loadRecentlyUpdatedFragments();
@@ -369,6 +370,24 @@ export class MasRepository extends LitElement {
             Store.placeholders.list.data.set(placeholders);
         } catch (error) {
             this.processError(error, 'Could not load placeholders.');
+        } finally {
+            Store.placeholders.list.loading.set(false);
+        }
+    }
+
+    async loadPreviewPlaceholders() {
+        try {
+            const context = {
+                preview: {
+                    url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+                },
+                locale: this.filters.value.locale,
+                surface: this.search.value.path,
+            };
+            const result = await getDictionary(context);
+            Store.placeholders.preview.set(result);
+        } catch (error) {
+            this.processError(error, 'Could not load preview placeholders.');
         } finally {
             Store.placeholders.list.loading.set(false);
         }

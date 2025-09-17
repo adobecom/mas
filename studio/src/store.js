@@ -47,6 +47,7 @@ const Store = {
             loading: new ReactiveStore(false),
             data: new ReactiveStore([{ value: 'disabled', itemText: 'disabled' }]),
         },
+        preview: new ReactiveStore(null),
     },
     profile: new ReactiveStore(),
     createdByUsers: new ReactiveStore([]),
@@ -149,29 +150,9 @@ Store.page.subscribe((value) => {
     Store.sort.set({ sortBy: SORT_COLUMNS[value]?.[0], sortDirection: 'asc' });
 });
 
-// Derived values
-
-const placeholdersDict = {
-    value: {},
-};
-
-Store.placeholders.list.data.subscribe((value) => {
-    // Update placeholders dict
-    placeholdersDict.value = {};
-    const extractValue = (ref) => {
-        const value = ref.getFieldValue('value') || ref.getFieldValue('richTextValue') || '';
-        // Escape control characters and double quotes before parsing
-        return value.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').replace(/"/g, '\\"');
-    };
-    for (const placeholderStore of value) {
-        const placeholder = placeholderStore.get();
-        placeholdersDict.value[placeholder.getFieldValue('key')] = extractValue(placeholder);
-    }
-    // If on the content page, trigger fragment resolve
+Store.placeholders.preview.subscribe(() => {
     if (Store.page.value !== PAGE_NAMES.CONTENT) return;
     for (const fragmentStore of Store.fragments.list.data.value) {
         fragmentStore.resolvePreviewFragment();
     }
 });
-
-export { placeholdersDict };

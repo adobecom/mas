@@ -1,4 +1,4 @@
-import Store, { placeholdersDict } from '../store.js';
+import Store from '../store.js';
 import { FragmentStore } from './fragment-store.js';
 import { previewStudioFragment } from 'fragment-client';
 
@@ -38,7 +38,7 @@ export class PreviewFragmentStore extends FragmentStore {
     }
 
     resolveFragment() {
-        if (this.isCollection) return;
+        if (this.isCollection || !Store.placeholders.preview.value) return;
 
         this.getResolvedFragment().then((result) => {
             this.replaceFrom(result);
@@ -57,7 +57,7 @@ export class PreviewFragmentStore extends FragmentStore {
         const context = {
             locale: Store.filters.value.locale,
             surface: Store.search.value.path,
-            dictionary: placeholdersDict.value,
+            dictionary: Store.placeholders.preview.value,
         };
         const result = await previewStudioFragment(body, context);
 

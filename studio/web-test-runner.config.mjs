@@ -42,6 +42,7 @@ export default {
                     imports: {
                         react: '/test/mocks/react.js',
                         '@pandora/fetch': '/test/mocks/pandora-fetch.js',
+                        'fragment-client': '/libs/fragment-client.js',
                     },
                 },
             },

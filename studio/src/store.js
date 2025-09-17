@@ -47,12 +47,14 @@ const Store = {
             loading: new ReactiveStore(false),
             data: new ReactiveStore([{ value: 'disabled', itemText: 'disabled' }]),
         },
+        preview: new ReactiveStore(null),
     },
     profile: new ReactiveStore(),
     createdByUsers: new ReactiveStore([]),
     users: new ReactiveStore([]),
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
+    preview: new ReactiveStore(null, previewValidator),
 };
 
 // #region Validators
@@ -110,6 +112,14 @@ function sortValidator(value) {
 // ReactiveStore contructor - it gets registered separately
 Store.sort.registerValidator(sortValidator);
 
+function previewValidator(value) {
+    const defaultPosition = { top: 0, right: undefined, bottom: undefined, left: 0 };
+    if (!value || typeof value !== 'object') return { id: null, position: defaultPosition };
+    if (!value.position) return { ...value, position: defaultPosition };
+    value.position = { ...defaultPosition, ...value.position };
+    return value;
+}
+
 // #endregion
 
 const editorPanel = () => document.querySelector('editor-panel');
@@ -138,4 +148,17 @@ export default Store;
 // Reset sort on page change
 Store.page.subscribe((value) => {
     Store.sort.set({ sortBy: SORT_COLUMNS[value]?.[0], sortDirection: 'asc' });
+});
+
+Store.placeholders.preview.subscribe(() => {
+    if (Store.page.value === PAGE_NAMES.CONTENT) {
+        for (const fragmentStore of Store.fragments.list.data.value) {
+            fragmentStore.resolvePreviewFragment();
+        }
+    }
+    if (Store.page.value === PAGE_NAMES.WELCOME) {
+        for (const fragmentStore of Store.fragments.recentlyUpdated.data.value) {
+            fragmentStore.resolvePreviewFragment();
+        }
+    }
 });

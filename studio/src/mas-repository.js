@@ -341,6 +341,9 @@ export class MasRepository extends LitElement {
 
     async loadPlaceholders() {
         try {
+            /* If surface is not set yet, skip loading placeholders */
+            if (!this.search.value.path) return;
+
             const dictionaryPath = this.getDictionaryPath();
 
             const searchOptions = {

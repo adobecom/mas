@@ -24,6 +24,10 @@ export class MapStore extends ReactiveStore {
         return this.value.get(key);
     }
 
+    has(key) {
+        return this.value.has(key);
+    }
+
     add(values) {
         const internalValues = Array.isArray(values) ? values : [values];
         for (const item of internalValues) {

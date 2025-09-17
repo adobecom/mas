@@ -380,7 +380,15 @@ export class MasRepository extends LitElement {
         }
 
         try {
-            const items = this.loadAuxiliaryContent(options, RECENTLY_UPDATED_LIMIT, this.#abortControllers.recentlyUpdated);
+            const options = {
+                sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
+                path: `/content/dam/mas/${path}`,
+            };
+            const items = await this.loadAuxiliaryContent(
+                options,
+                RECENTLY_UPDATED_LIMIT,
+                this.#abortControllers.recentlyUpdated,
+            );
             dataStore.set(items);
             dataStore.setMeta('path', path);
         } catch (error) {
@@ -395,7 +403,7 @@ export class MasRepository extends LitElement {
     async loadPlaceholders() {
         try {
             /* If surface is not set yet, skip loading placeholders */
-            if (!this.search.value.path) return;
+            if (!Store.surface.value) return;
 
             const dictionaryPath = this.getDictionaryPath();
 
@@ -428,7 +436,7 @@ export class MasRepository extends LitElement {
 
     async loadSingleFragment(id) {
         /* Wanted fragment is already loaded */
-        if (Store.content.loaded.get(id)) return;
+        if (Store.content.loaded.has(id)) return;
 
         const fragmentData = await this.aem.sites.cf.fragments.getById(id, this.#abortControllers.search);
         if (fragmentData && fragmentData.path.indexOf(damPath) == 0) {

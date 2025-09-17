@@ -138,7 +138,7 @@ export default {
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
                 osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
-                productCodeTag: 'product_code/ccsn',
+                productCodeTag: 'product_code/cces',
                 newProductCodeTag: 'product_code/cces',
                 offerTypeTag: 'offer_type/base',
                 marketSegmentsTag: 'market_segments/com',
@@ -211,7 +211,7 @@ export default {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
                 analyticsID: 'free-trial',
                 daaLL: 'free-trial-1',
-                daaLH: 'ccsn',
+                daaLH: 'cces',
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-1',
             },

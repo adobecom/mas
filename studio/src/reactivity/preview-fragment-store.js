@@ -13,6 +13,12 @@ export class PreviewFragmentStore extends FragmentStore {
     }
 
     set(value) {
+        /* IMPORTANT! This store's value should NOT be re-assigned!
+           We generally get here from the source store's "set" function, but there, the value
+           that is passed is actually the underlying value of the source store, which is DIFFERENT from
+           the underlying value of this store - which again should not change, only use replaceFrom/
+           refreshFrom to keep the object reference, rather than (in this case) "super.set(value)"
+        */
         this.value.replaceFrom(value, true);
         this.resolveFragment();
     }

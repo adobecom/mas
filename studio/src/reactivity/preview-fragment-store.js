@@ -13,7 +13,7 @@ export class PreviewFragmentStore extends FragmentStore {
     }
 
     set(value) {
-        super.set(value);
+        this.value.replaceFrom(value, true);
         this.resolveFragment();
     }
 

@@ -55,11 +55,14 @@ export class Fragment {
     }
 
     /**
-     * Updates the fragment entirely while preserving the initial value & hasChange status
+     * Updates the fragment entirely while preserving the initial value & hasChange status if not specified
      * @param {object} fragmentData
+     * @param {Boolean | undefined} hasChanges
      */
-    replaceFrom(fragmentData) {
+    replaceFrom(fragmentData, hasChanges) {
         Object.assign(this, fragmentData);
+        if (hasChanges === undefined) return;
+        this.hasChanges = hasChanges;
     }
 
     discardChanges() {

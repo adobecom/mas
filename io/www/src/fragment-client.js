@@ -7,7 +7,7 @@
 import { logError } from './fragment/common.js';
 import { corrector } from './fragment/corrector.js';
 import { fetchFragment } from './fragment/fetch.js';
-import { replace } from './fragment/replace.js';
+import { replace, getDictionary } from './fragment/replace.js';
 import { settings } from './fragment/settings.js';
 import { translate } from './fragment/translate.js';
 
@@ -84,4 +84,4 @@ async function previewStudioFragment(body, options) {
     return context.body;
 }
 
-export { previewFragment, previewStudioFragment, translate, settings, replace, corrector };
+export { previewFragment, previewStudioFragment, translate, settings, replace, getDictionary, corrector };

@@ -21,6 +21,7 @@ class MasContent extends LitElement {
     }
 
     loading = new StoreController(this, Store.content.loading);
+    firstPageLoaded = new StoreController(this, Store.fragments.list.firstPageLoaded);
     fragments = new StoreController(this, Store.content.showing);
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
@@ -133,6 +134,18 @@ class MasContent extends LitElement {
         </sp-table>`;
     }
 
+    /** main spinner to show while loading the first page */
+    get firstPageLoadingSpinner() {
+        if (!this.loading.value || this.firstPageLoaded.value) return nothing;
+        return html`<sp-progress-circle class="fragments" indeterminate size="l"></sp-progress-circle>`;
+    }
+
+    /** spinner to show at the bottom of the page if next page is being loaded */
+    get pageLoadingSpinner() {
+        if (!this.loading.value || !this.firstPageLoaded.value) return nothing;
+        return html`<sp-progress-circle class="next-page" indeterminate size="l"></sp-progress-circle>`;
+    }
+
     render() {
         let view = nothing;
         switch (this.renderMode.value) {
@@ -146,11 +159,12 @@ class MasContent extends LitElement {
                 view = this.renderView;
         }
         return html`<div id="content">
-            ${view}
-            <sp-popover class="pagination-wrapper" open>
-                <mas-pagination .store=${Store.content.pagination} total=${this.total.value}></mas-pagination>
-            </sp-popover>
-        </div>`;
+                ${view}${this.firstPageLoadingSpinner}
+                <sp-popover class="pagination-wrapper" open>
+                    <mas-pagination .store=${Store.content.pagination} total=${this.total.value}></mas-pagination>
+                </sp-popover>
+            </div>
+            ${this.pageLoadingSpinner}`;
     }
 }
 

@@ -103,6 +103,7 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
         await test.step('step-4: Validate border color applied to card', async () => {
             await expect(await editor.borderColor).toContainText(data.gradientBorderColor);
             await expect(promotedPlansCard).toHaveAttribute('border-color', data.gradientBorderCSSColor);
+            await expect(promotedPlansCard).toHaveAttribute('gradient-border', 'true');
         });
     });
 

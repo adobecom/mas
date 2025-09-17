@@ -15,6 +15,136 @@ export const styles = css`
         border: 2px dashed var(--spectrum-global-color-blue-500);
     }
 
+    /* Default Card Drop Zone Styles */
+    .default-card-section {
+        margin-bottom: 24px;
+        padding: 16px;
+        background-color: var(--spectrum-global-color-gray-50);
+        border-radius: 8px;
+    }
+
+    .default-card-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        font-weight: 600;
+        color: var(--spectrum-global-color-gray-800);
+    }
+
+    .default-card-header sp-icon-star {
+        color: var(--spectrum-global-color-yellow-600);
+    }
+
+    .default-card-drop-zone {
+        min-height: 80px;
+        border: 2px dashed var(--spectrum-global-color-gray-300);
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        transition: all 0.2s ease;
+        background-color: var(--spectrum-global-color-gray-75);
+        position: relative;
+        z-index: 10;
+    }
+
+    .default-card-drop-zone.empty:hover {
+        border-color: var(--spectrum-global-color-blue-400);
+        background-color: var(--spectrum-global-color-blue-50);
+    }
+
+    .default-card-drop-zone.dragover {
+        border-color: var(--spectrum-global-color-blue-500);
+        background-color: var(--spectrum-global-color-blue-100);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .default-card-drop-zone.has-default {
+        background-color: var(--spectrum-global-color-yellow-50);
+        border-color: var(--spectrum-global-color-yellow-400);
+    }
+
+    .drop-zone-placeholder {
+        text-align: center;
+        color: var(--spectrum-global-color-gray-600);
+    }
+
+    .drop-zone-placeholder sp-icon-drag-handle {
+        display: block;
+        margin: 0 auto 8px;
+        color: var(--spectrum-global-color-gray-400);
+    }
+
+    .drop-zone-placeholder p {
+        margin: 4px 0;
+    }
+
+    .drop-zone-placeholder .help-text {
+        font-size: 12px;
+        color: var(--spectrum-global-color-gray-500);
+    }
+
+    .default-card-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        gap: 12px;
+    }
+
+    .default-card-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .default-card-icon {
+        color: var(--spectrum-global-color-yellow-600);
+        flex-shrink: 0;
+    }
+
+    .default-card-details {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .default-card-title {
+        font-weight: 600;
+        color: var(--spectrum-global-color-gray-800);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .default-card-name {
+        font-size: 12px;
+        color: var(--spectrum-global-color-gray-600);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Default Card Indicator in List */
+    .item-wrapper.is-default-card {
+        background-color: var(--spectrum-global-color-yellow-50);
+        border-color: var(--spectrum-global-color-yellow-400);
+    }
+
+    .item-wrapper.is-default-card .item-content {
+        gap: 8px;
+    }
+
+    .default-indicator {
+        color: var(--spectrum-global-color-yellow-600);
+        flex-shrink: 0;
+    }
+
     .section-header {
         display: flex;
         justify-content: space-between;
@@ -29,11 +159,25 @@ export const styles = css`
     }
 
     .cards-container {
-        display: contents;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-height: 60px;
     }
 
     .hidden {
         display: none;
+    }
+
+    .empty-cards-placeholder {
+        min-height: 60px;
+        border: 2px dashed transparent;
+        transition: all 0.2s ease;
+    }
+
+    .empty-cards-placeholder:hover {
+        border-color: var(--spectrum-global-color-gray-300);
+        background-color: var(--spectrum-global-color-gray-50);
     }
 
     .items-container {
@@ -53,13 +197,15 @@ export const styles = css`
         border-radius: 4px;
         background-color: var(--spectrum-global-color-gray-50);
         cursor: grab;
+        position: relative;
+        z-index: 1;
     }
 
     .item-wrapper:hover {
         background-color: var(--spectrum-global-color-gray-100);
     }
 
-    sp-action-button {
+    .item-wrapper sp-action-button {
         visibility: hidden;
     }
 
@@ -67,8 +213,14 @@ export const styles = css`
         visibility: visible;
     }
 
+    /* Ensure default card remove button is always visible */
+    .default-card-content sp-action-button {
+        visibility: visible;
+    }
+
     .item-wrapper.dragging {
         opacity: 0.5;
+        z-index: 100;
     }
 
     .item-wrapper.dragover {

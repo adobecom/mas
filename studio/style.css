@@ -259,9 +259,10 @@ mas-recently-updated > .container {
 }
 
 mas-content {
-    width: 100%;
-    padding-inline: 30px;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
 }
 
 #content {
@@ -274,6 +275,13 @@ mas-content {
 }
 
 #content sp-table {
+    --table-content-name-flex-grow: 1.6;
+    --table-content-title-flex-grow: 1;
+    --table-content-offer-type-flex-grow: 0.4;
+    --table-content-price-flex-grow: 0.4;
+    --table-content-offer-id-flex-grow: 1.1;
+    --table-content-status-flex-grow: 0.3;
+    --table-content-preview-flex-grow: 0.1;
     width: 100%;
     & sp-table-body {
         background-color: var(--spectrum-gray-100);
@@ -298,7 +306,7 @@ sp-table-cell {
 
     &.name {
         gap: 8px;
-        flex-grow: 1.6;
+        flex-grow: var(--table-content-name-flex-grow);
 
         & img {
             width: 24px;
@@ -308,78 +316,75 @@ sp-table-cell {
     }
 
     &.title {
-        flex-grow: 1;
+        flex-grow: var(--table-content-title-flex-grow);
         word-break: break-all;
     }
 
     &.offer-type {
-        flex-grow: 0.4;
+        flex-grow: var(--table-content-offer-type-flex-grow);
         word-break: break-all;
     }
 
     &.price {
-        flex-grow: 0.4;
+        flex-grow: var(--table-content-price-flex-grow);
     }
 
     &.offer-id {
-        flex-grow: 1.1;
+        flex-grow: var(--table-content-offer-id-flex-grow);
     }
 
     &.status {
-        justify-content: end;
-        flex-grow: 0.4;
+        flex-grow: var(--table-content-status-flex-grow);
         font-size: 12px;
         font-weight: 700;
-        word-break: break-all;
-        outline: none;
-        margin: 0;
-        padding: 0;
-        align-self: stretch;
 
-        &.new,
-        &.draft {
+        &.new-cell,
+        &.draft-cell {
             color: var(--spectrum-blue-800);
         }
 
-        &.modified {
+        &.modified-cell {
             color: var(--spectrum-yellow-600);
         }
 
-        &.published {
+        &.published-cell {
             color: var(--spectrum-green-700);
         }
     }
 
     &.preview {
-        flex-grow: 0.1;
+        flex-grow: var(--table-content-preview-flex-grow);
         text-align: end;
     }
 }
 
 sp-table-head-cell {
     &.name {
-        flex-grow: 1.6;
+        flex-grow: var(--table-content-name-flex-grow);
     }
 
     &.title {
-        flex-grow: 1;
+        flex-grow: var(--table-content-title-flex-grow);
     }
 
     &.offer-type {
-        flex-grow: 0.4;
+        flex-grow: var(--table-content-offer-type-flex-grow);
     }
 
     &.price {
-        flex-grow: 0.4;
+        flex-grow: var(--table-content-price-flex-grow);
     }
 
     &.offer-id {
-        flex-grow: 1.1;
+        flex-grow: var(--table-content-offer-id-flex-grow);
     }
 
     &.status {
-        text-align: end;
-        flex-grow: 0.4;
+        flex-grow: var(--table-content-status-flex-grow);
+    }
+
+    &.preview {
+        flex-grow: var(--table-content-preview-flex-grow);
     }
 }
 
@@ -577,6 +582,10 @@ sp-progress-circle.preview {
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 1000;
+}
+
+sp-progress-circle.next-page {
+    align-self: center;
 }
 
 .clone-dialog sp-progress-circle {

@@ -1,4 +1,4 @@
-import Store, { placeholdersDict } from '../store.js';
+import Store from '../store.js';
 import { FragmentStore } from './fragment-store.js';
 import { previewStudioFragment } from 'fragment-client';
 
@@ -13,7 +13,14 @@ export class PreviewFragmentStore extends FragmentStore {
     }
 
     set(value) {
-        super.set(value);
+        /* IMPORTANT! This store's value should NOT be re-assigned!
+           We generally get here from the source store's "set" function, but there, the value
+           that is passed is actually (or should be!) the underlying value of the source store, 
+           which is DIFFERENT from the underlying value of this store - which again should not change, 
+           only use replaceFrom/refreshFrom to keep the object reference, 
+           rather than (in this case) "super.set(value)"
+        */
+        this.value.replaceFrom(value, true);
         this.resolveFragment();
     }
 
@@ -38,7 +45,7 @@ export class PreviewFragmentStore extends FragmentStore {
     }
 
     resolveFragment() {
-        if (this.isCollection) return;
+        if (this.isCollection || !Store.placeholders.preview.value) return;
 
         this.getResolvedFragment().then((result) => {
             this.replaceFrom(result);
@@ -57,7 +64,7 @@ export class PreviewFragmentStore extends FragmentStore {
         const context = {
             locale: Store.locale.value,
             surface: Store.surface.value,
-            dictionary: placeholdersDict.value,
+            dictionary: Store.placeholders.preview.value,
         };
         const result = await previewStudioFragment(body, context);
 

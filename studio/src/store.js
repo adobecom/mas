@@ -9,6 +9,7 @@ const Store = {
     fragments: {
         list: {
             loading: new ReactiveStore(true),
+            firstPageLoaded: new ReactiveStore(false),
             data: new ReactiveStore([]),
             pagination: new PaginationStore(),
         },
@@ -49,6 +50,7 @@ const Store = {
             loading: new ReactiveStore(false),
             data: new ReactiveStore([{ value: 'disabled', itemText: 'disabled' }]),
         },
+        preview: new ReactiveStore(null),
     },
     profile: new ReactiveStore(),
     createdByUsers: new ReactiveStore([]),
@@ -246,32 +248,21 @@ Store.page.subscribe((value) => {
     Store.sort.set({ sortBy: SORT_COLUMNS[value]?.[0], sortDirection: 'asc' });
 });
 
-// Derived values
-
-const placeholdersDict = new DerivedStore(Store.placeholders.list.data, (value) => {
-    const result = {};
-    const extractValue = (ref) => {
-        const value = ref.getFieldValue('value') || ref.getFieldValue('richTextValue') || '';
-        // Escape control characters and double quotes before parsing
-        return value.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').replace(/"/g, '\\"');
-    };
-    for (const placeholderStore of value) {
-        const placeholder = placeholderStore.get();
-        result[placeholder.getFieldValue('key')] = extractValue(placeholder);
-    }
-    return result;
-});
-
 Store.content.loaded.subscribeToAddition((values) => {
     for (const fragmentStore of values) {
         fragmentStore.resolvePreviewFragment();
     }
 });
 
-placeholdersDict.subscribe(() => {
-    for (const [, fragmentStore] of Store.content.loaded.value) {
-        fragmentStore.resolvePreviewFragment();
+Store.placeholders.preview.subscribe(() => {
+    if (Store.page.value === PAGE_NAMES.CONTENT) {
+        for (const fragmentStore of Store.fragments.list.data.value) {
+            fragmentStore.resolvePreviewFragment();
+        }
+    }
+    if (Store.page.value === PAGE_NAMES.WELCOME) {
+        for (const fragmentStore of Store.fragments.recentlyUpdated.data.value) {
+            fragmentStore.resolvePreviewFragment();
+        }
     }
 });
-
-export { placeholdersDict };

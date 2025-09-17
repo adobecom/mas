@@ -98,4 +98,8 @@ async function replace(context) {
         body,
     };
 }
-exports.replace = replace;
+
+module.exports = {
+    replace,
+    getDictionary,
+};

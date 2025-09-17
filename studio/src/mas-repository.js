@@ -19,10 +19,13 @@ import {
     DICTIONARY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    LOCALE_DEFAULT,
     CONTENT_MODEL_IDS,
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
+import { getDictionary } from '../libs/fragment-client.js';
 
 const BATCH_SIZE = 50;
 const RECENTLY_UPDATED_LIMIT = 6;
@@ -118,10 +121,11 @@ export class MasRepository extends LitElement {
         // switch (this.page.value) {
         //     case PAGE_NAMES.CONTENT:
         //         this.searchFragments();
-        //         this.loadPlaceholders();
+        //         this.loadPreviewPlaceholders();
         //         break;
         //     case PAGE_NAMES.WELCOME:
         //         this.loadRecentlyUpdatedFragments();
+        //         this.loadPreviewPlaceholders();
         //         break;
         //     case PAGE_NAMES.PLACEHOLDERS:
         //         this.loadPlaceholders();
@@ -144,6 +148,9 @@ export class MasRepository extends LitElement {
             if (!folders.includes(Store.surface.value) && !Store.content.search.value.query) Store.surface.set(folders.at(0));
             Store.fragments.list.data.set([]);
         } catch (error) {
+            // Store.fragments.list.loading.set(false);
+            // Store.fragments.list.firstPageLoaded.set(false);
+            // Store.fragments.recentlyUpdated.loading.set(false);
             Store.content.loading.set(false);
             Store.placeholders.loading.set(false);
             this.processError(error, 'Could not load folders.');
@@ -249,6 +256,7 @@ export class MasRepository extends LitElement {
         if (!Store.profile.value) return;
 
         Store.fragments.list.loading.set(true);
+        Store.fragments.list.firstPageLoaded.set(false);
 
         const path = this.search.value.path;
         const dataStore = Store.fragments.list.data;
@@ -303,6 +311,7 @@ export class MasRepository extends LitElement {
                 if (currentFragment?.value.id === this.search.value.query) {
                     // Skip search if we already have exactly this fragment)
                     Store.fragments.list.loading.set(false);
+                    Store.fragments.list.firstPageLoaded.set(true);
                     return;
                 }
                 dataStore.set([]);
@@ -325,6 +334,8 @@ export class MasRepository extends LitElement {
                     }
                 }
             } else {
+                Store.fragments.list.loading.set(true);
+                Store.fragments.list.firstPageLoaded.set(false);
                 dataStore.set([]);
                 const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
                 const fragmentStores = [];
@@ -336,6 +347,7 @@ export class MasRepository extends LitElement {
                         fragmentStores.push(sourceStore);
                     }
                     dataStore.set([...fragmentStores]);
+                    Store.fragments.list.firstPageLoaded.set(true);
                 }
             }
 
@@ -382,6 +394,9 @@ export class MasRepository extends LitElement {
 
     async loadPlaceholders() {
         try {
+            /* If surface is not set yet, skip loading placeholders */
+            if (!this.search.value.path) return;
+
             const dictionaryPath = this.getDictionaryPath();
 
             const searchOptions = {
@@ -429,6 +444,24 @@ export class MasRepository extends LitElement {
                     path: folderName,
                 }));
             }
+        }
+    }
+
+    async loadPreviewPlaceholders() {
+        try {
+            const context = {
+                preview: {
+                    url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+                },
+                locale: this.filters.value.locale,
+                surface: this.search.value.path,
+            };
+            const result = await getDictionary(context);
+            Store.placeholders.preview.set(result);
+        } catch (error) {
+            this.processError(error, 'Could not load preview placeholders.');
+        } finally {
+            Store.placeholders.list.loading.set(false);
         }
     }
 
@@ -558,6 +591,9 @@ export class MasRepository extends LitElement {
                         if (field.name === 'tags') {
                             field.values = tags;
                         }
+                        if (field.name === 'originalId') {
+                            field.values = [result.id];
+                        }
                         if (osi && field.name === 'osi') {
                             field.values = [osi];
                         }
@@ -571,8 +607,9 @@ export class MasRepository extends LitElement {
                 savedResult = await this.aem.sites.cf.fragments.getById(savedResult.id);
             }
             const newFragment = await this.#addToCache(savedResult);
+
             const sourceStore = generateFragmentStore(newFragment);
-            Store.fragments.list.data.set((prev) => [...prev, sourceStore]);
+            Store.fragments.list.data.set((prev) => [sourceStore, ...prev]);
             editFragment(sourceStore);
 
             this.operation.set();
@@ -854,7 +891,25 @@ export class MasRepository extends LitElement {
         store.setLoading(true);
         const id = store.get().id;
         const latest = await this.aem.sites.cf.fragments.getById(id);
+
         store.refreshFrom(latest);
+        if ([CARD_MODEL_PATH, COLLECTION_MODEL_PATH].includes(latest.model.path)) {
+            // originalId allows to keep track of the relation between en_US fragment and the current one if in different locales
+            const originalId = store.get().getOriginalIdField();
+            if (this.filters.value.locale === LOCALE_DEFAULT) {
+                originalId.values = [latest.id];
+            } else {
+                const enUsPath = latest.path.replace(this.filters.value.locale, LOCALE_DEFAULT);
+                try {
+                    const sourceFragment = await this.aem.sites.cf.fragments.getByPath(enUsPath);
+                    if (sourceFragment) {
+                        originalId.values = [sourceFragment.id];
+                    }
+                } catch (error) {
+                    //not all fragments have en_US version, so we can ignore this error
+                }
+            }
+        }
         this.#addToCache(store.get());
         store.setLoading(false);
     }

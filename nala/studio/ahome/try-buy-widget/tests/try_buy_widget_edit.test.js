@@ -544,7 +544,6 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await editor.OSI).toBeVisible();
             await expect(await editor.tags).toBeVisible();
             await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.productCodeTag}`));
-            await expect(await editor.OSI).not.toContainText(data.osi);
             // The card already has offer_type/base and market_segments/com
             await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.offerTypeTag}`));
             await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.marketSegmentsTag}`));

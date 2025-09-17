@@ -6,6 +6,7 @@ import Store from './store.js';
 import './mas-fragment.js';
 import Events from './events.js';
 import { CARD_MODEL_PATH } from './constants.js';
+import './mas-pagination.js';
 
 const variantValues = VARIANTS.map((v) => v.value);
 class MasContent extends LitElement {
@@ -19,12 +20,14 @@ class MasContent extends LitElement {
         this.subscriptions = [];
     }
 
-    loading = new StoreController(this, Store.fragments.list.loading);
+    loading = new StoreController(this, Store.content.loading);
     firstPageLoaded = new StoreController(this, Store.fragments.list.firstPageLoaded);
-    fragments = new StoreController(this, Store.fragments.list.data);
+    fragments = new StoreController(this, Store.content.showing);
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
     selection = new StoreController(this, Store.selection);
+    total = new StoreController(this, Store.content.total);
+    pagination = new StoreController(this, Store.content.pagination);
 
     connectedCallback() {
         super.connectedCallback();
@@ -119,6 +122,7 @@ class MasContent extends LitElement {
                 <sp-table-head-cell sortable class="offer-id">Offer ID</sp-table-head-cell>
                 <slot name="headers"></slot>
                 <sp-table-head-cell sortable class="status">Status</sp-table-head-cell>
+                <sp-table-head-cell class="preview"></sp-table-head-cell>
             </sp-table-head>
             <sp-table-body>
                 ${repeat(
@@ -154,7 +158,12 @@ class MasContent extends LitElement {
             default:
                 view = this.renderView;
         }
-        return html`<div id="content">${view} ${this.firstPageLoadingSpinner}</div>
+        return html`<div id="content">
+                ${view}${this.firstPageLoadingSpinner}
+                <sp-popover class="pagination-wrapper" open>
+                    <mas-pagination .store=${Store.content.pagination} total=${this.total.value}></mas-pagination>
+                </sp-popover>
+            </div>
             ${this.pageLoadingSpinner}`;
     }
 }

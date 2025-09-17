@@ -1,4 +1,7 @@
-import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
+import { EMPTY_TAGS, PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
+import { DerivedStore } from './reactivity/derived-store.js';
+import { MapStore } from './reactivity/map-store.js';
+import { PaginationStore } from './reactivity/pagination-store.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
 
 // Store definition with default values - no URL parsing here
@@ -8,11 +11,11 @@ const Store = {
             loading: new ReactiveStore(true),
             firstPageLoaded: new ReactiveStore(false),
             data: new ReactiveStore([]),
+            pagination: new PaginationStore(),
         },
         recentlyUpdated: {
             loading: new ReactiveStore(true),
             data: new ReactiveStore([]),
-            limit: new ReactiveStore(6),
         },
         inEdit: new ReactiveStore(null),
     },
@@ -47,13 +50,105 @@ const Store = {
             loading: new ReactiveStore(false),
             data: new ReactiveStore([{ value: 'disabled', itemText: 'disabled' }]),
         },
+        preview: new ReactiveStore(null),
     },
     profile: new ReactiveStore(),
     createdByUsers: new ReactiveStore([]),
     users: new ReactiveStore([]),
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
+    preview: new ReactiveStore(null, previewValidator),
+    // NEW STUFF
+    content: {
+        loaded: new MapStore(),
+        showing: new ReactiveStore([]),
+        recentlyUpdated: new ReactiveStore([]),
+        total: new ReactiveStore(0),
+        loading: new ReactiveStore(true),
+        search: new ReactiveStore({ field: null, query: '' }),
+        filters: new ReactiveStore({ tags: EMPTY_TAGS }),
+        sort: new ReactiveStore({}),
+        pagination: new PaginationStore(),
+    },
+    surface: new ReactiveStore(null),
+    locale: new ReactiveStore('en_US', localeValidator),
 };
+
+function updateShowingContent() {
+    const { search, filters, pagination } = Store.content;
+    const filteredItems = [];
+    for (const [, itemStore] of Store.content.loaded.value) {
+        const item = itemStore.get();
+        /* Search */
+        if (search.value.query) {
+            let searchTarget = '';
+            if (search.value.field && search.value.field !== 'all') {
+                const field = item.fields.find((f) => f.name === search.value.field);
+                if (field) {
+                    if (field.multiple) searchTarget = field.values.join(' ');
+                    else searchTarget = field.values[0]?.toString() || '';
+                }
+            } else {
+                searchTarget = item.fields
+                    .map((f) => f.values)
+                    .flat()
+                    .join(' ');
+            }
+            if (!searchTarget.toLowerCase().includes(search.value.query.toLowerCase())) continue;
+        }
+        /* Filters */
+        const { variant, status, ...restTagCategories } = filters.value.tags;
+
+        const variants = variant.map((v) => v.replace('mas:variant/', ''));
+        if (variants.length > 0 && !variants.includes(item.getFieldValue('variant'))) continue;
+
+        const statuses = status.map((s) => s.replace('mas:status/', ''));
+        if (statuses.length > 0 && !statuses.includes(item.status.toLowerCase())) continue;
+
+        const createdBy = Store.createdByUsers.value.map((user) => user.userPrincipalName);
+        if (createdBy.length > 0 && !createdBy.includes(item.created.by)) continue;
+
+        let shouldInclude = true;
+        for (const tags of Object.values(restTagCategories)) {
+            if (tags.length === 0) continue;
+            let hasATag = false;
+            for (const tag of tags) {
+                if (item.tags.some((t) => t.id === tag)) {
+                    hasATag = true;
+                    continue;
+                }
+            }
+            if (!hasATag) {
+                shouldInclude = false;
+                continue;
+            }
+        }
+        if (!shouldInclude) continue;
+        filteredItems.push(itemStore);
+    }
+    /* Sort - no sorting yet */
+    Store.content.total.set(filteredItems.length);
+    const paginatedItems = filteredItems.slice(
+        (pagination.value.page - 1) * pagination.value.size,
+        (pagination.value.page - 1) * pagination.value.size + pagination.value.size,
+    );
+    Store.content.showing.set(paginatedItems);
+}
+
+function resetPage() {
+    Store.content.pagination.selectPage(1);
+}
+
+Store.content.search.subscribe(resetPage);
+Store.content.filters.subscribe(resetPage);
+Store.createdByUsers.subscribe(resetPage);
+
+Store.content.loaded.subscribe(updateShowingContent);
+Store.content.search.subscribe(updateShowingContent);
+Store.content.filters.subscribe(updateShowingContent);
+Store.content.sort.subscribe(updateShowingContent);
+Store.content.pagination.subscribe(updateShowingContent);
+Store.createdByUsers.subscribe(updateShowingContent);
 
 // #region Validators
 
@@ -73,6 +168,11 @@ function filtersValidator(value) {
     } else if (typeof value.tags !== 'string') {
         value.tags = String(value.tags);
     }
+    return value;
+}
+
+function localeValidator(value) {
+    if (!value || typeof value !== 'string') return 'en_US';
     return value;
 }
 
@@ -110,6 +210,14 @@ function sortValidator(value) {
 // ReactiveStore contructor - it gets registered separately
 Store.sort.registerValidator(sortValidator);
 
+function previewValidator(value) {
+    const defaultPosition = { top: 0, right: undefined, bottom: undefined, left: 0 };
+    if (!value || typeof value !== 'object') return { id: null, position: defaultPosition };
+    if (!value.position) return { ...value, position: defaultPosition };
+    value.position = { ...defaultPosition, ...value.position };
+    return value;
+}
+
 // #endregion
 
 const editorPanel = () => document.querySelector('editor-panel');
@@ -138,4 +246,23 @@ export default Store;
 // Reset sort on page change
 Store.page.subscribe((value) => {
     Store.sort.set({ sortBy: SORT_COLUMNS[value]?.[0], sortDirection: 'asc' });
+});
+
+Store.content.loaded.subscribeToAddition((values) => {
+    for (const fragmentStore of values) {
+        fragmentStore.resolvePreviewFragment();
+    }
+});
+
+Store.placeholders.preview.subscribe(() => {
+    if (Store.page.value === PAGE_NAMES.CONTENT) {
+        for (const fragmentStore of Store.fragments.list.data.value) {
+            fragmentStore.resolvePreviewFragment();
+        }
+    }
+    if (Store.page.value === PAGE_NAMES.WELCOME) {
+        for (const fragmentStore of Store.fragments.recentlyUpdated.data.value) {
+            fragmentStore.resolvePreviewFragment();
+        }
+    }
 });

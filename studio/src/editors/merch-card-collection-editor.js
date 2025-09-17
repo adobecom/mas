@@ -6,6 +6,8 @@ import { styles } from './merch-card-collection-editor.css.js';
 import { FIELD_MODEL_MAPPING, COLLECTION_MODEL_PATH, CARD_MODEL_PATH, VARIANT_CAPABILITIES } from '../constants.js';
 import Store, { editFragment } from '../store.js';
 import { getFromFragmentCache } from '../mas-repository.js';
+import generateFragmentStore from '../reactivity/source-fragment-store.js';
+import ReactiveController from '../reactivity/reactive-controller.js';
 import { showToast } from '../utils.js';
 
 const CARDS_SECTION = 'cards-section';
@@ -73,16 +75,19 @@ class MerchCardCollectionEditor extends LitElement {
         this.#fragmentReferencesMap.clear();
         const references = this.fragment?.references || [];
 
+        const previewStores = [];
         for (const ref of references) {
             let fragmentStore = Store.fragments.list.data.get().find((store) => store.value.id === ref.id);
 
             if (!fragmentStore) {
                 const fragment = await getFromFragmentCache(ref.id);
                 if (!fragment) continue;
-                fragmentStore = new FragmentStore(fragment);
+                fragmentStore = generateFragmentStore(fragment);
+                previewStores.push(fragmentStore.previewStore);
             }
             this.#fragmentReferencesMap.set(ref.path, fragmentStore);
         }
+        this.reactiveController = new ReactiveController(this, previewStores);
 
         this.requestUpdate();
 
@@ -332,7 +337,7 @@ class MerchCardCollectionEditor extends LitElement {
                         const fragmentStore = this.#fragmentReferencesMap.get(item);
                         if (!fragmentStore) return nothing;
 
-                        const fragment = fragmentStore.get();
+                        const fragment = fragmentStore.previewStore.get();
                         if (!fragment) return nothing;
 
                         const { label, iconPaths } = this.#getFragmentInfo(fragment);

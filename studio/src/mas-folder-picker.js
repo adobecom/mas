@@ -37,11 +37,11 @@ export class MasFolderPicker extends LitElement {
 
     foldersLoaded = new StoreController(this, Store.folders.loaded);
     folders = new StoreController(this, Store.folders.data);
-    search = new StoreController(this, Store.search);
+    surface = new StoreController(this, Store.surface);
     selecting = new StoreController(this, Store.selecting);
 
     _handleSelection(selectedValue) {
-        Store.search.set((prev) => ({ ...prev, path: selectedValue }));
+        Store.surface.set(selectedValue);
         Store.fragments.list.data.set([]);
     }
 
@@ -50,7 +50,7 @@ export class MasFolderPicker extends LitElement {
             value: folder.toLowerCase(),
             label: folder.toUpperCase(),
         }));
-        const currentFolder = options.find((option) => option.value === this.search.value.path);
+        const currentFolder = options.find((option) => option.value === this.surface.value);
         return html`
             <div class="folder-picker-wrapper">
                 <svg
@@ -68,7 +68,7 @@ export class MasFolderPicker extends LitElement {
                 >
                     <path fill="#292929" d="M19 0h11v26zM11.1 0H0v26zM15 9.6L22.1 26h-4.6l-2.1-5.2h-5.2z"></path>
                 </svg>
-                <sp-action-menu size="m" value=${this.search.value.path} quiet>
+                <sp-action-menu size="m" value=${this.surface.value} quiet>
                     <sp-icon-chevron-down dir="ltr" class="chevron" slot="icon"></sp-icon-chevron-down>
                     <span slot="label">${currentFolder?.label}</span>
                     <sp-menu size="m">
@@ -76,7 +76,7 @@ export class MasFolderPicker extends LitElement {
                             return html`
                                 <sp-menu-item
                                     .value=${value}
-                                    ?selected=${this.search.value.path === value}
+                                    ?selected=${this.surface.value === value}
                                     @click=${() => this._handleSelection(value)}
                                 >
                                     <div class="test">${label}</div>

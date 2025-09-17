@@ -230,45 +230,37 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            // Check if mnemonic field is visible
-            await expect(await editor.mnemonicField).toBeVisible();
+            await expect(await editor.mnemonicField.first()).toBeVisible();
 
-            // Click edit button to open modal
-            await editor.mnemonicEditButton.click();
+            await editor.mnemonicEditButton.first().click();
             await page.waitForTimeout(1000); // Wait for modal to open
-            await expect(await editor.mnemonicModalDialog).toBeVisible();
+            await expect(await editor.mnemonicModalDialog.first()).toBeVisible();
 
-            // Switch to URL tab
-            await editor.mnemonicUrlTab.click();
+            await editor.mnemonicUrlTab.first().click();
 
-            // Fill in the new icon URL
-            await editor.mnemonicUrlIconInput.fill('');
+            await editor.mnemonicUrlIconInput.first().fill('');
             await page.waitForTimeout(500);
-            await editor.mnemonicUrlIconInput.fill(data.newIconURL);
+            await editor.mnemonicUrlIconInput.first().fill(data.newIconURL);
             await page.waitForTimeout(500);
 
-            // Verify the value was set correctly before saving
-            const inputValue = await editor.mnemonicUrlIconInput.inputValue();
+            const inputValue = await editor.mnemonicUrlIconInput.first().inputValue();
             expect(inputValue).toBe(data.newIconURL);
 
-            // Save the changes - click the Update Icon button
-            const updateButton = page.locator('mas-mnemonic-modal >> sp-button:has-text("Update Icon")');
+            const updateButton = page.locator('mas-mnemonic-modal >> sp-button:has-text("Update Icon")').first();
             await updateButton.click();
             await page.waitForTimeout(1000);
 
-            // If modal is still open, use keyboard to submit
-            if (await editor.mnemonicModalDialog.isVisible()) {
+            if (await editor.mnemonicModalDialog.first().isVisible()) {
                 await updateButton.focus();
                 await page.keyboard.press('Enter');
                 await page.waitForTimeout(1000);
             }
 
-            // Wait for the modal to close completely with timeout
-            await expect(await editor.mnemonicModalDialog).not.toBeVisible({ timeout: 10000 });
+            await expect(await editor.mnemonicModalDialog.first()).not.toBeVisible({ timeout: 10000 });
         });
 
         await test.step('step-4: Validate edited mnemonic URL field in Editor panel', async () => {
-            await expect(await editor.mnemonicIcon).toHaveAttribute('src', data.newIconURL, { timeout: 10000 });
+            await expect(await editor.mnemonicIcon.first()).toHaveAttribute('src', data.newIconURL, { timeout: 10000 });
         });
 
         await test.step('step-5: Validate edited mnemonic src on the card', async () => {

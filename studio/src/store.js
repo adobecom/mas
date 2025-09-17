@@ -151,8 +151,14 @@ Store.page.subscribe((value) => {
 });
 
 Store.placeholders.preview.subscribe(() => {
-    if (Store.page.value !== PAGE_NAMES.CONTENT) return;
-    for (const fragmentStore of Store.fragments.list.data.value) {
-        fragmentStore.resolvePreviewFragment();
+    if (Store.page.value === PAGE_NAMES.CONTENT) {
+        for (const fragmentStore of Store.fragments.list.data.value) {
+            fragmentStore.resolvePreviewFragment();
+        }
+    }
+    if (Store.page.value === PAGE_NAMES.WELCOME) {
+        for (const fragmentStore of Store.fragments.recentlyUpdated.data.value) {
+            fragmentStore.resolvePreviewFragment();
+        }
     }
 });

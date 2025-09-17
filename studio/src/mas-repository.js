@@ -125,6 +125,7 @@ export class MasRepository extends LitElement {
                 break;
             case PAGE_NAMES.WELCOME:
                 this.loadRecentlyUpdatedFragments();
+                this.loadPreviewPlaceholders();
                 break;
             case PAGE_NAMES.PLACEHOLDERS:
                 this.loadPlaceholders();

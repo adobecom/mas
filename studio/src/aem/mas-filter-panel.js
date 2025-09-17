@@ -133,7 +133,7 @@ class MasFilterPanel extends LitElement {
         Object.entries(this.tagsByType ?? EMPTY_TAGS).forEach(([key, value]) => {
             tagValues[key] = value.map((tag) => pathToTagId(tag.path)).filter(Boolean);
         });
-        Store.data.content.filters.set((prev) => ({ ...prev, tags: tagValues }));
+        Store.content.filters.set((prev) => ({ ...prev, tags: tagValues }));
     }
 
     #handleTagChange(e) {
@@ -151,12 +151,12 @@ class MasFilterPanel extends LitElement {
     }
 
     #handleRefresh() {
-        Store.data.content.search.set({
+        Store.content.search.set({
             field: 'all',
             query: '',
         });
 
-        Store.data.content.filters.set((prev) => ({
+        Store.content.filters.set((prev) => ({
             ...prev,
             tags: EMPTY_TAGS,
         }));

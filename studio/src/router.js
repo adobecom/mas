@@ -172,7 +172,7 @@ export class Router extends EventTarget {
         // this.linkStoreToHash(Store.sort, ['sortBy', 'sortDirection'], getSortDefaultValue);
         this.linkStoreToHash(Store.surface, 'surface');
         this.linkStoreToHash(Store.locale, 'locale', 'en_US');
-        this.linkStoreToHash(Store.data.content.search, ['field', 'query'], { field: 'all' });
+        this.linkStoreToHash(Store.content.search, ['field', 'query'], { field: 'all' });
         this.linkStoreToHash(Store.placeholders.search, 'search');
         this.linkStoreToHash(Store.landscape, 'commerce.landscape', WCS_LANDSCAPE_PUBLISHED);
         if (Store.search.value.query) {

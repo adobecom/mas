@@ -136,7 +136,7 @@ class MasToolbar extends LitElement {
     }
 
     filters = new StoreController(this, Store.filters);
-    search = new StoreController(this, Store.data.content.search);
+    search = new StoreController(this, Store.content.search);
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
     loading = new StoreController(this, Store.fragments.list.loading);
@@ -194,7 +194,7 @@ class MasToolbar extends LitElement {
     }
 
     updateQuery(value) {
-        Store.data.content.search.set((prev) => ({ ...prev, query: value }));
+        Store.content.search.set((prev) => ({ ...prev, query: value }));
     }
 
     get popover() {
@@ -223,7 +223,7 @@ class MasToolbar extends LitElement {
     }
 
     handleFieldChange(ev) {
-        Store.data.content.search.set((prev) => ({ ...prev, field: ev.target.value }));
+        Store.content.search.set((prev) => ({ ...prev, field: ev.target.value }));
     }
 
     get searchAndFilterControls() {
@@ -243,7 +243,7 @@ class MasToolbar extends LitElement {
             <sp-combobox
                 id="field-picker"
                 label="Field"
-                value=${Store.data.content.search.value.field}
+                value=${Store.content.search.value.field}
                 @change=${this.handleFieldChange}
             >
                 <sp-menu-item value="all">all</sp-menu-item>

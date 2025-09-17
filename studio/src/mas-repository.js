@@ -25,6 +25,7 @@ import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 
 const BATCH_SIZE = 50;
+const RECENTLY_UPDATED_LIMIT = 6;
 
 let fragmentCache;
 
@@ -65,7 +66,7 @@ export class MasRepository extends LitElement {
     constructor() {
         super();
         this.#abortControllers = {
-            search: null,
+            content: null,
             recentlyUpdated: null,
             placeholders: null,
         };
@@ -74,11 +75,11 @@ export class MasRepository extends LitElement {
         this.publishFragment = this.publishFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
         this.foldersLoaded = new StoreController(this, Store.folders.loaded);
-        this.reactiveController = new ReactiveController(this, [Store.profile, Store.surface, Store.locale]);
+        this.reactiveController = new ReactiveController(this, [Store.profile, Store.surface, Store.locale, Store.page]);
         this.handleSearch = debounce(this.handleSearch.bind(this), 50);
     }
 
-    /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
+    /** @type {{ content: AbortController | null, recentlyUpdated: AbortController | null, placeholders: AbortController | null }} */
     #abortControllers;
     /** @type {AEM} */
     aem;
@@ -127,7 +128,8 @@ export class MasRepository extends LitElement {
         //         break;
         // }
         this.lloadContent();
-        this.lloadPlaceholders();
+        this.loadPlaceholders();
+        this.loadRecentlyUpdatedFragments();
     }
 
     async loadFolders() {
@@ -139,12 +141,11 @@ export class MasRepository extends LitElement {
             Store.folders.loaded.set(true);
             Store.folders.data.set(folders);
 
-            if (!folders.includes(Store.surface.value) && !Store.data.content.search.value.query)
-                Store.surface.set(folders.at(0));
+            if (!folders.includes(Store.surface.value) && !Store.content.search.value.query) Store.surface.set(folders.at(0));
             Store.fragments.list.data.set([]);
         } catch (error) {
-            Store.data.content.loading.set(false);
-            Store.data.placeholders.loading.set(false);
+            Store.content.loading.set(false);
+            Store.placeholders.loading.set(false);
             this.processError(error, 'Could not load folders.');
         }
     }
@@ -179,15 +180,20 @@ export class MasRepository extends LitElement {
     }
 
     async lloadContent() {
+        if (Store.page.value !== PAGE_NAMES.CONTENT) return;
+
+        if (this.#abortControllers.content) this.#abortControllers.content.abort();
+        this.#abortControllers.content = new AbortController();
+
         const damPath = getDamPath(Store.surface.value);
         const options = {
             modelIds: CONTENT_MODEL_IDS,
             path: `${damPath}/${Store.locale.value}`,
             sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
         };
-        Store.data.content.loading.set(true);
-        Store.data.content.loaded.clear();
-        const cursor = await this.aem.sites.cf.fragments.search(options, BATCH_SIZE);
+        Store.content.loading.set(true);
+        Store.content.loaded.clear();
+        const cursor = await this.aem.sites.cf.fragments.search(options, BATCH_SIZE, this.#abortControllers.content);
         for await (const result of cursor) {
             const batch = [];
             for await (const item of result) {
@@ -195,29 +201,47 @@ export class MasRepository extends LitElement {
                 const store = generateFragmentStore(fragment);
                 batch.push(store);
             }
-            Store.data.content.loaded.add(batch);
+            Store.content.loaded.add(batch);
         }
-        Store.data.content.loading.set(false);
+        Store.content.loading.set(false);
+
+        this.#abortControllers.content = null;
     }
 
-    async lloadPlaceholders() {
-        const dictionaryPath = this.getDictionaryPath();
-        const options = {
-            path: dictionaryPath,
-        };
-        Store.data.placeholders.loading.set(true);
-        Store.data.placeholders.loaded.clear();
-        const cursor = await this.aem.sites.cf.fragments.search(options, BATCH_SIZE);
+    // async lloadPlaceholders() {
+    //     const dictionaryPath = this.getDictionaryPath();
+    //     const options = {
+    //         path: dictionaryPath,
+    //     };
+    //     Store.placeholders.loading.set(true);
+    //     Store.placeholders.loaded.clear();
+    //     const cursor = await this.aem.sites.cf.fragments.search(options, BATCH_SIZE);
+    //     for await (const result of cursor) {
+    //         const batch = [];
+    //         for await (const item of result) {
+    //             const fragment = await this.#addToCache(item);
+    //             const store = new FragmentStore(new Placeholder(fragment));
+    //             batch.push(store);
+    //         }
+    //         Store.placeholders.loaded.add(batch);
+    //     }
+    //     Store.placeholders.loading.set(false);
+    // }
+
+    async loadAuxiliaryContent(options, limit, abortController) {
+        const cursor = await this.aem.sites.cf.fragments.search(options, limit, abortController);
+        const items = [];
         for await (const result of cursor) {
             const batch = [];
             for await (const item of result) {
                 const fragment = await this.#addToCache(item);
-                const store = new FragmentStore(new Placeholder(fragment));
+                const store = generateFragmentStore(fragment);
                 batch.push(store);
+                items.push(store);
             }
-            Store.data.placeholders.loaded.add(batch);
+            Store.content.loaded.add(batch);
         }
-        Store.data.placeholders.loading.set(false);
+        return items;
     }
 
     async searchFragments() {
@@ -328,14 +352,15 @@ export class MasRepository extends LitElement {
     }
 
     async loadRecentlyUpdatedFragments() {
-        if (this.page.value !== PAGE_NAMES.WELCOME) return;
+        if (Store.page.value !== PAGE_NAMES.WELCOME) return;
+
         if (this.#abortControllers.recentlyUpdated) this.#abortControllers.recentlyUpdated.abort();
         this.#abortControllers.recentlyUpdated = new AbortController();
 
         Store.fragments.recentlyUpdated.loading.set(true);
 
         const dataStore = Store.fragments.recentlyUpdated.data;
-        const path = `${this.search.value.path}/${this.filters.value.locale}`;
+        const path = `${Store.surface.value}/${Store.locale.value}`;
 
         if (!looseEquals(dataStore.getMeta('path'), path)) {
             dataStore.set([]);
@@ -343,32 +368,16 @@ export class MasRepository extends LitElement {
         }
 
         try {
-            const cursor = await this.aem.sites.cf.fragments.search(
-                {
-                    sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
-                    path: `/content/dam/mas/${path}`,
-                },
-                this.recentlyUpdatedLimit.value,
-                this.#abortControllers.recentlyUpdated,
-            );
-
-            const result = await cursor.next();
-            const fragmentStores = [];
-            for await (const item of result.value) {
-                const fragment = await this.#addToCache(item);
-                const sourceStore = generateFragmentStore(fragment);
-                fragmentStores.push(sourceStore);
-            }
-            dataStore.set(fragmentStores);
-
+            const items = this.loadAuxiliaryContent(options, RECENTLY_UPDATED_LIMIT, this.#abortControllers.recentlyUpdated);
+            dataStore.set(items);
             dataStore.setMeta('path', path);
-
-            this.#abortControllers.recentlyUpdated = null;
         } catch (error) {
             this.processError(error, 'Could not load recently updated fragments.');
         }
 
         Store.fragments.recentlyUpdated.loading.set(false);
+
+        this.#abortControllers.recentlyUpdated = null;
     }
 
     async loadPlaceholders() {
@@ -399,6 +408,27 @@ export class MasRepository extends LitElement {
             this.processError(error, 'Could not load placeholders.');
         } finally {
             Store.placeholders.list.loading.set(false);
+        }
+    }
+
+    async loadSingleFragment(id) {
+        /* Wanted fragment is already loaded */
+        if (Store.content.loaded.get(id)) return;
+
+        const fragmentData = await this.aem.sites.cf.fragments.getById(id, this.#abortControllers.search);
+        if (fragmentData && fragmentData.path.indexOf(damPath) == 0) {
+            const fragment = await this.#addToCache(fragmentData);
+            const sourceStore = generateFragmentStore(fragment);
+            dataStore.set([sourceStore]);
+
+            const folderPath = fragmentData.path.substring(fragmentData.path.indexOf(damPath) + damPath.length + 1);
+            const folderName = folderPath.substring(0, folderPath.indexOf('/'));
+            if (Store.folders.data.get().includes(folderName)) {
+                Store.search.set((prev) => ({
+                    ...prev,
+                    path: folderName,
+                }));
+            }
         }
     }
 

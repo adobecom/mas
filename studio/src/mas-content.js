@@ -20,13 +20,13 @@ class MasContent extends LitElement {
         this.subscriptions = [];
     }
 
-    loading = new StoreController(this, Store.data.content.loading);
-    fragments = new StoreController(this, Store.data.content.showing);
+    loading = new StoreController(this, Store.content.loading);
+    fragments = new StoreController(this, Store.content.showing);
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
     selection = new StoreController(this, Store.selection);
-    total = new StoreController(this, Store.data.content.total);
-    pagination = new StoreController(this, Store.data.content.pagination);
+    total = new StoreController(this, Store.content.total);
+    pagination = new StoreController(this, Store.content.pagination);
 
     connectedCallback() {
         super.connectedCallback();
@@ -148,7 +148,7 @@ class MasContent extends LitElement {
         return html`<div id="content">
             ${view}
             <sp-popover class="pagination-wrapper" open>
-                <mas-pagination .store=${Store.data.content.pagination} total=${this.total.value}></mas-pagination>
+                <mas-pagination .store=${Store.content.pagination} total=${this.total.value}></mas-pagination>
             </sp-popover>
         </div>`;
     }

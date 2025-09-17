@@ -15,7 +15,6 @@ const Store = {
         recentlyUpdated: {
             loading: new ReactiveStore(true),
             data: new ReactiveStore([]),
-            limit: new ReactiveStore(6),
         },
         inEdit: new ReactiveStore(null),
     },
@@ -58,37 +57,25 @@ const Store = {
     showCloneDialog: new ReactiveStore(false),
     preview: new ReactiveStore(null, previewValidator),
     // NEW STUFF
-    data: {
-        content: {
-            loaded: new MapStore(),
-            showing: new ReactiveStore([]),
-            recentlyUpdated: new ReactiveStore([]),
-            total: new ReactiveStore(0),
-            loading: new ReactiveStore(true),
-            search: new ReactiveStore({ field: null, query: '' }),
-            filters: new ReactiveStore({ tags: EMPTY_TAGS }),
-            sort: new ReactiveStore({}),
-            pagination: new PaginationStore(),
-        },
-        placeholders: {
-            loaded: new MapStore(),
-            showing: new ReactiveStore([]),
-            total: new ReactiveStore(0),
-            loading: new ReactiveStore(true),
-            search: new ReactiveStore(),
-            filters: new ReactiveStore(),
-            sort: new ReactiveStore({}),
-            pagination: new PaginationStore(),
-        },
+    content: {
+        loaded: new MapStore(),
+        showing: new ReactiveStore([]),
+        recentlyUpdated: new ReactiveStore([]),
+        total: new ReactiveStore(0),
+        loading: new ReactiveStore(true),
+        search: new ReactiveStore({ field: null, query: '' }),
+        filters: new ReactiveStore({ tags: EMPTY_TAGS }),
+        sort: new ReactiveStore({}),
+        pagination: new PaginationStore(),
     },
     surface: new ReactiveStore(null),
     locale: new ReactiveStore('en_US', localeValidator),
 };
 
 function updateShowingContent() {
-    const { search, filters, pagination } = Store.data.content;
+    const { search, filters, pagination } = Store.content;
     const filteredItems = [];
-    for (const [, itemStore] of Store.data.content.loaded.value) {
+    for (const [, itemStore] of Store.content.loaded.value) {
         const item = itemStore.get();
         /* Search */
         if (search.value.query) {
@@ -138,27 +125,27 @@ function updateShowingContent() {
         filteredItems.push(itemStore);
     }
     /* Sort - no sorting yet */
-    Store.data.content.total.set(filteredItems.length);
+    Store.content.total.set(filteredItems.length);
     const paginatedItems = filteredItems.slice(
         (pagination.value.page - 1) * pagination.value.size,
         (pagination.value.page - 1) * pagination.value.size + pagination.value.size,
     );
-    Store.data.content.showing.set(paginatedItems);
+    Store.content.showing.set(paginatedItems);
 }
 
 function resetPage() {
-    Store.data.content.pagination.selectPage(1);
+    Store.content.pagination.selectPage(1);
 }
 
-Store.data.content.search.subscribe(resetPage);
-Store.data.content.filters.subscribe(resetPage);
+Store.content.search.subscribe(resetPage);
+Store.content.filters.subscribe(resetPage);
 Store.createdByUsers.subscribe(resetPage);
 
-Store.data.content.loaded.subscribe(updateShowingContent);
-Store.data.content.search.subscribe(updateShowingContent);
-Store.data.content.filters.subscribe(updateShowingContent);
-Store.data.content.sort.subscribe(updateShowingContent);
-Store.data.content.pagination.subscribe(updateShowingContent);
+Store.content.loaded.subscribe(updateShowingContent);
+Store.content.search.subscribe(updateShowingContent);
+Store.content.filters.subscribe(updateShowingContent);
+Store.content.sort.subscribe(updateShowingContent);
+Store.content.pagination.subscribe(updateShowingContent);
 Store.createdByUsers.subscribe(updateShowingContent);
 
 // #region Validators
@@ -261,28 +248,28 @@ Store.page.subscribe((value) => {
 
 // Derived values
 
-const placeholdersDict = new DerivedStore(Store.data.placeholders.loaded, (value) => {
+const placeholdersDict = new DerivedStore(Store.placeholders.list.data, (value) => {
     const result = {};
     const extractValue = (ref) => {
         const value = ref.getFieldValue('value') || ref.getFieldValue('richTextValue') || '';
         // Escape control characters and double quotes before parsing
         return value.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').replace(/"/g, '\\"');
     };
-    for (const [, placeholderStore] of value) {
+    for (const placeholderStore of value) {
         const placeholder = placeholderStore.get();
         result[placeholder.getFieldValue('key')] = extractValue(placeholder);
     }
     return result;
 });
 
-Store.data.content.loaded.subscribeToAddition((values) => {
+Store.content.loaded.subscribeToAddition((values) => {
     for (const fragmentStore of values) {
         fragmentStore.resolvePreviewFragment();
     }
 });
 
 placeholdersDict.subscribe(() => {
-    for (const [, fragmentStore] of Store.data.content.loaded.value) {
+    for (const [, fragmentStore] of Store.content.loaded.value) {
         fragmentStore.resolvePreviewFragment();
     }
 });

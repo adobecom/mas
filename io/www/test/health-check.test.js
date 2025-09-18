@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import nock from 'nock';
-import action from '../src/health-check/index.js';
+import { main } from '../src/health-check/index.js';
 
 const ODIN_RESPONSE = {
     path: '/content/dam/mas/nala/ccd/slice-cc-allapps31211',
@@ -56,7 +56,7 @@ describe('health-check', () => {
     });
 
     it('main should be defined', () => {
-        expect(action).to.be.a('function');
+        expect(main).to.be.a('function');
     });
 
     it('return 200 & success status if odin & wcs are valid', async () => {
@@ -65,7 +65,7 @@ describe('health-check', () => {
         nock('https://wcscdn').get('/testurl').reply(200, WCS_RESPONSE);
         nock('https://wcsorigin').get('/testurl').reply(200, WCS_RESPONSE);
 
-        const response = await action(PARAMS);
+        const response = await main(PARAMS);
         expect(response).to.deep.equal({
             statusCode: 200,
             body: {
@@ -88,7 +88,7 @@ describe('health-check', () => {
         nock('https://wcscdn').get('/testurl').reply(200, WCS_RESPONSE);
         nock('https://wcsorigin').get('/testurl').reply(200, WCS_RESPONSE);
 
-        const response = await action(PARAMS);
+        const response = await main(PARAMS);
         expect(response).to.deep.equal({
             statusCode: 500,
             body: {
@@ -111,7 +111,7 @@ describe('health-check', () => {
         nock('https://wcscdn').get('/testurl').reply(200, WCS_RESPONSE);
         nock('https://wcsorigin').get('/testurl').reply(200, WCS_RESPONSE);
 
-        const response = await action(PARAMS);
+        const response = await main(PARAMS);
         expect(response).to.deep.equal({
             statusCode: 500,
             body: {
@@ -134,7 +134,7 @@ describe('health-check', () => {
         nock('https://wcscdn').get('/testurl').reply(200, WCS_RESPONSE);
         nock('https://wcsorigin').get('/testurl').reply(503, {});
 
-        const response = await action(PARAMS);
+        const response = await main(PARAMS);
         expect(response).to.deep.equal({
             statusCode: 500,
             body: {
@@ -157,7 +157,7 @@ describe('health-check', () => {
         nock('https://wcscdn').get('/testurl').reply(200, WCS_RESPONSE);
         nock('https://wcsorigin').get('/testurl').reply(200, WCS_RESPONSE);
 
-        const response = await action(PARAMS);
+        const response = await main(PARAMS);
         expect(response).to.deep.equal({
             statusCode: 500,
             body: {

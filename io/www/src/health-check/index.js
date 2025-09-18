@@ -35,7 +35,7 @@ async function checkEndpoint(endpoint, validateJson) {
     return result;
 }
 
-export default async function main(params) {
+async function main(params) {
     const { ODIN_CDN_ENDPOINT, ODIN_ORIGIN_ENDPOINT, WCS_CDN_ENDPOINT, WCS_ORIGIN_ENDPOINT } = params;
     let statusCode = 200;
     const body = {
@@ -57,3 +57,5 @@ export default async function main(params) {
         body,
     };
 }
+
+export { main };

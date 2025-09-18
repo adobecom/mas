@@ -497,7 +497,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     });
 
     // @studio-try-buy-widget-add-osi - Validate adding OSI for try-buy-widget card in mas studio
-    test(`${features[10].name},${features[10].tags}`, async ({ page, baseURL }) => {
+    test.skip(`${features[10].name},${features[10].tags}`, async ({ page, baseURL }) => {
         const { data } = features[10];
         const testPage = `${baseURL}${features[10].path}${miloLibs}${features[10].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);

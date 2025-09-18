@@ -1,7 +1,5 @@
 async function cleanupClonedCards() {
-    console.info(
-        '---- Executing Nala Global Teardown: Cleaning up cloned cards ----\n',
-    );
+    console.info('---- Executing Nala Global Teardown: Cleaning up cloned cards ----\n');
 
     try {
         const { chromium } = await import('@playwright/test');
@@ -12,9 +10,7 @@ async function cleanupClonedCards() {
         const page = await context.newPage();
 
         const baseURL =
-            process.env.PR_BRANCH_LIVE_URL ||
-            process.env.LOCAL_TEST_LIVE_URL ||
-            'https://main--mas--adobecom.aem.live';
+            process.env.PR_BRANCH_LIVE_URL || process.env.LOCAL_TEST_LIVE_URL || 'https://main--mas--adobecom.aem.live';
 
         await page.goto(`${baseURL}/studio.html`);
         await page.waitForLoadState('domcontentloaded');
@@ -43,15 +39,11 @@ async function cleanupClonedCards() {
                     if (!fragment || !fragment.created) return false;
 
                     const today = new Date().toISOString().split('T')[0];
-                    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
-                        .toISOString()
-                        .split('T')[0];
+                    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
                     return (
-                        (new RegExp(today).test(fragment.created.at) ||
-                            new RegExp(yesterday).test(fragment.created.at)) &&
-                        fragment.created.by ===
-                            'cod23684+masautomation@adobetest.com'
+                        (new RegExp(today).test(fragment.created.at) || new RegExp(yesterday).test(fragment.created.at)) &&
+                        fragment.created.by === 'cod23684+masautomation@adobetest.com'
                     );
                 });
 
@@ -76,21 +68,14 @@ async function cleanupClonedCards() {
         });
 
         if (cleanupResult.success) {
-            console.info(
-                `✅ Successfully cleaned up ${cleanupResult.deletedCount} cloned cards`,
-            );
+            console.info(`✅ Successfully cleaned up ${cleanupResult.deletedCount} cloned cards`);
             if (cleanupResult.deletedIds && cleanupResult.deletedIds.length > 0) {
-                console.info(
-                    'Deleted card IDs:',
-                    cleanupResult.deletedIds.join(', '),
-                );
+                console.info('Deleted card IDs:', cleanupResult.deletedIds.join(', '));
             }
         } else {
             console.error(`❌ Cleanup failed: ${cleanupResult.error}`);
             if (cleanupResult.attemptedCount) {
-                console.error(
-                    `Attempted to clean ${cleanupResult.attemptedCount} cards`,
-                );
+                console.error(`Attempted to clean ${cleanupResult.attemptedCount} cards`);
             }
         }
 
@@ -105,11 +90,7 @@ async function cleanupClonedCards() {
 async function globalTeardown() {
     console.info('---- Executing Nala Global Teardown ----\n');
 
-    if (
-        process.env.GITHUB_ACTIONS === 'true' ||
-        process.env.CIRCLECI ||
-        process.env.LOCAL_TEST_LIVE_URL
-    ) {
+    if (process.env.GITHUB_ACTIONS === 'true' || process.env.CIRCLECI || process.env.LOCAL_TEST_LIVE_URL) {
         await cleanupClonedCards();
     } else {
         console.info('Skipping cleanup - not in test environment');
@@ -118,4 +99,4 @@ async function globalTeardown() {
     console.info('---- Nala Global Teardown Complete ----\n');
 }
 
-export default globalTeardown; 
+export default globalTeardown;

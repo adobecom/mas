@@ -27,10 +27,7 @@ class OsiField extends LitElement {
         document.addEventListener('keydown', this.#boundHandlers.escKey, {
             capture: true,
         });
-        document.addEventListener(
-            EVENT_OST_OFFER_SELECT,
-            this.#boundHandlers.ostEvent,
-        );
+        document.addEventListener(EVENT_OST_OFFER_SELECT, this.#boundHandlers.ostEvent);
     }
 
     disconnectedCallback() {
@@ -38,10 +35,7 @@ class OsiField extends LitElement {
         document.removeEventListener('keydown', this.#boundHandlers.escKey, {
             capture: true,
         });
-        document.removeEventListener(
-            EVENT_OST_OFFER_SELECT,
-            this.#boundHandlers.ostEvent,
-        );
+        document.removeEventListener(EVENT_OST_OFFER_SELECT, this.#boundHandlers.ostEvent);
     }
 
     #handleOstEvent({ detail: { offerSelectorId, offer } }) {
@@ -73,9 +67,7 @@ class OsiField extends LitElement {
                 title="Offer Selector Tool"
             >
                 <sp-icon-shopping-cart slot="icon" style="${!this.value ? 'color: #ea3829' : ''}"></sp-icon-shopping-cart>
-                ${!this.value ? html`
-                    <sp-icon-alert slot="icon" style="color: #ea3829;"></sp-icon-alert>
-                ` : nothing}
+                ${!this.value ? html` <sp-icon-alert slot="icon" style="color: #ea3829;"></sp-icon-alert> ` : nothing}
             </sp-action-button>
         `;
     }
@@ -94,16 +86,10 @@ class OsiField extends LitElement {
     render() {
         return html`
             <div>
-                <sp-action-group
-                    quiet
-                    size="m"
-                    aria-label="OSI field toolbar actions"
-                >
+                <sp-action-group quiet size="m" aria-label="OSI field toolbar actions">
                     ${this.#offerSelectorToolButton}
                 </sp-action-group>
-                <p id=${this.id}>
-                    Selected Offer: <strong>${this.value}</strong>
-                </p>
+                <p id=${this.id}>Selected Offer: <strong>${this.value}</strong></p>
             </div>
         `;
     }

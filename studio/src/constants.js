@@ -13,7 +13,7 @@ export const CHECKOUT_CTA_TEXTS = {
     'see-more': 'See more',
     'upgrade-now': 'Upgrade now',
     'get-offer': 'Get offer',
-    'select': 'Select',
+    select: 'Select',
     'see-all-plans-and-pricing': 'See all plans & pricing details',
 };
 export const WCS_LANDSCAPE_PUBLISHED = 'PUBLISHED';
@@ -22,11 +22,28 @@ export const WCS_ENV_PROD = 'prod';
 export const WCS_ENV_STAGE = 'stage';
 
 export const ANALYTICS_LINK_IDS = [
+    'buy-now',
+    'change-plan-team-payment',
+    'change-plan-team-plans',
+    'free-trial',
+    'get-offer',
     'learn-more',
-    'see-terms',
-    'what-is-included',
     'register-now',
+    'see-all-plans-and-pricing',
+    'see-more',
+    'see-terms',
+    'select',
+    'start-free-trial',
+    'take-the-quiz',
+    'upgrade-now',
+    'what-is-included',
 ];
+
+export const CONSUMER_FEATURE_FLAGS = {
+    ccd: {
+        'mas-ff-defaults': 'on',
+    },
+};
 
 // TODO remove these?
 export const EVENT_CHANGE = 'change';
@@ -42,6 +59,7 @@ export const EVENT_OST_SELECT = 'ost-select';
 export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
 
 export const LOCALES = [
+    { code: 'en_AU', flag: '🇦🇺', name: 'Australia' },
     { code: 'pt_BR', flag: '🇧🇷', name: 'Brazil' },
     { code: 'fr_CA', flag: '🇨🇦', name: 'Canada' },
     { code: 'zh_CN', flag: '🇨🇳', name: 'China' },
@@ -122,19 +140,16 @@ export const PAGE_NAMES = {
 };
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
-export const TAG_STATUS_PUBLISHED_PATH =
-    '/content/cq:tags/mas/status/published';
+export const TAG_STATUS_PUBLISHED_PATH = '/content/cq:tags/mas/status/published';
 export const TAG_STATUS_DRAFT = 'mas:status/draft';
 export const TAG_STATUS_DRAFT_PATH = '/content/cq:tags/mas/status/draft';
 
 export const ROOT_PATH = '/content/dam/mas';
-export const DICTIONARY_MODEL_ID =
-    'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';
+export const DICTIONARY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';
 
 // Add the card-related constants from incoming changes
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
-export const COLLECTION_MODEL_PATH =
-    '/conf/mas/settings/dam/cfm/models/collection';
+export const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
 
 export const FIELD_MODEL_MAPPING = {
     [CARD_MODEL_PATH]: 'cards',
@@ -144,22 +159,22 @@ export const FIELD_MODEL_MAPPING = {
 export const TAG_STUDIO_CONTENT_TYPE = 'mas:studio/content-type';
 
 export const TAG_MODEL_ID_MAPPING = {
-    'mas:studio/content-type/merch-card-collection':
-        'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
-    'mas:studio/content-type/merch-card':
-        'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
+    'mas:studio/content-type/merch-card-collection': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
+    'mas:studio/content-type/merch-card': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
 };
 
 export const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);
 
 // The first value in the array should be the default value
 export const SORT_COLUMNS = {
-    placeholders: [
-        'key',
-        'value',
-        'status',
-        'locale',
-        'updatedBy',
-        'updatedAt',
-    ],
+    placeholders: ['key', 'value', 'status', 'locale', 'updatedBy', 'updatedAt'],
+};
+
+// Variant capabilities configuration
+export const VARIANT_CAPABILITIES = {
+    defaultCard: {
+        supported: ['simplified-pricing-express'],
+        label: 'Default Card',
+        helpText: 'Drag a card here to set as default',
+    },
 };

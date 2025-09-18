@@ -1,4 +1,4 @@
-import { PAGE_NAMES, SORT_COLUMNS, WCS_ENV_PROD } from './constants.js';
+import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
 import Store from './store.js';
 import { debounce } from './utils.js';
 
@@ -32,9 +32,7 @@ export class Router extends EventTarget {
     navigateToPage(value) {
         return async () => {
             const editorPanel = document.querySelector('editor-panel');
-            const confirmed =
-                !Store.editor.hasChanges ||
-                (await editorPanel.promptDiscardChanges());
+            const confirmed = !Store.editor.hasChanges || (await editorPanel.promptDiscardChanges());
             if (confirmed) {
                 Store.fragments.inEdit.set();
                 Store.fragments.list.data.set([]);
@@ -54,15 +52,11 @@ export class Router extends EventTarget {
      * @param {any} defaultValue - The default value to use if the key is not in the hash
      * @returns {boolean} Whether the store was updated
      */
-    syncStoreFromHash(
-        store,
-        currentValue,
-        isObject,
-        keysArray,
-        defaultValue = undefined,
-    ) {
+    syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue = undefined) {
         this.currentParams ??= new URLSearchParams(this.location.hash.slice(1));
         let newValue = isObject ? structuredClone(currentValue) : currentValue;
+        let hashUpdated = false;
+
         for (const key of keysArray) {
             if (this.currentParams.has(key)) {
                 let value = this.currentParams.get(key);
@@ -73,6 +67,7 @@ export class Router extends EventTarget {
                     // Not JSON, use as is
                     parsedValue = value;
                 }
+
                 if (isObject) {
                     newValue[key] = parsedValue;
                 } else {
@@ -87,6 +82,12 @@ export class Router extends EventTarget {
                 }
             }
         }
+
+        // Update hash if invalid parameters were removed
+        if (hashUpdated) {
+            this.updateHistory();
+        }
+
         if (JSON.stringify(store.value) !== JSON.stringify(newValue)) {
             store.set(newValue);
             this.dispatchEvent(new Event('change'));
@@ -114,19 +115,11 @@ export class Router extends EventTarget {
         const newValue = store.get();
         const isObject = typeof newValue === 'object' && newValue !== null;
         // Initial sync from hash to store
-        this.syncStoreFromHash(
-            store,
-            newValue,
-            isObject,
-            keysArray,
-            defaultValue,
-        );
+        this.syncStoreFromHash(store, newValue, isObject, keysArray, defaultValue);
 
         const self = this;
         store.subscribe((value) => {
-            self.currentParams ??= new URLSearchParams(
-                self.location.hash.slice(1),
-            );
+            self.currentParams ??= new URLSearchParams(self.location.hash.slice(1));
 
             for (const key of keysArray) {
                 const storeValue = isObject ? value?.[key] : value;
@@ -145,19 +138,14 @@ export class Router extends EventTarget {
                     continue;
                 }
 
-                const stringValue =
-                    typeof storeValue === 'object'
-                        ? JSON.stringify(storeValue)
-                        : String(storeValue);
+                const stringValue = typeof storeValue === 'object' ? JSON.stringify(storeValue) : String(storeValue);
 
                 if (self.currentParams.get(key) !== stringValue) {
                     self.currentParams.set(key, stringValue);
                 }
 
                 const _defaultValue = getDefaultValue();
-                const defaultValueToCompare = isObject
-                    ? _defaultValue?.[key]
-                    : _defaultValue;
+                const defaultValueToCompare = isObject ? _defaultValue?.[key] : _defaultValue;
                 if (self.currentParams.get(key) === defaultValueToCompare) {
                     self.currentParams.delete(key);
                 }
@@ -181,21 +169,15 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.filters, ['locale', 'tags'], {
             locale: 'en_US',
         });
-        this.linkStoreToHash(
-            Store.sort,
-            ['sortBy', 'sortDirection'],
-            getSortDefaultValue,
-        );
+        this.linkStoreToHash(Store.sort, ['sortBy', 'sortDirection'], getSortDefaultValue);
         this.linkStoreToHash(Store.placeholders.search, 'search');
-        this.linkStoreToHash(Store.commerceEnv, 'commerce.env', WCS_ENV_PROD);
+        this.linkStoreToHash(Store.landscape, 'commerce.landscape', WCS_LANDSCAPE_PUBLISHED);
         if (Store.search.value.query) {
             Store.page.set(PAGE_NAMES.CONTENT);
         }
         window.addEventListener('hashchange', () => {
             /* fix hash when missing params(e.g: manual edit) */
-            this.currentParams = new URLSearchParams(
-                this.location.hash.slice(1),
-            );
+            this.currentParams = new URLSearchParams(this.location.hash.slice(1));
             if (this.currentParams.has('query')) {
                 Store.page.set(PAGE_NAMES.CONTENT);
             }
@@ -210,15 +192,8 @@ export class Router extends EventTarget {
             // Sync all linked stores from the current hash
             this.linkedStores.forEach(({ store, keysArray, defaultValue }) => {
                 const currentValue = store.get();
-                const isObject =
-                    typeof currentValue === 'object' && currentValue !== null;
-                this.syncStoreFromHash(
-                    store,
-                    currentValue,
-                    isObject,
-                    keysArray,
-                    defaultValue,
-                );
+                const isObject = typeof currentValue === 'object' && currentValue !== null;
+                this.syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue);
             });
         });
     }

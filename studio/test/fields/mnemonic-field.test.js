@@ -7,10 +7,7 @@ import { spTheme } from '../utils.js';
 
 describe('Mnemonic field', () => {
     it('should render without default properties', async () => {
-        const el = await fixture(
-            html`<mas-mnemonic-field></mas-mnemonic-field>`,
-            { parentNode: spTheme() },
-        );
+        const el = await fixture(html`<mas-mnemonic-field></mas-mnemonic-field>`, { parentNode: spTheme() });
         expect(el.iconElement.value).to.equal('');
         expect(el.altElement.value).to.equal('');
         expect(el.linkElement.value).to.equal('');
@@ -31,9 +28,7 @@ describe('Mnemonic field', () => {
             'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/creative-cloud.svg',
         );
         expect(el.altElement.value).to.equal('This is an alt text');
-        expect(el.linkElement.value).to.equal(
-            'https://www.adobe.com/creativecloud/all-apps.html',
-        );
+        expect(el.linkElement.value).to.equal('https://www.adobe.com/creativecloud/all-apps.html');
 
         const listener = oneEvent(el, 'change');
 

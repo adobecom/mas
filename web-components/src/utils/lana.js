@@ -1,5 +1,3 @@
-/* eslint-disable no-param-reassign */
-/* eslint-disable no-console */
 (function iife() {
     const MSG_LIMIT = 2000;
 
@@ -150,7 +148,7 @@
             }
             xhr.open('GET', `${endpoint}?${queryParams.join('&')}`);
             xhr.send();
-            // eslint-disable-next-line consistent-return
+
             return xhr;
         }
     }

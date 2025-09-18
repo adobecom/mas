@@ -16,6 +16,12 @@
         },
         {
             "type": "text",
+            "name": "originalId",
+            "multiple": false,
+            "values": ["collection.json"]
+        },
+        {
+            "type": "text",
             "name": "icon",
             "multiple": false,
             "values": ["/test/mocks/img/collection.svg"]
@@ -547,11 +553,7 @@
                     "type": "content-reference",
                     "name": "cards",
                     "multiple": true,
-                    "values": [
-                        "/content/mas/cards/photoshop",
-                        "/content/mas/cards/lightroom",
-                        "/content/mas/cards/bridge"
-                    ]
+                    "values": ["/content/mas/cards/photoshop", "/content/mas/cards/lightroom", "/content/mas/cards/bridge"]
                 }
             ]
         },
@@ -583,11 +585,7 @@
                     "type": "content-reference",
                     "name": "cards",
                     "multiple": true,
-                    "values": [
-                        "/content/mas/cards/photoshop",
-                        "/content/mas/cards/lightroom",
-                        "/content/mas/cards/firefly"
-                    ]
+                    "values": ["/content/mas/cards/photoshop", "/content/mas/cards/lightroom", "/content/mas/cards/firefly"]
                 }
             ]
         },

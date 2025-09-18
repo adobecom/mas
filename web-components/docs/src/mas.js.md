@@ -6,33 +6,31 @@ This is a javasript library that enables M@S on any web surface.
 
 mas.js includes the followings custom elements:
 
--   [inline-price](/web-components/docs/inline-price.html)
--   [checkout-link](/web-components/docs/checkout-link.html)
--   [checkout-button](/web-components/docs/checkout-button.html)
--   [merch-card](/web-components/docs/merch-card.html)
+- [inline-price](/libs/features/mas/docs/inline-price.html)
+- [checkout-link](/libs/features/mas/docs/checkout-link.html)
+- [checkout-button](/libs/features/mas/docs/checkout-button.html)
+- [merch-card](/libs/features/mas/docs/merch-card.html)
 
 `inline-price`, `checkout-link`, `checkout-button` elements are loaded via WCS.
 In case of network issues, the requests will be retried up to 3 times with 500ms of delay between attempts.
 It will also fallback to last successfully loaded offers for the same OSI if available.
 
 ## Enablement `mas-commerce-service`
+
 ⚠️ Safari does not support customized built-in elements. Therefore, you need to load the following polyfill before `mas.js` for browser compatibility (not required for in-app usage).
+
 ```html
-<script
-    src="https://mas.adobe.com/web-components/dist/custom-elements.js"
-></script>
+<script src="https://www.adobe.comlibs/deps/custom-elements.js"></script>
 ```
 
 To add `mas.js` to your page or application, include it as shown below:
 
 ```html
 <script
-    src="https://mas.adobe.com/web-components/dist/mas.js"
+    src="https://www.adobe.com/libs/features/mas/dist/mas.js"
     type="module"
 ></script>
 ```
-
-
 
 ### Attributes
 
@@ -44,13 +42,14 @@ For production, the minimun attributes to set are: `wcs-api-key` and `lana-tags`
 | `checkout-client-id`     | checkout client id                                                                                  |  `false`                         |  `false` |
 | `checkout-workflow-step` | default checkout workflow step                                                                      | `CheckoutWorkflowStep.EMAIL`     | `false`  |
 | `country`                | country of the offers to retrieve from WCS, determines the currency, price format, etc.             | US or locale country if set      | `false`  |
-|  `env`                   | commerce environment you want this page to use, either `stage` or `prod`                            |  `prod`                          |  `false` |
-|  `force-tax-exclusive`   | force all price display to be tax exclusive                                                         |  `false`                         |  `false` |
+| `env`                    | commerce environment you want this page to use, either `stage` or `prod`                            |  `prod`                          |  `false` |
+| `force-tax-exclusive`    | force all price display to be tax exclusive                                                         |  `false`                         |  `false` |
 | `locale`                 | currency & price locale you need, must belong to one of the [supported locales](#supported-locales) | `en_US`                          | `false`  |
-| `language`               | language of the price literal, e.g: per license                                                     | en or locale langauge if set     | `false`  |
-| `wcs-api-key`            | api key used for making WCS calls                                                                   | `wcms-commerce-ims-ro-user-milo` | `false`  |
 | `lana-tags`              | Enables logging via lana[^1][^2] with the given tags. e.g:`ccd`.                                    |                                  | `false`  |
 | `lana-sample-rate`       | Sets the sampling rate, see [^1] for details.                                                       | 1                                | `false`  |
+| `language`               | language of the price literal, e.g: per license                                                     | en or locale language if set     | `false`  |
+| `preview`                | enable preview (will only work on corp network), can be overriden with parameter `mas.preview=off`  | false / off                      | `false`  |
+| `wcs-api-key`            | api key used for making WCS calls                                                                   | `wcms-commerce-ims-ro-user-milo` | `false`  |
 
 [^1]: https://wiki.corp.adobe.com/pages/viewpage.action?spaceKey=WCMSOps&title=LANA+-+Log+Always+Never+Assume
 
@@ -131,7 +130,7 @@ Toggle the network tab and click on `Refresh` button below
 
 | Locale     | Description                     | Try                                        |
 | ---------- | ------------------------------- | ------------------------------------------ |
-| en_US      | English (United States)         | [Try](/web-components/docs/mas.js.html) |
+| en_US      | English (United States)         | [Try](/libs/features/mas/docs/mas.js.html) |
 |            |                                 |                                            |
 | ar_DZ      | Arabic (Algeria)                | [Try](?locale=ar_DZ)                       |
 | ar_EG      | Arabic (Egypt)                  | [Try](?locale=ar_EG)                       |

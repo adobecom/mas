@@ -35,13 +35,8 @@ describe('Multifield', () => {
                 <mas-multifield>
                     <template>
                         <div>
-                            <sp-field-label required for="test1"
-                                >Test field</sp-field-label
-                            >
-                            <sp-textfield
-                                class="field"
-                                id="test1"
-                            ></sp-textfield>
+                            <sp-field-label required for="test1">Test field</sp-field-label>
+                            <sp-textfield class="field" id="test1"></sp-textfield>
                         </div>
                     </template>
                 </mas-multifield>
@@ -49,21 +44,15 @@ describe('Multifield', () => {
             `,
             { parentNode: spTheme() },
         );
-        expect(
-            el.shadowRoot.querySelectorAll('.field-wrapper').length,
-        ).to.equal(0);
+        expect(el.shadowRoot.querySelectorAll('.field-wrapper').length).to.equal(0);
         const addButton = el.shadowRoot.querySelector('sp-action-button');
         addButton.click();
         await el.updateComplete;
-        expect(
-            el.shadowRoot.querySelectorAll('.field-wrapper').length,
-        ).to.equal(1);
+        expect(el.shadowRoot.querySelectorAll('.field-wrapper').length).to.equal(1);
         const removeButton = el.shadowRoot.querySelector('sp-icon-close');
         removeButton.click();
         await el.updateComplete;
-        expect(
-            el.shadowRoot.querySelectorAll('.field-wrapper').length,
-        ).to.equal(0);
+        expect(el.shadowRoot.querySelectorAll('.field-wrapper').length).to.equal(0);
     });
 
     it('should support min attribute', async () => {
@@ -72,13 +61,8 @@ describe('Multifield', () => {
                 <mas-multifield min="1">
                     <template>
                         <div>
-                            <sp-field-label required for="test1"
-                                >Test field</sp-field-label
-                            >
-                            <sp-textfield
-                                class="field"
-                                id="test1"
-                            ></sp-textfield>
+                            <sp-field-label required for="test1">Test field</sp-field-label>
+                            <sp-textfield class="field" id="test1"></sp-textfield>
                         </div>
                     </template>
                 </mas-multifield>
@@ -86,9 +70,7 @@ describe('Multifield', () => {
             `,
             { parentNode: spTheme() },
         );
-        expect(
-            el.shadowRoot.querySelectorAll('.field-wrapper').length,
-        ).to.equal(1);
+        expect(el.shadowRoot.querySelectorAll('.field-wrapper').length).to.equal(1);
     });
 
     it('should support mas-mnemonic-field', async () => {
@@ -115,12 +97,9 @@ describe('Multifield', () => {
             `,
             { parentNode: spTheme() },
         );
-        expect(
-            el.shadowRoot.querySelectorAll('.field-wrapper').length,
-        ).to.equal(2);
+        expect(el.shadowRoot.querySelectorAll('.field-wrapper').length).to.equal(2);
 
-        const [, mnemonic2] =
-            el.shadowRoot.querySelectorAll('mas-mnemonic-field');
+        const [, mnemonic2] = el.shadowRoot.querySelectorAll('mas-mnemonic-field');
         const listener = oneEvent(el, 'input');
         mnemonic2.altElement.value = 'This is new alt text';
         mnemonic2.altElement.dispatchEvent(new Event('input'));

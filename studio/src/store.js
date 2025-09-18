@@ -1,12 +1,12 @@
-import { PAGE_NAMES, SORT_COLUMNS, WCS_ENV_PROD } from './constants.js';
+import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
-import { getHashParam } from './utils.js';
 
 // Store definition with default values - no URL parsing here
 const Store = {
     fragments: {
         list: {
             loading: new ReactiveStore(true),
+            firstPageLoaded: new ReactiveStore(false),
             data: new ReactiveStore([]),
         },
         recentlyUpdated: {
@@ -29,13 +29,11 @@ const Store = {
     search: new ReactiveStore({}),
     filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
     sort: new ReactiveStore({}),
-    renderMode: new ReactiveStore(
-        localStorage.getItem('mas-render-mode') || 'render',
-    ),
+    renderMode: new ReactiveStore(localStorage.getItem('mas-render-mode') || 'render'),
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
-    commerceEnv: new ReactiveStore(WCS_ENV_PROD),
+    landscape: new ReactiveStore(WCS_LANDSCAPE_PUBLISHED, landscapeValidator),
     placeholders: {
         search: new ReactiveStore(''),
         list: {
@@ -47,11 +45,12 @@ const Store = {
         editing: new ReactiveStore(null),
         addons: {
             loading: new ReactiveStore(false),
-            data: new ReactiveStore([
-                { value: 'disabled', itemText: 'disabled' },
-            ]),
+            data: new ReactiveStore([{ value: 'disabled', itemText: 'disabled' }]),
         },
     },
+    profile: new ReactiveStore(),
+    createdByUsers: new ReactiveStore([]),
+    users: new ReactiveStore([]),
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
 };
@@ -82,12 +81,16 @@ function filtersValidator(value) {
  * @returns {string}
  */
 function pageValidator(value) {
-    const validPages = [
-        PAGE_NAMES.WELCOME,
-        PAGE_NAMES.CONTENT,
-        PAGE_NAMES.PLACEHOLDERS,
-    ];
+    const validPages = [PAGE_NAMES.WELCOME, PAGE_NAMES.CONTENT, PAGE_NAMES.PLACEHOLDERS];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
+}
+
+/**
+ * @param {string} value
+ * @returns {string}
+ */
+function landscapeValidator(value) {
+    return [WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED].includes(value) ? value : WCS_LANDSCAPE_PUBLISHED;
 }
 
 function sortValidator(value) {
@@ -100,8 +103,7 @@ function sortValidator(value) {
         const isValidField = (SORT_COLUMNS[page] || []).includes(result.sortBy);
         if (!isValidField) result.sortBy = defaultSortBy;
     }
-    if (result.sortDirection !== 'asc' && result.sortDirection !== 'desc')
-        result.sortDirection = 'asc';
+    if (result.sortDirection !== 'asc' && result.sortDirection !== 'desc') result.sortDirection = 'asc';
     return result;
 }
 // This validator accesses the store object, so it can't be passed in the
@@ -117,10 +119,7 @@ const editorPanel = () => document.querySelector('editor-panel');
  */
 export function toggleSelection(id) {
     const selection = Store.selection.get();
-    if (selection.includes(id))
-        Store.selection.set(
-            selection.filter((selectedId) => selectedId !== id),
-        );
+    if (selection.includes(id)) Store.selection.set(selection.filter((selectedId) => selectedId !== id));
     else Store.selection.set([...selection, id]);
 }
 

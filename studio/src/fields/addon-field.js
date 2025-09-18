@@ -2,6 +2,7 @@ import { css, html, LitElement, nothing } from 'lit';
 import { EVENT_INPUT } from '../constants.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import Store from '../store.js';
+import { MasRepository } from '../mas-repository.js';
 
 export class AddonField extends LitElement {
     static properties = {
@@ -13,10 +14,7 @@ export class AddonField extends LitElement {
 
     addons = Store.placeholders.addons.data;
     loading = Store.placeholders.addons.loading;
-    reactiveController = new ReactiveController(this, [
-        this.addons,
-        this.loading,
-    ]);
+    reactiveController = new ReactiveController(this, [this.addons, this.loading]);
 
     constructor() {
         super();
@@ -53,6 +51,7 @@ export class AddonField extends LitElement {
         this.repository.loadAddonPlaceholders();
     }
 
+    /** @type {MasRepository} */
     get repository() {
         return document.querySelector('mas-repository');
     }
@@ -105,14 +104,8 @@ export class AddonField extends LitElement {
         return html`
             <sp-field-group>
                 <div>
-                    <sp-field-label for="addon-field"
-                        >${this.label}</sp-field-label
-                    >
-                    <sp-switch
-                        size="m"
-                        .checked="${this.isEditable}"
-                        @change="${this.#handleToggle}"
-                    ></sp-switch>
+                    <sp-field-label for="addon-field">${this.label}</sp-field-label>
+                    <sp-switch size="m" .checked="${this.isEditable}" @change="${this.#handleToggle}"></sp-switch>
                 </div>
                 <!-- style hack -->
                 <span></span>

@@ -10,10 +10,7 @@
     "fields": {
         "label": "Individual Plans",
         "cards": [],
-        "collections": [
-            "d5b3180a-41e3-4df1-adb4-73daa8f392b5",
-            "1c0b2890-567a-4771-933c-84b032c8e51d"
-        ]
+        "collections": ["d5b3180a-41e3-4df1-adb4-73daa8f392b5", "1c0b2890-567a-4771-933c-84b032c8e51d"]
     },
     "references": {
         "d5b3180a-41e3-4df1-adb4-73daa8f392b5": {
@@ -29,10 +26,7 @@
                 },
                 "fields": {
                     "label": "All",
-                    "cards": [
-                        "c6727147-7992-4ca4-b566-819c52b0a585",
-                        "049231fd-0c45-4ef5-8792-7fa2dcd5005a"                    
-                    ],
+                    "cards": ["c6727147-7992-4ca4-b566-819c52b0a585", "049231fd-0c45-4ef5-8792-7fa2dcd5005a"],
                     "collections": []
                 }
             }
@@ -79,10 +73,7 @@
                         "https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg"
                     ],
                     "mnemonicAlt": ["Lightroom", "Illustrator"],
-                    "mnemonicLink": [
-                        "https://www.adobe.com/products/catalog.html",
-                        "https://www.adobe.com"
-                    ],
+                    "mnemonicLink": ["https://www.adobe.com/products/catalog.html", "https://www.adobe.com"],
                     "badge": { "mimeType": "text/html" },
                     "cardTitle": "Photography  (1TB)",
                     "prices": { "mimeType": "text/html" },
@@ -152,10 +143,7 @@
                         "https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg"
                     ],
                     "mnemonicAlt": ["Lightroom", "Illustrator"],
-                    "mnemonicLink": [
-                        "https://www.adobe.com/products/catalog.html",
-                        "https://www.adobe.com"
-                    ],
+                    "mnemonicLink": ["https://www.adobe.com/products/catalog.html", "https://www.adobe.com"],
                     "badge": { "mimeType": "text/html" },
                     "cardTitle": "Photography  (1TB)",
                     "prices": {
@@ -201,10 +189,7 @@
                 "fields": {
                     "label": "Photo",
                     "icon": "https://main--milo--adobecom.hlx.page/drafts/astatescu/icons/camera.svg",
-                    "cards": [
-                        "049231fd-0c45-4ef5-8792-7fa2dcd5005a",
-                        "c6727147-7992-4ca4-b566-819c52b0a585"
-                    ],
+                    "cards": ["049231fd-0c45-4ef5-8792-7fa2dcd5005a", "c6727147-7992-4ca4-b566-819c52b0a585"],
                     "collections": []
                 }
             }

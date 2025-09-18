@@ -126,18 +126,8 @@ export const styles = css`
 
     .placeholders-table sp-table-cell,
     .placeholders-table sp-table-checkbox-cell:not([head-cell]) {
-        border-block-start: var(
-                --mod-table-border-width,
-                var(--spectrum-table-border-width)
-            )
-            solid
-            var(
-                --highcontrast-table-divider-color,
-                var(
-                    --mod-table-divider-color,
-                    var(--spectrum-table-divider-color)
-                )
-            );
+        border-block-start: var(--mod-table-border-width, var(--spectrum-table-border-width)) solid
+            var(--highcontrast-table-divider-color, var(--mod-table-divider-color, var(--spectrum-table-divider-color)));
         border-radius: 0;
     }
 

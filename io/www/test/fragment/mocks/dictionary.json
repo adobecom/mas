@@ -95,6 +95,14 @@
                 }
             }
         },
+        "price-literal-tax-inclusive-label": {
+            "value": {
+                "fields": {
+                    "key": "price-literal-tax-inclusive-label",
+                    "value": "TTC."
+                }
+            }
+        },
         "fake-empty-placeholder": {
             "value": {
                 "fields": {

@@ -53,10 +53,7 @@ test.afterEach(async ({ page }) => {
 
 test.describe('M@S Studio CCD Suggested card test suite', () => {
     // @studio-suggested-remove-correct-fragment - Clone card then delete, verify the correct card is removed from screen
-    test(`${features[0].name},${features[0].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -69,23 +66,15 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             let clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard
-                .locator('aem-fragment')
-                .getAttribute('fragment');
+            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
             data.clonedCardID = await clonedCardID;
             await studio.cloneCard(clonedCardID);
 
-            let clonedCardTwo = await studio.getCard(
-                data.cardid,
-                'cloned',
-                data.clonedCardID,
-            );
+            let clonedCardTwo = await studio.getCard(data.cardid, 'cloned', data.clonedCardID);
 
             await expect(await clonedCardTwo).toBeVisible();
 
-            let clonedCardTwoID = await clonedCardTwo
-                .locator('aem-fragment')
-                .getAttribute('fragment');
+            let clonedCardTwoID = await clonedCardTwo.locator('aem-fragment').getAttribute('fragment');
             data.clonedCardTwoID = clonedCardTwoID;
         });
 
@@ -104,10 +93,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
     });
 
     // @studio-suggested-save-variant-change-to-slice - Validate saving card after variant change to ccd slice
-    test(`${features[1].name},${features[1].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const { data } = features[1];
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -120,9 +106,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             let clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard
-                .locator('aem-fragment')
-                .getAttribute('fragment');
+            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
             data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
@@ -131,10 +115,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute(
-                'default-value',
-                'ccd-suggested',
-            );
+            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-suggested');
             await editor.variant.locator('sp-picker').first().click();
             await page.getByRole('option', { name: 'slice' }).click();
             await page.waitForTimeout(2000);
@@ -142,34 +123,22 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-4: Validate variant change', async () => {
-            await expect(await editor.variant).toHaveAttribute(
-                'default-value',
-                'ccd-slice',
+            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-slice');
+            await expect(await studio.getCard(data.clonedCardID)).not.toHaveAttribute('variant', 'ccd-suggested');
+            await expect(await studio.getCard(data.clonedCardID)).toHaveAttribute('variant', 'ccd-slice');
+            await expect(await (await studio.getCard(data.clonedCardID)).locator(slice.cardCTA)).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
             );
-            await expect(
-                await studio.getCard(data.clonedCardID),
-            ).not.toHaveAttribute('variant', 'ccd-suggested');
-            await expect(
-                await studio.getCard(data.clonedCardID),
-            ).toHaveAttribute('variant', 'ccd-slice');
-            await expect(
-                await (
-                    await studio.getCard(data.clonedCardID)
-                ).locator(slice.cardCTA),
-            ).toHaveAttribute('data-wcs-osi', data.osi);
-            await expect(
-                await (
-                    await studio.getCard(data.clonedCardID)
-                ).locator(slice.cardCTA),
-            ).toHaveAttribute('is', 'checkout-button');
+            await expect(await (await studio.getCard(data.clonedCardID)).locator(slice.cardCTA)).toHaveAttribute(
+                'is',
+                'checkout-button',
+            );
         });
     });
 
     // @studio-suggested-save-variant-change-to-trybuywidget - Validate saving card after variant change to AHome try-buy-widget
-    test(`${features[2].name},${features[2].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
         const { data } = features[2];
         const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -182,9 +151,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             let clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard
-                .locator('aem-fragment')
-                .getAttribute('fragment');
+            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
             data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
@@ -193,10 +160,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute(
-                'default-value',
-                'ccd-suggested',
-            );
+            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-suggested');
             await editor.variant.locator('sp-picker').first().click();
             await page.getByRole('option', { name: 'try buy widget' }).click();
             await page.waitForTimeout(2000);
@@ -204,34 +168,22 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-4: Validate variant change', async () => {
-            await expect(await editor.variant).toHaveAttribute(
-                'default-value',
-                'ah-try-buy-widget',
+            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-try-buy-widget');
+            await expect(await studio.getCard(data.clonedCardID)).not.toHaveAttribute('variant', 'ccd-suggested');
+            await expect(await studio.getCard(data.clonedCardID)).toHaveAttribute('variant', 'ah-try-buy-widget');
+            await expect(await (await studio.getCard(data.clonedCardID)).locator(trybuywidget.cardCTA)).toHaveAttribute(
+                'data-wcs-osi',
+                data.osi,
             );
-            await expect(
-                await studio.getCard(data.clonedCardID),
-            ).not.toHaveAttribute('variant', 'ccd-suggested');
-            await expect(
-                await studio.getCard(data.clonedCardID),
-            ).toHaveAttribute('variant', 'ah-try-buy-widget');
-            await expect(
-                await (
-                    await studio.getCard(data.clonedCardID)
-                ).locator(trybuywidget.cardCTA),
-            ).toHaveAttribute('data-wcs-osi', data.osi);
-            await expect(
-                await (
-                    await studio.getCard(data.clonedCardID)
-                ).locator(trybuywidget.cardCTA),
-            ).toHaveAttribute('is', 'checkout-button');
+            await expect(await (await studio.getCard(data.clonedCardID)).locator(trybuywidget.cardCTA)).toHaveAttribute(
+                'is',
+                'checkout-button',
+            );
         });
     });
 
     // @studio-suggested-save-edited-title - Validate saving card after editing card title
-    test(`${features[3].name},${features[3].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
         const { data } = features[3];
         const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -245,9 +197,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard
-                .locator('aem-fragment')
-                .getAttribute('fragment');
+            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
             data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
@@ -263,17 +213,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-4: Validate edited card title', async () => {
             await expect(await editor.title).toHaveValue(data.newTitle);
-            await expect(
-                await clonedCard.locator(suggested.cardTitle),
-            ).toHaveText(data.newTitle);
+            await expect(await clonedCard.locator(suggested.cardTitle)).toHaveText(data.newTitle);
         });
     });
 
     // @studio-suggested-save-edited-eyebrow - Validate saving card after editing card eyebrow
-    test(`${features[4].name},${features[4].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
         const { data } = features[4];
         const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -287,9 +232,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard
-                .locator('aem-fragment')
-                .getAttribute('fragment');
+            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
             data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
@@ -305,17 +248,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-4: Validate edited card eyebrow', async () => {
             await expect(await editor.subtitle).toHaveValue(data.newSubtitle);
-            await expect(
-                await clonedCard.locator(suggested.cardEyebrow),
-            ).toHaveText(data.newSubtitle);
+            await expect(await clonedCard.locator(suggested.cardEyebrow)).toHaveText(data.newSubtitle);
         });
     });
 
     // @studio-suggested-save-edited-mnemonic - Validate saving card after editing card mnemonic
-    test(`${features[5].name},${features[5].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
         const { data } = features[5];
         const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -329,9 +267,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard
-                .locator('aem-fragment')
-                .getAttribute('fragment');
+            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
             data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
@@ -347,17 +283,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-4: Validate edited card mnemonic', async () => {
             await expect(await editor.iconURL).toHaveValue(data.newIconURL);
-            await expect(
-                await clonedCard.locator(suggested.cardIcon),
-            ).toHaveAttribute('src', data.newIconURL);
+            await expect(await clonedCard.locator(suggested.cardIcon)).toHaveAttribute('src', data.newIconURL);
         });
     });
 
     // @studio-suggested-save-edited-description - Validate saving card after editing card description
-    test(`${features[6].name},${features[6].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[6].name},${features[6].tags}`, async ({ page, baseURL }) => {
         const { data } = features[6];
         const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -371,9 +302,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard
-                .locator('aem-fragment')
-                .getAttribute('fragment');
+            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
             data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
@@ -382,28 +311,19 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-3: Edit description and save card', async () => {
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.description).toContainText(
-                data.description,
-            );
+            await expect(await editor.description).toContainText(data.description);
             await editor.description.fill(data.newDescription);
             await studio.saveCard();
         });
 
         await test.step('step-4: Validate edited card description', async () => {
-            await expect(await editor.description).toContainText(
-                data.newDescription,
-            );
-            await expect(
-                await clonedCard.locator(suggested.cardDescription),
-            ).toHaveText(data.newDescription);
+            await expect(await editor.description).toContainText(data.newDescription);
+            await expect(await clonedCard.locator(suggested.cardDescription)).toHaveText(data.newDescription);
         });
     });
 
     // @studio-suggested-save-edited-image - Validate saving card after editing card background image
-    test(`${features[7].name},${features[7].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
         const { data } = features[7];
         const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -417,9 +337,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard
-                .locator('aem-fragment')
-                .getAttribute('fragment');
+            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
             data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
@@ -434,21 +352,13 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-4: Validate edited card image', async () => {
-            await expect(await editor.backgroundImage).toHaveValue(
-                data.newBackgroundURL,
-            );
-            await expect(await clonedCard).toHaveAttribute(
-                'background-image',
-                data.newBackgroundURL,
-            );
+            await expect(await editor.backgroundImage).toHaveValue(data.newBackgroundURL);
+            await expect(await clonedCard).toHaveAttribute('background-image', data.newBackgroundURL);
         });
     });
 
     // @studio-suggested-save-edited-price - Validate saving card after editing card price
-    test(`${features[8].name},${features[8].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[8].name},${features[8].tags}`, async ({ page, baseURL }) => {
         const { data } = features[8];
         const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -462,9 +372,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard
-                .locator('aem-fragment')
-                .getAttribute('fragment');
+            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
             data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
@@ -474,9 +382,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-3: Edit price and save card', async () => {
             await expect(await editor.prices).toBeVisible();
             await expect(await editor.prices).toContainText(data.price);
-            await expect(await editor.prices).toContainText(
-                data.strikethroughPrice,
-            );
+            await expect(await editor.prices).toContainText(data.strikethroughPrice);
             await editor.prices.locator(editor.regularPrice).dblclick();
             await expect(await ost.price).toBeVisible();
             await expect(await ost.priceUse).toBeVisible();
@@ -488,23 +394,14 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-4: Validate edited card price', async () => {
             await expect(await editor.prices).toContainText(data.price);
-            await expect(await editor.prices).not.toContainText(
-                data.strikethroughPrice,
-            );
-            await expect(
-                await clonedCard.locator(suggested.cardPrice),
-            ).toContainText(data.price);
-            await expect(
-                await clonedCard.locator(suggested.cardPrice),
-            ).not.toContainText(data.strikethroughPrice);
+            await expect(await editor.prices).not.toContainText(data.strikethroughPrice);
+            await expect(await clonedCard.locator(suggested.cardPrice)).toContainText(data.price);
+            await expect(await clonedCard.locator(suggested.cardPrice)).not.toContainText(data.strikethroughPrice);
         });
     });
 
     // @studio-suggested-save-edited-cta-label - Validate saving card after editing card cta label
-    test(`${features[9].name},${features[9].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[9].name},${features[9].tags}`, async ({ page, baseURL }) => {
         const { data } = features[9];
         const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -518,9 +415,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard
-                .locator('aem-fragment')
-                .getAttribute('fragment');
+            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
             data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
@@ -542,17 +437,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-4: Validate edited card cta', async () => {
             await expect(await editor.footer).toContainText(data.newCtaText);
-            await expect(
-                await clonedCard.locator(suggested.cardCTA),
-            ).toContainText(data.newCtaText);
+            await expect(await clonedCard.locator(suggested.cardCTA)).toContainText(data.newCtaText);
         });
     });
 
     // @studio-suggested-save-edited-osi - Validate saving change osi
-    test(`${features[10].name},${features[10].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[10].name},${features[10].tags}`, async ({ page, baseURL }) => {
         const { data } = features[10];
         const testPage = `${baseURL}${features[10].path}${miloLibs}${features[10].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -565,9 +455,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             let clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard
-                .locator('aem-fragment')
-                .getAttribute('fragment');
+            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
             data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
@@ -590,46 +478,19 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-4: Validate osi change', async () => {
             await expect(await editor.OSI).toContainText(data.newosi);
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.newProductCodeTag}`),
-            );
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.newOfferTypeTag}`),
-            );
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.newMarketSegmentsTag}`),
-            );
-            await expect(await editor.tags).toHaveAttribute(
-                'value',
-                new RegExp(`${data.newPlanTypeTag}`),
-            );
-            await expect(await editor.tags).not.toHaveAttribute(
-                'value',
-                new RegExp(`${data.productCodeTag}`),
-            );
-            await expect(await editor.tags).not.toHaveAttribute(
-                'value',
-                new RegExp(`${data.planTypeTag}`),
-            );
-            await expect(await editor.tags).not.toHaveAttribute(
-                'value',
-                new RegExp(`${data.offerTypeTag}`),
-            );
-            await expect(await editor.tags).not.toHaveAttribute(
-                'value',
-                new RegExp(`${data.marketSegmentsTag}`),
-            );
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.newProductCodeTag}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.newOfferTypeTag}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.newMarketSegmentsTag}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.newPlanTypeTag}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.productCodeTag}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.planTypeTag}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.offerTypeTag}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.marketSegmentsTag}`));
         });
     });
 
     // @studio-suggested-save-edited-cta-variant - Validate saving change CTA variant
-    test(`${features[11].name},${features[11].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[11].name},${features[11].tags}`, async ({ page, baseURL }) => {
         const { data } = features[11];
         const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -643,9 +504,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard
-                .locator('aem-fragment')
-                .getAttribute('fragment');
+            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
             data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
@@ -653,24 +512,15 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-3: Edit CTA variant and save card', async () => {
-            await expect(
-                await editor.footer.locator(editor.linkEdit),
-            ).toBeVisible();
+            await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
             await expect(await editor.CTA).toHaveClass(data.variant);
-            expect(
-                await webUtil.verifyCSS(
-                    await clonedCard.locator(suggested.cardCTA),
-                    data.ctaCSS,
-                ),
-            ).toBeTruthy();
+            expect(await webUtil.verifyCSS(await clonedCard.locator(suggested.cardCTA), data.ctaCSS)).toBeTruthy();
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkVariant).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-            await expect(
-                await editor.getLinkVariant(data.newVariant),
-            ).toBeVisible();
+            await expect(await editor.getLinkVariant(data.newVariant)).toBeVisible();
             await (await editor.getLinkVariant(data.newVariant)).click();
             await editor.linkSave.click();
             await studio.saveCard();
@@ -679,26 +529,14 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-4: Validate CTA variant change', async () => {
             await expect(await editor.CTA).toHaveClass(data.newVariant);
             await expect(await editor.CTA).not.toHaveClass(data.variant);
-            expect(
-                await webUtil.verifyCSS(
-                    await clonedCard.locator(suggested.cardCTA),
-                    data.newCtaCSS,
-                ),
-            ).toBeTruthy();
-            await expect(
-                await clonedCard.locator(suggested.cardCTA),
-            ).toHaveAttribute('data-wcs-osi', data.osi);
-            await expect(
-                await clonedCard.locator(suggested.cardCTA),
-            ).toHaveAttribute('is', 'checkout-button');
+            expect(await webUtil.verifyCSS(await clonedCard.locator(suggested.cardCTA), data.newCtaCSS)).toBeTruthy();
+            await expect(await clonedCard.locator(suggested.cardCTA)).toHaveAttribute('data-wcs-osi', data.osi);
+            await expect(await clonedCard.locator(suggested.cardCTA)).toHaveAttribute('is', 'checkout-button');
         });
     });
 
     // @studio-suggested-save-edited-cta-checkout-params - Validate saving card after editing card cta checkout params
-    test(`${features[12].name},${features[12].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[12].name},${features[12].tags}`, async ({ page, baseURL }) => {
         const { data } = features[12];
         const testPage = `${baseURL}${features[12].path}${miloLibs}${features[12].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -712,9 +550,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard
-                .locator('aem-fragment')
-                .getAttribute('fragment');
+            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
             data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
@@ -729,10 +565,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await editor.linkSave).toBeVisible();
 
             const checkoutParamsString = Object.keys(data.checkoutParams)
-                .map(
-                    (key) =>
-                        `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`,
-                )
+                .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(data.checkoutParams[key])}`)
                 .join('&');
             await editor.checkoutParameters.fill(checkoutParamsString);
             await editor.linkSave.click();
@@ -740,31 +573,18 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-4: Validate edited cta checkout params', async () => {
-            await expect(
-                await clonedCard.locator(suggested.cardCTA),
-            ).toHaveAttribute('data-wcs-osi', data.osi);
-            await expect(
-                await clonedCard.locator(suggested.cardCTA),
-            ).toHaveAttribute('is', 'checkout-button');
-            const CTAhref = await clonedCard
-                .locator(suggested.cardCTA)
-                .getAttribute('data-href');
-            let searchParams = new URLSearchParams(
-                decodeURI(CTAhref).split('?')[1],
-            );
+            await expect(await clonedCard.locator(suggested.cardCTA)).toHaveAttribute('data-wcs-osi', data.osi);
+            await expect(await clonedCard.locator(suggested.cardCTA)).toHaveAttribute('is', 'checkout-button');
+            const CTAhref = await clonedCard.locator(suggested.cardCTA).getAttribute('data-href');
+            let searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
             expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
-            expect(searchParams.get('promoid')).toBe(
-                data.checkoutParams.promoid,
-            );
+            expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
             expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
         });
     });
 
     // @studio-suggested-save-edited-analytics-ids - Validate saving card after editing analytics IDs
-    test(`${features[13].name},${features[13].tags}`, async ({
-        page,
-        baseURL,
-    }) => {
+    test(`${features[13].name},${features[13].tags}`, async ({ page, baseURL }) => {
         const { data } = features[13];
         const testPage = `${baseURL}${features[13].path}${miloLibs}${features[13].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
@@ -778,9 +598,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard
-                .locator('aem-fragment')
-                .getAttribute('fragment');
+            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
             data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
@@ -794,24 +612,15 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await editor.analyticsId).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
             await editor.analyticsId.click();
-            await page
-                .getByRole('option', { name: data.newAnalyticsID })
-                .click();
+            await page.getByRole('option', { name: data.newAnalyticsID }).click();
             await editor.linkSave.click();
             await studio.saveCard();
         });
 
         await test.step('step-4: Validate edited analytics IDs are saved', async () => {
-            await expect(
-                await clonedCard.locator(suggested.cardCTA),
-            ).toHaveAttribute('data-analytics-id', data.newAnalyticsID);
-            await expect(
-                await clonedCard.locator(suggested.cardCTA),
-            ).toHaveAttribute('daa-ll', data.newDaaLL);
-            await expect(await clonedCard).toHaveAttribute(
-                'daa-lh',
-                data.daaLH,
-            );
+            await expect(await clonedCard.locator(suggested.cardCTA)).toHaveAttribute('data-analytics-id', data.newAnalyticsID);
+            await expect(await clonedCard.locator(suggested.cardCTA)).toHaveAttribute('daa-ll', data.newDaaLL);
+            await expect(await clonedCard).toHaveAttribute('daa-lh', data.daaLH);
         });
     });
 });

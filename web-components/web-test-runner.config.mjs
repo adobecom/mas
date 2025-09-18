@@ -1,6 +1,10 @@
 import { importMapsPlugin } from '@web/dev-server-import-maps';
 import { defaultReporter } from '@web/test-runner';
 import { chromeLauncher } from '@web/test-runner-chrome';
+import { fromRollup } from '@web/dev-server-rollup';
+import rollupResolve from '@rollup/plugin-node-resolve';
+
+const nodeResolvePlugin = fromRollup(rollupResolve);
 
 export default {
     browsers: [
@@ -27,7 +31,11 @@ export default {
     },
     debug: false,
     files: ['test/**/*.test.(js|html)'],
-    nodeResolve: true,
+    nodeResolve: {
+        exportConditions: ['node', 'development'],
+        preferBuiltins: false,
+        extensions: ['.js', '.mjs', '.json', '.node'],
+    },
     mimeTypes: {
         '**/*.snap': 'html',
     },
@@ -37,6 +45,10 @@ export default {
         },
     },
     plugins: [
+        nodeResolvePlugin({
+            moduleDirectories: ['node_modules'],
+            rootDir: process.cwd(),
+        }),
         importMapsPlugin({
             inject: {
                 importMap: {

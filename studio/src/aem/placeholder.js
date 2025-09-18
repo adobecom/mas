@@ -6,9 +6,7 @@ export class Placeholder extends Fragment {
     }
 
     get isRichText() {
-        const initialRichTextValue = this.initialValue.fields.find(
-            (field) => field.name === 'richTextValue',
-        );
+        const initialRichTextValue = this.initialValue.fields.find((field) => field.name === 'richTextValue');
         return initialRichTextValue.values.length > 0;
     }
 
@@ -22,8 +20,6 @@ export class Placeholder extends Fragment {
     }
 
     get updatedAt() {
-        return this.modified?.at
-            ? new Date(this.modified?.at).toLocaleString()
-            : 'Unknown';
+        return this.modified?.at ? new Date(this.modified?.at).toLocaleString() : 'Unknown';
     }
 }

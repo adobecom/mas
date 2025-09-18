@@ -33,9 +33,7 @@ class MasConfirmDialog extends LitElement {
 
     constructor() {
         super();
-        this.reactiveController = new ReactiveController(this, [
-            Store.confirmDialogOptions,
-        ]);
+        this.reactiveController = new ReactiveController(this, [Store.confirmDialogOptions]);
     }
 
     get options() {
@@ -50,13 +48,7 @@ class MasConfirmDialog extends LitElement {
 
     render() {
         if (!this.options) return nothing;
-        const {
-            variant,
-            title,
-            content,
-            confirmLabel = 'Confirm',
-            cancelLabel = 'Cancel',
-        } = this.options;
+        const { variant, title, content, confirmLabel = 'Confirm', cancelLabel = 'Cancel' } = this.options;
         return html`<div class="confirm-dialog-overlay">
             <sp-dialog-wrapper
                 open

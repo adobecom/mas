@@ -1,26 +1,38 @@
 'use strict';
 
-const crypto = require('crypto');
 const fetchFragment = require('./fetch.js').fetchFragment;
-const { log, logDebug, logError } = require('./common.js');
-const translate = require('./translate.js').translate;
+const {
+    createTimeoutPromise,
+    log,
+    logDebug,
+    logError,
+    mark,
+    measureTiming,
+    getFromState,
+    getJsonFromState,
+} = require('./common.js');
+const corrector = require('./corrector.js').corrector;
+const crypto = require('crypto');
 const replace = require('./replace.js').replace;
 const settings = require('./settings.js').settings;
 const stateLib = require('@adobe/aio-lib-state');
+const translate = require('./translate.js').translate;
 const wcs = require('./wcs.js').wcs;
 const zlib = require('zlib');
 
 function calculateHash(body) {
-    return crypto
-        .createHash('sha256')
-        .update(JSON.stringify(body))
-        .digest('hex');
+    return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
 }
 
+const RESPONSE_HEADERS = {
+    'Access-Control-Expose-Headers': 'X-Request-Id,Etag,Last-Modified,server-timing',
+    'Content-Type': 'application/json',
+    'Content-Encoding': 'br',
+};
+
 async function main(params) {
-    const startTime = Date.now();
-    const requestId =
-        params.__ow_headers?.['x-request-id'] || 'mas-' + Date.now();
+    const requestId = params.__ow_headers?.['x-request-id'] || 'mas-' + Date.now();
+    const region = process.env.__OW_REGION || 'unknown';
     const api_key = params.api_key || 'n/a';
     const DEFAULT_HEADERS = {
         Accept: 'application/json',
@@ -34,55 +46,97 @@ async function main(params) {
         DEFAULT_HEADERS,
         status: 200,
     };
+    mark(context, 'start');
+    let returnValue;
     log(`starting request pipeline for ${JSON.stringify(context)}`, context);
     /* istanbul ignore next */
     if (!context.state) {
         context.state = await stateLib.init();
     }
-    context.debugLogs =
-        (await context.state.get('debugFragmentLogs'))?.value || false;
-    const requestKey = `req-${context.id}-${context.locale}`;
-    const cachedMetadataStr = (await context.state.get(requestKey))?.value;
-    let cachedMetadata = {};
-    if (cachedMetadataStr) {
-        log(
-            `(${Date.now() - startTime}ms) found cached metadata for ${requestKey} -> ${cachedMetadataStr}`,
-            context,
-        );
-        try {
-            cachedMetadata = JSON.parse(cachedMetadataStr);
-            const { translatedId, dictionaryId } = cachedMetadata || {};
-            context = { ...context, translatedId, dictionaryId };
-        } catch (e) {
-            logError(
-                `Error parsing cached metadata ${cachedMetadataStr}: ${e.message}`,
-                context,
-            );
+    try {
+        const { json: configuration } = await getJsonFromState('configuration', context);
+        context = configuration ? { ...context, ...configuration } : context;
+        const initTime = measureTiming(context, 'init', 'start').duration;
+        let timeout = context.networkConfig?.mainTimeout || 5000;
+        timeout = Math.max(timeout - initTime, 0);
+        returnValue = await Promise.race([
+            mainProcess(context),
+            createTimeoutPromise(timeout, () => {
+                context.timedOut = true;
+            }),
+        ]);
+    } catch (error) {
+        logError(`Error occurred while processing request: ${error.message} ${error.stack}`, context);
+        /* istanbul ignore next */
+        if (error.isTimeout) {
+            returnValue = {
+                statusCode: 504,
+                headers: RESPONSE_HEADERS,
+                message: 'Fragment pipeline timed out',
+            };
+        } else {
+            /* istanbul ignore next */
+            returnValue = {
+                statusCode: 503,
+                message: error?.message || 'Internal Server Error',
+                headers: RESPONSE_HEADERS,
+            };
         }
     }
+    const pipelineMeasure = measureTiming(context, 'pipeline', 'start');
+    log(
+        `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.id} (${returnValue.statusCode}) in ${pipelineMeasure.duration}ms`,
+        {
+            ...context,
+            transformer: 'pipeline',
+        },
+    );
+    const measures = context.measures
+        .map((measure) => `${measure.label} t:${measure.startTime}, d:${measure.duration}`)
+        .join('|');
+    log(`timings (time and duration) region: ${region}: ${measures}`, context);
+    delete returnValue.id; // id is not part of the response
+    returnValue.headers = {
+        ...returnValue.headers,
+        ...RESPONSE_HEADERS,
+    };
+    returnValue.body = returnValue.body?.length > 0 ? zlib.brotliCompressSync(returnValue.body).toString('base64') : undefined;
+    logDebug(() => 'full response: ' + JSON.stringify(returnValue), context);
+    return returnValue;
+}
 
-    for (const transformer of [
-        fetchFragment,
-        translate,
-        settings,
-        replace,
-        wcs,
-    ]) {
+async function mainProcess(context) {
+    const originalContext = context;
+    const requestKey = `req-${context.id}-${context.locale}`;
+    const { json: cachedMetadata, str: cachedMetadataStr } = await getJsonFromState(requestKey, context);
+    if (cachedMetadata) {
+        log(`found cached metadata for ${requestKey} -> ${cachedMetadataStr}`, context);
+        const { translatedId, dictionaryId } = cachedMetadata;
+        context = { ...context, translatedId, dictionaryId };
+    }
+
+    for (const transformer of [fetchFragment, translate, settings, replace, wcs, corrector]) {
+        /* istanbul ignore next */
+        if (originalContext.timedOut) {
+            logError(`Pipeline timed out during ${transformer.name}, aborting...`, context);
+            break;
+        }
         if (context.status != 200) {
             logError(context.message, context);
             break;
         }
         context.transformer = transformer.name;
+        mark(context, transformer.name);
         context = await transformer(context);
+        measureTiming(context, transformer.name);
     }
     context.transformer = 'pipeline';
     const returnValue = {
         statusCode: context.status,
+        id: context.body?.id,
     };
-    let id = undefined;
     let responseBody = undefined;
     if (context.status == 200) {
-        id = context.body.id;
         responseBody = JSON.stringify(context.body, null, 0);
         logDebug(() => `response body: ${responseBody}`, context);
         // Calculate hash of response body
@@ -102,7 +156,7 @@ async function main(params) {
             lastModified = new Date(cachedMetadata.lastModified);
         }
         // Check If-Modified-Since header
-        const ifModifiedSince = params.__ow_headers?.['if-modified-since'];
+        const ifModifiedSince = context.__ow_headers?.['if-modified-since'];
         if (ifModifiedSince) {
             const modifiedSince = new Date(ifModifiedSince);
             if (lastModified.getTime() <= modifiedSince.getTime()) {
@@ -120,27 +174,7 @@ async function main(params) {
             message: context.message,
         });
     }
-    returnValue.headers = {
-        ...returnValue.headers,
-        'Access-Control-Expose-Headers':
-            'X-Request-Id,Etag,Last-Modified,server-timing',
-        'Content-Type': 'application/json',
-        'Content-Encoding': 'br',
-    };
-    returnValue.body =
-        responseBody?.length > 0
-            ? zlib.brotliCompressSync(responseBody).toString('base64')
-            : undefined;
-    logDebug(() => 'full response: ' + JSON.stringify(returnValue), context);
-    log(
-        `pipeline completed: ${context.id} ${context.locale} -> ${id} (${returnValue.statusCode}) in ${Date.now() - startTime}ms`,
-        {
-            ...context,
-            transformer: 'pipeline',
-            requestId,
-            api_key,
-        },
-    );
+    returnValue.body = responseBody;
     return returnValue;
 }
 

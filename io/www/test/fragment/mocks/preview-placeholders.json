@@ -4,836 +4,775 @@
     "description": "Index of dictionary placeholders",
     "id": "4218bdb3-8d25-4706-974d-21b1f0f13aa9",
     "created": {
-      "at": "2025-01-21T10:18:38.608Z",
-      "by": "npeltier@adobe.com",
-      "fullName": "npeltier@adobe.com"
+        "at": "2025-01-21T10:18:38.608Z",
+        "by": "npeltier@adobe.com",
+        "fullName": "npeltier@adobe.com"
     },
     "modified": {
-      "at": "2025-04-10T00:16:52.435Z",
-      "by": "noronha@adobe.com",
-      "fullName": "noronha@adobe.com"
+        "at": "2025-04-10T00:16:52.435Z",
+        "by": "noronha@adobe.com",
+        "fullName": "noronha@adobe.com"
     },
     "published": {
-      "at": "2025-04-15T10:30:01.543Z",
-      "by": "cod14230@adobe.com",
-      "fullName": "cod14230@adobe.com"
+        "at": "2025-04-15T10:30:01.543Z",
+        "by": "cod14230@adobe.com",
+        "fullName": "cod14230@adobe.com"
     },
     "status": "PUBLISHED",
     "previewReplicationStatus": "NEVER_PUBLISHED",
     "fields": [
-      {
-        "name": "entries",
-        "type": "content-fragment",
-        "multiple": true,
-        "locked": false,
-        "values": [
-          "/content/dam/mas/sandbox/en_US/dictionary/view-account",
-          "/content/dam/mas/sandbox/en_US/dictionary/cai-default",
-          "/content/dam/mas/sandbox/en_US/dictionary/how-is-nico",
-          "/content/dam/mas/sandbox/en_US/dictionary/save-now",
-          "/content/dam/mas/sandbox/en_US/dictionary/keep-now",
-          "/content/dam/mas/sandbox/en_US/dictionary/buy-now",
-          "/content/dam/mas/sandbox/en_US/dictionary/learn-more",
-          "/content/dam/mas/sandbox/en_US/dictionary/test",
-          "/content/dam/mas/sandbox/en_US/dictionary/secure-label",
-          "/content/dam/mas/sandbox/en_US/dictionary/new"
-        ]
-      },
-      {
-        "name": "locReady",
-        "type": "boolean",
-        "multiple": false,
-        "locked": false,
-        "values": [
-          true
-        ]
-      }
+        {
+            "name": "entries",
+            "type": "content-fragment",
+            "multiple": true,
+            "locked": false,
+            "values": [
+                "/content/dam/mas/sandbox/en_US/dictionary/view-account",
+                "/content/dam/mas/sandbox/en_US/dictionary/cai-default",
+                "/content/dam/mas/sandbox/en_US/dictionary/how-is-nico",
+                "/content/dam/mas/sandbox/en_US/dictionary/save-now",
+                "/content/dam/mas/sandbox/en_US/dictionary/keep-now",
+                "/content/dam/mas/sandbox/en_US/dictionary/buy-now",
+                "/content/dam/mas/sandbox/en_US/dictionary/learn-more",
+                "/content/dam/mas/sandbox/en_US/dictionary/test",
+                "/content/dam/mas/sandbox/en_US/dictionary/secure-label",
+                "/content/dam/mas/sandbox/en_US/dictionary/new"
+            ]
+        },
+        {
+            "name": "locReady",
+            "type": "boolean",
+            "multiple": false,
+            "locked": false,
+            "values": [true]
+        }
     ],
     "variations": [],
     "tags": [],
     "references": [
-      {
-        "name": "test",
-        "fieldName": "entries",
-        "type": "content-fragment",
-        "title": "test",
-        "path": "/content/dam/mas/sandbox/en_US/dictionary/test",
-        "created": {
-          "at": "2025-04-04T22:50:40.473Z",
-          "by": "noronha@adobe.com",
-          "fullName": "noronha@adobe.com"
-        },
-        "modified": {
-          "at": "2025-04-04T22:51:11.885Z",
-          "by": "noronha@adobe.com",
-          "fullName": "noronha@adobe.com"
-        },
-        "published": {
-          "at": "2025-04-04T22:51:26.469Z",
-          "by": "noronha@adobe.com",
-          "fullName": "noronha@adobe.com"
-        },
-        "status": "PUBLISHED",
-        "previewReplicationStatus": "NEVER_PUBLISHED",
-        "id": "7418ae44-9236-4245-88ab-28c8d2c2d948",
-        "references": [],
-        "model": {
-          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
-          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
-          "name": "Dictionnary Entry",
-          "title": "Dictionnary Entry"
-        },
-        "description": "Placeholder for test",
-        "fields": [
-          {
-            "name": "key",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "test"
+        {
+            "name": "test",
+            "fieldName": "entries",
+            "type": "content-fragment",
+            "title": "test",
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/test",
+            "created": {
+                "at": "2025-04-04T22:50:40.473Z",
+                "by": "noronha@adobe.com",
+                "fullName": "noronha@adobe.com"
+            },
+            "modified": {
+                "at": "2025-04-04T22:51:11.885Z",
+                "by": "noronha@adobe.com",
+                "fullName": "noronha@adobe.com"
+            },
+            "published": {
+                "at": "2025-04-04T22:51:26.469Z",
+                "by": "noronha@adobe.com",
+                "fullName": "noronha@adobe.com"
+            },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "7418ae44-9236-4245-88ab-28c8d2c2d948",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "description": "Placeholder for test",
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["test"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["test"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
             ]
-          },
-          {
-            "name": "value",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "test"
+        },
+        {
+            "name": "cai-default",
+            "fieldName": "entries",
+            "type": "content-fragment",
+            "title": "cai-default",
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/cai-default",
+            "created": {
+                "at": "2025-01-21T10:11:36.473Z",
+                "by": "npeltier@adobe.com",
+                "fullName": "npeltier@adobe.com"
+            },
+            "modified": {
+                "at": "2025-01-21T10:12:41.69Z",
+                "by": "npeltier@adobe.com",
+                "fullName": "npeltier@adobe.com"
+            },
+            "published": {
+                "at": "2025-02-14T13:39:26.044Z",
+                "by": "lukianet@adobe.com",
+                "fullName": "lukianet@adobe.com"
+            },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "7ae52941-3790-4e1c-a19d-62d5409618bf",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "description": "",
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["cai-default"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["An AI tool was not used in creating this image"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": []
+        },
+        {
+            "name": "secure-label",
+            "fieldName": "entries",
+            "type": "content-fragment",
+            "title": "secure-label",
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/secure-label",
+            "created": {
+                "at": "2025-04-08T11:46:10.634Z",
+                "by": "cod14230@adobe.com",
+                "fullName": "cod14230@adobe.com"
+            },
+            "modified": {
+                "at": "2025-04-08T11:46:12.065Z",
+                "by": "cod14230@adobe.com",
+                "fullName": "cod14230@adobe.com"
+            },
+            "published": {
+                "at": "2025-04-08T11:51:24.728Z",
+                "by": "cod14230@adobe.com",
+                "fullName": "cod14230@adobe.com"
+            },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "b8856302-393f-4d92-a280-3bc7bd6e20bb",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "description": "Placeholder for secure-label",
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["secure-label"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Secure transaction"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
             ]
-          },
-          {
-            "name": "richTextValue",
-            "type": "long-text",
-            "multiple": false,
-            "locked": false,
-            "mimeType": "text/html",
-            "values": []
-          },
-          {
-            "name": "locReady",
-            "type": "boolean",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              true
+        },
+        {
+            "name": "new",
+            "fieldName": "entries",
+            "type": "content-fragment",
+            "title": "new",
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/new",
+            "created": {
+                "at": "2025-04-10T00:16:49.263Z",
+                "by": "noronha@adobe.com",
+                "fullName": "noronha@adobe.com"
+            },
+            "modified": {
+                "at": "2025-04-10T00:16:50.273Z",
+                "by": "noronha@adobe.com",
+                "fullName": "noronha@adobe.com"
+            },
+            "published": {
+                "at": "2025-04-14T09:42:21.142Z",
+                "by": "cod14230@adobe.com",
+                "fullName": "cod14230@adobe.com"
+            },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "90d13df4-aff0-4d0c-a815-31f78d3c1382",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "description": "Placeholder for new",
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["new"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["<u>new</u>"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
             ]
-          }
-        ],
-        "variations": [],
-        "tags": [
-          {
-            "id": "mas:status/draft",
-            "title": "Draft",
-            "i18n": [],
-            "titlePath": "Merch at Scale : Status / Draft",
-            "name": "draft",
-            "path": "/content/cq:tags/mas/status/draft"
-          }
-        ]
-      },
-      {
-        "name": "cai-default",
-        "fieldName": "entries",
-        "type": "content-fragment",
-        "title": "cai-default",
-        "path": "/content/dam/mas/sandbox/en_US/dictionary/cai-default",
-        "created": {
-          "at": "2025-01-21T10:11:36.473Z",
-          "by": "npeltier@adobe.com",
-          "fullName": "npeltier@adobe.com"
         },
-        "modified": {
-          "at": "2025-01-21T10:12:41.69Z",
-          "by": "npeltier@adobe.com",
-          "fullName": "npeltier@adobe.com"
+        {
+            "name": "view-account",
+            "fieldName": "entries",
+            "type": "content-fragment",
+            "title": "View account",
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/view-account",
+            "created": {
+                "at": "2025-01-21T10:04:52.012Z",
+                "by": "npeltier@adobe.com",
+                "fullName": "npeltier@adobe.com"
+            },
+            "modified": {
+                "at": "2025-01-21T10:05:03.353Z",
+                "by": "npeltier@adobe.com",
+                "fullName": "npeltier@adobe.com"
+            },
+            "published": {
+                "at": "2025-02-14T13:39:26.185Z",
+                "by": "lukianet@adobe.com",
+                "fullName": "lukianet@adobe.com"
+            },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "1a7d9a19-4c94-4eaa-b476-56b3330490ed",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "description": "",
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["view-account"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["View account"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": []
         },
-        "published": {
-          "at": "2025-02-14T13:39:26.044Z",
-          "by": "lukianet@adobe.com",
-          "fullName": "lukianet@adobe.com"
-        },
-        "status": "PUBLISHED",
-        "previewReplicationStatus": "NEVER_PUBLISHED",
-        "id": "7ae52941-3790-4e1c-a19d-62d5409618bf",
-        "references": [],
-        "model": {
-          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
-          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
-          "name": "Dictionnary Entry",
-          "title": "Dictionnary Entry"
-        },
-        "description": "",
-        "fields": [
-          {
-            "name": "key",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "cai-default"
+        {
+            "name": "save-now",
+            "fieldName": "entries",
+            "type": "content-fragment",
+            "title": "save-now",
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/save-now",
+            "created": {
+                "at": "2025-04-02T18:03:42.033Z",
+                "by": "noronha@adobe.com",
+                "fullName": "noronha@adobe.com"
+            },
+            "modified": {
+                "at": "2025-04-04T22:50:15.456Z",
+                "by": "noronha@adobe.com",
+                "fullName": "noronha@adobe.com"
+            },
+            "published": {
+                "at": "2025-04-04T22:49:18.625Z",
+                "by": "noronha@adobe.com",
+                "fullName": "noronha@adobe.com"
+            },
+            "status": "MODIFIED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "23d1309d-3bbe-498d-8b02-af49a3c12e6c",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "description": "Placeholder for save-now",
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["save-now"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["<a class=\"primary-link\" href=\"https://www.adobe.com\" target=\"_self\">Save now</a>"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
             ]
-          },
-          {
-            "name": "value",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "An AI tool was not used in creating this image"
+        },
+        {
+            "name": "keep-now",
+            "fieldName": "entries",
+            "type": "content-fragment",
+            "title": "keep-now",
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/keep-now",
+            "created": {
+                "at": "2025-04-03T23:53:51.401Z",
+                "by": "noronha@adobe.com",
+                "fullName": "noronha@adobe.com"
+            },
+            "modified": {
+                "at": "2025-04-04T20:02:28.627Z",
+                "by": "axel@adobe.com",
+                "fullName": "axel@adobe.com"
+            },
+            "published": {
+                "at": "2025-04-04T20:08:31.319Z",
+                "by": "axel@adobe.com",
+                "fullName": "axel@adobe.com"
+            },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "22ae6fc5-c6e1-4166-86cc-c36365b16398",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "description": "Placeholder for keep-now",
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["keep-now"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Save now"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
             ]
-          },
-          {
-            "name": "richTextValue",
-            "type": "long-text",
-            "multiple": false,
-            "locked": false,
-            "mimeType": "text/html",
-            "values": []
-          },
-          {
-            "name": "locReady",
-            "type": "boolean",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              true
+        },
+        {
+            "name": "how-is-nico",
+            "fieldName": "entries",
+            "type": "content-fragment",
+            "title": "how-is-nico",
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/how-is-nico",
+            "created": {
+                "at": "2025-04-02T09:17:22.549Z",
+                "by": "npeltier@adobe.com",
+                "fullName": "npeltier@adobe.com"
+            },
+            "modified": {
+                "at": "2025-04-02T09:17:22.613Z",
+                "by": "npeltier@adobe.com",
+                "fullName": "npeltier@adobe.com"
+            },
+            "published": {
+                "at": "2025-04-02T09:17:33.187Z",
+                "by": "npeltier@adobe.com",
+                "fullName": "npeltier@adobe.com"
+            },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "7e2a3504-8b64-44d7-8bb2-f0705a061f7b",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "description": "Placeholder for how-is-nico",
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["how-is-nico"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["nico <em>is</em> great"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": []
+        },
+        {
+            "name": "buy-now",
+            "fieldName": "entries",
+            "type": "content-fragment",
+            "title": "buy-now",
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/buy-now",
+            "created": {
+                "at": "2025-04-01T07:13:57.124Z",
+                "by": "axel@adobe.com",
+                "fullName": "axel@adobe.com"
+            },
+            "modified": {
+                "at": "2025-04-03T17:49:44.001Z",
+                "by": "axel@adobe.com",
+                "fullName": "axel@adobe.com"
+            },
+            "published": {
+                "at": "2025-04-04T06:11:53.221Z",
+                "by": "axel@adobe.com",
+                "fullName": "axel@adobe.com"
+            },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "cee3c152-d5ab-4664-83f4-10769b254940",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "description": "Placeholder for buy-now",
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["buy-now"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Buy now"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": []
+        },
+        {
+            "name": "learn-more",
+            "fieldName": "entries",
+            "type": "content-fragment",
+            "title": "learn-more",
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/learn-more",
+            "created": {
+                "at": "2025-04-04T19:41:13.632Z",
+                "by": "noronha@adobe.com",
+                "fullName": "noronha@adobe.com"
+            },
+            "modified": {
+                "at": "2025-04-04T23:04:29.701Z",
+                "by": "noronha@adobe.com",
+                "fullName": "noronha@adobe.com"
+            },
+            "published": {
+                "at": "2025-04-04T19:44:03.439Z",
+                "by": "noronha@adobe.com",
+                "fullName": "noronha@adobe.com"
+            },
+            "status": "MODIFIED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "89d1165b-e8c1-4b8f-b9a8-a7182efc7cf8",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "description": "Placeholder for learn-more",
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["learn-more"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [
+                        "<a class=\"primary-outline\" href=\"https://www.adobe.com\" target=\"_blank\" data-analytics-id=\"learn-more\">Learn more</a>"
+                    ]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
             ]
-          }
-        ],
-        "variations": [],
-        "tags": []
-      },
-      {
-        "name": "secure-label",
-        "fieldName": "entries",
-        "type": "content-fragment",
-        "title": "secure-label",
-        "path": "/content/dam/mas/sandbox/en_US/dictionary/secure-label",
-        "created": {
-          "at": "2025-04-08T11:46:10.634Z",
-          "by": "cod14230@adobe.com",
-          "fullName": "cod14230@adobe.com"
-        },
-        "modified": {
-          "at": "2025-04-08T11:46:12.065Z",
-          "by": "cod14230@adobe.com",
-          "fullName": "cod14230@adobe.com"
-        },
-        "published": {
-          "at": "2025-04-08T11:51:24.728Z",
-          "by": "cod14230@adobe.com",
-          "fullName": "cod14230@adobe.com"
-        },
-        "status": "PUBLISHED",
-        "previewReplicationStatus": "NEVER_PUBLISHED",
-        "id": "b8856302-393f-4d92-a280-3bc7bd6e20bb",
-        "references": [],
-        "model": {
-          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
-          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
-          "name": "Dictionnary Entry",
-          "title": "Dictionnary Entry"
-        },
-        "description": "Placeholder for secure-label",
-        "fields": [
-          {
-            "name": "key",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "secure-label"
-            ]
-          },
-          {
-            "name": "value",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "Secure transaction"
-            ]
-          },
-          {
-            "name": "richTextValue",
-            "type": "long-text",
-            "multiple": false,
-            "locked": false,
-            "mimeType": "text/html",
-            "values": []
-          },
-          {
-            "name": "locReady",
-            "type": "boolean",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              true
-            ]
-          }
-        ],
-        "variations": [],
-        "tags": [
-          {
-            "id": "mas:status/draft",
-            "title": "Draft",
-            "i18n": [],
-            "titlePath": "Merch at Scale : Status / Draft",
-            "name": "draft",
-            "path": "/content/cq:tags/mas/status/draft"
-          }
-        ]
-      },
-      {
-        "name": "new",
-        "fieldName": "entries",
-        "type": "content-fragment",
-        "title": "new",
-        "path": "/content/dam/mas/sandbox/en_US/dictionary/new",
-        "created": {
-          "at": "2025-04-10T00:16:49.263Z",
-          "by": "noronha@adobe.com",
-          "fullName": "noronha@adobe.com"
-        },
-        "modified": {
-          "at": "2025-04-10T00:16:50.273Z",
-          "by": "noronha@adobe.com",
-          "fullName": "noronha@adobe.com"
-        },
-        "published": {
-          "at": "2025-04-14T09:42:21.142Z",
-          "by": "cod14230@adobe.com",
-          "fullName": "cod14230@adobe.com"
-        },
-        "status": "PUBLISHED",
-        "previewReplicationStatus": "NEVER_PUBLISHED",
-        "id": "90d13df4-aff0-4d0c-a815-31f78d3c1382",
-        "references": [],
-        "model": {
-          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
-          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
-          "name": "Dictionnary Entry",
-          "title": "Dictionnary Entry"
-        },
-        "description": "Placeholder for new",
-        "fields": [
-          {
-            "name": "key",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "new"
-            ]
-          },
-          {
-            "name": "value",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "<u>new</u>"
-            ]
-          },
-          {
-            "name": "richTextValue",
-            "type": "long-text",
-            "multiple": false,
-            "locked": false,
-            "mimeType": "text/html",
-            "values": []
-          },
-          {
-            "name": "locReady",
-            "type": "boolean",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              true
-            ]
-          }
-        ],
-        "variations": [],
-        "tags": [
-          {
-            "id": "mas:status/draft",
-            "title": "Draft",
-            "i18n": [],
-            "titlePath": "Merch at Scale : Status / Draft",
-            "name": "draft",
-            "path": "/content/cq:tags/mas/status/draft"
-          }
-        ]
-      },
-      {
-        "name": "view-account",
-        "fieldName": "entries",
-        "type": "content-fragment",
-        "title": "View account",
-        "path": "/content/dam/mas/sandbox/en_US/dictionary/view-account",
-        "created": {
-          "at": "2025-01-21T10:04:52.012Z",
-          "by": "npeltier@adobe.com",
-          "fullName": "npeltier@adobe.com"
-        },
-        "modified": {
-          "at": "2025-01-21T10:05:03.353Z",
-          "by": "npeltier@adobe.com",
-          "fullName": "npeltier@adobe.com"
-        },
-        "published": {
-          "at": "2025-02-14T13:39:26.185Z",
-          "by": "lukianet@adobe.com",
-          "fullName": "lukianet@adobe.com"
-        },
-        "status": "PUBLISHED",
-        "previewReplicationStatus": "NEVER_PUBLISHED",
-        "id": "1a7d9a19-4c94-4eaa-b476-56b3330490ed",
-        "references": [],
-        "model": {
-          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
-          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
-          "name": "Dictionnary Entry",
-          "title": "Dictionnary Entry"
-        },
-        "description": "",
-        "fields": [
-          {
-            "name": "key",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "view-account"
-            ]
-          },
-          {
-            "name": "value",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "View account"
-            ]
-          },
-          {
-            "name": "richTextValue",
-            "type": "long-text",
-            "multiple": false,
-            "locked": false,
-            "mimeType": "text/html",
-            "values": []
-          },
-          {
-            "name": "locReady",
-            "type": "boolean",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              true
-            ]
-          }
-        ],
-        "variations": [],
-        "tags": []
-      },
-      {
-        "name": "save-now",
-        "fieldName": "entries",
-        "type": "content-fragment",
-        "title": "save-now",
-        "path": "/content/dam/mas/sandbox/en_US/dictionary/save-now",
-        "created": {
-          "at": "2025-04-02T18:03:42.033Z",
-          "by": "noronha@adobe.com",
-          "fullName": "noronha@adobe.com"
-        },
-        "modified": {
-          "at": "2025-04-04T22:50:15.456Z",
-          "by": "noronha@adobe.com",
-          "fullName": "noronha@adobe.com"
-        },
-        "published": {
-          "at": "2025-04-04T22:49:18.625Z",
-          "by": "noronha@adobe.com",
-          "fullName": "noronha@adobe.com"
-        },
-        "status": "MODIFIED",
-        "previewReplicationStatus": "NEVER_PUBLISHED",
-        "id": "23d1309d-3bbe-498d-8b02-af49a3c12e6c",
-        "references": [],
-        "model": {
-          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
-          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
-          "name": "Dictionnary Entry",
-          "title": "Dictionnary Entry"
-        },
-        "description": "Placeholder for save-now",
-        "fields": [
-          {
-            "name": "key",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "save-now"
-            ]
-          },
-          {
-            "name": "value",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "<a class=\"primary-link\" href=\"https://www.adobe.com\" target=\"_self\">Save now</a>"
-            ]
-          },
-          {
-            "name": "richTextValue",
-            "type": "long-text",
-            "multiple": false,
-            "locked": false,
-            "mimeType": "text/html",
-            "values": []
-          },
-          {
-            "name": "locReady",
-            "type": "boolean",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              true
-            ]
-          }
-        ],
-        "variations": [],
-        "tags": [
-          {
-            "id": "mas:status/draft",
-            "title": "Draft",
-            "i18n": [],
-            "titlePath": "Merch at Scale : Status / Draft",
-            "name": "draft",
-            "path": "/content/cq:tags/mas/status/draft"
-          }
-        ]
-      },
-      {
-        "name": "keep-now",
-        "fieldName": "entries",
-        "type": "content-fragment",
-        "title": "keep-now",
-        "path": "/content/dam/mas/sandbox/en_US/dictionary/keep-now",
-        "created": {
-          "at": "2025-04-03T23:53:51.401Z",
-          "by": "noronha@adobe.com",
-          "fullName": "noronha@adobe.com"
-        },
-        "modified": {
-          "at": "2025-04-04T20:02:28.627Z",
-          "by": "axel@adobe.com",
-          "fullName": "axel@adobe.com"
-        },
-        "published": {
-          "at": "2025-04-04T20:08:31.319Z",
-          "by": "axel@adobe.com",
-          "fullName": "axel@adobe.com"
-        },
-        "status": "PUBLISHED",
-        "previewReplicationStatus": "NEVER_PUBLISHED",
-        "id": "22ae6fc5-c6e1-4166-86cc-c36365b16398",
-        "references": [],
-        "model": {
-          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
-          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
-          "name": "Dictionnary Entry",
-          "title": "Dictionnary Entry"
-        },
-        "description": "Placeholder for keep-now",
-        "fields": [
-          {
-            "name": "key",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "keep-now"
-            ]
-          },
-          {
-            "name": "value",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "Save now"
-            ]
-          },
-          {
-            "name": "richTextValue",
-            "type": "long-text",
-            "multiple": false,
-            "locked": false,
-            "mimeType": "text/html",
-            "values": []
-          },
-          {
-            "name": "locReady",
-            "type": "boolean",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              true
-            ]
-          }
-        ],
-        "variations": [],
-        "tags": [
-          {
-            "id": "mas:status/draft",
-            "title": "Draft",
-            "i18n": [],
-            "titlePath": "Merch at Scale : Status / Draft",
-            "name": "draft",
-            "path": "/content/cq:tags/mas/status/draft"
-          }
-        ]
-      },
-      {
-        "name": "how-is-nico",
-        "fieldName": "entries",
-        "type": "content-fragment",
-        "title": "how-is-nico",
-        "path": "/content/dam/mas/sandbox/en_US/dictionary/how-is-nico",
-        "created": {
-          "at": "2025-04-02T09:17:22.549Z",
-          "by": "npeltier@adobe.com",
-          "fullName": "npeltier@adobe.com"
-        },
-        "modified": {
-          "at": "2025-04-02T09:17:22.613Z",
-          "by": "npeltier@adobe.com",
-          "fullName": "npeltier@adobe.com"
-        },
-        "published": {
-          "at": "2025-04-02T09:17:33.187Z",
-          "by": "npeltier@adobe.com",
-          "fullName": "npeltier@adobe.com"
-        },
-        "status": "PUBLISHED",
-        "previewReplicationStatus": "NEVER_PUBLISHED",
-        "id": "7e2a3504-8b64-44d7-8bb2-f0705a061f7b",
-        "references": [],
-        "model": {
-          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
-          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
-          "name": "Dictionnary Entry",
-          "title": "Dictionnary Entry"
-        },
-        "description": "Placeholder for how-is-nico",
-        "fields": [
-          {
-            "name": "key",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "how-is-nico"
-            ]
-          },
-          {
-            "name": "value",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "nico <em>is</em> great"
-            ]
-          },
-          {
-            "name": "richTextValue",
-            "type": "long-text",
-            "multiple": false,
-            "locked": false,
-            "mimeType": "text/html",
-            "values": []
-          },
-          {
-            "name": "locReady",
-            "type": "boolean",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              true
-            ]
-          }
-        ],
-        "variations": [],
-        "tags": []
-      },
-      {
-        "name": "buy-now",
-        "fieldName": "entries",
-        "type": "content-fragment",
-        "title": "buy-now",
-        "path": "/content/dam/mas/sandbox/en_US/dictionary/buy-now",
-        "created": {
-          "at": "2025-04-01T07:13:57.124Z",
-          "by": "axel@adobe.com",
-          "fullName": "axel@adobe.com"
-        },
-        "modified": {
-          "at": "2025-04-03T17:49:44.001Z",
-          "by": "axel@adobe.com",
-          "fullName": "axel@adobe.com"
-        },
-        "published": {
-          "at": "2025-04-04T06:11:53.221Z",
-          "by": "axel@adobe.com",
-          "fullName": "axel@adobe.com"
-        },
-        "status": "PUBLISHED",
-        "previewReplicationStatus": "NEVER_PUBLISHED",
-        "id": "cee3c152-d5ab-4664-83f4-10769b254940",
-        "references": [],
-        "model": {
-          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
-          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
-          "name": "Dictionnary Entry",
-          "title": "Dictionnary Entry"
-        },
-        "description": "Placeholder for buy-now",
-        "fields": [
-          {
-            "name": "key",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "buy-now"
-            ]
-          },
-          {
-            "name": "value",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "Buy now"
-            ]
-          },
-          {
-            "name": "richTextValue",
-            "type": "long-text",
-            "multiple": false,
-            "locked": false,
-            "mimeType": "text/html",
-            "values": []
-          },
-          {
-            "name": "locReady",
-            "type": "boolean",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              true
-            ]
-          }
-        ],
-        "variations": [],
-        "tags": []
-      },
-      {
-        "name": "learn-more",
-        "fieldName": "entries",
-        "type": "content-fragment",
-        "title": "learn-more",
-        "path": "/content/dam/mas/sandbox/en_US/dictionary/learn-more",
-        "created": {
-          "at": "2025-04-04T19:41:13.632Z",
-          "by": "noronha@adobe.com",
-          "fullName": "noronha@adobe.com"
-        },
-        "modified": {
-          "at": "2025-04-04T23:04:29.701Z",
-          "by": "noronha@adobe.com",
-          "fullName": "noronha@adobe.com"
-        },
-        "published": {
-          "at": "2025-04-04T19:44:03.439Z",
-          "by": "noronha@adobe.com",
-          "fullName": "noronha@adobe.com"
-        },
-        "status": "MODIFIED",
-        "previewReplicationStatus": "NEVER_PUBLISHED",
-        "id": "89d1165b-e8c1-4b8f-b9a8-a7182efc7cf8",
-        "references": [],
-        "model": {
-          "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
-          "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
-          "name": "Dictionnary Entry",
-          "title": "Dictionnary Entry"
-        },
-        "description": "Placeholder for learn-more",
-        "fields": [
-          {
-            "name": "key",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "learn-more"
-            ]
-          },
-          {
-            "name": "value",
-            "type": "text",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              "<a class=\"primary-outline\" href=\"https://www.adobe.com\" target=\"_blank\" data-analytics-id=\"learn-more\">Learn more</a>"
-            ]
-          },
-          {
-            "name": "richTextValue",
-            "type": "long-text",
-            "multiple": false,
-            "locked": false,
-            "mimeType": "text/html",
-            "values": []
-          },
-          {
-            "name": "locReady",
-            "type": "boolean",
-            "multiple": false,
-            "locked": false,
-            "values": [
-              true
-            ]
-          }
-        ],
-        "variations": [],
-        "tags": [
-          {
-            "id": "mas:status/draft",
-            "title": "Draft",
-            "i18n": [],
-            "titlePath": "Merch at Scale : Status / Draft",
-            "name": "draft",
-            "path": "/content/cq:tags/mas/status/draft"
-          }
-        ]
-      }
+        }
     ],
     "model": {
-      "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk",
-      "path": "/conf/mas/settings/dam/cfm/models/dictionary",
-      "name": "Dictionary",
-      "title": "Dictionary"
+        "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk",
+        "path": "/conf/mas/settings/dam/cfm/models/dictionary",
+        "name": "Dictionary",
+        "title": "Dictionary"
     },
     "validationStatus": [],
     "fieldTags": []
-  }
-  
+}

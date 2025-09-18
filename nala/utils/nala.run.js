@@ -64,14 +64,10 @@ function parseArgs(args) {
             const [key, value] = arg.split('=');
             parsedParams[key] = value;
         } else if (arg.startsWith('-g') || arg.startsWith('--g')) {
-            const value = arg.includes('=')
-                ? arg.split('=')[1]
-                : args[args.indexOf(arg) + 1];
+            const value = arg.includes('=') ? arg.split('=')[1] : args[args.indexOf(arg) + 1];
             parsedParams.tag = value;
         } else if (arg.startsWith('@')) {
-            parsedParams.tag += parsedParams.tag
-                ? ` ${arg.substring(1)}`
-                : arg.substring(1);
+            parsedParams.tag += parsedParams.tag ? ` ${arg.substring(1)}` : arg.substring(1);
         } else if (arg.endsWith('.test.js')) {
             parsedParams.test = arg;
         } else if (arg.endsWith('.config.js')) {
@@ -170,10 +166,7 @@ function runNalaTest() {
         parsedParams.repo,
         parsedParams.owner,
     );
-    const { finalCommand, envVariables } = buildPlaywrightCommand(
-        parsedParams,
-        localTestLiveUrl,
-    );
+    const { finalCommand, envVariables } = buildPlaywrightCommand(parsedParams, localTestLiveUrl);
 
     console.log(`\n Executing nala run command: ${finalCommand}`);
     console.log(`\n Using URL: ${localTestLiveUrl}\n`);
@@ -197,10 +190,4 @@ if (import.meta.url === new URL(import.meta.url).href) {
     runNalaTest();
 }
 
-export {
-    displayHelp,
-    parseArgs,
-    getLocalTestLiveUrl,
-    buildPlaywrightCommand,
-    runNalaTest,
-};
+export { displayHelp, parseArgs, getLocalTestLiveUrl, buildPlaywrightCommand, runNalaTest };

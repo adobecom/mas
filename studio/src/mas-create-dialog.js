@@ -1,9 +1,5 @@
 import { LitElement, html, css, nothing } from 'lit';
-import {
-    EVENT_KEYDOWN,
-    EVENT_OST_OFFER_SELECT,
-    TAG_MODEL_ID_MAPPING,
-} from './constants.js';
+import { EVENT_KEYDOWN, EVENT_OST_OFFER_SELECT, TAG_MODEL_ID_MAPPING } from './constants.js';
 import { editFragment } from './store.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
@@ -119,10 +115,7 @@ export class MasCreateDialog extends LitElement {
             await this.createFragment(masRepository, fragmentData);
             return true;
         } catch (error) {
-            console.error(
-                `${error.message} Will try to create again`,
-                error.stack,
-            );
+            console.error(`${error.message} Will try to create again`, error.stack);
             return false;
         }
     }
@@ -133,9 +126,7 @@ export class MasCreateDialog extends LitElement {
         const charactersLength = characters.length;
         const length = offset + 3;
         for (let i = 0; i < length; i++) {
-            suffix += characters.charAt(
-                Math.floor(Math.random() * charactersLength),
-            );
+            suffix += characters.charAt(Math.floor(Math.random() * charactersLength));
         }
         return suffix;
     }
@@ -158,9 +149,7 @@ export class MasCreateDialog extends LitElement {
         const modelId =
             this.type === 'merch-card'
                 ? TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card']
-                : TAG_MODEL_ID_MAPPING[
-                      'mas:studio/content-type/merch-card-collection'
-                  ];
+                : TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card-collection'];
 
         // Create fragment data
         const fragmentData = {
@@ -178,10 +167,7 @@ export class MasCreateDialog extends LitElement {
         const masRepository = document.querySelector('mas-repository');
         const firstName = fragmentData.name;
         let nmbOfTries = 0;
-        while (
-            !(await this.tryToCreateFragment(masRepository, fragmentData)) &&
-            nmbOfTries < 10
-        ) {
+        while (!(await this.tryToCreateFragment(masRepository, fragmentData)) && nmbOfTries < 10) {
             nmbOfTries += 1;
             fragmentData.name = `${firstName}-${this.getSuffix(nmbOfTries)}`;
         }
@@ -195,8 +181,7 @@ export class MasCreateDialog extends LitElement {
     }
 
     get dialogTitle() {
-        const typeLabel =
-            this.type === 'merch-card' ? 'Merch Card' : 'Merch Card Collection';
+        const typeLabel = this.type === 'merch-card' ? 'Merch Card' : 'Merch Card Collection';
         return `Create New ${typeLabel}`;
     }
 
@@ -216,28 +201,20 @@ export class MasCreateDialog extends LitElement {
                 <div class="dialog-content">
                     <form @submit=${this.handleSubmit}>
                         <div class="form-field">
-                            <sp-field-label for="fragment-title" required
-                                >Internal title</sp-field-label
-                            >
+                            <sp-field-label for="fragment-title" required>Internal title</sp-field-label>
                             <sp-textfield
                                 id="fragment-title"
                                 placeholder="Enter internal fragment title"
                                 value=${this.title}
-                                @input=${(e) =>
-                                    this.handleTitleChange(e.target.value)}
+                                @input=${(e) => this.handleTitleChange(e.target.value)}
                                 required
                             ></sp-textfield>
                         </div>
                         ${this.type === 'merch-card'
                             ? html`
                                   <div class="form-field">
-                                      <sp-field-label for="osi" required
-                                          >OSI Search</sp-field-label
-                                      >
-                                      <osi-field
-                                          id="osi"
-                                          data-field="osi"
-                                      ></osi-field>
+                                      <sp-field-label for="osi" required>OSI Search</sp-field-label>
+                                      <osi-field id="osi" data-field="osi"></osi-field>
                                   </div>
                                   <aem-tag-picker-field
                                       label="Tags"

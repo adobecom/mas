@@ -1,5 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
+import '@adobecom/milo/libs/features/mas/dist/mas.js';
 
 import { EVENT_OST_SELECT } from '../../src/constants.js';
 
@@ -9,6 +10,8 @@ describe('onPlaceholderSelect', () => {
     let onPlaceholderSelect;
 
     before(async () => {
+        const masCommerceService = document.createElement('mas-commerce-service');
+        document.head.appendChild(masCommerceService);
         ostRoot = document.createElement('div');
         ostRoot.id = 'ost';
         document.body.appendChild(ostRoot);
@@ -29,20 +32,37 @@ describe('onPlaceholderSelect', () => {
         };
         const promoOverride = 'PROMO123';
 
-        onPlaceholderSelect(
-            offerSelectorId,
-            type,
-            offer,
-            options,
-            promoOverride,
-        );
+        onPlaceholderSelect(offerSelectorId, type, offer, options, promoOverride);
+
+        const expectedAttributes = {
+            'data-display-old-price': false,
+            'data-wcs-osi': offerSelectorId,
+            'data-template': type,
+            is: 'inline-price',
+            'data-promotion-code': promoOverride,
+        };
+
+        expect(dispatchEventStub.calledOnce).to.be.true;
+        const event = dispatchEventStub.getCall(0).args[0];
+        expect(event.type).to.equal(EVENT_OST_SELECT);
+        expect(event.detail).to.deep.equal(expectedAttributes);
+    });
+
+    it('should dispatch an event with correct attributes for legal', () => {
+        const offerSelectorId = 'test-id';
+        const type = 'legal';
+        const offer = {};
+        const options = {
+            displayPerUnit: true,
+        };
+
+        onPlaceholderSelect(offerSelectorId, type, offer, options);
 
         const expectedAttributes = {
             'data-wcs-osi': offerSelectorId,
             'data-template': type,
+            'data-display-per-unit': true,
             is: 'inline-price',
-            'data-display-old-price': false,
-            'data-promotion-code': promoOverride,
         };
 
         expect(dispatchEventStub.calledOnce).to.be.true;
@@ -63,13 +83,7 @@ describe('onPlaceholderSelect', () => {
         };
         const promoOverride = null;
 
-        onPlaceholderSelect(
-            offerSelectorId,
-            type,
-            offer,
-            options,
-            promoOverride,
-        );
+        onPlaceholderSelect(offerSelectorId, type, offer, options, promoOverride);
 
         const expectedAttributes = {
             'data-wcs-osi': offerSelectorId,
@@ -95,13 +109,7 @@ describe('onPlaceholderSelect', () => {
         const options = {};
         const promoOverride = null;
 
-        onPlaceholderSelect(
-            offerSelectorId,
-            type,
-            offer,
-            options,
-            promoOverride,
-        );
+        onPlaceholderSelect(offerSelectorId, type, offer, options, promoOverride);
 
         const expectedAttributes = {
             'data-wcs-osi': offerSelectorId,

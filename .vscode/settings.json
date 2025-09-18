@@ -3,6 +3,8 @@
     "files.exclude": {
         "libs": true
     },
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true,
     "[html]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },

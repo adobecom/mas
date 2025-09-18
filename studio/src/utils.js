@@ -160,20 +160,12 @@ export function normalizeKey(str) {
 }
 
 /**
- * Returns the merch-card element when defined
- * @returns {Promise<CustomElementConstructor>}
- */
-export function getMerchCardElement() {
-    return customElements.whenDefined('merch-card');
-}
-
-/**
  * Returns the fragment mapping for a given variant
  * @param {string} variant
- * @returns {Promise<object | null>}
+ * @returns {object | null}
  */
-export async function getFragmentMapping(variant) {
-    const merchCardCustomElement = await getMerchCardElement();
+export function getFragmentMapping(variant) {
+    const merchCardCustomElement = customElements.get('merch-card');
     if (!merchCardCustomElement) return null;
     return merchCardCustomElement.getFragmentMapping(variant);
 }
@@ -194,6 +186,7 @@ function getFragmentPartsToUse(fragment, path) {
     switch (fragment?.model?.path) {
         case CARD_MODEL_PATH:
             const props = {
+                cardName: fragment?.getField('name')?.values[0],
                 cardTitle: fragment?.getField('cardTitle')?.values[0],
                 variantCode: fragment?.getField('variant')?.values[0],
                 marketSegment: fragment?.getTagTitle('market_segment'),

@@ -1,8 +1,7 @@
 import { runTests } from '@web/test-runner-mocha';
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import { html, nothing } from 'lit';
-import { fixture, elementUpdated, oneEvent } from '@open-wc/testing-helpers';
+import { elementUpdated } from '@open-wc/testing-helpers';
 
 // Import the component being tested
 import '../../src/mas-placeholders.js';
@@ -13,7 +12,6 @@ import '../../src/rte/rte-field.js';
 import '../../src/mas-fragment-status.js';
 import { PAGE_NAMES } from '../../src/constants.js';
 import Events from '../../src/events.js';
-import { delay, initElementFromTemplate } from '../utils.js'; // Assuming utils.js has delay/init helpers
 
 // Mock Store - Simplified for UI tests
 function createObservable(initialValue) {
@@ -46,11 +44,7 @@ function createStoreMock(initialData = {}) {
         filters: createObservable(initialData.filters || { locale: 'en_US' }),
         page: createObservable(initialData.page || PAGE_NAMES.PLACEHOLDERS),
         folders: {
-            data: createObservable(
-                initialData.folderData || [
-                    { path: 'test-folder', name: 'Test Folder' },
-                ],
-            ),
+            data: createObservable(initialData.folderData || [{ path: 'test-folder', name: 'Test Folder' }]),
             loaded: createObservable(true),
         },
         placeholders: {
@@ -120,11 +114,28 @@ runTests(async () => {
             const repoExisting = document.body.querySelector('mas-repository');
             if (repoExisting) repoExisting.remove();
 
-            // Mock fetch used by dependencies if any
-            fetchStub = sinon.stub(window, 'fetch').resolves({
-                ok: true,
-                json: async () => ({}),
-                text: async () => '',
+            // Mock fetch used by dependencies with realistic responses
+            fetchStub = sinon.stub(window, 'fetch').callsFake((url) => {
+                const urlStr = typeof url === 'string' ? url : '';
+                // AEM QueryBuilder call used by listFolders
+                if (urlStr.includes('/bin/querybuilder.json') && urlStr.includes('type=sling:Folder')) {
+                    return Promise.resolve({
+                        ok: true,
+                        json: async () => ({
+                            hits: [
+                                { name: 'images', title: 'Images' },
+                                { name: 'test-folder', title: 'Test Folder' },
+                            ],
+                        }),
+                        text: async () => '',
+                    });
+                }
+                // CSRF token endpoint (in case code touches it)
+                if (urlStr.includes('/libs/granite/csrf/token.json')) {
+                    return Promise.resolve({ ok: true, json: async () => ({ token: 'fake-token' }), text: async () => '' });
+                }
+                // Default response for any other calls used in these UI tests
+                return Promise.resolve({ ok: true, json: async () => ({}), text: async () => '' });
             });
             toastEmitStub = sinon.stub(Events.toast, 'emit'); // Use the actual Events object
 
@@ -192,9 +203,7 @@ runTests(async () => {
             await new Promise((r) => setTimeout(r, 50)); // Increased delay
 
             // Check progress circle is gone
-            const progressAfter = element.shadowRoot.querySelector(
-                'sp-progress-circle, .progress-indicator',
-            );
+            const progressAfter = element.shadowRoot.querySelector('sp-progress-circle, .progress-indicator');
             expect(progressAfter).to.not.exist;
         });
 
@@ -203,8 +212,7 @@ runTests(async () => {
             element.error = 'Test Error';
             await new Promise((r) => setTimeout(r, 10)); // Small delay
             // Check for error message
-            const errorElement =
-                element.shadowRoot.querySelector('.error-message');
+            const errorElement = element.shadowRoot.querySelector('.error-message');
 
             expect(errorElement).to.exist;
             expect(errorElement.textContent).to.include('Test Error');

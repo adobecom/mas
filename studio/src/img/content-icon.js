@@ -1,13 +1,7 @@
 import { html } from 'lit';
 
 export const contentIcon = html`
-    <svg
-        width="37"
-        height="36"
-        viewBox="0 0 37 36"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg width="37" height="36" viewBox="0 0 37 36" fill="none" xmlns="http://www.w3.org/2000/svg">
         <g id="Frame" clip-path="url(#clip0_1279_11384)">
             <path
                 id="Vector"
@@ -45,12 +39,7 @@ export const contentIcon = html`
         </g>
         <defs>
             <clipPath id="clip0_1279_11384">
-                <rect
-                    width="36"
-                    height="36"
-                    fill="white"
-                    transform="translate(0.600098)"
-                />
+                <rect width="36" height="36" fill="white" transform="translate(0.600098)" />
             </clipPath>
         </defs>
     </svg>

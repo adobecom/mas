@@ -192,14 +192,14 @@ sp-status-light {
     border-radius: 4px;
 }
 
-.render-fragment:hover {
-    border-color: var(--ccd-gray-200-light, #e6e6e6);
-}
-
 .render-fragment-header {
     display: flex;
     justify-content: space-between;
     padding-inline: 6px;
+}
+
+.unknown-fragment:hover {
+    background-color: var(--spectrum-background-base-color) !important;
 }
 
 rte-field {
@@ -259,9 +259,10 @@ mas-recently-updated > .container {
 }
 
 mas-content {
-    width: 100%;
-    padding-inline: 30px;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
 }
 
 #content {
@@ -553,6 +554,10 @@ sp-progress-circle.preview {
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 1000;
+}
+
+sp-progress-circle.next-page {
+    align-self: center;
 }
 
 .clone-dialog sp-progress-circle {

@@ -22,14 +22,10 @@ export function checkResponse(response, customCheck, log = false) {
         'is status 200': (r) => r.status === 200,
     });
     if (!is200) {
-        console.error(
-            `URL: ${response.url}, Status: ${response.status}, Headers: ${logHeaders(response)}`,
-        );
+        console.error(`URL: ${response.url}, Status: ${response.status}, Headers: ${logHeaders(response)}`);
     } else {
         if (log) {
-            console.log(
-                `URL: ${response.url}, Status: ${response.status}, Headers: ${logHeaders(response)}`,
-            );
+            console.log(`URL: ${response.url}, Status: ${response.status}, Headers: ${logHeaders(response)}`);
         }
         customCheck(response);
     }

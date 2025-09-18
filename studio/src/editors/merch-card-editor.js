@@ -324,7 +324,6 @@ class MerchCardEditor extends LitElement {
                     id="card-title"
                     inline
                     mnemonic
-                    divider
                     data-field="cardTitle"
                     .osi=${form.osi.values[0]}
                     @change="${this.#handleFragmentUpdate}"
@@ -431,7 +430,6 @@ class MerchCardEditor extends LitElement {
                     styling
                     link
                     mnemonic
-                    divider
                     multiline
                     data-field="prices"
                     .osi=${form.osi.values[0]}
@@ -500,7 +498,6 @@ class MerchCardEditor extends LitElement {
                     upt-link
                     list
                     mnemonic
-                    divider
                     data-field="shortDescription"
                     .osi=${form.osi.values[0]}
                     default-link-style="secondary-link"
@@ -608,7 +605,6 @@ class MerchCardEditor extends LitElement {
                     id="ctas"
                     link
                     inline
-                    divider
                     data-field="ctas"
                     .osi=${form.osi.values[0]}
                     default-link-style="primary-outline"

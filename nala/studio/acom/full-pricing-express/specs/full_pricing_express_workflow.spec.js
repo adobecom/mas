@@ -57,17 +57,6 @@ export default {
                 osi: 'A9E97T89AZ2A8N7R',
             },
         },
-        // Note: Variant change test removed - we don't want to change card variants during testing
-        {
-            tcid: '4',
-            name: '@Full-Pricing-Express-Workflow-Divider',
-            path: '/studio.html',
-            browserParams: '#query=',
-            tags: '@studio-full-pricing-express-workflow-divider',
-            data: {
-                cardid: '9406f1ae-7bee-48c3-9892-49af6816033e',
-            },
-        },
         {
             tcid: '5',
             name: '@Full-Pricing-Express-Workflow-Multiple-Changes',

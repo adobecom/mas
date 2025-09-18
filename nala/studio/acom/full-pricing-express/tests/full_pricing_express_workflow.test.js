@@ -113,55 +113,6 @@ test.describe('M@S Studio Full Pricing Express Workflow Tests', () => {
         });
     });
 
-    // @studio-full-pricing-express-workflow-price-osi - Price and OSI workflow
-    test.skip(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[1];
-        const testPage = `${baseURL}${features[1].path}${features[1].browserParams}${data.cardid}${miloLibs}`;
-        console.info('[Test Page]: ', testPage);
-
-        await test.step('step-1: Go to MAS Studio test page and open editor', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-            const card = await studio.getCard(data.cardid);
-            await expect(card).toBeVisible();
-            await card.dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-2: Verify price is visible', async () => {
-            await expect(await editor.prices).toBeVisible();
-            // Price field shows the current price
-            const priceText = await editor.prices.textContent();
-            expect(priceText).toBeTruthy();
-
-            // Verify price shows on card
-            const cardPriceCount = await fullPricingExpress.cardPrice.count();
-            if (cardPriceCount > 0) {
-                await expect(fullPricingExpress.cardPrice.first()).toBeVisible();
-            }
-        });
-
-        await test.step('step-3: Verify OSI field', async () => {
-            await expect(await editor.OSI).toBeVisible();
-            const osiText = await editor.OSI.textContent();
-            expect(osiText).toBeTruthy();
-            // OSI field is present and has a value
-        });
-
-        await test.step('step-4: Save and close', async () => {
-            await editor.saveButton.click();
-            await page.waitForTimeout(2000);
-            await expect(await editor.saveSuccess).toBeVisible();
-
-            await editor.closeEditor.click();
-            // Verify card still has price
-            const cardPriceCount = await fullPricingExpress.cardPrice.count();
-            if (cardPriceCount > 0) {
-                await expect(fullPricingExpress.cardPrice.first()).toBeVisible();
-            }
-        });
-    });
-
     // @studio-full-pricing-express-workflow-cta - CTA and links workflow
     test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
         const { data } = features[2];
@@ -231,140 +182,12 @@ test.describe('M@S Studio Full Pricing Express Workflow Tests', () => {
         });
     });
 
-    // @studio-full-pricing-express-workflow-mnemonic - Parameterized mnemonic size test
-    const mnemonicSizes = ['xs', 's', 'm', 'l'];
-    for (const size of mnemonicSizes) {
-        test.skip(`Mnemonic workflow - size ${size.toUpperCase()} @studio-full-pricing-express-workflow-mnemonic-${size}`, async ({
-            page,
-            baseURL,
-        }) => {
-            const data = {
-                cardid: '53fcf015-5c28-4214-bd2b-d4c22f1774b8',
-                mnemonicField: 'https://www.adobe.com/icons/photoshop.svg',
-                mnemonicSize: size,
-            };
-            const testPage = `${baseURL}/studio.html#query=${data.cardid}${miloLibs}`;
-            console.info('[Test Page]: ', testPage);
-
-            await test.step('step-1: Go to MAS Studio test page and open editor', async () => {
-                await page.goto(testPage);
-                await page.waitForLoadState('domcontentloaded');
-                await expect(await studio.getCard(data.cardid)).toBeVisible();
-                await (await studio.getCard(data.cardid)).dblclick();
-                await page.waitForTimeout(3000);
-                await expect(editor.panel).toBeVisible();
-            });
-
-            await test.step('step-2: Edit mnemonic with size', async () => {
-                await expect(editor.titleFieldGroup).toBeVisible();
-                await expect(editor.titleFieldGroup.locator(editor.mnemonicButton)).toBeVisible();
-                await editor.titleFieldGroup.locator(editor.mnemonicButton).click();
-                await expect(editor.mnemonicModal).toBeVisible();
-
-                await editor.mnemonicField.fill(data.mnemonicField);
-
-                // Select size
-                const sizeSelector =
-                    (await page.locator('select[name="size"]').first()) || (await page.locator('[data-field="size"]').first());
-                if (await sizeSelector.isVisible()) {
-                    await sizeSelector.selectOption(data.mnemonicSize);
-                }
-
-                await editor.mnemonicSave.click();
-                await page.waitForTimeout(1000);
-            });
-
-            await test.step('step-3: Verify mnemonic size and save', async () => {
-                const mnemonicElement = await page.locator(`merch-card[data-card-id="${data.cardid}"] merch-icon`).first();
-                if ((await mnemonicElement.count()) > 0) {
-                    await expect(mnemonicElement).toHaveAttribute('size', data.mnemonicSize);
-                    await expect(mnemonicElement).toHaveAttribute('src', data.mnemonicField);
-                }
-
-                await editor.saveButton.click();
-                await page.waitForTimeout(2000);
-                await expect(await editor.saveSuccess).toBeVisible();
-            });
-        });
-    }
-
     // Note: Variant change test removed - we don't want to change card variants during testing
 
-    // @studio-full-pricing-express-workflow-divider - Divider operations workflow
-    test.skip(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[4];
-        const testPage = `${baseURL}${features[4].path}${features[4].browserParams}${data.cardid}${miloLibs}`;
-        console.info('[Test Page]: ', testPage);
-
-        await test.step('step-1: Go to MAS Studio test page and open editor', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-            const card = await studio.getCard(data.cardid);
-            await expect(card).toBeVisible();
-            await card.dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-2: Add divider', async () => {
-            // Look for add divider button in description field
-            const addDividerButton =
-                editor.descriptionFieldGroup
-                    .locator('button[aria-label*="divider"], button[title*="divider"], .divider-button')
-                    .first() ||
-                editor.panel.locator('button:has-text("Add Divider")').first() ||
-                editor.panel.locator('.add-divider-button').first();
-            if ((await addDividerButton.count()) > 0) {
-                await addDividerButton.click();
-            } else {
-                // Try RTE toolbar button
-                const rteButton = editor.description.locator('..//button[aria-label*="divider"]').first();
-                if ((await rteButton.count()) > 0) {
-                    await rteButton.click();
-                }
-            }
-            await page.waitForTimeout(1000);
-            await expect(await fullPricingExpress.cardDivider).toBeVisible();
-            await expect(await fullPricingExpress.cardDivider).toHaveCSS(
-                'border-color',
-                fullPricingExpress.cssProp.divider['border-color'],
-            );
-        });
-
-        await test.step('step-3: Save with divider', async () => {
-            await editor.saveButton.click();
-            await page.waitForTimeout(2000);
-            await expect(await editor.saveSuccess).toBeVisible();
-            await editor.closeEditor.click();
-            await expect(await fullPricingExpress.cardDivider).toBeVisible();
-        });
-
-        await test.step('step-4: Remove divider', async () => {
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            // Look for remove divider button
-            const removeDividerButton = editor.panel
-                .locator('button[aria-label*="remove"], button:has-text("Remove Divider")')
-                .first();
-            if ((await removeDividerButton.count()) > 0) {
-                await removeDividerButton.click();
-            }
-            await page.waitForTimeout(1000);
-            await expect(await fullPricingExpress.cardDivider).not.toBeVisible();
-        });
-
-        await test.step('step-5: Save without divider', async () => {
-            await editor.saveButton.click();
-            await page.waitForTimeout(2000);
-            await expect(await editor.saveSuccess).toBeVisible();
-            await editor.closeEditor.click();
-            await expect(await fullPricingExpress.cardDivider).not.toBeVisible();
-        });
-    });
-
     // @studio-full-pricing-express-workflow-multiple-changes - Multiple simultaneous changes
-    test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[5];
-        const testPage = `${baseURL}${features[5].path}${features[5].browserParams}${data.cardid}${miloLibs}`;
+    test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[3];
+        const testPage = `${baseURL}${features[3].path}${features[3].browserParams}${data.cardid}${miloLibs}`;
         console.info('[Test Page]: ', testPage);
 
         await test.step('step-1: Go to MAS Studio test page and open editor', async () => {

@@ -173,8 +173,7 @@ class DividerNodeView {
         this.dom.className = 'divider-wrapper';
         this.dom.setAttribute('contenteditable', 'false');
 
-        // Always use HR elements to avoid persistence issues
-        // sp-divider elements can persist in empty fields and are harder to clean up
+        // Always use HR elements for dividers
         this.divider = document.createElement('hr');
         this.divider.className = `divider-hr divider-size-${node.attrs.size || 's'}`;
         if (node.attrs.vertical) {
@@ -507,7 +506,6 @@ class RteField extends LitElement {
                     background-color: var(--spectrum-global-color-gray-75);
                 }
 
-                .divider-wrapper sp-divider,
                 .divider-wrapper hr {
                     pointer-events: none;
                 }
@@ -815,34 +813,19 @@ class RteField extends LitElement {
                         tag: 'div.divider-wrapper',
                         priority: 50,
                         getAttrs: (domNode) => {
-                            const dividerElement = domNode.querySelector('sp-divider, hr');
+                            const dividerElement = domNode.querySelector('hr');
                             // Return false if no actual divider element is found
                             if (!dividerElement) return false;
 
-                            if (dividerElement.tagName === 'SP-DIVIDER') {
-                                return {
-                                    size: dividerElement.getAttribute('size') || 's',
-                                    vertical: dividerElement.hasAttribute('vertical'),
-                                };
-                            } else if (dividerElement.tagName === 'HR') {
-                                // Additional validation: make sure it's a proper divider HR
-                                if (!dividerElement.className || !dividerElement.className.includes('divider-')) {
-                                    return false;
-                                }
-                                // Parse from HR element classes
-                                const size = dividerElement.className.match(/divider-size-(\w+)/)?.[1] || 's';
-                                const vertical = dividerElement.classList.contains('divider-vertical');
-                                return { size, vertical };
+                            // Additional validation: make sure it's a proper divider HR
+                            if (!dividerElement.className || !dividerElement.className.includes('divider-')) {
+                                return false;
                             }
-                            return false;
+                            // Parse from HR element classes
+                            const size = dividerElement.className.match(/divider-size-(\w+)/)?.[1] || 's';
+                            const vertical = dividerElement.classList.contains('divider-vertical');
+                            return { size, vertical };
                         },
-                    },
-                    {
-                        tag: 'sp-divider',
-                        getAttrs: (domNode) => ({
-                            size: domNode.getAttribute('size') || 's',
-                            vertical: domNode.hasAttribute('vertical'),
-                        }),
                     },
                     {
                         tag: 'hr',
@@ -1199,26 +1182,16 @@ class RteField extends LitElement {
             // First, check what content we have besides dividers
             const tempContainer = container.cloneNode(true);
             tempContainer
-                .querySelectorAll('.divider-wrapper, sp-divider, hr.divider-hr, hr[class*="divider-"]')
+                .querySelectorAll('.divider-wrapper, hr.divider-hr, hr[class*="divider-"]')
                 .forEach((el) => el.remove());
             const remainingText = tempContainer.textContent.trim();
 
             // If there's no other content, remove all dividers
             if (!remainingText) {
-                container
-                    .querySelectorAll('.divider-wrapper, sp-divider, hr.divider-hr, hr[class*="divider-"]')
-                    .forEach((element) => {
-                        element.remove();
-                    });
+                container.querySelectorAll('.divider-wrapper, hr.divider-hr, hr[class*="divider-"]').forEach((element) => {
+                    element.remove();
+                });
             }
-
-            // Also remove any orphaned sp-divider elements regardless
-            container.querySelectorAll('sp-divider').forEach((divider) => {
-                if (!divider.closest('.divider-wrapper')) {
-                    // Orphaned sp-divider, remove it
-                    divider.remove();
-                }
-            });
 
             // Simplified DOM manipulation
             container.querySelectorAll('div').forEach((div) => {
@@ -1330,13 +1303,8 @@ class RteField extends LitElement {
             const content = container.innerHTML.trim();
 
             // Remove all divider-only content
-            // Check for divider wrappers with HR or sp-divider
-            const dividerOnlyPatterns = [
-                /^<div class="divider-wrapper[^"]*"[^>]*><hr[^>]*><\/div>$/,
-                /^<div class="divider-wrapper[^"]*"[^>]*><sp-divider[^>]*><\/sp-divider><\/div>$/,
-                /^<hr[^>]*>$/,
-                /^<sp-divider[^>]*><\/sp-divider>$/,
-            ];
+            // Check for divider wrappers with HR
+            const dividerOnlyPatterns = [/^<div class="divider-wrapper[^"]*"[^>]*><hr[^>]*><\/div>$/, /^<hr[^>]*>$/];
 
             if (dividerOnlyPatterns.some((pattern) => content.match(pattern))) {
                 return '';

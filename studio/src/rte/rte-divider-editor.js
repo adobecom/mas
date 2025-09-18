@@ -99,7 +99,7 @@ class RteDividerEditor extends LitElement {
 
         this.dispatchEvent(
             new CustomEvent('save', {
-                bubbles: true,
+                bubbles: false,
                 composed: true,
                 detail: {
                     size,

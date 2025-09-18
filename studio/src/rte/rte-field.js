@@ -5,7 +5,7 @@ import { EditorView } from 'prosemirror-view';
 import { keymap } from 'prosemirror-keymap';
 import { schema } from 'prosemirror-schema-basic';
 import { addListNodes, wrapInList, splitListItem, liftListItem } from 'prosemirror-schema-list';
-import { baseKeymap, toggleMark } from 'prosemirror-commands';
+import { baseKeymap, toggleMark, deleteSelection } from 'prosemirror-commands';
 import { history, undo, redo } from 'prosemirror-history';
 import { openOfferSelectorTool, attributeFilter, closeOfferSelectorTool } from './ost.js';
 import prosemirrorStyles from './prosemirror.css.js';
@@ -173,11 +173,12 @@ class DividerNodeView {
         this.dom.className = 'divider-wrapper';
         this.dom.setAttribute('contenteditable', 'false');
 
-        // Create the actual sp-divider element
-        this.divider = document.createElement('sp-divider');
-        this.divider.setAttribute('size', node.attrs.size || 's');
+        // Always use HR elements to avoid persistence issues
+        // sp-divider elements can persist in empty fields and are harder to clean up
+        this.divider = document.createElement('hr');
+        this.divider.className = `divider-hr divider-size-${node.attrs.size || 's'}`;
         if (node.attrs.vertical) {
-            this.divider.setAttribute('vertical', '');
+            this.divider.classList.add('divider-vertical');
         }
 
         this.dom.appendChild(this.divider);
@@ -200,12 +201,10 @@ class DividerNodeView {
         }
         this.node = node;
 
-        // Update attributes
-        this.divider.setAttribute('size', node.attrs.size || 's');
+        // Update HR element classes
+        this.divider.className = `divider-hr divider-size-${node.attrs.size || 's'}`;
         if (node.attrs.vertical) {
-            this.divider.setAttribute('vertical', '');
-        } else {
-            this.divider.removeAttribute('vertical');
+            this.divider.classList.add('divider-vertical');
         }
 
         return true;
@@ -508,8 +507,43 @@ class RteField extends LitElement {
                     background-color: var(--spectrum-global-color-gray-75);
                 }
 
-                .divider-wrapper sp-divider {
+                .divider-wrapper sp-divider,
+                .divider-wrapper hr {
                     pointer-events: none;
+                }
+
+                /* Styles for HR-based dividers */
+                .divider-hr {
+                    border: none;
+                    margin: 0;
+                    background-color: var(--spectrum-global-color-gray-300);
+                }
+
+                .divider-hr.divider-size-s {
+                    height: 1px;
+                }
+
+                .divider-hr.divider-size-m {
+                    height: 2px;
+                }
+
+                .divider-hr.divider-size-l {
+                    height: 4px;
+                }
+
+                .divider-hr.divider-vertical {
+                    width: 1px;
+                    height: 24px;
+                    display: inline-block;
+                    vertical-align: middle;
+                }
+
+                .divider-hr.divider-vertical.divider-size-m {
+                    width: 2px;
+                }
+
+                .divider-hr.divider-vertical.divider-size-l {
+                    width: 4px;
                 }
 
                 sr-only {
@@ -766,7 +800,8 @@ class RteField extends LitElement {
         }
 
         if (this.divider) {
-            nodes = nodes.addToStart('divider', {
+            // Use horizontal_rule as the base node type for better compatibility
+            nodes = nodes.addToStart('horizontal_rule', {
                 group: 'block',
                 atom: true,
                 selectable: true,
@@ -780,12 +815,26 @@ class RteField extends LitElement {
                         tag: 'div.divider-wrapper',
                         priority: 50,
                         getAttrs: (domNode) => {
-                            const dividerElement = domNode.querySelector('sp-divider');
+                            const dividerElement = domNode.querySelector('sp-divider, hr');
+                            // Return false if no actual divider element is found
                             if (!dividerElement) return false;
-                            return {
-                                size: dividerElement.getAttribute('size') || 's',
-                                vertical: dividerElement.hasAttribute('vertical'),
-                            };
+
+                            if (dividerElement.tagName === 'SP-DIVIDER') {
+                                return {
+                                    size: dividerElement.getAttribute('size') || 's',
+                                    vertical: dividerElement.hasAttribute('vertical'),
+                                };
+                            } else if (dividerElement.tagName === 'HR') {
+                                // Additional validation: make sure it's a proper divider HR
+                                if (!dividerElement.className || !dividerElement.className.includes('divider-')) {
+                                    return false;
+                                }
+                                // Parse from HR element classes
+                                const size = dividerElement.className.match(/divider-size-(\w+)/)?.[1] || 's';
+                                const vertical = dividerElement.classList.contains('divider-vertical');
+                                return { size, vertical };
+                            }
+                            return false;
                         },
                     },
                     {
@@ -795,15 +844,19 @@ class RteField extends LitElement {
                             vertical: domNode.hasAttribute('vertical'),
                         }),
                     },
+                    {
+                        tag: 'hr',
+                        getAttrs: (domNode) => {
+                            const size = domNode.className.match(/divider-size-(\w+)/)?.[1] || 's';
+                            const vertical = domNode.classList.contains('divider-vertical');
+                            return { size, vertical };
+                        },
+                    },
                 ],
                 toDOM: (node) => {
-                    const dividerAttrs = {
-                        size: node.attrs.size || 's',
-                    };
-                    if (node.attrs.vertical) {
-                        dividerAttrs.vertical = '';
-                    }
-                    return ['div', { class: 'divider-wrapper', contenteditable: 'false' }, ['sp-divider', dividerAttrs]];
+                    // Always output as HR for maximum compatibility
+                    const hrClass = `divider-hr divider-size-${node.attrs.size || 's'}${node.attrs.vertical ? ' divider-vertical' : ''}`;
+                    return ['div', { class: 'divider-wrapper', contenteditable: 'false' }, ['hr', { class: hrClass }]];
                 },
             });
         }
@@ -1048,6 +1101,10 @@ class RteField extends LitElement {
                     Enter: splitListItem(this.#editorSchema.nodes.list_item),
                 }),
             }),
+            keymap({
+                Delete: deleteSelection,
+                Backspace: deleteSelection,
+            }),
             keymap(baseKeymap),
         ];
 
@@ -1128,7 +1185,7 @@ class RteField extends LitElement {
             nodeViews: {
                 link: (node, view, getPos) => new LinkNodeView(node, view, getPos),
                 mnemonic: (node, view, getPos) => new MnemonicNodeView(node, view, getPos),
-                divider: (node, view, getPos) => new DividerNodeView(node, view, getPos),
+                horizontal_rule: (node, view, getPos) => new DividerNodeView(node, view, getPos),
             },
         });
 
@@ -1137,6 +1194,32 @@ class RteField extends LitElement {
             this.innerHTML = '';
             const container = document.createElement('div');
             container.innerHTML = html;
+
+            // Remove ALL divider elements if the content is otherwise empty
+            // First, check what content we have besides dividers
+            const tempContainer = container.cloneNode(true);
+            tempContainer
+                .querySelectorAll('.divider-wrapper, sp-divider, hr.divider-hr, hr[class*="divider-"]')
+                .forEach((el) => el.remove());
+            const remainingText = tempContainer.textContent.trim();
+
+            // If there's no other content, remove all dividers
+            if (!remainingText) {
+                container
+                    .querySelectorAll('.divider-wrapper, sp-divider, hr.divider-hr, hr[class*="divider-"]')
+                    .forEach((element) => {
+                        element.remove();
+                    });
+            }
+
+            // Also remove any orphaned sp-divider elements regardless
+            container.querySelectorAll('sp-divider').forEach((divider) => {
+                if (!divider.closest('.divider-wrapper')) {
+                    // Orphaned sp-divider, remove it
+                    divider.remove();
+                }
+            });
+
             // Simplified DOM manipulation
             container.querySelectorAll('div').forEach((div) => {
                 div.replaceWith(...div.childNodes);
@@ -1181,8 +1264,36 @@ class RteField extends LitElement {
     #handleTransaction(transaction) {
         try {
             const oldState = this.editorView.state;
-            const newState = oldState.apply(transaction);
+            let newState = oldState.apply(transaction);
             if (!newState) return;
+
+            // Check if document only contains dividers (no actual text content)
+            const textContent = newState.doc.textContent.trim();
+            if (!textContent && newState.doc.content.size > 0) {
+                // Check if there are only dividers
+                let hasDividerOnly = false;
+                newState.doc.forEach((node) => {
+                    if (node.type.name === 'paragraph' && node.content.size === 1) {
+                        node.forEach((child) => {
+                            if (child.type.name === 'horizontal_rule') {
+                                hasDividerOnly = true;
+                            }
+                        });
+                    } else if (node.type.name === 'horizontal_rule') {
+                        hasDividerOnly = true;
+                    }
+                });
+
+                // If only dividers, create an empty document
+                if (hasDividerOnly) {
+                    const emptyDoc = this.#editorSchema.nodes.doc.create(null, this.#editorSchema.nodes.paragraph.create());
+                    newState = EditorState.create({
+                        doc: emptyDoc,
+                        schema: this.#editorSchema,
+                        plugins: oldState.plugins,
+                    });
+                }
+            }
 
             this.#updateSelection(newState);
             this.editorView.updateState(newState);
@@ -1214,7 +1325,24 @@ class RteField extends LitElement {
             const fragment = this.#serializer.serializeFragment(state.doc.content);
             const container = document.createElement('div');
             container.appendChild(fragment);
-            return container.innerHTML;
+
+            // Check if only content is a divider wrapper
+            const content = container.innerHTML.trim();
+
+            // Remove all divider-only content
+            // Check for divider wrappers with HR or sp-divider
+            const dividerOnlyPatterns = [
+                /^<div class="divider-wrapper[^"]*"[^>]*><hr[^>]*><\/div>$/,
+                /^<div class="divider-wrapper[^"]*"[^>]*><sp-divider[^>]*><\/sp-divider><\/div>$/,
+                /^<hr[^>]*>$/,
+                /^<sp-divider[^>]*><\/sp-divider>$/,
+            ];
+
+            if (dividerOnlyPatterns.some((pattern) => content.match(pattern))) {
+                return '';
+            }
+
+            return content;
         } catch (error) {
             console.warn('Error serializing content:', error);
             return '';
@@ -1901,7 +2029,7 @@ class RteField extends LitElement {
         const { state, dispatch } = this.editorView;
         const { selection } = state;
 
-        const dividerNode = state.schema.nodes.divider.create({
+        const dividerNode = state.schema.nodes.horizontal_rule.create({
             size: size || 's',
             vertical: vertical || false,
         });

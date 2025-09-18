@@ -64,7 +64,7 @@ export default {
         },
         {
             tcid: '6',
-            name: '@studio-full-pricing-express-css-description2-styles',
+            name: '@studio-full-pricing-express-css-shortDescription-styles',
             path: '/studio.html',
             data: {
                 cardid: '9406f1ae-7bee-48c3-9892-49af6816033e',

@@ -17,16 +17,18 @@ export default class ACOMFullPricingExpressPage {
         );
         this.cardPriceLegal = page.locator('span[is="inline-price"][data-template="legal"]');
         this.cardBody = page.locator('merch-card p');
-        this.cardDescription2 = page.locator('merch-card[variant="full-pricing-express"] div[slot="description2"]').first();
+        this.cardShortDescription = page
+            .locator('merch-card[variant="full-pricing-express"] div[slot="shortDescription"]')
+            .first();
         this.cardCTA = page.locator('merch-card a');
         this.cardBadge = page.locator('merch-badge[slot="badge"]');
         this.cardTrialBadge = page.locator('merch-badge[slot="trial-badge"]');
         this.cardBadgeLabel = page.locator('.badge');
         this.cardDivider = page.locator('hr[slot="divider"], sp-divider, [slot="divider"]');
         this.cardPhoneLink = page.locator('a[href^="tel:"]');
-        this.cardLegalLink = page.locator('a.modal-Link, a.spectrum-Link, [slot="description2"] a');
+        this.cardLegalLink = page.locator('a.modal-Link, a.spectrum-Link, [slot="shortDescription"] a');
         this.cardHeadingPrice = page.locator('[slot="price"] .heading-s, [slot="price"] h3');
-        this.cardLink = page.locator('[slot="description2"] a, .button-container a, a.spectrum-Link');
+        this.cardLink = page.locator('[slot="shortDescription"] a, .button-container a, a.spectrum-Link');
 
         // New selectors for enhanced features
         this.spDivider = page.locator('.divider-wrapper sp-divider');
@@ -90,7 +92,7 @@ export default class ACOMFullPricingExpressPage {
                 'font-weight': '400',
                 'line-height': '20.8px',
             },
-            description2: {
+            shortDescription: {
                 color: 'rgb(44, 44, 44)',
                 'font-size': '12px',
                 'font-weight': '400',

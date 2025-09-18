@@ -80,12 +80,12 @@ export default {
         },
         {
             tcid: '7',
-            name: '@studio-full-pricing-express-edit-description2',
+            name: '@studio-full-pricing-express-edit-shortDescription',
             path: '/studio.html',
             data: {
                 cardid: '9406f1ae-7bee-48c3-9892-49af6816033e',
-                description2: 'Additional details about the product.',
-                newDescription2: 'Updated additional details for testing.',
+                shortDescription: 'Additional details about the product.',
+                newShortDescription: 'Updated additional details for testing.',
             },
             browserParams: '#query=',
             tags: '@studio-full-pricing-express @mas-studio @express',

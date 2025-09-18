@@ -491,21 +491,21 @@ class MerchCardEditor extends LitElement {
                     >${unsafeHTML(form.description.values[0])}</rte-field
                 >
             </sp-field-group>
-            <sp-field-group class="toggle" id="description2">
-                <sp-field-label for="description2">Description 2</sp-field-label>
+            <sp-field-group class="toggle" id="shortDescription">
+                <sp-field-label for="shortDescription">Short Description</sp-field-label>
                 <rte-field
-                    id="description2"
+                    id="shortDescription"
                     styling
                     link
                     upt-link
                     list
                     mnemonic
                     divider
-                    data-field="description2"
+                    data-field="shortDescription"
                     .osi=${form.osi.values[0]}
                     default-link-style="secondary-link"
                     @change="${this.#handleFragmentUpdate}"
-                    >${unsafeHTML(form.description2?.values[0] || '')}</rte-field
+                    >${unsafeHTML(form.shortDescription?.values[0] || '')}</rte-field
                 >
             </sp-field-group>
             <sp-field-group class="toggle" id="callout">

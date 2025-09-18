@@ -170,7 +170,7 @@ test.describe('M@S Studio ACOM Full Pricing Express card CSS test suite', () => 
         });
     });
 
-    // @studio-full-pricing-express-css-description2-styles - Verify description2 styles
+    // @studio-full-pricing-express-css-shortDescription-styles - Verify shortDescription styles
     test(`${features[6].name},${features[6].tags}`, async ({ page, baseURL }) => {
         const { data } = features[6];
         const testPage = `${baseURL}${features[6].path}${features[6].browserParams}${data.cardid}${miloLibs}`;
@@ -181,13 +181,13 @@ test.describe('M@S Studio ACOM Full Pricing Express card CSS test suite', () => 
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Check for description2 element', async () => {
-            const desc2Count = await fullPricingExpress.cardDescription2.count();
-            if (desc2Count > 0) {
-                const description2Element = fullPricingExpress.cardDescription2.first();
-                await expect(description2Element).toBeVisible();
+        await test.step('step-2: Check for shortDescription element', async () => {
+            const shortDescCount = await fullPricingExpress.cardShortDescription.count();
+            if (shortDescCount > 0) {
+                const shortDescriptionElement = fullPricingExpress.cardShortDescription.first();
+                await expect(shortDescriptionElement).toBeVisible();
             }
-            // description2 is optional, so no failure if not present
+            // shortDescription is optional, so no failure if not present
         });
     });
 

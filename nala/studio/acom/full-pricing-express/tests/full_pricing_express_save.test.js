@@ -141,7 +141,7 @@ test.describe('M@S Studio ACOM Full Pricing Express card save test suite', () =>
         });
     });
 
-    // @studio-full-pricing-express-save-description2-changes - Validate saving description2 changes for full pricing express card
+    // @studio-full-pricing-express-save-shortDescription-changes - Validate saving shortDescription changes for full pricing express card
     test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
         const { data } = features[3];
         const testPage = `${baseURL}${features[3].path}${features[3].browserParams}${data.cardid}${miloLibs}`;
@@ -158,12 +158,12 @@ test.describe('M@S Studio ACOM Full Pricing Express card save test suite', () =>
             await expect(await editor.panel).toBeVisible();
         });
 
-        await test.step('step-3: Edit description2 field', async () => {
-            await expect(await editor.description2).toBeVisible();
-            await expect(await editor.description2).toContainText(data.description2);
-            await editor.description2.clear();
-            await editor.description2.type(data.newDescription2);
-            await expect(await editor.description2).toContainText(data.newDescription2);
+        await test.step('step-3: Edit shortDescription field', async () => {
+            await expect(await editor.shortDescription).toBeVisible();
+            await expect(await editor.shortDescription).toContainText(data.shortDescription);
+            await editor.shortDescription.clear();
+            await editor.shortDescription.type(data.newShortDescription);
+            await expect(await editor.shortDescription).toContainText(data.newShortDescription);
         });
 
         await test.step('step-4: Save and validate', async () => {
@@ -171,7 +171,7 @@ test.describe('M@S Studio ACOM Full Pricing Express card save test suite', () =>
             await page.waitForTimeout(2000);
             await expect(await editor.saveSuccess).toBeVisible();
             await editor.closeButton.click();
-            await expect(await fullPricingExpress.cardDescription2).toContainText(data.newDescription2);
+            await expect(await fullPricingExpress.cardShortDescription).toContainText(data.newShortDescription);
         });
     });
 

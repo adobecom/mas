@@ -280,7 +280,7 @@ test.describe('M@S Studio ACOM Full Pricing Express card test suite', () => {
         });
     });
 
-    // @studio-full-pricing-express-edit-description2 - Validate edit description2 for full pricing express card in mas studio
+    // @studio-full-pricing-express-edit-shortDescription - Validate edit shortDescription for full pricing express card in mas studio
     test(`${features[6].name},${features[6].tags}`, async ({ page, baseURL }) => {
         const { data } = features[6];
         const testPage = `${baseURL}${features[6].path}${features[6].browserParams}${data.cardid}${miloLibs}`;
@@ -301,16 +301,16 @@ test.describe('M@S Studio ACOM Full Pricing Express card test suite', () => {
             await expect(await editor.panel).toBeVisible();
         });
 
-        await test.step('step-3: Edit description2 field', async () => {
-            await expect(await editor.description2).toBeVisible();
-            await expect(await editor.description2).toContainText(data.description2);
-            await editor.description2.clear();
-            await editor.description2.type(data.newDescription2);
+        await test.step('step-3: Edit shortDescription field', async () => {
+            await expect(await editor.shortDescription).toBeVisible();
+            await expect(await editor.shortDescription).toContainText(data.shortDescription);
+            await editor.shortDescription.clear();
+            await editor.shortDescription.type(data.newShortDescription);
         });
 
-        await test.step('step-4: Validate description2 field updated', async () => {
-            await expect(await editor.description2).toContainText(data.newDescription2);
-            await expect(await fullPricingExpress.cardDescription2).toContainText(data.newDescription2);
+        await test.step('step-4: Validate shortDescription field updated', async () => {
+            await expect(await editor.shortDescription).toContainText(data.newShortDescription);
+            await expect(await fullPricingExpress.cardShortDescription).toContainText(data.newShortDescription);
         });
     });
 

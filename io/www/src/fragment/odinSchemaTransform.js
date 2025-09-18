@@ -128,6 +128,4 @@ function transformBody(body) {
     return body;
 }
 
-module.exports = {
-    transformBody,
-};
+export { transformBody };

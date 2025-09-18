@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 const SUCCESS = 'success';
 const ERROR = 'error';
 const OK = 'ok';
@@ -35,7 +35,7 @@ async function checkEndpoint(endpoint, validateJson) {
     return result;
 }
 
-async function main(params) {
+export default async function main(params) {
     const { ODIN_CDN_ENDPOINT, ODIN_ORIGIN_ENDPOINT, WCS_CDN_ENDPOINT, WCS_ORIGIN_ENDPOINT } = params;
     let statusCode = 200;
     const body = {
@@ -57,5 +57,3 @@ async function main(params) {
         body,
     };
 }
-
-exports.main = main;

@@ -1,5 +1,5 @@
-const fetch = require('node-fetch');
-const { transformBody } = require('./odinSchemaTransform.js');
+import fetch from 'node-fetch';
+import { transformBody } from './odinSchemaTransform.js';
 
 function logPrefix(context, type = 'info') {
     return `[${type}][${context.api_key}][${context.requestId}][${context.id}][${context.locale}][${context.transformer}]`;
@@ -177,9 +177,9 @@ async function getJsonFromState(key, context) {
     return { str: null, json: null };
 }
 
-module.exports = {
+export {
     createTimeoutPromise,
-    fetch: internalFetch,
+    internalFetch as fetch,
     getErrorContext,
     getJsonFromState,
     getFromState,

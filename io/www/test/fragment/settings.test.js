@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { settings } = require('../../src/fragment/settings.js');
+import { expect } from 'chai';
+import { transformer as settings } from '../../src/fragment/settings.js';
 
 describe('settings transformer', () => {
     let context;
@@ -16,7 +16,7 @@ describe('settings transformer', () => {
     it('should add secure label and stock settings when variant is plans and showSecureLabel is undefined', async () => {
         context.body.fields.variant = 'plans';
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result.body.settings).to.deep.equal({
             secureLabel: '{{secure-label}}',
             displayPlanType: true,
@@ -29,7 +29,7 @@ describe('settings transformer', () => {
             perUnitLabel: '{perUnit, select, LICENSE {per user} other {}}',
         };
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result.body.priceLiterals).to.deep.equal({
             alternativePriceAriaLabel: '{{price-literal-alternative-price-aria-label}}',
             freeAriaLabel: '{{price-literal-free-aria-label}}',
@@ -50,7 +50,7 @@ describe('settings transformer', () => {
             variant: 'plans',
         };
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result.body.settings).to.deep.equal({
             secureLabel: '{{secure-label}}',
             displayPlanType: true,
@@ -64,7 +64,7 @@ describe('settings transformer', () => {
             showSecureLabel: true,
         };
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result.body.settings).to.deep.equal({
             secureLabel: '{{secure-label}}',
             displayPlanType: true,
@@ -77,7 +77,7 @@ describe('settings transformer', () => {
             showSecureLabel: false,
         };
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result.body.settings).to.deep.equal({
             displayPlanType: true,
         });
@@ -101,7 +101,7 @@ describe('settings transformer', () => {
             },
         };
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result.body.references.ref1.value.settings).to.deep.equal({
             secureLabel: '{{secure-label}}',
             displayPlanType: true,
@@ -133,7 +133,7 @@ describe('settings transformer', () => {
             },
         };
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result.body.references.ref1.value.settings).to.deep.equal({
             secureLabel: '{{secure-label}}',
             displayPlanType: true,
@@ -145,7 +145,7 @@ describe('settings transformer', () => {
         context.locale = 'fr_FR';
         context.body.fields.variant = 'plans';
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result.body.settings).to.deep.equal({
             secureLabel: '{{secure-label}}',
         });
@@ -154,14 +154,14 @@ describe('settings transformer', () => {
     it('should not add any settings when variant is not plans', async () => {
         context.body.fields.variant = 'other';
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result.body.settings).to.be.undefined;
     });
 
     it('should handle missing body', async () => {
         context = { locale: 'en_US' };
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result).to.deep.equal(context);
     });
 
@@ -171,7 +171,7 @@ describe('settings transformer', () => {
             body: {},
         };
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result).to.deep.equal(context);
     });
 
@@ -187,7 +187,7 @@ describe('settings transformer', () => {
             },
         };
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result).to.deep.equal(context);
     });
 
@@ -198,7 +198,7 @@ describe('settings transformer', () => {
             },
         };
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result).to.deep.equal(context);
     });
 
@@ -209,7 +209,7 @@ describe('settings transformer', () => {
             variant: 'plans',
         };
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result.body.settings).to.deep.equal({
             secureLabel: '{{secure-label}}',
             displayPlanType: false,
@@ -220,7 +220,7 @@ describe('settings transformer', () => {
         context.body.fields = {
             variant: 'mini',
         };
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result.body.settings).to.be.undefined;
     });
 
@@ -229,7 +229,7 @@ describe('settings transformer', () => {
         context.body.fields = {
             variant: 'mini',
         };
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result.body.settings).to.deep.equal({
             displayPlanType: true,
             displayAnnual: true,
@@ -254,7 +254,7 @@ describe('settings transformer', () => {
             },
         };
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result.body.references.ref1.value.settings).to.deep.equal({
             displayPlanType: true,
             displayAnnual: true,
@@ -267,7 +267,7 @@ describe('settings transformer', () => {
             perUnitLabel: '',
         };
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result.body.settings).to.deep.equal({
             secureLabel: '{{secure-label}}',
             displayPlanType: true,
@@ -293,7 +293,7 @@ describe('settings transformer', () => {
             },
         };
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result.body.references.ref1.value.priceLiterals).to.deep.equal({
             perUnitLabel: '{perUnit, select, LICENSE {per license} other {}}',
         });
@@ -307,7 +307,7 @@ describe('settings transformer', () => {
             },
         };
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result.body.priceLiterals.perUnitLabel).to.equal('{perUnit, select, LICENSE {per user} other {}}');
     });
 
@@ -316,7 +316,7 @@ describe('settings transformer', () => {
             fields: {},
         };
 
-        const result = await settings(context);
+        const result = await settings.process(context);
         expect(result.body.priceLiterals.perUnitLabel).to.equal('{{price-literal-per-unit-label}}');
     });
 });

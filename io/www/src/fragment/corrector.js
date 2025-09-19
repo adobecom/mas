@@ -1,4 +1,4 @@
-const { logDebug } = require('./common.js');
+import { logDebug } from './common.js';
 /**
  * checking and eventually fixing content we know is not correct
  * @param {} context
@@ -15,4 +15,7 @@ async function corrector(context) {
     return context;
 }
 
-exports.corrector = corrector;
+export const transformer = {
+    name: 'corrector',
+    process: corrector,
+};

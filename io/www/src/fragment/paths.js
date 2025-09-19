@@ -41,11 +41,4 @@ function odinPath(surface, locale, fragmentPath, preview) {
     return `${rootURL(preview)}?path=${MAS_ROOT}/${surface}/${locale}/${fragmentPath}`;
 }
 
-module.exports = {
-    PATH_TOKENS,
-    FRAGMENT_URL_PREFIX,
-    MAS_ROOT,
-    odinPath,
-    odinId,
-    odinReferences,
-};
+export { PATH_TOKENS, FRAGMENT_URL_PREFIX, MAS_ROOT, odinPath, odinId, odinReferences };

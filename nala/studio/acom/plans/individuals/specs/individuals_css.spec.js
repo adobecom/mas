@@ -5,7 +5,7 @@ export default {
             tcid: '0',
             name: '@studio-plans-individuals-css',
             path: '/studio.html',
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
             },

@@ -12,7 +12,7 @@ export default {
                 transparentBorderColor: 'Transparent',
                 transparentBorderCSSColor: 'Transparent',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-save @nopr',
         },
         {
@@ -23,7 +23,7 @@ export default {
                 cardid: '2cf0ed0e-84ea-4bd4-8e89-ddf527a7a75b',
                 osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-save',
         },
         {
@@ -36,7 +36,7 @@ export default {
                 variant: 'accent',
                 newVariant: 'primary',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-save',
         },
         {
@@ -51,7 +51,7 @@ export default {
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-2',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @promoted-plans @promoted-plans-save',
         },
     ],

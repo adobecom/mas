@@ -8,7 +8,7 @@ export default {
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
         },
         {
@@ -20,7 +20,7 @@ export default {
                 badge: 'DO NOT EDIT',
                 newBadge: 'Change badge',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
         },
         {
@@ -32,7 +32,7 @@ export default {
                 description: 'Automation Test Card',
                 newDescription: 'New Test Description',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
         },
         {
@@ -44,7 +44,7 @@ export default {
                 iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
                 newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
         },
         {
@@ -58,7 +58,7 @@ export default {
                 newBackgroundURL:
                     'https://milo.adobe.com/assets/img/commerce/media_158c1c22b1322dd28d7912d30fb27f29aa79f79b1.png',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
         },
         {
@@ -72,7 +72,7 @@ export default {
                 newPrice: 'US$17.24/moper license',
                 newStrikethroughPrice: 'US$34.49/moper license',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
         },
         {
@@ -85,7 +85,7 @@ export default {
                 newCtaOption: 'Save now',
                 newCtaText: 'save-now',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
         },
         {
@@ -97,7 +97,7 @@ export default {
                 ctaText: 'Buy now',
                 newCtaText: 'Buy now 2',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
         },
         {
@@ -107,7 +107,7 @@ export default {
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
         },
         {
@@ -126,7 +126,7 @@ export default {
                 newOfferTypeTag: 'offer_type/trial',
                 newMarketSegmentsTag: 'market_segments/edu',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
         },
         {
@@ -138,7 +138,7 @@ export default {
                 variant: 'accent',
                 newVariant: 'primary-outline',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
         },
         {
@@ -154,7 +154,7 @@ export default {
                     mv2: '2',
                 },
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
         },
         {
@@ -169,7 +169,7 @@ export default {
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-1',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-discard',
         },
     ],

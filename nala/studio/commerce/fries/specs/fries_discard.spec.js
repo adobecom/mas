@@ -10,7 +10,7 @@ export default {
                 title: 'AI Assistant for Acrobat – try it for 7 days (Discard)',
                 newTitle: 'Change title',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-discard',
         },
         {
@@ -23,7 +23,7 @@ export default {
                     'Chat in your documents for quick answers and one-click summaries. Works with: Acrobat Pro, Acrobat Standard, Acrobar Reader, or any free Acrobat plans.',
                 newDescription: 'New Test Description',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-discard',
         },
         {
@@ -35,7 +35,7 @@ export default {
                 iconURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/acrobat-pro.svg',
                 newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-discard',
         },
         {
@@ -49,7 +49,7 @@ export default {
                 newPrice: 'US$17.24/moper license',
                 newStrikethroughPrice: 'US$34.49/moper license',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-discard',
         },
         {
@@ -61,7 +61,7 @@ export default {
                 ctaText: 'Remove',
                 newCtaText: 'Buy now 2',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-discard',
         },
     ],

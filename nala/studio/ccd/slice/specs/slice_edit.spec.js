@@ -9,7 +9,7 @@ export default {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
@@ -19,7 +19,7 @@ export default {
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
@@ -31,7 +31,7 @@ export default {
                 badge: 'DO NOT EDIT',
                 newBadge: 'Change badge',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
@@ -43,7 +43,7 @@ export default {
                 description: 'Automation Test Card',
                 newDescription: 'New Test Description',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
@@ -55,7 +55,7 @@ export default {
                 iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
                 newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
@@ -69,7 +69,7 @@ export default {
                 newBackgroundURL:
                     'https://milo.adobe.com/assets/img/commerce/media_158c1c22b1322dd28d7912d30fb27f29aa79f79b1.png',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
@@ -81,7 +81,7 @@ export default {
                 price: 'US$17.24/mo',
                 strikethroughPrice: 'US$34.49/mo',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
@@ -101,7 +101,7 @@ export default {
                 client: 'adobe_com',
                 promo: 'UMRM2MUSPr501YOC',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
@@ -114,7 +114,7 @@ export default {
                 ctaText: 'Buy now',
                 newCtaText: 'Buy now 2',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
@@ -126,7 +126,7 @@ export default {
                 promo: 'UMRM2MUSPr501YOC',
                 newPromo: 'testpromo',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
@@ -143,7 +143,7 @@ export default {
                 lang: 'en',
                 client: 'adobe_com',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
@@ -154,7 +154,7 @@ export default {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
@@ -169,7 +169,7 @@ export default {
                 marketSegmentsTag: 'market_segments/com',
                 planTypeTag: 'plan_type/abm',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
@@ -189,7 +189,7 @@ export default {
                 newOfferTypeTag: 'offer_type/trial',
                 newMarketSegmentsTag: 'market_segments/edu',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
@@ -209,7 +209,7 @@ export default {
                     color: 'rgb(34, 34, 34)',
                 },
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
@@ -225,7 +225,7 @@ export default {
                     mv2: '2',
                 },
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
         {
@@ -240,7 +240,7 @@ export default {
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-1',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice @ccd-slice-edit',
         },
     ],

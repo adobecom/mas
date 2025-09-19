@@ -9,7 +9,7 @@ export default {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
                 price: 'US$89.99/mo',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-save',
         },
         {
@@ -20,7 +20,7 @@ export default {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
                 osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-save',
         },
         {
@@ -31,7 +31,7 @@ export default {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
                 osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-save',
         },
         {
@@ -50,7 +50,7 @@ export default {
                 newOfferTypeTag: 'offer_type/trial',
                 newMarketSegmentsTag: 'market_segments/edu',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-save',
         },
         {
@@ -71,7 +71,7 @@ export default {
                     color: 'rgb(34, 34, 34)',
                 },
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-save',
         },
         {
@@ -87,7 +87,7 @@ export default {
                     mv2: '2',
                 },
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-save',
         },
         {
@@ -102,7 +102,7 @@ export default {
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-1',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @try-buy-widget @try-buy-widget-save',
         },
     ],

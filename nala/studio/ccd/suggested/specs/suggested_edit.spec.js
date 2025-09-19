@@ -9,7 +9,7 @@ export default {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
         },
         {
@@ -21,7 +21,7 @@ export default {
                 title: 'Automation Test Card',
                 newTitle: 'Change title',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
         },
         {
@@ -33,7 +33,7 @@ export default {
                 subtitle: 'do not edit',
                 newSubtitle: 'Change subtitle',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
         },
         {
@@ -45,7 +45,7 @@ export default {
                 description: 'MAS repo validation card for Nala tests',
                 newDescription: 'New Test Description',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
         },
         {
@@ -57,7 +57,7 @@ export default {
                 iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
                 newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
         },
         {
@@ -69,7 +69,7 @@ export default {
                 newBackgroundURL:
                     'https://milo.adobe.com/assets/img/commerce/media_1d63dab9ee1edbf371d6f0548516c9e12b3ea3ff4.png',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
         },
         {
@@ -83,7 +83,7 @@ export default {
                 newPrice: 'US$17.24/moper license',
                 newStrikethroughPrice: 'US$34.49/moper license',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
         },
         {
@@ -103,7 +103,7 @@ export default {
                 client: 'adobe_com',
                 promo: 'UMRM2MUSPr501YOC',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
         },
         {
@@ -116,7 +116,7 @@ export default {
                 ctaText: 'Buy now',
                 newCtaText: 'Buy now 2',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
         },
         {
@@ -128,7 +128,7 @@ export default {
                 promo: 'UMRM2MUSPr501YOC',
                 newPromo: 'testpromo',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
         },
         {
@@ -145,7 +145,7 @@ export default {
                 lang: 'en',
                 client: 'adobe_com',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
         },
         {
@@ -156,7 +156,7 @@ export default {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
         },
         {
@@ -171,7 +171,7 @@ export default {
                 marketSegmentsTag: 'market_segments/com',
                 planTypeTag: 'plan_type/abm',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
         },
         {
@@ -191,7 +191,7 @@ export default {
                 newOfferTypeTag: 'offer_type/trial',
                 newMarketSegmentsTag: 'market_segments/edu',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
         },
         {
@@ -211,7 +211,7 @@ export default {
                     color: 'rgb(255, 255, 255)',
                 },
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
         },
         {
@@ -227,7 +227,7 @@ export default {
                     mv2: '2',
                 },
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
         },
         {
@@ -242,7 +242,7 @@ export default {
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-1',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-edit',
         },
     ],

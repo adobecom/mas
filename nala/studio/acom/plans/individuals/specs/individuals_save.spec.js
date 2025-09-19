@@ -8,7 +8,7 @@ export default {
             data: {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -18,7 +18,7 @@ export default {
             data: {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -30,7 +30,7 @@ export default {
                 title: 'Field Edit & Save',
                 newTitle: 'Change title',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -42,7 +42,7 @@ export default {
                 badge: 'DO NOT EDIT',
                 newBadge: 'Change badge',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -54,7 +54,7 @@ export default {
                 description: 'MAS Automation Test card.',
                 newDescription: 'New Test Description',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -66,7 +66,7 @@ export default {
                 iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
                 newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -77,7 +77,7 @@ export default {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
                 calloutText: 'AI Assistant add-on available',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -88,7 +88,7 @@ export default {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
                 promoText: 'Test promotion text',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -102,7 +102,7 @@ export default {
                 newPrice: 'US$17.24/moper license',
                 newStrikethroughPrice: 'US$34.49/moper license',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -120,7 +120,7 @@ export default {
                 newOfferTypeTag: 'offer_type/trial',
                 newMarketSegmentsTag: 'market_segments/edu',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -130,7 +130,7 @@ export default {
             data: {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save @nopr',
         },
         {
@@ -140,7 +140,7 @@ export default {
             data: {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -151,7 +151,7 @@ export default {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
                 whatsIncludedText: 'List of items:',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -164,7 +164,7 @@ export default {
                 newColor: 'Green 900',
                 newColorCSS: 'rgb(5, 131, 78)',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -177,7 +177,7 @@ export default {
                 newColor: 'Green 900',
                 newColorCSS: 'rgb(5, 131, 78)',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -190,7 +190,7 @@ export default {
                 newColor: 'Gray 300',
                 newColorCSS: 'rgb(218, 218, 218)',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -203,7 +203,7 @@ export default {
                 newCtaText: 'New CTA Text',
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -223,7 +223,7 @@ export default {
                 },
                 newVariant: 'primary-outline',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -239,7 +239,7 @@ export default {
                     mv2: '2',
                 },
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {

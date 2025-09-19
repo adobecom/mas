@@ -61,15 +61,6 @@ export default {
                     old: 'Test promotion text',
                     new: 'New Promo Text',
                 },
-                // price: {
-                //     old: 'US$17.24/mo',
-                //     new: 'US$17.24/moper license',
-                //     legalText: 'per license',
-                // },
-                // strikethroughPrice: {
-                //     old: 'US$34.49/mo',
-                //     new: 'US$34.49/moper license',
-                // },
                 osi: {
                     old: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                     new: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
@@ -86,14 +77,6 @@ export default {
                     old: 'plan_type/m2m',
                     new: 'plan_type/puf',
                 },
-                // quantitySelectorStart: {
-                //     old: '3',
-                //     new: '2',
-                // },
-                // quantitySelectorStep: {
-                //     old: '1',
-                //     new: '2',
-                // },
                 whatsIncluded: {
                     text: 'List of items:',
                     icon: {
@@ -121,61 +104,11 @@ export default {
                     new: 'testpromo',
                 },
                 phoneNumber: '1234567890',
-                // ctaVariant: {
-                //     old: 'accent',
-                //     new: 'primary-outline',
-                //     oldCSS: {
-                //         'background-color': 'rgb(59, 99, 251)',
-                //         color: 'rgb(255, 255, 255)',
-                //     },
-                //     newCSS: {
-                //         color: 'rgb(44, 44, 44)',
-                //     },
-                // },
-                // checkoutParams: {
-                //     mv: '1',
-                //     promoid: 'ABC123',
-                //     mv2: '2',
-                // },
-                // cta: {
-                //     text: {
-                //         old: 'Buy now',
-                //         newOption: 'Save now',
-                //         new: 'save-now',
-                //     },
-                //     workflowStep: {
-                //         old: 'email',
-                //         newOption: 'Segmentation',
-                //         new: 'segmentation',
-                //     },
-                //     ucv3: {
-                //         old: 'commerce.adobe.com/store/email',
-                //         new: 'commerce.adobe.com/store/segmentation',
-                //     },
-                //     label: {
-                //         old: 'Buy now',
-                //         new: 'Buy now 2',
-                //     },
-                //     promo: {
-                //         old: 'FY25PLES256MROW',
-                //         new: 'testpromo',
-                //     },
-                //     country: 'US',
-                //     ctx: 'fp',
-                //     lang: 'en',
-                //     client: 'adobe_com',
-                //     promoCode: 'FY25PLES256MROW',
-                // },
                 legalDisclaimer: {
                     text: 'per licenseAnnual, billed monthly',
                     cardText: 'per license',
                     osi: 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8',
                 },
-                // stockCheckbox: {
-                //     initialState: true, // Initially checked
-                //     toggleState: false, // After first toggle
-                //     finalState: true, // After toggling back
-                // },
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
@@ -186,6 +119,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 cta: {
                     variant: {
                         old: 'accent',
@@ -308,7 +242,7 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit @nopr',
         },
         {
@@ -322,7 +256,7 @@ export default {
                 stepValue: '1',
                 newStepValue: '2',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
         },
     ],

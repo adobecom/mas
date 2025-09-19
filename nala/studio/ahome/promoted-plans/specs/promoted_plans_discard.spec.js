@@ -10,7 +10,7 @@ export default {
                 title: 'MAS Automation Promoted Card',
                 newTitle: 'Creative Cloud All Apps Premium',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-discard',
         },
         {
@@ -24,7 +24,7 @@ export default {
                 transparentBorderColor: 'Default',
                 transparentBorderCSSColor: 'transparent',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-discard',
         },
         {
@@ -36,7 +36,7 @@ export default {
                 variant: 'accent',
                 newVariant: 'primary',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-discard',
         },
         {
@@ -48,7 +48,7 @@ export default {
                 description: 'Create with Adobe on the web. Includes Firefly, Express, Photoshop, Lightroom, and more.',
                 newDescription: 'Access the full power of Creative Cloud with all Adobe creative applications.',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-discard',
         },
         {
@@ -63,7 +63,7 @@ export default {
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-2',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @promoted-plans @promoted-plans-discard',
         },
     ],

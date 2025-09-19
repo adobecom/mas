@@ -11,7 +11,7 @@ export default {
                 updatedTitle: 'Creative Cloud All Apps Long title test example',
                 newTitle: 'Creative Cloud All Apps Long title te...',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-edit',
         },
         {
@@ -26,7 +26,7 @@ export default {
                 standardBorderColor: 'Red 900',
                 standardBorderCSSColor: 'spectrum-red-900',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-edit',
         },
         {
@@ -39,7 +39,7 @@ export default {
                 updatedDescription:
                     'Create with Adobe on the web. Get access to Firefly, Express, Photoshop, and more creative tools.',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-edit',
         },
         {
@@ -54,7 +54,7 @@ export default {
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-2',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @promoted-plans @promoted-plans-edit',
         },
     ],

@@ -10,7 +10,7 @@ export default {
                 title: 'Automation Test Card',
                 newTitle: 'Change title',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-edit',
         },
         {
@@ -22,7 +22,7 @@ export default {
                 description: 'MAS repo validation card for Nala tests',
                 newDescription: 'New Test Description',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-edit',
         },
         {
@@ -34,7 +34,7 @@ export default {
                 iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
                 newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-edit',
         },
         {
@@ -48,7 +48,7 @@ export default {
                 newPrice: 'US$17.24/moper license',
                 newStrikethroughPrice: 'US$34.49/moper license',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-edit',
         },
         {
@@ -61,7 +61,7 @@ export default {
                 ctaText: 'Buy now',
                 newCtaText: 'Buy now 2',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-edit',
         },
     ],

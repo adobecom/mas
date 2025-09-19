@@ -10,7 +10,7 @@ export default {
                 title: 'Field Edit & Save',
                 newTitle: 'Cloned Field Edit',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-save',
         },
         {
@@ -22,7 +22,7 @@ export default {
                 description: 'MAS repo validation card for Nala tests',
                 newDescription: 'New Test Description',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-save',
         },
         {
@@ -34,7 +34,7 @@ export default {
                 iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
                 newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-save',
         },
         {
@@ -46,7 +46,7 @@ export default {
                 price: 'US$17.24/mo',
                 strikethroughPrice: 'US$34.49/mo',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-save',
         },
         {
@@ -58,7 +58,7 @@ export default {
                 ctaText: 'Buy now',
                 newCtaText: 'Buy now 2',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-save',
         },
     ],

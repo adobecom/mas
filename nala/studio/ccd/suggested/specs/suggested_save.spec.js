@@ -8,7 +8,7 @@ export default {
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
         },
         {
@@ -19,7 +19,7 @@ export default {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
         },
         {
@@ -30,7 +30,7 @@ export default {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
         },
         {
@@ -42,7 +42,7 @@ export default {
                 title: 'Field Edit & Save',
                 newTitle: 'Cloned Field Edit',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
         },
         {
@@ -54,7 +54,7 @@ export default {
                 subtitle: 'do not edit',
                 newSubtitle: 'New Subtitle',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
         },
         {
@@ -66,7 +66,7 @@ export default {
                 iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
                 newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
         },
         {
@@ -78,7 +78,7 @@ export default {
                 description: 'MAS repo validation card for Nala tests',
                 newDescription: 'New Test Description',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
         },
         {
@@ -90,7 +90,7 @@ export default {
                 newBackgroundURL:
                     'https://milo.adobe.com/assets/img/commerce/media_1d63dab9ee1edbf371d6f0548516c9e12b3ea3ff4.png',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
         },
         {
@@ -102,7 +102,7 @@ export default {
                 price: 'US$17.24/mo',
                 strikethroughPrice: 'US$34.49/mo',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
         },
         {
@@ -114,7 +114,7 @@ export default {
                 ctaText: 'Buy now',
                 newCtaText: 'Buy now 2',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
         },
         {
@@ -134,7 +134,7 @@ export default {
                 newOfferTypeTag: 'offer_type/trial',
                 newMarketSegmentsTag: 'market_segments/edu',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
         },
         {
@@ -154,7 +154,7 @@ export default {
                     color: 'rgb(255, 255, 255)',
                 },
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
         },
         {
@@ -170,7 +170,7 @@ export default {
                     mv2: '2',
                 },
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
         },
         {
@@ -185,7 +185,7 @@ export default {
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-1',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-save',
         },
     ],

@@ -8,7 +8,7 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
         {
@@ -18,7 +18,7 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
         {
@@ -30,7 +30,7 @@ export default {
                 title: 'MAS Automation Test Card',
                 newTitle: 'Change title',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
         {
@@ -42,7 +42,7 @@ export default {
                 badge: 'DO NOT EDIT',
                 newBadge: 'Change badge',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
         {
@@ -54,7 +54,7 @@ export default {
                 description: 'Edit and organize photos. Save 25% for the first 6 months. Ends Feb 26.',
                 newDescription: 'New Test Description',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
         {
@@ -66,7 +66,7 @@ export default {
                 iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
                 newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
         {
@@ -78,7 +78,7 @@ export default {
                 calloutText: 'AI Assistant add-on available',
                 newCalloutText: 'New callout text',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
         {
@@ -90,7 +90,7 @@ export default {
                 promoText: 'Test promotion text',
                 newPromoText: 'New Promo Text',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
         {
@@ -104,7 +104,7 @@ export default {
                 newPrice: 'US$17.24/moper license',
                 newStrikethroughPrice: 'US$34.49/moper license',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
         {
@@ -122,7 +122,7 @@ export default {
                 newOfferTypeTag: 'offer_type/trial',
                 newMarketSegmentsTag: 'market_segments/edu',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
         {
@@ -132,7 +132,7 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard @nopr',
         },
         {
@@ -142,7 +142,7 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
         {
@@ -153,7 +153,7 @@ export default {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 whatsIncludedText: 'List of items:',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
         {
@@ -166,7 +166,7 @@ export default {
                 colorCSS: 'rgb(245, 199, 0)',
                 newColor: 'Green 900',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
         {
@@ -179,7 +179,7 @@ export default {
                 colorCSS: 'rgb(245, 199, 0)',
                 newColor: 'Green 900',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
         {
@@ -192,7 +192,7 @@ export default {
                 colorCSS: 'rgb(245, 199, 0)',
                 newColor: 'Gray 300',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
         {
@@ -212,7 +212,7 @@ export default {
                 client: 'adobe_com',
                 promo: 'FY25PLES256MROW',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
         {
@@ -225,7 +225,7 @@ export default {
                 ctaText: 'Buy now',
                 newCtaText: 'Buy now 2',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
         {
@@ -245,7 +245,7 @@ export default {
                 },
                 newVariant: 'primary-outline',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
         {
@@ -261,7 +261,7 @@ export default {
                     mv2: '2',
                 },
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-discard',
         },
     ],

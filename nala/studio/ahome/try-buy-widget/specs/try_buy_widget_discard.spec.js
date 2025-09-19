@@ -10,7 +10,7 @@ export default {
                 price: 'US$89.99/mo',
                 newPrice: 'US$89.99/moper license',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-discard',
         },
         {
@@ -20,7 +20,7 @@ export default {
             data: {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-discard',
         },
         {
@@ -39,7 +39,7 @@ export default {
                 newOfferTypeTag: 'offer_type/trial',
                 newMarketSegmentsTag: 'market_segments/edu',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-discard',
         },
         {
@@ -51,7 +51,7 @@ export default {
                 variant: 'secondary',
                 newVariant: 'secondary-outline',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-discard',
         },
         {
@@ -67,7 +67,7 @@ export default {
                     mv2: '2',
                 },
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-discard',
         },
         {
@@ -82,7 +82,7 @@ export default {
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-1',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @try-buy-widget @try-buy-widget-discard',
         },
     ],

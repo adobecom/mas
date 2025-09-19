@@ -10,7 +10,7 @@ export default {
                 title: 'Automation Test Card',
                 newTitle: 'Change title',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
@@ -22,7 +22,7 @@ export default {
                 subtitle: 'do not edit',
                 newSubtitle: 'Change subtitle',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
@@ -34,7 +34,7 @@ export default {
                 description: 'MAS repo validation card for Nala tests',
                 newDescription: 'New Test Description',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
@@ -46,7 +46,7 @@ export default {
                 iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
                 newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
@@ -58,7 +58,7 @@ export default {
                 newBackgroundURL:
                     'https://milo.adobe.com/assets/img/commerce/media_1d63dab9ee1edbf371d6f0548516c9e12b3ea3ff4.png',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
@@ -72,7 +72,7 @@ export default {
                 newPrice: 'US$17.24/moper license',
                 newStrikethroughPrice: 'US$34.49/moper license',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
@@ -85,7 +85,7 @@ export default {
                 newCtaOption: 'Save now',
                 newCtaText: 'save-now',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
@@ -97,7 +97,7 @@ export default {
                 ctaText: 'Buy now',
                 newCtaText: 'Buy now 2',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
@@ -107,7 +107,7 @@ export default {
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
@@ -126,7 +126,7 @@ export default {
                 newOfferTypeTag: 'offer_type/trial',
                 newMarketSegmentsTag: 'market_segments/edu',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
@@ -138,7 +138,7 @@ export default {
                 variant: 'primary-outline',
                 newVariant: 'accent',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
@@ -154,7 +154,7 @@ export default {
                     mv2: '2',
                 },
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
         {
@@ -169,7 +169,7 @@ export default {
                 newAnalyticsID: 'save-now',
                 newDaaLL: 'save-now-1',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested @ccd-suggested-discard',
         },
     ],

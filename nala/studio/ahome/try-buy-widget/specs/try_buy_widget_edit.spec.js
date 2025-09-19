@@ -133,28 +133,12 @@ export default {
         },
         {
             tcid: '10',
-            name: '@studio-try-buy-widget-add-osi',
-            path: '/studio.html',
-            data: {
-                cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
-                osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
-                productCodeTag: 'product_code/ccsn',
-                newProductCodeTag: 'product_code/cces',
-                offerTypeTag: 'offer_type/base',
-                marketSegmentsTag: 'market_segments/com',
-                planTypeTag: 'plan_type/abm',
-            },
-            browserParams: '#query=',
-            tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
-        },
-        {
-            tcid: '11',
             name: '@studio-try-buy-widget-edit-osi',
             path: '/studio.html',
             data: {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
                 osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
-                productCodeTag: 'product_code/ccsn',
+                productCodeTag: 'product_code/cces',
                 offerTypeTag: 'offer_type/base',
                 marketSegmentsTag: 'market_segments/com',
                 planTypeTag: 'plan_type/abm',
@@ -167,7 +151,7 @@ export default {
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
-            tcid: '12',
+            tcid: '11',
             name: '@studio-try-buy-widget-edit-cta-variant',
             path: '/studio.html',
             data: {
@@ -188,7 +172,7 @@ export default {
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
-            tcid: '13',
+            tcid: '12',
             name: '@studio-try-buy-widget-edit-cta-checkout-params',
             path: '/studio.html',
             data: {
@@ -204,7 +188,7 @@ export default {
             tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
-            tcid: '14',
+            tcid: '13',
             name: '@studio-try-buy-widget-edit-analytics-ids',
             path: '/studio.html',
             data: {

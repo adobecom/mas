@@ -112,12 +112,12 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            await expect(await editor.iconURL).toBeVisible();
-            await editor.iconURL.fill(data.newIconURL);
+            await expect(await editor.iconURL.first()).toBeVisible();
+            await editor.iconURL.first().fill(data.newIconURL);
         });
 
         await test.step('step-4: Validate edited mnemonic URL field in Editor panel', async () => {
-            await expect(await editor.iconURL).toHaveValue(data.newIconURL);
+            await expect(await editor.iconURL.first()).toHaveValue(data.newIconURL);
         });
 
         await test.step('step-5: Validate edited mnemonic URL on the card', async () => {

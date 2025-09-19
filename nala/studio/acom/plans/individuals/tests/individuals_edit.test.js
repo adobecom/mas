@@ -193,7 +193,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.size).toBeVisible();
             await expect(await editor.title).toBeVisible();
             await expect(await editor.subtitle).not.toBeVisible();
-            await expect(await editor.badge).not.toBeVisible();
+            await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
             await expect(await editor.iconURL).toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();

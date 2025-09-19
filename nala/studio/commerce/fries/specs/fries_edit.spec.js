@@ -6,7 +6,7 @@ export default {
             name: '@studio-fries-edit-title',
             path: '/studio.html',
             data: {
-                cardid: '26f091c2-995d-4a96-a193-d62f6c73af2f',
+                cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
                 title: 'Automation Test Card',
                 newTitle: 'Change title',
             },
@@ -18,7 +18,7 @@ export default {
             name: '@studio-fries-edit-description',
             path: '/studio.html',
             data: {
-                cardid: '26f091c2-995d-4a96-a193-d62f6c73af2f',
+                cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
                 description: 'MAS repo validation card for Nala tests',
                 newDescription: 'New Test Description',
             },
@@ -30,7 +30,7 @@ export default {
             name: '@studio-fries-edit-mnemonic',
             path: '/studio.html',
             data: {
-                cardid: '26f091c2-995d-4a96-a193-d62f6c73af2f',
+                cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
                 iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
                 newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
             },
@@ -42,7 +42,7 @@ export default {
             name: '@studio-fries-edit-price',
             path: '/studio.html',
             data: {
-                cardid: '26f091c2-995d-4a96-a193-d62f6c73af2f',
+                cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
                 price: 'US$17.24/mo',
                 strikethroughPrice: 'US$34.49/mo',
                 newPrice: 'US$17.24/moper license',
@@ -56,7 +56,7 @@ export default {
             name: '@studio-fries-edit-cta-label',
             path: '/studio.html',
             data: {
-                cardid: '26f091c2-995d-4a96-a193-d62f6c73af2f',
+                cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 ctaText: 'Buy now',
                 newCtaText: 'Buy now 2',

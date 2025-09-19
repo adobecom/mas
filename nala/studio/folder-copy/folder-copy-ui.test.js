@@ -21,7 +21,7 @@ test.beforeEach(async ({ page, browserName }) => {
 test.describe('M@S Studio Folder Copy UI Validation', () => {
     // @studio-folder-copy-ui-button-exists - Validate copy to folder button exists in toolbar
     test('@studio-folder-copy-ui-button-exists - Validate copy to folder button exists', async ({ page, baseURL }) => {
-        const testCardId = 'e3901ae8-e87f-4821-8e27-6e31d2e5ffa3'; // CCD Suggested test card
+        const testCardId = '206a8742-0289-4196-92d4-ced99ec4191e'; // CCD Suggested test card
         const testPage = `${baseURL}/studio.html${miloLibs}#page=content&path=nala&query=${testCardId}`;
         console.info('[Test Page]: ', testPage);
 
@@ -50,7 +50,7 @@ test.describe('M@S Studio Folder Copy UI Validation', () => {
 
     // @studio-folder-copy-ui-dialog-opens - Validate copy dialog opens when button is clicked
     test('@studio-folder-copy-ui-dialog-opens - Validate copy dialog opens', async ({ page, baseURL }) => {
-        const testCardId = 'e3901ae8-e87f-4821-8e27-6e31d2e5ffa3'; // CCD Suggested test card
+        const testCardId = '206a8742-0289-4196-92d4-ced99ec4191e'; // CCD Suggested test card
         const testPage = `${baseURL}/studio.html${miloLibs}#page=content&path=nala&query=${testCardId}`;
         console.info('[Test Page]: ', testPage);
 
@@ -197,7 +197,7 @@ test.describe('M@S Studio Folder Copy UI Validation', () => {
 
     // @studio-folder-copy-ui-dialog-validation - Validate copy dialog input fields
     test('@studio-folder-copy-ui-dialog-validation - Validate dialog input fields', async ({ page, baseURL }) => {
-        const testCardId = 'e3901ae8-e87f-4821-8e27-6e31d2e5ffa3'; // CCD Suggested test card
+        const testCardId = '206a8742-0289-4196-92d4-ced99ec4191e'; // CCD Suggested test card
         const testPage = `${baseURL}/studio.html${miloLibs}#page=content&path=nala&query=${testCardId}`;
         console.info('[Test Page]: ', testPage);
 

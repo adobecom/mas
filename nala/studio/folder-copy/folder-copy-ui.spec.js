@@ -6,7 +6,7 @@ export default {
             name: '@studio-folder-copy-ui-button-exists',
             path: '/studio.html',
             data: {
-                cardid: 'e3901ae8-e87f-4821-8e27-6e31d2e5ffa3', // CCD Suggested test card
+                cardid: '206a8742-0289-4196-92d4-ced99ec4191e', // CCD Suggested test card
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @folder-copy @ui-validation',
@@ -16,7 +16,7 @@ export default {
             name: '@studio-folder-copy-ui-dialog-opens',
             path: '/studio.html',
             data: {
-                cardid: 'e3901ae8-e87f-4821-8e27-6e31d2e5ffa3', // CCD Suggested test card
+                cardid: '206a8742-0289-4196-92d4-ced99ec4191e', // CCD Suggested test card
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @folder-copy @ui-validation',
@@ -34,7 +34,7 @@ export default {
             name: '@studio-folder-copy-ui-dialog-validation',
             path: '/studio.html',
             data: {
-                cardid: 'e3901ae8-e87f-4821-8e27-6e31d2e5ffa3', // CCD Suggested test card
+                cardid: '206a8742-0289-4196-92d4-ced99ec4191e', // CCD Suggested test card
                 testFragmentName: 'Test Fragment Name',
             },
             browserParams: '#page=content&path=nala&query=',

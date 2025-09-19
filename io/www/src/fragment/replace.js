@@ -74,7 +74,7 @@ function replaceValues(input, dictionary, calls) {
     return replaced;
 }
 
-async function init(context) {
+function init(context) {
     return new Promise(async (resolve) => {
         // we fetch dictionary at this stage only if id has already been cached
         // because we can't know surface of fragment *before* first fetch

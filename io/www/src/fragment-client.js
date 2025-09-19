@@ -36,7 +36,7 @@ async function previewFragment(id, options) {
 
     for (const transformer of PIPELINE) {
         if (transformer.init) {
-            context.transformer = `${transformer.name}-init`;
+            context.loggedTransformer = `${transformer.name}-init`;
             context.promises = context.promises || {};
             context.promises[transformer.name] = transformer.init(context);
         }
@@ -46,7 +46,7 @@ async function previewFragment(id, options) {
             logError(context.message, context);
             break;
         }
-        context.transformer = transformer.name;
+        context.loggedTransformer = transformer.name;
         context = await transformer.process(context);
     }
     if (context.status != 200) {

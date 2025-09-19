@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 import { transformBody } from './odinSchemaTransform.js';
 
 function logPrefix(context, type = 'info') {
-    return `[${type}][${context.api_key}][${context.requestId}][${context.id}][${context.locale}][${context.transformer}]`;
+    return `[${type}][${context.api_key}][${context.requestId}][${context.id}][${context.locale}][${context.loggedTransformer}]`;
 }
 
 function log(message, context) {

@@ -108,10 +108,13 @@ async function mainProcess(context) {
         context = { ...context, translatedId, dictionaryId };
     }
 
+    // Initialize all transformers that have an init function
+    // those requests are done in parallel and results stored in context.promises
     for (const transformer of PIPELINE) {
         if (transformer.init) {
+            //we fork context to avoid init to override any context property
             const initContext = structuredClone(context);
-            initContext.transformer = `${transformer.name}-init`;
+            initContext.loggedTransformer = `${transformer.name}-init`;
             context.promises = context.promises || {};
             context.promises[transformer.name] = transformer.init(initContext);
         }
@@ -128,12 +131,12 @@ async function mainProcess(context) {
             logError(context.message, context);
             break;
         }
-        context.transformer = transformer.name;
+        context.loggedTransformer = transformer.name;
         mark(context, transformer.name);
         context = await transformer.process(context);
         measureTiming(context, transformer.name);
     }
-    context.transformer = 'pipeline';
+    context.loggedTransformer = 'pipeline';
     const returnValue = {
         statusCode: context.status,
         id: context.body?.id,

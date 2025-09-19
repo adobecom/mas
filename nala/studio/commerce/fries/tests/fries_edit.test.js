@@ -112,7 +112,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.iconURL.first()).toBeVisible();
             await editor.iconURL.first().fill(data.newIconURL);
         });
 

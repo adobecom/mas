@@ -40,6 +40,241 @@ export default class StudioPage {
         this.cloneCardButton = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="clone"]');
         this.deleteCardButton = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="delete"]');
         this.saveCardButton = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="save"]');
+
+        // Copy dialog selectors
+        this.copyToFolderButton = page.locator('sp-action-button:has(sp-icon-folder-add)');
+        // The copy dialog is rendered inside mas-toolbar's shadow DOM
+        // But Playwright can't access shadow DOM directly, so we'll use evaluator
+        this.copyDialog = page.locator('mas-copy-dialog');
+
+        // Selection panel
+        this.selectionPanel = page.locator('mas-selection-panel');
+        this.selectionPanelCopyButton = page.locator('mas-selection-panel sp-action-button[label="Copy to folder"]');
+
+        // Selection mode
+        this.selectButton = page.locator('sp-button:has-text("Select")');
+        this.cardOverlay = page.locator('.overlay');
+        this.actionBar = page.locator('sp-action-bar');
+    }
+
+    // Helper methods for shadow DOM interaction
+    async getCopyDialogElement(selector) {
+        return this.page.evaluate((sel) => {
+            // First try to find dialog in toolbar's shadow DOM
+            const toolbar = document.querySelector('mas-toolbar');
+            let dialog = null;
+
+            if (toolbar?.shadowRoot) {
+                dialog = toolbar.shadowRoot.querySelector('mas-copy-dialog');
+            }
+
+            // Fallback to document if not found in toolbar
+            if (!dialog) {
+                dialog = document.querySelector('mas-copy-dialog');
+            }
+
+            if (!dialog || !dialog.shadowRoot) return null;
+            return dialog.shadowRoot.querySelector(sel);
+        }, selector);
+    }
+
+    async clickCopyDialogElement(selector) {
+        await this.page.evaluate((sel) => {
+            // First try to find dialog in toolbar's shadow DOM
+            const toolbar = document.querySelector('mas-toolbar');
+            let dialog = null;
+
+            if (toolbar?.shadowRoot) {
+                dialog = toolbar.shadowRoot.querySelector('mas-copy-dialog');
+            }
+
+            // Fallback to document if not found in toolbar
+            if (!dialog) {
+                dialog = document.querySelector('mas-copy-dialog');
+            }
+
+            if (!dialog || !dialog.shadowRoot) return;
+
+            // Handle text-based selectors
+            let element;
+            if (sel.includes(':has-text(')) {
+                // Extract the text from the selector
+                const match = sel.match(/(.+):has-text\("(.+)"\)/);
+                if (match) {
+                    const baseSelector = match[1];
+                    const text = match[2];
+                    const elements = dialog.shadowRoot.querySelectorAll(baseSelector);
+                    element = Array.from(elements).find((el) => el.textContent.includes(text));
+                }
+            } else {
+                element = dialog.shadowRoot.querySelector(sel);
+            }
+
+            if (!element) return;
+
+            // For Spectrum pickers, click the button that opens the dropdown
+            if (element.tagName === 'SP-PICKER' && element.shadowRoot) {
+                const button = element.shadowRoot.querySelector('button');
+                if (button) {
+                    button.click();
+                    return;
+                }
+            }
+
+            // Default click behavior
+            element.click();
+        }, selector);
+    }
+
+    async getCopyDialogInputValue(selector) {
+        return this.page.evaluate((sel) => {
+            // First try to find dialog in toolbar's shadow DOM
+            const toolbar = document.querySelector('mas-toolbar');
+            let dialog = null;
+
+            if (toolbar?.shadowRoot) {
+                dialog = toolbar.shadowRoot.querySelector('mas-copy-dialog');
+            }
+
+            // Fallback to document if not found in toolbar
+            if (!dialog) {
+                dialog = document.querySelector('mas-copy-dialog');
+            }
+
+            if (!dialog || !dialog.shadowRoot) return null;
+            const element = dialog.shadowRoot.querySelector(sel);
+            if (!element) return null;
+
+            // For Spectrum components, use the value property directly
+            if (element.value !== undefined) {
+                return element.value;
+            }
+
+            // For elements with shadow DOM, try to find input inside
+            if (element.shadowRoot) {
+                const innerInput = element.shadowRoot.querySelector('input, textarea, sp-textfield');
+                return innerInput ? innerInput.value : null;
+            }
+
+            return null;
+        }, selector);
+    }
+
+    async setCopyDialogInputValue(selector, value) {
+        await this.page.evaluate(
+            ({ sel, val }) => {
+                // First try to find dialog in toolbar's shadow DOM
+                const toolbar = document.querySelector('mas-toolbar');
+                let dialog = null;
+
+                if (toolbar?.shadowRoot) {
+                    dialog = toolbar.shadowRoot.querySelector('mas-copy-dialog');
+                }
+
+                // Fallback to document if not found in toolbar
+                if (!dialog) {
+                    dialog = document.querySelector('mas-copy-dialog');
+                }
+
+                if (!dialog || !dialog.shadowRoot) return;
+                const element = dialog.shadowRoot.querySelector(sel);
+                if (!element) return;
+
+                // For Spectrum components, set value and dispatch events
+                if (element.value !== undefined) {
+                    element.value = val;
+                    element.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                    element.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                } else if (element.shadowRoot) {
+                    // For elements with shadow DOM, find and update inner input
+                    const innerInput = element.shadowRoot.querySelector('input, textarea');
+                    if (innerInput) {
+                        innerInput.value = val;
+                        innerInput.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                        innerInput.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                    }
+                }
+            },
+            { sel: selector, val: value },
+        );
+    }
+
+    async isCopyDialogElementVisible(selector) {
+        return this.page.evaluate((sel) => {
+            // First try to find dialog in toolbar's shadow DOM
+            const toolbar = document.querySelector('mas-toolbar');
+            let dialog = null;
+
+            if (toolbar?.shadowRoot) {
+                dialog = toolbar.shadowRoot.querySelector('mas-copy-dialog');
+            }
+
+            // Fallback to document if not found in toolbar
+            if (!dialog) {
+                dialog = document.querySelector('mas-copy-dialog');
+            }
+
+            if (!dialog || !dialog.shadowRoot) return false;
+            const element = dialog.shadowRoot.querySelector(sel);
+            if (!element) return false;
+
+            // Check if element is visible
+            const rect = element.getBoundingClientRect();
+            const isVisible = rect.width > 0 && rect.height > 0;
+
+            // For Spectrum components with shadow DOM, check if they have visible content
+            if (element.shadowRoot) {
+                // Check if there's a visible input or other content inside
+                const innerInput = element.shadowRoot.querySelector('input, textarea, [role="textbox"]');
+                if (innerInput) {
+                    const innerRect = innerInput.getBoundingClientRect();
+                    return innerRect.width > 0 && innerRect.height > 0;
+                }
+                // For other shadow DOM elements, check if the host is visible
+                return isVisible;
+            }
+
+            return isVisible;
+        }, selector);
+    }
+
+    async getCopyDialogElementAttribute(selector, attribute) {
+        return this.page.evaluate(
+            ({ sel, attr }) => {
+                // First try to find dialog in toolbar's shadow DOM
+                const toolbar = document.querySelector('mas-toolbar');
+                let dialog = null;
+
+                if (toolbar?.shadowRoot) {
+                    dialog = toolbar.shadowRoot.querySelector('mas-copy-dialog');
+                }
+
+                // Fallback to document if not found in toolbar
+                if (!dialog) {
+                    dialog = document.querySelector('mas-copy-dialog');
+                }
+
+                if (!dialog || !dialog.shadowRoot) return null;
+
+                // Handle text-based selectors
+                let element;
+                if (sel.includes(':has-text(')) {
+                    // Extract the text from the selector
+                    const match = sel.match(/(.+):has-text\("(.+)"\)/);
+                    if (match) {
+                        const baseSelector = match[1];
+                        const text = match[2];
+                        const elements = dialog.shadowRoot.querySelectorAll(baseSelector);
+                        element = Array.from(elements).find((el) => el.textContent.includes(text));
+                    }
+                } else {
+                    element = dialog.shadowRoot.querySelector(sel);
+                }
+
+                return element ? element.getAttribute(attr) : null;
+            },
+            { sel: selector, attr: attribute },
+        );
     }
 
     async getCard(id, cloned, secondID) {

@@ -28,18 +28,17 @@ test.beforeEach(async ({ page, browserName }) => {
     webUtil = new WebUtil(page);
     editor = new EditorPage(page);
     ost = new OSTPage(page);
-    clonedCardID = null; // Reset for each test to avoid cross-test pollution
 });
 
 test.afterEach(async ({ page }) => {
-    // Try to close editor if open
-    try {
-        if (await editor.panel.isVisible()) {
-            await editor.closeEditor.click();
-            await expect(await editor.panel).not.toBeVisible();
-        }
-    } catch (error) {
-        console.log('Editor close failed (non-critical):', error.message);
+    if (await editor.panel.isVisible()) {
+        await editor.closeEditor.click();
+        await expect(await editor.panel).not.toBeVisible();
+    }
+
+    if (clonedCardID && (await (await studio.getCard(clonedCardID)).isVisible())) {
+        await studio.deleteCard(clonedCardID);
+        await expect(await studio.getCard(clonedCardID)).not.toBeVisible();
     }
 
     await page.close();
@@ -62,7 +61,6 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-
             data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
@@ -97,7 +95,6 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-
             data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
@@ -132,7 +129,6 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-
             data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
@@ -170,7 +166,6 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-
             data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
@@ -204,7 +199,6 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-
             data.clonedCardID = await clonedCardID;
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();

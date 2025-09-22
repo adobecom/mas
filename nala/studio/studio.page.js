@@ -74,6 +74,19 @@ export default class StudioPage {
             }
 
             if (!dialog || !dialog.shadowRoot) return null;
+
+            // Handle text-based selectors
+            if (sel.includes(':has-text(')) {
+                // Extract the base selector and text
+                const match = sel.match(/(.+):has-text\("(.+)"\)/);
+                if (match) {
+                    const baseSelector = match[1];
+                    const text = match[2];
+                    const elements = dialog.shadowRoot.querySelectorAll(baseSelector);
+                    return Array.from(elements).find((el) => el.textContent.includes(text)) || null;
+                }
+            }
+
             return dialog.shadowRoot.querySelector(sel);
         }, selector);
     }

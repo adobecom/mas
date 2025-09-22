@@ -26,7 +26,8 @@ function extractValue(ref) {
     return value.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').replace(/"/g, '\\"');
 }
 
-async function getDictionary(context) {
+export async function getDictionary(context) {
+    if (context.hasExternalDictionary) return context.dictionary;
     const dictionary = context.dictionary || {};
     const id = context.dictionaryId ?? (await getDictionaryId(context));
     if (!id) {

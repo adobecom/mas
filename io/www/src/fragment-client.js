@@ -7,7 +7,7 @@
 import { logError } from './fragment/common.js';
 import { transformer as corrector } from './fragment/corrector.js';
 import { transformer as fetchFragment } from './fragment/fetch.js';
-import { transformer as replace } from './fragment/replace.js';
+import { transformer, getDictionary as replace } from './fragment/replace.js';
 import { transformer as settings } from './fragment/settings.js';
 import { transformer as translate } from './fragment/translate.js';
 
@@ -55,4 +55,43 @@ async function previewFragment(id, options) {
     return context.body;
 }
 
-export { previewFragment };
+async function previewStudioFragment(body, options) {
+    const {
+        locale = 'en_US',
+        preview = {
+            url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+        },
+        dictionary,
+        ...rest
+    } = options;
+    let context = {
+        body,
+        status: 200,
+        preview,
+        requestId: 'preview',
+        networkConfig: {
+            mainTimeout: 15000,
+            fetchTimeout: 10000,
+            retries: 3,
+        },
+        api_key: 'n/a',
+        locale,
+        dictionary,
+        hasExternalDictionary: Boolean(dictionary),
+        ...rest,
+    };
+    for (const transformer of [settings, replace, corrector]) {
+        if (context.status != 200) {
+            logError(context.message, context);
+            break;
+        }
+        context.transformer = transformer.name;
+        context = await transformer(context);
+    }
+    if (context.status != 200) {
+        logError(context.message, context);
+    }
+    return context.body;
+}
+
+export { previewFragment, previewStudioFragment, translate, settings, replace, getDictionary, corrector };

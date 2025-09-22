@@ -69,7 +69,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await editor.subtitle).not.toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.mnemonicField).toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.prices).not.toBeVisible();
             await expect(await editor.footer).toBeVisible();
@@ -203,13 +203,38 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            await expect(await editor.iconURL).toBeVisible();
-            await expect(await editor.iconURL).toHaveValue(data.iconURL);
-            await editor.iconURL.fill(data.newIconURL);
+            // Check if mnemonic field is visible
+            await expect(await editor.mnemonicField.first()).toBeVisible();
+
+            // Click edit button to open modal
+            await editor.mnemonicEditButton.first().click();
+            await page.waitForTimeout(1000); // Wait for modal to open
+            await expect(await editor.mnemonicModalDialog.first()).toBeVisible();
+
+            // Switch to URL tab
+            await editor.mnemonicUrlTab.first().click();
+
+            // Fill in the new icon URL
+            await editor.mnemonicUrlIconInput.first().fill('');
+            await page.waitForTimeout(500);
+            await editor.mnemonicUrlIconInput.first().fill(data.newIconURL);
+            await page.waitForTimeout(500);
+
+            // Save the changes using Update Icon button
+            const updateButton = page.locator('mas-mnemonic-modal >> sp-button:has-text("Update Icon")').first();
+            await updateButton.click();
+            await page.waitForTimeout(1000);
+
+            // If modal is still open, use keyboard to submit
+            if (await editor.mnemonicModalDialog.first().isVisible()) {
+                await updateButton.focus();
+                await page.keyboard.press('Enter');
+                await page.waitForTimeout(1000);
+            }
         });
 
         await test.step('step-4: Validate edited mnemonic URL field in Editor panel', async () => {
-            await expect(await editor.iconURL).toHaveValue(data.newIconURL);
+            await expect(await editor.mnemonicIcon.first()).toHaveAttribute('src', data.newIconURL);
         });
 
         await test.step('step-5: Validate edited mnemonic URL on the card', async () => {
@@ -590,7 +615,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await editor.subtitle).not.toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.mnemonicField).toBeVisible();
             await expect(await editor.borderColor).toBeVisible();
             await expect(await editor.backgroundColor).toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();

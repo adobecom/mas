@@ -15,7 +15,7 @@ export default class EditorPage {
         this.badgeColor = this.panel.locator('sp-picker#badgeColor');
         this.badgeBorderColor = this.panel.locator('sp-picker#badgeBorderColor');
         this.cardBorderColor = this.panel.locator('sp-picker#border-color');
-        this.iconURL = this.panel.locator('#icon input');
+        this.iconURL = this.panel.locator('#icon input'); // Legacy selector for old tests
         this.promoText = this.panel.locator('#promo-text input');
         this.backgroundImage = this.panel.locator('#background-image input');
         this.prices = this.panel.locator('sp-field-group#prices');
@@ -43,6 +43,24 @@ export default class EditorPage {
         this.whatsIncludedIconLabel = this.panel.locator('#whatsIncluded #text input');
         this.whatsIncludedIconRemoveButton = this.panel.locator('#whatsIncluded sp-icon-close');
         this.closeEditor = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="close"]');
+
+        // Mnemonic field selectors - using >> for shadow DOM piercing
+        this.mnemonicField = this.panel.locator('mas-mnemonic-field');
+        this.mnemonicEditButton = this.panel.locator('mas-mnemonic-field >> sp-icon-edit').first();
+        this.mnemonicPreview = this.panel.locator('mas-mnemonic-field >> .mnemonic-preview');
+        this.mnemonicIcon = this.panel.locator('mas-mnemonic-field >> .icon-preview img');
+        this.mnemonicIconPlaceholder = this.panel.locator('mas-mnemonic-field >> .icon-placeholder');
+
+        // Mnemonic modal selectors (for when modal is opened)
+        this.mnemonicModal = page.locator('mas-mnemonic-modal');
+        this.mnemonicModalDialog = page.locator('mas-mnemonic-modal >> sp-dialog');
+        this.mnemonicModalUnderlay = page.locator('mas-mnemonic-modal >> sp-underlay[open]');
+        this.mnemonicModalSaveButton = page.locator('mas-mnemonic-modal >> sp-button[variant="accent"]');
+        this.mnemonicModalCancelButton = page.locator('mas-mnemonic-modal >> sp-button[variant="secondary"]');
+        this.mnemonicUrlTab = page.locator('mas-mnemonic-modal >> sp-tab[value="url"]');
+        this.mnemonicUrlIconInput = page.locator(
+            'mas-mnemonic-modal >> sp-tab-panel[value="url"] >> sp-textfield#url-icon >> input',
+        );
 
         // Price templates
         this.regularPrice = page.locator('span[is="inline-price"][data-template="price"]');

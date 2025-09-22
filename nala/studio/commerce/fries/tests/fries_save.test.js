@@ -136,16 +136,44 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic and save card', async () => {
-            // Use first() to avoid multiple elements issue
-            const iconInput = await editor.iconURL.first();
-            await expect(iconInput).toBeVisible();
-            await iconInput.fill(data.newIconURL);
+            // Check if mnemonic field is visible - use first() to handle multiple elements
+            await expect(await editor.mnemonicField.first()).toBeVisible();
+
+            // Click edit button to open modal - use first() to handle multiple elements
+            await editor.mnemonicEditButton.first().click();
+            await page.waitForTimeout(1000); // Wait for modal to open
+            await expect(await editor.mnemonicModalDialog.first()).toBeVisible();
+
+            await editor.mnemonicUrlTab.first().click();
+
+            await editor.mnemonicUrlIconInput.first().fill('');
+            await page.waitForTimeout(500);
+            await editor.mnemonicUrlIconInput.first().fill(data.newIconURL);
+            await page.waitForTimeout(500);
+
+            // Verify the value was set correctly before saving
+            const inputValue = await editor.mnemonicUrlIconInput.first().inputValue();
+            expect(inputValue).toBe(data.newIconURL);
+
+            const updateButton = page.locator('mas-mnemonic-modal >> sp-button:has-text("Update Icon")').first();
+            await updateButton.click();
+            await page.waitForTimeout(1000);
+
+            // If modal is still open, use keyboard to submit
+            if (await editor.mnemonicModalDialog.first().isVisible()) {
+                await updateButton.focus();
+                await page.keyboard.press('Enter');
+                await page.waitForTimeout(1000);
+            }
+
+            // Wait for the modal to close completely with timeout
+            await expect(await editor.mnemonicModalDialog.first()).not.toBeVisible({ timeout: 10000 });
+
             await studio.saveCard();
         });
 
         await test.step('step-4: Validate edited card mnemonic', async () => {
-            const iconInput = await editor.iconURL.first();
-            await expect(iconInput).toHaveValue(data.newIconURL);
+            await expect(await editor.mnemonicIcon.first()).toHaveAttribute('src', data.newIconURL);
             await expect(await clonedCard.locator(fries.icon).first()).toHaveAttribute('src', data.newIconURL);
         });
     });

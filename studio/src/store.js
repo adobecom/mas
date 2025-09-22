@@ -58,18 +58,6 @@ const Store = {
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
     preview: new ReactiveStore(null, previewValidator),
-    // NEW STUFF
-    content: {
-        loaded: new MapStore(),
-        showing: new ReactiveStore([]),
-        recentlyUpdated: new ReactiveStore([]),
-        total: new ReactiveStore(0),
-        loading: new ReactiveStore(true),
-        search: new ReactiveStore({ field: null, query: '' }),
-        filters: new ReactiveStore({ tags: EMPTY_TAGS }),
-        sort: new ReactiveStore({}),
-        pagination: new PaginationStore(),
-    },
     surface: new ReactiveStore(null),
     locale: new ReactiveStore('en_US', localeValidator),
 };
@@ -246,12 +234,6 @@ export default Store;
 // Reset sort on page change
 Store.page.subscribe((value) => {
     Store.sort.set({ sortBy: SORT_COLUMNS[value]?.[0], sortDirection: 'asc' });
-});
-
-Store.content.loaded.subscribeToAddition((values) => {
-    for (const fragmentStore of values) {
-        fragmentStore.resolvePreviewFragment();
-    }
 });
 
 Store.placeholders.preview.subscribe(() => {

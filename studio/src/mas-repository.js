@@ -118,22 +118,19 @@ export class MasRepository extends LitElement {
 
     handleSearch() {
         if (!Store.profile.value) return;
-        // switch (this.page.value) {
-        //     case PAGE_NAMES.CONTENT:
-        //         this.searchFragments();
-        //         this.loadPreviewPlaceholders();
-        //         break;
-        //     case PAGE_NAMES.WELCOME:
-        //         this.loadRecentlyUpdatedFragments();
-        //         this.loadPreviewPlaceholders();
-        //         break;
-        //     case PAGE_NAMES.PLACEHOLDERS:
-        //         this.loadPlaceholders();
-        //         break;
-        // }
-        this.lloadContent();
-        this.loadPlaceholders();
-        this.loadRecentlyUpdatedFragments();
+        switch (this.page.value) {
+            case PAGE_NAMES.CONTENT:
+                this.searchFragments();
+                this.loadPreviewPlaceholders();
+                break;
+            case PAGE_NAMES.WELCOME:
+                this.loadRecentlyUpdatedFragments();
+                this.loadPreviewPlaceholders();
+                break;
+            case PAGE_NAMES.PLACEHOLDERS:
+                this.loadPlaceholders();
+                break;
+        }
     }
 
     async loadFolders() {

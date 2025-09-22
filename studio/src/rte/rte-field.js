@@ -35,6 +35,9 @@ const CUSTOM_MARKS_DATA = [
     ['heading-s', 'Heading S'],
     ['heading-m', 'Heading M'],
     [],
+    ['text-s', 'Text S'],
+    ['text-l', 'Text L'],
+    [],
     ['promo-text', 'Promo text'],
     ['promo-duration-text', 'Promo duration text'],
     ['mnemonic-text', 'Mnemonic Text'],
@@ -502,6 +505,16 @@ class RteField extends LitElement {
                         line-height: var(--consonant-merch-card-heading-l-line-height);
                         font-weight: 900;
                     }
+                }
+
+                div.ProseMirror span.text-s {
+                    font-size: 14px;
+                    line-height: 18px;
+                }
+
+                div.ProseMirror span.text-l {
+                    font-size: 18px;
+                    line-height: 23px;
                 }
 
                 div.ProseMirror span.promo-text {

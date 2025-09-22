@@ -7,7 +7,7 @@
 import { logError } from './fragment/common.js';
 import { transformer as corrector } from './fragment/corrector.js';
 import { transformer as fetchFragment } from './fragment/fetch.js';
-import { transformer, getDictionary as replace } from './fragment/replace.js';
+import { getDictionary, transformer as replace } from './fragment/replace.js';
 import { transformer as settings } from './fragment/settings.js';
 import { transformer as translate } from './fragment/translate.js';
 
@@ -55,6 +55,7 @@ async function previewFragment(id, options) {
     return context.body;
 }
 
+/* c8 ignore next 38 */
 async function previewStudioFragment(body, options) {
     const {
         locale = 'en_US',

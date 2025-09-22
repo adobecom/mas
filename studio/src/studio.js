@@ -10,6 +10,7 @@ import './mas-content.js';
 import './mas-repository.js';
 import './mas-toast.js';
 import './mas-splash-screen.js';
+import './mas-loader.js';
 import './filters/locale-picker.js';
 import './fields/user-picker.js';
 import './mas-recently-updated.js';
@@ -42,9 +43,7 @@ class MasStudio extends LitElement {
         masJsReady: { type: Boolean, state: true },
     };
 
-    #unsubscribeLocaleObserver;
-    #unsubscribeLandscapeObserver;
-    #unsubscribeConsumerObserver;
+    #unsubscribers = [];
     constructor() {
         super();
         this.bucket = 'e59433';
@@ -70,12 +69,12 @@ class MasStudio extends LitElement {
 
     subscribeLocaleObserver() {
         const subscription = (value, oldValue) => {
-            if (value.locale !== oldValue.locale) {
+            if (value !== oldValue) {
                 this.renderCommerceService();
             }
         };
-        Store.filters.subscribe(subscription);
-        this.#unsubscribeLocaleObserver = () => Store.filters.unsubscribe(subscription);
+        Store.locale.subscribe(subscription);
+        this.#unsubscribers.push(() => Store.locale.unsubscribe(subscription));
     }
 
     subscribeLandscapeObserver() {
@@ -85,24 +84,22 @@ class MasStudio extends LitElement {
             }
         };
         Store.landscape.subscribe(subscription);
-        this.#unsubscribeLandscapeObserver = () => Store.landscape.unsubscribe(subscription);
+        this.#unsubscribers.push(() => Store.landscape.unsubscribe(subscription));
     }
 
     subscribeConsumerObserver() {
         const subscription = (value, oldValue) => {
-            if (value.path !== oldValue.path) {
+            if (value !== oldValue) {
                 this.renderCommerceService();
             }
         };
-        Store.search.subscribe(subscription);
-        this.#unsubscribeConsumerObserver = () => Store.search.unsubscribe(subscription);
+        Store.surface.subscribe(subscription);
+        this.#unsubscribers.push(() => Store.surface.unsubscribe(subscription));
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        this.#unsubscribeLocaleObserver();
-        this.#unsubscribeLandscapeObserver();
-        this.#unsubscribeConsumerObserver();
+        for (const unsubscribe of this.#unsubscribers) unsubscribe();
     }
 
     createRenderRoot() {
@@ -121,6 +118,7 @@ class MasStudio extends LitElement {
         return html`<div id="content-container">
             <mas-toolbar></mas-toolbar>
             <mas-content></mas-content>
+            <div id="content-anchor"></div>
         </div> `;
     }
 
@@ -135,8 +133,8 @@ class MasStudio extends LitElement {
     }
 
     renderCommerceService() {
-        const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.search.value.path]?.['mas-ff-defaults'] ?? 'off';
-        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
+        const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.surface.value]?.['mas-ff-defaults'] ?? 'off';
+        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.locale.value}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
 
         // Update service landscape settings based on Store.landscape
         if (this.commerceService?.settings && Store.landscape.value) {

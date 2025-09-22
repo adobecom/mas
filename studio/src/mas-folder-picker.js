@@ -40,9 +40,8 @@ export class MasFolderPicker extends LitElement {
     surface = new StoreController(this, Store.surface);
     selecting = new StoreController(this, Store.selecting);
 
-    _handleSelection(selectedValue) {
+    handleSelection(selectedValue) {
         Store.surface.set(selectedValue);
-        Store.fragments.list.data.set([]);
     }
 
     render() {
@@ -77,7 +76,7 @@ export class MasFolderPicker extends LitElement {
                                 <sp-menu-item
                                     .value=${value}
                                     ?selected=${this.surface.value === value}
-                                    @click=${() => this._handleSelection(value)}
+                                    @click=${() => this.handleSelection(value)}
                                 >
                                     <div class="test">${label}</div>
                                 </sp-menu-item>

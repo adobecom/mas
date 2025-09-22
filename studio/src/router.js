@@ -1,4 +1,4 @@
-import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
+import { EMPTY_TAGS, PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
 import Store from './store.js';
 import { debounce } from './utils.js';
 
@@ -35,10 +35,9 @@ export class Router extends EventTarget {
             const editorPanel = document.querySelector('editor-panel');
             const confirmed = !Store.editor.hasChanges || (await editorPanel.promptDiscardChanges());
             if (confirmed) {
-                Store.fragments.inEdit.set();
-                Store.fragments.list.data.set([]);
-                Store.search.set((prev) => ({ ...prev, query: undefined }));
-                Store.filters.set((prev) => ({ ...prev, tags: undefined }));
+                Store.content.inEdit.set(null);
+                Store.content.search.set({ field: 'all', query: '' });
+                Store.content.filters.tags.set([]);
                 Store.page.set(value);
             }
         };
@@ -114,7 +113,7 @@ export class Router extends EventTarget {
         });
 
         const newValue = store.get();
-        const isObject = typeof newValue === 'object' && newValue !== null;
+        const isObject = typeof newValue === 'object' && newValue !== null && !Array.isArray(newValue);
         // Initial sync from hash to store
         this.syncStoreFromHash(store, newValue, isObject, keysArray, defaultValue);
 
@@ -139,7 +138,12 @@ export class Router extends EventTarget {
                     continue;
                 }
 
-                const stringValue = typeof storeValue === 'object' ? JSON.stringify(storeValue) : String(storeValue);
+                /* No support for array values that contain objects - only primitives */
+                const stringValue = Array.isArray(storeValue)
+                    ? storeValue.join(',')
+                    : typeof storeValue === 'object'
+                      ? JSON.stringify(storeValue)
+                      : String(storeValue);
 
                 if (self.currentParams.get(key) !== stringValue) {
                     self.currentParams.set(key, stringValue);
@@ -166,17 +170,14 @@ export class Router extends EventTarget {
     start() {
         this.currentParams = new URLSearchParams(this.location.hash.slice(1));
         this.linkStoreToHash(Store.page, 'page', PAGE_NAMES.WELCOME);
-        // this.linkStoreToHash(Store.search, ['path', 'query'], {});
-        // this.linkStoreToHash(Store.filters, ['locale', 'tags'], {
-        //     locale: 'en_US',
-        // });
-        // this.linkStoreToHash(Store.sort, ['sortBy', 'sortDirection'], getSortDefaultValue);
+        this.linkStoreToHash(Store.sort, ['sortBy', 'sortDirection'], getSortDefaultValue);
         this.linkStoreToHash(Store.surface, 'surface');
         this.linkStoreToHash(Store.locale, 'locale', 'en_US');
         this.linkStoreToHash(Store.content.search, ['field', 'query'], { field: 'all' });
+        this.linkStoreToHash(Store.content.filters.tags, 'tags');
         this.linkStoreToHash(Store.placeholders.search, 'search');
         this.linkStoreToHash(Store.landscape, 'commerce.landscape', WCS_LANDSCAPE_PUBLISHED);
-        if (Store.search.value.query) {
+        if (Store.content.search.value.query) {
             Store.page.set(PAGE_NAMES.CONTENT);
         }
         window.addEventListener('hashchange', () => {

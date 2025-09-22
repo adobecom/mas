@@ -6,7 +6,7 @@ import Store from './store.js';
 import './mas-fragment.js';
 import Events from './events.js';
 import { CARD_MODEL_PATH } from './constants.js';
-import './mas-pagination.js';
+import './content-handling.js';
 
 const variantValues = VARIANTS.map((v) => v.value);
 class MasContent extends LitElement {
@@ -17,12 +17,11 @@ class MasContent extends LitElement {
     constructor() {
         super();
         this.goToFragment = this.goToFragment.bind(this);
-        this.subscriptions = [];
+        this.anchorObserver = null;
     }
 
     loading = new StoreController(this, Store.content.loading);
-    firstPageLoaded = new StoreController(this, Store.fragments.list.firstPageLoaded);
-    fragments = new StoreController(this, Store.content.showing);
+    fragments = new StoreController(this, Store.content.displaying);
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
     selection = new StoreController(this, Store.selection);
@@ -31,47 +30,30 @@ class MasContent extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+
         Events.fragmentAdded.subscribe(this.goToFragment);
         Events.fragmentDeleted.subscribe(this.onFragmentDeleted);
-
-        this.subscriptions.push(
-            Store.fragments.list.data.subscribe(() => {
-                this.requestUpdate();
-            }),
+        this.anchorObserver = new IntersectionObserver(
+            ([entry]) => {
+                if (!entry.isIntersecting) return;
+                Events.scrolledToBottom.emit();
+            },
+            { threshold: 0 },
         );
-
-        this.subscriptions.push(
-            Store.filters.subscribe(() => {
-                this.requestUpdate();
-            }),
-        );
+        this.anchorObserver.observe(document.querySelector('#content-anchor'));
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
+
         Events.fragmentAdded.unsubscribe(this.goToFragment);
         Events.fragmentDeleted.unsubscribe(this.onFragmentDeleted);
-
-        if (this.subscriptions && this.subscriptions.length) {
-            this.subscriptions.forEach((subscription) => {
-                if (subscription) {
-                    subscription.unsubscribe();
-                }
-            });
-        }
-        this.subscriptions = [];
+        this.anchorObserver.disconnect();
     }
 
     onFragmentDeleted(fragment) {
-        Store.fragments.list.data.set((prev) => {
-            const result = [...prev];
-            const index = result.findIndex((fragmentStore) => fragmentStore.get().id === fragment.id);
-            if (index !== -1) {
-                result.splice(index, 1);
-            }
-            return result;
-        });
-        Store.fragments.inEdit.set(null);
+        Store.content.data.remove(fragment.id);
+        Store.Store.content.inEdit.set(null);
     }
 
     async goToFragment(id, skipUpdate = false) {
@@ -134,16 +116,9 @@ class MasContent extends LitElement {
         </sp-table>`;
     }
 
-    /** main spinner to show while loading the first page */
-    get firstPageLoadingSpinner() {
-        if (!this.loading.value || this.firstPageLoaded.value) return nothing;
-        return html`<sp-progress-circle class="fragments" indeterminate size="l"></sp-progress-circle>`;
-    }
-
-    /** spinner to show at the bottom of the page if next page is being loaded */
-    get pageLoadingSpinner() {
-        if (!this.loading.value || !this.firstPageLoaded.value) return nothing;
-        return html`<sp-progress-circle class="next-page" indeterminate size="l"></sp-progress-circle>`;
+    get loader() {
+        if (!this.loading.value) return nothing;
+        return html`<mas-loader></mas-loader>`;
     }
 
     render() {
@@ -158,13 +133,8 @@ class MasContent extends LitElement {
             default:
                 view = this.renderView;
         }
-        return html`<div id="content">
-                ${view}${this.firstPageLoadingSpinner}
-                <sp-popover class="pagination-wrapper" open>
-                    <mas-pagination .store=${Store.content.pagination} total=${this.total.value}></mas-pagination>
-                </sp-popover>
-            </div>
-            ${this.pageLoadingSpinner}`;
+        return html`<div id="content">${view}</div>
+            ${this.loader}`;
     }
 }
 

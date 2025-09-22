@@ -109,6 +109,11 @@ side-nav sp-sidenav-item:hover {
     position: relative;
 }
 
+#content-anchor {
+    position: absolute;
+    bottom: 300px;
+}
+
 mas-studio > ul > li {
     list-style: none;
     position: relative;
@@ -605,4 +610,7 @@ sp-progress-circle.next-page {
     padding-block: 10px;
     left: calc(50% + 120px); /* Account for sidenav */
     transform: translateX(-50%);
+}
+
+#content-anchor {
 }

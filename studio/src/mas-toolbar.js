@@ -5,6 +5,7 @@ import './mas-folder-picker.js';
 import './aem/mas-filter-panel.js';
 import './mas-selection-panel.js';
 import './mas-create-dialog.js';
+import './filters/label-select.js';
 
 const renderModes = [
     {
@@ -74,6 +75,10 @@ class MasToolbar extends LitElement {
             margin-left: auto;
         }
 
+        #search-field-label {
+            display: flex;
+        }
+
         sp-button {
             white-space: nowrap;
         }
@@ -135,54 +140,34 @@ class MasToolbar extends LitElement {
         this.filterCount = 0;
     }
 
-    filters = new StoreController(this, Store.filters);
     search = new StoreController(this, Store.content.search);
+    tags = new StoreController(this, Store.content.filters.tags);
+    createdByUsers = new StoreController(this, Store.createdByUsers);
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
-    loading = new StoreController(this, Store.fragments.list.loading);
+    loading = new StoreController(this, Store.content.loading);
 
     connectedCallback() {
         super.connectedCallback();
-
         this.updateFilterCount();
-
-        this.filtersSubscription = Store.filters.subscribe(() => {
-            this.updateFilterCount();
-        });
-    }
-
-    disconnectedCallback() {
-        super.disconnectedCallback();
-
-        if (this.filtersSubscription) {
-            this.filtersSubscription.unsubscribe();
-        }
     }
 
     update() {
-        if (Store.createdByUsers.value.length > 0) {
-            this.filtersShown = true;
-        }
         super.update();
+        this.updateFilterCount();
     }
 
     updateFilterCount() {
-        const filters = Store.filters.get();
-        if (!filters || !filters.tags) {
-            this.filterCount = 0;
-            return;
+        let count = 0;
+
+        /* For the tags structure, check EMPTY_TAGS */
+        for (const categoryValues of Object.values(this.tags.value)) {
+            if (categoryValues.length > 0) count++;
         }
 
-        if (typeof filters.tags === 'string') {
-            this.filterCount = filters.tags.split(',').filter(Boolean).length;
-        } else if (Array.isArray(filters.tags)) {
-            this.filterCount = filters.tags.filter(Boolean).length;
-        } else {
-            this.filterCount = 0;
-        }
-        if (Store.createdByUsers.value.length > 0) {
-            this.filterCount += 1;
-        }
+        if (this.createdByUsers.value.length > 0) count++;
+
+        this.filterCount = count;
         if (this.filterCount > 0) {
             this.filtersShown = true;
         }
@@ -223,7 +208,19 @@ class MasToolbar extends LitElement {
     }
 
     handleFieldChange(ev) {
-        Store.content.search.set((prev) => ({ ...prev, field: ev.target.value }));
+        Store.content.search.set((prev) => ({ ...prev, field: ev.detail }));
+    }
+
+    get fieldOptions() {
+        return [
+            { value: 'all', label: 'All' },
+            { value: 'cardTitle', label: 'Title' },
+            { value: 'subtitle', label: 'Subtitle' },
+            { value: 'promoText', label: 'Promo text' },
+            { value: 'description', label: 'Description' },
+            { value: 'whatsIncluded', label: "What's included" },
+            { value: 'callout', label: 'Callout' },
+        ];
     }
 
     get searchAndFilterControls() {
@@ -239,21 +236,15 @@ class MasToolbar extends LitElement {
                     : html`<div slot="icon" class="filters-badge">${this.filterCount}</div>`}
                 Filter</sp-action-button
             >
-            Search in
-            <sp-combobox
-                id="field-picker"
-                label="Field"
-                value=${Store.content.search.value.field}
-                @change=${this.handleFieldChange}
-            >
-                <sp-menu-item value="all">all</sp-menu-item>
-                <sp-menu-item value="cardTitle">cardTitle</sp-menu-item>
-                <sp-menu-item value="subtitle">subtitle</sp-menu-item>
-                <sp-menu-item value="promoText">promoText</sp-menu-item>
-                <sp-menu-item value="description">description</sp-menu-item>
-                <sp-menu-item value="whatsIncluded">whatsIncluded</sp-menu-item>
-                <sp-menu-item value="callout">callout</sp-menu-item>
-            </sp-combobox>
+            <div id="search-field-label">
+                Search in&nbsp;
+                <mas-label-select
+                    value=${Store.content.search.value.field}
+                    .options=${this.fieldOptions}
+                    @change=${this.handleFieldChange}
+                ></mas-label-select
+                >:
+            </div>
             <sp-search
                 placeholder="Search"
                 @submit="${this.handleSearchSubmit}"

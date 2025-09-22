@@ -77,7 +77,7 @@ class MerchCardCollectionEditor extends LitElement {
 
         const previewStores = [];
         for (const ref of references) {
-            let fragmentStore = Store.fragments.list.data.get().find((store) => store.value.id === ref.id);
+            let fragmentStore = Store.content.data.get(ref.id);
 
             if (!fragmentStore) {
                 const fragment = await getFromFragmentCache(ref.id);

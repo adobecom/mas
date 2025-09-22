@@ -15,8 +15,8 @@ class MasRecentlyUpdated extends LitElement {
         return this;
     }
 
-    fragments = new StoreController(this, Store.fragments.recentlyUpdated.data);
-    loading = new StoreController(this, Store.fragments.recentlyUpdated.loading);
+    fragments = new StoreController(this, Store.content.recentlyUpdated.data);
+    loading = new StoreController(this, Store.content.recentlyUpdated.loading);
 
     get loadingIndicator() {
         if (!this.loading.value) return nothing;

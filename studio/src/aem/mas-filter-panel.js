@@ -36,9 +36,16 @@ class MasFilterPanel extends LitElement {
             flex-wrap: wrap;
             gap: 4px;
         }
+
+        #tags-panel {
+            display: flex;
+            gap: 8px;
+            padding-inline: 4px;
+            align-items: center;
+        }
     `;
 
-    reactiveController = new ReactiveController(this, [Store.profile, Store.createdByUsers, Store.users]);
+    reactiveController = new ReactiveController(this, [Store.profile, Store.createdByUsers, Store.users, Store.content.total]);
 
     constructor() {
         super();
@@ -65,9 +72,9 @@ class MasFilterPanel extends LitElement {
         this.tagsByType = {
             ...EMPTY_TAGS,
         };
-        const filters = Store.filters.get();
-        if (!filters.tags) return;
-        this.tagsByType = filters.tags.split(',').reduce(
+        const tags = Store.content.filters.tags.value;
+        // TOODOO tagurile au alta structura
+        this.tagsByType = tags.reduce(
             (acc, tag) => {
                 // Remove 'mas:' prefix
                 const tagPath = tag.replace('mas:', '');
@@ -103,6 +110,14 @@ class MasFilterPanel extends LitElement {
                     this.tagsByType = {
                         ...this.tagsByType,
                     };
+
+                    /* Populate all tags */
+                    const pickers = this.shadowRoot.querySelectorAll('aem-tag-picker-field');
+                    const tagsValue = {};
+                    for (const tagPicker of pickers) {
+                        tagsValue[tagPicker.top] = tagPicker.flatTags.map((t) => pathToTagId(t));
+                    }
+                    Store.tags.set(tagsValue);
                 });
 
                 let selectedTagTitle = '';
@@ -129,11 +144,12 @@ class MasFilterPanel extends LitElement {
     }
 
     #updateFiltersParams() {
-        const tagValues = {};
-        Object.entries(this.tagsByType ?? EMPTY_TAGS).forEach(([key, value]) => {
-            tagValues[key] = value.map((tag) => pathToTagId(tag.path)).filter(Boolean);
-        });
-        Store.content.filters.set((prev) => ({ ...prev, tags: tagValues }));
+        const tags = Object.entries(this.tagsByType || EMPTY_TAGS)
+            .map(([, value]) => {
+                return value.map((tag) => pathToTagId(tag.path)).filter(Boolean);
+            })
+            .flat();
+        Store.content.filters.tags.set(tags);
     }
 
     #handleTagChange(e) {
@@ -156,10 +172,7 @@ class MasFilterPanel extends LitElement {
             query: '',
         });
 
-        Store.content.filters.set((prev) => ({
-            ...prev,
-            tags: EMPTY_TAGS,
-        }));
+        Store.content.filters.tags.set([]);
 
         Store.createdByUsers.set([]);
 
@@ -292,20 +305,27 @@ class MasFilterPanel extends LitElement {
                     <sp-icon-refresh slot="icon"></sp-icon-refresh>
                 </sp-action-button>
             </div>
-            <sp-tags>
-                ${repeat(
-                    Object.values(this.tagsByType)
-                        .flat()
-                        .filter((tag) => tag),
-                    (tag) => tag.path,
-                    (tag) => html`
-                        <sp-tag key=${tag.path} size="s" deletable @delete=${this.#handleTagDelete} .value=${tag}
-                            >${tag.title}</sp-tag
-                        >
-                    `,
-                )}
-                ${this.createdByUsersTags}
-            </sp-tags>
+            <div id="tags-panel">
+                <span
+                    ><strong>${Store.content.total.value}</strong> ${Store.content.total.value === 1
+                        ? 'result'
+                        : 'results'}</span
+                >
+                <sp-tags>
+                    ${repeat(
+                        Object.values(this.tagsByType)
+                            .flat()
+                            .filter((tag) => tag),
+                        (tag) => tag.path,
+                        (tag) => html`
+                            <sp-tag key=${tag.path} size="s" deletable @delete=${this.#handleTagDelete} .value=${tag}
+                                >${tag.title}</sp-tag
+                            >
+                        `,
+                    )}
+                    ${this.createdByUsersTags}
+                </sp-tags>
+            </div>
         `;
     }
 

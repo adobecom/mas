@@ -2,7 +2,6 @@ import { ReactiveStore } from './reactive-store.js';
 
 export class MapStore extends ReactiveStore {
     keyProp;
-    #additionSubscribers = [];
 
     /**
      * @param {Array} initialValue
@@ -17,6 +16,10 @@ export class MapStore extends ReactiveStore {
                 this.value.set(item[this.keyProp], item);
             }
         }
+    }
+
+    get size() {
+        return this.value.size;
     }
 
     get(key) {
@@ -34,7 +37,6 @@ export class MapStore extends ReactiveStore {
             this.value.set(item[this.keyProp], item);
         }
         this.notify();
-        this.notifyAddition(internalValues);
     }
 
     remove(key) {
@@ -45,27 +47,5 @@ export class MapStore extends ReactiveStore {
     clear() {
         this.value.clear();
         this.notify();
-    }
-
-    /**
-     * @param {(value: any, oldValue: any) => void} fn
-     */
-    subscribeToAddition(fn) {
-        if (this.#additionSubscribers.includes(fn)) return;
-        this.#additionSubscribers.push(fn);
-    }
-
-    /**
-     * @param {(value: any, oldValue: any) => void} fn
-     */
-    unsubscribeFromAddition(fn) {
-        const indexOfFn = this.#additionSubscribers.indexOf(fn);
-        if (indexOfFn !== -1) this.#additionSubscribers.splice(indexOfFn, 1);
-    }
-
-    notifyAddition(values) {
-        for (const subscriber of this.#additionSubscribers) {
-            subscriber(values);
-        }
     }
 }

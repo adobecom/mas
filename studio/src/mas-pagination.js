@@ -12,8 +12,7 @@ class MasPagination extends LitElement {
     static styles = css`
         :host {
             --mas-pagination-button-width: 40px;
-            display: flex;
-            gap: 10px;
+            padding-inline: 4px;
         }
 
         .size-picker {
@@ -28,6 +27,10 @@ class MasPagination extends LitElement {
             display: inline-block;
             width: var(--mas-pagination-button-width);
             text-align: center;
+        }
+
+        .per-page-label {
+            padding-inline: 8px;
         }
     `;
 
@@ -73,11 +76,11 @@ class MasPagination extends LitElement {
     }
 
     navigateForward() {
-        this.store.navigateForward();
+        this.store.nextPage(this.pages);
     }
 
     navigateBackward() {
-        this.store.navigateBackward();
+        this.store.previousPage();
     }
 
     changeSize(ev) {
@@ -99,10 +102,11 @@ class MasPagination extends LitElement {
     render() {
         return html`<div>
             <sp-combobox class="size-picker" value=${this.size} label="Size" @change=${this.changeSize}>
-                <sp-menu-item value="10">10</sp-menu-item>
                 <sp-menu-item value="20">20</sp-menu-item>
                 <sp-menu-item value="50">50</sp-menu-item>
+                <sp-menu-item value="100">100</sp-menu-item>
             </sp-combobox>
+            <span class="per-page-label">per page</span>
             <sp-action-button label="Previous" quiet ?disabled=${this.page <= 1} @click=${this.navigateBackward}>
                 <sp-icon-chevron-left slot="icon"></sp-icon-chevron-left>
             </sp-action-button>

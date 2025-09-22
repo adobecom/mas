@@ -37,10 +37,10 @@ export class ReactiveStore {
     /**
      * @param {(value: any, oldValue: any) => void} fn
      */
-    subscribe(fn) {
+    subscribe(fn, fireOnSubscribe = true) {
         if (this.#subscribers.includes(fn)) return;
         this.#subscribers.push(fn);
-        fn(this.value, this.value);
+        if (fireOnSubscribe) fn(this.value, this.value);
     }
 
     /**

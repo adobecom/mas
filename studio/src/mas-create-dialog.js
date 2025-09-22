@@ -3,6 +3,7 @@ import { EVENT_KEYDOWN, EVENT_OST_OFFER_SELECT, TAG_MODEL_ID_MAPPING } from './c
 import { editFragment } from './store.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
+import { MasRepository } from './mas-repository.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 
 export class MasCreateDialog extends LitElement {
@@ -59,6 +60,11 @@ export class MasCreateDialog extends LitElement {
         }
     }
 
+    /** @type {MasRepository} */
+    get repository() {
+        return document.querySelector('mas-repository');
+    }
+
     get dialog() {
         return this.shadowRoot.querySelector('sp-dialog-wrapper');
     }
@@ -102,17 +108,17 @@ export class MasCreateDialog extends LitElement {
         this.tags = value ? value.split(',') : [];
     }
 
-    async createFragment(masRepository, fragmentData) {
-        const fragment = await masRepository.createFragment(fragmentData);
+    async createFragment(fragmentData) {
+        const fragment = await this.repository.createFragment(fragmentData);
         const sourceStore = generateFragmentStore(fragment);
         sourceStore.new = true;
-        editFragment(sourceStore, 0);
+        editFragment(sourceStore, 0); /* TOODOO fragment pus la inceput dupa creare */
         this.close();
     }
 
-    async tryToCreateFragment(masRepository, fragmentData) {
+    async tryToCreateFragment(fragmentData) {
         try {
-            await this.createFragment(masRepository, fragmentData);
+            await this.createFragment(fragmentData);
             return true;
         } catch (error) {
             console.error(`${error.message} Will try to create again`, error.stack);
@@ -164,10 +170,9 @@ export class MasCreateDialog extends LitElement {
             };
         }
 
-        const masRepository = document.querySelector('mas-repository');
         const firstName = fragmentData.name;
         let nmbOfTries = 0;
-        while (!(await this.tryToCreateFragment(masRepository, fragmentData)) && nmbOfTries < 10) {
+        while (!(await this.tryToCreateFragment(fragmentData)) && nmbOfTries < 10) {
             nmbOfTries += 1;
             fragmentData.name = `${firstName}-${this.getSuffix(nmbOfTries)}`;
         }

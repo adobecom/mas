@@ -87,7 +87,7 @@ export default class EditorPanel extends LitElement {
         }
     `;
 
-    inEdit = Store.fragments.inEdit;
+    inEdit = Store.content.inEdit;
     operation = Store.operation;
 
     reactiveController = new ReactiveController(this);
@@ -214,7 +214,7 @@ export default class EditorPanel extends LitElement {
     async copyToUse() {
         const { code, richText, href } = generateCodeToUse(
             this.fragment,
-            Store.search.get().path,
+            Store.surface.value,
             Store.page.get(),
             'Failed to copy code to clipboard',
         );

@@ -49,7 +49,7 @@ class MasPlaceholders extends LitElement {
         Store.placeholders.list.loading,
         Store.placeholders.selection,
         Store.placeholders.index,
-        Store.filters,
+        Store.locale,
     ]);
     filterAndSortReactiveController = new ReactiveController(
         this,
@@ -90,7 +90,7 @@ class MasPlaceholders extends LitElement {
     }
 
     get locale() {
-        return Store.filters.get().locale;
+        return Store.locale.value;
     }
 
     get loading() {
@@ -285,11 +285,7 @@ class MasPlaceholders extends LitElement {
                 <div class="placeholders-header">
                     <div class="header-left">
                         <mas-locale-picker
-                            @locale-changed=${(event) =>
-                                Store.filters.set((prev) => ({
-                                    ...prev,
-                                    locale: event.detail.locale,
-                                }))}
+                            @locale-changed=${(event) => Store.locale.set(event.detail.locale)}
                             .value=${this.locale}
                         ></mas-locale-picker>
                     </div>

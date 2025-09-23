@@ -208,7 +208,6 @@ export class MasRepository extends LitElement {
 
         Store.content.loading.set(true);
         Store.content.batchesLoaded.set(0);
-
         const cursor = await this.aem.sites.cf.fragments.search(options, BATCH_SIZE, this.#abortControllers.content);
         for await (const result of cursor) {
             const batch = [];
@@ -221,7 +220,6 @@ export class MasRepository extends LitElement {
             Store.content.batchesLoaded.set((prev) => prev + 1);
         }
         Store.content.loading.set(false);
-
         this.#abortControllers.content = null;
     }
 
@@ -500,7 +498,8 @@ export class MasRepository extends LitElement {
             const newFragment = await this.#addToCache(savedResult);
 
             const sourceStore = generateFragmentStore(newFragment);
-            Store.content.data.add(sourceStore); // TOODOO fragmentul trebuie adaugat la inceput
+            sourceStore.new = true;
+            Store.content.data.add(sourceStore);
             editFragment(sourceStore);
 
             this.operation.set();

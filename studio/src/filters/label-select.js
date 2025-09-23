@@ -73,7 +73,6 @@ class MasLabelSelect extends LitElement {
     }
 
     render() {
-        console.log('huuh??', this.open);
         return html`<div>
             <span id="label" @click=${this.toggleMenu}>${this.selectedLabel}</span>
             <sp-popover id="label-select-popover" ?open=${this.open}>

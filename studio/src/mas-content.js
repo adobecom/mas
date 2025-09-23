@@ -53,7 +53,7 @@ class MasContent extends LitElement {
 
     onFragmentDeleted(fragment) {
         Store.content.data.remove(fragment.id);
-        Store.Store.content.inEdit.set(null);
+        Store.content.inEdit.set(null);
     }
 
     async goToFragment(id, skipUpdate = false) {

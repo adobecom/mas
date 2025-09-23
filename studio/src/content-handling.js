@@ -1,4 +1,4 @@
-import { EMPTY_TAGS } from './constants.js';
+import { EMPTY_TAGS, TAG_MODEL_ID_MAPPING, TAG_STUDIO_CONTENT_TYPE } from './constants.js';
 import Events from './events.js';
 import Store from './store.js';
 import { isUUID } from './utils.js';
@@ -10,8 +10,13 @@ function updateShowingContent() {
         pagination,
     } = Store.content;
     const filteredItems = [];
+    const newItems = [];
     const searchInAll = !search.value.field || search.value.field === 'all';
     for (const [, itemStore] of Store.content.data.value) {
+        if (itemStore.new) {
+            newItems.push(itemStore);
+            continue;
+        }
         const item = itemStore.get();
         /* Search */
         if (search.value.query) {
@@ -42,6 +47,7 @@ function updateShowingContent() {
         const tagsByType = {};
         const variants = [];
         const statuses = [];
+        const contentTypes = [];
         for (const tag of tags.value) {
             if (tag.startsWith('mas:variant/')) {
                 variants.push(tag.replace('mas:variant/', ''));
@@ -49,6 +55,10 @@ function updateShowingContent() {
             }
             if (tag.startsWith('mas:status/')) {
                 statuses.push(tag.replace('mas:status/', ''));
+                continue;
+            }
+            if (tag.startsWith(TAG_STUDIO_CONTENT_TYPE)) {
+                contentTypes.push(tag);
                 continue;
             }
             for (const key of Object.keys(Store.tags.value)) {
@@ -62,6 +72,14 @@ function updateShowingContent() {
 
         if (variants.length > 0 && !variants.includes(item.getFieldValue('variant'))) continue;
         if (statuses.length > 0 && !statuses.includes(item.status.toLowerCase())) continue;
+        if (
+            contentTypes.length > 0 &&
+            !contentTypes.some((ct) => {
+                const contentTypeId = TAG_MODEL_ID_MAPPING[ct];
+                return item.model.id === contentTypeId;
+            })
+        )
+            continue;
 
         let shouldInclude = true;
         for (const tags of Object.values(tagsByType)) {
@@ -81,9 +99,12 @@ function updateShowingContent() {
         if (!shouldInclude) continue;
         filteredItems.push(itemStore);
     }
-    /* Sort - no sorting yet */
-    Store.content.total.set(filteredItems.length);
-    const paginatedItems = filteredItems.slice(0, pagination.value.page * pagination.value.size);
+    /* Sort - right now only putting the new items at the front */
+    const sortedItems = [...newItems, ...filteredItems];
+
+    Store.content.total.set(sortedItems.length);
+
+    const paginatedItems = sortedItems.slice(0, pagination.value.page * pagination.value.size);
     Store.content.displaying.set(paginatedItems);
 }
 

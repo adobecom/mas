@@ -42,6 +42,7 @@ class MasFilterPanel extends LitElement {
             gap: 8px;
             padding-inline: 4px;
             align-items: center;
+            min-height: 32px;
         }
     `;
 
@@ -73,7 +74,6 @@ class MasFilterPanel extends LitElement {
             ...EMPTY_TAGS,
         };
         const tags = Store.content.filters.tags.value;
-        // TOODOO tagurile au alta structura
         this.tagsByType = tags.reduce(
             (acc, tag) => {
                 // Remove 'mas:' prefix
@@ -110,14 +110,6 @@ class MasFilterPanel extends LitElement {
                     this.tagsByType = {
                         ...this.tagsByType,
                     };
-
-                    /* Populate all tags */
-                    const pickers = this.shadowRoot.querySelectorAll('aem-tag-picker-field');
-                    const tagsValue = {};
-                    for (const tagPicker of pickers) {
-                        tagsValue[tagPicker.top] = tagPicker.flatTags.map((t) => pathToTagId(t));
-                    }
-                    Store.tags.set(tagsValue);
                 });
 
                 let selectedTagTitle = '';
@@ -141,6 +133,21 @@ class MasFilterPanel extends LitElement {
             },
             { ...EMPTY_TAGS },
         );
+        /* Populate all tags */
+        const pickers = this.shadowRoot.querySelectorAll('aem-tag-picker-field');
+        const populateTagsByType = () => {
+            const tagsValue = {};
+            for (const tagPicker of pickers) {
+                tagsValue[tagPicker.top] = tagPicker.flatTags.map((t) => pathToTagId(t));
+            }
+            Store.tags.set(tagsValue);
+        };
+        if (pickers.length === 0) return;
+        /* allTags should probably NOT be a Promise first & then a Map tho */
+        if (pickers[0].allTags instanceof Promise) {
+            pickers[0].allTags.then(populateTagsByType);
+        }
+        if (pickers[0].allTags instanceof Map) populateTagsByType();
     }
 
     #updateFiltersParams() {

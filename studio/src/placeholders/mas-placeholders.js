@@ -311,7 +311,7 @@ class MasPlaceholders extends LitElement {
                     </div>
                 </div>
 
-                <div class="placeholders-content">${this.loadingIndicator()}${this.renderTable()}</div>
+                <div class="placeholders-content">${this.loadingIndicator}${this.renderTable()}</div>
 
                 ${this.showCreationModal
                     ? html`<mas-placeholders-creation-modal
@@ -329,9 +329,9 @@ class MasPlaceholders extends LitElement {
         `;
     }
 
-    loadingIndicator() {
+    get loadingIndicator() {
         if (!this.loading) return nothing;
-        return html`<sp-progress-circle style="top:-60px" indeterminate size="l"></sp-progress-circle>`;
+        return html`<mas-loader></mas-loader>`;
     }
 
     // #region Table

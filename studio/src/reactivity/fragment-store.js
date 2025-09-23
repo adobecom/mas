@@ -3,6 +3,7 @@ import { ReactiveStore } from './reactive-store.js';
 
 export class FragmentStore extends ReactiveStore {
     loading = false;
+    new = false;
 
     set(value) {
         super.set(value);

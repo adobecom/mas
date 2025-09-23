@@ -61,7 +61,6 @@ export class SourceFragmentStore extends FragmentStore {
  */
 export default function generateFragmentStore(initialValue) {
     const previewStore = new PreviewFragmentStore(initialValue);
-    previewStore.resolveFragment();
     const sourceStore = new SourceFragmentStore(previewStore);
     return sourceStore;
 }

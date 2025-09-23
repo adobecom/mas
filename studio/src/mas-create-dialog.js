@@ -1,6 +1,6 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { EVENT_KEYDOWN, EVENT_OST_OFFER_SELECT, TAG_MODEL_ID_MAPPING } from './constants.js';
-import { editFragment } from './store.js';
+import Store, { editFragment } from './store.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 import { MasRepository } from './mas-repository.js';
@@ -112,7 +112,8 @@ export class MasCreateDialog extends LitElement {
         const fragment = await this.repository.createFragment(fragmentData);
         const sourceStore = generateFragmentStore(fragment);
         sourceStore.new = true;
-        editFragment(sourceStore, 0); /* TOODOO fragment pus la inceput dupa creare */
+        Store.content.data.add(sourceStore);
+        editFragment(sourceStore, 0);
         this.close();
     }
 

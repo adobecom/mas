@@ -87,7 +87,7 @@ async function previewStudioFragment(body, options) {
             break;
         }
         context.transformer = transformer.name;
-        context = await transformer(context);
+        context = await transformer.process(context);
     }
     if (context.status != 200) {
         logError(context.message, context);

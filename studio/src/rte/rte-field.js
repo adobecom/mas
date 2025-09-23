@@ -174,10 +174,7 @@ class DividerNodeView {
 
         // Always use HR elements for dividers
         this.divider = document.createElement('hr');
-        this.divider.className = `divider-hr divider-size-${node.attrs.size || 's'}`;
-        if (node.attrs.vertical) {
-            this.divider.classList.add('divider-vertical');
-        }
+        this.divider.className = 'divider-hr';
 
         this.dom.appendChild(this.divider);
 
@@ -200,10 +197,7 @@ class DividerNodeView {
         this.node = node;
 
         // Update HR element classes
-        this.divider.className = `divider-hr divider-size-${node.attrs.size || 's'}`;
-        if (node.attrs.vertical) {
-            this.divider.classList.add('divider-vertical');
-        }
+        this.divider.className = 'divider-hr';
 
         return true;
     }
@@ -513,33 +507,7 @@ class RteField extends LitElement {
                     border: none;
                     margin: 0;
                     background-color: var(--spectrum-global-color-gray-300);
-                }
-
-                .divider-hr.divider-size-s {
                     height: 1px;
-                }
-
-                .divider-hr.divider-size-m {
-                    height: 2px;
-                }
-
-                .divider-hr.divider-size-l {
-                    height: 4px;
-                }
-
-                .divider-hr.divider-vertical {
-                    width: 1px;
-                    height: 24px;
-                    display: inline-block;
-                    vertical-align: middle;
-                }
-
-                .divider-hr.divider-vertical.divider-size-m {
-                    width: 2px;
-                }
-
-                .divider-hr.divider-vertical.divider-size-l {
-                    width: 4px;
                 }
 
                 sr-only {
@@ -800,10 +768,7 @@ class RteField extends LitElement {
                 atom: true,
                 selectable: true,
                 draggable: true,
-                attrs: {
-                    size: { default: 's' },
-                    vertical: { default: false },
-                },
+                attrs: {},
                 parseDOM: [
                     {
                         tag: 'div.divider-wrapper',
@@ -817,25 +782,20 @@ class RteField extends LitElement {
                             if (!dividerElement.className || !dividerElement.className.includes('divider-')) {
                                 return false;
                             }
-                            // Parse from HR element classes
-                            const size = dividerElement.className.match(/divider-size-(\w+)/)?.[1] || 's';
-                            const vertical = dividerElement.classList.contains('divider-vertical');
-                            return { size, vertical };
+                            // Valid divider found
+                            return {};
                         },
                     },
                     {
                         tag: 'hr',
-                        getAttrs: (domNode) => {
-                            const size = domNode.className.match(/divider-size-(\w+)/)?.[1] || 's';
-                            const vertical = domNode.classList.contains('divider-vertical');
-                            return { size, vertical };
+                        getAttrs: () => {
+                            return {};
                         },
                     },
                 ],
-                toDOM: (node) => {
+                toDOM: () => {
                     // Always output as HR for maximum compatibility
-                    const hrClass = `divider-hr divider-size-${node.attrs.size || 's'}${node.attrs.vertical ? ' divider-vertical' : ''}`;
-                    return ['div', { class: 'divider-wrapper', contenteditable: 'false' }, ['hr', { class: hrClass }]];
+                    return ['div', { class: 'divider-wrapper', contenteditable: 'false' }, ['hr', { class: 'divider-hr' }]];
                 },
             });
         }
@@ -1633,7 +1593,7 @@ class RteField extends LitElement {
         Object.assign(this.iconEditorElement, { open: true });
     }
 
-    handleOpenOfferSelector(_event, element) {
+    handleOpenOfferSelector(event, element) {
         ostRteFieldSource = this;
         this.showOfferSelector = true;
         if (!element && this.osi) {
@@ -1692,7 +1652,7 @@ class RteField extends LitElement {
         if (tr.docChanged) dispatch(tr);
     }
 
-    #handleFocusout(_view, _event) {
+    #handleFocusout(view, event) {
         this.hasFocus = false;
         this.isLinkSelected = false;
     }
@@ -1702,7 +1662,7 @@ class RteField extends LitElement {
         return false;
     }
 
-    #handleDoubleClickOn(view, _pos, node, nodePos, event, _direct) {
+    #handleDoubleClickOn(view, pos, node, nodePos, event, direct) {
         const osiDomTarget = event.target.closest('[data-wcs-osi]');
         if (osiDomTarget) {
             const prosemirrorNodeAtClick = view.state.doc.nodeAt(nodePos);
@@ -1974,10 +1934,7 @@ class RteField extends LitElement {
         const { state, dispatch } = this.editorView;
         const { selection } = state;
 
-        const dividerNode = state.schema.nodes.horizontal_rule.create({
-            size: 's', // Default to small
-            vertical: false, // Default to horizontal
-        });
+        const dividerNode = state.schema.nodes.horizontal_rule.create();
 
         const tr = state.tr.insert(selection.from, dividerNode);
         dispatch(tr);

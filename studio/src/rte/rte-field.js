@@ -12,7 +12,6 @@ import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
 import throttle from '../utils/throttle.js';
 import './rte-mnemonic-editor.js';
-import './rte-divider-editor.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
@@ -244,7 +243,6 @@ class RteField extends LitElement {
         showLinkEditor: { type: Boolean, state: true },
         showIconEditor: { type: Boolean, state: true },
         showMnemonicEditor: { type: Boolean, state: true },
-        showDividerEditor: { type: Boolean, state: true },
         defaultLinkStyle: { type: String, attribute: 'default-link-style' },
         maxLength: { type: Number, attribute: 'max-length' },
         length: { type: Number, state: true },
@@ -668,7 +666,6 @@ class RteField extends LitElement {
         this.showLinkEditor = false;
         this.showIconEditor = false;
         this.showMnemonicEditor = false;
-        this.showDividerEditor = false;
         this.inline = false;
         this.styling = false;
         this.list = false;
@@ -688,7 +685,6 @@ class RteField extends LitElement {
             linkSave: this.#handleLinkSave.bind(this),
             iconSave: this.#handleIconSave.bind(this),
             mnemonicSave: this.#handleMnemonicSave.bind(this),
-            dividerSave: this.#handleDividerSave.bind(this),
             focusout: this.#handleFocusout.bind(this),
             focus: this.#handleFocus.bind(this),
             doubleClickOn: this.#handleDoubleClickOn.bind(this),
@@ -1460,7 +1456,7 @@ class RteField extends LitElement {
     }
 
     #handleEscKey(event) {
-        if (!this.showLinkEditor && !this.showIconEditor && !this.showMnemonicEditor && !this.showDividerEditor) {
+        if (!this.showLinkEditor && !this.showIconEditor && !this.showMnemonicEditor) {
             return;
         }
 
@@ -1473,9 +1469,6 @@ class RteField extends LitElement {
                 this.showIconEditor = false;
             } else if (this.showMnemonicEditor) {
                 this.showMnemonicEditor = false;
-                this.requestUpdate();
-            } else if (this.showDividerEditor) {
-                this.showDividerEditor = false;
                 this.requestUpdate();
             }
             closeOfferSelectorTool();
@@ -1640,7 +1633,7 @@ class RteField extends LitElement {
         Object.assign(this.iconEditorElement, { open: true });
     }
 
-    handleOpenOfferSelector(event, element) {
+    handleOpenOfferSelector(_event, element) {
         ostRteFieldSource = this;
         this.showOfferSelector = true;
         if (!element && this.osi) {
@@ -1699,7 +1692,7 @@ class RteField extends LitElement {
         if (tr.docChanged) dispatch(tr);
     }
 
-    #handleFocusout(view, event) {
+    #handleFocusout(_view, _event) {
         this.hasFocus = false;
         this.isLinkSelected = false;
     }
@@ -1709,7 +1702,7 @@ class RteField extends LitElement {
         return false;
     }
 
-    #handleDoubleClickOn(view, pos, node, nodePos, event, direct) {
+    #handleDoubleClickOn(view, _pos, node, nodePos, event, _direct) {
         const osiDomTarget = event.target.closest('[data-wcs-osi]');
         if (osiDomTarget) {
             const prosemirrorNodeAtClick = view.state.doc.nodeAt(nodePos);
@@ -1784,17 +1777,6 @@ class RteField extends LitElement {
         ></rte-mnemonic-editor>`;
     }
 
-    get dividerEditor() {
-        if (!this.showDividerEditor) return nothing;
-        return html`<rte-divider-editor
-            dialog
-            @save="${this.#boundHandlers.dividerSave}"
-            @close="${() => {
-                this.showDividerEditor = false;
-            }}"
-        ></rte-divider-editor>`;
-    }
-
     get linkEditorElement() {
         return this.shadowRoot.querySelector('rte-link-editor');
     }
@@ -1807,10 +1789,6 @@ class RteField extends LitElement {
         return this.shadowRoot.querySelector('rte-mnemonic-editor');
     }
 
-    get dividerEditorElement() {
-        return this.shadowRoot.querySelector('rte-divider-editor');
-    }
-
     render() {
         const lengthExceeded = this.length > this.maxLength;
         return html`
@@ -1821,7 +1799,7 @@ class RteField extends LitElement {
             </sp-action-group>
             <div id="editor"></div>
             <p id="counter"><span class="${lengthExceeded ? 'exceeded' : ''}">${this.length}</span>/${this.maxLength}</p>
-            ${this.linkEditor} ${this.iconEditor} ${this.mnemonicEditor} ${this.dividerEditor}
+            ${this.linkEditor} ${this.iconEditor} ${this.mnemonicEditor}
         `;
     }
 
@@ -1846,7 +1824,7 @@ class RteField extends LitElement {
     get #dividerButton() {
         if (!this.divider) return nothing;
         return html`
-            <sp-action-button emphasized id="addDividerButton" @click=${this.openDividerEditor} title="Add Divider">
+            <sp-action-button emphasized id="addDividerButton" @click=${this.addDivider} title="Add Divider">
                 <sp-icon-divide slot="icon"></sp-icon-divide>
             </sp-action-button>
         `;
@@ -1992,30 +1970,17 @@ class RteField extends LitElement {
         });
     }
 
-    #handleDividerSave(event) {
-        const { size, vertical } = event.detail;
+    addDivider() {
         const { state, dispatch } = this.editorView;
         const { selection } = state;
 
         const dividerNode = state.schema.nodes.horizontal_rule.create({
-            size: size || 's',
-            vertical: vertical || false,
+            size: 's', // Default to small
+            vertical: false, // Default to horizontal
         });
 
         const tr = state.tr.insert(selection.from, dividerNode);
         dispatch(tr);
-
-        this.showDividerEditor = false;
-    }
-
-    async openDividerEditor() {
-        this.showDividerEditor = true;
-        await this.updateComplete;
-        Object.assign(this.dividerEditorElement, {
-            open: true,
-            size: 's',
-            vertical: false,
-        });
     }
 }
 

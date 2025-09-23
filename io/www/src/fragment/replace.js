@@ -1,7 +1,9 @@
-const { odinReferences, odinPath } = require('./paths.js');
-const { fetch, log, logDebug, logError } = require('./common.js');
+import { odinReferences, odinPath } from './paths.js';
+import { fetch, log, logDebug, logError } from './common.js';
 const DICTIONARY_ID_PATH = 'dictionary/index';
 const PH_REGEXP = /{{(\s*([\w\-\_]+)\s*)}}/gi;
+
+const TRANSFORMER_NAME = 'replace';
 
 async function getDictionaryId(context) {
     const { surface, locale, preview } = context;
@@ -24,7 +26,9 @@ function extractValue(ref) {
     return value.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').replace(/"/g, '\\"');
 }
 
-async function getDictionary(context) {
+export async function getDictionary(context) {
+    /* c8 ignore next 1 */
+    if (context.hasExternalDictionary) return context.dictionary;
     const dictionary = context.dictionary || {};
     const id = context.dictionaryId ?? (await getDictionaryId(context));
     if (!id) {
@@ -72,19 +76,33 @@ function replaceValues(input, dictionary, calls) {
     return replaced;
 }
 
+async function init(context) {
+    // we fetch dictionary at this stage only if id has already been cached
+    // because we can't know surface of fragment *before* first fetch
+    // if dictionaryId is present in cache - early load dictionary
+    // if nothing in cache - dictionaryId and dictionary itself will be loaded later,
+    // during process
+    return context.dictionaryId ? await getDictionary(context) : null;
+}
+
 async function replace(context) {
     let body = context.body;
     let bodyString = JSON.stringify(body);
     if (bodyString.match(PH_REGEXP)) {
-        const dictionary = await getDictionary(context);
+        let dictionary = await context?.promises?.[TRANSFORMER_NAME];
+        if (dictionary) {
+            //we need to merge init dictionary with the one initiated in context
+            dictionary = { ...dictionary, ...context.dictionary };
+        } else {
+            dictionary = await getDictionary(context);
+        }
         if (dictionary && Object.keys(dictionary).length > 0) {
             bodyString = replaceValues(bodyString, dictionary, []);
             try {
                 body = JSON.parse(bodyString);
+                /* c8 ignore next 4 */
             } catch (e) {
-                /* istanbul ignore next */
                 logError(`[replace] ${e.message}`, context);
-                /* istanbul ignore next */
                 logDebug(() => `[replace] invalid json: ${bodyString}`, context);
             }
         }
@@ -97,4 +115,8 @@ async function replace(context) {
         body,
     };
 }
-exports.replace = replace;
+export const transformer = {
+    name: TRANSFORMER_NAME,
+    process: replace,
+    init,
+};

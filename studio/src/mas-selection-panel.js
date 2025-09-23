@@ -1,6 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { EVENT_KEYDOWN } from './constants.js';
 import ReactiveController from './reactivity/reactive-controller.js';
+import Store from './store.js';
 
 class MasSelectionPanel extends LitElement {
     static styles = css`
@@ -19,6 +20,7 @@ class MasSelectionPanel extends LitElement {
         onDelete: { type: Function, attribute: false },
         onPublish: { type: Function, attribute: false },
         onUnpublish: { type: Function, attribute: false },
+        onCopyToFolder: { type: Function, attribute: false },
     };
 
     constructor() {
@@ -30,6 +32,7 @@ class MasSelectionPanel extends LitElement {
         this.onDelete = null;
         this.onPublish = null;
         this.onUnpublish = null;
+        this.onCopyToFolder = null;
 
         this.close = this.close.bind(this);
     }
@@ -66,6 +69,22 @@ class MasSelectionPanel extends LitElement {
         this.onDelete(this.selection, event);
     }
 
+    handleCopyToFolder() {
+        const firstSelection = this.selection[0];
+        if (!firstSelection) return;
+
+        if (firstSelection?.get) {
+            return this.onCopyToFolder(firstSelection.get());
+        }
+
+        const fragmentStore = Store.fragments.list.data
+            .get()
+            .find((store) => store.get().id === firstSelection || store.get().id === firstSelection?.id);
+
+        const fragment = fragmentStore?.get() || firstSelection;
+        this.onCopyToFolder(fragment);
+    }
+
     handlePublish(event) {
         this.onPublish(this.selection, event);
     }
@@ -82,14 +101,23 @@ class MasSelectionPanel extends LitElement {
             ${count} selected
             ${count === 1
                 ? html`<sp-action-button
-                      slot="buttons"
-                      label="Duplicate"
-                      ?disabled=${!this.onDuplicate}
-                      @click=${this.handleDuplicate}
-                  >
-                      <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
-                      <sp-tooltip self-managed placement="top">Duplicate</sp-tooltip>
-                  </sp-action-button>`
+                          slot="buttons"
+                          label="Duplicate"
+                          ?disabled=${!this.onDuplicate}
+                          @click=${this.handleDuplicate}
+                      >
+                          <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
+                          <sp-tooltip self-managed placement="top">Duplicate</sp-tooltip>
+                      </sp-action-button>
+                      <sp-action-button
+                          slot="buttons"
+                          label="Copy to folder"
+                          ?disabled=${!this.onCopyToFolder}
+                          @click=${() => this.handleCopyToFolder()}
+                      >
+                          <sp-icon-folder-add slot="icon"></sp-icon-folder-add>
+                          <sp-tooltip self-managed placement="top">Copy to folder</sp-tooltip>
+                      </sp-action-button>`
                 : nothing}
             ${count > 0
                 ? html`<sp-action-button slot="buttons" label="Delete" ?disabled=${!this.onDelete} @click=${this.handleDelete}>

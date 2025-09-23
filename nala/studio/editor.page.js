@@ -23,9 +23,6 @@ export default class EditorPage {
         this.CTA = this.panel.locator('sp-field-group#ctas a');
         this.descriptionFieldGroup = this.panel.locator('sp-field-group#description');
         this.description = this.panel.locator('sp-field-group#description div[contenteditable="true"]');
-        this.description2 = this.panel.locator(
-            'sp-field-group#description2 div[contenteditable="true"], #description2 div[contenteditable="true"]',
-        );
         this.borderColor = this.panel.locator('sp-picker#border-color');
         this.backgroundColor = this.panel.locator('sp-picker#backgroundColor');
         this.OSI = this.panel.locator('osi-field#osi');

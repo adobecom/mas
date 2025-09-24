@@ -1,8 +1,8 @@
-const { expect } = require('chai');
-const nock = require('nock');
-const { MockState } = require('./mocks/MockState.js');
-const { getCorrespondingLocale, translate } = require('../../src/fragment/translate.js');
-const FRAGMENT_RESPONSE_FR = require('./mocks/fragment-fr.json');
+import { expect } from 'chai';
+import nock from 'nock';
+import { MockState } from './mocks/MockState.js';
+import { getCorrespondingLocale, transformer as translate } from '../../src/fragment/translate.js';
+import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 
 const FAKE_CONTEXT = {
     status: 200,
@@ -38,7 +38,7 @@ describe('translate typical cases', function () {
                 ],
             });
 
-        const result = await translate({
+        const result = await translate.process({
             ...FAKE_CONTEXT,
             body: {
                 path: '/content/dam/mas/sandbox/en_US/some-en-us-fragment',
@@ -73,7 +73,7 @@ describe('translate typical cases', function () {
                 ],
             });
 
-        const result = await translate({
+        const result = await translate.process({
             ...FAKE_CONTEXT,
             body: {
                 path: '/content/dam/mas/sandbox/en_US/some-en-us-fragment',
@@ -110,7 +110,7 @@ describe('translate typical cases', function () {
                 ],
             });
 
-        const result = await translate({
+        const result = await translate.process({
             ...FAKE_CONTEXT,
             body: {
                 path: '/content/dam/mas/sandbox/en_US/some-en-us-fragment',
@@ -124,7 +124,7 @@ describe('translate typical cases', function () {
     });
 
     it('should return fr fragment (fr fragment, no locale)', async function () {
-        const result = await translate({
+        const result = await translate.process({
             ...FAKE_CONTEXT,
             body: {
                 path: '/content/dam/mas/sandbox/fr_FR/some-fr-fr-fragment',
@@ -141,7 +141,7 @@ describe('translate typical cases', function () {
 
 describe('translate corner cases', function () {
     it('no path should return 400', async function () {
-        const result = await translate({
+        const result = await translate.process({
             ...FAKE_CONTEXT,
             body: {},
             locale: 'fr_FR',
@@ -154,7 +154,7 @@ describe('translate corner cases', function () {
 
     it('bad path should return 400', async function () {
         expect(
-            await translate({
+            await translate.process({
                 status: 200,
                 body: { path: 'something/rather/wrong' },
                 locale: 'fr_FR',
@@ -164,7 +164,7 @@ describe('translate corner cases', function () {
             message: 'source path is either not here or invalid',
         });
         expect(
-            await translate({
+            await translate.process({
                 status: 200,
                 body: { path: 'content/dam/mas/a/b/' },
                 locale: 'fr_FR',
@@ -176,7 +176,7 @@ describe('translate corner cases', function () {
     });
 
     it('missing path components should return 400', async function () {
-        const result = await translate({
+        const result = await translate.process({
             ...FAKE_CONTEXT,
             status: 200,
             body: { path: '/content/dam/mas/sandbox/someFragment' }, // Missing locale
@@ -195,7 +195,7 @@ describe('translate corner cases', function () {
                 message: 'Not found',
             });
 
-        const result = await translate({
+        const result = await translate.process({
             ...FAKE_CONTEXT,
             body: { path: '/content/dam/mas/sandbox/en_US/someFragment' },
             locale: 'fr_FR',
@@ -222,7 +222,7 @@ describe('translate corner cases', function () {
             message: 'Error',
         });
 
-        const result = await translate({
+        const result = await translate.process({
             ...FAKE_CONTEXT,
             body: { path: '/content/dam/mas/sandbox/en_US/someFragment' },
             locale: 'fr_FR',
@@ -241,7 +241,7 @@ describe('translate corner cases', function () {
                 items: [],
             });
 
-        const result = await translate({
+        const result = await translate.process({
             ...FAKE_CONTEXT,
             body: { path: '/content/dam/mas/sandbox/en_US/someFragment' },
             locale: 'fr_FR',
@@ -253,7 +253,7 @@ describe('translate corner cases', function () {
     });
 
     it('same locale should return same body', async function () {
-        const result = await translate({
+        const result = await translate.process({
             ...FAKE_CONTEXT,
             body: {
                 path: '/content/dam/mas/sandbox/fr_FR/someFragment',

@@ -39,6 +39,7 @@ export async function initUsers() {
 
         Store.surface.subscribe(async (value) => {
             if (value !== 'sandbox') return;
+            if (Store.singleFragmentMode.value) return;
             Store.createdByUsers.set([
                 {
                     displayName: profile.displayName,

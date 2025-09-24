@@ -185,19 +185,25 @@ export class MasRepository extends LitElement {
 
     async loadContent() {
         if (Store.page.value !== PAGE_NAMES.CONTENT) return;
+
+        if (this.#abortControllers.content) this.#abortControllers.content.abort();
+        this.#abortControllers.content = new AbortController();
+
+        /* If the page was loaded with a UUID query, then only load that single fragment */
         if (Store.singleFragmentMode.value) {
             const onSearchChange = () => {
                 Store.singleFragmentMode.set(false);
                 Store.content.search.unsubscribe(onSearchChange);
             };
             Store.content.search.subscribe(onSearchChange, false);
+
             await this.loadSingleFragment(Store.content.search.value.query);
+
             Store.content.loading.set(false);
+            this.#abortControllers.content = null;
+
             return;
         }
-
-        if (this.#abortControllers.content) this.#abortControllers.content.abort();
-        this.#abortControllers.content = new AbortController();
 
         const damPath = getDamPath(Store.surface.value);
         const options = {

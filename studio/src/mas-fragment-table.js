@@ -1,6 +1,6 @@
-import { LitElement, html } from 'lit';
+import { LitElement, html, nothing } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { generateCodeToUse, getService } from './utils.js';
+import { generateCodeToUse, getService, toPascalCase } from './utils.js';
 import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './editor-panel.js';
 import Store from './store.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
@@ -11,11 +11,15 @@ class MasFragmentTable extends LitElement {
         fragmentStore: { type: Object, attribute: false },
         customRender: { type: Function, attribute: false },
         offerData: { type: Object, state: true, attribute: false },
+        tooltipOpen: { type: Boolean, state: true },
+        tooltipLabel: { type: String, state: true },
     };
 
     constructor() {
         super();
         this.offerData = null;
+        this.tooltipOpen = false;
+        this.tooltipLabel = null;
     }
 
     #reactiveControllers = new ReactiveController(this);
@@ -73,8 +77,40 @@ class MasFragmentTable extends LitElement {
         return html`<span is="inline-price" data-template="price" data-wcs-osi=${osi}></span>`;
     }
 
+    get statusIcon() {
+        const status = this.fragmentStore.value.status;
+        switch (status) {
+            case 'NEW':
+                return html`<sp-icon-document></sp-icon-document>`;
+            case 'DRAFT':
+                return html`<sp-icon-draft></sp-icon-draft>`;
+            case 'MODIFIED':
+                return html`<sp-icon-annotate-pen></sp-icon-annotate-pen>`;
+            case 'PUBLISHED':
+                return html`<sp-icon-publish-check></sp-icon-publish-check>`;
+            default:
+                return nothing;
+        }
+    }
+
     openCardPreview() {
         openPreview(this.fragmentStore.value.id, { left: 'min(300px, 15%)' });
+    }
+
+    get tooltip() {
+        return this.querySelector('.content-row-tooltip');
+    }
+
+    openTooltip(event) {
+        const value = event.target.getAttribute('data-tooltip');
+        if (!value) return;
+        this.tooltipOpen = true;
+        this.tooltipLabel = value;
+        this.tooltip.style.left = `${event.target.offsetLeft + event.target.offsetWidth / 2}px`;
+    }
+
+    closeTooltip() {
+        this.tooltipOpen = false;
     }
 
     render() {
@@ -84,14 +120,30 @@ class MasFragmentTable extends LitElement {
             <sp-table-cell class="title">${data.title}</sp-table-cell>
             <sp-table-cell class="offer-type">${this.offerData?.offerType}</sp-table-cell>
             <sp-table-cell class="price">${this.price}</sp-table-cell>
-            <sp-table-cell class="offer-id" title=${this.offerData?.offerId}>${this.offerData?.offerId} </sp-table-cell>
+            <sp-table-cell
+                @mouseenter=${this.openTooltip}
+                @mouseleave=${this.closeTooltip}
+                class="offer-id"
+                data-tooltip=${this.offerData?.offerId}
+                ><span class="offer-id-value">${this.offerData?.offerId}</span></sp-table-cell
+            >
             ${this.customRender?.(data)}
-            <sp-table-cell class="status ${data.status?.toLowerCase()}-cell">${data.status}</sp-table-cell>
+            <sp-table-cell
+                @mouseenter=${this.openTooltip}
+                @mouseleave=${this.closeTooltip}
+                class="status ${data.status?.toLowerCase()}-cell"
+                data-tooltip=${toPascalCase(data.status)}
+                >${this.statusIcon}</sp-table-cell
+            >
             ${data.model.path === CARD_MODEL_PATH
                 ? html`<sp-table-cell class="preview" @mouseover=${this.openCardPreview} @mouseout=${closePreview}
                       ><sp-icon-preview label="Preview item"></sp-icon-preview
                   ></sp-table-cell>`
-                : html`<sp-table-cell class="preview"></sp-table-cell>`}</sp-table-row
+                : html`<sp-table-cell class="preview"></sp-table-cell>`}<sp-tooltip
+                class="content-row-tooltip"
+                .open=${this.tooltipOpen}
+                >${this.tooltipLabel}</sp-tooltip
+            ></sp-table-row
         >`;
     }
 }

@@ -267,8 +267,8 @@ mas-content {
 
 #content {
     display: flex;
-    justify-content: center;
     padding-bottom: 30px;
+    overflow-x: auto;
 }
 
 #content sp-table {
@@ -276,18 +276,19 @@ mas-content {
     --table-content-title-flex-grow: 1;
     --table-content-offer-type-flex-grow: 0.4;
     --table-content-price-flex-grow: 0.4;
-    --table-content-offer-id-flex-grow: 1.1;
-    --table-content-status-flex-grow: 0.3;
+    --table-content-offer-id-flex-grow: 1;
+    --table-content-status-flex-grow: 0.1;
     --table-content-preview-flex-grow: 0.1;
+
     width: 100%;
+    min-width: 1000px;
+    overflow: hidden;
+
     & sp-table-body {
         background-color: var(--spectrum-gray-100);
     }
-    --spectrum-table-cell-background-color: transparent;
-}
 
-#content sp-table-body {
-    overflow: hidden;
+    --spectrum-table-cell-background-color: transparent;
 }
 
 #content #render {
@@ -328,6 +329,13 @@ sp-table-cell {
 
     &.offer-id {
         flex-grow: var(--table-content-offer-id-flex-grow);
+        min-width: 0;
+
+        & .offer-id-value {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
     }
 
     &.status {
@@ -378,6 +386,7 @@ sp-table-head-cell {
 
     &.status {
         flex-grow: var(--table-content-status-flex-grow);
+        min-width: 0;
     }
 
     &.preview {
@@ -593,4 +602,12 @@ sp-progress-circle.next-page {
     sp-table-cell.offer-id {
         word-break: break-all;
     }
+}
+
+.content-row-tooltip {
+    --spectrum-tooltip-maximum-width: 300px;
+    position: absolute;
+    display: block;
+    top: -20px;
+    transform: translateX(-50%);
 }

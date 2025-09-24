@@ -7,6 +7,7 @@ import Events from './events.js';
  * @returns {string}
  */
 export function toPascalCase(input) {
+    if (!input) return '';
     return input.replace(/(\w)(\w*)/g, function (_g0, g1, g2) {
         return g1.toUpperCase() + g2.toLowerCase();
     });

@@ -33,6 +33,10 @@ class MasContent extends LitElement {
 
         Events.fragmentAdded.subscribe(this.goToFragment);
         Events.fragmentDeleted.subscribe(this.onFragmentDeleted);
+    }
+
+    firstUpdated() {
+        super.firstUpdated();
         this.anchorObserver = new IntersectionObserver(
             ([entry]) => {
                 if (!entry.isIntersecting) return;
@@ -121,19 +125,22 @@ class MasContent extends LitElement {
         return html`<mas-loader></mas-loader>`;
     }
 
-    render() {
-        let view = nothing;
+    get view() {
         switch (this.renderMode.value) {
             case 'render':
-                view = this.renderView;
-                break;
+                return this.renderView;
             case 'table':
-                view = this.tableView;
-                break;
+                return this.tableView;
             default:
-                view = this.renderView;
+                return this.renderView;
         }
-        return html`<div id="content">${view}</div>
+    }
+
+    render() {
+        return html`<div id="content">
+                ${this.view}
+                <div id="content-anchor"></div>
+            </div>
             ${this.loader}`;
     }
 }

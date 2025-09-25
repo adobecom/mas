@@ -98,10 +98,7 @@
                     });
 
                     it('implements "use"', async () => {
-                        Store.search.set((prev) => ({
-                            ...prev,
-                            path: 'acom',
-                        }));
+                        Store.surface.set('acom');
                         await editorPanel.updateComplete;
                         await editorPanel.refreshed;
                         const titleField = () => document.getElementById('card-title');

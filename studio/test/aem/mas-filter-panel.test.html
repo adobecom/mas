@@ -54,9 +54,7 @@
                 };
                 describe('mas-filter-panel custom element', async () => {
                     beforeEach(async function () {
-                        Store.filters.set({
-                            tags: '',
-                        });
+                        Store.content.filters.tags.set([]);
                     });
 
                     it('Should initialize with empty tag values', async function () {
@@ -94,8 +92,8 @@
 
                         // Simulate tag selection
                         await statusPicker.toggleTag('/content/cq:tags/mas/status/draft');
-                        const storeState = await Store.filters.get();
-                        expect(storeState.tags).to.include('mas:status/draft');
+                        const storeState = await Store.content.filters.tags.get();
+                        expect(storeState).to.include('mas:status/draft');
                     });
 
                     it('Should clear all tags when reset is clicked', async function () {
@@ -113,9 +111,6 @@
 
                         await filterPanel.updateComplete;
                         expect(Object.values(filterPanel.tagsByType).flat()).to.have.lengthOf(0);
-
-                        const storeState = await Store.search.get();
-                        expect(storeState.tags).to.undefined;
                     });
 
                     it('Should maintain other tag types when one type changes', async function () {
@@ -137,10 +132,10 @@
                         await statusPicker.toggleTag('/content/cq:tags/mas/status/draft'); // unselect first
                         await statusPicker.toggleTag('/content/cq:tags/mas/status/documentation'); // select new
 
-                        const storeState = await Store.filters.get();
-                        expect(storeState.tags).to.include('mas:offer_type/base');
-                        expect(storeState.tags).to.include('mas:status/documentation');
-                        expect(storeState.tags).to.not.include('mas:status/draft');
+                        const storeState = await Store.content.filters.tags.get();
+                        expect(storeState).to.include('mas:offer_type/base');
+                        expect(storeState).to.include('mas:status/documentation');
+                        expect(storeState).to.not.include('mas:status/draft');
                     });
 
                     it('Should only delete the clicked tag when delete icon is clicked', async function () {
@@ -184,9 +179,7 @@
 
                     it('Should initialize filters from search state', async function () {
                         // Set initial search state
-                        Store.filters.set({
-                            tags: 'mas:status/draft,mas:offer_type/base',
-                        });
+                        Store.content.filters.tags.set('mas:status/draft,mas:offer_type/base');
 
                         const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
                         await filterPanel.updateComplete;

@@ -611,6 +611,3 @@ sp-progress-circle.next-page {
     left: calc(50% + 120px); /* Account for sidenav */
     transform: translateX(-50%);
 }
-
-#content-anchor {
-}

@@ -53,9 +53,9 @@
                     it('displays the list of placeholders', async function () {
                         const parent = initElementFromTemplate('mas-placeholders-with-repo', this.test.title);
                         const masPlaceholders = parent.querySelector('mas-placeholders');
-                        await delay(100);
-                        expect(Store.placeholders.index.value).to.not.be.null;
+                        await delay(200);
                         expect(masPlaceholders.placeholders.length).to.equal(19);
+                        expect(Store.placeholders.index.value).to.not.be.null;
                     });
 
                     it('searches through placeholders by key or value', async function () {
@@ -63,13 +63,13 @@
                         const masPlaceholders = parent.querySelector('mas-placeholders');
 
                         /* Note: internalPlaceholders are filtered & sorted */
-                        await delay(100);
+                        await delay(200);
 
                         expect(masPlaceholders.internalPlaceholders.length).to.equal(19);
                         expect(masPlaceholders.placeholders.length).to.equal(19);
 
                         Store.placeholders.search.set('cai');
-                        await delay(100);
+                        await delay(200);
 
                         expect(masPlaceholders.internalPlaceholders.length).to.equal(1);
                         expect(masPlaceholders.placeholders.length).to.equal(19);

@@ -106,7 +106,8 @@ async function settings(context) {
     return context;
 }
 
-module.exports = {
-    applyCollectionSettings,
-    settings,
+export const transformer = {
+    name: 'settings',
+    process: settings,
 };
+export { applyCollectionSettings };

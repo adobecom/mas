@@ -1,5 +1,5 @@
-const { fetch, getErrorContext } = require('./common.js');
-const { odinReferences } = require('./paths.js');
+import { fetch, getErrorContext } from './common.js';
+import { odinReferences } from './paths.js';
 async function fetchFragment(context) {
     const { id, locale, translatedId, preview } = context;
     if (id && locale) {
@@ -22,4 +22,7 @@ async function fetchFragment(context) {
     };
 }
 
-exports.fetchFragment = fetchFragment;
+export const transformer = {
+    name: 'fetchFragment',
+    process: fetchFragment,
+};

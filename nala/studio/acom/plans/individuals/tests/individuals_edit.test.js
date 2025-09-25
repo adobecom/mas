@@ -1199,7 +1199,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Validate edited CTA on the card', async () => {
-            await expect(await individuals.cardCTA).toContainText(data.newCtaText);
+            await expect(await individuals.cardCTA).toContainText(data.newCtaOption);
             await expect(await individuals.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await individuals.cardCTA).toHaveAttribute('is', 'checkout-link');
         });

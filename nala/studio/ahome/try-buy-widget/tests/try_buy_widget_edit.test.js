@@ -370,7 +370,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-5: Validate edited price field on the card', async () => {
-            await expect(await trybuywidget.cardCTASlot).toContainText(data.newCtaText);
+            await expect(await trybuywidget.cardCTASlot).toContainText(data.newCtaOption);
             await expect(await trybuywidget.cardCTA.first()).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await trybuywidget.cardCTA.first()).toHaveAttribute('is', 'checkout-button');
 

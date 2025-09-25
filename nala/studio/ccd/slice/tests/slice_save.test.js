@@ -268,14 +268,14 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic and save card', async () => {
-            await expect(await editor.iconURL).toBeVisible();
-            await expect(await editor.iconURL).toHaveValue(data.iconURL);
-            await editor.iconURL.fill(data.newIconURL);
+            await expect(await editor.iconURL.first()).toBeVisible();
+            await expect(await editor.iconURL.first()).toHaveValue(data.iconURL);
+            await editor.iconURL.first().fill(data.newIconURL);
             await studio.saveCard();
         });
 
         await test.step('step-4: Validate edited card mnemonic', async () => {
-            await expect(await editor.iconURL).toHaveValue(data.newIconURL);
+            await expect(await editor.iconURL.first()).toHaveValue(data.newIconURL);
             await expect(await clonedCard.locator(slice.cardIcon)).toHaveAttribute('src', data.newIconURL);
         });
     });

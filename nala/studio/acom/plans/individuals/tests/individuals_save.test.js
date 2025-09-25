@@ -238,13 +238,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic field and save card', async () => {
-            await expect(await editor.iconURL).toBeVisible();
-            await editor.iconURL.fill(data.newIconURL);
+            await expect(await editor.iconURL.first()).toBeVisible();
+            await editor.iconURL.first().fill(data.newIconURL);
             await studio.saveCard();
         });
 
         await test.step('step-4: Verify mnemonic change is saved', async () => {
-            await expect(await editor.iconURL).toHaveValue(data.newIconURL);
+            await expect(await editor.iconURL.first()).toHaveValue(data.newIconURL);
             await expect(await clonedCard.locator(individuals.cardIcon)).toHaveAttribute('src', data.newIconURL);
         });
     });

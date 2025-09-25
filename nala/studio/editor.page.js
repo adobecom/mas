@@ -43,11 +43,40 @@ export default class EditorPage {
         this.whatsIncludedIconLabel = this.panel.locator('#whatsIncluded #text input');
         this.whatsIncludedIconRemoveButton = this.panel.locator('#whatsIncluded sp-icon-close');
         this.closeEditor = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="close"]');
+        this.saveButton = this.panel.locator(
+            'sp-action-button[value="save"], sp-button:has-text("Save"), button:has-text("Save")',
+        );
+        this.discardButton = this.panel.locator('sp-button:has-text("Discard"), button:has-text("Discard")');
+        this.discardConfirmDialog = page.locator('sp-dialog[open], dialog[open]');
+        this.discardConfirmButton = page.locator(
+            'sp-dialog[open] sp-button[variant="negative"], sp-dialog[open] button:has-text("Discard")',
+        );
+        this.cancelDiscardButton = page.locator(
+            'sp-dialog[open] sp-button[variant="secondary"], sp-dialog[open] button:has-text("Cancel")',
+        );
+        this.saveSuccess = page.locator('sp-toast[open]:has-text("saved"), .toast:has-text("saved")');
+
+        // Mnemonic field selectors
+        this.titleFieldGroup = this.panel.locator('sp-field-group:has(#card-title)');
+        this.mnemonicButton =
+            'button.mnemonic-button, sp-action-button.mnemonic-button, sp-action-button[slot="action"], .icon-button';
+        this.mnemonicModal = page.locator('mnemonic-modal, .mnemonic-modal, sp-dialog[open]:has-text("Mnemonic")');
+        this.mnemonicField = page.locator(
+            'mnemonic-modal input[name="mnemonic"], .mnemonic-modal input, sp-dialog[open] input',
+        );
+        this.mnemonicSave = page.locator(
+            'mnemonic-modal sp-button[variant="accent"], .mnemonic-modal button.save, sp-dialog[open] sp-button[variant="accent"]',
+        );
 
         // Price templates
         this.regularPrice = page.locator('span[is="inline-price"][data-template="price"]');
         this.strikethroughPrice = page.locator('span[is="inline-price"][data-template="strikethrough"]');
         this.promoStrikethroughPrice = page.locator('span[is="inline-price"][data-template="price"] > .price-strikethrough');
+
+        // Loading and state indicators
+        this.loadingSpinner = page.locator('sp-progress-circle, .loading');
+        this.errorMessage = page.locator('.error-message, sp-toast[variant="negative"]');
+        this.warningMessage = page.locator('.warning-message, sp-toast[variant="warning"]');
 
         // RTE content
         this.phoneLink = page.locator('a[href^="tel:"]');
@@ -56,6 +85,12 @@ export default class EditorPage {
         this.linkEdit = page.locator('#linkEditorButton');
         this.addIcon = page.locator('#addIconButton');
         this.OSTButton = page.locator('#offerSelectorToolButton');
+
+        // Divider controls
+        this.addDividerButton = page.locator('sp-action-button[value="add-divider"], button.add-divider, #add-divider-button');
+        this.removeDividerButton = page.locator(
+            'sp-action-button[value="remove-divider"], button.remove-divider, #remove-divider-button',
+        );
 
         // Edit Link Panel
         this.checkoutParameters = page.locator('#checkoutParameters input');

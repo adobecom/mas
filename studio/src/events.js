@@ -5,6 +5,7 @@ const Events = {
     fragmentAdded: new MasEvent(),
     fragmentDeleted: new MasEvent(),
     filtersReset: new MasEvent(),
+    scrolledToBottom: new MasEvent(),
 };
 
 export default Events;

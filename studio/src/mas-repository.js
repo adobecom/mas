@@ -9,22 +9,21 @@ import Events from './events.js';
 import { debounce, looseEquals, showToast, UserFriendlyError } from './utils.js';
 import {
     OPERATIONS,
-    STATUS_PUBLISHED,
-    TAG_STATUS_PUBLISHED,
     ROOT_PATH,
     PAGE_NAMES,
-    TAG_STUDIO_CONTENT_TYPE,
-    TAG_MODEL_ID_MAPPING,
-    EDITABLE_FRAGMENT_MODEL_IDS,
     DICTIONARY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
     LOCALE_DEFAULT,
+    CONTENT_MODEL_IDS,
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { getDictionary } from '../libs/fragment-client.js';
+
+const BATCH_SIZE = 50;
+const RECENTLY_UPDATED_LIMIT = 6;
 
 let fragmentCache;
 
@@ -57,15 +56,16 @@ export class MasRepository extends LitElement {
         baseUrl: { type: String, attribute: 'base-url' },
     };
 
-    inEdit = Store.fragments.inEdit;
+    inEdit = Store.content.inEdit;
     operation = Store.operation;
 
     getFromFragmentCache = getFromFragmentCache;
 
     constructor() {
         super();
+        this.singleFragmentMode = false;
         this.#abortControllers = {
-            search: null,
+            content: null,
             recentlyUpdated: null,
             placeholders: null,
         };
@@ -73,16 +73,18 @@ export class MasRepository extends LitElement {
         this.copyFragment = this.copyFragment.bind(this);
         this.publishFragment = this.publishFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
-        this.search = new StoreController(this, Store.search);
-        this.filters = new StoreController(this, Store.filters);
-        this.page = new StoreController(this, Store.page);
         this.foldersLoaded = new StoreController(this, Store.folders.loaded);
-        this.reactiveController = new ReactiveController(this, [Store.profile, Store.createdByUsers]);
-        this.recentlyUpdatedLimit = new StoreController(this, Store.fragments.recentlyUpdated.limit);
+        this.reactiveController = new ReactiveController(this, [
+            Store.profile,
+            Store.surface,
+            Store.locale,
+            Store.page,
+            Store.singleFragmentMode,
+        ]);
         this.handleSearch = debounce(this.handleSearch.bind(this), 50);
     }
 
-    /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
+    /** @type {{ content: AbortController | null, recentlyUpdated: AbortController | null, placeholders: AbortController | null }} */
     #abortControllers;
     /** @type {AEM} */
     aem;
@@ -118,9 +120,9 @@ export class MasRepository extends LitElement {
 
     handleSearch() {
         if (!Store.profile.value) return;
-        switch (this.page.value) {
+        switch (Store.page.value) {
             case PAGE_NAMES.CONTENT:
-                this.searchFragments();
+                this.loadContent();
                 this.loadPreviewPlaceholders();
                 break;
             case PAGE_NAMES.WELCOME:
@@ -142,22 +144,18 @@ export class MasRepository extends LitElement {
             Store.folders.loaded.set(true);
             Store.folders.data.set(folders);
 
-            if (!folders.includes(this.search.value.path) && !this.search.value.query)
-                Store.search.set((prev) => ({
-                    ...prev,
-                    path: folders.at(0),
-                }));
-            Store.fragments.list.data.set([]);
+            if (!folders.includes(Store.surface.value) && !Store.content.search.value.query) Store.surface.set(folders.at(0));
+            Store.content.data.clear();
         } catch (error) {
-            Store.fragments.list.loading.set(false);
-            Store.fragments.list.firstPageLoaded.set(false);
-            Store.fragments.recentlyUpdated.loading.set(false);
+            Store.content.loading.set(false);
+            Store.content.recentlyUpdated.loading.set(false);
+            Store.placeholders.list.loading.set(false);
             this.processError(error, 'Could not load folders.');
         }
     }
 
     get parentPath() {
-        return `${getDamPath(this.search.value.path)}/${this.filters.value.locale}`;
+        return `${getDamPath(Store.surface.value)}/${Store.locale.value}`;
     }
 
     get fragmentStoreInEdit() {
@@ -185,127 +183,88 @@ export class MasRepository extends LitElement {
         return variants.length && !variants.includes(variant);
     }
 
-    async searchFragments() {
-        if (this.page.value !== PAGE_NAMES.CONTENT) return;
-        if (!Store.profile.value) return;
+    async loadContent() {
+        if (Store.page.value !== PAGE_NAMES.CONTENT) return;
 
-        Store.fragments.list.loading.set(true);
-        Store.fragments.list.firstPageLoaded.set(false);
+        if (this.#abortControllers.content) this.#abortControllers.content.abort();
+        this.#abortControllers.content = new AbortController();
 
-        const path = this.search.value.path;
-        const dataStore = Store.fragments.list.data;
-        const query = this.search.value.query;
-        const TAG_VARIANT_PREFIX = 'mas:variant/';
+        /* If the page was loaded with a UUID query, then only load that single fragment */
+        if (Store.singleFragmentMode.value) {
+            const onSearchChange = () => {
+                Store.singleFragmentMode.set(false);
+                Store.content.search.unsubscribe(onSearchChange);
+            };
+            Store.content.search.subscribe(onSearchChange, false);
 
-        let tags = [];
-        if (this.filters.value.tags) {
-            if (typeof this.filters.value.tags === 'string') {
-                tags = this.filters.value.tags.split(',').filter(Boolean);
-            } else if (Array.isArray(this.filters.value.tags)) {
-                tags = this.filters.value.tags.filter(Boolean);
-            } else {
-                console.warn('Unexpected tags format:', this.filters.value.tags);
-            }
+            await this.loadSingleFragment(Store.content.search.value.query);
+
+            Store.content.loading.set(false);
+            this.#abortControllers.content = null;
+
+            return;
         }
 
-        const createdBy = Store.createdByUsers.get().map((user) => user.userPrincipalName);
-
-        let modelIds = tags.filter((tag) => tag.startsWith(TAG_STUDIO_CONTENT_TYPE)).map((tag) => TAG_MODEL_ID_MAPPING[tag]);
-
-        if (modelIds.length === 0) modelIds = EDITABLE_FRAGMENT_MODEL_IDS;
-
-        const variants = tags
-            .filter((tag) => tag.startsWith(TAG_VARIANT_PREFIX))
-            .map((tag) => tag.replace(TAG_VARIANT_PREFIX, ''));
-        tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE) && !tag.startsWith(TAG_VARIANT_PREFIX));
-
-        const damPath = getDamPath(path);
-        const localSearch = {
-            ...this.search.value,
-            modelIds,
-            path: `${damPath}/${this.filters.value.locale}`,
-            tags,
-            createdBy,
+        const damPath = getDamPath(Store.surface.value);
+        const options = {
+            modelIds: CONTENT_MODEL_IDS,
+            path: `${damPath}/${Store.locale.value}`,
             sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
         };
 
-        const publishedTagIndex = tags.indexOf(TAG_STATUS_PUBLISHED);
-        if (publishedTagIndex > -1) {
-            tags.splice(publishedTagIndex, 1);
-            localSearch.status = STATUS_PUBLISHED;
-        }
-
-        try {
-            if (this.#abortControllers.search) this.#abortControllers.search.abort();
-            this.#abortControllers.search = new AbortController();
-
-            if (isUUID(this.search.value.query)) {
-                // Check if the fragment with this UUID is already the only one in the store
-                const [currentFragment] = dataStore.get() ?? [];
-                if (currentFragment?.value.id === this.search.value.query) {
-                    // Skip search if we already have exactly this fragment)
-                    Store.fragments.list.loading.set(false);
-                    Store.fragments.list.firstPageLoaded.set(true);
-                    return;
-                }
-                dataStore.set([]);
-                const fragmentData = await this.aem.sites.cf.fragments.getById(
-                    localSearch.query,
-                    this.#abortControllers.search,
-                );
-                if (fragmentData && fragmentData.path.indexOf(damPath) == 0) {
-                    const fragment = await this.#addToCache(fragmentData);
-                    const sourceStore = generateFragmentStore(fragment);
-                    dataStore.set([sourceStore]);
-
-                    const folderPath = fragmentData.path.substring(fragmentData.path.indexOf(damPath) + damPath.length + 1);
-                    const folderName = folderPath.substring(0, folderPath.indexOf('/'));
-                    if (Store.folders.data.get().includes(folderName)) {
-                        Store.search.set((prev) => ({
-                            ...prev,
-                            path: folderName,
-                        }));
-                    }
-                }
-            } else {
-                Store.fragments.list.loading.set(true);
-                Store.fragments.list.firstPageLoaded.set(false);
-                dataStore.set([]);
-                const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
-                const fragmentStores = [];
-                for await (const result of cursor) {
-                    for await (const item of result) {
-                        if (this.skipVariant(variants, item)) continue;
-                        const fragment = await this.#addToCache(item);
-                        const sourceStore = generateFragmentStore(fragment);
-                        fragmentStores.push(sourceStore);
-                    }
-                    dataStore.set([...fragmentStores]);
-                    Store.fragments.list.firstPageLoaded.set(true);
-                }
+        Store.content.loading.set(true);
+        Store.content.batchesLoaded.set(0);
+        const cursor = await this.aem.sites.cf.fragments.search(options, BATCH_SIZE, this.#abortControllers.content);
+        for await (const result of cursor) {
+            const batch = [];
+            for await (const item of result) {
+                const fragment = await this.#addToCache(item);
+                const store = generateFragmentStore(fragment);
+                batch.push(store);
             }
-
-            dataStore.setMeta('path', path);
-            dataStore.setMeta('query', query);
-            dataStore.setMeta('tags', tags);
-
-            this.#abortControllers.search = null;
-        } catch (error) {
-            this.processError(error, 'Could not load fragments.');
+            Store.content.data.add(batch);
+            Store.content.batchesLoaded.set((prev) => prev + 1);
         }
+        Store.content.loading.set(false);
+        this.#abortControllers.content = null;
+    }
 
-        Store.fragments.list.loading.set(false);
+    async loadAuxiliaryContent(options, limit, abortController, loadAllBatches = false) {
+        const cursor = await this.aem.sites.cf.fragments.search(options, limit, abortController);
+        const items = [];
+        if (loadAllBatches) {
+            for await (const result of cursor) {
+                const batch = [];
+                for await (const item of result) {
+                    const fragment = await this.#addToCache(item);
+                    const store = generateFragmentStore(fragment);
+                    batch.push(store);
+                    items.push(store);
+                }
+                Store.content.data.add(batch);
+            }
+        } else {
+            const result = await cursor.next();
+            for (const item of result.value) {
+                const fragment = await this.#addToCache(item);
+                const store = generateFragmentStore(fragment);
+                items.push(store);
+            }
+            Store.content.data.add(items);
+        }
+        return items;
     }
 
     async loadRecentlyUpdatedFragments() {
-        if (this.page.value !== PAGE_NAMES.WELCOME) return;
+        if (Store.page.value !== PAGE_NAMES.WELCOME) return;
+
         if (this.#abortControllers.recentlyUpdated) this.#abortControllers.recentlyUpdated.abort();
         this.#abortControllers.recentlyUpdated = new AbortController();
 
-        Store.fragments.recentlyUpdated.loading.set(true);
+        Store.content.recentlyUpdated.loading.set(true);
 
-        const dataStore = Store.fragments.recentlyUpdated.data;
-        const path = `${this.search.value.path}/${this.filters.value.locale}`;
+        const dataStore = Store.content.recentlyUpdated.data;
+        const path = `${Store.surface.value}/${Store.locale.value}`;
 
         if (!looseEquals(dataStore.getMeta('path'), path)) {
             dataStore.set([]);
@@ -313,39 +272,28 @@ export class MasRepository extends LitElement {
         }
 
         try {
-            const cursor = await this.aem.sites.cf.fragments.search(
-                {
-                    sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
-                    path: `/content/dam/mas/${path}`,
-                },
-                this.recentlyUpdatedLimit.value,
+            const options = {
+                sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
+                path: `/content/dam/mas/${path}`,
+            };
+            const items = await this.loadAuxiliaryContent(
+                options,
+                RECENTLY_UPDATED_LIMIT,
                 this.#abortControllers.recentlyUpdated,
             );
-
-            const result = await cursor.next();
-            const fragmentStores = [];
-            for await (const item of result.value) {
-                const fragment = await this.#addToCache(item);
-                const sourceStore = generateFragmentStore(fragment);
-                fragmentStores.push(sourceStore);
-            }
-            dataStore.set(fragmentStores);
-
+            dataStore.set(items);
             dataStore.setMeta('path', path);
-
-            this.#abortControllers.recentlyUpdated = null;
         } catch (error) {
             this.processError(error, 'Could not load recently updated fragments.');
         }
 
-        Store.fragments.recentlyUpdated.loading.set(false);
+        Store.content.recentlyUpdated.loading.set(false);
+
+        this.#abortControllers.recentlyUpdated = null;
     }
 
     async loadPlaceholders() {
         try {
-            /* If surface is not set yet, skip loading placeholders */
-            if (!this.search.value.path) return;
-
             const dictionaryPath = this.getDictionaryPath();
 
             const searchOptions = {
@@ -359,7 +307,6 @@ export class MasRepository extends LitElement {
             Store.placeholders.list.loading.set(true);
 
             const fragments = await this.searchFragmentList(searchOptions, 50, this.#abortControllers.placeholders);
-
             const indexFragment = fragments.find((fragment) => fragment.path.endsWith('/index'));
             if (indexFragment) Store.placeholders.index.set(indexFragment);
             else console.error('No index fragment found:', error);
@@ -376,14 +323,33 @@ export class MasRepository extends LitElement {
         }
     }
 
+    async loadSingleFragment(id) {
+        /* Wanted fragment is already loaded */
+        if (Store.content.data.has(id)) return;
+        const damPath = getDamPath(Store.surface.value);
+        const fragmentData = await this.aem.sites.cf.fragments.getById(id, this.#abortControllers.search);
+        if (fragmentData && fragmentData.path.indexOf(damPath) == 0) {
+            const fragment = await this.#addToCache(fragmentData);
+            const sourceStore = generateFragmentStore(fragment);
+            Store.content.data.add(sourceStore);
+
+            const folderPath = fragmentData.path.substring(fragmentData.path.indexOf(damPath) + damPath.length + 1);
+            const folderName = folderPath.substring(0, folderPath.indexOf('/'));
+            if (Store.folders.data.get().includes(folderName)) {
+                Store.surface.set(folderName);
+            }
+        }
+    }
+
     async loadPreviewPlaceholders() {
+        if (!Store.surface.value) return;
         try {
             const context = {
                 preview: {
                     url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
                 },
-                locale: this.filters.value.locale,
-                surface: this.search.value.path,
+                locale: Store.locale.value,
+                surface: Store.surface.value,
             };
             const result = await getDictionary(context);
             Store.placeholders.preview.set(result);
@@ -395,7 +361,7 @@ export class MasRepository extends LitElement {
     }
 
     getDictionaryPath() {
-        return `${ROOT_PATH}/${this.search.value.path}/${this.filters.value.locale}/dictionary`;
+        return `${ROOT_PATH}/${Store.surface.value}/${Store.locale.value}/dictionary`;
     }
 
     /**
@@ -538,7 +504,8 @@ export class MasRepository extends LitElement {
             const newFragment = await this.#addToCache(savedResult);
 
             const sourceStore = generateFragmentStore(newFragment);
-            Store.fragments.list.data.set((prev) => [sourceStore, ...prev]);
+            sourceStore.new = true;
+            Store.content.data.add(sourceStore);
             editFragment(sourceStore);
 
             this.operation.set();
@@ -825,10 +792,10 @@ export class MasRepository extends LitElement {
         if ([CARD_MODEL_PATH, COLLECTION_MODEL_PATH].includes(latest.model.path)) {
             // originalId allows to keep track of the relation between en_US fragment and the current one if in different locales
             const originalId = store.get().getOriginalIdField();
-            if (this.filters.value.locale === LOCALE_DEFAULT) {
+            if (Store.locale.value === LOCALE_DEFAULT) {
                 originalId.values = [latest.id];
             } else {
-                const enUsPath = latest.path.replace(this.filters.value.locale, LOCALE_DEFAULT);
+                const enUsPath = latest.path.replace(Store.locale.value, LOCALE_DEFAULT);
                 try {
                     const sourceFragment = await this.aem.sites.cf.fragments.getByPath(enUsPath);
                     if (sourceFragment) {

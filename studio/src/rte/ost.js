@@ -104,7 +104,7 @@ export function onPlaceholderSelect(offerSelectorId, type, offer, options, promo
 
     const ctaText = CHECKOUT_CTA_TEXTS[options.ctaText]; // no placeholder key support.
     if (ctaText) {
-        attributes['text'] = ['acom', 'sandbox', 'nala'].includes(Store.search.get().path) ? `{{${options.ctaText}}}` : ctaText;
+        attributes['text'] = ['acom', 'sandbox', 'nala'].includes(Store.surface.value) ? `{{${options.ctaText}}}` : ctaText;
         attributes['data-analytics-id'] = options.ctaText;
     }
 
@@ -235,7 +235,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             language: masCommerceService.settings.language,
             defaultPlaceholderOptions: ostDefaultSettings(),
             offerSelectorPlaceholderOptions,
-            modalsAndEntitlements: ['acom', 'sandbox', 'nala'].includes(Store.search.get().path),
+            modalsAndEntitlements: ['acom', 'sandbox', 'nala'].includes(Store.surface.value),
             dialog: true,
             onSelect: triggerElement.tagName === 'OSI-FIELD' ? onOfferSelect : onPlaceholderSelect,
         });

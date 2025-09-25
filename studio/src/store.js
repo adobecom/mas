@@ -1,33 +1,40 @@
 import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
+import { MapStore } from './reactivity/map-store.js';
+import { PaginationStore } from './reactivity/pagination-store.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
+import { getHashParam, isUUID } from './utils.js';
 
 // Store definition with default values - no URL parsing here
 const Store = {
-    fragments: {
-        list: {
-            loading: new ReactiveStore(true),
-            firstPageLoaded: new ReactiveStore(false),
-            data: new ReactiveStore([]),
+    content: {
+        data: new MapStore(),
+        displaying: new ReactiveStore([]),
+        total: new ReactiveStore(0) /* Total number of items after filtering */,
+        loading: new ReactiveStore(true),
+        batchesLoaded: new ReactiveStore(0),
+        search: new ReactiveStore({ field: 'cardTitle', query: '' }, contentSearchValidator),
+        filters: {
+            tags: new ReactiveStore([], contentTagsValidator),
         },
+        sort: new ReactiveStore({}),
+        pagination: new PaginationStore(),
         recentlyUpdated: {
             loading: new ReactiveStore(true),
             data: new ReactiveStore([]),
-            limit: new ReactiveStore(6),
         },
         inEdit: new ReactiveStore(null),
     },
     operation: new ReactiveStore(),
     editor: {
         get hasChanges() {
-            return Store.fragments.inEdit.get()?.get()?.hasChanges || false;
+            return Store.content.inEdit.get()?.get()?.hasChanges || false;
         },
     },
     folders: {
         loaded: new ReactiveStore(false),
         data: new ReactiveStore([]),
     },
-    search: new ReactiveStore({}),
-    filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
+    tags: new ReactiveStore({}),
     sort: new ReactiveStore({}),
     renderMode: new ReactiveStore(localStorage.getItem('mas-render-mode') || 'render'),
     selecting: new ReactiveStore(false),
@@ -55,26 +62,21 @@ const Store = {
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
     preview: new ReactiveStore(null, previewValidator),
+    surface: new ReactiveStore(null),
+    locale: new ReactiveStore('en_US', localeValidator),
+    singleFragmentMode: new ReactiveStore(
+        (function () {
+            const query = getHashParam('query');
+            if (query && isUUID(query)) return true;
+            return false;
+        })(),
+    ),
 };
 
 // #region Validators
 
-/**
- * @param {object} value
- * @returns {object}
- */
-function filtersValidator(value) {
-    if (!value) return { locale: 'en_US', tags: undefined };
-    if (!value.locale) value.locale = 'en_US';
-
-    // Ensure tags is always a string
-    if (!value.tags) {
-        value.tags = undefined;
-    } else if (Array.isArray(value.tags)) {
-        value.tags = value.tags.join(',');
-    } else if (typeof value.tags !== 'string') {
-        value.tags = String(value.tags);
-    }
+function localeValidator(value) {
+    if (!value || typeof value !== 'string') return 'en_US';
     return value;
 }
 
@@ -93,6 +95,19 @@ function pageValidator(value) {
  */
 function landscapeValidator(value) {
     return [WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED].includes(value) ? value : WCS_LANDSCAPE_PUBLISHED;
+}
+
+function contentSearchValidator(value) {
+    if (!value || typeof value !== 'object') return { field: 'all', query: '' };
+    if (!value.field) return { ...value, field: 'all' };
+    return value;
+}
+
+function contentTagsValidator(value) {
+    if (!value) return [];
+    if (typeof value === 'string') return value.split(',');
+    if (!Array.isArray(value)) return [];
+    return value;
 }
 
 function sortValidator(value) {
@@ -137,9 +152,6 @@ export function toggleSelection(id) {
  * Edit a fragment in the editor panel
  */
 export function editFragment(store, x = 0) {
-    if (!Store.fragments.list.data.get().includes(store)) {
-        Store.fragments.list.data.set((prev) => [store, ...prev]);
-    }
     editorPanel()?.editFragment(store, x);
 }
 
@@ -151,14 +163,7 @@ Store.page.subscribe((value) => {
 });
 
 Store.placeholders.preview.subscribe(() => {
-    if (Store.page.value === PAGE_NAMES.CONTENT) {
-        for (const fragmentStore of Store.fragments.list.data.value) {
-            fragmentStore.resolvePreviewFragment();
-        }
-    }
-    if (Store.page.value === PAGE_NAMES.WELCOME) {
-        for (const fragmentStore of Store.fragments.recentlyUpdated.data.value) {
-            fragmentStore.resolvePreviewFragment();
-        }
+    for (const [, fragmentStore] of Store.content.data.value) {
+        fragmentStore.resolvePreviewFragment();
     }
 });

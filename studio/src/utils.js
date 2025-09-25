@@ -1,4 +1,4 @@
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from './constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, EMPTY_TAGS } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
 
@@ -244,4 +244,9 @@ export function showToast(message, variant = 'info') {
         variant,
         content: message,
     });
+}
+
+export function isUUID(str) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
 }

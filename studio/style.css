@@ -272,10 +272,10 @@ mas-content {
 }
 
 #content sp-table {
-    --table-content-name-flex-grow: 1.6;
+    --table-content-name-flex-grow: 1.5;
     --table-content-title-flex-grow: 1;
-    --table-content-offer-type-flex-grow: 0.4;
-    --table-content-price-flex-grow: 0.4;
+    --table-content-offer-type-flex-grow: 0.5;
+    --table-content-price-flex-grow: 0.5;
     --table-content-offer-id-flex-grow: 1;
     --table-content-status-flex-grow: 0.1;
     --table-content-preview-flex-grow: 0.1;

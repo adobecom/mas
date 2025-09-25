@@ -149,7 +149,7 @@ export class MasRepository extends LitElement {
         } catch (error) {
             Store.content.loading.set(false);
             Store.content.recentlyUpdated.loading.set(false);
-            Store.placeholders.loading.set(false);
+            Store.placeholders.list.loading.set(false);
             this.processError(error, 'Could not load folders.');
         }
     }

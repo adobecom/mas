@@ -1,0 +1,1179 @@
+{
+    "items": [
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/index",
+            "title": "index",
+            "description": "Index of dictionary placeholders",
+            "id": "4218bdb3-8d25-4706-974d-21b1f0f13aa9",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionary",
+                "name": "Dictionary",
+                "title": "Dictionary",
+                "tagIds": ["properties:fullyhydrated"]
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "parent",
+                    "type": "content-fragment",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "entries",
+                    "type": "content-fragment",
+                    "multiple": true,
+                    "locked": false,
+                    "values": [
+                        "/content/dam/mas/sandbox/en_US/dictionary/view-account",
+                        "/content/dam/mas/sandbox/en_US/dictionary/cai-default",
+                        "/content/dam/mas/sandbox/en_US/dictionary/how-is-nico",
+                        "/content/dam/mas/sandbox/en_US/dictionary/save-now",
+                        "/content/dam/mas/sandbox/en_US/dictionary/keep-now",
+                        "/content/dam/mas/sandbox/en_US/dictionary/buy-now",
+                        "/content/dam/mas/sandbox/en_US/dictionary/learn-more",
+                        "/content/dam/mas/sandbox/en_US/dictionary/test",
+                        "/content/dam/mas/sandbox/en_US/dictionary/secure-label",
+                        "/content/dam/mas/sandbox/en_US/dictionary/stock-checkbox-label",
+                        "/content/dam/mas/sandbox/en_US/dictionary/addon-genai-base",
+                        "/content/dam/mas/sandbox/en_US/dictionary/addon-stock-base",
+                        "/content/dam/mas/sandbox/en_US/dictionary/test-angelo",
+                        "/content/dam/mas/sandbox/en_US/dictionary/mariia-buy-now",
+                        "/content/dam/mas/sandbox/en_US/dictionary/odnew",
+                        "/content/dam/mas/sandbox/en_US/dictionary/bold-test",
+                        "/content/dam/mas/sandbox/en_US/dictionary/it-test",
+                        "/content/dam/mas/sandbox/en_US/dictionary/test56"
+                    ]
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 0
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/view-account",
+            "title": "View account",
+            "description": "",
+            "id": "1a7d9a19-4c94-4eaa-b476-56b3330490ed",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["view-account"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["View account"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 0
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/cai-default",
+            "title": "cai-default",
+            "description": "",
+            "id": "7ae52941-3790-4e1c-a19d-62d5409618bf",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["cai-default"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["An AI tool was not used in creating this image"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 0
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/rich-text-placeholder",
+            "title": "rich-text-placeholder",
+            "description": "Placeholder for rich-text-placeholder",
+            "id": "378f7006-4d67-4925-a9f7-90620e12fa87",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["rich-text-placeholder"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [
+                        "This <em>is</em> <s>also</s> <u>rich</u> <a class=\"primary-link\" href=\"https://adobe.com\" target=\"_self\">text</a>!!!"
+                    ]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 0
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/buy-now",
+            "title": "buy-now",
+            "description": "Placeholder for buy-now",
+            "id": "cee3c152-d5ab-4664-83f4-10769b254940",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["buy-now"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Buy now"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 0
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/how-is-nico",
+            "title": "how-is-nico",
+            "description": "Placeholder for how-is-nico",
+            "id": "7e2a3504-8b64-44d7-8bb2-f0705a061f7b",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["how-is-nico"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["nico <em>is</em> great"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
+            ],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 1
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/save-now",
+            "title": "save-now",
+            "description": "Placeholder for save-now",
+            "id": "23d1309d-3bbe-498d-8b02-af49a3c12e6c",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["save-now"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["<a class=\"primary-link\" href=\"https://www.adobe.com\" target=\"_self\">Save now</a>"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
+            ],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 1
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/keep-now",
+            "title": "keep-now",
+            "description": "Placeholder for keep-now",
+            "id": "22ae6fc5-c6e1-4166-86cc-c36365b16398",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["keep-now"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Save now"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
+            ],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 1
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/learn-more",
+            "title": "learn-more",
+            "description": "Placeholder for learn-more",
+            "id": "89d1165b-e8c1-4b8f-b9a8-a7182efc7cf8",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["learn-more"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [
+                        "<a class=\"primary-outline\" href=\"https://www.adobe.com\" target=\"_blank\" data-analytics-id=\"learn-more\">Learn more</a>"
+                    ]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
+            ],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 1
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/test",
+            "title": "test",
+            "description": "Placeholder for test",
+            "id": "7418ae44-9236-4245-88ab-28c8d2c2d948",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["test"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["test"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
+            ],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 1
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/secure-label",
+            "title": "secure-label",
+            "description": "Placeholder for secure-label",
+            "id": "b8856302-393f-4d92-a280-3bc7bd6e20bb",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["secure-label"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Secure transaction"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
+            ],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 1
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/stock-checkbox-label",
+            "title": "stock-checkbox-label",
+            "description": "Placeholder for stock-checkbox-label",
+            "id": "ee8a5467-bb53-407d-a34d-0c8849f3201b",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["stock-checkbox-label"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Add a 30-day free trial of Adobe Stock."]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
+            ],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 1
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/addon-genai-base",
+            "title": "addon-genai-base",
+            "description": "Placeholder for addon-genai-base",
+            "id": "b3378976-f9b4-4231-88bd-ef51182373d3",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["addon-genai-base"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p><strong>Acrobat AI Assistant</strong></p><p>Add AI Assistant to your free Reader app for <span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"ELxXc1wm2kA0Arcwp8vgF6xF1osc3Ib--pkPpUGlmEs\"></span></p><p>Add AI Assistant to your free Reader app for <span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"Qe5jcbzBFtfcrvBgH-1Lm21X5qeQkr15Bc9taliX4RI\"></span></p><p>Add AI Assistant to your free Reader app for <span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"gvtCpmOOMw2-XJhPJq8KwOXGLZIhyhu1Q9cyfpwYKY0\"></span></p>"
+                    ]
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
+            ],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 1
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/addon-stock-base",
+            "title": "addon-stock-base",
+            "description": "Placeholder for addon-stock-base",
+            "id": "8f468af9-7210-44c3-978c-3230aa0f362e",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["addon-stock-base"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p>Add a 30-day free trial of Adobe Stock.*</p><p><span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"FWEdmk_LYpoGnCR0gQMaS5Rbq9a5vFbVFoNaRT0m7NU\"></span></p><p><span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"JWIwpOv5nOckxDEBJeQWHa8spk7iEo4EEnQNQ1_YbmE\"></span></p><p><span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"RoV3wydweldSG5HWZUaytO-du3WA8S32alL4GzK6Ssw\"></span></p>"
+                    ]
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
+            ],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 1
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/test-angelo",
+            "title": "test-angelo",
+            "description": "Placeholder for test-angelo",
+            "id": "128df105-64a2-4b2d-bd52-1a99e2080280",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["test-angelo"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["test ok"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
+            ],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 1
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/mariia-buy-now",
+            "title": "mariia-buy-now",
+            "description": "Placeholder for mariia-buy-now",
+            "id": "5e209c3f-cc79-4957-9128-bf8c84897517",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["mariia-buy-now"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Mariia, buy it, now! Unpublished?eee"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
+            ],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 1
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/odnew",
+            "title": "odnew",
+            "description": "Placeholder for odnew",
+            "id": "7e400ffe-9a41-4b9c-bf5f-06afe9449523",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["odnew"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["odnew"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
+            ],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 1
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/bold-test",
+            "title": "bold-test",
+            "description": "Placeholder for bold-test",
+            "id": "a3dd3a6a-a9a6-4281-964d-b0f89364b510",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["bold-test"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": ["<p><strong>Bold Test</strong></p>"]
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
+            ],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 1
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/it-test",
+            "title": "it-test",
+            "description": "Placeholder for it-test",
+            "id": "6c89f02d-05ee-499c-ada2-94f5100930aa",
+            "status": "MODIFIED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["it-test"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": ["<p><em>It Test 1</em></p>"]
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
+            ],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 1
+        },
+        {
+            "path": "/content/dam/mas/sandbox/en_US/dictionary/test56",
+            "title": "test56",
+            "description": "Placeholder for test56",
+            "id": "b138c5f0-9d6a-452e-a3f6-cac4da89d90d",
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/dictionnary",
+                "name": "Dictionnary Entry",
+                "title": "Dictionnary Entry"
+            },
+            "validationStatus": [],
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["test56"]
+                },
+                {
+                    "name": "value",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["test56"]
+                },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": [true]
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:status/draft",
+                    "title": "Draft",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Status / Draft",
+                    "name": "draft",
+                    "path": "/content/cq:tags/mas/status/draft"
+                }
+            ],
+            "references": [],
+            "fieldTags": [],
+            "tagsCount": 1
+        }
+    ]
+}

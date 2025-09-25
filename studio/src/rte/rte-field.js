@@ -164,56 +164,6 @@ class MnemonicNodeView {
     }
 }
 
-class DividerNodeView {
-    constructor(node, view, getPos) {
-        this.node = node;
-        this.view = view;
-        this.getPos = getPos;
-
-        // Create wrapper div with contenteditable="false" to make it selectable
-        this.dom = document.createElement('div');
-        this.dom.className = 'divider-wrapper';
-        this.dom.setAttribute('contenteditable', 'false');
-
-        // Always use HR elements for dividers
-        this.divider = document.createElement('hr');
-        this.divider.className = 'divider-hr';
-
-        this.dom.appendChild(this.divider);
-
-        // Add click handler for selection
-        this.dom.addEventListener('click', (e) => {
-            e.preventDefault();
-            const pos = this.getPos();
-            if (pos !== undefined) {
-                const selection = NodeSelection.create(this.view.state.doc, pos);
-                const tr = this.view.state.tr.setSelection(selection);
-                this.view.dispatch(tr);
-            }
-        });
-    }
-
-    update(node) {
-        if (node.type !== this.node.type) {
-            return false;
-        }
-        this.node = node;
-
-        // Update HR element classes
-        this.divider.className = 'divider-hr';
-
-        return true;
-    }
-
-    selectNode() {
-        this.dom.classList.add('ProseMirror-selectednode');
-    }
-
-    deselectNode() {
-        this.dom.classList.remove('ProseMirror-selectednode');
-    }
-}
-
 let ostRteFieldSource;
 
 class RteField extends LitElement {
@@ -482,31 +432,8 @@ class RteField extends LitElement {
                     outline-offset: 2px;
                 }
 
-                .divider-wrapper {
-                    display: block;
-                    margin: 8px 0;
-                    padding: 4px;
-                    border-radius: 4px;
-                    cursor: pointer;
-                }
-
-                .divider-wrapper:hover {
-                    background-color: var(--spectrum-global-color-gray-100);
-                }
-
-                div.ProseMirror-focused .divider-wrapper.ProseMirror-selectednode {
-                    outline: 2px dashed var(--spectrum-global-color-blue-500);
-                    outline-offset: 2px;
-                    border-radius: 4px;
-                    background-color: var(--spectrum-global-color-gray-75);
-                }
-
-                .divider-wrapper hr {
-                    pointer-events: none;
-                }
-
-                /* Styles for HR-based dividers */
-                .divider-hr {
+                /* Styles for HR dividers */
+                hr {
                     border: none;
                     margin: 0;
                     background-color: var(--spectrum-global-color-gray-300);
@@ -774,44 +701,7 @@ class RteField extends LitElement {
             });
         }
 
-        if (this.divider) {
-            // Use horizontal_rule as the base node type for better compatibility
-            nodes = nodes.addToStart('horizontal_rule', {
-                group: 'block',
-                atom: true,
-                selectable: true,
-                draggable: true,
-                attrs: {},
-                parseDOM: [
-                    {
-                        tag: 'div.divider-wrapper',
-                        priority: 50,
-                        getAttrs: (domNode) => {
-                            const dividerElement = domNode.querySelector('hr');
-                            // Return false if no actual divider element is found
-                            if (!dividerElement) return false;
-
-                            // Additional validation: make sure it's a proper divider HR
-                            if (!dividerElement.className || !dividerElement.className.includes('divider-')) {
-                                return false;
-                            }
-                            // Valid divider found
-                            return {};
-                        },
-                    },
-                    {
-                        tag: 'hr',
-                        getAttrs: () => {
-                            return {};
-                        },
-                    },
-                ],
-                toDOM: () => {
-                    // Always output as HR for maximum compatibility
-                    return ['div', { class: 'divider-wrapper', contenteditable: 'false' }, ['hr', { class: 'divider-hr' }]];
-                },
-            });
-        }
+        // Divider support is handled by the default horizontal_rule from schema
 
         if (this.mnemonic) {
             nodes = nodes.addToStart('mnemonic', {
@@ -1137,7 +1027,6 @@ class RteField extends LitElement {
             nodeViews: {
                 link: (node, view, getPos) => new LinkNodeView(node, view, getPos),
                 mnemonic: (node, view, getPos) => new MnemonicNodeView(node, view, getPos),
-                horizontal_rule: (node, view, getPos) => new DividerNodeView(node, view, getPos),
             },
         });
 
@@ -1146,21 +1035,6 @@ class RteField extends LitElement {
             this.innerHTML = '';
             const container = document.createElement('div');
             container.innerHTML = html;
-
-            // Remove ALL divider elements if the content is otherwise empty
-            // First, check what content we have besides dividers
-            const tempContainer = container.cloneNode(true);
-            tempContainer
-                .querySelectorAll('.divider-wrapper, hr.divider-hr, hr[class*="divider-"]')
-                .forEach((el) => el.remove());
-            const remainingText = tempContainer.textContent.trim();
-
-            // If there's no other content, remove all dividers
-            if (!remainingText) {
-                container.querySelectorAll('.divider-wrapper, hr.divider-hr, hr[class*="divider-"]').forEach((element) => {
-                    element.remove();
-                });
-            }
 
             // Simplified DOM manipulation
             container.querySelectorAll('div').forEach((div) => {
@@ -1209,34 +1083,6 @@ class RteField extends LitElement {
             let newState = oldState.apply(transaction);
             if (!newState) return;
 
-            // Check if document only contains dividers (no actual text content)
-            const textContent = newState.doc.textContent.trim();
-            if (!textContent && newState.doc.content.size > 0) {
-                // Check if there are only dividers
-                let hasDividerOnly = false;
-                newState.doc.forEach((node) => {
-                    if (node.type.name === 'paragraph' && node.content.size === 1) {
-                        node.forEach((child) => {
-                            if (child.type.name === 'horizontal_rule') {
-                                hasDividerOnly = true;
-                            }
-                        });
-                    } else if (node.type.name === 'horizontal_rule') {
-                        hasDividerOnly = true;
-                    }
-                });
-
-                // If only dividers, create an empty document
-                if (hasDividerOnly) {
-                    const emptyDoc = this.#editorSchema.nodes.doc.create(null, this.#editorSchema.nodes.paragraph.create());
-                    newState = EditorState.create({
-                        doc: emptyDoc,
-                        schema: this.#editorSchema,
-                        plugins: oldState.plugins,
-                    });
-                }
-            }
-
             this.#updateSelection(newState);
             this.editorView.updateState(newState);
 
@@ -1268,18 +1114,7 @@ class RteField extends LitElement {
             const container = document.createElement('div');
             container.appendChild(fragment);
 
-            // Check if only content is a divider wrapper
-            const content = container.innerHTML.trim();
-
-            // Remove all divider-only content
-            // Check for divider wrappers with HR
-            const dividerOnlyPatterns = [/^<div class="divider-wrapper[^"]*"[^>]*><hr[^>]*><\/div>$/, /^<hr[^>]*>$/];
-
-            if (dividerOnlyPatterns.some((pattern) => content.match(pattern))) {
-                return '';
-            }
-
-            return content;
+            return container.innerHTML.trim();
         } catch (error) {
             console.warn('Error serializing content:', error);
             return '';

@@ -238,13 +238,62 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic field and save card', async () => {
-            await expect(await editor.iconURL).toBeVisible();
-            await editor.iconURL.fill(data.newIconURL);
+            // Check if we have the new mnemonic field or old icon field - use first() to handle multiple elements
+            const hasMnemonicField = await editor.mnemonicField
+                .first()
+                .isVisible()
+                .catch(() => false);
+
+            if (hasMnemonicField) {
+                // New mnemonic field with modal - use first() to handle multiple elements
+                await editor.mnemonicEditButton.first().click();
+                await page.waitForTimeout(1000); // Wait for modal to open
+                // Use first() to handle multiple dialogs if present
+                await expect(await editor.mnemonicModalDialog.first()).toBeVisible();
+
+                // Switch to URL tab - use first() to handle multiple tabs
+                await editor.mnemonicUrlTab.first().click();
+
+                // Fill in the new icon URL - use first() to handle multiple inputs
+                await editor.mnemonicUrlIconInput.first().fill(data.newIconURL);
+
+                // Save the changes in modal - use first() to handle multiple buttons
+                const updateButton = page.locator('mas-mnemonic-modal >> sp-button:has-text("Update Icon")').first();
+                await updateButton.click();
+                await page.waitForTimeout(1000);
+
+                // If modal is still open, use keyboard to submit
+                if (await editor.mnemonicModalDialog.first().isVisible()) {
+                    await updateButton.focus();
+                    await page.keyboard.press('Enter');
+                    await page.waitForTimeout(1000);
+                }
+
+                // Wait for the modal to close completely
+                await expect(await editor.mnemonicModalDialog.first()).not.toBeVisible({ timeout: 10000 });
+            } else {
+                // Fallback to old icon field
+                await expect(await editor.iconURL).toBeVisible();
+                await editor.iconURL.fill(data.newIconURL);
+            }
+
+            // Save the card
             await studio.saveCard();
         });
 
         await test.step('step-4: Verify mnemonic change is saved', async () => {
-            await expect(await editor.iconURL).toHaveValue(data.newIconURL);
+            // Verify the icon was updated - use first() to handle multiple elements
+            const hasMnemonicField = await editor.mnemonicField
+                .first()
+                .isVisible()
+                .catch(() => false);
+
+            if (hasMnemonicField) {
+                await expect(await editor.mnemonicIcon.first()).toHaveAttribute('src', data.newIconURL);
+            } else {
+                await expect(await editor.iconURL).toHaveValue(data.newIconURL);
+            }
+
             await expect(await clonedCard.locator(individuals.cardIcon)).toHaveAttribute('src', data.newIconURL);
         });
     });

@@ -218,13 +218,39 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            await expect(await editor.iconURL).toBeVisible();
-            await expect(await editor.iconURL).toHaveValue(data.iconURL);
-            await editor.iconURL.fill(data.newIconURL);
+            // Check if mnemonic field is visible - use first() to handle multiple elements
+            await expect(await editor.mnemonicField.first()).toBeVisible();
+
+            // Click edit button to open modal - use first() to handle multiple elements
+            await editor.mnemonicEditButton.first().click();
+            await page.waitForTimeout(1000); // Wait for modal to open
+            // Use first() to handle multiple dialogs if present
+            await expect(await editor.mnemonicModalDialog.first()).toBeVisible();
+
+            // Switch to URL tab - use first() to handle multiple tabs
+            await editor.mnemonicUrlTab.first().click();
+
+            // Fill in the new icon URL - use first() to handle multiple inputs
+            await editor.mnemonicUrlIconInput.first().fill(data.newIconURL);
+
+            // Save the changes - use first() to handle multiple buttons
+            const updateButton = page.locator('mas-mnemonic-modal >> sp-button:has-text("Update Icon")').first();
+            await updateButton.click();
+            await page.waitForTimeout(1000);
+
+            // If modal is still open, use keyboard to submit
+            if (await editor.mnemonicModalDialog.first().isVisible()) {
+                await updateButton.focus();
+                await page.keyboard.press('Enter');
+                await page.waitForTimeout(1000);
+            }
+
+            // Wait for the modal to close completely
+            await expect(await editor.mnemonicModalDialog.first()).not.toBeVisible({ timeout: 10000 });
         });
 
         await test.step('step-4: Validate edited mnemonic field in Editor panel', async () => {
-            await expect(await editor.iconURL).toHaveValue(data.newIconURL);
+            await expect(await editor.mnemonicIcon.first()).toHaveAttribute('src', data.newIconURL);
         });
 
         await test.step('step-5: Validate edited mnemonic on the card', async () => {
@@ -420,7 +446,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await editor.subtitle).not.toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.mnemonicField.first()).toBeVisible();
             await expect(await editor.borderColor).not.toBeVisible();
             await expect(await editor.backgroundColor).not.toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
@@ -474,7 +500,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await editor.subtitle).toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.mnemonicField.first()).toBeVisible();
             await expect(await editor.borderColor).not.toBeVisible();
             await expect(await editor.backgroundColor).not.toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();

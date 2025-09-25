@@ -163,8 +163,34 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            await expect(await editor.iconURL).toBeVisible();
-            await editor.iconURL.fill(data.newIconURL);
+            // Check if mnemonic field is visible
+            await expect(await editor.mnemonicField.first()).toBeVisible();
+
+            // Click edit button to open modal
+            await editor.mnemonicEditButton.first().click();
+            await page.waitForTimeout(1000); // Wait for modal to open
+            await expect(await editor.mnemonicModalDialog.first()).toBeVisible();
+
+            // Switch to URL tab
+            await editor.mnemonicUrlTab.first().click();
+
+            // Fill in the new icon URL
+            await editor.mnemonicUrlIconInput.first().fill('');
+            await page.waitForTimeout(500);
+            await editor.mnemonicUrlIconInput.first().fill(data.newIconURL);
+            await page.waitForTimeout(500);
+
+            // Save the changes in modal
+            const updateButton = page.locator('mas-mnemonic-modal >> sp-button:has-text("Update Icon")').first();
+            await updateButton.click();
+            await page.waitForTimeout(1000);
+
+            // If modal is still open, use keyboard to submit
+            if (await editor.mnemonicModalDialog.first().isVisible()) {
+                await updateButton.focus();
+                await page.keyboard.press('Enter');
+                await page.waitForTimeout(1000);
+            }
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -178,7 +204,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await slice.cardIcon).toHaveAttribute('src', data.iconURL);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.iconURL).toHaveValue(data.iconURL);
+            await expect(await editor.mnemonicIcon.first()).toHaveAttribute('src', data.iconURL);
         });
     });
 

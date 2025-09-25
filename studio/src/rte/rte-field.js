@@ -1277,7 +1277,6 @@ class RteField extends LitElement {
                 this.showIconEditor = false;
             } else if (this.showMnemonicEditor) {
                 this.showMnemonicEditor = false;
-                this.requestUpdate();
             }
             closeOfferSelectorTool();
         }

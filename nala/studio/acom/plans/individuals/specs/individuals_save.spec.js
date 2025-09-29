@@ -23,7 +23,7 @@ export default {
         },
         {
             tcid: '2',
-            name: '@studio-plans-individuals-save-comprehensive',
+            name: '@studio-plans-individuals-save-edited-fields',
             path: '/studio.html',
             data: {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
@@ -33,12 +33,23 @@ export default {
                 iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
                 callout: 'AI Assistant add-on available',
                 promoText: 'Test promotion text',
-                osi: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
-                osiTags: {
-                    offerType: 'offer_type/trial',
-                    marketSegment: 'market_segments/edu',
-                    planType: 'plan_type/puf',
+                osi: {
+                    old: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
+                    new: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
                 },
+                osiTags: {
+                    old: {
+                        offerType: 'offer_type/base',
+                        marketSegment: 'market_segments/com',
+                        planType: 'plan_type/m2m',
+                    },
+                    new: {
+                        offerType: 'offer_type/trial',
+                        marketSegment: 'market_segments/edu',
+                        planType: 'plan_type/puf',
+                    },
+                },
+                whatsIncludedText: 'List of items:',
                 badgeColor: {
                     name: 'Green 900',
                     css: 'rgb(5, 131, 78)',
@@ -56,7 +67,7 @@ export default {
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
-            tcid: '8',
+            tcid: '3',
             name: '@studio-plans-individuals-save-edited-price',
             path: '/studio.html',
             data: {
@@ -70,7 +81,7 @@ export default {
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
-            tcid: '11',
+            tcid: '4',
             name: '@studio-plans-individuals-save-edited-quantity-selector',
             path: '/studio.html',
             data: {
@@ -79,20 +90,10 @@ export default {
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
+
         {
-            tcid: '12',
-            name: '@studio-plans-individuals-save-edited-whats-included',
-            path: '/studio.html',
-            data: {
-                cardid: '6f189be0-d64b-468f-b340-92888206cce8',
-                whatsIncludedText: 'List of items:',
-            },
-            browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
-        },
-        {
-            tcid: '16',
-            name: '@studio-plans-individuals-save-comprehensive-cta',
+            tcid: '5',
+            name: '@studio-plans-individuals-save-edited-cta',
             path: '/studio.html',
             data: {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
@@ -121,12 +122,8 @@ export default {
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
         },
-        // Note: CTA variant editing is covered in comprehensive CTA test (features[16])
-        {},
-        // Note: CTA checkout parameters editing is covered in comprehensive CTA test (features[16])
-        {},
         {
-            tcid: '19',
+            tcid: '6',
             name: '@studio-plans-individuals-save-add-description-price-legal-disclamer',
             path: '/studio.html',
             data: {

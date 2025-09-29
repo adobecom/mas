@@ -117,9 +117,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-save-comprehensive - Validate comprehensive field edits and save for plans individuals card in mas studio
-    // Each edit is done sequentially, card is saved once, then all validations run in parallel
-    // Combines: title, badge, description, mnemonic, callout, promo text, OSI, stock checkbox, and color changes
+    // @studio-plans-individuals-save-edited-fields - Validate field edits and save for plans individuals card in mas studio
+    // Combines: title, badge, description, mnemonic, callout, promo text, OSI, stock checkbox, what's included, and color changes
     test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
         const { data } = features[2];
         const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
@@ -177,7 +176,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await ost.backButton.click();
             await page.waitForTimeout(2000);
             await expect(await ost.searchField).toBeVisible();
-            await ost.searchField.fill(data.osi);
+            await ost.searchField.fill(data.osi.new);
             await (await ost.nextButton).click();
             await expect(await ost.priceUse).toBeVisible();
             await ost.priceUse.click();
@@ -188,32 +187,37 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await editor.showStockCheckbox.click();
         });
 
-        await test.step('step-11: Edit badge color', async () => {
+        await test.step('step-11: Edit whats included field', async () => {
+            await expect(await editor.whatsIncludedLabel).toBeVisible();
+            await editor.whatsIncludedLabel.fill(data.whatsIncludedText);
+        });
+
+        await test.step('step-12: Edit badge color', async () => {
             await expect(await editor.badgeColor).toBeVisible();
             await editor.badgeColor.click();
             await page.getByRole('option', { name: data.badgeColor.name, exact: true }).click();
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-12: Edit badge border color', async () => {
+        await test.step('step-13: Edit badge border color', async () => {
             await expect(await editor.badgeBorderColor).toBeVisible();
             await editor.badgeBorderColor.click();
             await page.getByRole('option', { name: data.badgeBorderColor.name, exact: true }).click();
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-13: Edit card border color', async () => {
+        await test.step('step-14: Edit card border color', async () => {
             await expect(await editor.cardBorderColor).toBeVisible();
             await editor.cardBorderColor.click();
             await page.getByRole('option', { name: data.cardBorderColor.name, exact: true }).click();
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-14: Save card with all changes', async () => {
+        await test.step('step-15: Save card with all changes', async () => {
             await studio.saveCard();
         });
 
-        await test.step('step-15: Validate all field changes in parallel', async () => {
+        await test.step('step-16: Validate all field changes in parallel', async () => {
             const results = await Promise.allSettled([
                 test.step('Validation-1: Verify title saved', async () => {
                     await expect(await editor.title).toHaveValue(data.title);
@@ -246,10 +250,17 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 }),
 
                 test.step('Validation-7: Verify OSI changes saved', async () => {
-                    await expect(await editor.OSI).toContainText(data.osi);
-                    await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.offerType}`));
-                    await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.marketSegment}`));
-                    await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.planType}`));
+                    await expect(await editor.OSI).toContainText(data.osi.new);
+                    await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.new.offerType}`));
+                    await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.new.marketSegment}`));
+                    await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.new.planType}`));
+                    await expect(await editor.OSI).not.toContainText(data.osi.old);
+                    await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.old.offerType}`));
+                    await expect(await editor.tags).not.toHaveAttribute(
+                        'value',
+                        new RegExp(`${data.osiTags.old.marketSegment}`),
+                    );
+                    await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.old.planType}`));
                 }),
 
                 test.step('Validation-8: Verify stock checkbox saved', async () => {
@@ -257,7 +268,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                     await expect(await clonedCard.locator(individuals.cardStockCheckbox)).toBeVisible();
                 }),
 
-                test.step('Validation-9: Verify badge color saved', async () => {
+                test.step('Validation-9: Verify whats included saved', async () => {
+                    await expect(await editor.whatsIncludedLabel).toHaveValue(data.whatsIncludedText);
+                    await expect(await clonedCard.locator(individuals.cardWhatsIncluded)).toHaveText(data.whatsIncludedText);
+                }),
+
+                test.step('Validation-10: Verify badge color saved', async () => {
                     await expect(await editor.badgeColor).toContainText(data.badgeColor.name);
                     expect(
                         await webUtil.verifyCSS(clonedCard.locator(individuals.cardBadge), {
@@ -266,7 +282,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                     ).toBeTruthy();
                 }),
 
-                test.step('Validation-10: Verify badge border color saved', async () => {
+                test.step('Validation-11: Verify badge border color saved', async () => {
                     await expect(await editor.badgeBorderColor).toContainText(data.badgeBorderColor.name);
                     expect(
                         await webUtil.verifyCSS(clonedCard.locator(individuals.cardBadge), {
@@ -277,7 +293,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                     ).toBeTruthy();
                 }),
 
-                test.step('Validation-11: Verify card border color saved', async () => {
+                test.step('Validation-12: Verify card border color saved', async () => {
                     await expect(await editor.cardBorderColor).toContainText(data.cardBorderColor.name);
                     expect(
                         await webUtil.verifyCSS(clonedCard, {
@@ -300,9 +316,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-save-edited-price - Validate saving card after editing price
-    test(`${features[8].name},${features[8].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[8];
-        const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.cardid}`;
+    test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[3];
+        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
         let clonedCard;
 
@@ -339,14 +355,10 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // Note: OSI editing is covered in comprehensive test above
-
-    // Note: Stock checkbox editing is covered in comprehensive test above
-
     // @studio-plans-individuals-save-edited-quantity-selector - Validate saving card after editing quantity selector
-    test(`${features[11].name},${features[11].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[11];
-        const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.cardid}`;
+    test(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[4];
+        const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
         let clonedCard;
 
@@ -376,51 +388,11 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-save-edited-whats-included - Validate saving card after editing whats included
-    test(`${features[12].name},${features[12].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[12];
-        const testPage = `${baseURL}${features[12].path}${miloLibs}${features[12].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
-        let clonedCard;
-
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid);
-            clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            await expect(await clonedCard).toBeVisible();
-            await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
-        });
-
-        await test.step('step-3: Edit whats included field and save card', async () => {
-            await expect(await editor.whatsIncludedLabel).toBeVisible();
-            await editor.whatsIncludedLabel.fill(data.whatsIncludedText);
-            await studio.saveCard();
-        });
-
-        await test.step('step-4: Verify whats included change is saved', async () => {
-            await expect(await editor.whatsIncludedLabel).toHaveValue(data.whatsIncludedText);
-            await expect(await clonedCard.locator(individuals.cardWhatsIncluded)).toHaveText(data.whatsIncludedText);
-        });
-    });
-
-    // Note: Badge color editing is covered in comprehensive test above
-
-    // Note: Badge border color editing is covered in comprehensive test above
-
-    // Note: Card border color editing is covered in comprehensive test above
-
-    // @studio-plans-individuals-save-comprehensive-cta - Validate comprehensive CTA edits and save for plans individuals card in mas studio
-    // Each edit is done sequentially within the link edit form, card is saved once, then all validations run in parallel
+    // @studio-plans-individuals-save-edited-cta - Validate CTA edits and save for plans individuals card in mas studio
     // Combines: CTA label, variant, and checkout parameters editing
-    test(`${features[16].name},${features[16].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[16];
-        const testPage = `${baseURL}${features[16].path}${miloLibs}${features[16].browserParams}${data.cardid}`;
+    test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[5];
+        const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
         let clonedCard;
 
@@ -490,7 +462,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 }),
 
                 test.step('Validation-3: Verify checkout parameters saved', async () => {
-                    await expect(await clonedCard.locator(individuals.cardCTA)).toHaveAttribute('data-wcs-osi', data.osi);
+                    await expect(await clonedCard.locator(individuals.cardCTA)).toHaveAttribute('data-wcs-osi', data.osi.new);
                     await expect(await clonedCard.locator(individuals.cardCTA)).toHaveAttribute('is', 'checkout-link');
                     const CTAhref = await clonedCard.locator(individuals.cardCTA).getAttribute('href');
                     let searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
@@ -512,14 +484,10 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // Note: CTA variant editing is covered in comprehensive CTA test above
-
-    // Note: CTA checkout parameters editing is covered in comprehensive CTA test above
-
     // @studio-plans-individuals-save-add-description-price-legal-disclamer - Validate save adding legal disclamer in description for plans individuals card in mas studio
-    test(`${features[19].name},${features[19].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[19];
-        const testPage = `${baseURL}${features[19].path}${miloLibs}${features[19].browserParams}${data.cardid}`;
+    test(`${features[6].name},${features[6].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[6];
+        const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.cardid}`;
         console.info('[Test Page]: ', testPage);
         let clonedCard;
 

@@ -1,4 +1,4 @@
-const { log, logError, fetch, getJsonFromState } = require('./common.js');
+import { log, logError, fetch } from './common.js';
 
 const MAS_ELEMENT_REGEXP = /<[^>]+data-wcs-osi=\\"(?<osi>[^\\]+)\\"[^>]*?>/gm;
 const PROMOCODE_REGEXP = /(?<promo>data-promotion-code=\\"(?<promotionCode>[^\\]+)\\")/;
@@ -113,8 +113,8 @@ async function wcs(context) {
             context.body.wcs ??= {};
             try {
                 context.body.wcs[config.env] = await computeCache(tokens, wcsContext);
+                /* c8 ignore next 3*/
             } catch (error) {
-                /* istanbul ignore next */
                 logError(`Error computing WCS cache for ${config.env}: ${error.message}`, context);
             }
         }
@@ -124,7 +124,8 @@ async function wcs(context) {
     return context;
 }
 
-module.exports = {
-    wcs,
-    MAS_ELEMENT_REGEXP,
+export const transformer = {
+    name: 'wcs',
+    process: wcs,
 };
+export { MAS_ELEMENT_REGEXP };

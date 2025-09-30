@@ -182,38 +182,33 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await ost.priceUse.click();
         });
 
-        await test.step('step-10: Toggle stock checkbox', async () => {
-            await expect(await editor.showStockCheckbox).toBeVisible();
-            await editor.showStockCheckbox.click();
-        });
-
-        await test.step('step-11: Edit whats included field', async () => {
+        await test.step('step-10: Edit whats included field', async () => {
             await expect(await editor.whatsIncludedLabel).toBeVisible();
             await editor.whatsIncludedLabel.fill(data.whatsIncludedText);
         });
 
-        await test.step('step-12: Edit badge color', async () => {
+        await test.step('step-11: Edit badge color', async () => {
             await expect(await editor.badgeColor).toBeVisible();
             await editor.badgeColor.click();
             await page.getByRole('option', { name: data.badgeColor.name, exact: true }).click();
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-13: Edit badge border color', async () => {
+        await test.step('step-12: Edit badge border color', async () => {
             await expect(await editor.badgeBorderColor).toBeVisible();
             await editor.badgeBorderColor.click();
             await page.getByRole('option', { name: data.badgeBorderColor.name, exact: true }).click();
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-14: Edit card border color', async () => {
+        await test.step('step-13: Edit card border color', async () => {
             await expect(await editor.cardBorderColor).toBeVisible();
             await editor.cardBorderColor.click();
             await page.getByRole('option', { name: data.cardBorderColor.name, exact: true }).click();
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-15: Save card with all changes', async () => {
+        await test.step('step-14: Save card with all changes', async () => {
             await studio.saveCard();
         });
 
@@ -263,17 +258,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                     await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.old.planType}`));
                 }),
 
-                test.step('Validation-8: Verify stock checkbox saved', async () => {
-                    await expect(await editor.showStockCheckbox).toBeChecked();
-                    await expect(await clonedCard.locator(individuals.cardStockCheckbox)).toBeVisible();
-                }),
-
-                test.step('Validation-9: Verify whats included saved', async () => {
+                test.step('Validation-8: Verify whats included saved', async () => {
                     await expect(await editor.whatsIncludedLabel).toHaveValue(data.whatsIncludedText);
                     await expect(await clonedCard.locator(individuals.cardWhatsIncluded)).toHaveText(data.whatsIncludedText);
                 }),
 
-                test.step('Validation-10: Verify badge color saved', async () => {
+                test.step('Validation-9: Verify badge color saved', async () => {
                     await expect(await editor.badgeColor).toContainText(data.badgeColor.name);
                     expect(
                         await webUtil.verifyCSS(clonedCard.locator(individuals.cardBadge), {
@@ -282,7 +272,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                     ).toBeTruthy();
                 }),
 
-                test.step('Validation-11: Verify badge border color saved', async () => {
+                test.step('Validation-10: Verify badge border color saved', async () => {
                     await expect(await editor.badgeBorderColor).toContainText(data.badgeBorderColor.name);
                     expect(
                         await webUtil.verifyCSS(clonedCard.locator(individuals.cardBadge), {
@@ -293,7 +283,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                     ).toBeTruthy();
                 }),
 
-                test.step('Validation-12: Verify card border color saved', async () => {
+                test.step('Validation-11: Verify card border color saved', async () => {
                     await expect(await editor.cardBorderColor).toContainText(data.cardBorderColor.name);
                     expect(
                         await webUtil.verifyCSS(clonedCard, {

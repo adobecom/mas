@@ -124,29 +124,29 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
                 }),
 
                 // Skipped validations (can also run in parallel when enabled)
-                test.step.skip('Validate card stock checkbox CSS', async () => {
-                    expect(
-                        await webUtil.verifyCSS(
-                            individualsCard.locator(individuals.cardStockCheckbox),
-                            individuals.cssProp.stockCheckbox.text,
-                        ),
-                    ).toBeTruthy();
-                    expect(
-                        await webUtil.verifyCSS(
-                            individualsCard.locator(individuals.cardStockCheckboxIcon),
-                            individuals.cssProp.stockCheckbox.checkbox,
-                        ),
-                    ).toBeTruthy();
-                }),
+                // test.step.skip('Validate card stock checkbox CSS', async () => {
+                //     expect(
+                //         await webUtil.verifyCSS(
+                //             individualsCard.locator(individuals.cardStockCheckbox),
+                //             individuals.cssProp.stockCheckbox.text,
+                //         ),
+                //     ).toBeTruthy();
+                //     expect(
+                //         await webUtil.verifyCSS(
+                //             individualsCard.locator(individuals.cardStockCheckboxIcon),
+                //             individuals.cssProp.stockCheckbox.checkbox,
+                //         ),
+                //     ).toBeTruthy();
+                // }),
 
-                test.step.skip('Validate card secure transaction CSS', async () => {
-                    expect(
-                        await webUtil.verifyCSS(
-                            individualsCard.locator(individuals.cardSecureTransaction),
-                            individuals.cssProp.secureTransaction,
-                        ),
-                    ).toBeTruthy();
-                }),
+                // test.step.skip('Validate card secure transaction CSS', async () => {
+                //     expect(
+                //         await webUtil.verifyCSS(
+                //             individualsCard.locator(individuals.cardSecureTransaction),
+                //             individuals.cssProp.secureTransaction,
+                //         ),
+                //     ).toBeTruthy();
+                // }),
             ]);
 
             // Check results and report any failures

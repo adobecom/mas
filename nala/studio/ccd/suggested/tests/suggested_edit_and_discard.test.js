@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import StudioPage from '../../../studio.page.js';
 import EditorPage from '../../../editor.page.js';
-import CCDSuggestedSpec from '../specs/suggested_edit.spec.js';
+import CCDSuggestedSpec from '../specs/suggested_edit_and_discard.spec.js';
 import CCDSuggestedPage from '../suggested.page.js';
 import CCDSlicePage from '../../slice/slice.page.js';
 import AHTryBuyWidgetPage from '../../../ahome/try-buy-widget/try-buy-widget.page.js';
@@ -83,9 +83,24 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await slice.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await slice.cardCTA).toHaveAttribute('is', 'checkout-button');
         });
+
+        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-7: Verify there is no changes of the card', async () => {
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
+            await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('variant', 'ccd-slice');
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-suggested');
+        });
     });
 
-    // @studio-suggested-edit-title - Validate edit title for suggested card in mas studio
+    // @studio-suggested-edit-discard-title - Validate edit title for suggested card in mas studio
     test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const { data } = features[1];
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
@@ -116,9 +131,23 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-5: Validate edited title field on the card', async () => {
             await expect(await suggested.cardTitle).toHaveText(data.newTitle);
         });
+
+        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-7: Verify there is no changes of the card', async () => {
+            await expect(await suggested.cardTitle).toHaveText(data.title);
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.title).toHaveValue(data.title);
+        });
     });
 
-    // @studio-suggested-edit-eyebrow - Validate edit eyebrow field for suggested card in mas studio
+    // @studio-suggested-edit-discard-eyebrow - Validate edit eyebrow field for suggested card in mas studio
     test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
         const { data } = features[2];
         const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
@@ -149,9 +178,23 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-5: Validate edited eyebrow field on the card', async () => {
             await expect(await suggested.cardEyebrow).toHaveText(data.newSubtitle);
         });
+
+        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-7: Verify there is no changes of the card', async () => {
+            await expect(await suggested.cardEyebrow).toHaveText(data.subtitle);
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.subtitle).toHaveValue(data.subtitle);
+        });
     });
 
-    // @studio-suggested-edit-description - Validate edit description field for suggested card in mas studio
+    // @studio-suggested-edit-discard-description - Validate edit description field for suggested card in mas studio
     test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
         const { data } = features[3];
         const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
@@ -182,9 +225,23 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-5: Validate edited description on the card', async () => {
             await expect(await suggested.cardDescription).toHaveText(data.newDescription);
         });
+
+        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-7: Verify there is no changes of the card', async () => {
+            await expect(await suggested.cardDescription).toContainText(data.description);
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.description).toContainText(data.description);
+        });
     });
 
-    // @studio-suggested-edit-mnemonic - Validate edit mnemonic URL field for suggested card in mas studio
+    // @studio-suggested-edit-discard-mnemonic - Validate edit mnemonic URL field for suggested card in mas studio
     test(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
         const { data } = features[4];
         const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
@@ -215,9 +272,23 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-5: Validate edited mnemonic URL on the card', async () => {
             await expect(await suggested.cardIcon).toHaveAttribute('src', data.newIconURL);
         });
+
+        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-7: Verify there is no changes of the card', async () => {
+            await expect(await suggested.cardIcon).toHaveAttribute('src', data.iconURL);
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.iconURL).toHaveValue(data.iconURL);
+        });
     });
 
-    // @studio-suggested-edit-background - Validate edit eyebrow field for suggested card in mas studio
+    // @studio-suggested-edit-discard-background - Validate edit eyebrow field for suggested card in mas studio
     test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
         const { data } = features[5];
         const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.cardid}`;
@@ -248,9 +319,23 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-5: Validate edited background image URL field on the card', async () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('background-image', data.newBackgroundURL);
         });
+
+        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-7: Verify there is no changes of the card', async () => {
+            await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('background-image', data.newBackgroundURL);
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.backgroundImage).toHaveValue('');
+        });
     });
 
-    // @studio-suggested-edit-price - Validate edit price field for suggested card in mas studio
+    // @studio-suggested-edit-discard-price - Validate edit price field for suggested card in mas studio
     test(`${features[6].name},${features[6].tags}`, async ({ page, baseURL }) => {
         const { data } = features[6];
         const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.cardid}`;
@@ -292,9 +377,29 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await suggested.cardPrice).toContainText(data.newPrice);
             await expect(await suggested.cardPrice).toContainText(data.newStrikethroughPrice);
         });
+
+        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-7: Verify there is no changes of the card', async () => {
+            await expect(await suggested.cardPrice).toContainText(data.price);
+            await expect(await suggested.cardPrice).toContainText(data.strikethroughPrice);
+            await expect(await suggested.cardPrice).not.toContainText(data.newPrice);
+            await expect(await suggested.cardPrice).not.toContainText(data.newStrikethroughPrice);
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.prices).toContainText(data.price);
+            await expect(await editor.prices).toContainText(data.strikethroughPrice);
+            await expect(await editor.prices).not.toContainText(data.newPrice);
+            await expect(await editor.prices).not.toContainText(data.newStrikethroughPrice);
+        });
     });
 
-    // @studio-suggested-edit-cta-ost - Validate edit CTA for suggested card in mas studio
+    // @studio-suggested-edit-discard-cta-ost - Validate edit CTA for suggested card in mas studio
     test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
         const { data } = features[7];
         const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.cardid}`;
@@ -344,7 +449,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-5: Validate edited CTA on the card', async () => {
-            await expect(await suggested.cardCTA).toContainText(data.newCtaText);
+            await expect(await suggested.cardCTA).toContainText(data.newCtaOption);
             await expect(await suggested.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await suggested.cardCTA).toHaveAttribute('is', 'checkout-button');
 
@@ -359,9 +464,23 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             expect(searchParams.get('cli')).toBe(data.client);
             expect(searchParams.get('apc')).toBe(data.promo);
         });
+
+        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-7: Verify there is no changes of the card', async () => {
+            await expect(await suggested.cardCTA).toContainText(data.ctaText);
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.footer).toContainText(data.ctaText);
+        });
     });
 
-    // @studio-suggested-edit-cta-label - Validate edit CTA label for suggested card in mas studio
+    // @studio-suggested-edit-discard-cta-label - Validate edit CTA label for suggested card in mas studio
     test(`${features[8].name},${features[8].tags}`, async ({ page, baseURL }) => {
         const { data } = features[8];
         const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.cardid}`;
@@ -401,9 +520,23 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await suggested.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await suggested.cardCTA).toHaveAttribute('is', 'checkout-button');
         });
+
+        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-7: Verify there is no changes of the card', async () => {
+            await expect(await suggested.cardCTA).toContainText(data.ctaText);
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.footer).toContainText(data.ctaText);
+        });
     });
 
-    // @studio-suggested-edit-price-promo - Validate edit price promo for suggested card in mas studio
+    // @studio-suggested-edit-discard-price-promo - Validate edit price promo for suggested card in mas studio
     test(`${features[9].name},${features[9].tags}`, async ({ page, baseURL }) => {
         const { data } = features[9];
         const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}${data.cardid}`;
@@ -474,7 +607,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-edit-cta-promo - Validate edit cta promo for suggested card in mas studio
+    // @studio-suggested-edit-discard-cta-promo - Validate edit cta promo for suggested card in mas studio
     test(`${features[10].name},${features[10].tags}`, async ({ page, baseURL }) => {
         const { data } = features[10];
         const testPage = `${baseURL}${features[10].path}${miloLibs}${features[10].browserParams}${data.cardid}`;
@@ -610,6 +743,21 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await trybuywidget.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await trybuywidget.cardCTA).toHaveAttribute('is', 'checkout-button');
         });
+
+        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-7: Verify there is no changes of the card', async () => {
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
+            await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('variant', 'ah-try-buy-widget');
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-suggested');
+        });
     });
 
     // @studio-suggested-add-osi - Validate adding OSI for suggested card in mas studio
@@ -659,7 +807,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-edit-osi - Validate changing OSI for suggested card in mas studio
+    // @studio-suggested-edit-discard-osi - Validate changing OSI for suggested card in mas studio
     test(`${features[13].name},${features[13].tags}`, async ({ page, baseURL }) => {
         const { data } = features[13];
         const testPage = `${baseURL}${features[13].path}${miloLibs}${features[13].browserParams}${data.cardid}`;
@@ -709,9 +857,30 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.offerTypeTag}`));
             await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.marketSegmentsTag}`));
         });
+
+        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-7: Open the editor and validate there are no changes', async () => {
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.OSI).toContainText(data.osi);
+            await expect(await editor.OSI).not.toContainText(data.newosi);
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.productCodeTag}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.offerTypeTag}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.marketSegmentsTag}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.planTypeTag}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.newPlanTypeTag}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.newOfferTypeTag}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.newMarketSegmentsTag}`));
+        });
     });
 
-    // @studio-suggested-edit-cta-variant - Validate edit CTA variant for suggested card in mas studio
+    // @studio-suggested-edit-discard-cta-variant - Validate edit CTA variant for suggested card in mas studio
     test(`${features[14].name},${features[14].tags}`, async ({ page, baseURL }) => {
         const { data } = features[14];
         const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}${data.cardid}`;
@@ -753,9 +922,24 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await suggested.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await suggested.cardCTA).toHaveAttribute('is', 'checkout-button');
         });
+
+        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-7: Open the editor and validate there are no changes', async () => {
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.CTA).toBeVisible();
+            await expect(await editor.CTA).not.toHaveClass(data.newVariant);
+            await expect(await editor.CTA).toHaveClass(data.variant);
+        });
     });
 
-    // @studio-suggested-edit-cta-checkout-params - Validate edit CTA checkout params for suggested card in mas studio
+    // @studio-suggested-edit-discard-cta-checkout-params - Validate edit CTA checkout params for suggested card in mas studio
     test(`${features[15].name},${features[15].tags}`, async ({ page, baseURL }) => {
         const { data } = features[15];
         const testPage = `${baseURL}${features[15].path}${miloLibs}${features[15].browserParams}${data.cardid}`;
@@ -786,6 +970,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 .join('&');
             await editor.checkoutParameters.fill(checkoutParamsString);
             await editor.linkSave.click();
+            await page.waitForTimeout(2000);
         });
 
         await test.step('step-4: Validate edited CTA on the card', async () => {
@@ -797,9 +982,22 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
             expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
         });
+
+        await test.step('step-5: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-6: Verify there is no changes of the card', async () => {
+            const changedCTAhref = await suggested.cardCTA.getAttribute('data-href');
+            let noSearchParams = new URLSearchParams(decodeURI(changedCTAhref).split('?')[1]);
+            expect(noSearchParams).toBeNull;
+        });
     });
 
-    // @studio-suggested-edit-analytics-ids - Validate edit analytics IDs for suggested card in mas studio
+    // @studio-suggested-edit-discard-analytics-ids - Validate edit analytics IDs for suggested card in mas studio
     test(`${features[16].name},${features[16].tags}`, async ({ page, baseURL }) => {
         const { data } = features[16];
         const testPage = `${baseURL}${features[16].path}${miloLibs}${features[16].browserParams}${data.cardid}`;
@@ -838,6 +1036,24 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await suggested.cardCTA).toHaveAttribute('data-analytics-id', data.newAnalyticsID);
             await expect(await suggested.cardCTA).toHaveAttribute('daa-ll', data.newDaaLL);
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('daa-lh', data.daaLH);
+        });
+
+        await test.step('step-5: Close the editor and verify discard is triggered', async () => {
+            await editor.closeEditor.click();
+            await expect(await studio.confirmationDialog).toBeVisible();
+            await studio.discardDialog.click();
+            await expect(await editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-6: Verify there is no changes of the card', async () => {
+            await expect(await suggested.cardCTA).toHaveAttribute('data-analytics-id', data.analyticsID);
+            await expect(await suggested.cardCTA).toHaveAttribute('daa-ll', data.daaLL);
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute('daa-lh', data.daaLH);
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await editor.CTA.click();
+            await editor.footer.locator(editor.linkEdit).click();
+            await expect(await editor.analyticsId).toContainText(data.analyticsID);
         });
     });
 });

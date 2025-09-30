@@ -85,10 +85,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
@@ -133,10 +130,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
@@ -180,10 +174,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
@@ -227,10 +218,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
@@ -274,10 +262,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
@@ -321,10 +306,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
@@ -379,10 +361,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
@@ -466,10 +445,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
@@ -522,10 +498,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
@@ -745,10 +718,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
@@ -859,10 +829,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Open the editor and validate there are no changes', async () => {
@@ -924,10 +891,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Open the editor and validate there are no changes', async () => {
@@ -984,10 +948,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-6: Verify there is no changes of the card', async () => {
@@ -1039,10 +1000,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-6: Verify there is no changes of the card', async () => {

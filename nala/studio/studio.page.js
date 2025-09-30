@@ -392,4 +392,40 @@ export default class StudioPage {
             this.page.removeListener('console', consoleListener);
         }
     }
+
+    async cleanupAfterTest(editor, clonedCardID, baseURL, miloLibs = '') {
+        // Close editor panel if open
+        if (await editor.panel.isVisible()) {
+            await editor.closeEditor.click();
+            await expect(await editor.panel).not.toBeVisible();
+        }
+
+        // Check if card exists and is visible
+        const card = await this.getCard(clonedCardID);
+        const isCardVisible = await card.isVisible().catch(() => false);
+
+        // If card exists but is not visible (covered by overlay), navigate to make it visible
+        if (!isCardVisible && (await card.count()) > 0) {
+            const clonedCardPath = `${baseURL}/studio.html${miloLibs}#page=content&path=nala&query=${clonedCardID}`;
+            await this.page.goto(clonedCardPath);
+            await this.page.waitForLoadState('domcontentloaded');
+        }
+
+        // Delete the card if it's visible
+        if (await card.isVisible()) {
+            await this.deleteCard(clonedCardID);
+            await expect(await card).not.toBeVisible();
+        }
+
+        // Close the page
+        await this.page.close();
+    }
+
+    async discardEditorChanges(editor) {
+        // Close the editor and verify discard is triggered
+        await editor.closeEditor.click();
+        await expect(await this.confirmationDialog).toBeVisible();
+        await this.discardDialog.click();
+        await expect(await editor.panel).not.toBeVisible();
+    }
 }

@@ -100,10 +100,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
@@ -178,10 +175,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
@@ -257,10 +251,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
@@ -314,10 +305,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-7: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-8: Verify there is no changes of the card', async () => {
@@ -361,10 +349,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-6: Validate title field not updated', async () => {
@@ -414,10 +399,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-7: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-8: Verify there is no changes of the card', async () => {
@@ -458,10 +440,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-6: Validate description field not updated', async () => {
@@ -502,10 +481,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-6: Validate mnemonic field not updated', async () => {
@@ -555,10 +531,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-7: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-8: Validate callout field not updated', async () => {
@@ -608,10 +581,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-7: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-8: Validate promo text field not updated', async () => {
@@ -687,10 +657,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
@@ -753,10 +720,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-6: Open the editor and validate there are no changes', async () => {
@@ -886,10 +850,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-11: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-12: Verify quantity selector is unchanged', async () => {
@@ -974,10 +935,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-11: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-12: Verify whats included text not updated', async () => {
@@ -1024,10 +982,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-6: Verify badge color is unchanged', async () => {
@@ -1081,10 +1036,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-6: Verify badge border color is unchanged', async () => {
@@ -1138,10 +1090,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-6: Verify card border color is unchanged', async () => {
@@ -1261,10 +1210,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Verify no phone number is added to the card', async () => {
@@ -1319,10 +1265,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Verify CTA variant is unchanged', async () => {
@@ -1379,10 +1322,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-6: Verify there is no changes of the card', async () => {
@@ -1481,10 +1421,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
@@ -1537,10 +1474,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
@@ -1677,10 +1611,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
-            await editor.closeEditor.click();
-            await expect(await studio.confirmationDialog).toBeVisible();
-            await studio.discardDialog.click();
-            await expect(await editor.panel).not.toBeVisible();
+            await studio.discardEditorChanges(editor);
         });
 
         await test.step('step-6: Verify there is no changes of the card', async () => {

@@ -31,18 +31,8 @@ test.beforeEach(async ({ page, browserName }) => {
     webUtil = new WebUtil(page);
 });
 
-test.afterEach(async ({ page }) => {
-    if (await editor.panel.isVisible()) {
-        await editor.closeEditor.click();
-        await expect(await editor.panel).not.toBeVisible();
-    }
-
-    if (await (await studio.getCard(clonedCardID)).isVisible()) {
-        await studio.deleteCard(clonedCardID);
-        await expect(await studio.getCard(clonedCardID)).not.toBeVisible();
-    }
-
-    await page.close();
+test.afterEach(async ({ baseURL }) => {
+    await studio.cleanupAfterTest(editor, clonedCardID, baseURL, miloLibs);
 });
 
 test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {

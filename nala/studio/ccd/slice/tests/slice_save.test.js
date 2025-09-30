@@ -37,27 +37,8 @@ test.beforeEach(async ({ page, browserName }) => {
     webUtil = new WebUtil(page);
 });
 
-test.afterEach(async ({ baseURL, page }) => {
-    if (await editor.panel.isVisible()) {
-        await editor.closeEditor.click();
-        await expect(await editor.panel).not.toBeVisible();
-    }
-
-    const card = await studio.getCard(clonedCardID);
-    const isCardVisible = await card.isVisible().catch(() => false);
-
-    if (!isCardVisible && (await card.count()) > 0) {
-        const clonedCardPath = `${baseURL}/studio.html${miloLibs}#page=content&path=nala&query=${clonedCardID}`;
-        await page.goto(clonedCardPath);
-        await page.waitForLoadState('domcontentloaded');
-    }
-
-    if (await card.isVisible()) {
-        await studio.deleteCard(clonedCardID);
-        await expect(await card).not.toBeVisible();
-    }
-
-    await page.close();
+test.afterEach(async ({ baseURL }) => {
+    await studio.cleanupAfterTest(editor, clonedCardID, baseURL, miloLibs);
 });
 
 test.describe('M@S Studio CCD Slice card test suite', () => {

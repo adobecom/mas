@@ -449,7 +449,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-5: Validate edited CTA on the card', async () => {
-            await expect(await suggested.cardCTA).toContainText(data.newCtaOption);
+            await expect(await suggested.cardCTA).toContainText(data.newCtaText);
             await expect(await suggested.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await suggested.cardCTA).toHaveAttribute('is', 'checkout-button');
 

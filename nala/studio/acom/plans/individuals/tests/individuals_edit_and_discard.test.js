@@ -39,7 +39,7 @@ test.beforeEach(async ({ page, browserName }) => {
 });
 
 test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
-    // @studio-plans-individuals-edit-variant-change-to-suggested - Validate variant change for plans individuals card to suggested in mas studio
+    // @studio-plans-individuals-edit-discard-variant-change-to-suggested - Validate variant change for plans individuals card to suggested in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
@@ -116,7 +116,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-variant-change-to-slice - Validate variant change for plans individuals card to slice in mas studio
+    // @studio-plans-individuals-edit-discard-variant-change-to-slice - Validate variant change for plans individuals card to slice in mas studio
     test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const { data } = features[1];
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
@@ -194,7 +194,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-variant-change-to-trybuywidget - Validate variant change for plans individuals card to try-buy-widget in mas studio
+    // @studio-plans-individuals-edit-discard-variant-change-to-trybuywidget - Validate variant change for plans individuals card to try-buy-widget in mas studio
     test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
         const { data } = features[2];
         const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
@@ -273,7 +273,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-size - Validate edit size for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-size - Validate edit size for plans individuals card in mas studio
     test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
         const { data } = features[3];
         const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
@@ -331,7 +331,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-title - Validate edit title for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-title - Validate edit title for plans individuals card in mas studio
     test(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
         const { data } = features[4];
         const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
@@ -375,7 +375,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-badge - Validate edit badge for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-badge - Validate edit badge for plans individuals card in mas studio
     test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
         const { data } = features[5];
         const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.cardid}`;
@@ -428,7 +428,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-description - Validate edit description for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-description - Validate edit description for plans individuals card in mas studio
     test(`${features[6].name},${features[6].tags}`, async ({ page, baseURL }) => {
         const { data } = features[6];
         const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.cardid}`;
@@ -472,7 +472,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-mnemonic - Validate edit mnemonic for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-mnemonic - Validate edit mnemonic for plans individuals card in mas studio
     test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
         const { data } = features[7];
         const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.cardid}`;
@@ -516,7 +516,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-callout - Validate edit callout for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-callout - Validate edit callout for plans individuals card in mas studio
     test(`${features[8].name},${features[8].tags}`, async ({ page, baseURL }) => {
         const { data } = features[8];
         const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.cardid}`;
@@ -569,7 +569,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-promo-text - Validate edit promo text for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-promo-text - Validate edit promo text for plans individuals card in mas studio
     test(`${features[9].name},${features[9].tags}`, async ({ page, baseURL }) => {
         const { data } = features[9];
         const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}${data.cardid}`;
@@ -622,7 +622,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-price - Validate edit price for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-price - Validate edit price for plans individuals card in mas studio
     test(`${features[10].name},${features[10].tags}`, async ({ page, baseURL }) => {
         const { data } = features[10];
         const testPage = `${baseURL}${features[10].path}${miloLibs}${features[10].browserParams}${data.cardid}`;
@@ -707,7 +707,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-osi - Validate edit OSI for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-osi - Validate edit OSI for plans individuals card in mas studio
     test(`${features[11].name},${features[11].tags}`, async ({ page, baseURL }) => {
         const { data } = features[11];
         const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.cardid}`;
@@ -773,7 +773,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-stock-checkbox - Validate edit stock checkbox for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-stock-checkbox - Validate edit stock checkbox for plans individuals card in mas studio
     test.skip(`${features[12].name},${features[12].tags}`, async ({ page, baseURL }) => {
         const { data } = features[12];
         const testPage = `${baseURL}${features[12].path}${miloLibs}${features[12].browserParams}${data.cardid}`;
@@ -818,7 +818,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-quantity-selector - Validate edit quantity selector for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-quantity-selector - Validate edit quantity selector for plans individuals card in mas studio
     test(`${features[13].name},${features[13].tags}`, async ({ page, baseURL }) => {
         const { data } = features[13];
         const testPage = `${baseURL}${features[13].path}${miloLibs}${features[13].browserParams}${data.cardid}`;
@@ -900,7 +900,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-whats-included - Validate edit whats included for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-whats-included - Validate edit whats included for plans individuals card in mas studio
     test(`${features[14].name},${features[14].tags}`, async ({ page, baseURL }) => {
         const { data } = features[14];
         const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}${data.cardid}`;
@@ -987,7 +987,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-badge-color - Validate edit badge color for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-badge-color - Validate edit badge color for plans individuals card in mas studio
     test(`${features[15].name},${features[15].tags}`, async ({ page, baseURL }) => {
         const { data } = features[15];
         const testPage = `${baseURL}${features[15].path}${miloLibs}${features[15].browserParams}${data.cardid}`;
@@ -1042,7 +1042,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-badge-border-color - Validate edit badge border color for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-badge-border-color - Validate edit badge border color for plans individuals card in mas studio
     test(`${features[16].name},${features[16].tags}`, async ({ page, baseURL }) => {
         const { data } = features[16];
         const testPage = `${baseURL}${features[16].path}${miloLibs}${features[16].browserParams}${data.cardid}`;
@@ -1101,7 +1101,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-card-border-color - Validate edit card border color for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-card-border-color - Validate edit card border color for plans individuals card in mas studio
     test(`${features[17].name},${features[17].tags}`, async ({ page, baseURL }) => {
         const { data } = features[17];
         const testPage = `${baseURL}${features[17].path}${miloLibs}${features[17].browserParams}${data.cardid}`;
@@ -1156,7 +1156,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-price-promo - Validate edit price promo for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-price-promo - Validate edit price promo for plans individuals card in mas studio
     test(`${features[18].name},${features[18].tags}`, async ({ page, baseURL }) => {
         const { data } = features[18];
         const testPage = `${baseURL}${features[18].path}${miloLibs}${features[18].browserParams}${data.cardid}`;
@@ -1275,7 +1275,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-cta-variant - Validate edit CTA variant for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-cta-variant - Validate edit CTA variant for plans individuals card in mas studio
     test(`${features[20].name},${features[20].tags}`, async ({ page, baseURL }) => {
         const { data } = features[20];
         const testPage = `${baseURL}${features[20].path}${miloLibs}${features[20].browserParams}${data.cardid}`;
@@ -1334,7 +1334,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-cta-checkout-params - Validate edit CTA checkout params for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-cta-checkout-params - Validate edit CTA checkout params for plans individuals card in mas studio
     test(`${features[21].name},${features[21].tags}`, async ({ page, baseURL }) => {
         const { data } = features[21];
         const testPage = `${baseURL}${features[21].path}${miloLibs}${features[21].browserParams}${data.cardid}`;
@@ -1392,7 +1392,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-cta-ost - Validate edit CTA for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-cta-ost - Validate edit CTA for plans individuals card in mas studio
     test(`${features[22].name},${features[22].tags}`, async ({ page, baseURL }) => {
         const { data } = features[22];
         const testPage = `${baseURL}${features[22].path}${miloLibs}${features[22].browserParams}${data.cardid}`;
@@ -1495,7 +1495,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-cta-label - Validate edit CTA label for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-cta-label - Validate edit CTA label for plans individuals card in mas studio
     test(`${features[23].name},${features[23].tags}`, async ({ page, baseURL }) => {
         const { data } = features[23];
         const testPage = `${baseURL}${features[23].path}${miloLibs}${features[23].browserParams}${data.cardid}`;
@@ -1551,7 +1551,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-edit-cta-promo - Validate edit cta promo for plans individuals card in mas studio
+    // @studio-plans-individuals-edit-discard-cta-promo - Validate edit cta promo for plans individuals card in mas studio
     test(`${features[24].name},${features[24].tags}`, async ({ page, baseURL }) => {
         const { data } = features[24];
         const testPage = `${baseURL}${features[24].path}${miloLibs}${features[24].browserParams}${data.cardid}`;

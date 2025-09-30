@@ -213,6 +213,20 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-16: Validate all field changes in parallel', async () => {
+            const validationLabels = [
+                'title',
+                'badge',
+                'description',
+                'mnemonic',
+                'callout',
+                'promo text',
+                'OSI',
+                'whats included',
+                'badge color',
+                'badge border color',
+                'card border color',
+            ];
+
             const results = await Promise.allSettled([
                 test.step('Validation-1: Verify title saved', async () => {
                     await expect(await editor.title).toHaveValue(data.title);
@@ -297,10 +311,10 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             const failures = results
                 .map((result, index) => ({ result, index }))
                 .filter(({ result }) => result.status === 'rejected')
-                .map(({ result, index }) => `Validation ${index + 1} failed: ${result.reason}`);
+                .map(({ result, index }) => `🔍 Validation-${index + 1} (${validationLabels[index]}) failed: ${result.reason}`);
 
             if (failures.length > 0) {
-                throw new Error(`Comprehensive save validation failures:\n${failures.join('\n')}`);
+                throw new Error(`❌ Plans Individuals card RTE field save validation failures:\n${failures.join('\n')}`);
             }
         });
     });
@@ -466,10 +480,10 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             const failures = results
                 .map((result, index) => ({ result, index }))
                 .filter(({ result }) => result.status === 'rejected')
-                .map(({ result, index }) => `Validation ${index + 1} failed: ${result.reason}`);
+                .map(({ result, index }) => `🔍 Validation-${index + 1} failed: ${result.reason}`);
 
             if (failures.length > 0) {
-                throw new Error(`Comprehensive CTA save validation failures:\n${failures.join('\n')}`);
+                throw new Error(`❌ Plans Individuals card CTA save validation failures:\n${failures.join('\n')}`);
             }
         });
     });

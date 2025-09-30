@@ -31,6 +31,19 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
         console.info('[Test Page]: ', testPage);
 
+        const validationLabels = [
+            'card container',
+            'icon',
+            'title',
+            'badge',
+            'description',
+            'legal link',
+            'price',
+            'strikethrough price',
+            'promo text',
+            'callout',
+        ];
+
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
@@ -44,33 +57,33 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
         await test.step('step-3: Validate all CSS properties in parallel', async () => {
             const results = await Promise.allSettled([
                 // Card container CSS
-                test.step('Validate card container CSS', async () => {
+                test.step('Validation-1: Validate card container CSS', async () => {
                     expect(await webUtil.verifyCSS(individualsCard, individuals.cssProp.card)).toBeTruthy();
                 }),
 
                 // Card icon CSS
-                test.step('Validate card icon CSS', async () => {
+                test.step('Validation-2: Validate card icon CSS', async () => {
                     expect(
                         await webUtil.verifyCSS(individualsCard.locator(individuals.cardIcon), individuals.cssProp.icon),
                     ).toBeTruthy();
                 }),
 
                 // Card title CSS
-                test.step('Validate card title CSS', async () => {
+                test.step('Validation-3: Validate card title CSS', async () => {
                     expect(
                         await webUtil.verifyCSS(individualsCard.locator(individuals.cardTitle), individuals.cssProp.title),
                     ).toBeTruthy();
                 }),
 
                 // Card badge CSS
-                test.step('Validate card badge CSS', async () => {
+                test.step('Validation-4: Validate card badge CSS', async () => {
                     expect(
                         await webUtil.verifyCSS(individualsCard.locator(individuals.cardBadge), individuals.cssProp.badge),
                     ).toBeTruthy();
                 }),
 
                 // Card description CSS
-                test.step('Validate card description CSS', async () => {
+                test.step('Validation-5: Validate card description CSS', async () => {
                     expect(
                         await webUtil.verifyCSS(
                             individualsCard.locator(individuals.cardDescription).first(),
@@ -80,7 +93,7 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
                 }),
 
                 // Card legal link CSS
-                test.step('Validate card legal link CSS', async () => {
+                test.step('Validation-6: Validate card legal link CSS', async () => {
                     expect(
                         await webUtil.verifyCSS(
                             individualsCard.locator(individuals.cardDescription).locator(individuals.cardLegalLink),
@@ -90,14 +103,14 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
                 }),
 
                 // Card price CSS
-                test.step('Validate card price CSS', async () => {
+                test.step('Validation-7: Validate card price CSS', async () => {
                     expect(
                         await webUtil.verifyCSS(individualsCard.locator(individuals.cardPrice), individuals.cssProp.price),
                     ).toBeTruthy();
                 }),
 
                 // Card strikethrough price CSS
-                test.step('Validate card strikethrough price CSS', async () => {
+                test.step('Validation-8: Validate card strikethrough price CSS', async () => {
                     expect(
                         await webUtil.verifyCSS(
                             individualsCard.locator(individuals.cardPriceStrikethrough),
@@ -107,7 +120,7 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
                 }),
 
                 // Card promo text CSS
-                test.step('Validate card promo text CSS', async () => {
+                test.step('Validation-9: Validate card promo text CSS', async () => {
                     expect(
                         await webUtil.verifyCSS(
                             individualsCard.locator(individuals.cardPromoText),
@@ -117,7 +130,7 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
                 }),
 
                 // Card callout CSS
-                test.step('Validate card callout CSS', async () => {
+                test.step('Validation-10: Validate card callout CSS', async () => {
                     expect(
                         await webUtil.verifyCSS(individualsCard.locator(individuals.cardCallout), individuals.cssProp.callout),
                     ).toBeTruthy();
@@ -153,10 +166,10 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
             const failures = results
                 .map((result, index) => ({ result, index }))
                 .filter(({ result }) => result.status === 'rejected')
-                .map(({ result, index }) => `Validation ${index + 1} failed: ${result.reason}`);
+                .map(({ result, index }) => `🔍 Validation-${index + 1} (${validationLabels[index]}) failed: ${result.reason}`);
 
             if (failures.length > 0) {
-                throw new Error(`CSS validation failures:\n${failures.join('\n')}`);
+                throw new Error(`❌ Plans Individuals card CSS validation failures:\n${failures.join('\n')}`);
             }
         });
     });

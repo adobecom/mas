@@ -19,7 +19,7 @@ jobs:
                 node-version: [20.x]
         name: Running Daily Nala tests
         runs-on: ubuntu-latest
-        timeout-minutes: 10 # Prevent hanging jobs
+        timeout-minutes: 20 # Prevent hanging jobs
         env:
             WORKFLOW_NAME: 'Nala Daily Run'
             DAILY_RUN: 'true'

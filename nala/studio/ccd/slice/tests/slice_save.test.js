@@ -132,7 +132,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-save-edited-fields - Validate field edits and save for slice card in mas studio
+    // @studio-slice-save-edited-RTE-fields - Validate field edits and save for slice card in mas studio
     // Combines: description, badge, mnemonic, background image, and size
     test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
         const { data } = features[2];

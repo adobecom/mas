@@ -35,7 +35,7 @@ export default {
         },
         {
             tcid: '3',
-            name: '@studio-suggested-save-edited-fields',
+            name: '@studio-suggested-save-edited-RTE-fields',
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',

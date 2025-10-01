@@ -9,7 +9,7 @@ export default {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
+            tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
             tcid: '1',
@@ -19,11 +19,11 @@ export default {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
+            tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
             tcid: '2',
-            name: '@studio-plans-individuals-save-edited-fields',
+            name: '@studio-plans-individuals-save-edited-RTE-fields',
             path: '/studio.html',
             data: {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
@@ -64,7 +64,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
+            tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
             tcid: '3',
@@ -78,7 +78,7 @@ export default {
                 newStrikethroughPrice: 'US$34.49/moper license',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
+            tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
             tcid: '4',
@@ -88,7 +88,7 @@ export default {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
+            tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
         },
 
         {
@@ -122,7 +122,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
+            tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
             tcid: '6',
@@ -135,7 +135,7 @@ export default {
                 cardLegalDisclaimer: 'par licenceTVA comprise',
             },
             browserParams: '#locale=fr_FR&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-save',
+            tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
         },
     ],
 };

@@ -9,7 +9,7 @@ export default {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '1',
@@ -19,7 +19,7 @@ export default {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '2',
@@ -29,7 +29,7 @@ export default {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '3',
@@ -39,7 +39,7 @@ export default {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '4',
@@ -53,7 +53,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '5',
@@ -67,7 +67,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '6',
@@ -81,7 +81,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '7',
@@ -95,7 +95,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '8',
@@ -109,7 +109,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '9',
@@ -123,7 +123,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '10',
@@ -142,7 +142,7 @@ export default {
                 legalText: 'per license',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '11',
@@ -168,7 +168,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '12',
@@ -178,7 +178,7 @@ export default {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit @nopr',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit @nopr',
         },
         {
             tcid: '13',
@@ -196,7 +196,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '14',
@@ -211,7 +211,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '15',
@@ -229,7 +229,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '16',
@@ -247,7 +247,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '17',
@@ -265,7 +265,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '18',
@@ -279,7 +279,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '19',
@@ -290,7 +290,7 @@ export default {
                 phoneNumber: '1234567890',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '20',
@@ -316,7 +316,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '21',
@@ -332,7 +332,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '22',
@@ -362,7 +362,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '23',
@@ -377,7 +377,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '24',
@@ -396,7 +396,7 @@ export default {
                 client: 'adobe_com',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
             tcid: '25',
@@ -412,7 +412,7 @@ export default {
                 cardLegalDisclaimer: 'per license',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals @acom-plans-individuals-edit',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
     ],
 };

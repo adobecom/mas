@@ -19,7 +19,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-save @nopr',
+            tags: '@mas-studio @ahome @ahome-save @ahome-promoted-plans @ahome-promoted-plans-save',
         },
         {
             tcid: '1',
@@ -30,7 +30,7 @@ export default {
                 osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-save',
+            tags: '@mas-studio @ahome @ahome-save @ahome-promoted-plans @ahome-promoted-plans-save',
         },
         {
             tcid: '2',
@@ -45,7 +45,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @ahome @ahome-promoted-plans @ahome-promoted-plans-save',
+            tags: '@mas-studio @ahome @ahome-save @ahome-promoted-plans @ahome-promoted-plans-save',
         },
         {
             tcid: '3',
@@ -64,7 +64,7 @@ export default {
                 daaLH: 'ccsn',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @ahome @promoted-plans @promoted-plans-save',
+            tags: '@mas-studio @ahome @ahome-save @ahome-promoted-plans @ahome-promoted-plans-save',
         },
     ],
 };

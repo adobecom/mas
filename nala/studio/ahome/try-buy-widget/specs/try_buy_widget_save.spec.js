@@ -10,7 +10,7 @@ export default {
                 price: 'US$89.99/mo',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-save',
+            tags: '@mas-studio @ahome @ahome-save @ahome-try-buy-widget @ahome-try-buy-widget-save',
         },
         {
             tcid: '1',
@@ -21,7 +21,7 @@ export default {
                 osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-save',
+            tags: '@mas-studio @ahome @ahome-save @ahome-try-buy-widget @ahome-try-buy-widget-save',
         },
         {
             tcid: '2',
@@ -32,7 +32,7 @@ export default {
                 osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-save',
+            tags: '@mas-studio @ahome @ahome-save @ahome-try-buy-widget @ahome-try-buy-widget-save',
         },
         {
             tcid: '3',
@@ -59,7 +59,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-save',
+            tags: '@mas-studio @ahome @ahome-save @ahome-try-buy-widget @ahome-try-buy-widget-save',
         },
         {
             tcid: '4',
@@ -84,7 +84,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-save',
+            tags: '@mas-studio @ahome @ahome-save @ahome-try-buy-widget @ahome-try-buy-widget-save',
         },
         {
             tcid: '5',
@@ -100,7 +100,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @ahome @ahome-try-buy-widget @ahome-try-buy-widget-save',
+            tags: '@mas-studio @ahome @ahome-save @ahome-try-buy-widget @ahome-try-buy-widget-save',
         },
         {
             tcid: '6',
@@ -119,7 +119,7 @@ export default {
                 daaLH: 'ccsn',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @ahome @try-buy-widget @try-buy-widget-save',
+            tags: '@mas-studio @ahome @ahome-save @ahome-try-buy-widget @ahome-try-buy-widget-save',
         },
     ],
 };

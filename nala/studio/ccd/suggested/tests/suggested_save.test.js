@@ -172,7 +172,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-save-edited-fields - Validate field edits and save for suggested card in mas studio
+    // @studio-suggested-save-edited-RTE-fields - Validate field edits and save for suggested card in mas studio
     // Combines: title, eyebrow, mnemonic, description, and background image
     test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
         const { data } = features[3];

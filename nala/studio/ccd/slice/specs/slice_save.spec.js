@@ -25,7 +25,7 @@ export default {
         },
         {
             tcid: '2',
-            name: '@studio-slice-save-edited-fields',
+            name: '@studio-slice-save-edited-RTE-fields',
             path: '/studio.html',
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',

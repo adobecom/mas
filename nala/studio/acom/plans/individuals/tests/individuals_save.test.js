@@ -107,7 +107,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
-    // @studio-plans-individuals-save-edited-fields - Validate field edits and save for plans individuals card in mas studio
+    // @studio-plans-individuals-save-edited-RTE-fields - Validate field edits and save for plans individuals card in mas studio
     // Combines: title, badge, description, mnemonic, callout, promo text, OSI, stock checkbox, what's included, and color changes
     test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
         const { data } = features[2];

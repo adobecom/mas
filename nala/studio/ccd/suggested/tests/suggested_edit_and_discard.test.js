@@ -134,7 +134,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
-            await expect(await suggested.cardTitle).toHaveText(data.title);
+            await expect(await suggested.cardTitle).toHaveText(data.title.original);
         });
     });
 
@@ -420,7 +420,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             expect(searchParams.get('ctx')).toBe(data.ctx);
             expect(searchParams.get('lang')).toBe(data.lang);
             expect(searchParams.get('cli')).toBe(data.client);
-            expect(searchParams.get('apc')).toBe(data.promo.original);
+            expect(searchParams.get('apc')).toBe(data.promo);
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
@@ -847,24 +847,24 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-3: Edit CTA variant', async () => {
             await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
-            await expect(await editor.CTA).toHaveClass(data.variant.original);
-            expect(await webUtil.verifyCSS(await suggested.cardCTA, data.variant.ctaCSS.original)).toBeTruthy();
+            await expect(await editor.CTA).toHaveClass(data.cta.original.variant);
+            expect(await webUtil.verifyCSS(await suggested.cardCTA, data.cta.original.css)).toBeTruthy();
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkVariant).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-            await expect(await editor.getLinkVariant(data.variant.updated)).toBeVisible();
-            await (await editor.getLinkVariant(data.variant.updated)).click();
+            await expect(await editor.getLinkVariant(data.cta.updated.variant)).toBeVisible();
+            await (await editor.getLinkVariant(data.cta.updated.variant)).click();
             await editor.linkSave.click();
         });
 
         await test.step('step-4: Validate edited CTA variant in Editor panel', async () => {
-            await expect(await editor.CTA).toHaveClass(data.variant.updated);
-            await expect(await editor.CTA).not.toHaveClass(data.variant.original);
+            await expect(await editor.CTA).toHaveClass(data.cta.updated.variant);
+            await expect(await editor.CTA).not.toHaveClass(data.cta.original.variant);
         });
 
         await test.step('step-5: Validate edited CTA on the card', async () => {
-            expect(await webUtil.verifyCSS(await suggested.cardCTA, data.variant.ctaCSS.updated)).toBeTruthy();
+            expect(await webUtil.verifyCSS(await suggested.cardCTA, data.cta.updated.css)).toBeTruthy();
             await expect(await suggested.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await suggested.cardCTA).toHaveAttribute('is', 'checkout-button');
         });
@@ -874,8 +874,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-7: Open the editor and validate there are no changes', async () => {
-            expect(await webUtil.verifyCSS(await suggested.cardCTA, data.variant.ctaCSS.original)).toBeTruthy();
-            await expect(await editor.CTA).toHaveClass(data.variant.original);
+            expect(await webUtil.verifyCSS(await suggested.cardCTA, data.cta.original.css)).toBeTruthy();
         });
     });
 

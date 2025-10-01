@@ -221,15 +221,17 @@ export default {
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-                variant: {
-                    original: 'accent',
-                    updated: 'primary-outline',
-                    ctaCSS: {
-                        original: {
+                cta: {
+                    original: {
+                        variant: 'accent',
+                        css: {
                             'background-color': 'rgb(2, 101, 220)',
                             color: 'rgb(255, 255, 255)',
                         },
-                        updated: {
+                    },
+                    updated: {
+                        variant: 'primary-outline',
+                        css: {
                             color: 'rgb(34, 34, 34)',
                         },
                     },

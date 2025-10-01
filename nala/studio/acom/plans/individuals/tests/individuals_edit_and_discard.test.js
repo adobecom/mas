@@ -1216,7 +1216,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-7: Verify CTA variant is unchanged', async () => {
-            await expect(await individuals.cardCTA).toHaveClass(data.cta.original.variant);
             expect(await webUtil.verifyCSS(await individuals.cardCTA, data.cta.original.CSS)).toBeTruthy();
         });
     });

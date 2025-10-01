@@ -247,23 +247,23 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-3: Edit CTA variant and save card', async () => {
             await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
             await expect(await editor.CTA.first()).toBeVisible();
-            await expect(await editor.CTA.first()).toHaveClass(data.variant.original);
-            expect(await webUtil.verifyCSS(await trybuywidget.cardCTA.first(), data.ctaCSS.original)).toBeTruthy();
+            await expect(await editor.CTA.first()).toHaveClass(data.cta.original.variant);
+            expect(await webUtil.verifyCSS(await trybuywidget.cardCTA.first(), data.cta.original.css)).toBeTruthy();
             await editor.CTA.first().click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkVariant).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-            await expect(await editor.getLinkVariant(data.variant.updated)).toBeVisible();
-            await (await editor.getLinkVariant(data.variant.updated)).click();
+            await expect(await editor.getLinkVariant(data.cta.updated.variant)).toBeVisible();
+            await (await editor.getLinkVariant(data.cta.updated.variant)).click();
             await editor.linkSave.click();
             await studio.saveCard();
         });
 
         await test.step('step-4: Validate CTA variant change', async () => {
-            await expect(await editor.CTA.first()).toHaveClass(data.variant.updated);
-            await expect(await editor.CTA.first()).not.toHaveClass(data.variant.original);
+            await expect(await editor.CTA.first()).toHaveClass(data.cta.updated.variant);
+            await expect(await editor.CTA.first()).not.toHaveClass(data.cta.original.variant);
             expect(
-                await webUtil.verifyCSS(await clonedCard.locator(trybuywidget.cardCTA).first(), data.ctaCSS.updated),
+                await webUtil.verifyCSS(await clonedCard.locator(trybuywidget.cardCTA).first(), data.cta.updated.css),
             ).toBeTruthy();
             await expect(await clonedCard.locator(trybuywidget.cardCTA).first()).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await clonedCard.locator(trybuywidget.cardCTA).first()).toHaveAttribute('is', 'checkout-button');

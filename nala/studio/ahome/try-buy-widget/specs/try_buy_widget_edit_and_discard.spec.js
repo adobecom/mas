@@ -160,12 +160,13 @@ export default {
                 },
                 osiTags: {
                     original: {
-                        productCode: 'product_code/cces',
+                        productCode: 'product_code/ccsn',
                         offerType: 'offer_type/base',
                         marketSegments: 'market_segments/com',
                         planType: 'plan_type/abm',
                     },
                     updated: {
+                        productCode: 'product_code/ccsn',
                         offerType: 'offer_type/trial',
                         marketSegments: 'market_segments/edu',
                         planType: 'plan_type/puf',
@@ -181,22 +182,21 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
-                variant: 'secondary',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 cta: {
-                    css: {
-                        original: {
+                    original: {
+                        variant: 'secondary',
+                        css: {
                             'background-color': 'rgb(230, 230, 230)',
                             color: 'rgb(34, 34, 34)',
                         },
-                        updated: {
+                    },
+                    updated: {
+                        variant: 'secondary-outline',
+                        css: {
                             'background-color': 'rgba(0, 0, 0, 0)',
                             color: 'rgb(34, 34, 34)',
                         },
-                    },
-                    variant: {
-                        original: 'secondary',
-                        updated: 'secondary-outline',
                     },
                 },
             },

@@ -415,11 +415,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Open link edit form and make all CTA edits', async () => {
             await expect(await editor.CTA).toBeVisible();
-            await expect(await editor.footer).toContainText(data.label.original);
-            await expect(await editor.CTA).toHaveClass(data.variant.original);
-            expect(
-                await webUtil.verifyCSS(await clonedCard.locator(individuals.cardCTA), data.variant.css.original),
-            ).toBeTruthy();
+            await expect(await editor.footer).toContainText(data.cta.original.label);
+            await expect(await editor.CTA).toHaveClass(data.cta.original.variant);
+            expect(await webUtil.verifyCSS(await clonedCard.locator(individuals.cardCTA), data.cta.original.css)).toBeTruthy();
 
             // Open link edit form
             await editor.CTA.click();
@@ -427,13 +425,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
             // Edit 1: Change CTA label
             await expect(await editor.linkText).toBeVisible();
-            await expect(await editor.linkText).toHaveValue(data.label.original);
-            await editor.linkText.fill(data.label.updated);
+            await expect(await editor.linkText).toHaveValue(data.cta.original.label);
+            await editor.linkText.fill(data.cta.updated.label);
 
             // Edit 2: Change CTA variant
             await expect(await editor.linkVariant).toBeVisible();
-            await expect(await editor.getLinkVariant(data.variant.updated)).toBeVisible();
-            await (await editor.getLinkVariant(data.variant.updated)).click();
+            await expect(await editor.getLinkVariant(data.cta.updated.variant)).toBeVisible();
+            await (await editor.getLinkVariant(data.cta.updated.variant)).click();
 
             // Edit 3: Add checkout parameters
             await expect(await editor.checkoutParameters).toBeVisible();
@@ -454,15 +452,15 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-5: Validate all CTA changes in parallel', async () => {
             const results = await Promise.allSettled([
                 test.step('Validation-1: Verify CTA label saved', async () => {
-                    await expect(await editor.footer).toContainText(data.label.updated);
-                    await expect(await clonedCard.locator(individuals.cardCTA)).toContainText(data.label.updated);
+                    await expect(await editor.footer).toContainText(data.cta.updated.label);
+                    await expect(await clonedCard.locator(individuals.cardCTA)).toContainText(data.cta.updated.label);
                 }),
 
                 test.step('Validation-2: Verify CTA variant saved', async () => {
-                    await expect(await editor.CTA).toHaveClass(data.variant.updated);
-                    await expect(await editor.CTA).not.toHaveClass(data.variant.original);
+                    await expect(await editor.CTA).toHaveClass(data.cta.updated.variant);
+                    await expect(await editor.CTA).not.toHaveClass(data.cta.original.variant);
                     expect(
-                        await webUtil.verifyCSS(await clonedCard.locator(individuals.cardCTA), data.variant.css.updated),
+                        await webUtil.verifyCSS(await clonedCard.locator(individuals.cardCTA), data.cta.updated.css),
                     ).toBeTruthy();
                 }),
 

@@ -68,18 +68,20 @@ export default {
             data: {
                 cardid: '2d9025f7-ea56-4eeb-81b2-a52762358b9d',
                 osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
-                variant: {
-                    original: 'secondary',
-                    updated: 'secondary-outline',
-                },
-                ctaCSS: {
+                cta: {
                     original: {
-                        'background-color': 'rgb(230, 230, 230)',
-                        color: 'rgb(34, 34, 34)',
+                        variant: 'secondary',
+                        css: {
+                            'background-color': 'rgb(230, 230, 230)',
+                            color: 'rgb(34, 34, 34)',
+                        },
                     },
                     updated: {
-                        'background-color': 'rgba(0, 0, 0, 0)',
-                        color: 'rgb(34, 34, 34)',
+                        variant: 'secondary-outline',
+                        css: {
+                            'background-color': 'rgba(0, 0, 0, 0)',
+                            color: 'rgb(34, 34, 34)',
+                        },
                     },
                 },
             },

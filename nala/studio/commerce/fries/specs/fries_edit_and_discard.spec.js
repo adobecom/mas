@@ -3,7 +3,7 @@ export default {
     features: [
         {
             tcid: '0',
-            name: '@studio-fries-edit-title',
+            name: '@studio-fries-edit-discard-title',
             path: '/studio.html',
             data: {
                 cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
@@ -17,7 +17,7 @@ export default {
         },
         {
             tcid: '1',
-            name: '@studio-fries-edit-description',
+            name: '@studio-fries-edit-discard-description',
             path: '/studio.html',
             data: {
                 cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
@@ -31,12 +31,12 @@ export default {
         },
         {
             tcid: '2',
-            name: '@studio-fries-edit-mnemonic',
+            name: '@studio-fries-edit-discard-mnemonic',
             path: '/studio.html',
             data: {
                 cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
                 iconURL: {
-                    original: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
+                    original: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
                     updated: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
                 },
             },
@@ -45,7 +45,7 @@ export default {
         },
         {
             tcid: '3',
-            name: '@studio-fries-edit-price',
+            name: '@studio-fries-edit-discard-price',
             path: '/studio.html',
             data: {
                 cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
@@ -63,14 +63,14 @@ export default {
         },
         {
             tcid: '4',
-            name: '@studio-fries-edit-cta-label',
+            name: '@studio-fries-edit-discard-cta-label',
             path: '/studio.html',
             data: {
                 cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 ctaText: {
-                    original: 'Buy now',
-                    updated: 'Buy now 2',
+                    original: 'Select',
+                    updated: 'Buy now',
                 },
             },
             browserParams: '#page=content&path=nala&query=',

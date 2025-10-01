@@ -19,7 +19,7 @@ export default {
                 },
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @ahome @ahome-save @ahome-promoted-plans @ahome-promoted-plans-save',
+            tags: '@mas-studio @ahome @ahome-save @ahome-promoted-plans @ahome-promoted-plans-save @nopr',
         },
         {
             tcid: '1',

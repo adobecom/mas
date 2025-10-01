@@ -297,7 +297,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-edit-discard-and-discard-price - Validate editing and discarding price field for try buy widjet card
+    // @studio-try-buy-widget-edit-discard-price - Validate editing and discarding price field for try buy widjet card
     test(`${features[6].name},${features[6].tags}`, async ({ page, baseURL }) => {
         const { data } = features[6];
         const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.cardid}`;
@@ -550,7 +550,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-edit-discard-and-discard-osi - Validate editing and discarding OSI for try-buy-widget card
+    // @studio-try-buy-widget-edit-discard-osi - Validate editing and discarding OSI for try-buy-widget card
     test(`${features[10].name},${features[10].tags}`, async ({ page, baseURL }) => {
         const { data } = features[10];
         const testPage = `${baseURL}${features[10].path}${miloLibs}${features[10].browserParams}${data.cardid}`;
@@ -605,7 +605,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-5: Validate tags update', async () => {
             await expect(await editor.tags).toHaveAttribute(
                 'value',
-                expect.stringContaining(`${data.osiTags.original.productCode}`),
+                expect.stringContaining(`${data.osiTags.updated.productCode}`),
             );
             await expect(await editor.tags).toHaveAttribute(
                 'value',
@@ -640,7 +640,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-edit-discard-and-discard-cta-variant - Validate editing and discarding CTA variant
+    // @studio-try-buy-widget-edit-discard-cta-variant - Validate editing and discarding CTA variant
     test(`${features[11].name},${features[11].tags}`, async ({ page, baseURL }) => {
         const { data } = features[11];
         const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.cardid}`;
@@ -661,24 +661,24 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-3: Edit CTA variant', async () => {
             await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
             await expect(await editor.CTA.first()).toBeVisible();
-            await expect(await editor.CTA.first()).toHaveClass(data.variant.original);
-            expect(await webUtil.verifyCSS(await trybuywidget.cardCTA.first(), data.cta.css.original)).toBeTruthy();
+            await expect(await editor.CTA.first()).toHaveClass(data.cta.original.variant);
+            expect(await webUtil.verifyCSS(await trybuywidget.cardCTA.first(), data.cta.original.css)).toBeTruthy();
             await editor.CTA.first().click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkVariant).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-            await expect(await editor.getLinkVariant(data.cta.variant.updated)).toBeVisible();
-            await (await editor.getLinkVariant(data.cta.variant.updated)).click();
+            await expect(await editor.getLinkVariant(data.cta.updated.variant)).toBeVisible();
+            await (await editor.getLinkVariant(data.cta.updated.variant)).click();
             await editor.linkSave.click();
         });
 
         await test.step('step-4: Validate edited CTA variant in Editor panel', async () => {
-            await expect(await editor.CTA.first()).toHaveClass(data.cta.variant.updated);
-            await expect(await editor.CTA.first()).not.toHaveClass(data.cta.variant.original);
+            await expect(await editor.CTA.first()).toHaveClass(data.cta.updated.variant);
+            await expect(await editor.CTA.first()).not.toHaveClass(data.cta.original.variant);
         });
 
         await test.step('step-5: Validate edited CTA on the card', async () => {
-            expect(await webUtil.verifyCSS(await trybuywidget.cardCTA.first(), data.cta.css.updated)).toBeTruthy();
+            expect(await webUtil.verifyCSS(await trybuywidget.cardCTA.first(), data.cta.updated.css)).toBeTruthy();
             await expect(await trybuywidget.cardCTA.first()).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await trybuywidget.cardCTA.first()).toHaveAttribute('is', 'checkout-button');
         });
@@ -688,12 +688,11 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-7: Open the editor and validate there are no changes', async () => {
-            expect(await webUtil.verifyCSS(await trybuywidget.cardCTA.first(), data.cta.css.original)).toBeTruthy();
-            await expect(await editor.CTA.first()).toHaveClass(data.cta.variant.original);
+            expect(await webUtil.verifyCSS(await trybuywidget.cardCTA.first(), data.cta.original.css)).toBeTruthy();
         });
     });
 
-    // @studio-try-buy-widget-edit-discard-and-discard-cta-checkout-params - Validate editing and discarding CTA checkout params
+    // @studio-try-buy-widget-edit-discard-cta-checkout-params - Validate editing and discarding CTA checkout params
     test(`${features[12].name},${features[12].tags}`, async ({ page, baseURL }) => {
         const { data } = features[12];
         const testPage = `${baseURL}${features[12].path}${miloLibs}${features[12].browserParams}${data.cardid}`;
@@ -747,7 +746,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
     });
 
-    // @studio-try-buy-widget-edit-discard-and-discard-analytics-ids - Validate editing and discarding analytics IDs
+    // @studio-try-buy-widget-edit-discard-analytics-ids - Validate editing and discarding analytics IDs
     test(`${features[13].name},${features[13].tags}`, async ({ page, baseURL }) => {
         const { data } = features[13];
         const testPage = `${baseURL}${features[13].path}${miloLibs}${features[13].browserParams}${data.cardid}`;

@@ -6,13 +6,13 @@ export default {
             name: '@studio-fries-save-edited-RTE-fields',
             path: '/studio.html',
             data: {
-                cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
+                cardid: 'c0a37a89-c3e7-4bdb-a298-c43b89e2a781',
                 title: {
                     original: 'Field Edit & Save',
                     updated: 'Cloned Field Edit',
                 },
                 description: {
-                    original: 'MAS repo validation card for Nala tests',
+                    original: 'Get Lightroom, Lightroom Classic, Photoshop, and 20GB of cloud storage.',
                     updated: 'New Test Description',
                 },
                 iconURL: {
@@ -28,7 +28,7 @@ export default {
             name: '@studio-fries-save-edited-price',
             path: '/studio.html',
             data: {
-                cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
+                cardid: 'c0a37a89-c3e7-4bdb-a298-c43b89e2a781',
                 price: 'US$17.24/mo',
                 strikethroughPrice: 'US$34.49/mo',
             },
@@ -40,10 +40,10 @@ export default {
             name: '@studio-fries-save-edited-cta-label',
             path: '/studio.html',
             data: {
-                cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
+                cardid: 'c0a37a89-c3e7-4bdb-a298-c43b89e2a781',
                 ctaText: {
-                    original: 'Buy now',
-                    updated: 'Buy now 2',
+                    original: 'Select',
+                    updated: 'Buy now',
                 },
             },
             browserParams: '#page=content&path=nala&query=',

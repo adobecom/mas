@@ -98,19 +98,19 @@ export default {
             data: {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
-                label: {
-                    original: 'Buy now',
-                    updated: 'New CTA Text',
-                },
-                variant: {
-                    original: 'accent',
-                    updated: 'primary-outline',
-                    css: {
-                        original: {
+                cta: {
+                    original: {
+                        label: 'Buy now',
+                        variant: 'accent',
+                        css: {
                             'background-color': 'rgb(59, 99, 251)',
                             color: 'rgb(255, 255, 255)',
                         },
-                        updated: {
+                    },
+                    updated: {
+                        label: 'New CTA Text',
+                        variant: 'primary-outline',
+                        css: {
                             color: 'rgb(44, 44, 44)',
                         },
                     },

@@ -1,13 +1,14 @@
-const { expect } = require('chai');
-const nock = require('nock');
-const action = require('../../src/fragment/pipeline.js');
-const mockDictionary = require('./replace.test.js').mockDictionary;
-const zlib = require('zlib');
+import { expect } from 'chai';
+import nock from 'nock';
+import { main as action } from '../../src/fragment/pipeline.js';
+import { mockDictionary } from './replace.test.js';
+import zlib from 'zlib';
 
-const FRAGMENT_RESPONSE_EN = require('./mocks/fragment.json');
-const FRAGMENT_RESPONSE_FR = require('./mocks/fragment-fr.json');
-
-const { MockState } = require('./mocks/MockState.js');
+import FRAGMENT_RESPONSE_EN from './mocks/fragment.json' with { type: 'json' };
+import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
+import DICTIONARY_FOR_COLLECTION_RESPONSE from './mocks/dictionaryForCollection.json' with { type: 'json' };
+import COLLECTION_RESPONSE from './mocks/collection.json' with { type: 'json' };
+import { MockState } from './mocks/MockState.js';
 
 function decompress(response) {
     const body =
@@ -21,7 +22,7 @@ function decompress(response) {
 }
 
 async function getFragment(params) {
-    return decompress(await action.main(params));
+    return decompress(await action(params));
 }
 
 const EXPECTED_HEADERS = {
@@ -90,6 +91,10 @@ describe('pipeline full use case', () => {
     beforeEach(() => {
         nock.cleanAll();
         mockDictionary();
+    });
+
+    afterEach(() => {
+        nock.cleanAll();
     });
 
     it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment', async () => {
@@ -198,14 +203,45 @@ describe('pipeline full use case', () => {
     });
 });
 
+describe('collection placeholders', () => {
+    it('should work', async () => {
+        nock.cleanAll();
+        const state = new MockState();
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments/07f9729e-dc1f-4634-829d-7aa469bb0d33')
+            .query({ references: 'all-hydrated' })
+            .reply(200, COLLECTION_RESPONSE);
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments/412fda08-7b73-4a01-a04f-1953e183bad2')
+            .query({ references: 'all-hydrated' })
+            .reply(200, DICTIONARY_FOR_COLLECTION_RESPONSE);
+        state.put(
+            'req-07f9729e-dc1f-4634-829d-7aa469bb0d33-en_US',
+            '{"hash":"c4b6f3c040708c47444316d4e103268c8f2fb91c35dc4609ecccc29803f2aec0","lastModified":"Mon, 09 Jun 2025 07:43:58 GMT","dictionaryId":"412fda08-7b73-4a01-a04f-1953e183bad2"}',
+        );
+        const result = await getFragment({
+            id: '07f9729e-dc1f-4634-829d-7aa469bb0d33',
+            state,
+            locale: 'en_US',
+        });
+        expect(result.body.placeholders.searchResultsMobileText).to.equal(
+            '<p><span data-placeholder="resultCount"></span>&nbsp;results in&nbsp;<strong><span data-placeholder="searchTerm"></span></strong></p>',
+        );
+    });
+});
+
 describe('pipeline corner cases', () => {
     beforeEach(() => {
         nock.cleanAll();
         mockDictionary();
     });
 
-    it('main should be defined', () => {
-        expect(action.main).to.be.a('function');
+    afterEach(() => {
+        nock.cleanAll();
+    });
+
+    it('action should be defined', () => {
+        expect(action).to.be.a('function');
     });
 
     it('no arguments should return 400', async () => {
@@ -345,34 +381,5 @@ describe('pipeline corner cases', () => {
         const result = await runOnFilledState('null', {});
         expect(result.body).to.deep.include(EXPECTED_BODY);
         expect(result.statusCode).to.equal(200);
-    });
-});
-
-describe('collection placeholders', () => {
-    it('should work', async () => {
-        nock.cleanAll();
-        const DICTIONARY_RESPONSE = require('./mocks/dictionaryForCollection.json');
-        const COLLECTION_RESPONSE = require('./mocks/collection.json');
-        const state = new MockState();
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments/07f9729e-dc1f-4634-829d-7aa469bb0d33')
-            .query({ references: 'all-hydrated' })
-            .reply(200, COLLECTION_RESPONSE);
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments/412fda08-7b73-4a01-a04f-1953e183bad2')
-            .query({ references: 'all-hydrated' })
-            .reply(200, DICTIONARY_RESPONSE);
-        state.put(
-            'req-07f9729e-dc1f-4634-829d-7aa469bb0d33-en_US',
-            '{"hash":"c4b6f3c040708c47444316d4e103268c8f2fb91c35dc4609ecccc29803f2aec0","lastModified":"Mon, 09 Jun 2025 07:43:58 GMT","dictionaryId":"412fda08-7b73-4a01-a04f-1953e183bad2"}',
-        );
-        const result = await getFragment({
-            id: '07f9729e-dc1f-4634-829d-7aa469bb0d33',
-            state,
-            locale: 'en_US',
-        });
-        expect(result.body.placeholders.searchResultsMobileText).to.equal(
-            '<p><span data-placeholder="resultCount"></span>&nbsp;results in&nbsp;<strong><span data-placeholder="searchTerm"></span></strong></p>',
-        );
     });
 });

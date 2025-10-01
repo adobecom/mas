@@ -1,28 +1,22 @@
 'use strict';
 
-const fetchFragment = require('./fetch.js').fetchFragment;
-const {
-    createTimeoutPromise,
-    log,
-    logDebug,
-    logError,
-    mark,
-    measureTiming,
-    getFromState,
-    getJsonFromState,
-} = require('./common.js');
-const corrector = require('./corrector.js').corrector;
-const crypto = require('crypto');
-const replace = require('./replace.js').replace;
-const settings = require('./settings.js').settings;
-const stateLib = require('@adobe/aio-lib-state');
-const translate = require('./translate.js').translate;
-const wcs = require('./wcs.js').wcs;
-const zlib = require('zlib');
+import { createTimeoutPromise, log, logDebug, logError, mark, measureTiming, getJsonFromState } from './common.js';
+import crypto from 'crypto';
+import zlib from 'zlib';
+import stateLib from '@adobe/aio-lib-state';
+
+import { transformer as fetchFragment } from './fetch.js';
+import { transformer as corrector } from './corrector.js';
+import { transformer as replace } from './replace.js';
+import { transformer as settings } from './settings.js';
+import { transformer as translate } from './translate.js';
+import { transformer as wcs } from './wcs.js';
 
 function calculateHash(body) {
     return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
 }
+
+const PIPELINE = [fetchFragment, translate, settings, replace, wcs, corrector];
 
 const RESPONSE_HEADERS = {
     'Access-Control-Expose-Headers': 'X-Request-Id,Etag,Last-Modified,server-timing',
@@ -49,7 +43,7 @@ async function main(params) {
     mark(context, 'start');
     let returnValue;
     log(`starting request pipeline for ${JSON.stringify(context)}`, context);
-    /* istanbul ignore next */
+    /* c8 ignore next 3*/
     if (!context.state) {
         context.state = await stateLib.init();
     }
@@ -67,15 +61,14 @@ async function main(params) {
         ]);
     } catch (error) {
         logError(`Error occurred while processing request: ${error.message} ${error.stack}`, context);
-        /* istanbul ignore next */
         if (error.isTimeout) {
             returnValue = {
                 statusCode: 504,
                 headers: RESPONSE_HEADERS,
                 message: 'Fragment pipeline timed out',
             };
+            /* c8 ignore next 7*/
         } else {
-            /* istanbul ignore next */
             returnValue = {
                 statusCode: 503,
                 message: error?.message || 'Internal Server Error',
@@ -115,9 +108,22 @@ async function mainProcess(context) {
         context = { ...context, translatedId, dictionaryId };
     }
 
-    for (const transformer of [fetchFragment, translate, settings, replace, wcs, corrector]) {
-        /* istanbul ignore next */
+    // Initialize all transformers that have an init function
+    // those requests are done in parallel and results stored in context.promises
+    for (const transformer of PIPELINE) {
+        if (transformer.init) {
+            //we fork context to avoid init to override any context property
+            const initContext = structuredClone(context);
+            initContext.loggedTransformer = `${transformer.name}-init`;
+            context.promises = context.promises || {};
+            context.promises[transformer.name] = transformer.init(initContext);
+        }
+    }
+
+    for (const transformer of PIPELINE) {
+        /* c8 ignore next 5*/
         if (originalContext.timedOut) {
+            context.status = 504;
             logError(`Pipeline timed out during ${transformer.name}, aborting...`, context);
             break;
         }
@@ -125,12 +131,12 @@ async function mainProcess(context) {
             logError(context.message, context);
             break;
         }
-        context.transformer = transformer.name;
+        context.loggedTransformer = transformer.name;
         mark(context, transformer.name);
-        context = await transformer(context);
+        context = await transformer.process(context);
         measureTiming(context, transformer.name);
     }
-    context.transformer = 'pipeline';
+    context.loggedTransformer = 'pipeline';
     const returnValue = {
         statusCode: context.status,
         id: context.body?.id,
@@ -178,4 +184,4 @@ async function mainProcess(context) {
     return returnValue;
 }
 
-exports.main = main;
+export { main };

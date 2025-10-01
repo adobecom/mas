@@ -1,9 +1,9 @@
-const { expect } = require('chai');
-const nock = require('nock');
-const mockCollectionData = require('../fragment/mocks/preview-collection.json');
-const expectedOutput = require('../fragment/mocks/preview-expected-collection-output.json');
-const mockCardFragment = require('../fragment/mocks/preview-fragment.json');
-const mockPlaceholders = require('../fragment/mocks/preview-placeholders.json');
+import { expect } from 'chai';
+import nock from 'nock';
+import mockCollectionData from '../fragment/mocks/preview-collection.json' with { type: 'json' };
+import expectedOutput from '../fragment/mocks/preview-expected-collection-output.json' with { type: 'json' };
+import mockCardFragment from '../fragment/mocks/preview-fragment.json' with { type: 'json' };
+import mockPlaceholders from '../fragment/mocks/preview-placeholders.json' with { type: 'json' };
 
 // Import the actual source file without coverage instrumentation
 let previewFragment;

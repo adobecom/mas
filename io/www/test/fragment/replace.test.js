@@ -1,7 +1,7 @@
-const { expect } = require('chai');
-const nock = require('nock');
-const replace = require('../../src/fragment/replace.js').replace;
-const DICTIONARY_RESPONSE = require('./mocks/dictionary.json');
+import { expect } from 'chai';
+import nock from 'nock';
+import { transformer as replace } from '../../src/fragment/replace.js';
+import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
 const DICTIONARY_CF_RESPONSE = {
     items: [
         {
@@ -34,7 +34,7 @@ const mockDictionary = (preview = false) => {
 
 const getResponse = async (description, cta) => {
     mockDictionary();
-    return await replace({
+    return await replace.process({
         status: 200,
         transformer: 'replace',
         requestId: 'mas-replace-ut',
@@ -67,7 +67,7 @@ describe('replace', () => {
         const response = await getResponse('foo', 'Buy now');
         const expected = expectedResponse('foo');
         delete expected.dictionaryId;
-        expect(response).to.deep.equal(expected);
+        expect(response).to.deep.include(expected);
     });
     it('returns 200 & replaced entries keys with text', async () => {
         const response = await getResponse('please {{view-account}} for {{cai-default}} region');
@@ -104,6 +104,10 @@ describe('replace', () => {
             nock.cleanAll();
         });
 
+        afterEach(() => {
+            nock.cleanAll();
+        });
+
         const FAKE_CONTEXT = {
             status: 200,
             surface: 'sandbox',
@@ -131,7 +135,7 @@ describe('replace', () => {
             nock('https://odin.adobe.com')
                 .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
                 .replyWithError('fetch error');
-            const context = await replace(FAKE_CONTEXT);
+            const context = await replace.process(FAKE_CONTEXT);
             expect(context).to.deep.include(EXPECTED);
         });
 
@@ -142,7 +146,7 @@ describe('replace', () => {
                     path: '/content/dam/mas/sandbox/fr_FR/dictionary/index',
                 })
                 .reply(404, 'not found');
-            const context = await replace(FAKE_CONTEXT);
+            const context = await replace.process(FAKE_CONTEXT);
             expect(context).to.deep.include(EXPECTED);
         });
 
@@ -150,7 +154,7 @@ describe('replace', () => {
             nock('https://odin.adobe.com')
                 .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
                 .reply(200, { items: [] });
-            const context = await replace(FAKE_CONTEXT);
+            const context = await replace.process(FAKE_CONTEXT);
             expect(context).to.deep.include(EXPECTED);
         });
 
@@ -164,7 +168,7 @@ describe('replace', () => {
             nock('https://odin.adobe.com')
                 .get('/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated')
                 .replyWithError('fetch error');
-            const context = await replace(FAKE_CONTEXT);
+            const context = await replace.process(FAKE_CONTEXT);
             const dictionaryId = 'fr_FR_dictionary';
             expect(context).to.deep.include({ ...EXPECTED, dictionaryId });
         });
@@ -178,11 +182,11 @@ describe('replace', () => {
             nock('https://odin.adobe.com')
                 .get('/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated')
                 .reply(500, 'server error');
-            const context = await replace(FAKE_CONTEXT);
+            const context = await replace.process(FAKE_CONTEXT);
             const dictionaryId = 'fr_FR_dictionary';
             expect(context).to.deep.include({ ...EXPECTED, dictionaryId });
         });
     });
 });
 
-exports.mockDictionary = mockDictionary;
+export { mockDictionary };

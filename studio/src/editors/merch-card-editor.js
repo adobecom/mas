@@ -13,21 +13,24 @@ import '../fields/plan-type-field.js';
 import { getFragmentMapping } from '../utils.js';
 import '../fields/addon-field.js';
 import Store from '../store.js';
+import { VARIANT_NAMES } from './variant-picker.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
 
+const VARIANT_RTE_MARKS = {
+    [VARIANT_NAMES.MINI]: {
+        description: {
+            marks: ['promo-text', 'promo-duration-text', 'renewal-text'],
+        },
+    },
+};
+
 class MerchCardEditor extends LitElement {
     static properties = {
+        currentVariantMapping: { type: Object, attribute: false },
         fragmentStore: { type: Object, attribute: false },
         updateFragment: { type: Function },
-        availableSizes: { type: Array, state: true },
-        availableColors: { type: Array, state: true },
-        availableBorderColors: { type: Array, state: true },
-        availableBadgeColors: { type: Array, state: true },
-        availableBackgroundColors: { type: Array, state: true },
-        quantitySelectorValues: { type: String, state: true },
-        currentVariantMapping: { type: Object, state: true },
     };
 
     styles = {
@@ -35,30 +38,46 @@ class MerchCardEditor extends LitElement {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
+            overflow: 'hidden',
+            minWidth: 0,
+            width: '100%',
         },
         colorSwatch: {
             width: '16px',
             height: '16px',
             border: '1px solid var(--spectrum-global-color-gray-300)',
-            borderRadius: '3px',
+            'border-radius': '3px',
+            flexShrink: 0,
+        },
+        colorNameText: {
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            minWidth: 0,
         },
     };
 
     styleObjectToString(styleObj) {
         return Object.entries(styleObj)
-            .map(([key, value]) => `${key}: ${value}`)
+            .map(([key, value]) => {
+                // Convert camelCase to kebab-case for CSS properties
+                const cssKey = key.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+                return `${cssKey}: ${value}`;
+            })
             .join('; ');
     }
 
+    availableSizes = [];
+    availableColors = [];
+    availableBorderColors = [];
+    availableBadgeColors = [];
+    availableBackgroundColors = [];
+    quantitySelectorValues = '';
+
     constructor() {
         super();
+        this.fragmentStore = null;
         this.updateFragment = null;
-        this.availableSizes = [];
-        this.availableColors = [];
-        this.availableBorderColors = [];
-        this.availableBadgeColors = [];
-        this.availableBackgroundColors = [];
-        this.quantitySelectorValues = '';
         this.currentVariantMapping = null;
     }
 
@@ -72,6 +91,16 @@ class MerchCardEditor extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+    }
+
+    willUpdate(changedProperties) {
+        if (changedProperties.has('fragmentStore')) {
+            this.#updateCurrentVariantMapping();
+            this.#updateAvailableSizes();
+            this.#updateAvailableColors();
+            this.#updateBackgroundColors();
+            this.toggleFields();
+        }
     }
 
     get whatsIncludedElement() {
@@ -117,8 +146,8 @@ class MerchCardEditor extends LitElement {
                 icon,
                 alt: mnemonicAlt[index] ?? '',
                 link: mnemonicLink[index] ?? '',
-                tooltipText: mnemonicTooltipText[index] ?? '',
-                tooltipPlacement: mnemonicTooltipPlacement[index] ?? 'top',
+                mnemonicText: mnemonicTooltipText[index] ?? '',
+                mnemonicPlacement: mnemonicTooltipPlacement[index] ?? 'top',
             })) ?? []
         );
     }
@@ -207,18 +236,13 @@ class MerchCardEditor extends LitElement {
     updated(changedProperties) {
         super.updated(changedProperties);
         if (changedProperties.has('fragmentStore')) {
-            this.#updateCurrentVariantMapping().then(() => {
-                this.#updateAvailableSizes();
-                this.#updateAvailableColors();
-                this.#updateBackgroundColors();
-                this.toggleFields();
-            });
+            this.toggleFields();
         }
     }
 
     async toggleFields() {
         if (!this.fragment) return;
-        await this.#updateCurrentVariantMapping();
+        this.#updateCurrentVariantMapping();
         const variant = this.currentVariantMapping;
         if (!variant) return;
         this.querySelectorAll('sp-field-group.toggle').forEach((field) => {
@@ -245,6 +269,13 @@ class MerchCardEditor extends LitElement {
 
         this.#displayBadgeColorFields(this.badgeText);
         this.#displayTrialBadgeColorFields(this.trialBadgeText);
+
+        if (variant.disabledAttributes && Array.isArray(variant.disabledAttributes)) {
+            variant.disabledAttributes.forEach((attributeId) => {
+                const field = this.querySelector(`sp-field-group#${attributeId}`);
+                if (field) field.style.display = 'none';
+            });
+        }
     }
 
     render() {
@@ -394,8 +425,10 @@ class MerchCardEditor extends LitElement {
                 <sp-field-label for="prices">Prices</sp-field-label>
                 <rte-field
                     id="prices"
-                    inline
+                    styling
                     link
+                    mnemonic
+                    multiline
                     data-field="prices"
                     .osi=${form.osi.values[0]}
                     default-link-style="primary-outline"
@@ -445,6 +478,7 @@ class MerchCardEditor extends LitElement {
                     upt-link
                     list
                     mnemonic
+                    .marks=${VARIANT_RTE_MARKS[this.fragment.variant]?.description?.marks}
                     data-field="description"
                     .osi=${form.osi.values[0]}
                     default-link-style="secondary-link"
@@ -591,9 +625,9 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
-    async #handleVariantChange(e) {
+    #handleVariantChange(e) {
         this.#handleFragmentUpdate(e);
-        await this.#updateCurrentVariantMapping();
+        this.#updateCurrentVariantMapping();
         this.#updateAvailableSizes();
         this.#updateAvailableColors();
         this.#updateBackgroundColors();
@@ -668,12 +702,12 @@ class MerchCardEditor extends LitElement {
         const mnemonicLink = [];
         const mnemonicTooltipText = [];
         const mnemonicTooltipPlacement = [];
-        event.target.value.forEach(({ icon, alt, link, tooltipText, tooltipPlacement }) => {
+        event.target.value.forEach(({ icon, alt, link, mnemonicText, mnemonicPlacement }) => {
             mnemonicIcon.push(icon ?? '');
             mnemonicAlt.push(alt ?? '');
             mnemonicLink.push(link ?? '');
-            mnemonicTooltipText.push(tooltipText ?? '');
-            mnemonicTooltipPlacement.push(tooltipPlacement ?? 'top');
+            mnemonicTooltipText.push(mnemonicText ?? '');
+            mnemonicTooltipPlacement.push(mnemonicPlacement ?? 'top');
         });
         const fragment = this.fragmentStore.get();
         fragment.updateField('mnemonicIcon', mnemonicIcon);
@@ -691,12 +725,12 @@ class MerchCardEditor extends LitElement {
             .join(' ');
     }
 
-    async #updateCurrentVariantMapping() {
+    #updateCurrentVariantMapping() {
         if (!this.fragment) {
             this.currentVariantMapping = null;
             return;
         }
-        this.currentVariantMapping = await getFragmentMapping(this.fragment.variant);
+        this.currentVariantMapping = getFragmentMapping(this.fragment.variant);
     }
 
     async #updateAvailableSizes() {
@@ -1156,6 +1190,12 @@ class MerchCardEditor extends LitElement {
                                                           `
                                                         : nothing}
                                                   <span
+                                                      style="${this.styleObjectToString(this.styles.colorNameText)}"
+                                                      title="${isBackground
+                                                          ? this.#formatName(color)
+                                                          : isSpecialValue(color)
+                                                            ? this.#formatName(color)
+                                                            : this.#formatColorName(color)}"
                                                       >${isBackground
                                                           ? this.#formatName(color)
                                                           : isSpecialValue(color)
@@ -1224,7 +1264,12 @@ class MerchCardEditor extends LitElement {
                                                             background: colorValue,
                                                         })}"
                                                     ></div>
-                                                    <span>${colorName}</span>
+                                                    <span
+                                                        style="${this.styleObjectToString(this.styles.colorNameText)}"
+                                                        title="${colorName}"
+                                                    >
+                                                        ${colorName}
+                                                    </span>
                                                 `}
                                     </div>
                                 </sp-menu-item>

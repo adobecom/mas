@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import 'https://milo.adobe.com/libs/features/spectrum-web-components/dist/button.js';
+import '@adobecom/milo/libs/features/spectrum-web-components/dist/button.js';
 import '../src/mas.js';
 import {
     hydrate,
@@ -63,7 +63,7 @@ document.head.appendChild(document.createElement('mas-commerce-service'));
 describe('processMnemonics', async () => {
     it('should process mnemonics', async () => {
         const fields = {
-            mnemonicIcon: ['www.adobe.com/icons/photoshop.svg'],
+            mnemonicIcon: ['test/mocks/img/photoshop.svg'],
             mnemonicAlt: [],
             mnemonicLink: ['www.adobe.com'],
         };
@@ -71,7 +71,7 @@ describe('processMnemonics', async () => {
         const mnemonicsConfig = { size: 'm' };
         processMnemonics(fields, merchCard, mnemonicsConfig);
         expect(merchCard.outerHTML).to.equal(
-            '<div><merch-icon slot="icons" src="www.adobe.com/icons/photoshop.svg" loading="lazy" size="m" href="https://www.adobe.com/"></merch-icon></div>',
+            '<div><merch-icon slot="icons" src="test/mocks/img/photoshop.svg" loading="lazy" size="m" href="https://www.adobe.com/"></merch-icon></div>',
         );
     });
 });
@@ -114,7 +114,7 @@ describe('processPrices', async () => {
 
     it('should preserve white spaces', async () => {
         const fields = {
-            prices: 'Starting at  <span is="inline-price" data-template="price" data-wcs-osi="nTbB50pS4lLGv_x1l_UKggd-lxxo2zAJ7WYDa2mW19s"></span>',
+            prices: 'Starting at  <span is="inline-price" data-display-per-unit="false" data-template="price" data-wcs-osi="nTbB50pS4lLGv_x1l_UKggd-lxxo2zAJ7WYDa2mW19s"></span>',
         };
         const merchCard = mockMerchCard();
         const mapping = {
@@ -363,7 +363,7 @@ describe('processBackgroundImage', () => {
 
     it('should append background image for ccd-slice variant, merchCard.spectrum=swc', () => {
         const fields = {
-            backgroundImage: 'test-image.jpg',
+            backgroundImage: 'test/mocks/img/photoshop.svg',
             backgroundImageAltText: 'Test Image',
         };
         const backgroundImageConfig = { tag: 'div', slot: 'image' };
@@ -379,12 +379,12 @@ describe('processBackgroundImage', () => {
         const imageContainer = merchCard.querySelector('div[slot="image"]');
         expect(imageContainer).to.exist;
         expect(imageContainer.innerHTML).to.equal(
-            '<img loading="lazy" src="test-image.jpg" alt="Test Image">',
+            '<img loading="lazy" src="test/mocks/img/photoshop.svg" alt="Test Image">',
         );
     });
 
     it('should set background-image attribute for ccd-suggested variant', () => {
-        const fields = { backgroundImage: 'test-image.jpg' };
+        const fields = { backgroundImage: 'test/mocks/img/photoshop.svg' };
         const backgroundImageConfig = { attribute: 'background-image' };
         const variant = 'ccd-suggested';
 
@@ -396,12 +396,12 @@ describe('processBackgroundImage', () => {
         );
 
         expect(merchCard.outerHTML).to.equal(
-            '<div background-image="test-image.jpg"></div>',
+            '<div background-image="test/mocks/img/photoshop.svg"></div>',
         );
     });
 
     it('should not append background image for ccd-slice when backgroundImageConfig is falsy', () => {
-        const fields = { backgroundImage: 'test-image.jpg' };
+        const fields = { backgroundImage: 'test/mocks/img/photoshop.svg' };
         const backgroundImageConfig = null;
         const variant = 'ccd-slice';
 
@@ -495,10 +495,10 @@ describe('hydrate', () => {
             },
             fields: {
                 variant: 'ccd-slice',
-                mnemonicIcon: ['www.adobe.com/icons/photoshop.svg'],
+                mnemonicIcon: ['test/mocks/img/photoshop.svg'],
                 mnemonicAlt: [],
                 mnemonicLink: ['www.adobe.com'],
-                backgroundImage: 'test-image.jpg',
+                backgroundImage: 'test/mocks/img/photoshop.svg',
                 ctas: '<a is="checkout-link" data-wcs-osi="abm" class="accent" data-analytics-id="buy-now">Click me</a>',
                 tags: ['mas:term/montly', 'mas:product_code/ccsn'],
             },
@@ -510,7 +510,6 @@ describe('hydrate', () => {
             aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
         };
         await hydrate(fragment, merchCard);
-
         expect(merchCard.getAttribute(ANALYTICS_SECTION_ATTR)).to.equal('ccsn');
         const ctaButton = merchCard.querySelector('button[data-analytics-id]');
         expect(ctaButton).to.exist;
@@ -765,7 +764,7 @@ describe('processBorderColor', () => {
 
         expect(
             merchCard.style.getPropertyValue(
-                '--merch-card-custom-border-color',
+                '--consonant-merch-card-border-color',
             ),
         ).to.equal('var(--spectrum-gray-800)');
     });
@@ -777,12 +776,12 @@ describe('processBorderColor', () => {
 
         expect(
             merchCard.style.getPropertyValue(
-                '--merch-card-custom-border-color',
+                '--consonant-merch-card-border-color',
             ),
         ).to.be.empty;
     });
 
-    it('should ignore transparent border color', () => {
+    it('should set transparent border color', () => {
         const fields = { borderColor: 'transparent' };
         const borderColorConfig = { attribute: 'border-color' };
 
@@ -790,9 +789,9 @@ describe('processBorderColor', () => {
 
         expect(
             merchCard.style.getPropertyValue(
-                '--merch-card-custom-border-color',
+                '--consonant-merch-card-border-color',
             ),
-        ).to.be.empty;
+        ).to.equal('transparent');
     });
 });
 

@@ -26,7 +26,8 @@ nala/.auth/
 *.js.map
 /.cursor*/
 .CLAUDE.md
-studio/CLAUDE.md
+**/CLAUDE.md
+.claude/
 
 # IO Runtime Config
 config.json
@@ -36,8 +37,8 @@ masStudio-*.json
 .aio
 .cursor
 
-# mas specific
-!mas/dist
-mas/commerce.json
-mas/mas.json
-mas/stats.json
+# web-components specific
+!web-components/dist
+web-components/commerce.json
+web-components/mas.json
+web-components/stats.json

@@ -1,8 +1,8 @@
-# Merch At Scale Web Components
+# Merch At Scale
 
 This repository provides a suite of features and web components to support merchandising content across various surfaces, starting from adobe.com. It integrates core commerce capabilities and reusable components designed to simplify development and improve the user experience.
 
-For a developer guide please see [mas.js documentation](https://mas.adobe.com/web-components/docs/mas.js.html)
+For a developer guide please see [mas.js documentation](https://www.adobe.com/libs/features/mas/docs/mas.js.html)
 
 ## Features
 
@@ -48,7 +48,7 @@ npm install
 ### Building
 
 mas builds packages both for Milo and external consumers.
-the evergreen mas.js is located at /web-components/dist/mas.js
+the evergreen mas.js is located at /libs/features/mas/dist/mas.js
 
 ```sh
 npm run build

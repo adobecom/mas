@@ -194,7 +194,10 @@ export default {
                             color: 'rgb(34, 34, 34)',
                         },
                     },
-                    variant: 'secondary-outline',
+                    variant: {
+                        original: 'secondary',
+                        updated: 'secondary-outline',
+                    },
                 },
             },
             browserParams: '#page=content&path=nala&query=',

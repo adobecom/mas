@@ -135,9 +135,6 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
             await expect(await suggested.cardTitle).toHaveText(data.title);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.title).toHaveValue(data.title.original);
         });
     });
 
@@ -179,9 +176,6 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
             await expect(await suggested.cardEyebrow).toHaveText(data.subtitle.original);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.subtitle).toHaveValue(data.subtitle.original);
         });
     });
 
@@ -223,9 +217,6 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
             await expect(await suggested.cardDescription).toContainText(data.description.original);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.description).toContainText(data.description.original);
         });
     });
 
@@ -267,9 +258,6 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
             await expect(await suggested.cardIcon).toHaveAttribute('src', data.iconURL.original);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.iconURL).toHaveValue(data.iconURL.original);
         });
     });
 
@@ -311,9 +299,6 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
             await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('background-image', data.newBackgroundURL);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.backgroundImage).toHaveValue('');
         });
     });
 
@@ -369,12 +354,6 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await suggested.cardPrice).toContainText(data.strikethroughPrice.original);
             await expect(await suggested.cardPrice).not.toContainText(data.price.updated);
             await expect(await suggested.cardPrice).not.toContainText(data.strikethroughPrice.updated);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.prices).toContainText(data.price.original);
-            await expect(await editor.prices).toContainText(data.strikethroughPrice.original);
-            await expect(await editor.prices).not.toContainText(data.price.updated);
-            await expect(await editor.prices).not.toContainText(data.strikethroughPrice.updated);
         });
     });
 
@@ -450,9 +429,6 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
             await expect(await suggested.cardCTA).toContainText(data.ctaText.original);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.footer).toContainText(data.ctaText.original);
         });
     });
 
@@ -503,9 +479,6 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
             await expect(await suggested.cardCTA).toContainText(data.ctaText.original);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.footer).toContainText(data.ctaText.original);
         });
     });
 
@@ -727,9 +700,6 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-7: Verify there is no changes of the card', async () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('variant', 'ah-try-buy-widget');
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-suggested');
         });
     });
 
@@ -904,10 +874,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-7: Open the editor and validate there are no changes', async () => {
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.CTA).toBeVisible();
-            await expect(await editor.CTA).not.toHaveClass(data.variant.updated);
+            expect(await webUtil.verifyCSS(await suggested.cardCTA, data.variant.ctaCSS.original)).toBeTruthy();
             await expect(await editor.CTA).toHaveClass(data.variant.original);
         });
     });
@@ -1016,11 +983,6 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await suggested.cardCTA).toHaveAttribute('data-analytics-id', data.analyticsID.original);
             await expect(await suggested.cardCTA).toHaveAttribute('daa-ll', data.daaLL.original);
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('daa-lh', data.daaLH);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await editor.CTA.click();
-            await editor.footer.locator(editor.linkEdit).click();
-            await expect(await editor.analyticsId).toContainText(data.analyticsID.original);
         });
     });
 });

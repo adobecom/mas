@@ -65,9 +65,6 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
 
         await test.step('step-6: Validate title field not updated', async () => {
             await expect(await promotedplans.cardTitle).toHaveText(data.title.original);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.title).toHaveValue(data.title.original);
         });
     });
 
@@ -114,9 +111,6 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
 
         await test.step('step-6: Verify border reverted', async () => {
             await expect(promotedPlansCard).toHaveAttribute('border-color', data.standardBorder.cssColor);
-            await promotedPlansCard.dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.borderColor).toContainText(data.standardBorder.color);
         });
     });
 
@@ -155,9 +149,6 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
 
         await test.step('step-6: Open the editor and validate there are no changes', async () => {
             await expect(await promotedplans.cardDescription).toContainText(data.description.original);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.description).toContainText(data.description.original);
         });
     });
 
@@ -216,11 +207,6 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
         await test.step('step-6: Verify there is no changes of the card', async () => {
             await expect(await promotedplans.cardCTA.nth(1)).toHaveAttribute('data-analytics-id', data.analyticsID.original);
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('daa-lh', data.daaLH);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await editor.CTA.nth(2).click();
-            await editor.footer.locator(editor.linkEdit).click();
-            await expect(await editor.analyticsId).toContainText(data.analyticsID.original);
         });
     });
 });

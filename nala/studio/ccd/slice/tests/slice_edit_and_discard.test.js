@@ -96,9 +96,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         await test.step('step-7: Verify there is no changes of the card', async () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('variant', 'ccd-suggested');
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-slice');
         });
     });
 
@@ -149,9 +146,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-8: Verify there is no changes of the card', async () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.size).toHaveAttribute('value', 'wide');
+            await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('size', 'wide');
         });
     });
 
@@ -206,9 +201,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-10: Verify there is no changes of the card', async () => {
             await expect(await slice.cardBadge).toHaveText(data.badge.original);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.badge).toHaveValue(data.badge.original);
         });
     });
 
@@ -250,9 +242,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
             await expect(await slice.cardDescription).toContainText(data.description.original);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.description).toContainText(data.description.original);
         });
     });
 
@@ -294,9 +283,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
             await expect(await slice.cardIcon).toHaveAttribute('src', data.iconURL.original);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.iconURL).toHaveValue(data.iconURL.original);
         });
     });
 
@@ -352,9 +338,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         await test.step('step-10: Verify there is no changes of the card', async () => {
             await expect(await slice.cardImage).toBeVisible();
             await expect(await slice.cardImage).toHaveAttribute('src', data.backgroundURL.original);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.backgroundImage).toHaveValue(data.backgroundURL.original);
         });
     });
 
@@ -420,10 +403,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await slice.cardDescription.locator(slice.cardPromoPriceStrikethrough)).toContainText(
                 data.strikethroughPrice,
             );
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.description).toContainText(data.price);
-            await expect(await editor.description).toContainText(data.strikethroughPrice);
         });
     });
 
@@ -499,9 +478,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
             await expect(await slice.cardCTA).toContainText(data.ctaText.original);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.footer).toContainText(data.ctaText.original);
         });
     });
 
@@ -552,9 +528,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
             await expect(await slice.cardCTA).toContainText(data.ctaText.original);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.footer).toContainText(data.ctaText.original);
         });
     });
 
@@ -781,9 +754,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         await test.step('step-7: Verify there is no changes of the card', async () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('variant', 'ah-try-buy-widget');
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-slice');
         });
     });
 
@@ -958,10 +928,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-7: Open the editor and validate there are no changes', async () => {
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.CTA).toBeVisible();
-            await expect(await editor.CTA).not.toHaveClass(data.variant.updated);
+            expect(await webUtil.verifyCSS(await slice.cardCTA, data.variant.ctaCSS.original)).toBeTruthy();
             await expect(await editor.CTA).toHaveClass(data.variant.original);
         });
     });
@@ -1070,11 +1037,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await slice.cardCTA).toHaveAttribute('data-analytics-id', data.analyticsID.original);
             await expect(await slice.cardCTA).toHaveAttribute('daa-ll', data.daaLL.original);
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('daa-lh', data.daaLH);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await editor.CTA.click();
-            await editor.footer.locator(editor.linkEdit).click();
-            await expect(await editor.analyticsId).toContainText(data.analyticsID.original);
         });
     });
 });

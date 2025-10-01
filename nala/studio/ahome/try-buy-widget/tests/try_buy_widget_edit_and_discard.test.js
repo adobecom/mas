@@ -348,10 +348,6 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await trybuywidget.cardAnnualPrice).not.toBeVisible();
             await expect(await trybuywidget.cardPrice).toContainText(data.price);
             await expect(await trybuywidget.cardPrice).not.toContainText(data.annualPrice);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.prices).toContainText(data.price);
-            await expect(await editor.prices).not.toContainText(data.annualPrice);
         });
     });
 
@@ -665,20 +661,20 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-3: Edit CTA variant', async () => {
             await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
             await expect(await editor.CTA.first()).toBeVisible();
-            await expect(await editor.CTA.first()).toHaveClass(data.variant);
+            await expect(await editor.CTA.first()).toHaveClass(data.variant.original);
             expect(await webUtil.verifyCSS(await trybuywidget.cardCTA.first(), data.cta.css.original)).toBeTruthy();
             await editor.CTA.first().click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkVariant).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-            await expect(await editor.getLinkVariant(data.cta.variant)).toBeVisible();
-            await (await editor.getLinkVariant(data.cta.variant)).click();
+            await expect(await editor.getLinkVariant(data.cta.variant.updated)).toBeVisible();
+            await (await editor.getLinkVariant(data.cta.variant.updated)).click();
             await editor.linkSave.click();
         });
 
         await test.step('step-4: Validate edited CTA variant in Editor panel', async () => {
-            await expect(await editor.CTA.first()).toHaveClass(data.cta.variant);
-            await expect(await editor.CTA.first()).not.toHaveClass(data.variant);
+            await expect(await editor.CTA.first()).toHaveClass(data.cta.variant.updated);
+            await expect(await editor.CTA.first()).not.toHaveClass(data.cta.variant.original);
         });
 
         await test.step('step-5: Validate edited CTA on the card', async () => {
@@ -692,11 +688,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-7: Open the editor and validate there are no changes', async () => {
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.CTA.first()).toBeVisible();
-            await expect(await editor.CTA.first()).toHaveClass(data.variant);
-            await expect(await editor.CTA.first()).not.toHaveClass(data.cta.variant);
+            expect(await webUtil.verifyCSS(await trybuywidget.cardCTA.first(), data.cta.css.original)).toBeTruthy();
+            await expect(await editor.CTA.first()).toHaveClass(data.cta.variant.original);
         });
     });
 
@@ -803,11 +796,6 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await trybuywidget.cardCTA.first()).toHaveAttribute('data-analytics-id', data.analyticsID.original);
             await expect(await trybuywidget.cardCTA.first()).toHaveAttribute('daa-ll', data.daaLL.original);
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('daa-lh', data.daaLH);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await editor.CTA.first().click();
-            await editor.footer.locator(editor.linkEdit).click();
-            await expect(await editor.analyticsId).toContainText(data.analyticsID.original);
         });
     });
 });

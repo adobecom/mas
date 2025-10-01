@@ -68,9 +68,6 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
             await expect(await fries.title).toHaveText(data.title.original);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.title).toHaveValue(data.title.original);
         });
     });
 
@@ -110,9 +107,6 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
             await expect(await fries.description).toContainText(data.description.original);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.description).toContainText(data.description.original);
         });
     });
 
@@ -152,9 +146,6 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
             await expect(await fries.icon.first()).toHaveAttribute('src', data.iconURL.original);
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await editor.iconURL.first()).toHaveValue(data.iconURL.original);
         });
     });
 

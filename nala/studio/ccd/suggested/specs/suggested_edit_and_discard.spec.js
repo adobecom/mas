@@ -18,8 +18,10 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
-                title: 'Automation Test Card',
-                newTitle: 'Change title',
+                title: {
+                    original: 'Automation Test Card',
+                    updated: 'Change title',
+                },
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-suggested @ccd-suggested-edit',
@@ -30,8 +32,10 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
-                subtitle: 'do not edit',
-                newSubtitle: 'Change subtitle',
+                subtitle: {
+                    original: 'do not edit',
+                    updated: 'Change subtitle',
+                },
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-suggested @ccd-suggested-edit',
@@ -42,8 +46,10 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
-                description: 'MAS repo validation card for Nala tests',
-                newDescription: 'New Test Description',
+                description: {
+                    original: 'MAS repo validation card for Nala tests',
+                    updated: 'New Test Description',
+                },
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-suggested @ccd-suggested-edit',
@@ -54,8 +60,10 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
-                iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
-                newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                iconURL: {
+                    original: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
+                    updated: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                },
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-suggested @ccd-suggested-edit',
@@ -78,10 +86,14 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
-                price: 'US$17.24/mo',
-                strikethroughPrice: 'US$34.49/mo',
-                newPrice: 'US$17.24/moper license',
-                newStrikethroughPrice: 'US$34.49/moper license',
+                price: {
+                    original: 'US$17.24/mo',
+                    updated: 'US$17.24/moper license',
+                },
+                strikethroughPrice: {
+                    original: 'US$34.49/mo',
+                    updated: 'US$34.49/moper license',
+                },
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-suggested @ccd-suggested-edit',
@@ -93,9 +105,11 @@ export default {
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-                ctaText: 'Buy now',
-                newCtaOption: 'Save now',
-                newCtaText: 'save-now',
+                ctaText: {
+                    original: 'Buy now',
+                    updated: 'save-now',
+                    option: 'Save now',
+                },
                 ucv3: 'commerce.adobe.com/store/email',
                 country: 'US',
                 ctx: 'fp',
@@ -113,8 +127,10 @@ export default {
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-                ctaText: 'Buy now',
-                newCtaText: 'Buy now 2',
+                ctaText: {
+                    original: 'Buy now',
+                    updated: 'Buy now 2',
+                },
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-suggested @ccd-suggested-edit',
@@ -125,8 +141,10 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
-                promo: 'UMRM2MUSPr501YOC',
-                newPromo: 'testpromo',
+                promo: {
+                    original: 'UMRM2MUSPr501YOC',
+                    updated: 'testpromo',
+                },
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-suggested @ccd-suggested-edit',
@@ -137,8 +155,10 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
-                promo: 'UMRM2MUSPr501YOC',
-                newPromo: 'testpromo',
+                promo: {
+                    original: 'UMRM2MUSPr501YOC',
+                    updated: 'testpromo',
+                },
                 ucv3: 'commerce.adobe.com/store/email',
                 country: 'US',
                 ctx: 'fp',
@@ -180,16 +200,24 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
-                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-                productCodeTag: 'product_code/phsp',
-                offerTypeTag: 'offer_type/base',
-                marketSegmentsTag: 'market_segments/com',
-                planTypeTag: 'plan_type/abm',
-                newosi: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
-                newProductCodeTag: 'product_code/ccsn',
-                newPlanTypeTag: 'plan_type/puf',
-                newOfferTypeTag: 'offer_type/trial',
-                newMarketSegmentsTag: 'market_segments/edu',
+                osi: {
+                    original: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                    updated: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
+                },
+                osiTags: {
+                    original: {
+                        productCodeTag: 'product_code/phsp',
+                        offerTypeTag: 'offer_type/base',
+                        marketSegmentsTag: 'market_segments/com',
+                        planTypeTag: 'plan_type/abm',
+                    },
+                    updated: {
+                        productCodeTag: 'product_code/ccsn',
+                        offerTypeTag: 'offer_type/trial',
+                        marketSegmentsTag: 'market_segments/edu',
+                        planTypeTag: 'plan_type/puf',
+                    },
+                },
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-suggested @ccd-suggested-edit',
@@ -201,14 +229,18 @@ export default {
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-                variant: 'primary-outline',
-                ctaCSS: {
-                    color: 'rgb(34, 34, 34)',
-                },
-                newVariant: 'accent',
-                newCtaCSS: {
-                    'background-color': 'rgb(2, 101, 220)',
-                    color: 'rgb(255, 255, 255)',
+                variant: {
+                    original: 'primary-outline',
+                    updated: 'accent',
+                    ctaCSS: {
+                        original: {
+                            'background-color': 'rgb(2, 101, 220)',
+                            color: 'rgb(255, 255, 255)',
+                        },
+                        updated: {
+                            color: 'rgb(44, 44, 44)',
+                        },
+                    },
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -236,11 +268,15 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
-                analyticsID: 'buy-now',
-                daaLL: 'buy-now-1',
+                analyticsID: {
+                    original: 'buy-now',
+                    updated: 'save-now',
+                },
+                daaLL: {
+                    original: 'buy-now-1',
+                    updated: 'save-now-1',
+                },
                 daaLH: 'phsp',
-                newAnalyticsID: 'save-now',
-                newDaaLL: 'save-now-1',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-suggested @ccd-suggested-edit',

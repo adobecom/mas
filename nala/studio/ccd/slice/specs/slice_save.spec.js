@@ -81,17 +81,17 @@ export default {
             data: {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
                 osi: {
-                    old: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-                    new: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
+                    original: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                    updated: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
                 },
                 osiTags: {
-                    old: {
+                    original: {
                         productCodeTag: 'product_code/phsp',
                         offerTypeTag: 'offer_type/base',
                         marketSegmentsTag: 'market_segments/com',
                         planTypeTag: 'plan_type/abm',
                     },
-                    new: {
+                    updated: {
                         productCodeTag: 'product_code/ccsn',
                         offerTypeTag: 'offer_type/trial',
                         marketSegmentsTag: 'market_segments/edu',

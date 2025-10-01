@@ -61,17 +61,14 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
         await test.step('step-3: Change to Transparent border', async () => {
             await expect(await editor.borderColor).toBeVisible();
             await editor.borderColor.click();
-            await page.getByRole('option', { name: data.transparentBorderColor }).click();
+            await page.getByRole('option', { name: data.border.updated.color }).click();
             await page.waitForTimeout(2000);
             await studio.saveCard();
         });
 
         await test.step('step-4: Verify border change is saved', async () => {
-            await expect(await studio.getCard(data.clonedCardID)).toHaveAttribute(
-                'border-color',
-                data.transparentBorderCSSColor,
-            );
-            await expect(await editor.borderColor).toContainText(data.transparentBorderColor);
+            await expect(await studio.getCard(data.clonedCardID)).toHaveAttribute('border-color', data.border.updated.cssColor);
+            await expect(await editor.borderColor).toContainText(data.border.updated.color);
         });
     });
 
@@ -136,20 +133,20 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
         await test.step('step-3: Edit CTA variant and save card', async () => {
             await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
             await expect(await editor.CTA.nth(2)).toBeVisible();
-            await expect(await editor.CTA.nth(2)).toHaveClass(data.variant);
+            await expect(await editor.CTA.nth(2)).toHaveClass(data.variant.original);
             await editor.CTA.nth(2).click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkVariant).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-            await expect(await editor.getLinkVariant(data.newVariant)).toBeVisible();
-            await (await editor.getLinkVariant(data.newVariant)).click();
+            await expect(await editor.getLinkVariant(data.variant.updated)).toBeVisible();
+            await (await editor.getLinkVariant(data.variant.updated)).click();
             await editor.linkSave.click();
             await studio.saveCard();
         });
 
         await test.step('step-4: Validate CTA variant change', async () => {
-            await expect(await editor.CTA.nth(2)).toHaveClass(data.newVariant);
-            await expect(await editor.CTA.nth(2)).not.toHaveClass(data.variant);
+            await expect(await editor.CTA.nth(2)).toHaveClass(data.variant.updated);
+            await expect(await editor.CTA.nth(2)).not.toHaveClass(data.variant.original);
             await expect(await clonedCard.locator(promotedplans.buyNowButton)).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await clonedCard.locator(promotedplans.buyNowButton)).toHaveAttribute('is', 'checkout-button');
         });
@@ -184,7 +181,7 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
             await expect(await editor.analyticsId).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
             await editor.analyticsId.click();
-            await page.getByRole('option', { name: data.newAnalyticsID }).click();
+            await page.getByRole('option', { name: data.analyticsID.updated }).click();
             await editor.linkSave.click();
             await studio.saveCard();
         });
@@ -192,11 +189,11 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
         await test.step('step-4: Validate edited analytics IDs are saved', async () => {
             await expect(await clonedCard.locator(promotedplans.cardCTA.nth(1))).toHaveAttribute(
                 'data-analytics-id',
-                data.newAnalyticsID,
+                data.analyticsID.updated,
             );
             // await expect(await clonedCard.locator(promotedplans.cardCTA.nth(1))).toHaveAttribute(
             //     'daa-ll',
-            //     data.newDaaLL
+            //     data.daaLL.updated
             // );
             await expect(await clonedCard).toHaveAttribute('daa-lh', data.daaLH);
         });

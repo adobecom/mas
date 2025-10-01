@@ -93,21 +93,21 @@ export default {
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
                 osi: {
-                    old: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-                    new: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
+                    original: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                    updated: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
                 },
                 osiTags: {
-                    old: {
+                    original: {
                         productCodeTag: 'product_code/phsp',
                         offerTypeTag: 'offer_type/base',
                         marketSegmentsTag: 'market_segments/com',
                         planTypeTag: 'plan_type/abm',
                     },
-                    new: {
+                    updated: {
                         productCodeTag: 'product_code/ccsn',
-                        newPlanTypeTag: 'plan_type/puf',
-                        newOfferTypeTag: 'offer_type/trial',
-                        newMarketSegmentsTag: 'market_segments/edu',
+                        planTypeTag: 'plan_type/puf',
+                        offerTypeTag: 'offer_type/trial',
+                        marketSegmentsTag: 'market_segments/edu',
                     },
                 },
             },

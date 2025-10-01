@@ -28,8 +28,10 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
-                badge: 'DO NOT EDIT',
-                newBadge: 'Change badge',
+                badge: {
+                    original: 'DO NOT EDIT',
+                    updated: 'Change badge',
+                },
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-slice @ccd-slice-edit',
@@ -40,8 +42,10 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
-                description: 'Automation Test Card',
-                newDescription: 'New Test Description',
+                description: {
+                    original: 'Automation Test Card',
+                    updated: 'New Test Description',
+                },
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-slice @ccd-slice-edit',
@@ -52,8 +56,10 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
-                iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
-                newIconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                iconURL: {
+                    original: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
+                    updated: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                },
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-slice @ccd-slice-edit',
@@ -64,10 +70,10 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
-                backgroundURL:
-                    'https://milo.adobe.com/assets/img/commerce/media_10bef5ec21c22fd7fe201cb02735082df13bf4960.jpeg',
-                newBackgroundURL:
-                    'https://milo.adobe.com/assets/img/commerce/media_158c1c22b1322dd28d7912d30fb27f29aa79f79b1.png',
+                backgroundURL: {
+                    original: 'https://milo.adobe.com/assets/img/commerce/media_10bef5ec21c22fd7fe201cb02735082df13bf4960.jpeg',
+                    updated: 'https://milo.adobe.com/assets/img/commerce/media_158c1c22b1322dd28d7912d30fb27f29aa79f79b1.png',
+                },
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-slice @ccd-slice-edit',
@@ -91,9 +97,11 @@ export default {
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-                ctaText: 'Buy now',
-                newCtaOption: 'Save now',
-                newCtaText: 'save-now',
+                ctaText: {
+                    original: 'Buy now',
+                    updated: 'save-now',
+                    option: 'Save now',
+                },
                 ucv3: 'commerce.adobe.com/store/email',
                 country: 'US',
                 ctx: 'fp',
@@ -111,8 +119,10 @@ export default {
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-                ctaText: 'Buy now',
-                newCtaText: 'Buy now 2',
+                ctaText: {
+                    original: 'Buy now',
+                    updated: 'Buy now 2',
+                },
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-slice @ccd-slice-edit',
@@ -123,8 +133,10 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
-                promo: 'UMRM2MUSPr501YOC',
-                newPromo: 'testpromo',
+                promo: {
+                    original: 'UMRM2MUSPr501YOC',
+                    updated: 'testpromo',
+                },
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-slice @ccd-slice-edit',
@@ -135,8 +147,10 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
-                promo: 'UMRM2MUSPr501YOC',
-                newPromo: 'testpromo',
+                promo: {
+                    original: 'UMRM2MUSPr501YOC',
+                    updated: 'testpromo',
+                },
                 ucv3: 'commerce.adobe.com/store/email',
                 country: 'US',
                 ctx: 'fp',
@@ -178,16 +192,24 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '3b1fb0f1-b74e-4e8f-81ad-1744012b1935',
-                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-                productCodeTag: 'product_code/phsp',
-                offerTypeTag: 'offer_type/base',
-                marketSegmentsTag: 'market_segments/com',
-                planTypeTag: 'plan_type/abm',
-                newosi: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
-                newProductCodeTag: 'product_code/ccsn',
-                newPlanTypeTag: 'plan_type/puf',
-                newOfferTypeTag: 'offer_type/trial',
-                newMarketSegmentsTag: 'market_segments/edu',
+                osi: {
+                    original: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                    updated: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
+                },
+                osiTags: {
+                    original: {
+                        productCodeTag: 'product_code/phsp',
+                        offerTypeTag: 'offer_type/base',
+                        marketSegmentsTag: 'market_segments/com',
+                        planTypeTag: 'plan_type/abm',
+                    },
+                    updated: {
+                        productCodeTag: 'product_code/ccsn',
+                        offerTypeTag: 'offer_type/trial',
+                        marketSegmentsTag: 'market_segments/edu',
+                        planTypeTag: 'plan_type/puf',
+                    },
+                },
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-slice @ccd-slice-edit',
@@ -199,14 +221,18 @@ export default {
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-                variant: 'accent',
-                ctaCSS: {
-                    'background-color': 'rgb(2, 101, 220)',
-                    color: 'rgb(255, 255, 255)',
-                },
-                newVariant: 'primary-outline',
-                newCtaCSS: {
-                    color: 'rgb(34, 34, 34)',
+                variant: {
+                    original: 'accent',
+                    updated: 'primary-outline',
+                    ctaCSS: {
+                        original: {
+                            'background-color': 'rgb(2, 101, 220)',
+                            color: 'rgb(255, 255, 255)',
+                        },
+                        updated: {
+                            color: 'rgb(34, 34, 34)',
+                        },
+                    },
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -234,11 +260,15 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
-                analyticsID: 'buy-now',
-                daaLL: 'buy-now-1',
+                analyticsID: {
+                    original: 'buy-now',
+                    updated: 'save-now',
+                },
+                daaLL: {
+                    original: 'buy-now-1',
+                    updated: 'save-now-1',
+                },
                 daaLH: 'phsp',
-                newAnalyticsID: 'save-now',
-                newDaaLL: 'save-now-1',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-slice @ccd-slice-edit',

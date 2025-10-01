@@ -435,12 +435,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-3: Change osi and save card', async () => {
             await expect(await editor.OSI).toBeVisible();
-            await expect(await editor.OSI).toContainText(data.osi.old);
+            await expect(await editor.OSI).toContainText(data.osi.original);
             await editor.OSIButton.click();
             await ost.backButton.click();
             await page.waitForTimeout(2000);
             await expect(await ost.searchField).toBeVisible();
-            await ost.searchField.fill(data.osi.new);
+            await ost.searchField.fill(data.osi.updated);
             await ost.nextButton.click();
             await expect(await ost.priceUse).toBeVisible();
             await ost.priceUse.click();
@@ -448,15 +448,18 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-4: Validate osi change', async () => {
-            await expect(await editor.OSI).toContainText(data.osi.new);
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.new.productCodeTag}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.new.newOfferTypeTag}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.new.newMarketSegmentsTag}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.new.newPlanTypeTag}`));
-            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.old.productCodeTag}`));
-            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.old.planTypeTag}`));
-            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.old.offerTypeTag}`));
-            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.old.marketSegmentsTag}`));
+            await expect(await editor.OSI).toContainText(data.osi.updated);
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.updated.productCodeTag}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.updated.offerTypeTag}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.updated.marketSegmentsTag}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.updated.planTypeTag}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.original.productCodeTag}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.original.planTypeTag}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.original.offerTypeTag}`));
+            await expect(await editor.tags).not.toHaveAttribute(
+                'value',
+                new RegExp(`${data.osiTags.original.marketSegmentsTag}`),
+            );
         });
     });
 });

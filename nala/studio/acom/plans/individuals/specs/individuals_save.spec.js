@@ -34,16 +34,16 @@ export default {
                 callout: 'AI Assistant add-on available',
                 promoText: 'Test promotion text',
                 osi: {
-                    old: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
-                    new: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
+                    original: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
+                    updated: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
                 },
                 osiTags: {
-                    old: {
+                    original: {
                         offerType: 'offer_type/base',
                         marketSegment: 'market_segments/com',
                         planType: 'plan_type/m2m',
                     },
-                    new: {
+                    updated: {
                         offerType: 'offer_type/trial',
                         marketSegment: 'market_segments/edu',
                         planType: 'plan_type/puf',
@@ -99,18 +99,20 @@ export default {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 label: {
-                    old: 'Buy now',
-                    new: 'New CTA Text',
+                    original: 'Buy now',
+                    updated: 'New CTA Text',
                 },
                 variant: {
-                    old: 'accent',
-                    new: 'primary-outline',
-                    oldCSS: {
-                        'background-color': 'rgb(59, 99, 251)',
-                        color: 'rgb(255, 255, 255)',
-                    },
-                    newCSS: {
-                        color: 'rgb(44, 44, 44)',
+                    original: 'accent',
+                    updated: 'primary-outline',
+                    css: {
+                        original: {
+                            'background-color': 'rgb(59, 99, 251)',
+                            color: 'rgb(255, 255, 255)',
+                        },
+                        updated: {
+                            color: 'rgb(44, 44, 44)',
+                        },
                     },
                 },
                 checkoutParams: {

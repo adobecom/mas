@@ -48,8 +48,8 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 title: {
-                    old: 'MAS Automation Test Card',
-                    new: 'Change title',
+                    original: 'MAS Automation Test Card',
+                    updated: 'Change title',
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -62,8 +62,8 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 badge: {
-                    old: 'DO NOT EDIT',
-                    new: 'Change badge',
+                    original: 'DO NOT EDIT',
+                    updated: 'Change badge',
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -76,8 +76,8 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 description: {
-                    old: 'Edit and organize photos. Save 25% for the first 6 months. Ends Feb 26.',
-                    new: 'New Test Description',
+                    original: 'Edit and organize photos. Save 25% for the first 6 months. Ends Feb 26.',
+                    updated: 'New Test Description',
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -90,8 +90,8 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 iconURL: {
-                    old: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
-                    new: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
+                    original: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                    updated: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -104,8 +104,8 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 calloutText: {
-                    old: 'AI Assistant add-on available',
-                    new: 'New callout text',
+                    original: 'AI Assistant add-on available',
+                    updated: 'New callout text',
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -118,8 +118,8 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 promoText: {
-                    old: 'Test promotion text',
-                    new: 'New Promo Text',
+                    original: 'Test promotion text',
+                    updated: 'New Promo Text',
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -132,12 +132,12 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 price: {
-                    old: 'US$17.24/mo',
-                    new: 'US$17.24/moper license',
+                    original: 'US$17.24/mo',
+                    updated: 'US$17.24/moper license',
                 },
                 strikethroughPrice: {
-                    old: 'US$34.49/mo',
-                    new: 'US$34.49/moper license',
+                    original: 'US$34.49/mo',
+                    updated: 'US$34.49/moper license',
                 },
                 legalText: 'per license',
             },
@@ -151,16 +151,16 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 osi: {
-                    old: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
-                    new: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
+                    original: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
+                    updated: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
                 },
                 osiTags: {
-                    old: {
+                    original: {
                         offerType: 'offer_type/base',
                         marketSegment: 'market_segments/com',
                         planType: 'plan_type/m2m',
                     },
-                    new: {
+                    updated: {
                         offerType: 'offer_type/trial',
                         marketSegment: 'market_segments/edu',
                         planType: 'plan_type/puf',
@@ -187,12 +187,12 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 startValue: {
-                    old: '3',
-                    new: '2',
+                    original: '3',
+                    updated: '2',
                 },
                 stepValue: {
-                    old: '1',
-                    new: '2',
+                    original: '1',
+                    updated: '2',
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -220,12 +220,12 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 color: {
-                    old: 'Yellow 300',
-                    new: 'Green 900',
+                    original: 'Yellow 300',
+                    updated: 'Green 900',
                 },
                 colorCSS: {
-                    old: 'rgb(245, 199, 0)',
-                    new: 'rgb(5, 131, 78)',
+                    original: 'rgb(245, 199, 0)',
+                    updated: 'rgb(5, 131, 78)',
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -238,12 +238,12 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 color: {
-                    old: 'Yellow 300',
-                    new: 'Green 900',
+                    original: 'Yellow 300',
+                    updated: 'Green 900',
                 },
                 colorCSS: {
-                    old: 'rgb(245, 199, 0)',
-                    new: 'rgb(5, 131, 78)',
+                    original: 'rgb(245, 199, 0)',
+                    updated: 'rgb(5, 131, 78)',
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -256,12 +256,12 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 color: {
-                    old: 'Yellow 300',
-                    new: 'Gray 300',
+                    original: 'Yellow 300',
+                    updated: 'Gray 300',
                 },
                 colorCSS: {
-                    old: 'rgb(245, 199, 0)',
-                    new: 'rgb(218, 218, 218)',
+                    original: 'rgb(245, 199, 0)',
+                    updated: 'rgb(218, 218, 218)',
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -274,8 +274,8 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 promo: {
-                    old: 'UMRM2MUSPr501YOC',
-                    new: 'testpromo',
+                    original: 'UMRM2MUSPr501YOC',
+                    updated: 'testpromo',
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -300,14 +300,14 @@ export default {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 cta: {
-                    old: {
+                    original: {
                         variant: 'accent',
                         CSS: {
                             'background-color': 'rgb(59, 99, 251)',
                             color: 'rgb(255, 255, 255)',
                         },
                     },
-                    new: {
+                    updated: {
                         variant: 'primary-outline',
                         CSS: {
                             color: 'rgb(44, 44, 44)',
@@ -342,12 +342,12 @@ export default {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 cta: {
-                    old: {
+                    original: {
                         text: 'Buy now',
                         workflowStep: 'email',
                         ucv3: 'commerce.adobe.com/store/email',
                     },
-                    new: {
+                    updated: {
                         option: 'Save now',
                         text: 'save-now',
                         workflowStep: 'segmentation',
@@ -372,8 +372,8 @@ export default {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 label: {
-                    old: 'Buy now',
-                    new: 'Buy now 2',
+                    original: 'Buy now',
+                    updated: 'Buy now 2',
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -386,8 +386,8 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 promo: {
-                    old: 'FY25PLES256MROW',
-                    new: 'testpromo',
+                    original: 'FY25PLES256MROW',
+                    updated: 'testpromo',
                 },
                 ucv3: 'commerce.adobe.com/store/email',
                 country: 'US',
@@ -405,8 +405,8 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
                 osi: {
-                    old: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
-                    new: 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8',
+                    original: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
+                    updated: 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8',
                 },
                 legalDisclaimer: 'per licenseAnnual, billed monthly',
                 cardLegalDisclaimer: 'per license',

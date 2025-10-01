@@ -339,13 +339,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit title field', async () => {
             await expect(await editor.title).toBeVisible();
-            await expect(await editor.title).toHaveValue(data.title.old);
-            await editor.title.fill(data.title.new);
+            await expect(await editor.title).toHaveValue(data.title.original);
+            await editor.title.fill(data.title.updated);
         });
 
         await test.step('step-4: Validate title field updated', async () => {
-            await expect(await editor.title).toHaveValue(data.title.new);
-            await expect(await individuals.cardTitle).toHaveText(data.title.new);
+            await expect(await editor.title).toHaveValue(data.title.updated);
+            await expect(await individuals.cardTitle).toHaveText(data.title.updated);
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
@@ -353,10 +353,10 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-6: Validate title field not updated', async () => {
-            await expect(await individuals.cardTitle).toHaveText(data.title.old);
+            await expect(await individuals.cardTitle).toHaveText(data.title.original);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.title).toHaveValue(data.title.old);
+            await expect(await editor.title).toHaveValue(data.title.original);
         });
     });
 
@@ -380,7 +380,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Remove badge field', async () => {
             await expect(await editor.badge).toBeVisible();
-            await expect(await editor.badge).toHaveValue(data.badge.old);
+            await expect(await editor.badge).toHaveValue(data.badge.original);
             await editor.badge.fill('');
         });
 
@@ -390,12 +390,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Enter new value in the badge field', async () => {
-            await editor.badge.fill(data.badge.new);
+            await editor.badge.fill(data.badge.updated);
         });
 
         await test.step('step-6: Validate badge field updated', async () => {
-            await expect(await editor.badge).toHaveValue(data.badge.new);
-            await expect(await individuals.cardBadge).toHaveText(data.badge.new);
+            await expect(await editor.badge).toHaveValue(data.badge.updated);
+            await expect(await individuals.cardBadge).toHaveText(data.badge.updated);
         });
 
         await test.step('step-7: Close the editor and verify discard is triggered', async () => {
@@ -403,10 +403,10 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-8: Verify there is no changes of the card', async () => {
-            await expect(await individuals.cardBadge).toHaveText(data.badge.old);
+            await expect(await individuals.cardBadge).toHaveText(data.badge.original);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.badge).toHaveValue(data.badge.old);
+            await expect(await editor.badge).toHaveValue(data.badge.original);
         });
     });
 
@@ -430,13 +430,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit description field', async () => {
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.description).toContainText(data.description.old);
-            await editor.description.fill(data.description.new);
+            await expect(await editor.description).toContainText(data.description.original);
+            await editor.description.fill(data.description.updated);
         });
 
         await test.step('step-4: Validate description field updated', async () => {
-            await expect(await editor.description).toContainText(data.description.new);
-            await expect(await individuals.cardDescription).toContainText(data.description.new);
+            await expect(await editor.description).toContainText(data.description.updated);
+            await expect(await individuals.cardDescription).toContainText(data.description.updated);
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
@@ -444,10 +444,10 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-6: Validate description field not updated', async () => {
-            await expect(await individuals.cardDescription).toContainText(data.description.old);
+            await expect(await individuals.cardDescription).toContainText(data.description.original);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.description).toContainText(data.description.old);
+            await expect(await editor.description).toContainText(data.description.original);
         });
     });
 
@@ -471,13 +471,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
             await expect(await editor.iconURL).toBeVisible();
-            await expect(await editor.iconURL).toHaveValue(data.iconURL.old);
-            await editor.iconURL.fill(data.iconURL.new);
+            await expect(await editor.iconURL).toHaveValue(data.iconURL.original);
+            await editor.iconURL.fill(data.iconURL.updated);
         });
 
         await test.step('step-4: Validate mnemonic URL field updated', async () => {
-            await expect(await editor.iconURL).toHaveValue(data.iconURL.new);
-            await expect(await individuals.cardIcon).toHaveAttribute('src', data.iconURL.new);
+            await expect(await editor.iconURL).toHaveValue(data.iconURL.updated);
+            await expect(await individuals.cardIcon).toHaveAttribute('src', data.iconURL.updated);
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
@@ -485,10 +485,10 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-6: Validate mnemonic field not updated', async () => {
-            await expect(await individuals.cardIcon).toHaveAttribute('src', data.iconURL.old);
+            await expect(await individuals.cardIcon).toHaveAttribute('src', data.iconURL.original);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.iconURL).toHaveValue(data.iconURL.old);
+            await expect(await editor.iconURL).toHaveValue(data.iconURL.original);
         });
     });
 
@@ -512,7 +512,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Remove callout field', async () => {
             await expect(await editor.calloutRTE).toBeVisible();
-            await expect(await editor.calloutRTE).toContainText(data.calloutText.old);
+            await expect(await editor.calloutRTE).toContainText(data.calloutText.original);
             await editor.calloutRTE.click();
             await editor.calloutRTE.fill('');
         });
@@ -522,12 +522,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Enter new value in the callout field', async () => {
-            await editor.calloutRTE.fill(data.calloutText.new);
+            await editor.calloutRTE.fill(data.calloutText.updated);
         });
 
         await test.step('step-6: Validate callout field updated', async () => {
-            await expect(await editor.calloutRTE).toContainText(data.calloutText.new);
-            await expect(await individuals.cardCallout).toContainText(data.calloutText.new);
+            await expect(await editor.calloutRTE).toContainText(data.calloutText.updated);
+            await expect(await individuals.cardCallout).toContainText(data.calloutText.updated);
         });
 
         await test.step('step-7: Close the editor and verify discard is triggered', async () => {
@@ -535,10 +535,10 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-8: Validate callout field not updated', async () => {
-            await expect(await individuals.cardCallout).toContainText(data.calloutText.old);
+            await expect(await individuals.cardCallout).toContainText(data.calloutText.original);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.calloutRTE).toContainText(data.calloutText.old);
+            await expect(await editor.calloutRTE).toContainText(data.calloutText.original);
         });
     });
 
@@ -562,7 +562,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Remove promo text field', async () => {
             await expect(await editor.promoText).toBeVisible();
-            await expect(await editor.promoText).toHaveValue(data.promoText.old);
+            await expect(await editor.promoText).toHaveValue(data.promoText.original);
             await editor.promoText.fill('');
         });
 
@@ -572,12 +572,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Enter new value in the promo text field', async () => {
-            await editor.promoText.fill(data.promoText.new);
+            await editor.promoText.fill(data.promoText.updated);
         });
 
         await test.step('step-6: Validate promo text field updated', async () => {
-            await expect(await editor.promoText).toHaveValue(data.promoText.new);
-            await expect(await individuals.cardPromoText).toHaveText(data.promoText.new);
+            await expect(await editor.promoText).toHaveValue(data.promoText.updated);
+            await expect(await individuals.cardPromoText).toHaveText(data.promoText.updated);
         });
 
         await test.step('step-7: Close the editor and verify discard is triggered', async () => {
@@ -585,10 +585,10 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-8: Validate promo text field not updated', async () => {
-            await expect(await individuals.cardPromoText).toHaveText(data.promoText.old);
+            await expect(await individuals.cardPromoText).toHaveText(data.promoText.original);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.promoText).toHaveValue(data.promoText.old);
+            await expect(await editor.promoText).toHaveValue(data.promoText.original);
         });
     });
 
@@ -612,34 +612,34 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit price field', async () => {
             await expect(await editor.prices).toBeVisible();
-            await expect(await editor.prices).toContainText(data.price.old);
-            await expect(await editor.prices).not.toContainText(data.price.new);
-            await expect(await editor.prices).toContainText(data.strikethroughPrice.old);
-            await expect(await editor.prices).not.toContainText(data.strikethroughPrice.new);
+            await expect(await editor.prices).toContainText(data.price.original);
+            await expect(await editor.prices).not.toContainText(data.price.updated);
+            await expect(await editor.prices).toContainText(data.strikethroughPrice.original);
+            await expect(await editor.prices).not.toContainText(data.strikethroughPrice.updated);
             await expect(await editor.prices.locator(editor.promoStrikethroughPrice)).toHaveCSS(
                 'text-decoration-line',
                 'line-through',
             );
             await (await editor.prices.locator(editor.regularPrice)).dblclick();
             await expect(await ost.price).toBeVisible();
-            await expect(await ost.price).toContainText(data.price.old);
-            await expect(await ost.price).not.toContainText(data.price.new);
-            await expect(await ost.price).toContainText(data.strikethroughPrice.old);
-            await expect(await ost.price).not.toContainText(data.strikethroughPrice.new);
+            await expect(await ost.price).toContainText(data.price.original);
+            await expect(await ost.price).not.toContainText(data.price.updated);
+            await expect(await ost.price).toContainText(data.strikethroughPrice.original);
+            await expect(await ost.price).not.toContainText(data.strikethroughPrice.updated);
             await expect(await ost.pricePromoStrikethrough).toHaveCSS('text-decoration-line', 'line-through');
 
             await expect(await ost.priceUse).toBeVisible();
             await expect(await ost.unitCheckbox).toBeVisible();
             await ost.unitCheckbox.click();
-            await expect(await ost.price).toContainText(data.price.new);
-            await expect(await ost.price).toContainText(data.strikethroughPrice.new);
+            await expect(await ost.price).toContainText(data.price.updated);
+            await expect(await ost.price).toContainText(data.strikethroughPrice.updated);
             await expect(await ost.pricePromoStrikethrough).toHaveCSS('text-decoration-line', 'line-through');
             await ost.priceUse.click();
         });
 
         await test.step('step-4: Validate edited price in Editor panel', async () => {
-            await expect(await editor.prices).toContainText(data.price.new);
-            await expect(await editor.prices).toContainText(data.strikethroughPrice.new);
+            await expect(await editor.prices).toContainText(data.price.updated);
+            await expect(await editor.prices).toContainText(data.strikethroughPrice.updated);
             await expect(await editor.prices.locator(editor.promoStrikethroughPrice)).toHaveCSS(
                 'text-decoration-line',
                 'line-through',
@@ -647,10 +647,10 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Validate edited price field on the card', async () => {
-            await expect(await individuals.cardPrice).not.toContainText(data.price.new);
-            await expect(await individuals.cardPrice).not.toContainText(data.strikethroughPrice.new);
-            await expect(await individuals.cardPrice).toContainText(data.price.old);
-            await expect(await individuals.cardPrice).toContainText(data.strikethroughPrice.old);
+            await expect(await individuals.cardPrice).not.toContainText(data.price.updated);
+            await expect(await individuals.cardPrice).not.toContainText(data.strikethroughPrice.updated);
+            await expect(await individuals.cardPrice).toContainText(data.price.original);
+            await expect(await individuals.cardPrice).toContainText(data.strikethroughPrice.original);
             await expect(await individuals.cardPriceStrikethrough).toHaveCSS('text-decoration-line', 'line-through');
             await expect(await individuals.cardPriceLegal).toBeVisible();
             await expect(await individuals.cardPriceLegal).toContainText(data.legalText);
@@ -661,16 +661,16 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
-            await expect(await individuals.cardPrice).toContainText(data.price.old);
-            await expect(await individuals.cardPrice).toContainText(data.strikethroughPrice.old);
-            await expect(await individuals.cardPrice).not.toContainText(data.price.new);
-            await expect(await individuals.cardPrice).not.toContainText(data.strikethroughPrice.new);
+            await expect(await individuals.cardPrice).toContainText(data.price.original);
+            await expect(await individuals.cardPrice).toContainText(data.strikethroughPrice.original);
+            await expect(await individuals.cardPrice).not.toContainText(data.price.updated);
+            await expect(await individuals.cardPrice).not.toContainText(data.strikethroughPrice.updated);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.prices).toContainText(data.price.old);
-            await expect(await editor.prices).toContainText(data.strikethroughPrice.old);
-            await expect(await editor.prices).not.toContainText(data.price.new);
-            await expect(await editor.prices).not.toContainText(data.strikethroughPrice.new);
+            await expect(await editor.prices).toContainText(data.price.original);
+            await expect(await editor.prices).toContainText(data.strikethroughPrice.original);
+            await expect(await editor.prices).not.toContainText(data.price.updated);
+            await expect(await editor.prices).not.toContainText(data.strikethroughPrice.updated);
         });
     });
 
@@ -694,29 +694,29 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Change OSI in OST', async () => {
             await expect(await editor.OSI).toBeVisible();
-            await expect(await editor.OSI).toContainText(data.osi.old);
+            await expect(await editor.OSI).toContainText(data.osi.original);
             await expect(await editor.tags).toBeVisible();
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.old.offerType}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.old.marketSegment}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.old.planType}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.original.offerType}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.original.marketSegment}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.original.planType}`));
             await editor.OSIButton.click();
             await ost.backButton.click();
             await page.waitForTimeout(2000);
             await expect(await ost.searchField).toBeVisible();
-            await ost.searchField.fill(data.osi.new);
+            await ost.searchField.fill(data.osi.updated);
             await (await ost.nextButton).click();
             await expect(await ost.priceUse).toBeVisible();
             await ost.priceUse.click();
         });
 
         await test.step('step-4: Validate edited OSI and tags in Editor panel', async () => {
-            await expect(await editor.OSI).toContainText(data.osi.new);
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.new.offerType}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.new.marketSegment}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.new.planType}`));
-            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.old.offerType}`));
-            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.old.marketSegment}`));
-            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.old.planType}`));
+            await expect(await editor.OSI).toContainText(data.osi.updated);
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.updated.offerType}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.updated.marketSegment}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.updated.planType}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.original.offerType}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.original.marketSegment}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.original.planType}`));
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
@@ -726,14 +726,14 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-6: Open the editor and validate there are no changes', async () => {
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.OSI).toContainText(data.osi.old);
-            await expect(await editor.OSI).not.toContainText(data.osi.new);
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.old.offerType}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.old.marketSegment}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.old.planType}`));
-            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.new.offerType}`));
-            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.new.marketSegment}`));
-            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.new.planType}`));
+            await expect(await editor.OSI).toContainText(data.osi.original);
+            await expect(await editor.OSI).not.toContainText(data.osi.updated);
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.original.offerType}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.original.marketSegment}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.original.planType}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.updated.offerType}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.updated.marketSegment}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.updated.planType}`));
         });
     });
 
@@ -825,27 +825,27 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-7: Edit quantity selector start value', async () => {
             await expect(await editor.quantitySelectorStart).toBeVisible();
-            await expect(await editor.quantitySelectorStart).toHaveValue(data.startValue.old);
-            await editor.quantitySelectorStart.fill(data.startValue.new);
-            await expect(await editor.quantitySelectorStart).toHaveValue(data.startValue.new);
+            await expect(await editor.quantitySelectorStart).toHaveValue(data.startValue.original);
+            await editor.quantitySelectorStart.fill(data.startValue.updated);
+            await expect(await editor.quantitySelectorStart).toHaveValue(data.startValue.updated);
         });
 
         await test.step('step-8: Edit quantity selector step value', async () => {
             await expect(await editor.quantitySelectorStep).toBeVisible();
-            await expect(await editor.quantitySelectorStep).toHaveValue(data.stepValue.old);
-            await editor.quantitySelectorStep.fill(data.stepValue.new);
-            await expect(await editor.quantitySelectorStep).toHaveValue(data.stepValue.new);
+            await expect(await editor.quantitySelectorStep).toHaveValue(data.stepValue.original);
+            await editor.quantitySelectorStep.fill(data.stepValue.updated);
+            await expect(await editor.quantitySelectorStep).toHaveValue(data.stepValue.updated);
         });
 
         await test.step('step-10: Validate quantity selector step value on card', async () => {
-            await expect(await individuals.cardQuantitySelector).toHaveAttribute('step', data.stepValue.new);
-            await expect(await individuals.cardQuantitySelector).toHaveAttribute('min', data.startValue.new);
+            await expect(await individuals.cardQuantitySelector).toHaveAttribute('step', data.stepValue.updated);
+            await expect(await individuals.cardQuantitySelector).toHaveAttribute('min', data.startValue.updated);
             // Test stepping through values
             await individuals.cardQuantitySelector.locator('button').click();
             await individuals.cardQuantitySelector.locator('button').press('ArrowDown');
             await individuals.cardQuantitySelector.locator('button').press('Enter');
             await expect(await individuals.cardQuantitySelector.locator('.text-field-input')).toHaveValue(
-                String(Number(data.startValue.new) + Number(data.stepValue.new)),
+                String(Number(data.startValue.updated) + Number(data.stepValue.updated)),
             );
         });
 
@@ -966,17 +966,17 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit badge color field', async () => {
             await expect(await editor.badgeColor).toBeVisible();
-            await expect(await editor.badgeColor).toContainText(data.color.old);
+            await expect(await editor.badgeColor).toContainText(data.color.original);
             await editor.badgeColor.click();
-            await page.getByRole('option', { name: data.color.new, exact: true }).click();
+            await page.getByRole('option', { name: data.color.updated, exact: true }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-4: Validate badge color field updated', async () => {
-            await expect(await editor.badgeColor).toContainText(data.color.new);
+            await expect(await editor.badgeColor).toContainText(data.color.updated);
             expect(
                 await webUtil.verifyCSS(individualsCard.locator(individuals.cardBadge), {
-                    'background-color': data.colorCSS.new,
+                    'background-color': data.colorCSS.updated,
                 }),
             ).toBeTruthy();
         });
@@ -988,12 +988,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-6: Verify badge color is unchanged', async () => {
             expect(
                 await webUtil.verifyCSS(individualsCard.locator(individuals.cardBadge), {
-                    'background-color': data.colorCSS.old,
+                    'background-color': data.colorCSS.original,
                 }),
             ).toBeTruthy();
             await individualsCard.dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.badgeColor).toContainText(data.color.old);
+            await expect(await editor.badgeColor).toContainText(data.color.original);
         });
     });
 
@@ -1018,19 +1018,19 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit badge border color field', async () => {
             await expect(await editor.badgeBorderColor).toBeVisible();
-            await expect(await editor.badgeBorderColor).toContainText(data.color.old);
+            await expect(await editor.badgeBorderColor).toContainText(data.color.original);
             await editor.badgeBorderColor.click();
-            await page.getByRole('option', { name: data.color.new, exact: true }).click();
+            await page.getByRole('option', { name: data.color.updated, exact: true }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-4: Validate badge border color field updated', async () => {
-            await expect(await editor.badgeBorderColor).toContainText(data.color.new);
+            await expect(await editor.badgeBorderColor).toContainText(data.color.updated);
             expect(
                 await webUtil.verifyCSS(individualsCard.locator(individuals.cardBadge), {
-                    'border-left-color': data.colorCSS.new,
-                    'border-top-color': data.colorCSS.new,
-                    'border-bottom-color': data.colorCSS.new,
+                    'border-left-color': data.colorCSS.updated,
+                    'border-top-color': data.colorCSS.updated,
+                    'border-bottom-color': data.colorCSS.updated,
                 }),
             ).toBeTruthy();
         });
@@ -1042,14 +1042,14 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-6: Verify badge border color is unchanged', async () => {
             expect(
                 await webUtil.verifyCSS(individualsCard.locator(individuals.cardBadge), {
-                    'border-left-color': data.colorCSS.old,
-                    'border-top-color': data.colorCSS.old,
-                    'border-bottom-color': data.colorCSS.old,
+                    'border-left-color': data.colorCSS.original,
+                    'border-top-color': data.colorCSS.original,
+                    'border-bottom-color': data.colorCSS.original,
                 }),
             ).toBeTruthy();
             await individualsCard.dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.badgeBorderColor).toContainText(data.color.old);
+            await expect(await editor.badgeBorderColor).toContainText(data.color.original);
         });
     });
 
@@ -1074,17 +1074,17 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit card border color field', async () => {
             await expect(await editor.cardBorderColor).toBeVisible();
-            await expect(await editor.cardBorderColor).toContainText(data.color.old);
+            await expect(await editor.cardBorderColor).toContainText(data.color.original);
             await editor.cardBorderColor.click();
-            await page.getByRole('option', { name: data.color.new, exact: true }).click();
+            await page.getByRole('option', { name: data.color.updated, exact: true }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-4: Validate card border color field updated', async () => {
-            await expect(await editor.cardBorderColor).toContainText(data.color.new);
+            await expect(await editor.cardBorderColor).toContainText(data.color.updated);
             expect(
                 await webUtil.verifyCSS(individualsCard, {
-                    'border-color': data.colorCSS.new,
+                    'border-color': data.colorCSS.updated,
                 }),
             ).toBeTruthy();
         });
@@ -1096,12 +1096,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-6: Verify card border color is unchanged', async () => {
             expect(
                 await webUtil.verifyCSS(individualsCard, {
-                    'border-color': data.colorCSS.old,
+                    'border-color': data.colorCSS.original,
                 }),
             ).toBeTruthy();
             await individualsCard.dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.cardBorderColor).toContainText(data.color.old);
+            await expect(await editor.cardBorderColor).toContainText(data.color.original);
         });
     });
 
@@ -1126,31 +1126,31 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-3: Edit promo field', async () => {
             await expect(await editor.prices.locator(editor.regularPrice)).toHaveAttribute(
                 'data-promotion-code',
-                data.promo.old,
+                data.promo.original,
             );
-            await expect(await individuals.cardPrice).toHaveAttribute('data-promotion-code', data.promo.old);
+            await expect(await individuals.cardPrice).toHaveAttribute('data-promotion-code', data.promo.original);
             await (await editor.prices.locator(editor.regularPrice)).dblclick();
 
             await expect(await ost.promoField).toBeVisible();
             await expect(await ost.promoLabel).toBeVisible();
-            await expect(await ost.promoLabel).toContainText(data.promo.old);
-            await expect(await ost.promoField).toHaveValue(data.promo.old);
+            await expect(await ost.promoLabel).toContainText(data.promo.original);
+            await expect(await ost.promoField).toHaveValue(data.promo.original);
 
-            await ost.promoField.fill(data.promo.new);
-            await expect(await ost.promoLabel).toContainText(data.promo.new);
-            await expect(await ost.promoField).toHaveValue(data.promo.new);
+            await ost.promoField.fill(data.promo.updated);
+            await expect(await ost.promoLabel).toContainText(data.promo.updated);
+            await expect(await ost.promoField).toHaveValue(data.promo.updated);
             await ost.priceUse.click();
         });
 
         await test.step('step-4: Validate promo change in Editor panel', async () => {
             await expect(await editor.prices.locator(editor.regularPrice)).toHaveAttribute(
                 'data-promotion-code',
-                data.promo.new,
+                data.promo.updated,
             );
         });
 
         await test.step('step-5: Validate edited price promo on the card', async () => {
-            await expect(await individuals.cardPrice).toHaveAttribute('data-promotion-code', data.newPromo);
+            await expect(await individuals.cardPrice).toHaveAttribute('data-promotion-code', data.promo.updated);
         });
 
         await test.step('step-6: Remove promo', async () => {
@@ -1242,24 +1242,24 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-3: Edit CTA variant', async () => {
             await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
-            await expect(await editor.CTA).toHaveClass(data.cta.old.variant);
-            expect(await webUtil.verifyCSS(await individuals.cardCTA, data.cta.old.CSS)).toBeTruthy();
+            await expect(await editor.CTA).toHaveClass(data.cta.original.variant);
+            expect(await webUtil.verifyCSS(await individuals.cardCTA, data.cta.original.CSS)).toBeTruthy();
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkVariant).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-            await expect(await editor.getLinkVariant(data.cta.new.variant)).toBeVisible();
-            await (await editor.getLinkVariant(data.cta.new.variant)).click();
+            await expect(await editor.getLinkVariant(data.cta.updated.variant)).toBeVisible();
+            await (await editor.getLinkVariant(data.cta.updated.variant)).click();
             await editor.linkSave.click();
         });
 
         await test.step('step-4: Validate edited CTA variant in Editor panel', async () => {
-            await expect(await editor.CTA).toHaveClass(data.cta.new.variant);
-            await expect(await editor.CTA).not.toHaveClass(data.cta.old.variant);
+            await expect(await editor.CTA).toHaveClass(data.cta.updated.variant);
+            await expect(await editor.CTA).not.toHaveClass(data.cta.original.variant);
         });
 
         await test.step('step-5: Validate edited CTA on the card', async () => {
-            expect(await webUtil.verifyCSS(await individuals.cardCTA, data.cta.new.CSS)).toBeTruthy();
+            expect(await webUtil.verifyCSS(await individuals.cardCTA, data.cta.updated.CSS)).toBeTruthy();
             await expect(await individuals.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await individuals.cardCTA).toHaveAttribute('is', 'checkout-link');
         });
@@ -1272,8 +1272,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
-            await expect(await editor.CTA).not.toHaveClass(data.cta.new.variant);
-            await expect(await editor.CTA).toHaveClass(data.cta.old.variant);
+            await expect(await editor.CTA).not.toHaveClass(data.cta.updated.variant);
+            await expect(await editor.CTA).toHaveClass(data.cta.original.variant);
         });
     });
 
@@ -1352,10 +1352,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit CTA in OST', async () => {
             await expect(await editor.footer).toBeVisible();
-            await expect(await editor.footer).toContainText(data.cta.old.text);
+            await expect(await editor.footer).toContainText(data.cta.original.text);
             await expect(await individuals.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await individuals.cardCTA).toHaveAttribute('is', 'checkout-link');
-            await expect(await individuals.cardCTA).toHaveAttribute('data-checkout-workflow-step', data.cta.old.workflowStep);
+            await expect(await individuals.cardCTA).toHaveAttribute(
+                'data-checkout-workflow-step',
+                data.cta.original.workflowStep,
+            );
 
             await (await editor.CTA).dblclick();
             await expect(await ost.checkoutTab).toBeVisible();
@@ -1363,12 +1366,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await ost.ctaTextMenu).toBeEnabled();
             await expect(await ost.checkoutLink).toBeVisible();
             await expect(await ost.checkoutLinkUse).toBeVisible();
-            await expect(await ost.checkoutLink).toHaveAttribute('data-checkout-workflow-step', data.cta.old.workflowStep);
+            await expect(await ost.checkoutLink).toHaveAttribute('data-checkout-workflow-step', data.cta.original.workflowStep);
             await expect(async () => {
                 await ost.ctaTextMenu.click();
                 await expect(
                     page.locator('div[role="option"]', {
-                        hasText: `${data.cta.new.option}`,
+                        hasText: `${data.cta.updated.option}`,
                     }),
                 ).toBeVisible({
                     timeout: 500,
@@ -1376,14 +1379,14 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             }).toPass();
             await page
                 .locator('div[role="option"]', {
-                    hasText: `${data.cta.new.option}`,
+                    hasText: `${data.cta.updated.option}`,
                 })
                 .click();
             await expect(async () => {
                 await ost.workflowMenu.click();
                 await expect(
                     page.locator('div[role="option"]', {
-                        hasText: `${data.cta.new.workflowStep}`,
+                        hasText: `${data.cta.updated.workflowStep}`,
                     }),
                 ).toBeVisible({
                     timeout: 500,
@@ -1391,28 +1394,31 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             }).toPass();
             await page
                 .locator('div[role="option"]', {
-                    hasText: `${data.cta.new.workflowOption}`,
+                    hasText: `${data.cta.updated.workflowOption}`,
                 })
                 .click();
-            await expect(await ost.checkoutLink).toHaveAttribute('data-checkout-workflow-step', data.cta.new.workflowStep);
+            await expect(await ost.checkoutLink).toHaveAttribute('data-checkout-workflow-step', data.cta.updated.workflowStep);
             await ost.checkoutLinkUse.click();
         });
 
         await test.step('step-4: Validate edited CTA in Editor panel', async () => {
-            await expect(await editor.footer).toContainText(data.cta.new.text);
+            await expect(await editor.footer).toContainText(data.cta.updated.text);
         });
 
         await test.step('step-5: Validate edited CTA on the card', async () => {
-            await expect(await individuals.cardCTA).toContainText(data.cta.new.option);
+            await expect(await individuals.cardCTA).toContainText(data.cta.updated.text);
             await expect(await individuals.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await individuals.cardCTA).toHaveAttribute('is', 'checkout-link');
-            await expect(await individuals.cardCTA).toHaveAttribute('data-checkout-workflow-step', data.cta.new.workflowStep);
+            await expect(await individuals.cardCTA).toHaveAttribute(
+                'data-checkout-workflow-step',
+                data.cta.updated.workflowStep,
+            );
 
             const CTAhref = await individuals.cardCTA.getAttribute('href');
             let workflowStep = decodeURI(CTAhref).split('?')[0];
             let searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
 
-            expect(workflowStep).toContain(data.cta.new.ucv3);
+            expect(workflowStep).toContain(data.cta.updated.ucv3);
             expect(searchParams.get('co')).toBe(data.cta.country);
             expect(searchParams.get('ctx')).toBe(data.cta.ctx);
             expect(searchParams.get('lang')).toBe(data.cta.lang);
@@ -1425,10 +1431,10 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
-            await expect(await individuals.cardCTA).toContainText(data.cta.old.text);
+            await expect(await individuals.cardCTA).toContainText(data.cta.original.text);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.footer).toContainText(data.cta.old.text);
+            await expect(await editor.footer).toContainText(data.cta.original.text);
         });
     });
 
@@ -1453,22 +1459,22 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-3: Edit CTA label', async () => {
             await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
-            await expect(await editor.footer).toContainText(data.label.old);
+            await expect(await editor.footer).toContainText(data.label.original);
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkText).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-            await expect(await editor.linkText).toHaveValue(data.label.old);
-            await editor.linkText.fill(data.label.new);
+            await expect(await editor.linkText).toHaveValue(data.label.original);
+            await editor.linkText.fill(data.label.updated);
             await editor.linkSave.click();
         });
 
         await test.step('step-4: Validate edited CTA label in Editor panel', async () => {
-            await expect(await editor.footer).toContainText(data.label.new);
+            await expect(await editor.footer).toContainText(data.label.updated);
         });
 
         await test.step('step-5: Validate edited CTA on the card', async () => {
-            await expect(await individuals.cardCTA).toContainText(data.label.new);
+            await expect(await individuals.cardCTA).toContainText(data.label.updated);
             await expect(await individuals.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await individuals.cardCTA).toHaveAttribute('is', 'checkout-link');
         });
@@ -1478,10 +1484,10 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
-            await expect(await individuals.cardCTA).toContainText(data.label.old);
+            await expect(await individuals.cardCTA).toContainText(data.label.original);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.footer).toContainText(data.label.old);
+            await expect(await editor.footer).toContainText(data.label.original);
         });
     });
 
@@ -1504,8 +1510,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-3: Edit CTA promo field', async () => {
-            await expect(await editor.CTA).toHaveAttribute('data-promotion-code', data.promo.old);
-            await expect(await individuals.cardCTA).toHaveAttribute('data-promotion-code', data.promo.old);
+            await expect(await editor.CTA).toHaveAttribute('data-promotion-code', data.promo.original);
+            await expect(await individuals.cardCTA).toHaveAttribute('data-promotion-code', data.promo.original);
 
             const CTAhref = await individuals.cardCTA.getAttribute('href');
             let workflowStep = decodeURI(CTAhref).split('?')[0];
@@ -1516,34 +1522,34 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             expect(searchParams.get('ctx')).toBe(data.ctx);
             expect(searchParams.get('lang')).toBe(data.lang);
             expect(searchParams.get('cli')).toBe(data.client);
-            expect(searchParams.get('apc')).toBe(data.promo.old);
+            expect(searchParams.get('apc')).toBe(data.promo.original);
 
             await (await editor.CTA).dblclick();
             await expect(await ost.checkoutTab).toBeVisible();
             await expect(await ost.promoField).toBeVisible();
             await expect(await ost.promoLabel).toBeVisible();
-            await expect(await ost.promoLabel).toContainText(data.promo.old);
-            await expect(await ost.promoField).toHaveValue(data.promo.old);
+            await expect(await ost.promoLabel).toContainText(data.promo.original);
+            await expect(await ost.promoField).toHaveValue(data.promo.original);
 
-            await ost.promoField.fill(data.promo.new);
-            expect(await ost.promoLabel).toContainText(data.promo.new);
-            await expect(await ost.promoField).toHaveValue(data.promo.new);
+            await ost.promoField.fill(data.promo.updated);
+            expect(await ost.promoLabel).toContainText(data.promo.updated);
+            await expect(await ost.promoField).toHaveValue(data.promo.updated);
             await ost.checkoutLinkUse.click();
         });
 
         await test.step('step-4: Validate edited CTA promo in Editor panel', async () => {
-            await expect(await editor.CTA).toHaveAttribute('data-promotion-code', data.promo.new);
+            await expect(await editor.CTA).toHaveAttribute('data-promotion-code', data.promo.updated);
         });
 
         await test.step('step-5: Validate edited CTA promo on the card', async () => {
             const newCTA = await individuals.cardCTA;
-            await expect(newCTA).toHaveAttribute('data-promotion-code', data.promo.new);
+            await expect(newCTA).toHaveAttribute('data-promotion-code', data.promo.updated);
             await expect(newCTA).toHaveAttribute('href', new RegExp(`${data.ucv3}`));
             await expect(newCTA).toHaveAttribute('href', new RegExp(`co=${data.country}`));
             await expect(newCTA).toHaveAttribute('href', new RegExp(`ctx=${data.ctx}`));
             await expect(newCTA).toHaveAttribute('href', new RegExp(`lang=${data.lang}`));
             await expect(newCTA).toHaveAttribute('href', new RegExp(`cli=${data.client}`));
-            await expect(newCTA).toHaveAttribute('href', new RegExp(`apc=${data.promo.new}`));
+            await expect(newCTA).toHaveAttribute('href', new RegExp(`apc=${data.promo.updated}`));
         });
 
         await test.step('step-6: Remove promo', async () => {
@@ -1593,7 +1599,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await ost.backButton.click();
             await page.waitForTimeout(2000);
             await expect(await ost.searchField).toBeVisible();
-            await ost.searchField.fill(data.osi.new);
+            await ost.searchField.fill(data.osi.updated);
             await (await ost.nextButton).click();
             await ost.legalDisclaimer.scrollIntoViewIfNeeded();
             await expect(await ost.legalDisclaimer).not.toContainText(data.cardLegalDisclaimer);

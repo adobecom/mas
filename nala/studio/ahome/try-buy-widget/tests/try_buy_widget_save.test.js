@@ -195,12 +195,12 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-3: Change osi and save card', async () => {
             await expect(await editor.OSI).toBeVisible();
-            await expect(await editor.OSI).toContainText(data.osi);
+            await expect(await editor.OSI).toContainText(data.osi.original);
             await (await editor.OSIButton).click();
             await ost.backButton.click();
             await page.waitForTimeout(2000);
             await expect(await ost.searchField).toBeVisible();
-            await ost.searchField.fill(data.newosi);
+            await ost.searchField.fill(data.osi.updated);
             await (await ost.nextButton).click();
             await expect(await ost.priceUse).toBeVisible();
             await ost.priceUse.click();
@@ -208,14 +208,17 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-4: Validate osi change', async () => {
-            await expect(await editor.OSI).toContainText(data.newosi);
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.productCodeTag}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.newOfferTypeTag}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.newMarketSegmentsTag}`));
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.newPlanTypeTag}`));
-            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.planTypeTag}`));
-            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.offerTypeTag}`));
-            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.marketSegmentsTag}`));
+            await expect(await editor.OSI).toContainText(data.osi.updated);
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.original.productCodeTag}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.updated.offerTypeTag}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.updated.marketSegmentsTag}`));
+            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.updated.planTypeTag}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.original.planTypeTag}`));
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.osiTags.original.offerTypeTag}`));
+            await expect(await editor.tags).not.toHaveAttribute(
+                'value',
+                new RegExp(`${data.osiTags.original.marketSegmentsTag}`),
+            );
         });
     });
 
@@ -244,23 +247,23 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-3: Edit CTA variant and save card', async () => {
             await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
             await expect(await editor.CTA.first()).toBeVisible();
-            await expect(await editor.CTA.first()).toHaveClass(data.variant);
-            expect(await webUtil.verifyCSS(await trybuywidget.cardCTA.first(), data.ctaCSS)).toBeTruthy();
+            await expect(await editor.CTA.first()).toHaveClass(data.variant.original);
+            expect(await webUtil.verifyCSS(await trybuywidget.cardCTA.first(), data.ctaCSS.original)).toBeTruthy();
             await editor.CTA.first().click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkVariant).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
-            await expect(await editor.getLinkVariant(data.newVariant)).toBeVisible();
-            await (await editor.getLinkVariant(data.newVariant)).click();
+            await expect(await editor.getLinkVariant(data.variant.updated)).toBeVisible();
+            await (await editor.getLinkVariant(data.variant.updated)).click();
             await editor.linkSave.click();
             await studio.saveCard();
         });
 
         await test.step('step-4: Validate CTA variant change', async () => {
-            await expect(await editor.CTA.first()).toHaveClass(data.newVariant);
-            await expect(await editor.CTA.first()).not.toHaveClass(data.variant);
+            await expect(await editor.CTA.first()).toHaveClass(data.variant.updated);
+            await expect(await editor.CTA.first()).not.toHaveClass(data.variant.original);
             expect(
-                await webUtil.verifyCSS(await clonedCard.locator(trybuywidget.cardCTA).first(), data.newCtaCSS),
+                await webUtil.verifyCSS(await clonedCard.locator(trybuywidget.cardCTA).first(), data.ctaCSS.updated),
             ).toBeTruthy();
             await expect(await clonedCard.locator(trybuywidget.cardCTA).first()).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await clonedCard.locator(trybuywidget.cardCTA).first()).toHaveAttribute('is', 'checkout-button');
@@ -344,7 +347,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await editor.analyticsId).toBeVisible();
             await expect(await editor.linkSave).toBeVisible();
             await editor.analyticsId.click();
-            await page.getByRole('option', { name: data.newAnalyticsID }).click();
+            await page.getByRole('option', { name: data.analyticsID.updated }).click();
             await editor.linkSave.click();
             await studio.saveCard();
         });
@@ -352,9 +355,9 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-4: Validate edited analytics IDs are saved', async () => {
             await expect(await clonedCard.locator(trybuywidget.cardCTA.first())).toHaveAttribute(
                 'data-analytics-id',
-                data.newAnalyticsID,
+                data.analyticsID.updated,
             );
-            await expect(await clonedCard.locator(trybuywidget.cardCTA.first())).toHaveAttribute('daa-ll', data.newDaaLL);
+            await expect(await clonedCard.locator(trybuywidget.cardCTA.first())).toHaveAttribute('daa-ll', data.daaLL.updated);
             await expect(await clonedCard).toHaveAttribute('daa-lh', data.daaLH);
         });
     });

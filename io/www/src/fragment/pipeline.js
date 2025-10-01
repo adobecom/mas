@@ -157,7 +157,9 @@ async function mainProcess(context) {
                 dictionaryId: context.dictionaryId,
             });
             log(`updating cache for ${requestKey} -> ${metadata}`, context);
+            mark(context, 'req-state-put');
             await context.state.put(requestKey, metadata);
+            measureTiming(context, 'req-state-put');
         } else if (cachedMetadata?.lastModified) {
             lastModified = new Date(cachedMetadata.lastModified);
         }

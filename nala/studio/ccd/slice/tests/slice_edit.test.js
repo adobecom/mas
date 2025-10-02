@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../../../libs/mas-test.js';
 import StudioPage from '../../../studio.page.js';
 import EditorPage from '../../../editor.page.js';
 import CCDSliceSpec from '../specs/slice_edit.spec.js';
@@ -7,7 +7,6 @@ import CCDSuggestedPage from '../../suggested/suggested.page.js';
 import AHTryBuyWidgetPage from '../../../ahome/try-buy-widget/try-buy-widget.page.js';
 import OSTPage from '../../../ost.page.js';
 import WebUtil from '../../../../libs/webutil.js';
-import GlobalAEMCounter from '../../../../libs/global-aem-counter.js';
 
 const { features } = CCDSliceSpec;
 const miloLibs = process.env.MILO_LIBS || '';
@@ -34,11 +33,6 @@ test.beforeEach(async ({ page, browserName }) => {
     trybuywidget = new AHTryBuyWidgetPage(page);
     ost = new OSTPage(page);
     webUtil = new WebUtil(page);
-    await GlobalAEMCounter.init(page);
-});
-
-test.afterEach(async () => {
-    GlobalAEMCounter.saveCountToFileSync();
 });
 
 test.describe('M@S Studio CCD Slice card test suite', () => {

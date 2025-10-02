@@ -1,10 +1,9 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../../../libs/mas-test.js';
 import StudioPage from '../../../studio.page.js';
 import EditorPage from '../../../editor.page.js';
 import AHPromotedPlansSpec from '../specs/promoted_plans_discard.spec.js';
 import AHPromotedPlansPage from '../promoted-plans.page.js';
 import WebUtil from '../../../../libs/webutil.js';
-import GlobalAEMCounter from '../../../../libs/global-aem-counter.js';
 
 const { features } = AHPromotedPlansSpec;
 const miloLibs = process.env.MILO_LIBS || '';
@@ -25,11 +24,6 @@ test.beforeEach(async ({ page, browserName }) => {
     editor = new EditorPage(page);
     promotedplans = new AHPromotedPlansPage(page);
     webUtil = new WebUtil(page);
-    await GlobalAEMCounter.init(page);
-});
-
-test.afterEach(async () => {
-    GlobalAEMCounter.saveCountToFileSync();
 });
 
 test.describe('M@S Studio AHome Promoted Plans Discard test suite', () => {

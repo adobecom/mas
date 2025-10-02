@@ -1,10 +1,9 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../../../libs/mas-test.js';
 import StudioPage from '../../../studio.page.js';
 import EditorPage from '../../../editor.page.js';
 import AHTryBuyWidgetSpec from '../specs/try_buy_widget_discard.spec.js';
 import AHTryBuyWidgetPage from '../try-buy-widget.page.js';
 import OSTPage from '../../../ost.page.js';
-import GlobalAEMCounter from '../../../../libs/global-aem-counter.js';
 
 const { features } = AHTryBuyWidgetSpec;
 const miloLibs = process.env.MILO_LIBS || '';
@@ -25,11 +24,6 @@ test.beforeEach(async ({ page, browserName }) => {
     editor = new EditorPage(page);
     trybuywidget = new AHTryBuyWidgetPage(page);
     ost = new OSTPage(page);
-    await GlobalAEMCounter.init(page);
-});
-
-test.afterEach(async () => {
-    GlobalAEMCounter.saveCountToFileSync();
 });
 
 test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {

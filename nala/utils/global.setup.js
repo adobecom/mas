@@ -135,10 +135,8 @@ async function globalSetup() {
     console.info('---- Executing Nala Global setup ----\n');
 
     // Reset ODIN AEM request counter for fresh test run
-    console.log('🔄 Resetting ODIN AEM request counter for new test run');
     try {
         GlobalAEMCounter.reset();
-        console.log('✅ ODIN AEM request counter reset to 0\n');
     } catch (error) {
         console.log(`⚠️  Warning: Could not reset ODIN AEM counter: ${error.message}\n`);
     }

@@ -26,9 +26,7 @@ class GlobalAEMCounter {
      * @param {Page} page - Playwright page object
      */
     static async init(page) {
-        // Load existing count from file (for cross-process persistence)
-        await this.loadCountFromFile();
-        console.log(`🔄 Current ODIN AEM request count: ${globalThis.aemRequestCounter.totalRequests}`);
+        globalThis.aemRequestCounter.totalRequests = 0; // Start fresh for this test
 
         // Always set up routing for each page
         await page.route('**/*', async (route) => {
@@ -40,25 +38,23 @@ class GlobalAEMCounter {
 
             await route.continue();
         });
-
-        console.log(`🔍 Global ODIN AEM request tracking initialized for: ${globalThis.aemRequestCounter.targetUrl}`);
     }
 
     /**
-     * Save count to file synchronously (for immediate persistence)
+     * Save count to individual file per test to avoid race conditions completely
      */
     static saveCountToFileSync() {
         try {
-            this._saveCountSyncHelper();
+            this._saveToIndividualFile();
         } catch (error) {
             console.log(`❌ Failed to save ODIN AEM request count: ${error.message}`);
         }
     }
 
     /**
-     * Helper method that uses ES module imports
+     * Write this test's count to a unique file - reporter sums them all
      */
-    static _saveCountSyncHelper() {
+    static _saveToIndividualFile() {
         const fs = globalThis._fsModule;
         const path = globalThis._pathModule;
 
@@ -71,18 +67,19 @@ class GlobalAEMCounter {
         // Create directory if it doesn't exist
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
-            console.log(`📁 Created ODIN AEM request directory: ${dir}`);
         }
 
-        // Write count synchronously
-        fs.writeFileSync(globalThis.aemRequestCounter.counterFile, globalThis.aemRequestCounter.totalRequests.toString());
-        console.log(
-            `💾 Saved ODIN AEM request count ${globalThis.aemRequestCounter.totalRequests} to ${globalThis.aemRequestCounter.counterFile}`,
-        );
+        // Create unique filename for this test execution
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substring(7);
+        const individualFile = path.join(dir, `aem-count-${timestamp}-${random}.txt`);
+
+        // Write this test's count to its own file
+        fs.writeFileSync(individualFile, globalThis.aemRequestCounter.totalRequests.toString());
     }
 
     /**
-     * Load count from file (for cross-process communication)
+     * Load count from file
      */
     static async loadCountFromFile() {
         try {

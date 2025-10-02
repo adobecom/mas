@@ -65,11 +65,34 @@ const masTestWrapper = (name, testFn) => {
         ost = new OSTPage(page);
         webUtil = new WebUtil(page);
 
-        // Initialize request counter
+        // Initialize counter immediately (like it was working before)
         await GlobalRequestCounter.init(page);
 
-        // Call the actual test function
-        return await testFn({ page, baseURL, browserName, context, request });
+        try {
+            // Call the actual test function
+            return await testFn({ page, baseURL, browserName, context, request });
+        } finally {
+            // Cleanup only runs for save tests (when clonedCardID is set)
+            if (clonedCardID) {
+                // Close editor if it's open
+                if (editor && (await editor.panel.isVisible())) {
+                    await editor.closeEditor.click();
+                    await expect(editor.panel).not.toBeVisible();
+                }
+
+                // Delete the cloned card
+                if (studio) {
+                    const cardElement = await studio.getCard(clonedCardID);
+                    if (await cardElement.isVisible()) {
+                        await studio.deleteCard(clonedCardID);
+                        await expect(cardElement).not.toBeVisible();
+                    }
+                }
+            }
+
+            // Always save request count last
+            GlobalRequestCounter.saveCountToFileSync();
+        }
     });
 };
 
@@ -87,28 +110,15 @@ masTestWrapper.slow = masTest.slow;
 
 const miloLibs = process.env.MILO_LIBS || '';
 
-masTest.afterEach(async ({ page }) => {
-    // Cleanup only runs for save tests (when clonedCardID is set)
-    if (clonedCardID) {
-        // Close editor if it's open
-        if (editor && (await editor.panel.isVisible())) {
-            await editor.closeEditor.click();
-            await expect(editor.panel).not.toBeVisible();
-        }
+// Function to set clonedCardID from tests
+function setClonedCardID(id) {
+    clonedCardID = id;
+}
 
-        // Delete the cloned card
-        if (studio) {
-            const cardElement = await studio.getCard(clonedCardID);
-            if (await cardElement.isVisible()) {
-                await studio.deleteCard(clonedCardID);
-                await expect(cardElement).not.toBeVisible();
-            }
-        }
-    }
-
-    // Always save request count last
-    GlobalRequestCounter.saveCountToFileSync();
-});
+// Function to get clonedCardID from tests
+function getClonedCardID() {
+    return clonedCardID;
+}
 
 // Export the global page objects so test files can access them
 export {
@@ -122,7 +132,8 @@ export {
     individuals,
     ost,
     webUtil,
-    clonedCardID,
+    setClonedCardID,
+    getClonedCardID,
     miloLibs,
 };
 

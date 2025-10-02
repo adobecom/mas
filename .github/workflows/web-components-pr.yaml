@@ -38,6 +38,8 @@ jobs:
 
             - name: Run build
               run: npm run build
+            
+            - name: Run prettier
               run: npx prettier . --write
 
             - name: Check for uncommitted changes

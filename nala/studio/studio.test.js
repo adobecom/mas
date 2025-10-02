@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import StudioSpec from './studio.spec.js';
 import StudioPage from './studio.page.js';
 import EditorPage from './editor.page.js';
-import GlobalAEMCounter from '../../libs/global-aem-counter.js';
+import GlobalAEMCounter from '../libs/global-aem-counter.js';
 
 const { features } = StudioSpec;
 const miloLibs = process.env.MILO_LIBS || '';

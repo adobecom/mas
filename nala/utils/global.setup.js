@@ -138,7 +138,7 @@ async function globalSetup() {
     try {
         GlobalRequestCounter.reset();
 
-        // Configure tracked URLs - use defaults for now
+        // Configure tracked URLs (defaults)
         for (const [serviceName, defaultUrl] of Object.entries(DEFAULT_TRACKED_URLS)) {
             GlobalRequestCounter.setTargetUrl(defaultUrl, serviceName);
             console.log(`🎯 Configured ${serviceName}: ${defaultUrl} (default)`);

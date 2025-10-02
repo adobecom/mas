@@ -41,6 +41,7 @@ test.afterEach(async ({ page }) => {
         await studio.deleteCard(clonedCardID);
         await expect(await studio.getCard(clonedCardID)).not.toBeVisible();
     }
+
     await page.close();
 });
 

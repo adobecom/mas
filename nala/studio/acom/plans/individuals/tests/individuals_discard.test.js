@@ -27,7 +27,6 @@ test.beforeEach(async ({ page, browserName }) => {
     individuals = new ACOMPlansIndividualsPage(page);
     ost = new OSTPage(page);
     webUtil = new WebUtil(page);
-    await GlobalAEMCounter.init(page);
 });
 
 test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {

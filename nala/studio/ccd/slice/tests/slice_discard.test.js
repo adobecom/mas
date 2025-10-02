@@ -24,7 +24,6 @@ test.beforeEach(async ({ page, browserName }) => {
     editor = new EditorPage(page);
     slice = new CCDSlicePage(page);
     ost = new OSTPage(page);
-    await GlobalAEMCounter.init(page);
 });
 
 test.describe('M@S Studio CCD Slice card test suite', () => {

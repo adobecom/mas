@@ -1,49 +1,7 @@
-import { expect, test } from '../../../../libs/mas-test.js';
-import StudioPage from '../../../studio.page.js';
-import EditorPage from '../../../editor.page.js';
+import { test, expect, studio, editor, promotedplans, clonedCardID, miloLibs } from '../../../../libs/mas-test.js';
 import AHPromotedPlansSpec from '../specs/promoted_plans_save.spec.js';
-import AHPromotedPlansPage from '../promoted-plans.page.js';
-import OSTPage from '../../../ost.page.js';
-import WebUtil from '../../../../libs/webutil.js';
 
 const { features } = AHPromotedPlansSpec;
-const miloLibs = process.env.MILO_LIBS || '';
-
-let studio;
-let editor;
-let promotedplans;
-let ost;
-let webUtil;
-let clonedCardID;
-
-test.beforeEach(async ({ page, browserName }) => {
-    test.slow();
-    if (browserName === 'chromium') {
-        await page.setExtraHTTPHeaders({
-            'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
-        });
-    }
-    studio = new StudioPage(page);
-    editor = new EditorPage(page);
-    promotedplans = new AHPromotedPlansPage(page);
-    ost = new OSTPage(page);
-    webUtil = new WebUtil(page);
-    clonedCardID = '';
-});
-
-test.afterEach(async ({ page }) => {
-    if (await editor.panel.isVisible()) {
-        await editor.closeEditor.click();
-        await expect(await editor.panel).not.toBeVisible();
-    }
-
-    if (await (await studio.getCard(clonedCardID)).isVisible()) {
-        await studio.deleteCard(clonedCardID);
-        await expect(await studio.getCard(clonedCardID)).not.toBeVisible();
-    }
-
-    await page.close();
-});
 
 test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
     // @studio-promoted-plans-save-edited-border - Validate saving card after editing border

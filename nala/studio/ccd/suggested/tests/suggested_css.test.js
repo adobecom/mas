@@ -1,27 +1,7 @@
-import { expect, test } from '../../../../libs/mas-test.js';
-import StudioPage from '../../../studio.page.js';
+import { test, expect, studio, suggested, webUtil, miloLibs } from '../../../../libs/mas-test.js';
 import CCDSuggestedSpec from '../specs/suggested_css.spec.js';
-import CCDSuggestedPage from '../suggested.page.js';
-import WebUtil from '../../../../libs/webutil.js';
 
 const { features } = CCDSuggestedSpec;
-const miloLibs = process.env.MILO_LIBS || '';
-
-let studio;
-let suggested;
-let webUtil;
-
-test.beforeEach(async ({ page, browserName }) => {
-    test.slow();
-    if (browserName === 'chromium') {
-        await page.setExtraHTTPHeaders({
-            'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
-        });
-    }
-    studio = new StudioPage(page);
-    suggested = new CCDSuggestedPage(page);
-    webUtil = new WebUtil(page);
-});
 
 test.describe('M@S Studio CCD Suggested card test suite', () => {
     // @studio-suggested-css-card - Validate CSS for suggested card size, background and border color

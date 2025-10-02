@@ -6,12 +6,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Default URL configurations - can be extended
 const DEFAULT_TRACKED_URLS = {
     ODIN_AEM: 'https://author-p22655-e59433.adobeaemcloud.com',
     // Future: Add more services
     // WCS: 'https://www.adobe.com/web_commerce_artifact',
-    // 'MAS_IO': 'https://mas.adobe.com/io',
+    // MAS_IO: 'https://mas.adobe.com/io',
 };
 
 // Store modules in globalThis for access from static methods
@@ -39,7 +38,10 @@ class GlobalRequestCounter {
      * @param {Page} page - Playwright page object
      */
     static async init(page) {
-        // Initialize service counts for this test
+        // Reset counters for this individual test
+        globalThis.requestCounter.serviceCounts = {};
+
+        // Initialize each tracked service
         for (const serviceName of Object.keys(globalThis.requestCounter.trackedUrls)) {
             globalThis.requestCounter.serviceCounts[serviceName] = {
                 totalRequests: 0,
@@ -73,12 +75,12 @@ class GlobalRequestCounter {
         try {
             this._saveToIndividualFile();
         } catch (error) {
-            console.log(`❌ Failed to save ODIN AEM request count: ${error.message}`);
+            console.log(`❌ Failed to save request count: ${error.message}`);
         }
     }
 
     /**
-     * Write this test's count to a unique file - reporter sums them all
+     * Write this test's count to a unique file - reporter will sum them all
      */
     static _saveToIndividualFile() {
         const fs = globalThis._fsModule;

@@ -1,30 +1,7 @@
-import { expect, test } from '../../../../libs/mas-test.js';
-import StudioPage from '../../../studio.page.js';
-import EditorPage from '../../../editor.page.js';
+import { test, expect, studio, editor, slice, ost, miloLibs } from '../../../../libs/mas-test.js';
 import CCDSliceSpec from '../specs/slice_discard.spec.js';
-import CCDSlicePage from '../slice.page.js';
-import OSTPage from '../../../ost.page.js';
 
 const { features } = CCDSliceSpec;
-const miloLibs = process.env.MILO_LIBS || '';
-
-let studio;
-let editor;
-let slice;
-let ost;
-
-test.beforeEach(async ({ page, browserName }) => {
-    test.slow();
-    if (browserName === 'chromium') {
-        await page.setExtraHTTPHeaders({
-            'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
-        });
-    }
-    studio = new StudioPage(page);
-    editor = new EditorPage(page);
-    slice = new CCDSlicePage(page);
-    ost = new OSTPage(page);
-});
 
 test.describe('M@S Studio CCD Slice card test suite', () => {
     // @studio-slice-discard-edited-size - Validate discard edited size for slice card in mas studio

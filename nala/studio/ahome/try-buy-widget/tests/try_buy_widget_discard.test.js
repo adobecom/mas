@@ -1,30 +1,7 @@
-import { expect, test } from '../../../../libs/mas-test.js';
-import StudioPage from '../../../studio.page.js';
-import EditorPage from '../../../editor.page.js';
+import { test, expect, studio, editor, trybuywidget, ost, miloLibs } from '../../../../libs/mas-test.js';
 import AHTryBuyWidgetSpec from '../specs/try_buy_widget_discard.spec.js';
-import AHTryBuyWidgetPage from '../try-buy-widget.page.js';
-import OSTPage from '../../../ost.page.js';
 
 const { features } = AHTryBuyWidgetSpec;
-const miloLibs = process.env.MILO_LIBS || '';
-
-let studio;
-let editor;
-let trybuywidget;
-let ost;
-
-test.beforeEach(async ({ page, browserName }) => {
-    test.slow();
-    if (browserName === 'chromium') {
-        await page.setExtraHTTPHeaders({
-            'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
-        });
-    }
-    studio = new StudioPage(page);
-    editor = new EditorPage(page);
-    trybuywidget = new AHTryBuyWidgetPage(page);
-    ost = new OSTPage(page);
-});
 
 test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     // @studio-try-buy-widget-discard-edited-price - Validate discard edited changes for try buy widjet card in mas studio

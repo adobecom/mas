@@ -26,10 +26,6 @@ let clonedCardID = '';
 
 /**
  * Extended Playwright test that automatically handles common MAS test operations
- * - Automatically creates fresh page objects for each test
- * - Automatically initializes request counter
- * - Automatically saves request data in afterEach
- * - Automatically extends timeout for all tests
  */
 const masTest = base.extend({
     page: async ({ page }, use, testInfo) => {
@@ -65,7 +61,7 @@ const masTestWrapper = (name, testFn) => {
         ost = new OSTPage(page);
         webUtil = new WebUtil(page);
 
-        // Initialize counter immediately (like it was working before)
+        // Initialize counter
         await GlobalRequestCounter.init(page);
 
         try {
@@ -96,7 +92,7 @@ const masTestWrapper = (name, testFn) => {
     });
 };
 
-// Add all the standard test methods to our wrapper
+// Add all the standard test methods to the wrapper
 masTestWrapper.describe = masTest.describe;
 masTestWrapper.beforeEach = masTest.beforeEach;
 masTestWrapper.afterEach = masTest.afterEach;

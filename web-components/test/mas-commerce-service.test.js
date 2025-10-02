@@ -1,6 +1,6 @@
 import Sinon from 'sinon';
 
-import '@adobecom/milo/libs/utils/lana.js';
+import '/__wds-outside-root__/1/node_modules/@adobecom/milo/libs/utils/lana.js';
 
 import { FF_DEFAULTS } from '../src/constants.js';
 import { Defaults } from '../src/defaults.js';

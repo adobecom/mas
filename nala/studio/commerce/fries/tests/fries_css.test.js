@@ -3,6 +3,7 @@ import StudioPage from '../../../studio.page.js';
 import CCDFriesSpec from '../specs/fries_css.spec.js';
 import CCDFries from '../fries.page.js';
 import WebUtil from '../../../../libs/webutil.js';
+import GlobalAEMCounter from '../../../../libs/global-aem-counter.js';
 
 const { features } = CCDFriesSpec;
 const miloLibs = process.env.MILO_LIBS || '';
@@ -21,6 +22,11 @@ test.beforeEach(async ({ page, browserName }) => {
     studio = new StudioPage(page);
     fries = new CCDFries(page);
     webUtil = new WebUtil(page);
+    await GlobalAEMCounter.init(page);
+});
+
+test.afterEach(async () => {
+    GlobalAEMCounter.saveCountToFileSync();
 });
 
 test.describe('M@S Studio Commerce Fries card test suite', () => {

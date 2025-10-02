@@ -7,6 +7,7 @@ import CCDSuggestedPage from '../../suggested/suggested.page.js';
 import AHTryBuyWidgetPage from '../../../ahome/try-buy-widget/try-buy-widget.page.js';
 import OSTPage from '../../../ost.page.js';
 import WebUtil from '../../../../libs/webutil.js';
+import GlobalAEMCounter from '../../../../libs/global-aem-counter.js';
 
 const { features } = CCDSliceSpec;
 const miloLibs = process.env.MILO_LIBS || '';
@@ -35,6 +36,7 @@ test.beforeEach(async ({ page, browserName }) => {
     ost = new OSTPage(page);
     clonedCardID = '';
     webUtil = new WebUtil(page);
+    await GlobalAEMCounter.init(page);
 });
 
 test.afterEach(async ({ page }) => {
@@ -49,6 +51,7 @@ test.afterEach(async ({ page }) => {
     }
 
     await page.close();
+    GlobalAEMCounter.saveCountToFileSync();
 });
 
 test.describe('M@S Studio CCD Slice card test suite', () => {

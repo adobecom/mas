@@ -5,6 +5,7 @@ import AHPromotedPlansSpec from '../specs/promoted_plans_edit.spec.js';
 import AHPromotedPlansPage from '../promoted-plans.page.js';
 import OSTPage from '../../../ost.page.js';
 import WebUtil from '../../../../libs/webutil.js';
+import GlobalAEMCounter from '../../../../libs/global-aem-counter.js';
 
 const { features } = AHPromotedPlansSpec;
 const miloLibs = process.env.MILO_LIBS || '';
@@ -27,6 +28,11 @@ test.beforeEach(async ({ page, browserName }) => {
     promotedplans = new AHPromotedPlansPage(page);
     ost = new OSTPage(page);
     webUtil = new WebUtil(page);
+    await GlobalAEMCounter.init(page);
+});
+
+test.afterEach(async () => {
+    GlobalAEMCounter.saveCountToFileSync();
 });
 
 test.describe('M@S Studio AHome Promoted Plans card test suite', () => {

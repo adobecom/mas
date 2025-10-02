@@ -4,6 +4,7 @@ import EditorPage from '../../../editor.page.js';
 import CCDSuggestedSpec from '../specs/suggested_discard.spec.js';
 import CCDSuggestedPage from '../suggested.page.js';
 import OSTPage from '../../../ost.page.js';
+import GlobalAEMCounter from '../../../../libs/global-aem-counter.js';
 
 const { features } = CCDSuggestedSpec;
 const miloLibs = process.env.MILO_LIBS || '';
@@ -24,6 +25,11 @@ test.beforeEach(async ({ page, browserName }) => {
     editor = new EditorPage(page);
     suggested = new CCDSuggestedPage(page);
     ost = new OSTPage(page);
+    await GlobalAEMCounter.init(page);
+});
+
+test.afterEach(async () => {
+    GlobalAEMCounter.saveCountToFileSync();
 });
 
 test.describe('M@S Studio CCD Suggested card test suite', () => {

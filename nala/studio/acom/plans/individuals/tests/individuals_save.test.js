@@ -5,6 +5,7 @@ import ACOMPlansIndividualsSpec from '../specs/individuals_save.spec.js';
 import ACOMPlansIndividualsPage from '../individuals.page.js';
 import OSTPage from '../../../../ost.page.js';
 import WebUtil from '../../../../../libs/webutil.js';
+import GlobalAEMCounter from '../../../../../libs/global-aem-counter.js';
 
 const { features } = ACOMPlansIndividualsSpec;
 const miloLibs = process.env.MILO_LIBS || '';
@@ -29,6 +30,7 @@ test.beforeEach(async ({ page, browserName }) => {
     ost = new OSTPage(page);
     clonedCardID = '';
     webUtil = new WebUtil(page);
+    await GlobalAEMCounter.init(page);
 });
 
 test.afterEach(async ({ page }) => {
@@ -41,8 +43,8 @@ test.afterEach(async ({ page }) => {
         await studio.deleteCard(clonedCardID);
         await expect(await studio.getCard(clonedCardID)).not.toBeVisible();
     }
-
     await page.close();
+    GlobalAEMCounter.saveCountToFileSync();
 });
 
 test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {

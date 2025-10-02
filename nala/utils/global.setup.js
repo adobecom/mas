@@ -1,6 +1,7 @@
 import { exit } from 'process';
 import { execSync } from 'child_process';
 import { isBranchURLValid } from '../libs/baseurl.js';
+import GlobalAEMCounter from '../libs/global-aem-counter.js';
 
 const MAIN_BRANCH_LIVE_URL = 'https://main--mas--adobecom.aem.live';
 const STAGE_URL = 'https://mas.stage.adobe.com';
@@ -132,6 +133,15 @@ async function getLocalBranchLiveUrl() {
 
 async function globalSetup() {
     console.info('---- Executing Nala Global setup ----\n');
+
+    // Reset ODIN AEM request counter for fresh test run
+    console.log('🔄 Resetting ODIN AEM request counter for new test run');
+    try {
+        GlobalAEMCounter.reset();
+        console.log('✅ ODIN AEM request counter reset to 0\n');
+    } catch (error) {
+        console.log(`⚠️  Warning: Could not reset ODIN AEM counter: ${error.message}\n`);
+    }
 
     if (process.env.GITHUB_ACTIONS === 'true') {
         console.info('---- Running Nala Tests in the GitHub environment ----\n');

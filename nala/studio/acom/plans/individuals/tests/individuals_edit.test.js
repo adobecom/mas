@@ -8,6 +8,7 @@ import CCDSlicePage from '../../../../ccd/slice/slice.page.js';
 import CCDSuggestedPage from '../../../../ccd/suggested/suggested.page.js';
 import OSTPage from '../../../../ost.page.js';
 import WebUtil from '../../../../../libs/webutil.js';
+import GlobalAEMCounter from '../../../../../libs/global-aem-counter.js';
 
 const { features } = ACOMPlansIndividualsSpec;
 const miloLibs = process.env.MILO_LIBS || '';
@@ -36,6 +37,11 @@ test.beforeEach(async ({ page, browserName }) => {
     suggested = new CCDSuggestedPage(page);
     slice = new CCDSlicePage(page);
     trybuywidget = new AHTryBuyWidgetPage(page);
+    await GlobalAEMCounter.init(page);
+});
+
+test.afterEach(async () => {
+    GlobalAEMCounter.saveCountToFileSync();
 });
 
 test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {

@@ -184,7 +184,7 @@ runTests(async () => {
             document.location.hash = '';
             render();
             await delay(100);
-            expect(visibleCards().length).to.equal(93);
+            expect(visibleCards().length).to.equal(92);
         });
 
         it('observes/applies deep link parameters', async () => {

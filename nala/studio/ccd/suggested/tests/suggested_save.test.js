@@ -29,12 +29,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
-            let clonedCard = await studio.getCard(data.cardid, 'cloned');
-            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
-            data.clonedCardID = getClonedCardID();
-            await studio.cloneCard(clonedCardID);
+            let clonedCardOne = await studio.getCard(data.cardid, 'cloned');
+            let clonedCardOneID = await clonedCardOne.locator('aem-fragment').getAttribute('fragment');
+            data.clonedCardOneID = await clonedCardOneID;
+            await studio.cloneCard(clonedCardOneID);
 
-            let clonedCardTwo = await studio.getCard(data.cardid, 'cloned', data.clonedCardID);
+            let clonedCardTwo = await studio.getCard(data.cardid, 'cloned', data.clonedCardOneID);
 
             await expect(await clonedCardTwo).toBeVisible();
 
@@ -43,12 +43,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-3: Delete cloned cards', async () => {
-            const clonedCard = await studio.getCard(data.clonedCardID);
+            const clonedCardOne = await studio.getCard(data.clonedCardOneID);
             const clonedCardTwo = await studio.getCard(data.clonedCardTwoID);
 
-            await clonedCard.dblclick();
-            await studio.deleteCard(data.clonedCardID);
-            await expect(await clonedCard).not.toBeVisible();
+            await clonedCardOne.dblclick();
+            await studio.deleteCard(data.clonedCardOneID);
+            await expect(await clonedCardOne).not.toBeVisible();
 
             await clonedCardTwo.dblclick();
             await studio.deleteCard(data.clonedCardTwoID);

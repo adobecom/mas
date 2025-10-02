@@ -315,7 +315,7 @@ class MasPlaceholders extends LitElement {
                     </div>
                 </div>
 
-                <div class="placeholders-content">${this.renderContent()}</div>
+                <div class="placeholders-content">${this.loadingIndicator()}${this.renderTable()}</div>
 
                 ${this.showCreationModal
                     ? html`<mas-placeholders-creation-modal
@@ -333,9 +333,9 @@ class MasPlaceholders extends LitElement {
         `;
     }
 
-    renderContent() {
-        if (this.loading) return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
-        return this.renderTable();
+    loadingIndicator() {
+        if (!this.loading) return nothing;
+        return html`<sp-progress-circle style="top:-60px" indeterminate size="l"></sp-progress-circle>`;
     }
 
     // #region Table
@@ -410,7 +410,7 @@ class MasPlaceholders extends LitElement {
                             `;
                         },
                     )}
-                    ${this.internalPlaceholders.length === 0
+                    ${this.internalPlaceholders.length === 0 && !this.loading
                         ? html`<p class="no-placeholders-label">No placeholders found</p>`
                         : nothing}
                 </sp-table-body>

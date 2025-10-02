@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 const SUCCESS = 'success';
 const ERROR = 'error';
 const OK = 'ok';
@@ -58,4 +58,4 @@ async function main(params) {
     };
 }
 
-exports.main = main;
+export { main };

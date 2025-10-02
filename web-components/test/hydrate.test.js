@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import '@adobecom/milo/libs/features/spectrum-web-components/dist/button.js';
+import '/__wds-outside-root__/1/node_modules/@adobecom/milo/libs/features/spectrum-web-components/dist/button.js';
 import '../src/mas.js';
 import {
     hydrate,

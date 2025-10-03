@@ -1,7 +1,7 @@
 import { test, expect, studio, editor, fries, ost, miloLibs } from '../../../../libs/mas-test.js';
-import CCDFriesSpec from '../specs/fries_edit.spec.js';
+import COMFriesSpec from '../specs/fries_edit.spec.js';
 
-const { features } = CCDFriesSpec;
+const { features } = COMFriesSpec;
 
 test.describe('M@S Studio Commerce Fries card test suite', () => {
     // @studio-fries-edit-discard-title - Validate edit title for fries card in mas studio

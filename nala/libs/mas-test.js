@@ -4,7 +4,7 @@ import StudioPage from '../studio/studio.page.js';
 import EditorPage from '../studio/editor.page.js';
 import CCDSlicePage from '../studio/ccd/slice/slice.page.js';
 import CCDSuggestedPage from '../studio/ccd/suggested/suggested.page.js';
-import CCDFries from '../studio/commerce/fries/fries.page.js';
+import COMFries from '../studio/commerce/fries/fries.page.js';
 import AHTryBuyWidgetPage from '../studio/ahome/try-buy-widget/try-buy-widget.page.js';
 import AHPromotedPlansPage from '../studio/ahome/promoted-plans/promoted-plans.page.js';
 import ACOMPlansIndividualsPage from '../studio/acom/plans/individuals/individuals.page.js';
@@ -56,7 +56,7 @@ const masTestWrapper = (name, testFn) => {
         editor = new EditorPage(page);
         slice = new CCDSlicePage(page);
         suggested = new CCDSuggestedPage(page);
-        fries = new CCDFries(page);
+        fries = new COMFries(page);
         trybuywidget = new AHTryBuyWidgetPage(page);
         promotedplans = new AHPromotedPlansPage(page);
         individuals = new ACOMPlansIndividualsPage(page);

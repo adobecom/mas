@@ -1,7 +1,7 @@
 import { test, expect, studio, editor, fries, setClonedCardID, getClonedCardID, miloLibs } from '../../../../libs/mas-test.js';
-import CCDFriesSpec from '../specs/fries_save.spec.js';
+import COMFriesSpec from '../specs/fries_save.spec.js';
 
-const { features } = CCDFriesSpec;
+const { features } = COMFriesSpec;
 
 test.describe('M@S Studio Commerce Fries card test suite', () => {
     // @studio-fries-save-edited-RTE-fields - Validate saving card after editing title, description, and mnemonic

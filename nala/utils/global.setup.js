@@ -2,6 +2,7 @@ import { exit } from 'process';
 import { execSync } from 'child_process';
 import { isBranchURLValid } from '../libs/baseurl.js';
 import GlobalRequestCounter, { DEFAULT_TRACKED_URLS } from '../libs/global-request-counter.js';
+import { createRunId } from './fragment-tracker.js';
 
 const MAIN_BRANCH_LIVE_URL = 'https://main--mas--adobecom.aem.live';
 const STAGE_URL = 'https://mas.stage.adobe.com';
@@ -134,6 +135,10 @@ async function getLocalBranchLiveUrl() {
 async function globalSetup() {
     console.info('---- Executing Nala Global setup ----\n');
 
+    // Initialize fragment tracker run ID at the very start of test suite
+    const runId = createRunId();
+    console.info(`🆔 Test suite run ID: ${runId}\n`);
+
     // Reset request counter for fresh test run
     try {
         GlobalRequestCounter.reset();
@@ -141,7 +146,6 @@ async function globalSetup() {
         // Configure tracked URLs (defaults)
         for (const [serviceName, defaultUrl] of Object.entries(DEFAULT_TRACKED_URLS)) {
             GlobalRequestCounter.setTargetUrl(defaultUrl, serviceName);
-            console.log(`🎯 Configured ${serviceName}: ${defaultUrl} (default)`);
         }
     } catch (error) {
         console.log(`⚠️  Warning: Could not reset request counter: ${error.message}\n`);

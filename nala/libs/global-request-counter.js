@@ -145,7 +145,7 @@ class GlobalRequestCounter {
      */
     static setTargetUrl(url, serviceName = 'ODIN_AEM') {
         globalThis.requestCounter.trackedUrls[serviceName] = url;
-        console.log(`🎯 Target URL set to: ${url} for service: ${serviceName}`);
+        console.log(`🎯 Target URL set to: ${url} for service: ${serviceName}\n`);
     }
 }
 

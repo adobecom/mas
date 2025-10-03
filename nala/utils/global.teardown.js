@@ -2,100 +2,218 @@ async function cleanupClonedCards() {
     console.info('---- Executing Nala Global Teardown: Cleaning up cloned cards ----\n');
 
     try {
-        const { chromium } = await import('@playwright/test');
-        const browser = await chromium.launch();
+        // Import fragment tracker
+        const { getExistingRunId, clearRunId } = await import('./fragment-tracker.js');
+
+        // Get the current run ID
+        const currentRunId = getExistingRunId();
+
+        if (!currentRunId) {
+            console.info('✅ No run ID found - no fragments to clean up');
+            return { success: true, deletedCount: 0, deletedIds: [] };
+        }
+
+        console.log(`🔄 Searching for fragments with run ID: ${currentRunId}`);
+
+        // Use the same browser configuration as mastest
+        const { chromium, devices } = await import('@playwright/test');
+
+        // Import request counter to track teardown requests
+        const GlobalRequestCounter = (await import('../libs/global-request-counter.js')).default;
+
+        const browser = await chromium.launch({
+            args: ['--disable-web-security', '--disable-gpu'],
+        });
+
+        const authPath = './nala/.auth/user.json';
         const context = await browser.newContext({
-            storageState: './nala/.auth/user.json',
+            ...devices['Desktop Chrome'],
+            storageState: authPath,
+            bypassCSP: true,
         });
         const page = await context.newPage();
+
+        // Set HTTP headers for chromium (same as mastest)
+        await page.setExtraHTTPHeaders({
+            'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
+        });
+
+        // Initialize request counter for teardown
+        await GlobalRequestCounter.init(page);
 
         const baseURL =
             process.env.PR_BRANCH_LIVE_URL || process.env.LOCAL_TEST_LIVE_URL || 'https://main--mas--adobecom.aem.live';
 
-        await page.goto(`${baseURL}/studio.html`);
-        await page.waitForLoadState('domcontentloaded');
-        await page.waitForTimeout(3000);
+        try {
+            await page.goto(`${baseURL}/studio.html#page=content&path=nala`);
+            await page.waitForLoadState('domcontentloaded');
 
-        const cleanupResult = await page.evaluate(() => {
-            const repo = document.querySelector('mas-repository');
-            if (!repo) {
-                return {
-                    success: false,
-                    error: 'mas-repository not found',
-                };
-            }
+            await page.waitForFunction(
+                () => {
+                    const repo = document.querySelector('mas-repository');
+                    return repo && repo.aem && repo.aem.deleteFragment;
+                },
+                { timeout: 30000 },
+            );
 
-            const cache = document.createElement('aem-fragment').cache;
-            if (!cache) {
-                return {
-                    success: false,
-                    error: 'aem-fragment cache not found',
-                };
-            }
+            // Wait a bit longer for fragments to be loaded from the test
+            await page.waitForTimeout(3000);
 
-            const fragments = [...document.querySelectorAll('aem-fragment')]
-                .map((fragment) => cache.get(fragment.data.id))
-                .filter((fragment) => {
-                    if (!fragment || !fragment.created) return false;
-
-                    const today = new Date().toISOString().split('T')[0];
-                    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-                    return (
-                        (new RegExp(today).test(fragment.created.at) || new RegExp(yesterday).test(fragment.created.at)) &&
-                        fragment.created.by === 'cod23684+masautomation@adobetest.com'
-                    );
-                });
-
-            console.log(`Found ${fragments.length} cloned cards to clean up`);
-
-            const deletePromises = fragments.map((fragment) => {
-                console.log(`Deleting fragment: ${fragment.id}`);
-                return repo.aem.deleteFragment(fragment);
+            // If no fragments found, wait a bit more and check cache
+            const fragmentCount = await page.evaluate(() => {
+                return document.querySelectorAll('mas-fragment-render').length;
             });
 
-            return Promise.all(deletePromises)
-                .then(() => ({
-                    success: true,
-                    deletedCount: fragments.length,
-                    deletedIds: fragments.map((f) => f.id),
-                }))
-                .catch((error) => ({
-                    success: false,
-                    error: error.message,
-                    attemptedCount: fragments.length,
-                }));
-        });
+            if (fragmentCount === 0) {
+                await page.waitForTimeout(2000);
+            }
 
-        if (cleanupResult.success) {
-            console.info(`✅ Successfully cleaned up ${cleanupResult.deletedCount} cloned cards`);
-            if (cleanupResult.deletedIds && cleanupResult.deletedIds.length > 0) {
-                console.info('Deleted card IDs:', cleanupResult.deletedIds.join(', '));
+            const cleanupResult = await page.evaluate((runId) => {
+                const repo = document.querySelector('mas-repository');
+                if (!repo || !repo.aem || !repo.aem.deleteFragment) {
+                    return {
+                        success: false,
+                        error: 'mas-repository not ready for deletion',
+                        deletedCount: 0,
+                        failedCount: 0,
+                        totalAttempted: 0,
+                    };
+                }
+
+                // Find fragments with nala run ID in their title
+                const cache = document.createElement('aem-fragment').cache;
+                const masFragmentRenderElements = [...document.querySelectorAll('mas-fragment-render')];
+                const matchingFragments = [];
+
+                masFragmentRenderElements.forEach((element) => {
+                    const dataId = element.getAttribute('data-id');
+                    if (!dataId) return;
+
+                    // Check if fragment title contains our run ID
+                    if (cache) {
+                        const fragmentData = cache.get(dataId);
+                        if (fragmentData && fragmentData.title && fragmentData.title.includes(`[${runId}]`)) {
+                            matchingFragments.push({
+                                id: dataId,
+                                title: fragmentData.title,
+                                fragment: fragmentData, // Store the full fragment object
+                            });
+                        }
+                    }
+                });
+
+                // Also check if fragments might be in cache but not in DOM yet
+                if (matchingFragments.length === 0 && cache && cache.entries) {
+                    const cacheEntries = [...cache.entries()];
+
+                    cacheEntries.forEach(([id, fragment]) => {
+                        if (fragment && fragment.title && fragment.title.includes(`[${runId}]`)) {
+                            matchingFragments.push({
+                                id: id,
+                                title: fragment.title,
+                                fragment: fragment, // Store the full fragment object
+                            });
+                        }
+                    });
+                }
+
+                if (matchingFragments.length === 0) {
+                    return {
+                        success: true,
+                        deletedCount: 0,
+                        deletedIds: [],
+                        failedCount: 0,
+                        totalAttempted: 0,
+                        message: 'No fragments found with run ID',
+                        fragmentsFound: 0,
+                    };
+                }
+
+                // Delete each fragment
+                const deletePromises = matchingFragments.map(async (fragmentInfo) => {
+                    try {
+                        await repo.aem.deleteFragment(fragmentInfo.fragment);
+                        return { id: fragmentInfo.id, success: true };
+                    } catch (error) {
+                        const errorMessage = error.message || error.toString();
+                        return { id: fragmentInfo.id, success: false, error: errorMessage };
+                    }
+                });
+
+                return Promise.allSettled(deletePromises).then((results) => {
+                    const successful = results
+                        .filter((result) => result.status === 'fulfilled' && result.value.success)
+                        .map((result) => result.value.id);
+
+                    const failed = results
+                        .filter(
+                            (result) =>
+                                result.status === 'rejected' || (result.status === 'fulfilled' && !result.value.success),
+                        )
+                        .map((result) => ({
+                            id: result.status === 'fulfilled' ? result.value.id : 'unknown',
+                            error: result.status === 'fulfilled' ? result.value.error : result.reason.message,
+                        }));
+
+                    return {
+                        success: failed.length === 0,
+                        deletedCount: successful.length,
+                        deletedIds: successful,
+                        failedCount: failed.length,
+                        failedFragments: failed,
+                        totalAttempted: matchingFragments.length,
+                        fragmentsFound: matchingFragments.length,
+                    };
+                });
+            }, currentRunId);
+
+            // Log the fragments found count (from Node.js context so it appears in terminal)
+            console.log(`🎯 Found ${cleanupResult.fragmentsFound || 0} fragments to delete`);
+
+            if (cleanupResult.deletedCount > 0) {
+                console.log(`✅ Successfully deleted ${cleanupResult.deletedCount} fragments`);
+            } else if (cleanupResult.success && cleanupResult.totalAttempted === 0) {
+                console.log('✅ No fragments found to clean up');
             }
-        } else {
-            console.error(`❌ Cleanup failed: ${cleanupResult.error}`);
-            if (cleanupResult.attemptedCount) {
-                console.error(`Attempted to clean ${cleanupResult.attemptedCount} cards`);
+
+            if (!cleanupResult.success) {
+                const errorMsg =
+                    cleanupResult.error ||
+                    `${cleanupResult.failedCount}/${cleanupResult.totalAttempted} fragments failed to delete`;
+                console.error(`❌ Cleanup failed: ${errorMsg}`);
+                if (cleanupResult.failedCount > 0 && cleanupResult.failedFragments) {
+                    console.error('Failed fragments:');
+                    cleanupResult.failedFragments.forEach((fragment) => {
+                        console.error(`  - ${fragment.id}: ${fragment.error}`);
+                    });
+                }
             }
+
+            clearRunId();
+
+            await browser.close();
+
+            // Save teardown request count to contribute to total suite count
+            GlobalRequestCounter.saveCountToFileSync();
+
+            return cleanupResult;
+        } catch (error) {
+            await browser.close();
+            clearRunId();
+            return { success: false, error: error.message, deletedCount: 0, failedCount: 0, totalAttempted: 0 };
         }
-
-        await browser.close();
-        return cleanupResult;
     } catch (error) {
-        console.error('❌ Error during cleanup:', error.message);
-        return { success: false, error: error.message };
+        return { success: false, error: error.message, deletedCount: 0, failedCount: 0, totalAttempted: 0 };
     }
 }
 
 async function globalTeardown() {
     console.info('---- Executing Nala Global Teardown ----\n');
-
-    if (process.env.GITHUB_ACTIONS === 'true' || process.env.CIRCLECI || process.env.LOCAL_TEST_LIVE_URL) {
+    try {
         await cleanupClonedCards();
-    } else {
-        console.info('Skipping cleanup - not in test environment');
+    } catch (error) {
+        console.error('❌ Global teardown failed:', error.message);
     }
-
     console.info('---- Nala Global Teardown Complete ----\n');
 }
 

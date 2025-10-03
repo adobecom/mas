@@ -70,11 +70,6 @@ const masTestWrapper = (name, testFn) => {
             // Call the actual test function
             return await testFn({ page, baseURL, browserName, context, request });
         } finally {
-            // Cleanup only runs for save tests (when clonedCardID is set)
-            if (clonedCardID) {
-                await studio.cleanupAfterTest(editor, clonedCardID, baseURL, miloLibs);
-            }
-
             // Always save request count last
             GlobalRequestCounter.saveCountToFileSync();
         }

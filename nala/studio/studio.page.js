@@ -1,4 +1,5 @@
 import { expect } from '@playwright/test';
+import { getCurrentRunId } from '../utils/fragment-tracker.js';
 import OSTPage from './ost.page';
 
 export default class StudioPage {
@@ -152,9 +153,10 @@ export default class StudioPage {
                     timeout: 5000,
                 });
 
-                // Enter fragment title
+                // Enter fragment title with run ID
+                const runId = getCurrentRunId();
                 const titleInput = this.page.locator('sp-dialog[variant="confirmation"] sp-textfield input');
-                await titleInput.fill('MAS Nala Automation Cloned Fragment');
+                await titleInput.fill(`MAS Nala Automation Cloned Fragment [${runId}]`);
 
                 await this.page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Clone")').click();
 

@@ -36,7 +36,7 @@ const getResponse = async (description, cta) => {
     mockDictionary();
     return await replace.process({
         status: 200,
-        transformer: 'replace',
+        loggedTransformer: 'replace',
         requestId: 'mas-replace-ut',
         surface: 'sandbox',
         locale: 'fr_FR',
@@ -55,7 +55,7 @@ const expectedResponse = (description) => ({
             cta: 'Buy now',
         },
     },
-    transformer: 'replace',
+    loggedTransformer: 'replace',
     requestId: 'mas-replace-ut',
     dictionaryId: 'fr_FR_dictionary',
     locale: 'fr_FR',

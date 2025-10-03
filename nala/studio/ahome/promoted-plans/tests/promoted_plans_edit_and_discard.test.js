@@ -1,5 +1,5 @@
 import { test, expect, studio, editor, promotedplans, miloLibs } from '../../../../libs/mas-test.js';
-import AHPromotedPlansSpec from '../specs/promoted_plans_edit.spec.js';
+import AHPromotedPlansSpec from '../specs/promoted_plans_edit_and_discard.spec.js';
 
 const { features } = AHPromotedPlansSpec;
 

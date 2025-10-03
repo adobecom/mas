@@ -11,7 +11,7 @@ import {
     webUtil,
     miloLibs,
 } from '../../../../../libs/mas-test.js';
-import ACOMPlansIndividualsSpec from '../specs/individuals_edit.spec.js';
+import ACOMPlansIndividualsSpec from '../specs/individuals_edit_and_discard.spec.js';
 
 const { features } = ACOMPlansIndividualsSpec;
 

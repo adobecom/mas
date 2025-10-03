@@ -10,7 +10,7 @@ import {
     webUtil,
     miloLibs,
 } from '../../../../libs/mas-test.js';
-import CCDSuggestedSpec from '../specs/suggested_edit.spec.js';
+import CCDSuggestedSpec from '../specs/suggested_edit_and_discard.spec.js';
 
 const { features } = CCDSuggestedSpec;
 

@@ -10,7 +10,7 @@ import {
     webUtil,
     miloLibs,
 } from '../../../../libs/mas-test.js';
-import CCDSliceSpec from '../specs/slice_edit.spec.js';
+import CCDSliceSpec from '../specs/slice_edit_and_discard.spec.js';
 
 const { features } = CCDSliceSpec;
 

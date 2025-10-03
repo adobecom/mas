@@ -10,7 +10,7 @@ import {
     webUtil,
     miloLibs,
 } from '../../../../libs/mas-test.js';
-import AHTryBuyWidgetSpec from '../specs/try_buy_widget_edit.spec.js';
+import AHTryBuyWidgetSpec from '../specs/try_buy_widget_edit_and_discard.spec.js';
 
 const { features } = AHTryBuyWidgetSpec;
 test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {

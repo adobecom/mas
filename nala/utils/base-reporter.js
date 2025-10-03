@@ -116,10 +116,10 @@ export default class BaseReporter {
     \x1b[1m\x1b[33m# Test Pass          :\x1b[0m \x1b[32m${this.passedTests} (${passPercentage}%)\x1b[0m
     \x1b[1m\x1b[33m# Test Fail          :\x1b[0m \x1b[31m${this.failedTests} (${failPercentage}%)\x1b[0m
     \x1b[1m\x1b[33m# Test Skipped       :\x1b[0m \x1b[32m${this.skippedTests}\x1b[0m
-    \x1b[1m\x1b[33m** Application URL  :\x1b[0m \x1b[32m${envURL}\x1b[0m
-    \x1b[1m\x1b[33m** Executed on      :\x1b[0m \x1b[32m${exeEnv}\x1b[0m
-    \x1b[1m\x1b[33m** Execution details:\x1b[0m \x1b[32m${runUrl}\x1b[0m
-    \x1b[1m\x1b[33m** Workflow name    :\x1b[0m \x1b[32m${runName}\x1b[0m`;
+    \x1b[1m\x1b[33m** Application URL   :\x1b[0m \x1b[32m${envURL}\x1b[0m
+    \x1b[1m\x1b[33m** Executed on       :\x1b[0m \x1b[32m${exeEnv}\x1b[0m
+    \x1b[1m\x1b[33m** Execution details :\x1b[0m \x1b[32m${runUrl}\x1b[0m
+    \x1b[1m\x1b[33m** Workflow name     :\x1b[0m \x1b[32m${runName}\x1b[0m`;
 
         console.log(summary);
 

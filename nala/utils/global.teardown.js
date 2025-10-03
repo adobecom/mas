@@ -8,6 +8,12 @@ async function cleanupClonedCards() {
         // Get the current run ID
         const currentRunId = getExistingRunId();
 
+        // On GitHub Actions, check if separate cleanup step should be skipped and run automatic teardown in test run instead
+        if (process.env.GITHUB_ACTIONS === 'true' && !process.env.NALA_MANUAL_CLEANUP_ENABLED) {
+            console.info('⏭️ Separate cleanup step skipped - relying on automatic teardown only');
+            return { success: true, deletedCount: 0, deletedIds: [], skipped: true };
+        }
+
         if (!currentRunId) {
             console.info('✅ No run ID found - no fragments to clean up');
             return { success: true, deletedCount: 0, deletedIds: [] };
@@ -198,7 +204,7 @@ async function cleanupClonedCards() {
             }
 
             // Log the combined results from all paths
-            console.log(`🎯 Found ${totalFragmentsFound} fragments to delete`);
+            console.log(`🎯 Found Total ${totalFragmentsFound} fragments to delete`);
 
             if (totalFragmentsDeleted > 0) {
                 console.log(`✅ Successfully deleted ${totalFragmentsDeleted} fragments`);

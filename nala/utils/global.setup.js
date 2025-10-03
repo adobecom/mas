@@ -139,6 +139,21 @@ async function globalSetup() {
     const runId = createRunId();
     console.info(`🆔 Test suite run ID: ${runId}\n`);
 
+    // Store run ID in GitHub environment for cross-step access
+    if (process.env.GITHUB_ACTIONS === 'true' && process.env.GITHUB_ENV) {
+        try {
+            const fs = await import('fs');
+            fs.appendFileSync(process.env.GITHUB_ENV, `NALA_RUN_ID=${runId}\n`);
+            // Set a flag indicating that separate cleanup step should run
+            fs.appendFileSync(process.env.GITHUB_ENV, `NALA_MANUAL_CLEANUP_ENABLED=true\n`);
+            console.info(`📝 Stored run ID in GitHub environment for cross-step access\n`);
+        } catch (error) {
+            console.warn(`⚠️ Could not store run ID in GitHub environment: ${error.message}`);
+            console.info(`🔄 Manual cleanup will be skipped - relying on automatic teardown only\n`);
+            // NALA_MANUAL_CLEANUP_ENABLED not set, so separate cleanup step will be skipped and automatic teardown will run in test run instead
+        }
+    }
+
     // Reset request counter for fresh test run
     try {
         GlobalRequestCounter.reset();

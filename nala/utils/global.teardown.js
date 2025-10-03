@@ -44,149 +44,176 @@ async function cleanupClonedCards() {
         const baseURL =
             process.env.PR_BRANCH_LIVE_URL || process.env.LOCAL_TEST_LIVE_URL || 'https://main--mas--adobecom.aem.live';
 
+        // Define paths to check for fragments (different locales/views)
+        const pathsToCheck = [
+            '#page=content&path=nala', // Default path
+            '#locale=fr_FR&page=content&path=nala', // French locale path
+        ];
+
+        let totalFragmentsFound = 0;
+        let totalFragmentsDeleted = 0;
+        let allFailedFragments = [];
+
         try {
-            await page.goto(`${baseURL}/studio.html#page=content&path=nala`);
-            await page.waitForLoadState('domcontentloaded');
+            // Check each path for fragments
+            for (const pathFragment of pathsToCheck) {
+                console.log(`📍 Checking path: ${pathFragment}`);
 
-            await page.waitForFunction(
-                () => {
-                    const repo = document.querySelector('mas-repository');
-                    return repo && repo.aem && repo.aem.deleteFragment;
-                },
-                { timeout: 30000 },
-            );
+                await page.goto(`${baseURL}/studio.html${pathFragment}`);
+                await page.waitForLoadState('domcontentloaded');
 
-            // Wait a bit longer for fragments to be loaded from the test
-            await page.waitForTimeout(3000);
+                await page.waitForFunction(
+                    () => {
+                        const repo = document.querySelector('mas-repository');
+                        return repo && repo.aem && repo.aem.deleteFragment;
+                    },
+                    { timeout: 30000 },
+                );
 
-            // If no fragments found, wait a bit more and check cache
-            const fragmentCount = await page.evaluate(() => {
-                return document.querySelectorAll('mas-fragment-render').length;
-            });
+                // Wait a bit longer for fragments to be loaded from the test
+                await page.waitForTimeout(3000);
 
-            if (fragmentCount === 0) {
-                await page.waitForTimeout(2000);
-            }
-
-            const cleanupResult = await page.evaluate((runId) => {
-                const repo = document.querySelector('mas-repository');
-                if (!repo || !repo.aem || !repo.aem.deleteFragment) {
-                    return {
-                        success: false,
-                        error: 'mas-repository not ready for deletion',
-                        deletedCount: 0,
-                        failedCount: 0,
-                        totalAttempted: 0,
-                    };
-                }
-
-                // Find fragments with nala run ID in their title
-                const cache = document.createElement('aem-fragment').cache;
-                const masFragmentRenderElements = [...document.querySelectorAll('mas-fragment-render')];
-                const matchingFragments = [];
-
-                masFragmentRenderElements.forEach((element) => {
-                    const dataId = element.getAttribute('data-id');
-                    if (!dataId) return;
-
-                    // Check if fragment title contains our run ID
-                    if (cache) {
-                        const fragmentData = cache.get(dataId);
-                        if (fragmentData && fragmentData.title && fragmentData.title.includes(`[${runId}]`)) {
-                            matchingFragments.push({
-                                id: dataId,
-                                title: fragmentData.title,
-                                fragment: fragmentData, // Store the full fragment object
-                            });
-                        }
-                    }
+                // If no fragments found, wait a bit more and check cache
+                const fragmentCount = await page.evaluate(() => {
+                    return document.querySelectorAll('mas-fragment-render').length;
                 });
 
-                // Also check if fragments might be in cache but not in DOM yet
-                if (matchingFragments.length === 0 && cache && cache.entries) {
-                    const cacheEntries = [...cache.entries()];
+                if (fragmentCount === 0) {
+                    await page.waitForTimeout(2000);
+                }
 
-                    cacheEntries.forEach(([id, fragment]) => {
-                        if (fragment && fragment.title && fragment.title.includes(`[${runId}]`)) {
-                            matchingFragments.push({
-                                id: id,
-                                title: fragment.title,
-                                fragment: fragment, // Store the full fragment object
-                            });
+                const cleanupResult = await page.evaluate((runId) => {
+                    const repo = document.querySelector('mas-repository');
+                    if (!repo || !repo.aem || !repo.aem.deleteFragment) {
+                        return {
+                            success: false,
+                            error: 'mas-repository not ready for deletion',
+                            deletedCount: 0,
+                            failedCount: 0,
+                            totalAttempted: 0,
+                        };
+                    }
+
+                    // Find fragments with nala run ID in their title
+                    const cache = document.createElement('aem-fragment').cache;
+                    const masFragmentRenderElements = [...document.querySelectorAll('mas-fragment-render')];
+                    const matchingFragments = [];
+
+                    masFragmentRenderElements.forEach((element) => {
+                        const dataId = element.getAttribute('data-id');
+                        if (!dataId) return;
+
+                        // Check if fragment title contains our run ID
+                        if (cache) {
+                            const fragmentData = cache.get(dataId);
+                            if (fragmentData && fragmentData.title && fragmentData.title.includes(`[${runId}]`)) {
+                                matchingFragments.push({
+                                    id: dataId,
+                                    title: fragmentData.title,
+                                    fragment: fragmentData, // Store the full fragment object
+                                });
+                            }
                         }
                     });
-                }
 
-                if (matchingFragments.length === 0) {
-                    return {
-                        success: true,
-                        deletedCount: 0,
-                        deletedIds: [],
-                        failedCount: 0,
-                        totalAttempted: 0,
-                        message: 'No fragments found with run ID',
-                        fragmentsFound: 0,
-                    };
-                }
+                    // Also check if fragments might be in cache but not in DOM yet
+                    if (matchingFragments.length === 0 && cache && cache.entries) {
+                        const cacheEntries = [...cache.entries()];
 
-                // Delete each fragment
-                const deletePromises = matchingFragments.map(async (fragmentInfo) => {
-                    try {
-                        await repo.aem.deleteFragment(fragmentInfo.fragment);
-                        return { id: fragmentInfo.id, success: true };
-                    } catch (error) {
-                        const errorMessage = error.message || error.toString();
-                        return { id: fragmentInfo.id, success: false, error: errorMessage };
+                        cacheEntries.forEach(([id, fragment]) => {
+                            if (fragment && fragment.title && fragment.title.includes(`[${runId}]`)) {
+                                matchingFragments.push({
+                                    id: id,
+                                    title: fragment.title,
+                                    fragment: fragment, // Store the full fragment object
+                                });
+                            }
+                        });
                     }
-                });
 
-                return Promise.allSettled(deletePromises).then((results) => {
-                    const successful = results
-                        .filter((result) => result.status === 'fulfilled' && result.value.success)
-                        .map((result) => result.value.id);
+                    if (matchingFragments.length === 0) {
+                        return {
+                            success: true,
+                            deletedCount: 0,
+                            deletedIds: [],
+                            failedCount: 0,
+                            totalAttempted: 0,
+                            message: 'No fragments found with run ID',
+                            fragmentsFound: 0,
+                        };
+                    }
 
-                    const failed = results
-                        .filter(
-                            (result) =>
-                                result.status === 'rejected' || (result.status === 'fulfilled' && !result.value.success),
-                        )
-                        .map((result) => ({
-                            id: result.status === 'fulfilled' ? result.value.id : 'unknown',
-                            error: result.status === 'fulfilled' ? result.value.error : result.reason.message,
-                        }));
+                    // Delete each fragment
+                    const deletePromises = matchingFragments.map(async (fragmentInfo) => {
+                        try {
+                            await repo.aem.deleteFragment(fragmentInfo.fragment);
+                            return { id: fragmentInfo.id, success: true };
+                        } catch (error) {
+                            const errorMessage = error.message || error.toString();
+                            return { id: fragmentInfo.id, success: false, error: errorMessage };
+                        }
+                    });
 
-                    return {
-                        success: failed.length === 0,
-                        deletedCount: successful.length,
-                        deletedIds: successful,
-                        failedCount: failed.length,
-                        failedFragments: failed,
-                        totalAttempted: matchingFragments.length,
-                        fragmentsFound: matchingFragments.length,
-                    };
-                });
-            }, currentRunId);
+                    return Promise.allSettled(deletePromises).then((results) => {
+                        const successful = results
+                            .filter((result) => result.status === 'fulfilled' && result.value.success)
+                            .map((result) => result.value.id);
 
-            // Log the fragments found count (from Node.js context so it appears in terminal)
-            console.log(`🎯 Found ${cleanupResult.fragmentsFound || 0} fragments to delete`);
+                        const failed = results
+                            .filter(
+                                (result) =>
+                                    result.status === 'rejected' || (result.status === 'fulfilled' && !result.value.success),
+                            )
+                            .map((result) => ({
+                                id: result.status === 'fulfilled' ? result.value.id : 'unknown',
+                                error: result.status === 'fulfilled' ? result.value.error : result.reason.message,
+                            }));
 
-            if (cleanupResult.deletedCount > 0) {
-                console.log(`✅ Successfully deleted ${cleanupResult.deletedCount} fragments`);
-            } else if (cleanupResult.success && cleanupResult.totalAttempted === 0) {
+                        return {
+                            success: failed.length === 0,
+                            deletedCount: successful.length,
+                            deletedIds: successful,
+                            failedCount: failed.length,
+                            failedFragments: failed,
+                            totalAttempted: matchingFragments.length,
+                            fragmentsFound: matchingFragments.length,
+                        };
+                    });
+                }, currentRunId);
+
+                // Log results for this specific path
+                if (cleanupResult.fragmentsFound > 0) {
+                    console.log(`  ✅ Found ${cleanupResult.fragmentsFound} fragments, deleted ${cleanupResult.deletedCount}`);
+                } else {
+                    console.log(`  ➖ No fragments found in this path`);
+                }
+
+                // Accumulate results from this path
+                totalFragmentsFound += cleanupResult.fragmentsFound || 0;
+                totalFragmentsDeleted += cleanupResult.deletedCount || 0;
+
+                if (cleanupResult.failedFragments) {
+                    allFailedFragments.push(...cleanupResult.failedFragments);
+                }
+            }
+
+            // Log the combined results from all paths
+            console.log(`🎯 Found ${totalFragmentsFound} fragments to delete`);
+
+            if (totalFragmentsDeleted > 0) {
+                console.log(`✅ Successfully deleted ${totalFragmentsDeleted} fragments`);
+            } else if (totalFragmentsFound === 0) {
                 console.log('✅ No fragments found to clean up');
             }
 
-            if (!cleanupResult.success) {
-                const errorMsg =
-                    cleanupResult.error ||
-                    `${cleanupResult.failedCount}/${cleanupResult.totalAttempted} fragments failed to delete`;
-                console.error(`❌ Cleanup failed: ${errorMsg}`);
-                if (cleanupResult.failedCount > 0 && cleanupResult.failedFragments) {
-                    console.error('Failed fragments:');
-                    cleanupResult.failedFragments.forEach((fragment) => {
-                        console.error(`  - ${fragment.id}: ${fragment.error}`);
-                    });
-                }
+            if (allFailedFragments.length > 0) {
+                console.error(
+                    `❌ Cleanup failed: ${allFailedFragments.length}/${totalFragmentsFound} fragments failed to delete`,
+                );
+                console.error('Failed fragments:');
+                allFailedFragments.forEach((fragment) => {
+                    console.error(`  - ${fragment.id}: ${fragment.error}`);
+                });
             }
 
             clearRunId();
@@ -196,7 +223,12 @@ async function cleanupClonedCards() {
             // Save teardown request count to contribute to total suite count
             GlobalRequestCounter.saveCountToFileSync();
 
-            return cleanupResult;
+            return {
+                success: allFailedFragments.length === 0,
+                deletedCount: totalFragmentsDeleted,
+                failedCount: allFailedFragments.length,
+                totalAttempted: totalFragmentsFound,
+            };
         } catch (error) {
             await browser.close();
             clearRunId();

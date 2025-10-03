@@ -9,8 +9,7 @@ const config = {
     testDir: './nala',
     outputDir: './test-results',
     globalSetup: './nala/utils/global.setup.js',
-    // Only use automatic teardown outside of GitHub Actions
-    globalTeardown: process.env.GITHUB_ACTIONS ? undefined : './nala/utils/global.teardown.js',
+    globalTeardown: './nala/utils/global.teardown.js',
     /* Maximum time one test can run for. */
     timeout: 45 * 1000,
     expect: {

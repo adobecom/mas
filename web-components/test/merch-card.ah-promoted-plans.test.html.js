@@ -14,6 +14,7 @@ import { mockIms } from './mocks/ims.js';
 import { withWcs } from './mocks/wcs.js';
 import mas from './mas.js';
 
+// eslint-disable-next-line import/no-default-export
 export default async () => {
     return runTests(async () => {
         mockIms();
@@ -51,7 +52,7 @@ export default async () => {
                 );
                 expect(
                     normalBorderCard.style.getPropertyValue(
-                        '--merch-card-custom-border-color',
+                        '--consonant-merch-card-border-color',
                     ),
                 ).to.equal('var(--spectrum-gray-200)');
             });
@@ -68,7 +69,7 @@ export default async () => {
                 ).to.include('linear-gradient');
                 expect(
                     gradientBorderCard.style.getPropertyValue(
-                        '--merch-card-custom-border-color',
+                        '--consonant-merch-card-border-color',
                     ),
                 ).to.equal('');
             });

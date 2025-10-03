@@ -54,7 +54,8 @@ export const SELECTOR_MAS_INLINE_PRICE =
 export const SELECTOR_MAS_CHECKOUT_LINK =
     'a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';
 export const SELECTOR_MAS_SP_BUTTON = 'sp-button[data-wcs-osi]';
-export const SELECTOR_MAS_ELEMENT = `${SELECTOR_MAS_INLINE_PRICE},${SELECTOR_MAS_CHECKOUT_LINK}`;
+export const SELECTOR_MAS_UPT_LINK = 'a[is="upt-link"]';
+export const SELECTOR_MAS_ELEMENT = `${SELECTOR_MAS_INLINE_PRICE},${SELECTOR_MAS_CHECKOUT_LINK},${SELECTOR_MAS_UPT_LINK}`;
 
 /** Event to dispatch when a merch-offer is ready */
 export const EVENT_MERCH_OFFER_READY = 'merch-offer:ready';
@@ -82,6 +83,12 @@ export const EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE =
 export const EVENT_MERCH_SEARCH_CHANGE = 'merch-search:change';
 
 export const EVENT_MERCH_CARD_COLLECTION_SORT = 'merch-card-collection:sort';
+
+export const EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED =
+    'merch-card-collection:literals-changed';
+
+export const EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED =
+    'merch-card-collection:sidenav-attached';
 
 export const EVENT_MERCH_CARD_COLLECTION_SHOWMORE =
     'merch-card-collection:showmore';
@@ -165,3 +172,8 @@ export const TEMPLATE_PRICE_ANNUAL = 'annual';
 export const TEMPLATE_PRICE_LEGAL = 'legal';
 
 export const FF_DEFAULTS = 'mas-ff-defaults';
+
+export const SORT_ORDER = {
+    alphabetical: 'alphabetical',
+    authored: 'authored',
+};

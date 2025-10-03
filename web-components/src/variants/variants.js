@@ -14,6 +14,11 @@ import {
     SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING,
     SpecialOffer,
 } from './special-offer.js';
+import {
+    SimplifiedPricingExpress,
+    SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+} from './simplified-pricing-express.js';
+import { Mini, MINI_AEM_FRAGMENT_MAPPING } from './mini.js';
 
 // Registry for dynamic variants
 const variantRegistry = new Map();
@@ -24,11 +29,13 @@ export const registerVariant = (
     variantClass,
     fragmentMapping = null,
     style = null,
+    collectionOptions,
 ) => {
     variantRegistry.set(name, {
         class: variantClass,
         fragmentMapping,
         style,
+        collectionOptions,
     });
 };
 
@@ -47,18 +54,26 @@ registerVariant(
     null,
     MiniCompareChart.variantStyle,
 );
-registerVariant('plans', Plans, PLANS_AEM_FRAGMENT_MAPPING, Plans.variantStyle);
+registerVariant(
+    'plans',
+    Plans,
+    PLANS_AEM_FRAGMENT_MAPPING,
+    Plans.variantStyle,
+    Plans.collectionOptions,
+);
 registerVariant(
     'plans-students',
     Plans,
     PLANS_STUDENTS_AEM_FRAGMENT_MAPPING,
     Plans.variantStyle,
+    Plans.collectionOptions,
 );
 registerVariant(
     'plans-education',
     Plans,
     PLANS_EDUCATION_AEM_FRAGMENT_MAPPING,
     Plans.variantStyle,
+    Plans.collectionOptions,
 );
 registerVariant('product', Product, null, Product.variantStyle);
 registerVariant('segment', Segment, null, Segment.variantStyle);
@@ -68,11 +83,18 @@ registerVariant(
     SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING,
     SpecialOffer.variantStyle,
 );
+registerVariant(
+    'simplified-pricing-express',
+    SimplifiedPricingExpress,
+    SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+    SimplifiedPricingExpress.variantStyle,
+);
+registerVariant('mini', Mini, MINI_AEM_FRAGMENT_MAPPING, Mini.variantStyle);
 
-const getVariantLayout = (card, mustMatch = false) => {
+const getVariantLayout = (card) => {
     const variantInfo = variantRegistry.get(card.variant);
     if (!variantInfo) {
-        return mustMatch ? undefined : new Product(card);
+        return undefined;
     }
     const { class: VariantClass, style } = variantInfo;
     if (style) {
@@ -92,6 +114,10 @@ const getVariantLayout = (card, mustMatch = false) => {
 
 export function getFragmentMapping(variant) {
     return variantRegistry.get(variant)?.fragmentMapping;
+}
+
+export function getCollectionOptions(variant) {
+    return variantRegistry.get(variant)?.collectionOptions;
 }
 
 export { getVariantLayout };

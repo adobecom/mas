@@ -99,9 +99,7 @@
                     <code>mas.js</code> for browser compatibility (not required
                     for in-app usage).
                 </p>
-                <pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">script</span>
-    <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;https://www.adobe.comlibs/deps/custom-elements.js&quot;</span>
-&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
+                <pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;https://www.adobe.comlibs/deps/custom-elements.js&quot;</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
 </code></pre>
                 <p>
                     To add <code>mas.js</code> to your page or application,
@@ -291,6 +289,44 @@
                                 content from Odin. This results in card content
                                 update with offers
                             </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <h3 id="feature-flags" tabindex="-1">
+                    Feature flags
+                    <a
+                        class="header-anchor"
+                        href="#feature-flags"
+                        href="#feature-flags"
+                        title="Permalink to this heading"
+                        >#</a
+                    >
+                </h3>
+                <p>Feature flags can be set via a meta tag.</p>
+                <p>
+                    e.g
+                    <code
+                        >&lt;meta name=&quot;mas-ff-defaults&quot;
+                        content=&quot;on&quot;&gt;</code
+                    >
+                </p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Default Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>mas-ff-defaults</code></td>
+                            <td>
+                                Enables good defaults for each locales and
+                                segments so that authors don’t have to set them
+                                manually.
+                            </td>
+                            <td><code>off</code></td>
                         </tr>
                     </tbody>
                 </table>

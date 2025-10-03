@@ -5,6 +5,8 @@ import { CSS } from './ah-try-buy-widget.css.js';
 export const AH_TRY_BUY_WIDGET_AEM_FRAGMENT_MAPPING = {
     mnemonics: { size: 's' },
     title: { tag: 'h3', slot: 'heading-xxxs', maxCount: 40, withSuffix: true },
+    badge: { tag: 'div', slot: 'badge', default: 'fuchsia' },
+    allowedBadgeColors: ['fuchsia'],
     description: {
         tag: 'div',
         slot: 'body-xxs',
@@ -16,9 +18,7 @@ export const AH_TRY_BUY_WIDGET_AEM_FRAGMENT_MAPPING = {
     backgroundImage: { tag: 'div', slot: 'image' },
     backgroundColor: { attribute: 'background-color' },
     borderColor: { attribute: 'border-color', specialValues: {} },
-    allowedColors: {
-        gray: '--spectrum-gray-100',
-    },
+    allowedColors: { gray: '--spectrum-gray-100' },
     size: ['single', 'double', 'triple'],
 };
 
@@ -48,6 +48,7 @@ export class AHTryBuyWidget extends VariantLayout {
                 </div>
             </div>
             <slot name="image"></slot>
+            <slot name="badge"></slot>
             <slot></slot>
         `;
     }
@@ -61,7 +62,7 @@ export class AHTryBuyWidget extends VariantLayout {
             --merch-card-ah-try-buy-widget-text-color: rgba(19, 19, 19);
             --merch-card-ah-try-buy-widget-price-line-height: 17px;
             --merch-card-ah-try-buy-widget-outline: transparent;
-            --merch-card-custom-border-width: 1px;
+            --consonant-merch-card-border-width: 1px;
             height: 100%;
             min-width: var(--merch-card-ah-try-buy-widget-min-width);
             background-color: var(
@@ -70,7 +71,8 @@ export class AHTryBuyWidget extends VariantLayout {
             );
             color: var(--consonant-merch-card-heading-xxxs-color);
             border-radius: 10px;
-            border: 1px solid var(--merch-card-custom-border-color, transparent);
+            border: 1px solid
+                var(--consonant-merch-card-border-color, transparent);
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -130,8 +132,7 @@ export class AHTryBuyWidget extends VariantLayout {
             flex-wrap: wrap;
             gap: 8px;
             flex-direction: row;
+            align-self: flex-end;
         }
     `;
 }
-
-customElements.define('ah-try-buy-widget', AHTryBuyWidget);

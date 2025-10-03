@@ -4,7 +4,6 @@ import {
     isPositiveFiniteNumber,
     toPositiveFiniteInteger,
 } from '@dexter/tacocat-core';
-
 import { HEADER_X_REQUEST_ID } from './constants';
 
 const MAS_COMMERCE_SERVICE = 'mas-commerce-service';
@@ -21,10 +20,7 @@ export const FETCH_INFO_HEADERS = {
  * @param {Commerce.Options} options
  * @returns {Offer[]}
  */
-export function selectOffers(
-    offers,
-    { country, forceTaxExclusive, perpetual },
-) {
+export function selectOffers(offers, { country, forceTaxExclusive }) {
     let selected;
     if (offers.length < 2) selected = offers;
     else {
@@ -34,7 +30,11 @@ export function selectOffers(
             a.language === language ? -1 : b.language === language ? 1 : 0,
         );
         // sort offers, first should be offers that don't have 'term' field
-        offers.sort((a, b) => (a.term ? 1 : b.term ? -1 : 0));
+        offers.sort((a, b) => {
+            if (!a.term && b.term) return -1;
+            if (a.term && !b.term) return 1;
+            return 0;
+        });
         selected = [offers[0]];
     }
     if (forceTaxExclusive) {

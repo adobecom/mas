@@ -468,6 +468,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.calloutRTE).toContainText(data.calloutText.original);
             await editor.calloutRTE.click();
             await editor.calloutRTE.fill('');
+            await page.waitForTimeout(1000);
         });
 
         await test.step('step-4: Validate callout field is removed', async () => {

@@ -1,39 +1,16 @@
-import { expect, test } from '@playwright/test';
-import StudioPage from '../../../studio.page.js';
-import EditorPage from '../../../editor.page.js';
+import {
+    test,
+    expect,
+    studio,
+    editor,
+    promotedplans,
+    setClonedCardID,
+    getClonedCardID,
+    miloLibs,
+} from '../../../../libs/mas-test.js';
 import AHPromotedPlansSpec from '../specs/promoted_plans_save.spec.js';
-import AHPromotedPlansPage from '../promoted-plans.page.js';
-import OSTPage from '../../../ost.page.js';
-import WebUtil from '../../../../libs/webutil.js';
 
 const { features } = AHPromotedPlansSpec;
-const miloLibs = process.env.MILO_LIBS || '';
-
-let studio;
-let editor;
-let promotedplans;
-let ost;
-let webUtil;
-let clonedCardID;
-
-test.beforeEach(async ({ page, browserName }) => {
-    test.slow();
-    if (browserName === 'chromium') {
-        await page.setExtraHTTPHeaders({
-            'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
-        });
-    }
-    studio = new StudioPage(page);
-    editor = new EditorPage(page);
-    promotedplans = new AHPromotedPlansPage(page);
-    ost = new OSTPage(page);
-    webUtil = new WebUtil(page);
-    clonedCardID = '';
-});
-
-test.afterEach(async ({ baseURL }) => {
-    await studio.cleanupAfterTest(editor, clonedCardID, baseURL, miloLibs);
-});
 
 test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
     // @studio-promoted-plans-save-edited-border - Validate saving card after editing border
@@ -51,8 +28,8 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);
@@ -87,8 +64,8 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);
@@ -123,8 +100,8 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);
@@ -167,8 +144,8 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);

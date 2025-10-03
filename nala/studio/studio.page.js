@@ -416,9 +416,6 @@ export default class StudioPage {
             await this.deleteCard(clonedCardID);
             await expect(await card).not.toBeVisible();
         }
-
-        // Close the page
-        await this.page.close();
     }
 
     async discardEditorChanges(editor) {

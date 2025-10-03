@@ -1,40 +1,18 @@
-import { expect, test } from '@playwright/test';
-import StudioPage from '../../../studio.page.js';
-import EditorPage from '../../../editor.page.js';
-import AHTryBuyWidgetSpec from '../specs/try_buy_widget_edit_and_discard.spec.js';
-import AHTryBuyWidgetPage from '../try-buy-widget.page.js';
-import CCDSlicePage from '../../../ccd/slice/slice.page.js';
-import CCDSuggestedPage from '../../../ccd/suggested/suggested.page.js';
-import OSTPage from '../../../ost.page.js';
-import WebUtil from '../../../../libs/webutil.js';
+import {
+    test,
+    expect,
+    studio,
+    editor,
+    slice,
+    suggested,
+    trybuywidget,
+    ost,
+    webUtil,
+    miloLibs,
+} from '../../../../libs/mas-test.js';
+import AHTryBuyWidgetSpec from '../specs/try_buy_widget_edit.spec.js';
 
 const { features } = AHTryBuyWidgetSpec;
-const miloLibs = process.env.MILO_LIBS || '';
-
-let studio;
-let editor;
-let slice;
-let suggested;
-let trybuywidget;
-let ost;
-let webUtil;
-
-test.beforeEach(async ({ page, browserName }) => {
-    test.slow();
-    if (browserName === 'chromium') {
-        await page.setExtraHTTPHeaders({
-            'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
-        });
-    }
-    studio = new StudioPage(page);
-    editor = new EditorPage(page);
-    slice = new CCDSlicePage(page);
-    suggested = new CCDSuggestedPage(page);
-    trybuywidget = new AHTryBuyWidgetPage(page);
-    ost = new OSTPage(page);
-    webUtil = new WebUtil(page);
-});
-
 test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     // @studio-try-buy-widget-edit-discard-title - Validate editing title for try buy widget card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {

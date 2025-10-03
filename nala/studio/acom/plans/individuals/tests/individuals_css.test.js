@@ -1,27 +1,7 @@
-import { expect, test } from '@playwright/test';
-import StudioPage from '../../../../studio.page.js';
+import { test, expect, studio, individuals, webUtil, miloLibs } from '../../../../../libs/mas-test.js';
 import ACOMPlansIndividualsSpec from '../specs/individuals_css.spec.js';
-import ACOMPlansIndividualsPage from '../individuals.page.js';
-import WebUtil from '../../../../../libs/webutil.js';
 
 const { features } = ACOMPlansIndividualsSpec;
-const miloLibs = process.env.MILO_LIBS || '';
-
-let studio;
-let individuals;
-let webUtil;
-
-test.beforeEach(async ({ page, browserName }) => {
-    test.slow();
-    if (browserName === 'chromium') {
-        await page.setExtraHTTPHeaders({
-            'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
-        });
-    }
-    studio = new StudioPage(page);
-    individuals = new ACOMPlansIndividualsPage(page);
-    webUtil = new WebUtil(page);
-});
 
 test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
     // @studio-plans-individuals-css - Validate all CSS properties for plans individuals card

@@ -1,45 +1,20 @@
-import { expect, test } from '@playwright/test';
-import StudioPage from '../../../studio.page.js';
-import EditorPage from '../../../editor.page.js';
+import {
+    test,
+    expect,
+    studio,
+    editor,
+    slice,
+    suggested,
+    trybuywidget,
+    ost,
+    setClonedCardID,
+    getClonedCardID,
+    webUtil,
+    miloLibs,
+} from '../../../../libs/mas-test.js';
 import AHTryBuyWidgetSpec from '../specs/try_buy_widget_save.spec.js';
-import AHTryBuyWidgetPage from '../try-buy-widget.page.js';
-import CCDSlicePage from '../../../ccd/slice/slice.page.js';
-import CCDSuggestedPage from '../../../ccd/suggested/suggested.page.js';
-import OSTPage from '../../../ost.page.js';
-import WebUtil from '../../../../libs/webutil.js';
 
 const { features } = AHTryBuyWidgetSpec;
-const miloLibs = process.env.MILO_LIBS || '';
-
-let studio;
-let editor;
-let trybuywidget;
-let slice;
-let suggested;
-let ost;
-let clonedCardID;
-let webUtil;
-
-test.beforeEach(async ({ page, browserName }) => {
-    test.slow();
-    if (browserName === 'chromium') {
-        await page.setExtraHTTPHeaders({
-            'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
-        });
-    }
-    studio = new StudioPage(page);
-    editor = new EditorPage(page);
-    trybuywidget = new AHTryBuyWidgetPage(page);
-    slice = new CCDSlicePage(page);
-    suggested = new CCDSuggestedPage(page);
-    ost = new OSTPage(page);
-    clonedCardID = '';
-    webUtil = new WebUtil(page);
-});
-
-test.afterEach(async ({ baseURL }) => {
-    await studio.cleanupAfterTest(editor, clonedCardID, baseURL, miloLibs);
-});
 
 test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     // @studio-try-buy-widget-save-edited-size - Validate saving edited size for try buy widjet card in mas studio
@@ -56,8 +31,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             let clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);
@@ -96,8 +71,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             let clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);
@@ -141,8 +116,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             let clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);
@@ -186,8 +161,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             let clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);
@@ -237,8 +212,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);
@@ -285,8 +260,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);
@@ -333,8 +308,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);

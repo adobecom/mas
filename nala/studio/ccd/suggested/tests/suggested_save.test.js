@@ -1,45 +1,19 @@
-import { expect, test } from '@playwright/test';
-import StudioPage from '../../../studio.page.js';
-import EditorPage from '../../../editor.page.js';
+import {
+    test,
+    expect,
+    studio,
+    editor,
+    slice,
+    suggested,
+    trybuywidget,
+    ost,
+    setClonedCardID,
+    getClonedCardID,
+    webUtil,
+    miloLibs,
+} from '../../../../libs/mas-test.js';
 import CCDSuggestedSpec from '../specs/suggested_save.spec.js';
-import CCDSuggestedPage from '../suggested.page.js';
-import CCDSlicePage from '../../slice/slice.page.js';
-import AHTryBuyWidgetPage from '../../../ahome/try-buy-widget/try-buy-widget.page.js';
-import OSTPage from '../../../ost.page.js';
-import WebUtil from '../../../../libs/webutil.js';
-
 const { features } = CCDSuggestedSpec;
-const miloLibs = process.env.MILO_LIBS || '';
-
-let studio;
-let editor;
-let suggested;
-let slice;
-let trybuywidget;
-let ost;
-let clonedCardID;
-let webUtil;
-
-test.beforeEach(async ({ page, browserName }) => {
-    test.slow();
-    if (browserName === 'chromium') {
-        await page.setExtraHTTPHeaders({
-            'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
-        });
-    }
-    studio = new StudioPage(page);
-    editor = new EditorPage(page);
-    suggested = new CCDSuggestedPage(page);
-    slice = new CCDSlicePage(page);
-    trybuywidget = new AHTryBuyWidgetPage(page);
-    ost = new OSTPage(page);
-    clonedCardID = '';
-    webUtil = new WebUtil(page);
-});
-
-test.afterEach(async ({ baseURL }) => {
-    await studio.cleanupAfterTest(editor, clonedCardID, baseURL, miloLibs);
-});
 
 test.describe('M@S Studio CCD Suggested card test suite', () => {
     // @studio-suggested-remove-correct-fragment - Clone card then delete, verify the correct card is removed from screen
@@ -55,12 +29,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
-            let clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
-            await studio.cloneCard(clonedCardID);
+            let clonedCardOne = await studio.getCard(data.cardid, 'cloned');
+            let clonedCardOneID = await clonedCardOne.locator('aem-fragment').getAttribute('fragment');
+            data.clonedCardOneID = await clonedCardOneID;
+            await studio.cloneCard(clonedCardOneID);
 
-            let clonedCardTwo = await studio.getCard(data.cardid, 'cloned', data.clonedCardID);
+            let clonedCardTwo = await studio.getCard(data.cardid, 'cloned', data.clonedCardOneID);
 
             await expect(await clonedCardTwo).toBeVisible();
 
@@ -69,12 +43,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-3: Delete cloned cards', async () => {
-            const clonedCard = await studio.getCard(data.clonedCardID);
+            const clonedCardOne = await studio.getCard(data.clonedCardOneID);
             const clonedCardTwo = await studio.getCard(data.clonedCardTwoID);
 
-            await clonedCard.dblclick();
-            await studio.deleteCard(data.clonedCardID);
-            await expect(await clonedCard).not.toBeVisible();
+            await clonedCardOne.dblclick();
+            await studio.deleteCard(data.clonedCardOneID);
+            await expect(await clonedCardOne).not.toBeVisible();
 
             await clonedCardTwo.dblclick();
             await studio.deleteCard(data.clonedCardTwoID);
@@ -96,8 +70,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             let clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);
@@ -141,8 +115,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             let clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);
@@ -188,8 +162,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);
@@ -281,8 +255,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);
@@ -325,8 +299,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);
@@ -426,8 +400,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             let clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);

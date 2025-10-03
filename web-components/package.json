@@ -12,7 +12,9 @@
         "build:bundle": "node ./build.mjs",
         "build:bundle:dev": "npm run build:bundle sourcemap",
         "test:watch": "wtr --config ./web-test-runner.config.mjs --coverage --watch --debug",
-        "test": "wtr --config ./web-test-runner.config.mjs --coverage"
+        "test": "wtr --config ./web-test-runner.config.mjs --coverage",
+        "test:ci": "wtr --config ./web-test-runner.config.mjs --coverage",
+        "libs": "npm run build:bundle && (cd .. && aem up --port 3030)"
     },
     "devDependencies": {
         "@dexter/tacocat-core": "file:./internal/tacocat-core-1.13.1.tgz",

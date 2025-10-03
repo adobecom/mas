@@ -35,6 +35,7 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-cover-image.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-delete-outline.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-delete.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-deselect.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-divide.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-document-fragment.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-drag-handle.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-duplicate.js';

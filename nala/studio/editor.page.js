@@ -57,6 +57,12 @@ export default class EditorPage {
         this.addIcon = page.locator('#addIconButton');
         this.OSTButton = page.locator('#offerSelectorToolButton');
 
+        // Divider controls
+        this.addDividerButton = page.locator('sp-action-button[value="add-divider"], button.add-divider, #add-divider-button');
+        this.removeDividerButton = page.locator(
+            'sp-action-button[value="remove-divider"], button.remove-divider, #remove-divider-button',
+        );
+
         // Edit Link Panel
         this.checkoutParameters = page.locator('#checkoutParameters input');
         this.linkText = page.locator('#linkText input');

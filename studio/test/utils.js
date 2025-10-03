@@ -133,6 +133,24 @@ export function triggerInput(element, value) {
     element.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
 }
 
+export function triggerRteInput(element, value) {
+    if (element.editorView) {
+        const { state } = element.editorView;
+        const { schema } = state;
+        const { tr } = state;
+
+        const textNode = schema.text(value);
+        const paragraph = schema.nodes.paragraph.create(null, textNode);
+        const newDoc = schema.nodes.doc.create(null, paragraph);
+
+        const transaction = tr.replaceWith(0, state.doc.content.size, newDoc.content);
+        element.editorView.dispatch(transaction);
+    } else {
+        element.innerHTML = value;
+        element.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+    }
+}
+
 export function initElementFromTemplate(templateId, title) {
     const spTheme = document.querySelector('sp-theme');
     const [root] = getTemplateContent(templateId);

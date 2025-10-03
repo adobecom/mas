@@ -1,5 +1,5 @@
 async function cleanupClonedCards() {
-    console.info('---- Executing Nala Global Teardown: Cleaning up cloned cards ----\n');
+    console.info(`---- Executing Nala Global Teardown: Cleaning up cloned cards ----\n`);
 
     try {
         // Import fragment tracker
@@ -7,12 +7,6 @@ async function cleanupClonedCards() {
 
         // Get the current run ID
         const currentRunId = getExistingRunId();
-
-        // On GitHub Actions, check if separate cleanup step should be skipped and run automatic teardown in test run instead
-        if (process.env.GITHUB_ACTIONS === 'true' && !process.env.NALA_MANUAL_CLEANUP_ENABLED) {
-            console.info('⏭️ Separate cleanup step skipped - relying on automatic teardown only');
-            return { success: true, deletedCount: 0, deletedIds: [], skipped: true };
-        }
 
         if (!currentRunId) {
             console.info('✅ No run ID found - no fragments to clean up');
@@ -204,7 +198,7 @@ async function cleanupClonedCards() {
             }
 
             // Log the combined results from all paths
-            console.log(`🎯 Found Total ${totalFragmentsFound} fragments to delete`);
+            console.log(`\n🎯 Found Total ${totalFragmentsFound} fragments to delete`);
 
             if (totalFragmentsDeleted > 0) {
                 console.log(`✅ Successfully deleted ${totalFragmentsDeleted} fragments`);
@@ -246,13 +240,13 @@ async function cleanupClonedCards() {
 }
 
 async function globalTeardown() {
-    console.info('---- Executing Nala Global Teardown ----\n');
+    console.info(`\n---- Executing Nala Global Teardown ----\n`);
     try {
         await cleanupClonedCards();
     } catch (error) {
         console.error('❌ Global teardown failed:', error.message);
     }
-    console.info('---- Nala Global Teardown Complete ----\n');
+    console.info(`---- Nala Global Teardown Complete ----\n`);
 }
 
 export default globalTeardown;

@@ -9,12 +9,7 @@ const config = {
     testDir: './nala',
     outputDir: './test-results',
     globalSetup: './nala/utils/global.setup.js',
-    // On GitHub Actions: disable automatic teardown in test run if separate cleanup step is enabled
-    // On other environments: always use automatic teardown
-    globalTeardown:
-        process.env.GITHUB_ACTIONS === 'true' && process.env.NALA_MANUAL_CLEANUP_ENABLED === 'true'
-            ? undefined
-            : './nala/utils/global.teardown.js',
+    globalTeardown: './nala/utils/global.teardown.js',
     /* Maximum time one test can run for. */
     timeout: 45 * 1000,
     expect: {

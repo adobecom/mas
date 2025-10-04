@@ -1,4 +1,98 @@
 /**
+ * Search and delete fragments with the given run ID
+ * This function is executed in the browser context
+ */
+const searchAndDeleteFragments = ({ runId, processedIds }) => {
+    const repo = document.querySelector('mas-repository');
+    if (!repo || !repo.aem || !repo.aem.deleteFragment) {
+        return {
+            success: false,
+            error: 'mas-repository not ready for deletion',
+            deletedCount: 0,
+            failedCount: 0,
+            totalAttempted: 0,
+            fragmentsFound: 0,
+        };
+    }
+
+    // Find fragments with nala run ID in their title
+    const cache = document.createElement('aem-fragment').cache;
+    const masFragmentRenderElements = [...document.querySelectorAll('mas-fragment-render')];
+    const matchingFragments = [];
+
+    masFragmentRenderElements.forEach((element) => {
+        const dataId = element.getAttribute('data-id');
+        if (!dataId) return;
+
+        // Skip if already processed in a previous path
+        if (processedIds.includes(dataId)) return;
+
+        // Check if fragment title contains current run ID
+        if (cache) {
+            const fragmentData = cache.get(dataId);
+            if (fragmentData && fragmentData.title && fragmentData.title.includes(`[${runId}]`)) {
+                matchingFragments.push({
+                    id: dataId,
+                    title: fragmentData.title,
+                    fragment: fragmentData,
+                });
+            }
+        }
+    });
+
+    if (matchingFragments.length === 0) {
+        return {
+            success: true,
+            deletedCount: 0,
+            deletedIds: [],
+            failedCount: 0,
+            totalAttempted: 0,
+            message: 'No fragments found with run ID',
+            fragmentsFound: 0,
+        };
+    }
+
+    // Delete each fragment
+    const deletePromises = matchingFragments.map(async (fragmentInfo) => {
+        try {
+            await repo.aem.deleteFragment(fragmentInfo.fragment);
+            return { id: fragmentInfo.id, success: true };
+        } catch (error) {
+            const errorMessage = error.message || error.toString();
+            // Treat 404 errors as success (fragment already deleted)
+            if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
+                return { id: fragmentInfo.id, success: true, wasAlreadyDeleted: true };
+            }
+            return { id: fragmentInfo.id, success: false, error: errorMessage };
+        }
+    });
+
+    return Promise.allSettled(deletePromises).then((results) => {
+        const successful = results
+            .filter((result) => result.status === 'fulfilled' && result.value.success)
+            .map((result) => result.value.id);
+
+        const failed = results
+            .filter((result) => result.status === 'rejected' || (result.status === 'fulfilled' && !result.value.success))
+            .map((result) => ({
+                id: result.status === 'fulfilled' ? result.value.id : 'unknown',
+                error: result.status === 'fulfilled' ? result.value.error : result.reason.message,
+            }));
+
+        return {
+            success: failed.length === 0,
+            deletedCount: successful.length,
+            deletedIds: successful,
+            failedCount: failed.length,
+            failedFragments: failed,
+            totalAttempted: matchingFragments.length,
+            fragmentsFound: matchingFragments.length,
+            processedIds: matchingFragments.map((f) => f.id),
+        };
+    });
+};
+
+/**
  * Print cleanup summary from global results
  */
 function printCleanupSummary() {
@@ -116,110 +210,35 @@ async function cleanupClonedCards() {
                     { timeout: 5000 },
                 );
 
-                // Wait for fragments to load
+                // Wait for fragments to load and populate in DOM
                 try {
                     await page.waitForSelector('mas-fragment-render', { timeout: 10000, state: 'attached' });
-                    // Give a bit more time for all fragments to render
+                    // Give extra time for fragments to fully render and cache to populate
                     await page.waitForTimeout(2000);
                 } catch (error) {
                     console.log(`  ⏱️  No fragments found within timeout (continuing...)`);
                 }
 
-                const cleanupResult = await page.evaluate(
-                    ({ runId, processedIds }) => {
-                        const repo = document.querySelector('mas-repository');
-                        if (!repo || !repo.aem || !repo.aem.deleteFragment) {
-                            return {
-                                success: false,
-                                error: 'mas-repository not ready for deletion',
-                                deletedCount: 0,
-                                failedCount: 0,
-                                totalAttempted: 0,
-                            };
-                        }
+                // Search and delete fragments
+                let cleanupResult = await page.evaluate(searchAndDeleteFragments, {
+                    runId: currentRunId,
+                    processedIds: Array.from(processedFragmentIds),
+                });
 
-                        // Find fragments with nala run ID in their title
-                        const cache = document.createElement('aem-fragment').cache;
-                        const masFragmentRenderElements = [...document.querySelectorAll('mas-fragment-render')];
-                        const matchingFragments = [];
+                // Retry logic if no fragments found on GitHub (without reloading page)
+                if (cleanupResult.fragmentsFound === 0 && process.env.GITHUB_ACTIONS === 'true') {
+                    console.log(`  ⚠️  No fragments found, waiting 3s and retrying...`);
+                    await page.waitForTimeout(3000);
 
-                        masFragmentRenderElements.forEach((element) => {
-                            const dataId = element.getAttribute('data-id');
-                            if (!dataId) return;
+                    cleanupResult = await page.evaluate(searchAndDeleteFragments, {
+                        runId: currentRunId,
+                        processedIds: Array.from(processedFragmentIds),
+                    });
 
-                            // Skip if already processed in a previous path
-                            if (processedIds.includes(dataId)) return;
-
-                            // Check if fragment title contains current run ID
-                            if (cache) {
-                                const fragmentData = cache.get(dataId);
-                                if (fragmentData && fragmentData.title && fragmentData.title.includes(`[${runId}]`)) {
-                                    matchingFragments.push({
-                                        id: dataId,
-                                        title: fragmentData.title,
-                                        fragment: fragmentData, // Store the full fragment object
-                                    });
-                                }
-                            }
-                        });
-
-                        if (matchingFragments.length === 0) {
-                            return {
-                                success: true,
-                                deletedCount: 0,
-                                deletedIds: [],
-                                failedCount: 0,
-                                totalAttempted: 0,
-                                message: 'No fragments found with run ID',
-                                fragmentsFound: 0,
-                            };
-                        }
-
-                        // Delete each fragment
-                        const deletePromises = matchingFragments.map(async (fragmentInfo) => {
-                            try {
-                                await repo.aem.deleteFragment(fragmentInfo.fragment);
-                                return { id: fragmentInfo.id, success: true };
-                            } catch (error) {
-                                const errorMessage = error.message || error.toString();
-                                // Treat 404 errors as success (fragment already deleted)
-                                if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
-                                    return { id: fragmentInfo.id, success: true, wasAlreadyDeleted: true };
-                                }
-                                return { id: fragmentInfo.id, success: false, error: errorMessage };
-                            }
-                        });
-
-                        return Promise.allSettled(deletePromises).then((results) => {
-                            const successful = results
-                                .filter((result) => result.status === 'fulfilled' && result.value.success)
-                                .map((result) => result.value.id);
-
-                            const failed = results
-                                .filter(
-                                    (result) =>
-                                        result.status === 'rejected' ||
-                                        (result.status === 'fulfilled' && !result.value.success),
-                                )
-                                .map((result) => ({
-                                    id: result.status === 'fulfilled' ? result.value.id : 'unknown',
-                                    error: result.status === 'fulfilled' ? result.value.error : result.reason.message,
-                                }));
-
-                            return {
-                                success: failed.length === 0,
-                                deletedCount: successful.length,
-                                deletedIds: successful,
-                                failedCount: failed.length,
-                                failedFragments: failed,
-                                totalAttempted: matchingFragments.length,
-                                fragmentsFound: matchingFragments.length,
-                                processedIds: matchingFragments.map((f) => f.id),
-                            };
-                        });
-                    },
-                    { runId: currentRunId, processedIds: Array.from(processedFragmentIds) },
-                );
+                    if (cleanupResult.fragmentsFound > 0) {
+                        console.log(`  \x1b[32m✓\x1b[0m Retry found ${cleanupResult.fragmentsFound} fragments`);
+                    }
+                }
 
                 // Log results for this specific path
                 if (cleanupResult.fragmentsFound > 0) {

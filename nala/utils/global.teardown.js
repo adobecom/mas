@@ -71,16 +71,14 @@ async function cleanupClonedCards() {
                     { timeout: 30000 },
                 );
 
-                // Wait a bit longer for fragments to be loaded from the test
-                await page.waitForTimeout(3000);
-
-                // If no fragments found, wait a bit more and check cache
-                const fragmentCount = await page.evaluate(() => {
-                    return document.querySelectorAll('mas-fragment-render').length;
-                });
-
-                if (fragmentCount === 0) {
+                // Wait for fragments to load (with timeout)
+                try {
+                    await page.waitForSelector('mas-fragment-render', { timeout: 8000, state: 'attached' });
+                    // Give a bit more time for all fragments to render
                     await page.waitForTimeout(2000);
+                } catch (error) {
+                    // No fragments found within timeout, continue anyway
+                    console.log(`  ➖ No fragments loaded within timeout`);
                 }
 
                 const cleanupResult = await page.evaluate(

@@ -251,6 +251,13 @@ async function cleanupClonedCards() {
                 failedFragments: allFailedFragments,
             };
 
+            // On GitHub, fail if no fragments were found (test suite should always create fragments)
+            if (process.env.GITHUB_ACTIONS === 'true' && totalFragmentsFound === 0) {
+                throw new Error(
+                    'No fragments found to clean up on GitHub. This is unexpected after a test suite run. Fragment loading may have failed.',
+                );
+            }
+
             // Log failed fragments details if any
             if (allFailedFragments.length > 0) {
                 console.error(

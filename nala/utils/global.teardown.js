@@ -89,7 +89,15 @@ async function cleanupClonedCards() {
             if (process.env.GITHUB_ACTIONS === 'true') {
                 await page.goto(`${baseURL}/studio.html`);
                 await page.waitForLoadState('domcontentloaded');
-                await page.waitForTimeout(3000);
+
+                // Wait for mas-repository to initialize
+                await page.waitForFunction(
+                    () => {
+                        const repo = document.querySelector('mas-repository');
+                        return repo && repo.aem;
+                    },
+                    { timeout: 10000 },
+                );
             }
 
             // Check each path for fragments
@@ -107,13 +115,13 @@ async function cleanupClonedCards() {
                     { timeout: 5000 },
                 );
 
-                // Wait for fragments to load (with timeout)
+                // Wait for fragments to load
                 try {
-                    await page.waitForSelector('mas-fragment-render', { timeout: 8000, state: 'attached' });
+                    await page.waitForSelector('mas-fragment-render', { timeout: 10000, state: 'attached' });
                     // Give a bit more time for all fragments to render
                     await page.waitForTimeout(2000);
                 } catch (error) {
-                    // No fragments found within timeout, continue anyway
+                    console.log(`  ⏱️  No fragments found within timeout (continuing...)`);
                 }
 
                 const cleanupResult = await page.evaluate(

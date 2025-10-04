@@ -1,3 +1,32 @@
+/**
+ * Print cleanup summary from global results
+ */
+function printCleanupSummary() {
+    // Read cleanup results from global variable set by teardown
+    const cleanupResults = global.nalaCleanupResults;
+
+    if (!cleanupResults) {
+        return; // No cleanup results to display
+    }
+
+    console.log('\n    \x1b[1m\x1b[34m---------Fragment Cleanup Summary---------\x1b[0m');
+    console.log(`    \x1b[1m\x1b[33m# Total Fragments to delete :\x1b[0m \x1b[32m${cleanupResults.totalFound}\x1b[0m`);
+
+    if (cleanupResults.totalDeleted > 0) {
+        console.log(
+            `    \x1b[32m✓\x1b[0m \x1b[1m\x1b[33m Successfully deleted     :\x1b[0m \x1b[32m${cleanupResults.totalDeleted}\x1b[0m`,
+        );
+    } else if (cleanupResults.totalFound === 0) {
+        console.log(`    \x1b[1m\x1b[33m  ➖ No fragments found to clean up\x1b[0m`);
+    }
+
+    if (cleanupResults.totalFailed > 0) {
+        console.log(
+            `    \x1b[31m✘\x1b[0m \x1b[1m\x1b[33m Failed to delete         :\x1b[0m \x1b[31m${cleanupResults.totalFailed}/${cleanupResults.totalFound}\x1b[0m`,
+        );
+    }
+}
+
 async function cleanupClonedCards() {
     console.info(`---- Executing Nala Global Teardown: Cleaning up cloned cards ----\n`);
 
@@ -65,7 +94,7 @@ async function cleanupClonedCards() {
 
             // Check each path for fragments
             for (const pathFragment of pathsToCheck) {
-                console.log(`📍 Checking path: ${pathFragment}`);
+                console.log(`📍 Checking path: \x1b[33m${pathFragment}\x1b[0m`);
 
                 await page.goto(`${baseURL}/studio.html${pathFragment}`);
                 await page.waitForLoadState('domcontentloaded');
@@ -229,8 +258,20 @@ async function cleanupClonedCards() {
 
             await browser.close();
 
-            // Save teardown request count to contribute to total suite count
+            // Save teardown request count
             GlobalRequestCounter.saveCountToFileSync();
+
+            // Only print summaries if running on GitHub as a separate step
+            // (locally, base-reporter will print them after test suite completes)
+            if (process.env.GITHUB_ACTIONS === 'true') {
+                // Print cleanup summary
+                printCleanupSummary();
+
+                // Print request summary
+                const RequestCountingReporter = (await import('./request-counting-reporter.js')).default;
+                const requestReporter = new RequestCountingReporter();
+                requestReporter.printRequestSummary();
+            }
 
             return {
                 success: allFailedFragments.length === 0,
@@ -241,6 +282,19 @@ async function cleanupClonedCards() {
         } catch (error) {
             await browser.close();
             clearRunId();
+
+            // Print summary if running on GitHub
+            if (process.env.GITHUB_ACTIONS === 'true') {
+                try {
+                    GlobalRequestCounter.saveCountToFileSync();
+                    const RequestCountingReporter = (await import('./request-counting-reporter.js')).default;
+                    const reporter = new RequestCountingReporter();
+                    reporter.printRequestSummary();
+                } catch (summaryError) {
+                    // Silently fail if summary printing fails
+                }
+            }
+
             return { success: false, error: error.message, deletedCount: 0, failedCount: 0, totalAttempted: 0 };
         }
     } catch (error) {
@@ -259,3 +313,4 @@ async function globalTeardown() {
 }
 
 export default globalTeardown;
+export { printCleanupSummary };

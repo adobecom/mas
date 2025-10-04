@@ -154,13 +154,14 @@ export default class BaseReporter {
 
         console.log(summary);
 
-        // Print cleanup summary (2nd - after Nala summary)
-        this.printCleanupSummary();
+        // Print cleanup summary
+        const { printCleanupSummary } = await import('./global.teardown.js');
+        printCleanupSummary();
 
-        // Print request summary (3rd)
+        // Print request summary
         await this.printRequestSummary();
 
-        // Print failed tests summary last (4th)
+        // Print failed tests summary (last)
         if (this.failedTests > 0) {
             console.log('\n    \x1b[1m\x1b[34m---------Failed Tests Summary-------------\x1b[0m');
             this.results
@@ -197,35 +198,6 @@ export default class BaseReporter {
         const { default: RequestCountingReporter } = await import('./request-counting-reporter.js');
         const requestReporter = new RequestCountingReporter({});
         requestReporter.printRequestSummary();
-    }
-
-    /**
-     * Print cleanup summary from teardown results
-     */
-    printCleanupSummary() {
-        // Read cleanup results from global variable set by teardown
-        const cleanupResults = global.nalaCleanupResults;
-
-        if (!cleanupResults) {
-            return; // No cleanup results to display
-        }
-
-        console.log('\n    \x1b[1m\x1b[34m---------Fragment Cleanup Summary---------\x1b[0m');
-        console.log(`    \x1b[1m\x1b[33m# Total Fragments to delete :\x1b[0m \x1b[32m${cleanupResults.totalFound}\x1b[0m`);
-
-        if (cleanupResults.totalDeleted > 0) {
-            console.log(
-                `    \x1b[32m✓\x1b[0m \x1b[1m\x1b[33m Successfully deleted     :\x1b[0m \x1b[32m${cleanupResults.totalDeleted}\x1b[0m`,
-            );
-        } else if (cleanupResults.totalFound === 0) {
-            console.log(`    \x1b[1m\x1b[33m  ➖ No fragments found to clean up\x1b[0m`);
-        }
-
-        if (cleanupResults.totalFailed > 0) {
-            console.log(
-                `    \x1b[31m✘\x1b[0m \x1b[1m\x1b[33m Failed to delete         :\x1b[0m \x1b[31m${cleanupResults.totalFailed}/${cleanupResults.totalFound}\x1b[0m`,
-            );
-        }
     }
 
     /**

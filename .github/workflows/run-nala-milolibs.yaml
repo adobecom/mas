@@ -80,7 +80,7 @@ jobs:
                   .then(module => module.default())
                   .catch(err => {
                   console.error('Cleanup failed:', err.message);
-                  process.exit(0);
+                  process.exit(1);
                   });"
               env:
                   GITHUB_ACTION_PATH: ${{ github.workspace }}

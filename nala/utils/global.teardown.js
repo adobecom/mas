@@ -258,18 +258,6 @@ async function cleanupClonedCards() {
                 failedFragments: allFailedFragments,
             };
 
-            // On GitHub, fail if any path found no fragments (test suite should create fragments)
-            if (process.env.GITHUB_ACTIONS === 'true') {
-                const pathsWithNoFragments = pathResults.filter((result) => result.fragmentsFound === 0);
-
-                if (pathsWithNoFragments.length > 0) {
-                    const pathNames = pathsWithNoFragments.map((r) => r.path).join(', ');
-                    throw new Error(
-                        `No fragments found in the following paths on GitHub: ${pathNames}. This is unexpected after a test suite run. Fragment loading may have failed.`,
-                    );
-                }
-            }
-
             // Log failed fragments details if any
             if (allFailedFragments.length > 0) {
                 console.error(
@@ -288,7 +276,7 @@ async function cleanupClonedCards() {
             // Save teardown request count
             GlobalRequestCounter.saveCountToFileSync();
 
-            // Only print summaries if running on GitHub as a separate step
+            // Only print summaries and validate if running on GitHub as a separate step
             // (locally, base-reporter will print them after test suite completes)
             if (process.env.GITHUB_ACTIONS === 'true') {
                 // Print cleanup summary
@@ -298,6 +286,16 @@ async function cleanupClonedCards() {
                 const RequestCountingReporter = (await import('./request-counting-reporter.js')).default;
                 const requestReporter = new RequestCountingReporter();
                 requestReporter.printRequestSummary();
+
+                // Fail if any path found no fragments (test suite should create fragments)
+                const pathsWithNoFragments = pathResults.filter((result) => result.fragmentsFound === 0);
+
+                if (pathsWithNoFragments.length > 0) {
+                    const pathNames = pathsWithNoFragments.map((r) => r.path).join(', ');
+                    throw new Error(
+                        `No fragments found in the following paths on GitHub: ${pathNames}. This is unexpected after a test suite run. Fragment loading may have failed.`,
+                    );
+                }
             }
 
             return {

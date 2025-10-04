@@ -31,17 +31,11 @@ const miloLibs = process.env.MILO_LIBS || '';
  * Extended Playwright test that automatically handles common MAS test operations
  */
 const masTest = base.extend({
-    page: async ({ page }, use, testInfo) => {
+    page: async ({ page, browserName }, use, testInfo) => {
         // Multiply default timeout by 3 (same as test.slow())
         const currentTimeout = testInfo.timeout;
         testInfo.setTimeout(currentTimeout * 3);
-        await use(page);
-    },
-});
 
-// Custom test function that automatically creates fresh page objects
-const masTestWrapper = (name, testFn) => {
-    return masTest(name, async ({ page, baseURL, browserName, context, request }, testInfo) => {
         // Set HTTP headers for chromium
         if (browserName === 'chromium') {
             await page.setExtraHTTPHeaders({
@@ -51,6 +45,7 @@ const masTestWrapper = (name, testFn) => {
 
         // Reset clonedCardID for each test
         clonedCardID = '';
+        currentTestPage = '';
 
         // Create fresh page objects for every test
         studio = new StudioPage(page);
@@ -68,35 +63,21 @@ const masTestWrapper = (name, testFn) => {
         await GlobalRequestCounter.init(page);
 
         try {
-            // Call the actual test function
-            return await testFn({ page, baseURL, browserName, context, request });
-        } catch (error) {
-            // Store test page in testInfo for base reporter
-            if (currentTestPage) {
+            await use(page);
+        } finally {
+            // Store test page in testInfo for base reporter if test failed
+            if (testInfo.status === 'failed' && currentTestPage) {
                 testInfo.annotations.push({
                     type: 'test-page-url',
                     description: currentTestPage,
                 });
             }
-            throw error;
-        } finally {
-            // Always save request count last
+
+            // Always save request count
             GlobalRequestCounter.saveCountToFileSync();
         }
-    });
-};
-
-// Add all the standard test methods to the wrapper
-masTestWrapper.describe = masTest.describe;
-masTestWrapper.beforeEach = masTest.beforeEach;
-masTestWrapper.afterEach = masTest.afterEach;
-masTestWrapper.beforeAll = masTest.beforeAll;
-masTestWrapper.afterAll = masTest.afterAll;
-masTestWrapper.step = masTest.step;
-masTestWrapper.skip = masTest.skip;
-masTestWrapper.fixme = masTest.fixme;
-masTestWrapper.fail = masTest.fail;
-masTestWrapper.slow = masTest.slow;
+    },
+});
 
 // Function to set clonedCardID from tests
 function setClonedCardID(id) {
@@ -131,5 +112,5 @@ export {
     miloLibs,
 };
 
-export { masTestWrapper as test };
+export { masTest as test };
 export { expect } from '@playwright/test';

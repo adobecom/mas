@@ -1,4 +1,5 @@
 import { expect } from '@playwright/test';
+import { getCurrentRunId } from '../utils/fragment-tracker.js';
 import OSTPage from './ost.page';
 
 export default class StudioPage {
@@ -152,9 +153,10 @@ export default class StudioPage {
                     timeout: 5000,
                 });
 
-                // Enter fragment title
+                // Enter fragment title with run ID
+                const runId = getCurrentRunId();
                 const titleInput = this.page.locator('sp-dialog[variant="confirmation"] sp-textfield input');
-                await titleInput.fill('MAS Nala Automation Cloned Fragment');
+                await titleInput.fill(`MAS Nala Automation Cloned Fragment [${runId}]`);
 
                 await this.page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Clone")').click();
 
@@ -391,5 +393,38 @@ export default class StudioPage {
         } finally {
             this.page.removeListener('console', consoleListener);
         }
+    }
+
+    async cleanupAfterTest(editor, clonedCardID, baseURL, miloLibs = '') {
+        // Close editor panel if open
+        if (await editor.panel.isVisible()) {
+            await editor.closeEditor.click();
+            await expect(await editor.panel).not.toBeVisible();
+        }
+
+        // Check if card exists and is visible
+        const card = await this.getCard(clonedCardID);
+        const isCardVisible = await card.isVisible().catch(() => false);
+
+        // If card exists but is not visible (covered by overlay), navigate to make it visible
+        if (!isCardVisible && (await card.count()) > 0) {
+            const clonedCardPath = `${baseURL}/studio.html${miloLibs}#page=content&path=nala&query=${clonedCardID}`;
+            await this.page.goto(clonedCardPath);
+            await this.page.waitForLoadState('domcontentloaded');
+        }
+
+        // Delete the card if it's visible
+        if (await card.isVisible()) {
+            await this.deleteCard(clonedCardID);
+            await expect(await card).not.toBeVisible();
+        }
+    }
+
+    async discardEditorChanges(editor) {
+        // Close the editor and verify discard is triggered
+        await editor.closeEditor.click();
+        await expect(await this.confirmationDialog).toBeVisible();
+        await this.discardDialog.click();
+        await expect(await editor.panel).not.toBeVisible();
     }
 }

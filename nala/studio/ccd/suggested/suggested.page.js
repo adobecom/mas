@@ -23,7 +23,7 @@ export default class CCDSuggestedPage {
                 'max-width': '305px',
                 'min-height': '205px',
             },
-            icon: {
+            mnemonic: {
                 width: '40px',
                 height: '38px',
             },

@@ -32,7 +32,7 @@ export default class CCDSlicePage {
                 'border-right-color': 'rgb(230, 230, 230)',
                 'border-top-color': 'rgb(230, 230, 230)',
             },
-            icon: {
+            mnemonic: {
                 width: '30px',
                 height: '29px',
             },

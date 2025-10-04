@@ -68,6 +68,7 @@ jobs:
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
+                  FORCE_COLOR: 3 # Force color output
 
             - name: Cleanup cloned cards
               if: always()
@@ -76,7 +77,7 @@ jobs:
                   .then(module => module.default())
                   .catch(err => {
                   console.error('Cleanup failed:', err.message);
-                  process.exit(0);
+                  process.exit(1);
                   });"
               env:
                   GITHUB_ACTION_PATH: ${{ github.workspace }}

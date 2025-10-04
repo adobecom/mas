@@ -1,4 +1,4 @@
-export default class CCDFriesPage {
+export default class COMFriesPage {
     constructor(page) {
         this.page = page;
 

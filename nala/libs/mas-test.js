@@ -4,7 +4,7 @@ import StudioPage from '../studio/studio.page.js';
 import EditorPage from '../studio/editor.page.js';
 import CCDSlicePage from '../studio/ccd/slice/slice.page.js';
 import CCDSuggestedPage from '../studio/ccd/suggested/suggested.page.js';
-import CCDFries from '../studio/commerce/fries/fries.page.js';
+import COMFries from '../studio/commerce/fries/fries.page.js';
 import AHTryBuyWidgetPage from '../studio/ahome/try-buy-widget/try-buy-widget.page.js';
 import AHPromotedPlansPage from '../studio/ahome/promoted-plans/promoted-plans.page.js';
 import ACOMPlansIndividualsPage from '../studio/acom/plans/individuals/individuals.page.js';
@@ -23,22 +23,19 @@ let individuals;
 let ost;
 let webUtil;
 let clonedCardID = '';
+let currentTestPage = '';
+
+const miloLibs = process.env.MILO_LIBS || '';
 
 /**
  * Extended Playwright test that automatically handles common MAS test operations
  */
 const masTest = base.extend({
-    page: async ({ page }, use, testInfo) => {
+    page: async ({ page, browserName }, use, testInfo) => {
         // Multiply default timeout by 3 (same as test.slow())
         const currentTimeout = testInfo.timeout;
         testInfo.setTimeout(currentTimeout * 3);
-        await use(page);
-    },
-});
 
-// Custom test function that automatically creates fresh page objects
-const masTestWrapper = (name, testFn) => {
-    return masTest(name, async ({ page, baseURL, browserName, context, request }) => {
         // Set HTTP headers for chromium
         if (browserName === 'chromium') {
             await page.setExtraHTTPHeaders({
@@ -48,13 +45,14 @@ const masTestWrapper = (name, testFn) => {
 
         // Reset clonedCardID for each test
         clonedCardID = '';
+        currentTestPage = '';
 
         // Create fresh page objects for every test
         studio = new StudioPage(page);
         editor = new EditorPage(page);
         slice = new CCDSlicePage(page);
         suggested = new CCDSuggestedPage(page);
-        fries = new CCDFries(page);
+        fries = new COMFries(page);
         trybuywidget = new AHTryBuyWidgetPage(page);
         promotedplans = new AHPromotedPlansPage(page);
         individuals = new ACOMPlansIndividualsPage(page);
@@ -65,46 +63,21 @@ const masTestWrapper = (name, testFn) => {
         await GlobalRequestCounter.init(page);
 
         try {
-            // Call the actual test function
-            return await testFn({ page, baseURL, browserName, context, request });
+            await use(page);
         } finally {
-            // Cleanup only runs for save tests (when clonedCardID is set)
-            if (clonedCardID) {
-                // Close editor if it's open
-                if (editor && (await editor.panel.isVisible())) {
-                    await editor.closeEditor.click();
-                    await expect(editor.panel).not.toBeVisible();
-                }
-
-                // Delete the cloned card
-                if (studio) {
-                    const cardElement = await studio.getCard(clonedCardID);
-                    if (await cardElement.isVisible()) {
-                        await studio.deleteCard(clonedCardID);
-                        await expect(cardElement).not.toBeVisible();
-                    }
-                }
+            // Store test page in testInfo for base reporter if test failed
+            if (testInfo.status === 'failed' && currentTestPage) {
+                testInfo.annotations.push({
+                    type: 'test-page-url',
+                    description: currentTestPage,
+                });
             }
 
-            // Always save request count last
+            // Always save request count
             GlobalRequestCounter.saveCountToFileSync();
         }
-    });
-};
-
-// Add all the standard test methods to the wrapper
-masTestWrapper.describe = masTest.describe;
-masTestWrapper.beforeEach = masTest.beforeEach;
-masTestWrapper.afterEach = masTest.afterEach;
-masTestWrapper.beforeAll = masTest.beforeAll;
-masTestWrapper.afterAll = masTest.afterAll;
-masTestWrapper.step = masTest.step;
-masTestWrapper.skip = masTest.skip;
-masTestWrapper.fixme = masTest.fixme;
-masTestWrapper.fail = masTest.fail;
-masTestWrapper.slow = masTest.slow;
-
-const miloLibs = process.env.MILO_LIBS || '';
+    },
+});
 
 // Function to set clonedCardID from tests
 function setClonedCardID(id) {
@@ -114,6 +87,11 @@ function setClonedCardID(id) {
 // Function to get clonedCardID from tests
 function getClonedCardID() {
     return clonedCardID;
+}
+
+// Function to set current test page URL
+function setTestPage(url) {
+    currentTestPage = url;
 }
 
 // Export the global page objects so test files can access them
@@ -130,8 +108,9 @@ export {
     webUtil,
     setClonedCardID,
     getClonedCardID,
+    setTestPage,
     miloLibs,
 };
 
-export { masTestWrapper as test };
+export { masTest as test };
 export { expect } from '@playwright/test';

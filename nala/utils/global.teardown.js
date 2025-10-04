@@ -101,6 +101,7 @@ async function cleanupClonedCards() {
             }
 
             // Check each path for fragments
+            const pathResults = []; // Track results per path for GitHub validation
             for (const pathFragment of pathsToCheck) {
                 console.log(`📍 Checking path: \x1b[33m${pathFragment}\x1b[0m`);
 
@@ -229,6 +230,12 @@ async function cleanupClonedCards() {
                     console.log(`  ➖ No fragments found in this path`);
                 }
 
+                // Track results per path for GitHub validation
+                pathResults.push({
+                    path: pathFragment,
+                    fragmentsFound: cleanupResult.fragmentsFound || 0,
+                });
+
                 // Accumulate results from this path
                 totalFragmentsFound += cleanupResult.fragmentsFound || 0;
                 totalFragmentsDeleted += cleanupResult.deletedCount || 0;
@@ -251,11 +258,16 @@ async function cleanupClonedCards() {
                 failedFragments: allFailedFragments,
             };
 
-            // On GitHub, fail if no fragments were found (test suite should always create fragments)
-            if (process.env.GITHUB_ACTIONS === 'true' && totalFragmentsFound === 0) {
-                throw new Error(
-                    'No fragments found to clean up on GitHub. This is unexpected after a test suite run. Fragment loading may have failed.',
-                );
+            // On GitHub, fail if any path found no fragments (test suite should create fragments)
+            if (process.env.GITHUB_ACTIONS === 'true') {
+                const pathsWithNoFragments = pathResults.filter((result) => result.fragmentsFound === 0);
+
+                if (pathsWithNoFragments.length > 0) {
+                    const pathNames = pathsWithNoFragments.map((r) => r.path).join(', ');
+                    throw new Error(
+                        `No fragments found in the following paths on GitHub: ${pathNames}. This is unexpected after a test suite run. Fragment loading may have failed.`,
+                    );
+                }
             }
 
             // Log failed fragments details if any

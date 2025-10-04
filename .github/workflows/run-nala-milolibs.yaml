@@ -71,6 +71,21 @@ jobs:
                   labels: ${{ inputs.tags }}
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
+                  FORCE_COLOR: 3 # Force color output
+
+            - name: Cleanup cloned cards
+              if: always()
+              run: node -e "
+                  import('./nala/utils/global.teardown.js')
+                  .then(module => module.default())
+                  .catch(err => {
+                  console.error('Cleanup failed:', err.message);
+                  process.exit(0);
+                  });"
+              env:
+                  GITHUB_ACTION_PATH: ${{ github.workspace }}
+                  IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
+                  IMS_PASS: ${{ secrets.IMS_PASS }}
 
             - name: Persist JSON Artifact
               uses: actions/upload-artifact@v4

@@ -56,6 +56,20 @@ async function cleanupClonedCards() {
         const processedFragmentIds = new Set(); // Track fragments we've already processed
 
         try {
+            // On GitHub, navigate to studio home first to warm up the session
+            if (process.env.GITHUB_ACTIONS === 'true') {
+                await page.goto(`${baseURL}/studio.html`);
+                await page.waitForLoadState('domcontentloaded');
+                await page.waitForFunction(
+                    () => {
+                        const repo = document.querySelector('mas-repository');
+                        return repo && repo.aem;
+                    },
+                    { timeout: 30000 },
+                );
+                await page.waitForTimeout(3000); // Let the studio fully initialize
+            }
+
             // Check each path for fragments
             for (const pathFragment of pathsToCheck) {
                 console.log(`📍 Checking path: ${pathFragment}`);
@@ -76,6 +90,12 @@ async function cleanupClonedCards() {
                     await page.waitForSelector('mas-fragment-render', { timeout: 8000, state: 'attached' });
                     // Give a bit more time for all fragments to render
                     await page.waitForTimeout(2000);
+
+                    // Debug: Log how many fragments are found
+                    const fragmentCount = await page.evaluate(() => {
+                        return document.querySelectorAll('mas-fragment-render').length;
+                    });
+                    console.log(`  📊 Loaded ${fragmentCount} fragment elements in DOM`);
                 } catch (error) {
                     // No fragments found within timeout, continue anyway
                     console.log(`  ➖ No fragments loaded within timeout`);

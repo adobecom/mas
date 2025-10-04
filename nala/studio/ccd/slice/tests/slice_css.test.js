@@ -1,4 +1,4 @@
-import { test, expect, studio, slice, webUtil, miloLibs } from '../../../../libs/mas-test.js';
+import { test, expect, studio, slice, webUtil, miloLibs, setTestPage } from '../../../../libs/mas-test.js';
 
 import CCDSliceSpec from '../specs/slice_css.spec.js';
 
@@ -12,7 +12,7 @@ test.describe('M@S Studio CCD Slice card CSS test suite', () => {
         const doubleCardPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.doubleCardID}`;
         const singleSliceCard = await studio.getCard(data.singleCardID);
         const doubleSliceCard = await studio.getCard(data.doubleCardID);
-        console.info('[Test Page]: ', singleCardPage);
+        setTestPage(singleCardPage);
 
         const validationLabels = [
             'card container',
@@ -105,12 +105,12 @@ test.describe('M@S Studio CCD Slice card CSS test suite', () => {
                 .map(({ result, index }) => `🔍 Validation-${index + 1} (${validationLabels[index]}) failed: ${result.reason}`);
 
             if (failures.length > 0) {
-                throw new Error(`❌ Single slice card CSS validation failures:\n${failures.join('\n')}`);
+                throw new Error(`\x1b[31m✘\x1b[0m Single slice card CSS validation failures:\n${failures.join('\n')}`);
             }
         });
 
         await test.step('step-4: Go to double card test page', async () => {
-            console.info('[Test Page]: ', doubleCardPage);
+            setTestPage(doubleCardPage);
             await page.goto(doubleCardPage);
             await page.waitForLoadState('domcontentloaded');
         });
@@ -189,7 +189,7 @@ test.describe('M@S Studio CCD Slice card CSS test suite', () => {
                 .map(({ result, index }) => `🔍 Validation-${index + 1} (${validationLabels[index]}) failed: ${result.reason}`);
 
             if (failures.length > 0) {
-                throw new Error(`❌ Double slice card CSS validation failures:\n${failures.join('\n')}`);
+                throw new Error(`\x1b[31m✘\x1b[0m Double slice card CSS validation failures:\n${failures.join('\n')}`);
             }
         });
     });

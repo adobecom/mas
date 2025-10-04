@@ -1,4 +1,4 @@
-import { test, expect, studio, editor, fries, ost, miloLibs } from '../../../../libs/mas-test.js';
+import { test, expect, studio, editor, fries, ost, miloLibs, setTestPage } from '../../../../libs/mas-test.js';
 import COMFriesSpec from '../specs/fries_edit_and_discard.spec.js';
 
 const { features } = COMFriesSpec;
@@ -8,7 +8,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -48,7 +48,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
     test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const { data } = features[1];
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -87,7 +87,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
     test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
         const { data } = features[2];
         const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -126,7 +126,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
     test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
         const { data } = features[3];
         const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -182,7 +182,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
     test(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
         const { data } = features[4];
         const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);

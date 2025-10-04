@@ -1,4 +1,14 @@
-import { test, expect, studio, editor, fries, setClonedCardID, getClonedCardID, miloLibs } from '../../../../libs/mas-test.js';
+import {
+    test,
+    expect,
+    studio,
+    editor,
+    fries,
+    setClonedCardID,
+    getClonedCardID,
+    miloLibs,
+    setTestPage,
+} from '../../../../libs/mas-test.js';
 import COMFriesSpec from '../specs/fries_save.spec.js';
 
 const { features } = COMFriesSpec;
@@ -8,7 +18,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -77,7 +87,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
                 .map(({ result, index }) => `🔍 Validation-${index + 1} (${validationLabels[index]}) failed: ${result.reason}`);
 
             if (failures.length > 0) {
-                throw new Error(`❌ Fries card field save validation failures:\n${failures.join('\n')}`);
+                throw new Error(`\x1b[31m✘\x1b[0m Fries card field save validation failures:\n${failures.join('\n')}`);
             }
         });
     });
@@ -86,7 +96,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
     test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const { data } = features[1];
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -119,7 +129,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
     test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
         const { data } = features[2];
         const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {

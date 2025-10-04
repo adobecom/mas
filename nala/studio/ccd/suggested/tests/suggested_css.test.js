@@ -1,4 +1,4 @@
-import { test, expect, studio, suggested, webUtil, miloLibs } from '../../../../libs/mas-test.js';
+import { test, expect, studio, suggested, webUtil, miloLibs, setTestPage } from '../../../../libs/mas-test.js';
 import CCDSuggestedSpec from '../specs/suggested_css.spec.js';
 
 const { features } = CCDSuggestedSpec;
@@ -9,7 +9,7 @@ test.describe('M@S Studio CCD Suggested card CSS test suite', () => {
         const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
         const suggestedCard = await studio.getCard(data.cardid);
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -110,7 +110,7 @@ test.describe('M@S Studio CCD Suggested card CSS test suite', () => {
                 .map(({ result, index }) => `🔍 Validation-${index + 1} (${validationLabels[index]}) failed: ${result.reason}`);
 
             if (failures.length > 0) {
-                throw new Error(`❌ Suggested card CSS validation failures:\n${failures.join('\n')}`);
+                throw new Error(`\x1b[31m✘\x1b[0m Suggested card CSS validation failures:\n${failures.join('\n')}`);
             }
         });
     });

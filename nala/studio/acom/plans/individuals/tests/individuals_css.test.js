@@ -1,4 +1,4 @@
-import { test, expect, studio, individuals, webUtil, miloLibs } from '../../../../../libs/mas-test.js';
+import { test, expect, studio, individuals, webUtil, miloLibs, setTestPage } from '../../../../../libs/mas-test.js';
 import ACOMPlansIndividualsSpec from '../specs/individuals_css.spec.js';
 
 const { features } = ACOMPlansIndividualsSpec;
@@ -9,7 +9,7 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
         const { data } = features[0]; // All features use the same card ID and configuration
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
         const individualsCard = await studio.getCard(data.cardid);
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         const validationLabels = [
             'card container',
@@ -149,7 +149,7 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
                 .map(({ result, index }) => `🔍 Validation-${index + 1} (${validationLabels[index]}) failed: ${result.reason}`);
 
             if (failures.length > 0) {
-                throw new Error(`❌ Plans Individuals card CSS validation failures:\n${failures.join('\n')}`);
+                throw new Error(`\x1b[31m✘\x1b[0m Plans Individuals card CSS validation failures:\n${failures.join('\n')}`);
             }
         });
     });

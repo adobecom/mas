@@ -30,13 +30,8 @@ const config = {
     workers: process.env.CI ? 4 : 3,
     /* Reporter to use. */
     reporter: process.env.CI
-        ? [['github'], ['list'], ['./nala/utils/base-reporter.js'], ['./nala/utils/request-counting-reporter.js']]
-        : [
-              ['html', { outputFolder: 'test-html-results' }],
-              ['list'],
-              ['./nala/utils/base-reporter.js'],
-              ['./nala/utils/request-counting-reporter.js'],
-          ],
+        ? [['github'], ['list'], ['./nala/utils/base-reporter.js']]
+        : [['html', { outputFolder: 'test-html-results' }], ['list'], ['./nala/utils/base-reporter.js']],
     /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
     use: {
         /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */

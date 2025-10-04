@@ -10,6 +10,7 @@ import {
     ost,
     webUtil,
     miloLibs,
+    setTestPage,
 } from '../../../../../libs/mas-test.js';
 import ACOMPlansIndividualsSpec from '../specs/individuals_edit_and_discard.spec.js';
 
@@ -20,7 +21,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -91,7 +92,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const { data } = features[1];
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -163,7 +164,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
         const { data } = features[2];
         const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -236,7 +237,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
         const { data } = features[3];
         const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -288,7 +289,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
         const { data } = features[4];
         const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -326,7 +327,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
         const { data } = features[5];
         const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -373,7 +374,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[6].name},${features[6].tags}`, async ({ page, baseURL }) => {
         const { data } = features[6];
         const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -411,7 +412,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
         const { data } = features[7];
         const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -449,7 +450,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[8].name},${features[8].tags}`, async ({ page, baseURL }) => {
         const { data } = features[8];
         const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -497,7 +498,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[9].name},${features[9].tags}`, async ({ page, baseURL }) => {
         const { data } = features[9];
         const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -544,7 +545,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[10].name},${features[10].tags}`, async ({ page, baseURL }) => {
         const { data } = features[10];
         const testPage = `${baseURL}${features[10].path}${miloLibs}${features[10].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -620,7 +621,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[11].name},${features[11].tags}`, async ({ page, baseURL }) => {
         const { data } = features[11];
         const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -683,7 +684,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test.skip(`${features[12].name},${features[12].tags}`, async ({ page, baseURL }) => {
         const { data } = features[12];
         const testPage = `${baseURL}${features[12].path}${miloLibs}${features[12].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -728,7 +729,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[13].name},${features[13].tags}`, async ({ page, baseURL }) => {
         const { data } = features[13];
         const testPage = `${baseURL}${features[13].path}${miloLibs}${features[13].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -804,7 +805,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[14].name},${features[14].tags}`, async ({ page, baseURL }) => {
         const { data } = features[14];
         const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -886,7 +887,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[15].name},${features[15].tags}`, async ({ page, baseURL }) => {
         const { data } = features[15];
         const testPage = `${baseURL}${features[15].path}${miloLibs}${features[15].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -935,7 +936,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[16].name},${features[16].tags}`, async ({ page, baseURL }) => {
         const { data } = features[16];
         const testPage = `${baseURL}${features[16].path}${miloLibs}${features[16].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -988,7 +989,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[17].name},${features[17].tags}`, async ({ page, baseURL }) => {
         const { data } = features[17];
         const testPage = `${baseURL}${features[17].path}${miloLibs}${features[17].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -1037,7 +1038,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[18].name},${features[18].tags}`, async ({ page, baseURL }) => {
         const { data } = features[18];
         const testPage = `${baseURL}${features[18].path}${miloLibs}${features[18].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -1105,7 +1106,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[19].name},${features[19].tags}`, async ({ page, baseURL }) => {
         const { data } = features[19];
         const testPage = `${baseURL}${features[19].path}${miloLibs}${features[19].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -1150,7 +1151,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[20].name},${features[20].tags}`, async ({ page, baseURL }) => {
         const { data } = features[20];
         const testPage = `${baseURL}${features[20].path}${miloLibs}${features[20].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -1202,7 +1203,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[21].name},${features[21].tags}`, async ({ page, baseURL }) => {
         const { data } = features[21];
         const testPage = `${baseURL}${features[21].path}${miloLibs}${features[21].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -1257,7 +1258,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[22].name},${features[22].tags}`, async ({ page, baseURL }) => {
         const { data } = features[22];
         const testPage = `${baseURL}${features[22].path}${miloLibs}${features[22].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -1360,7 +1361,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[23].name},${features[23].tags}`, async ({ page, baseURL }) => {
         const { data } = features[23];
         const testPage = `${baseURL}${features[23].path}${miloLibs}${features[23].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -1410,7 +1411,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[24].name},${features[24].tags}`, async ({ page, baseURL }) => {
         const { data } = features[24];
         const testPage = `${baseURL}${features[24].path}${miloLibs}${features[24].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -1493,7 +1494,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     test(`${features[25].name},${features[25].tags}`, async ({ page, baseURL }) => {
         const { data } = features[25];
         const testPage = `${baseURL}${features[25].path}${miloLibs}${features[25].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);

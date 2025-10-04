@@ -120,14 +120,14 @@ async function cleanupClonedCards(options = {}) {
                     });
                 }
             } else {
-                console.log(`✅ Successfully cleaned up ${cleanupResult.deletedCount} cloned cards`);
+                console.log(`\x1b[32m✓\x1b[0m Successfully cleaned up ${cleanupResult.deletedCount} cloned cards`);
                 if (cleanupResult.deletedIds && cleanupResult.deletedIds.length > 0) {
                     console.log('\nDeleted card IDs:');
                     cleanupResult.deletedIds.forEach((id) => console.log(`  - ${id}`));
                 }
             }
         } else {
-            console.error(`❌ Cleanup failed: ${cleanupResult.error}`);
+            console.error(`\x1b[31m✘\x1b[0m Cleanup failed: ${cleanupResult.error}`);
             if (cleanupResult.attemptedCount) {
                 console.error(`Attempted to clean ${cleanupResult.attemptedCount} cards`);
             }
@@ -136,7 +136,7 @@ async function cleanupClonedCards(options = {}) {
 
         return cleanupResult;
     } catch (error) {
-        console.error('❌ Error during cleanup:', error.message);
+        console.error('\x1b[31m✘\x1b[0m Error during cleanup:', error.message);
         if (verbose) {
             console.error(error.stack);
         }

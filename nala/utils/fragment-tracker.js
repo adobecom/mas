@@ -44,7 +44,7 @@ export function getExistingRunId() {
 export function clearRunId() {
     const runId = getCurrentRunId();
     if (runId) {
-        console.log(`🗑️ Clearing run ID: ${runId}`);
+        console.log(`🧹 Clearing run ID: ${runId}`);
     }
 
     delete process.env.NALA_RUN_ID;

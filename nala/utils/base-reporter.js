@@ -32,13 +32,43 @@ export default class BaseReporter {
     }
 
     async onTestEnd(test, result) {
-        const { title, retries, _projectId } = test;
+        const { title, retries, _projectId, annotations } = test;
         const { name, tags, url, browser, env, branch, repo } = this.parseTestTitle(title, _projectId);
-        const { status, duration, error: { message: errorMessage, value: errorValue, stack: errorStack } = {}, retry } = result;
+        const { status, duration, error, retry } = result;
+        const errorMessage = error?.message;
+        const errorValue = error?.value;
+        const errorStack = error?.stack;
 
         if (retry < retries && status === 'failed') {
             return;
         }
+
+        // Extract test page URL from test annotations
+        const testPageAnnotation = annotations?.find((a) => a.type === 'test-page-url');
+        const testPageUrl = testPageAnnotation?.description;
+
+        // Extract line number and content from Playwright's error.snippet
+        let failedLineNumber = null;
+        let failedLineContent = null;
+        if (error && status === 'failed' && error.snippet) {
+            // Extract line number from error.location
+            failedLineNumber = error.location?.line?.toString();
+
+            // Strip ANSI codes from snippet FIRST (it contains color codes)
+            const cleanSnippet = stripAnsi(error.snippet);
+
+            // Extract code content from snippet
+            const snippetLines = cleanSnippet.split('\n');
+            for (const line of snippetLines) {
+                // Match lines like "> 243 |             await expect..."
+                const match = line.match(/^>\s+(\d+)\s+\|(.*)$/);
+                if (match && match[1] === failedLineNumber) {
+                    failedLineContent = match[2].trim();
+                    break;
+                }
+            }
+        }
+
         this.results.push({
             title,
             name,
@@ -56,6 +86,9 @@ export default class BaseReporter {
             stderr: test.stderr,
             duration,
             retry,
+            testPageUrl,
+            failedLineNumber,
+            failedLineContent,
         });
         if (status === 'passed') {
             this.passedTests++;
@@ -67,9 +100,7 @@ export default class BaseReporter {
     }
 
     async onEnd() {
-        //this.printPersistingOption();
-        //await this.persistData();
-        const summary = this.printResultSummary();
+        const summary = await this.printResultSummary();
         const resultSummary = { summary };
 
         if (process.env.SLACK_WH) {
@@ -82,7 +113,7 @@ export default class BaseReporter {
         }
     }
 
-    printResultSummary() {
+    async printResultSummary() {
         const totalTests = this.results.length;
         const passPercentage = ((this.passedTests / totalTests) * 100).toFixed(2);
         const failPercentage = ((this.failedTests / totalTests) * 100).toFixed(2);
@@ -123,18 +154,78 @@ export default class BaseReporter {
 
         console.log(summary);
 
+        // Print cleanup summary (2nd - after Nala summary)
+        this.printCleanupSummary();
+
+        // Print request summary (3rd)
+        await this.printRequestSummary();
+
+        // Print failed tests summary last (4th)
         if (this.failedTests > 0) {
-            console.log('-------- Test Failures --------');
+            console.log('\n    \x1b[1m\x1b[34m---------Failed Tests Summary-------------\x1b[0m');
             this.results
                 .filter((result) => result.status === 'failed')
-                .forEach((failedTest) => {
-                    console.log(`Test: ${failedTest.title.split('@')[1]}`);
-                    console.log(`Error Message: ${failedTest.errorMessage}`);
-                    console.log(`Error Stack: ${failedTest.errorStack}`);
-                    console.log('-------------------------');
+                .forEach((failedTest, index) => {
+                    // Get first tag (main test identifier) and keep the @ symbol
+                    const titleParts = failedTest.title.split('@');
+                    const testName = titleParts[1]?.split(',')[0]?.trim() || titleParts[1]?.trim();
+
+                    // Get pre-extracted data from results
+                    const testPageUrl = failedTest.testPageUrl;
+                    const lineNumber = failedTest.failedLineNumber;
+                    const lineContent = failedTest.failedLineContent;
+
+                    console.log(`    ${index + 1}. \x1b[31m\x1b[1m@${testName}\x1b[0m`);
+                    if (testPageUrl) {
+                        console.log(`    \x1b[36m   🔗 ${testPageUrl}\x1b[0m`);
+                    }
+                    if (lineNumber) {
+                        console.log(`    \x1b[90m   📍 Line ${lineNumber}${lineContent ? ': ' + lineContent : ''}\x1b[0m`);
+                    }
                 });
+            console.log('    \x1b[1m\x1b[34m------------------------------------------\x1b[0m');
         }
+
         return summary;
+    }
+
+    /**
+     * Print request summary from request counter files
+     */
+    async printRequestSummary() {
+        // Import and use the request counting reporter's method
+        const { default: RequestCountingReporter } = await import('./request-counting-reporter.js');
+        const requestReporter = new RequestCountingReporter({});
+        requestReporter.printRequestSummary();
+    }
+
+    /**
+     * Print cleanup summary from teardown results
+     */
+    printCleanupSummary() {
+        // Read cleanup results from global variable set by teardown
+        const cleanupResults = global.nalaCleanupResults;
+
+        if (!cleanupResults) {
+            return; // No cleanup results to display
+        }
+
+        console.log('\n    \x1b[1m\x1b[34m---------Fragment Cleanup Summary---------\x1b[0m');
+        console.log(`    \x1b[1m\x1b[33m# Total Fragments to delete :\x1b[0m \x1b[32m${cleanupResults.totalFound}\x1b[0m`);
+
+        if (cleanupResults.totalDeleted > 0) {
+            console.log(
+                `    \x1b[32m✓\x1b[0m \x1b[1m\x1b[33m Successfully deleted     :\x1b[0m \x1b[32m${cleanupResults.totalDeleted}\x1b[0m`,
+            );
+        } else if (cleanupResults.totalFound === 0) {
+            console.log(`    \x1b[1m\x1b[33m  ➖ No fragments found to clean up\x1b[0m`);
+        }
+
+        if (cleanupResults.totalFailed > 0) {
+            console.log(
+                `    \x1b[31m✘\x1b[0m \x1b[1m\x1b[33m Failed to delete         :\x1b[0m \x1b[31m${cleanupResults.totalFailed}/${cleanupResults.totalFound}\x1b[0m`,
+            );
+        }
     }
 
     /**

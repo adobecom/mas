@@ -23,6 +23,7 @@ let individuals;
 let ost;
 let webUtil;
 let clonedCardID = '';
+let currentTestPage = '';
 
 const miloLibs = process.env.MILO_LIBS || '';
 
@@ -40,7 +41,7 @@ const masTest = base.extend({
 
 // Custom test function that automatically creates fresh page objects
 const masTestWrapper = (name, testFn) => {
-    return masTest(name, async ({ page, baseURL, browserName, context, request }) => {
+    return masTest(name, async ({ page, baseURL, browserName, context, request }, testInfo) => {
         // Set HTTP headers for chromium
         if (browserName === 'chromium') {
             await page.setExtraHTTPHeaders({
@@ -69,6 +70,15 @@ const masTestWrapper = (name, testFn) => {
         try {
             // Call the actual test function
             return await testFn({ page, baseURL, browserName, context, request });
+        } catch (error) {
+            // Store test page in testInfo for base reporter
+            if (currentTestPage) {
+                testInfo.annotations.push({
+                    type: 'test-page-url',
+                    description: currentTestPage,
+                });
+            }
+            throw error;
         } finally {
             // Always save request count last
             GlobalRequestCounter.saveCountToFileSync();
@@ -98,6 +108,11 @@ function getClonedCardID() {
     return clonedCardID;
 }
 
+// Function to set current test page URL
+function setTestPage(url) {
+    currentTestPage = url;
+}
+
 // Export the global page objects so test files can access them
 export {
     studio,
@@ -112,6 +127,7 @@ export {
     webUtil,
     setClonedCardID,
     getClonedCardID,
+    setTestPage,
     miloLibs,
 };
 

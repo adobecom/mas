@@ -36,7 +36,7 @@ async function main(params) {
         ...params,
         api_key,
         requestId,
-        transformer: 'pipeline',
+        loggedTransformer: 'pipeline',
         DEFAULT_HEADERS,
         status: 200,
     };
@@ -76,18 +76,8 @@ async function main(params) {
             };
         }
     }
-    const pipelineMeasure = measureTiming(context, 'pipeline', 'start');
-    log(
-        `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.id} (${returnValue.statusCode}) in ${pipelineMeasure.duration}ms`,
-        {
-            ...context,
-            transformer: 'pipeline',
-        },
-    );
-    const measures = context.measures
-        .map((measure) => `${measure.label} t:${measure.startTime}, d:${measure.duration}`)
-        .join('|');
-    log(`timings (time and duration) region: ${region}: ${measures}`, context);
+    mark(context, 'end');
+    context.loggedTransformer = 'pipeline';
     delete returnValue.id; // id is not part of the response
     returnValue.headers = {
         ...returnValue.headers,
@@ -95,6 +85,16 @@ async function main(params) {
     };
     returnValue.body = returnValue.body?.length > 0 ? zlib.brotliCompressSync(returnValue.body).toString('base64') : undefined;
     logDebug(() => 'full response: ' + JSON.stringify(returnValue), context);
+    measureTiming(context, 'endProcess', 'end');
+    const pipelineMeasure = measureTiming(context, 'pipeline', 'start');
+    const measures = context.measures
+        .map((measure) => `${measure.label} t:${measure.startTime}, d:${measure.duration}`)
+        .join('|');
+    log(`timings (time and duration) region: ${region}: ${measures}`, context);
+    log(
+        `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.id} (${returnValue.statusCode}) in ${pipelineMeasure.duration}ms`,
+        context,
+    );
     return returnValue;
 }
 
@@ -157,7 +157,9 @@ async function mainProcess(context) {
                 dictionaryId: context.dictionaryId,
             });
             log(`updating cache for ${requestKey} -> ${metadata}`, context);
+            mark(context, 'req-state-put');
             await context.state.put(requestKey, metadata);
+            measureTiming(context, 'req-state-put');
         } else if (cachedMetadata?.lastModified) {
             lastModified = new Date(cachedMetadata.lastModified);
         }

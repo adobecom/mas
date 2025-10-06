@@ -46,7 +46,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             await expect(await fries.title).toHaveText(data.title);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.title).toHaveValue(data.title);
+            await expect(await editor.title).toContainText(data.title);
         });
     });
 

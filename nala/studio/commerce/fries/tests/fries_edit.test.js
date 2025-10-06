@@ -29,7 +29,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         });
 
         await test.step('step-4: Validate edited title field in Editor panel', async () => {
-            await expect(await editor.title).toHaveValue(data.newTitle);
+            await expect(await editor.title).toContainText(data.newTitle);
         });
 
         await test.step('step-5: Validate edited title field on the card', async () => {

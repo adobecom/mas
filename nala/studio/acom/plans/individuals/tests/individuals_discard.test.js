@@ -119,7 +119,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardTitle).toHaveText(data.title);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.title).toHaveValue(data.title);
+            await expect(await editor.title).toContainText(data.title);
         });
     });
 

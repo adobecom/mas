@@ -290,7 +290,7 @@ export default {
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 ctaText: 'Buy now',
                 newCtaOption: 'Save now',
-                newCtaText: 'Save now',
+                newCtaText: 'save-now',
                 workflowStep: 'email',
                 newWorkflowOption: 'Segmentation',
                 newWorkflowStep: 'segmentation',

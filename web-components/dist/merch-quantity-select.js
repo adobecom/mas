@@ -1,4 +1,4 @@
-import{html as r,LitElement as A}from"lit";import{css as u}from"lit";var c=u`
+import{html as r,LitElement as A}from"/deps/lit-all.min.js";import{css as u}from"/deps/lit-all.min.js";var c=u`
     :host {
         box-sizing: border-box;
         --background-color: var(--qs-background-color, #f6f6f6);

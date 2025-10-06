@@ -1,33 +1,7 @@
-import { expect, test } from '@playwright/test';
-import StudioPage from '../../../studio.page.js';
+import { test, expect, studio, editor, fries, ost, miloLibs } from '../../../../libs/mas-test.js';
 import CCDFriesSpec from '../specs/fries_discard.spec.js';
-import CCDFries from '../fries.page.js';
-import WebUtil from '../../../../libs/webutil.js';
-import EditorPage from '../../../editor.page.js';
-import OSTPage from '../../../ost.page.js';
 
 const { features } = CCDFriesSpec;
-const miloLibs = process.env.MILO_LIBS || '';
-
-let studio;
-let fries;
-let webUtil;
-let editor;
-let ost;
-
-test.beforeEach(async ({ page, browserName }) => {
-    test.slow();
-    if (browserName === 'chromium') {
-        await page.setExtraHTTPHeaders({
-            'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
-        });
-    }
-    studio = new StudioPage(page);
-    fries = new CCDFries(page);
-    webUtil = new WebUtil(page);
-    editor = new EditorPage(page);
-    ost = new OSTPage(page);
-});
 
 test.describe('M@S Studio Commerce Fries card test suite', () => {
     // @studio-fries-discard-edited-title - Validate discard edited title for fries card in mas studio

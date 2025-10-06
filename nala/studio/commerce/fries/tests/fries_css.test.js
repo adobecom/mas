@@ -1,27 +1,7 @@
-import { expect, test } from '@playwright/test';
-import StudioPage from '../../../studio.page.js';
+import { test, expect, studio, fries, webUtil, miloLibs } from '../../../../libs/mas-test.js';
 import CCDFriesSpec from '../specs/fries_css.spec.js';
-import CCDFries from '../fries.page.js';
-import WebUtil from '../../../../libs/webutil.js';
 
 const { features } = CCDFriesSpec;
-const miloLibs = process.env.MILO_LIBS || '';
-
-let studio;
-let fries;
-let webUtil;
-
-test.beforeEach(async ({ page, browserName }) => {
-    test.slow();
-    if (browserName === 'chromium') {
-        await page.setExtraHTTPHeaders({
-            'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
-        });
-    }
-    studio = new StudioPage(page);
-    fries = new CCDFries(page);
-    webUtil = new WebUtil(page);
-});
 
 test.describe('M@S Studio Commerce Fries card test suite', () => {
     // @studio-fries-css-card - Validate CSS for fries card size, background and border color

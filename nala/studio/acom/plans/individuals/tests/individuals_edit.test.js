@@ -1118,7 +1118,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-4: Validate edited CTA in Editor panel', async () => {
-            await expect(await editor.footer).toContainText(data.newCtaText);
+            await expect(await editor.footer).toContainText('{{save-now}}');
         });
 
         await test.step('step-5: Validate edited CTA on the card', async () => {

@@ -24,7 +24,6 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
         await test.step('step-3: Edit title field', async () => {
             await expect(await editor.title).toBeVisible();
-            const currentTitle = await editor.title.inputValue();
             await editor.title.fill(data.newTitle);
         });
 

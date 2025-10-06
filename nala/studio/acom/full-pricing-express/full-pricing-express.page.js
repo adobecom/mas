@@ -28,13 +28,10 @@ export default class ACOMFullPricingExpressPage {
         this.cardPhoneLink = page.locator('a[href^="tel:"]');
         this.cardLegalLink = page.locator('a.modal-Link, a.spectrum-Link, [slot="shortDescription"] a');
         this.cardHeadingPrice = page.locator('[slot="price"] .heading-s, [slot="price"] h3');
-        this.cardLink = page.locator('[slot="shortDescription"] a, .button-container a, a.spectrum-Link');
+        this.cardLink = page.locator('[slot="shortDescription"] a, a.spectrum-Link');
 
         // New selectors for enhanced features
-        this.spDivider = page.locator('.divider-wrapper sp-divider');
-        this.dividerWrapper = page.locator('.divider-wrapper');
-        this.buttonContainer = page.locator('.button-container');
-        this.compareLink = page.locator('.button-container a');
+        this.compareLink = page.locator('[slot="body-s"] a:has-text("Compare")');
         this.gradientFireflyCard = page.locator('[border-color="gradient-firefly-spectrum"]');
         this.mnemonicXS = page.locator('mas-mnemonic[size="xs"]');
         this.mnemonicS = page.locator('mas-mnemonic[size="s"]');
@@ -137,24 +134,6 @@ export default class ACOMFullPricingExpressPage {
                 'line-height': '18px',
                 'text-decoration-line': 'underline',
                 'text-decoration-style': 'solid',
-            },
-            spDivider: {
-                'border-color': 'rgb(213, 213, 213)',
-                'border-width': '1px',
-                'margin-top': '16px',
-                'margin-bottom': '16px',
-            },
-            dividerWrapper: {
-                cursor: 'pointer',
-                padding: '4px',
-                'border-radius': '4px',
-            },
-            buttonContainer: {
-                display: 'flex',
-                'flex-direction': 'column',
-                'align-items': 'center',
-                gap: '8px',
-                'margin-top': '16px',
             },
             compareLink: {
                 color: 'rgb(39, 77, 234)',

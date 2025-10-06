@@ -229,12 +229,6 @@ test.describe('M@S Studio ACOM Full Pricing Express card CSS test suite', () => 
                 const dividerElement = fullPricingExpress.cardDivider.first();
                 await expect(dividerElement).toBeVisible();
             }
-            // Also check for sp-divider variant
-            const spDividerCount = await fullPricingExpress.spDivider.count();
-            if (spDividerCount > 0) {
-                const spDividerElement = fullPricingExpress.spDivider.first();
-                await expect(spDividerElement).toBeVisible();
-            }
         });
     });
 

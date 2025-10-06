@@ -9,7 +9,7 @@ export default class EditorPage {
         this.authorPath = page.locator('#author-path');
         this.variant = this.panel.locator('#card-variant');
         this.size = this.panel.locator('#card-size');
-        this.title = this.panel.locator('#card-title input');
+        this.title = this.panel.locator('rte-field#card-title div[contenteditable="true"]');
         this.subtitle = this.panel.locator('#card-subtitle input');
         this.badge = this.panel.locator('#card-badge input');
         this.badgeColor = this.panel.locator('sp-picker#badgeColor');
@@ -23,6 +23,7 @@ export default class EditorPage {
         this.CTA = this.panel.locator('sp-field-group#ctas a');
         this.descriptionFieldGroup = this.panel.locator('sp-field-group#description');
         this.description = this.panel.locator('sp-field-group#description div[contenteditable="true"]');
+        this.shortDescription = this.panel.locator('rte-field#shortDescription div[contenteditable="true"]');
         this.borderColor = this.panel.locator('sp-picker#border-color');
         this.backgroundColor = this.panel.locator('sp-picker#backgroundColor');
         this.OSI = this.panel.locator('osi-field#osi');
@@ -43,6 +44,10 @@ export default class EditorPage {
         this.whatsIncludedIconLabel = this.panel.locator('#whatsIncluded #text input');
         this.whatsIncludedIconRemoveButton = this.panel.locator('#whatsIncluded sp-icon-close');
         this.closeEditor = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="close"]');
+        this.discardButton = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="discard"]');
+        this.discardConfirmDialog = page.locator('sp-dialog[variant="confirmation"]');
+        this.discardConfirmButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Discard")');
+        this.cancelDiscardButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Cancel")');
 
         // Price templates
         this.regularPrice = page.locator('span[is="inline-price"][data-template="price"]');
@@ -56,12 +61,6 @@ export default class EditorPage {
         this.linkEdit = page.locator('#linkEditorButton');
         this.addIcon = page.locator('#addIconButton');
         this.OSTButton = page.locator('#offerSelectorToolButton');
-
-        // Divider controls
-        this.addDividerButton = page.locator('sp-action-button[value="add-divider"], button.add-divider, #add-divider-button');
-        this.removeDividerButton = page.locator(
-            'sp-action-button[value="remove-divider"], button.remove-divider, #remove-divider-button',
-        );
 
         // Edit Link Panel
         this.checkoutParameters = page.locator('#checkoutParameters input');

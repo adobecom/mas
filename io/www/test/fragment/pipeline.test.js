@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import nock from 'nock';
-import { main as action } from '../../src/fragment/pipeline.js';
+import { main as action, resetCache } from '../../src/fragment/pipeline.js';
 import { mockDictionary } from './replace.test.js';
 import zlib from 'zlib';
 
@@ -234,6 +234,7 @@ describe('pipeline corner cases', () => {
     beforeEach(() => {
         nock.cleanAll();
         mockDictionary();
+        resetCache();
     });
 
     afterEach(() => {

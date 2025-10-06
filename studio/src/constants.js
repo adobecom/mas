@@ -137,7 +137,14 @@ export const PAGE_NAMES = {
     WELCOME: 'welcome',
     PLACEHOLDERS: 'placeholders',
     CONTENT: 'content',
+    CHAT: 'chat',
 };
+
+// AI Chat endpoint - auto-detects local vs production
+export const AI_CHAT_BASE_URL =
+    window.location.hostname === 'localhost'
+        ? 'https://localhost:9080/api/v1/web/MerchAtScaleStudio'
+        : 'https://mas.adobe.com/io';
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
 export const TAG_STATUS_PUBLISHED_PATH = '/content/cq:tags/mas/status/published';

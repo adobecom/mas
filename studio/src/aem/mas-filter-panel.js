@@ -44,6 +44,7 @@ class MasFilterPanel extends LitElement {
             min-height: 32px;
             align-items: center;
             flex-wrap: wrap;
+            gap: var(--spectrum-global-dimension-size-300);
         }
     `;
 

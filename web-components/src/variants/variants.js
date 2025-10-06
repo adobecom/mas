@@ -14,6 +14,29 @@ import {
     SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING,
     SpecialOffer,
 } from './special-offer.js';
+import {
+    SimplifiedPricingExpress,
+    SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+} from './simplified-pricing-express.js';
+import {
+    FullPricingExpress,
+    FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+} from './full-pricing-express.js';
+import { Mini, MINI_AEM_FRAGMENT_MAPPING } from './mini.js';
+import {
+    CCDSuggested,
+    CCD_SUGGESTED_AEM_FRAGMENT_MAPPING,
+} from './ccd-suggested.js';
+import { CCDSlice, CCD_SLICE_AEM_FRAGMENT_MAPPING } from './ccd-slice.js';
+import {
+    AHTryBuyWidget,
+    AH_TRY_BUY_WIDGET_AEM_FRAGMENT_MAPPING,
+} from './ah-try-buy-widget.js';
+import {
+    AHPromotedPlans,
+    AH_PROMOTED_PLANS_AEM_FRAGMENT_MAPPING,
+} from './ah-promoted-plans.js';
+import { FriesCard, FRIES_AEM_FRAGMENT_MAPPING } from './fries.js';
 
 // Registry for dynamic variants
 const variantRegistry = new Map();
@@ -67,6 +90,49 @@ registerVariant(
     SpecialOffer,
     SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING,
     SpecialOffer.variantStyle,
+);
+registerVariant(
+    'simplified-pricing-express',
+    SimplifiedPricingExpress,
+    SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+    SimplifiedPricingExpress.variantStyle,
+);
+registerVariant(
+    'full-pricing-express',
+    FullPricingExpress,
+    FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+    FullPricingExpress.variantStyle,
+);
+registerVariant('mini', Mini, MINI_AEM_FRAGMENT_MAPPING, Mini.variantStyle);
+registerVariant(
+    'ccd-suggested',
+    CCDSuggested,
+    CCD_SUGGESTED_AEM_FRAGMENT_MAPPING,
+    CCDSuggested.variantStyle,
+);
+registerVariant(
+    'ccd-slice',
+    CCDSlice,
+    CCD_SLICE_AEM_FRAGMENT_MAPPING,
+    CCDSlice.variantStyle,
+);
+registerVariant(
+    'ah-try-buy-widget',
+    AHTryBuyWidget,
+    AH_TRY_BUY_WIDGET_AEM_FRAGMENT_MAPPING,
+    AHTryBuyWidget.variantStyle,
+);
+registerVariant(
+    'ah-promoted-plans',
+    AHPromotedPlans,
+    AH_PROMOTED_PLANS_AEM_FRAGMENT_MAPPING,
+    AHPromotedPlans.variantStyle,
+);
+registerVariant(
+    'fries',
+    FriesCard,
+    FRIES_AEM_FRAGMENT_MAPPING,
+    FriesCard.variantStyle,
 );
 
 const getVariantLayout = (card, mustMatch = false) => {

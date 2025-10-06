@@ -79,8 +79,9 @@ class MasFragmentTable extends LitElement {
 
     render() {
         const data = this.fragmentStore.value;
-        return html`<sp-table-row value="${data.id}"
-            ><sp-table-cell class="name"> ${this.icon} ${this.getFragmentName(data)} </sp-table-cell>
+        return html`<sp-table-row value="${data.id}">
+            <sp-table-checkbox-cell></sp-table-checkbox-cell>
+            <sp-table-cell class="name"> ${this.icon} ${this.getFragmentName(data)} </sp-table-cell>
             <sp-table-cell class="title">${data.title}</sp-table-cell>
             <sp-table-cell class="offer-type">${this.offerData?.offerType}</sp-table-cell>
             <sp-table-cell class="price">${this.price}</sp-table-cell>
@@ -91,8 +92,8 @@ class MasFragmentTable extends LitElement {
                 ? html`<sp-table-cell class="preview" @mouseover=${this.openCardPreview} @mouseout=${closePreview}
                       ><sp-icon-preview label="Preview item"></sp-icon-preview
                   ></sp-table-cell>`
-                : html`<sp-table-cell class="preview"></sp-table-cell>`}</sp-table-row
-        >`;
+                : html`<sp-table-cell class="preview"></sp-table-cell>`}
+        </sp-table-row>`;
     }
 }
 

@@ -83,7 +83,7 @@ function filtersValidator(value) {
  * @returns {string}
  */
 function pageValidator(value) {
-    const validPages = [PAGE_NAMES.WELCOME, PAGE_NAMES.CONTENT, PAGE_NAMES.PLACEHOLDERS];
+    const validPages = [PAGE_NAMES.WELCOME, PAGE_NAMES.CONTENT, PAGE_NAMES.PLACEHOLDERS, PAGE_NAMES.CHAT];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }
 

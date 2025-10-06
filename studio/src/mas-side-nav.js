@@ -103,6 +103,14 @@ class MasSideNav extends LitElement {
                     <sp-icon-cclibrary slot="icon"></sp-icon-cclibrary>
                 </sp-sidenav-item>
                 <sp-sidenav-item
+                    label="AI Creator"
+                    value="chat"
+                    @click="${router.navigateToPage(PAGE_NAMES.CHAT)}"
+                    ?selected=${Store.page.get() === PAGE_NAMES.CHAT}
+                >
+                    <sp-icon-magic-wand slot="icon"></sp-icon-magic-wand>
+                </sp-sidenav-item>
+                <sp-sidenav-item
                     class="side-nav-support"
                     label="Support"
                     value="support"

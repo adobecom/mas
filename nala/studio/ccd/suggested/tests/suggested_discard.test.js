@@ -1,30 +1,7 @@
-import { expect, test } from '@playwright/test';
-import StudioPage from '../../../studio.page.js';
-import EditorPage from '../../../editor.page.js';
+import { test, expect, studio, editor, suggested, ost, miloLibs } from '../../../../libs/mas-test.js';
 import CCDSuggestedSpec from '../specs/suggested_discard.spec.js';
-import CCDSuggestedPage from '../suggested.page.js';
-import OSTPage from '../../../ost.page.js';
 
 const { features } = CCDSuggestedSpec;
-const miloLibs = process.env.MILO_LIBS || '';
-
-let studio;
-let editor;
-let suggested;
-let ost;
-
-test.beforeEach(async ({ page, browserName }) => {
-    test.slow();
-    if (browserName === 'chromium') {
-        await page.setExtraHTTPHeaders({
-            'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
-        });
-    }
-    studio = new StudioPage(page);
-    editor = new EditorPage(page);
-    suggested = new CCDSuggestedPage(page);
-    ost = new OSTPage(page);
-});
 
 test.describe('M@S Studio CCD Suggested card test suite', () => {
     // @studio-suggested-discard-edited-title - Validate discard edited title for suggested card in mas studio

@@ -1,23 +1,7 @@
-import { expect, test } from '@playwright/test';
+import { test, expect, studio, editor, miloLibs } from '../libs/mas-test.js';
 import StudioSpec from './studio.spec.js';
-import StudioPage from './studio.page.js';
-import EditorPage from './editor.page.js';
 
 const { features } = StudioSpec;
-const miloLibs = process.env.MILO_LIBS || '';
-
-let studio;
-let editor;
-test.beforeEach(async ({ page, browserName }) => {
-    test.slow();
-    if (browserName === 'chromium') {
-        await page.setExtraHTTPHeaders({
-            'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
-        });
-    }
-    studio = new StudioPage(page);
-    editor = new EditorPage(page);
-});
 
 test.describe('M@S Studio feature test suite', () => {
     // @studio-load - Validate studio Welcome page is loaded

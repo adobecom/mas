@@ -1,9 +1,8 @@
-const { expect } = require('chai');
-const nock = require('nock');
-const { MAS_ELEMENT_REGEXP, wcs } = require('../../src/fragment/wcs.js');
+import { expect } from 'chai';
+import nock from 'nock';
+import { MAS_ELEMENT_REGEXP, transformer as wcs } from '../../src/fragment/wcs.js';
 
-const { MockState } = require('./mocks/MockState.js');
-const FRAGMENT = require('./mocks/fragment.json');
+import FRAGMENT from './mocks/fragment.json' with { type: 'json' };
 const CONFIGURATION = (keys = ['foo', 'testing_wcs', 'bar']) => [
     {
         api_keys: keys,
@@ -84,7 +83,7 @@ describe('wcs typical cases', function () {
         context.wcsConfiguration = CONFIGURATION();
         context.body.fields.osi = 'anotherOsiForUpt';
         context.body.fields.promoCode = 'UPT_PROMO-1';
-        context = await wcs(context);
+        context = await wcs.process(context);
         expect(context.body.wcs).to.deep.equal({
             prod: {
                 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-us-mult': [
@@ -133,7 +132,7 @@ describe('wcs typical cases', function () {
         delete context.body.fields.osi;
         delete context.body.fields.promoCode;
         context.locale = 'en_GB';
-        context = await wcs(context);
+        context = await wcs.process(context);
         expect(context.body.wcs).to.deep.equal({
             prod: {
                 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-gb': [
@@ -166,26 +165,26 @@ describe('wcs corner cases', function () {
     });
 
     it('should not do much if no wcs configuration is found', async function () {
-        context = wcs(context);
+        context = wcs.process(context);
         expect(context.body?.wcs).to.be.undefined;
     });
 
     it('should not do much if bad configuration is is found', async function () {
         context.wcsConfiguration = 'unexpected string';
-        context = wcs(context);
+        context = wcs.process(context);
         expect(context.body?.wcs).to.be.undefined;
     });
 
     it('should not do much if no wcs placeholder is found', async function () {
         context.body = { content: '<p>no wcs placeholder here</p>' };
         context.wcsConfiguration = CONFIGURATION();
-        context = wcs(context);
+        context = wcs.process(context);
         expect(context.body?.wcs).to.be.undefined;
     });
 
     it('should not do much if no api key is found', async function () {
         context.wcsConfiguration = CONFIGURATION(['some-other-key']);
-        context = wcs(context);
+        context = wcs.process(context);
         expect(context.body?.wcs).to.be.undefined;
     });
 
@@ -215,7 +214,7 @@ describe('wcs corner cases', function () {
             })
             .reply(200, { resolvedOffers: [{ foo: 'bar' }] });
         context.wcsConfiguration = CONFIGURATION();
-        context = await wcs(context);
+        context = await wcs.process(context);
         expect(context.body.wcs).to.deep.equal({
             prod: {
                 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ-us-mult-nicopromo': [

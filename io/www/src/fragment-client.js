@@ -5,11 +5,13 @@
 
 // Import the modules
 import { logError } from './fragment/common.js';
-import { corrector } from './fragment/corrector.js';
-import { fetchFragment } from './fragment/fetch.js';
-import { replace } from './fragment/replace.js';
-import { settings } from './fragment/settings.js';
-import { translate } from './fragment/translate.js';
+import { transformer as corrector } from './fragment/corrector.js';
+import { transformer as fetchFragment } from './fragment/fetch.js';
+import { getDictionary, transformer as replace } from './fragment/replace.js';
+import { transformer as settings } from './fragment/settings.js';
+import { transformer as translate } from './fragment/translate.js';
+
+const PIPELINE = [fetchFragment, translate, settings, replace, corrector];
 
 async function previewFragment(id, options) {
     const {
@@ -31,13 +33,21 @@ async function previewFragment(id, options) {
         api_key: 'n/a',
         locale,
     };
-    for (const transformer of [fetchFragment, translate, settings, replace, corrector]) {
+
+    for (const transformer of PIPELINE) {
+        if (transformer.init) {
+            context.loggedTransformer = `${transformer.name}-init`;
+            context.promises = context.promises || {};
+            context.promises[transformer.name] = transformer.init(context);
+        }
+    }
+    for (const transformer of PIPELINE) {
         if (context.status != 200) {
             logError(context.message, context);
             break;
         }
-        context.transformer = transformer.name;
-        context = await transformer(context);
+        context.loggedTransformer = transformer.name;
+        context = await transformer.process(context);
     }
     if (context.status != 200) {
         logError(context.message, context);
@@ -45,4 +55,44 @@ async function previewFragment(id, options) {
     return context.body;
 }
 
-export { previewFragment };
+/* c8 ignore next 38 */
+async function previewStudioFragment(body, options) {
+    const {
+        locale = 'en_US',
+        preview = {
+            url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+        },
+        dictionary,
+        ...rest
+    } = options;
+    let context = {
+        body,
+        status: 200,
+        preview,
+        requestId: 'preview',
+        networkConfig: {
+            mainTimeout: 15000,
+            fetchTimeout: 10000,
+            retries: 3,
+        },
+        api_key: 'n/a',
+        locale,
+        dictionary,
+        hasExternalDictionary: Boolean(dictionary),
+        ...rest,
+    };
+    for (const transformer of [settings, replace, corrector]) {
+        if (context.status != 200) {
+            logError(context.message, context);
+            break;
+        }
+        context.transformer = transformer.name;
+        context = await transformer.process(context);
+    }
+    if (context.status != 200) {
+        logError(context.message, context);
+    }
+    return context.body;
+}
+
+export { previewFragment, previewStudioFragment, translate, settings, replace, getDictionary, corrector };

@@ -13,6 +13,9 @@ import './merch-whats-included.js';
 
 import { registerVariant } from './variants/variants.js';
 
+// Import UPW_v1
+import { UPW_V1_AEM_FRAGMENT_MAPPING, UPW_v1 } from './variants/UPW_v1.js';
+
 // Import ccd variants
 import {
     CCD_SUGGESTED_AEM_FRAGMENT_MAPPING,
@@ -38,7 +41,20 @@ import {
 //Import fries
 import { FRIES_AEM_FRAGMENT_MAPPING, FriesCard } from './variants/fries.js';
 
+//Import single-card
+import {
+    SINGLE_CARD_AEM_FRAGMENT_MAPPING,
+    SingleCard,
+} from './variants/single-card.js';
+
 // Register dynamic variants
+registerVariant(
+    'UPW_v1',
+    UPW_v1,
+    UPW_V1_AEM_FRAGMENT_MAPPING,
+    UPW_v1.variantStyle,
+);
+
 registerVariant(
     'ccd-suggested',
     CCDSuggested,
@@ -68,4 +84,10 @@ registerVariant(
     FriesCard,
     FRIES_AEM_FRAGMENT_MAPPING,
     FriesCard.variantStyle,
+);
+registerVariant(
+    'single-card',
+    SingleCard,
+    SINGLE_CARD_AEM_FRAGMENT_MAPPING,
+    SingleCard.variantStyle,
 );

@@ -14,6 +14,7 @@ export const VARIANT_NAMES = {
     FRIES: 'fries',
     MINI: 'mini',
     SIMPLIFIED_PRICING_EXPRESS: 'simplified-pricing-express',
+    SINGLE_CARD: 'single-card',
 };
 //TODO make that feed (excepts ALL maybe) dynamically served from milo
 export const VARIANTS = [
@@ -67,6 +68,7 @@ export const VARIANTS = [
         value: 'full-pricing-express',
         surface: 'acom',
     },
+    { label: 'Single Card', value: 'single-card', surface: 'acom' },
 ];
 
 class VariantPicker extends LitElement {

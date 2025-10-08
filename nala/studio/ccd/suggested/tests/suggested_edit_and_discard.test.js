@@ -97,12 +97,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-3: Edit title field', async () => {
             await expect(await editor.title).toBeVisible();
-            await expect(await editor.title).toHaveValue(data.title.original);
+            await expect(await editor.title).toContainText(data.title.original);
             await editor.title.fill(data.title.updated);
         });
 
         await test.step('step-4: Validate edited title field in Editor panel', async () => {
-            await expect(await editor.title).toHaveValue(data.title.updated);
+            await expect(await editor.title).toContainText(data.title.updated);
         });
 
         await test.step('step-5: Validate edited title field on the card', async () => {

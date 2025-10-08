@@ -199,7 +199,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
             const results = await Promise.allSettled([
                 test.step('Validation-1: Verify title saved', async () => {
-                    await expect(await editor.title).toHaveValue(data.title);
+                    await expect(await editor.title).toContainText(data.title);
                     await expect(await clonedCard.locator(individuals.cardTitle)).toHaveText(data.title);
                 }),
 

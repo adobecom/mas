@@ -24,12 +24,12 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
 
         await test.step('step-3: Enter long string in title field', async () => {
             await expect(await editor.title).toBeVisible();
-            await expect(await editor.title).toHaveValue(data.title.original);
+            await expect(await editor.title).toContainText(data.title.original);
             await editor.title.fill(data.title.updated);
         });
 
         await test.step('step-4: Validate title truncation in card', async () => {
-            await expect(await editor.title).toHaveValue(data.title.updated);
+            await expect(await editor.title).toContainText(data.title.updated);
             await expect(await promotedplans.cardTitle).toHaveText(data.title.truncated);
         });
 

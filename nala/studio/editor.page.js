@@ -9,8 +9,7 @@ export default class EditorPage {
         this.authorPath = page.locator('#author-path');
         this.variant = this.panel.locator('#card-variant');
         this.size = this.panel.locator('#card-size');
-        this.title = this.panel.locator('#card-title input');
-        this.titleRTE = this.panel.locator('rte-field#card-title div[contenteditable="true"]');
+        this.title = this.panel.locator('rte-field#card-title div[contenteditable="true"]');
         this.subtitle = this.panel.locator('#card-subtitle input');
         this.badge = this.panel.locator('#card-badge input');
         this.badgeColor = this.panel.locator('sp-picker#badgeColor');

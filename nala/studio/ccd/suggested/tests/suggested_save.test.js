@@ -204,7 +204,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
             const results = await Promise.allSettled([
                 test.step('Validation-1: Verify title saved', async () => {
-                    await expect(await editor.title).toHaveValue(data.title);
+                    await expect(await editor.title).toContainText(data.title);
                     await expect(await clonedCard.locator(suggested.cardTitle)).toHaveText(data.title);
                 }),
 

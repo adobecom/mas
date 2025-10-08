@@ -37,7 +37,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await editor.title).toBeVisible();
             await editor.title.click();
             await page.waitForTimeout(2000);
-            await expect(await editor.title).toHaveValue(data.title.old);
+            await expect(await editor.title).toContainText(data.title.old);
             await editor.title.fill(data.title.updated);
             await page.waitForTimeout(2000);
         });

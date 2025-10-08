@@ -62,7 +62,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             const results = await Promise.allSettled([
                 // Validate title in editor and card
                 test.step('Validation-1: Validate edited title', async () => {
-                    await expect(await editor.title).toHaveValue(data.title.updated);
+                    await expect(await editor.title).toContainText(data.title.updated);
                     await expect(await clonedCard.locator(fries.title)).toHaveText(data.title.updated);
                 }),
 

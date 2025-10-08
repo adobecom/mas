@@ -26,12 +26,12 @@ test.describe('M@S Studio ACOM Full Pricing Express card test suite', () => {
         });
 
         await test.step('step-3: Edit title field', async () => {
-            await expect(await editor.titleRTE).toBeVisible({ timeout: 10000 });
-            await editor.titleRTE.fill(data.title.updated);
+            await expect(await editor.title).toBeVisible({ timeout: 10000 });
+            await editor.title.fill(data.title.updated);
         });
 
         await test.step('step-4: Validate title field updated', async () => {
-            await expect(await editor.titleRTE).toContainText(data.title.updated);
+            await expect(await editor.title).toContainText(data.title.updated);
             await expect(await fullPricingExpress.cardTitle).toContainText(data.title.updated);
         });
 

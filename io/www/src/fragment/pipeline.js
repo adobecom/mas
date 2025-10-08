@@ -52,8 +52,7 @@ async function main(params) {
         context.state = await stateLib.init();
     }
     try {
-        mark(context, 'config-check');
-        const now = parseFloat(context.marks['config-check']);
+        const now = mark(context, 'config-check');
         const cacheExpired = !configurationTimestamp || now - configurationTimestamp > CONFIG_CACHE_TTL;
         let configuration;
         if (!cachedConfiguration || cacheExpired) {

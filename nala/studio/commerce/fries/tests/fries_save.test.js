@@ -33,7 +33,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         });
 
         await test.step('step-4: Validate edited card title', async () => {
-            await expect(await editor.title).toHaveValue(data.newTitle);
+            await expect(await editor.title).toContainText(data.newTitle);
             await expect(await clonedCard.locator(fries.title)).toHaveText(data.newTitle);
         });
     });

@@ -2,7 +2,7 @@ export default {
     FeatureName: 'M@S Studio ACOM Full Pricing Express CSS',
     features: [
         {
-            tcid: '1',
+            tcid: '0',
             name: '@studio-full-pricing-express-css',
             path: '/studio.html',
             data: {

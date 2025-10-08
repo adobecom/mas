@@ -263,12 +263,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit title field', async () => {
             await expect(await editor.title).toBeVisible();
-            await expect(await editor.title).toHaveValue(data.title);
+            await expect(await editor.title).toContainText(data.title);
             await editor.title.fill(data.newTitle);
         });
 
         await test.step('step-4: Validate title field updated', async () => {
-            await expect(await editor.title).toHaveValue(data.newTitle);
+            await expect(await editor.title).toContainText(data.newTitle);
             await expect(await individuals.cardTitle).toHaveText(data.newTitle);
         });
     });

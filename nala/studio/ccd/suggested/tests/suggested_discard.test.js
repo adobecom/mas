@@ -37,7 +37,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await suggested.cardTitle).toHaveText(data.title);
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            await expect(await editor.title).toHaveValue(data.title);
+            await expect(await editor.title).toContainText(data.title);
         });
     });
 

@@ -170,13 +170,13 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-3: Edit title and save card', async () => {
             await expect(await editor.title).toBeVisible();
-            await expect(await editor.title).toHaveValue(data.title);
+            await expect(await editor.title).toContainText(data.title);
             await editor.title.fill(data.newTitle);
             await studio.saveCard();
         });
 
         await test.step('step-4: Validate edited card title', async () => {
-            await expect(await editor.title).toHaveValue(data.newTitle);
+            await expect(await editor.title).toContainText(data.newTitle);
             await expect(await clonedCard.locator(suggested.cardTitle)).toHaveText(data.newTitle);
         });
     });

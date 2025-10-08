@@ -434,9 +434,32 @@ describe('configuration caching', () => {
         expect(result2.statusCode).to.equal(200);
         expect(result1.body).to.deep.equal(result2.body);
 
-        const configCalls = stateGetSpy.getCalls().filter((call) => call.args[0] === 'configuration');
+        let configCalls = stateGetSpy.getCalls().filter((call) => call.args[0] === 'configuration');
         expect(configCalls).to.have.length(1);
 
+        const performanceStub = sinon.stub(performance, 'now');
+        performanceStub.returns(5 * 60 * 1000 + 1000);
+
+        setupFragmentMocks({
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+            fields: {
+                description: 'corps',
+                cta: '{{buy-now}}',
+            },
+        });
+
+        const result3 = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+        });
+        expect(result3.statusCode).to.equal(200);
+
+        configCalls = stateGetSpy.getCalls().filter((call) => call.args[0] === 'configuration');
+        expect(configCalls).to.have.length(2);
+
+        performanceStub.restore();
         stateGetSpy.restore();
     });
 });

@@ -320,6 +320,17 @@ export function processDescription(fields, merchCard, mapping) {
     appendSlot('whatsIncluded', fields, merchCard, mapping);
 }
 
+export function processShortDescription(fields, merchCard, mapping) {
+    appendSlot('shortDescription', fields, merchCard, mapping);
+
+    if (fields.shortDescription) {
+        merchCard.setAttribute('action-menu', 'true');
+        if (!fields.actionMenuLabel) {
+            merchCard.setAttribute('action-menu-label', 'More options');
+        }
+    }
+}
+
 export function processAddon(fields, merchCard, mapping) {
     if (!mapping.addon) return;
     let addonField = fields.addon?.replace(/[{}]/g, '');
@@ -673,6 +684,7 @@ export async function hydrate(fragment, merchCard) {
     );
     processBorderColor(fields, merchCard, mapping);
     processDescription(fields, merchCard, mapping);
+    processShortDescription(fields, merchCard, mapping);
     processAddon(fields, merchCard, mapping);
     processAddonConfirmation(fields, merchCard, mapping);
     processStockOffersAndSecureLabel(fields, merchCard, mapping, settings);

@@ -16,6 +16,7 @@ import {
     ANALYTICS_LINK_ATTR,
     ANALYTICS_SECTION_ATTR,
     processDescription,
+    processShortDescription,
     updateLinksCSS,
     getTruncatedTextData,
     processBackgroundColor,
@@ -611,6 +612,67 @@ describe('processDescription', async () => {
         expect(
             merchCard.querySelector('div[slot="callout-content"]')?.textContent,
         ).to.equal('AI Assistant add-on available.');
+    });
+});
+
+describe('processShortDescription', async () => {
+    let merchCard;
+    let aemFragmentMapping;
+
+    beforeEach(async () => {
+        merchCard = mockMerchCard();
+        aemFragmentMapping = {
+            shortDescription: { tag: 'div', slot: 'action-menu-content' },
+        };
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it('should append short description to action-menu-content slot', async () => {
+        const fields = {
+            shortDescription:
+                '<p>This is a short description for the action menu.</p>',
+        };
+
+        processShortDescription(fields, merchCard, aemFragmentMapping);
+
+        expect(merchCard.innerHTML).to.equal(
+            '<div slot="action-menu-content"><p>This is a short description for the action menu.</p></div>',
+        );
+    });
+
+    it('should set action-menu attribute to true when shortDescription exists', async () => {
+        const fields = {
+            shortDescription: '<p>Short description</p>',
+        };
+
+        processShortDescription(fields, merchCard, aemFragmentMapping);
+
+        expect(merchCard.getAttribute('action-menu')).to.equal('true');
+    });
+
+    it('should set default action-menu-label when not provided', async () => {
+        const fields = {
+            shortDescription: '<p>Short description</p>',
+        };
+
+        processShortDescription(fields, merchCard, aemFragmentMapping);
+
+        expect(merchCard.getAttribute('action-menu-label')).to.equal(
+            'More options',
+        );
+    });
+
+    it('should not set action-menu when shortDescription is empty', async () => {
+        const fields = {
+            shortDescription: '',
+        };
+
+        processShortDescription(fields, merchCard, aemFragmentMapping);
+
+        expect(merchCard.getAttribute('action-menu')).to.be.null;
     });
 });
 

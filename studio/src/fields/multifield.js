@@ -81,7 +81,7 @@ class MasMultifield extends LitElement {
     initValue() {
         // auto assign ids.
         this.value =
-            this.value?.map((field, i) => ({
+            this.value?.map((field) => ({
                 ...field,
             })) ?? [];
     }

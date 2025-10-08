@@ -126,10 +126,10 @@ async function cleanupClonedCards() {
 
     try {
         // Import fragment tracker
-        const { getExistingRunId, clearRunId } = await import('./fragment-tracker.js');
+        const { getCurrentRunId, clearRunId } = await import('./fragment-tracker.js');
 
         // Get the current run ID
-        const currentRunId = getExistingRunId();
+        const currentRunId = getCurrentRunId();
 
         if (!currentRunId) {
             console.info('\x1b[32m✓\x1b[0m No run ID found - no fragments to clean up');

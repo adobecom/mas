@@ -32,13 +32,6 @@ export function getCurrentRunId() {
 }
 
 /**
- * Get the current run ID without creating a new one (alias for getCurrentRunId)
- */
-export function getExistingRunId() {
-    return getCurrentRunId();
-}
-
-/**
  * Clear the current run ID (after cleanup)
  */
 export function clearRunId() {
@@ -65,7 +58,6 @@ export function getFragmentSummary() {
 export default {
     createRunId,
     getCurrentRunId,
-    getExistingRunId,
     clearRunId,
     getFragmentSummary,
 };

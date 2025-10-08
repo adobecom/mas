@@ -8,6 +8,7 @@ import COMFries from '../studio/commerce/fries/fries.page.js';
 import AHTryBuyWidgetPage from '../studio/ahome/try-buy-widget/try-buy-widget.page.js';
 import AHPromotedPlansPage from '../studio/ahome/promoted-plans/promoted-plans.page.js';
 import ACOMPlansIndividualsPage from '../studio/acom/plans/individuals/individuals.page.js';
+import ACOMFullPricingExpressPage from '../studio/acom/full-pricing-express/full-pricing-express.page.js';
 import OSTPage from '../studio/ost.page.js';
 import WebUtil from './webutil.js';
 
@@ -20,6 +21,7 @@ let fries;
 let trybuywidget;
 let promotedplans;
 let individuals;
+let fullPricingExpress;
 let ost;
 let webUtil;
 let clonedCardID = '';
@@ -56,6 +58,7 @@ const masTest = base.extend({
         trybuywidget = new AHTryBuyWidgetPage(page);
         promotedplans = new AHPromotedPlansPage(page);
         individuals = new ACOMPlansIndividualsPage(page);
+        fullPricingExpress = new ACOMFullPricingExpressPage(page);
         ost = new OSTPage(page);
         webUtil = new WebUtil(page);
 
@@ -104,6 +107,7 @@ export {
     trybuywidget,
     promotedplans,
     individuals,
+    fullPricingExpress,
     ost,
     webUtil,
     setClonedCardID,

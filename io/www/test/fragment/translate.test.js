@@ -11,7 +11,7 @@ const FAKE_CONTEXT = {
         retries: 1,
         retryDelay: 0,
     },
-    transformer: 'translate',
+    loggedTransformer: 'translate',
     requestId: 'mas-translate-ut',
 };
 

@@ -60,10 +60,10 @@ async function main(params) {
             configuration = result.json;
             cachedConfiguration = configuration;
             configurationTimestamp = now;
-            log(`Configuration cache ${cacheExpired ? 'expired' : 'empty'}, refreshed from state`, context);
+            logDebug(`Configuration cache ${cacheExpired ? 'expired' : 'empty'}, refreshed from state`, context);
         } else {
             configuration = cachedConfiguration;
-            log('Using cached configuration', context);
+            logDebug('Using cached configuration', context);
         }
         context = configuration ? { ...context, ...configuration } : context;
         const initTime = measureTiming(context, 'init', 'start').duration;

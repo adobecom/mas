@@ -12,7 +12,7 @@ export default {
                     updated: 'Express Free Updated',
                 },
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@express-full-pricing @mas-studio @express @express-edit',
         },
         {
@@ -26,7 +26,7 @@ export default {
                     updated: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
                 },
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@express-full-pricing @mas-studio @express @express-edit',
         },
         {
@@ -40,7 +40,7 @@ export default {
                     updated: 'Updated additional details for testing.',
                 },
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@express-full-pricing @mas-studio @express @express-edit',
         },
         {
@@ -54,7 +54,7 @@ export default {
                     updated: 'Try now',
                 },
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@express-full-pricing @mas-studio @express @express-edit',
         },
     ],

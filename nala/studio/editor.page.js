@@ -15,7 +15,7 @@ export default class EditorPage {
         this.badgeColor = this.panel.locator('sp-picker#badgeColor');
         this.badgeBorderColor = this.panel.locator('sp-picker#badgeBorderColor');
         this.cardBorderColor = this.panel.locator('sp-picker#border-color');
-        this.iconURL = this.panel.locator('#icon input');
+        this.iconURL = this.panel.locator('#mnemonics #icon input');
         this.promoText = this.panel.locator('#promo-text input');
         this.backgroundImage = this.panel.locator('#background-image input');
         this.prices = this.panel.locator('sp-field-group#prices');

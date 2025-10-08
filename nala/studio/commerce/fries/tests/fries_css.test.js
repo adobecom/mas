@@ -1,116 +1,71 @@
-import { test, expect, studio, fries, webUtil, miloLibs } from '../../../../libs/mas-test.js';
-import CCDFriesSpec from '../specs/fries_css.spec.js';
+import { test, expect, studio, fries, webUtil, miloLibs, setTestPage } from '../../../../libs/mas-test.js';
+import COMFriesSpec from '../specs/fries_css.spec.js';
 
-const { features } = CCDFriesSpec;
+const { features } = COMFriesSpec;
 
 test.describe('M@S Studio Commerce Fries card test suite', () => {
-    // @studio-fries-css-card - Validate CSS for fries card size, background and border color
+    // @studio-fries-css - Validate all CSS properties for fries card in parallel
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
         const friesCard = await studio.getCard(data.cardid);
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
+
+        const validationLabels = ['card', 'title', 'description', 'price', 'cta', 'icon'];
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Validate fries card CSS', async () => {
+        await test.step('step-2: Validate fries card is visible', async () => {
             await expect(friesCard).toBeVisible();
-            expect(await webUtil.verifyCSS(friesCard, fries.cssProp.card)).toBeTruthy();
-        });
-    });
-
-    // @studio-fries-css-title - Validate title CSS for fries cards
-    test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[1];
-        const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
-        const friesCard = await studio.getCard(data.cardid);
-        console.info('[Test Page]: ', testPage);
-
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Validate fries card CSS', async () => {
-            await expect(friesCard).toBeVisible();
-            expect(await webUtil.verifyCSS(friesCard.locator(fries.title), fries.cssProp.title)).toBeTruthy();
-        });
-    });
+        await test.step('step-3: Validate all CSS properties in parallel', async () => {
+            const results = await Promise.allSettled([
+                // Card container CSS
+                test.step('Validation-1: Validate card container CSS', async () => {
+                    expect(await webUtil.verifyCSS(friesCard, fries.cssProp.card)).toBeTruthy();
+                }),
 
-    // @studio-fries-css-description - Validate description CSS for fries cards
-    test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[2];
-        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
-        const friesCard = await studio.getCard(data.cardid);
-        console.info('[Test Page]: ', testPage);
+                // Card title CSS
+                test.step('Validation-2: Validate card title CSS', async () => {
+                    expect(await webUtil.verifyCSS(friesCard.locator(fries.title), fries.cssProp.title)).toBeTruthy();
+                }),
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
+                // Card description CSS
+                test.step('Validation-3: Validate card description CSS', async () => {
+                    expect(
+                        await webUtil.verifyCSS(friesCard.locator(fries.description), fries.cssProp.description),
+                    ).toBeTruthy();
+                }),
 
-        await test.step('step-2: Validate fries card CSS', async () => {
-            await expect(friesCard).toBeVisible();
-            expect(await webUtil.verifyCSS(friesCard.locator(fries.description), fries.cssProp.description)).toBeTruthy();
-        });
-    });
+                // Card price CSS
+                test.step('Validation-4: Validate card price CSS', async () => {
+                    expect(await webUtil.verifyCSS(friesCard.locator(fries.price).first(), fries.cssProp.price)).toBeTruthy();
+                }),
 
-    // @studio-fries-css-price - Validate price CSS for fries cards
-    test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[3];
-        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
-        const friesCard = await studio.getCard(data.cardid);
-        console.info('[Test Page]: ', testPage);
+                // Card CTA CSS
+                test.step('Validation-5: Validate card CTA CSS', async () => {
+                    expect(await webUtil.verifyCSS(friesCard.locator(fries.cta), fries.cssProp.cta)).toBeTruthy();
+                }),
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
+                // Card icon CSS
+                test.step('Validation-6: Validate card icon CSS', async () => {
+                    expect(await webUtil.verifyCSS(friesCard.locator(fries.icon).first(), fries.cssProp.icon)).toBeTruthy();
+                }),
+            ]);
 
-        await test.step('step-2: Validate fries card CSS', async () => {
-            await expect(friesCard).toBeVisible();
-            expect(await webUtil.verifyCSS(friesCard.locator(fries.price).first(), fries.cssProp.price)).toBeTruthy();
-        });
-    });
+            // Check results and report any failures
+            const failures = results
+                .map((result, index) => ({ result, index }))
+                .filter(({ result }) => result.status === 'rejected')
+                .map(({ result, index }) => `🔍 Validation-${index + 1} (${validationLabels[index]}) failed: ${result.reason}`);
 
-    // @studio-fries-css-cta - Validate cta CSS for fries cards
-    test(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[4];
-        const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
-        const friesCard = await studio.getCard(data.cardid);
-        console.info('[Test Page]: ', testPage);
-
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Validate fries card CSS', async () => {
-            await expect(friesCard).toBeVisible();
-            expect(await webUtil.verifyCSS(friesCard.locator(fries.cta), fries.cssProp.cta)).toBeTruthy();
-        });
-    });
-
-    // @studio-fries-css-icon - Validate icon CSS for fries cards
-    test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[5];
-        const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.cardid}`;
-        const friesCard = await studio.getCard(data.cardid);
-        console.info('[Test Page]: ', testPage);
-
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Validate fries card CSS', async () => {
-            await expect(friesCard).toBeVisible();
-            const iconElement = friesCard.locator(fries.icon).first();
-            await expect(iconElement).toBeVisible();
-            expect(await webUtil.verifyCSS(iconElement, fries.cssProp.icon)).toBeTruthy();
+            if (failures.length > 0) {
+                throw new Error(`\x1b[31m✘\x1b[0m Fries card CSS validation failures:\n${failures.join('\n')}`);
+            }
         });
     });
 });

@@ -14,7 +14,7 @@ export default {
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio',
         },
         {
@@ -50,7 +50,7 @@ export default {
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested',
         },
         {
@@ -60,7 +60,7 @@ export default {
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-slice',
         },
         {
@@ -70,7 +70,7 @@ export default {
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-try-buy-widget',
         },
         {
@@ -80,7 +80,7 @@ export default {
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio',
         },
         {
@@ -90,7 +90,7 @@ export default {
             data: {
                 cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals',
         },
         {
@@ -100,7 +100,7 @@ export default {
             data: {
                 cardid: '2cf0ed0e-84ea-4bd4-8e89-ddf527a7a75b',
             },
-            browserParams: '#query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-promoted-plans',
         },
     ],

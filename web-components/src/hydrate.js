@@ -322,13 +322,6 @@ export function processDescription(fields, merchCard, mapping) {
 
 export function processShortDescription(fields, merchCard, mapping) {
     appendSlot('shortDescription', fields, merchCard, mapping);
-
-    if (fields.shortDescription) {
-        merchCard.setAttribute('action-menu', 'true');
-        if (!fields.actionMenuLabel) {
-            merchCard.setAttribute('action-menu-label', 'More options');
-        }
-    }
 }
 
 export function processAddon(fields, merchCard, mapping) {

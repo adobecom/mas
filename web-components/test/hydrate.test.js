@@ -643,28 +643,6 @@ describe('processShortDescription', async () => {
         );
     });
 
-    it('should set action-menu attribute to true when shortDescription exists', async () => {
-        const fields = {
-            shortDescription: '<p>Short description</p>',
-        };
-
-        processShortDescription(fields, merchCard, aemFragmentMapping);
-
-        expect(merchCard.getAttribute('action-menu')).to.equal('true');
-    });
-
-    it('should set default action-menu-label when not provided', async () => {
-        const fields = {
-            shortDescription: '<p>Short description</p>',
-        };
-
-        processShortDescription(fields, merchCard, aemFragmentMapping);
-
-        expect(merchCard.getAttribute('action-menu-label')).to.equal(
-            'More options',
-        );
-    });
-
     it('should not set action-menu when shortDescription is empty', async () => {
         const fields = {
             shortDescription: '',

@@ -1,4 +1,4 @@
-var a=Object.defineProperty;var c=(e,t,o)=>t in e?a(e,t,{enumerable:!0,configurable:!0,writable:!0,value:o}):e[t]=o;var n=(e,t,o)=>c(e,typeof t!="symbol"?t+"":t,o);import{LitElement as m,html as p}from"lit";import{css as x}from"lit";var l=x`
+var a=Object.defineProperty;var c=(e,t,o)=>t in e?a(e,t,{enumerable:!0,configurable:!0,writable:!0,value:o}):e[t]=o;var n=(e,t,o)=>c(e,typeof t!="symbol"?t+"":t,o);import{LitElement as m,html as p}from"/deps/lit-all.min.js";import{css as x}from"/deps/lit-all.min.js";var l=x`
     #label {
         align-items: center;
         cursor: pointer;

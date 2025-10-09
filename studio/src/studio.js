@@ -15,12 +15,13 @@ import './fields/user-picker.js';
 import './mas-recently-updated.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
-import './users.js';
+import { initUsers } from './users.js';
 import './placeholders/mas-placeholders.js';
 import './mas-recently-updated.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './mas-confirm-dialog.js';
+import './mas-card-preview.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import router from './router.js';
@@ -56,6 +57,7 @@ class MasStudio extends LitElement {
         this.initMasJs();
         this.subscribeLandscapeObserver();
         this.subscribeConsumerObserver();
+        initUsers();
     }
 
     initMasJs() {
@@ -176,6 +178,7 @@ class MasStudio extends LitElement {
             <editor-panel></editor-panel>
             <mas-toast></mas-toast>
             <mas-confirm-dialog></mas-confirm-dialog>
+            <mas-card-preview></mas-card-preview>
         `;
     }
 }

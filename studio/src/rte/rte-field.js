@@ -5,7 +5,7 @@ import { EditorView } from 'prosemirror-view';
 import { keymap } from 'prosemirror-keymap';
 import { schema } from 'prosemirror-schema-basic';
 import { addListNodes, wrapInList, splitListItem, liftListItem } from 'prosemirror-schema-list';
-import { baseKeymap, toggleMark } from 'prosemirror-commands';
+import { baseKeymap, toggleMark, deleteSelection } from 'prosemirror-commands';
 import { history, undo, redo } from 'prosemirror-history';
 import { openOfferSelectorTool, attributeFilter, closeOfferSelectorTool } from './ost.js';
 import prosemirrorStyles from './prosemirror.css.js';
@@ -34,6 +34,9 @@ const CUSTOM_MARKS_DATA = [
     ['heading-xs', 'Heading XS'],
     ['heading-s', 'Heading S'],
     ['heading-m', 'Heading M'],
+    [],
+    ['text-s', 'Text S'],
+    ['text-l', 'Text L'],
     [],
     ['promo-text', 'Promo text'],
     ['promo-duration-text', 'Promo duration text'],
@@ -172,6 +175,7 @@ class RteField extends LitElement {
         link: { type: Boolean, attribute: 'link' },
         icon: { type: Boolean, attribute: 'icon' },
         mnemonic: { type: Boolean, attribute: 'mnemonic' },
+        divider: { type: Boolean, attribute: 'divider' },
         marks: {
             type: Array,
             attribute: 'marks',
@@ -428,6 +432,14 @@ class RteField extends LitElement {
                     outline-offset: 2px;
                 }
 
+                /* Styles for HR dividers */
+                hr {
+                    border: none;
+                    margin: 0;
+                    background-color: var(--spectrum-global-color-gray-300);
+                    height: 1px;
+                }
+
                 sr-only {
                     position: absolute;
                     width: 1px;
@@ -504,6 +516,16 @@ class RteField extends LitElement {
                     }
                 }
 
+                div.ProseMirror span.text-s {
+                    font-size: 14px;
+                    line-height: 18px;
+                }
+
+                div.ProseMirror span.text-l {
+                    font-size: 18px;
+                    line-height: 23px;
+                }
+
                 div.ProseMirror span.promo-text {
                     display: block;
                     color: var(--merch-color-green-promo);
@@ -558,6 +580,7 @@ class RteField extends LitElement {
         this.link = false;
         this.uptLink = false;
         this.mnemonic = false;
+        this.divider = false;
         this.maxLength = 70;
         this.length = 0;
         this.hideOfferSelector = false;
@@ -677,6 +700,8 @@ class RteField extends LitElement {
                 toDOM: this.#createIconElement.bind(this),
             });
         }
+
+        // Divider support is handled by the default horizontal_rule from schema
 
         if (this.mnemonic) {
             nodes = nodes.addToStart('mnemonic', {
@@ -918,6 +943,10 @@ class RteField extends LitElement {
                     Enter: splitListItem(this.#editorSchema.nodes.list_item),
                 }),
             }),
+            keymap({
+                Delete: deleteSelection,
+                Backspace: deleteSelection,
+            }),
             keymap(baseKeymap),
         ];
 
@@ -1006,6 +1035,7 @@ class RteField extends LitElement {
             this.innerHTML = '';
             const container = document.createElement('div');
             container.innerHTML = html;
+
             // Simplified DOM manipulation
             container.querySelectorAll('div').forEach((div) => {
                 div.replaceWith(...div.childNodes);
@@ -1050,7 +1080,7 @@ class RteField extends LitElement {
     #handleTransaction(transaction) {
         try {
             const oldState = this.editorView.state;
-            const newState = oldState.apply(transaction);
+            let newState = oldState.apply(transaction);
             if (!newState) return;
 
             this.#updateSelection(newState);
@@ -1083,7 +1113,8 @@ class RteField extends LitElement {
             const fragment = this.#serializer.serializeFragment(state.doc.content);
             const container = document.createElement('div');
             container.appendChild(fragment);
-            return container.innerHTML;
+
+            return container.innerHTML.trim();
         } catch (error) {
             console.warn('Error serializing content:', error);
             return '';
@@ -1571,7 +1602,7 @@ class RteField extends LitElement {
             <sp-action-group quiet size="m" aria-label="RTE toolbar actions">
                 ${this.#formatButtons} ${this.stylingButton} ${this.#listButtons} ${this.#linkEditorButton}
                 ${this.#unlinkEditorButton} ${this.#offerSelectorToolButton} ${this.#iconsButton} ${this.#uptLinkButton}
-                ${this.#mnemonicButton}
+                ${this.#mnemonicButton} ${this.#dividerButton}
             </sp-action-group>
             <div id="editor"></div>
             <p id="counter"><span class="${lengthExceeded ? 'exceeded' : ''}">${this.length}</span>/${this.maxLength}</p>
@@ -1593,6 +1624,15 @@ class RteField extends LitElement {
         return html`
             <sp-action-button emphasized id="addMnemonicButton" @click=${this.openMnemonicEditor} title="Add Inline Mnemonic">
                 <sp-icon-image slot="icon"></sp-icon-image>
+            </sp-action-button>
+        `;
+    }
+
+    get #dividerButton() {
+        if (!this.divider) return nothing;
+        return html`
+            <sp-action-button emphasized id="addDividerButton" @click=${this.addDivider} title="Add Divider">
+                <sp-icon-divide slot="icon"></sp-icon-divide>
             </sp-action-button>
         `;
     }
@@ -1677,22 +1717,10 @@ class RteField extends LitElement {
             @change=${this.#handleStylingSelection}
         >
             <sp-icon-brush slot="icon"></sp-icon-brush>
-            <<<<<<< HEAD
             ${this.#stylingMarksData.map(([mark, label]) => {
                 if (!mark) return html`<sp-divider size="s"></sp-divider>`;
                 return html`<sp-menu-item value="${mark}">${label}</sp-menu-item>`;
             })}
-            =======
-            <sp-menu-item value="heading-xxxs">Heading XXXS - H6</sp-menu-item>
-            <sp-menu-item value="heading-xxs">Heading XXS - H5</sp-menu-item>
-            <sp-menu-item value="heading-xs">Heading XS - H4</sp-menu-item>
-            <sp-menu-item value="heading-s">Heading S - H3</sp-menu-item>
-            <sp-menu-item value="heading-m">Heading M - H2</sp-menu-item>
-            <sp-menu-item value="heading-l">Heading L - H2</sp-menu-item>
-            <sp-menu-divider></sp-menu-divider>
-            <sp-menu-item value="promo-text">Promo text</sp-menu-item>
-            <sp-menu-item value="mnemonic-text">Mnemonic Text</sp-menu-item>
-            >>>>>>> 0717884151d6ab55b4d4224ceb92ba86a219fcfc
         </sp-action-menu>`;
     }
 
@@ -1747,6 +1775,16 @@ class RteField extends LitElement {
             mnemonicText: '', // Ensure mnemonic fields are reset too
             mnemonicPlacement: 'top',
         });
+    }
+
+    addDivider() {
+        const { state, dispatch } = this.editorView;
+        const { selection } = state;
+
+        const dividerNode = state.schema.nodes.horizontal_rule.create();
+
+        const tr = state.tr.insert(selection.from, dividerNode);
+        dispatch(tr);
     }
 }
 

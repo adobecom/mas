@@ -22,7 +22,8 @@ class MasFragmentStatus extends LitElement {
             background-color: var(--mas-status-hover-color);
         }
 
-        :host([variant='draft']) {
+        :host([variant='draft']),
+        :host([variant='new']) {
             --mas-status-background-color: rgba(var(--spectrum-blue-100-rgb), 0.4);
             --mas-status-hover-color: var(--spectrum-blue-100);
             --mas-status-accent-color: var(--spectrum-blue-800);

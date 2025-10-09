@@ -225,8 +225,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await editor.saveMnemonicModal();
         });
 
-        await test.step('step-4: Validate edited mnemonic URL field in Editor panel', async () => {
-        });
+        await test.step('step-4: Validate edited mnemonic URL field in Editor panel', async () => {});
 
         await test.step('step-5: Validate edited mnemonic URL on the card', async () => {
             await expect(await suggested.cardIcon).toHaveAttribute('src', data.iconURL.updated);

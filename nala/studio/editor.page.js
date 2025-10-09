@@ -16,19 +16,19 @@ export default class EditorPage {
         this.badgeBorderColor = this.panel.locator('sp-picker#badgeBorderColor');
         this.cardBorderColor = this.panel.locator('sp-picker#border-color');
         this.mnemonicEditButton = this.panel.locator('mas-mnemonic-field sp-action-button');
-        this.mnemonicModal = page.locator('mas-mnemonic-modal');
+        this.mnemonicModal = page.locator('mas-mnemonic-modal[open]');
         this.mnemonicModalUnderlay = page.locator('sp-underlay[open]');
-        this.mnemonicModalDialog = page.locator('mas-mnemonic-modal sp-dialog');
-        this.mnemonicProductTab = page.locator('mas-mnemonic-modal sp-tab[value="product-icon"]');
-        this.mnemonicUrlTab = page.locator('mas-mnemonic-modal sp-tab[value="url"]');
-        this.mnemonicProductGrid = page.locator('mas-mnemonic-modal .icon-grid');
-        this.mnemonicUrlIconInput = page.locator('mas-mnemonic-modal #url-icon >> input');
-        this.mnemonicUrlAltInput = page.locator('mas-mnemonic-modal #url-alt >> input');
-        this.mnemonicUrlLinkInput = page.locator('mas-mnemonic-modal #url-link >> input');
-        this.mnemonicProductAltInput = page.locator('mas-mnemonic-modal #product-alt >> input');
-        this.mnemonicProductLinkInput = page.locator('mas-mnemonic-modal #product-link >> input');
-        this.mnemonicModalSaveButton = page.locator('mas-mnemonic-modal sp-button[variant="accent"]');
-        this.mnemonicModalCancelButton = page.locator('mas-mnemonic-modal sp-button[variant="secondary"]');
+        this.mnemonicModalDialog = page.locator('mas-mnemonic-modal[open] sp-dialog');
+        this.mnemonicProductTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="product-icon"]');
+        this.mnemonicUrlTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="url"]');
+        this.mnemonicProductGrid = page.locator('mas-mnemonic-modal[open] .icon-grid');
+        this.mnemonicUrlIconInput = page.locator('mas-mnemonic-modal[open] #url-icon >> input');
+        this.mnemonicUrlAltInput = page.locator('mas-mnemonic-modal[open] #url-alt >> input');
+        this.mnemonicUrlLinkInput = page.locator('mas-mnemonic-modal[open] #url-link >> input');
+        this.mnemonicProductAltInput = page.locator('mas-mnemonic-modal[open] #product-alt >> input');
+        this.mnemonicProductLinkInput = page.locator('mas-mnemonic-modal[open] #product-link >> input');
+        this.mnemonicModalSaveButton = page.locator('mas-mnemonic-modal[open] sp-button[variant="accent"]');
+        this.mnemonicModalCancelButton = page.locator('mas-mnemonic-modal[open] sp-button[variant="secondary"]');
         this.promoText = this.panel.locator('#promo-text input');
         this.backgroundImage = this.panel.locator('#background-image input');
         this.prices = this.panel.locator('sp-field-group#prices');
@@ -115,28 +115,34 @@ export default class EditorPage {
         const editButton = this.mnemonicEditButton.nth(index);
         await editButton.waitFor({ state: 'visible' });
         await editButton.click();
-        await this.mnemonicModalDialog.waitFor({ state: 'visible' });
+        await this.page.locator('mas-mnemonic-modal[open] sp-dialog').waitFor({ state: 'attached' });
     }
 
     async selectProductIcon(productName) {
         await this.mnemonicProductTab.click();
-        const iconItem = this.page.locator(`mas-mnemonic-modal .icon-item:has-text("${productName}")`);
+        const iconItem = this.page.locator(`mas-mnemonic-modal[open] .icon-item:has-text("${productName}")`);
         await iconItem.waitFor({ state: 'visible' });
         await iconItem.click();
     }
 
     async setMnemonicURL(url, alt = '', link = '') {
         await this.mnemonicUrlTab.click();
-        const iconField = this.page.locator('mas-mnemonic-modal #url-icon');
+        const iconField = this.page.locator('mas-mnemonic-modal[open] #url-icon');
         await iconField.waitFor({ state: 'visible' });
-        await iconField.evaluate((el, value) => { el.value = value; }, url);
+        await iconField.evaluate((el, value) => {
+            el.value = value;
+        }, url);
         if (alt) {
-            const altField = this.page.locator('mas-mnemonic-modal #url-alt');
-            await altField.evaluate((el, value) => { el.value = value; }, alt);
+            const altField = this.page.locator('mas-mnemonic-modal[open] #url-alt');
+            await altField.evaluate((el, value) => {
+                el.value = value;
+            }, alt);
         }
         if (link) {
-            const linkField = this.page.locator('mas-mnemonic-modal #url-link');
-            await linkField.evaluate((el, value) => { el.value = value; }, link);
+            const linkField = this.page.locator('mas-mnemonic-modal[open] #url-link');
+            await linkField.evaluate((el, value) => {
+                el.value = value;
+            }, link);
         }
     }
 
@@ -150,20 +156,20 @@ export default class EditorPage {
 
     async saveMnemonicModal() {
         await this.mnemonicModalSaveButton.click();
-        await this.mnemonicModalDialog.waitFor({ state: 'hidden' });
+        await this.page.locator('mas-mnemonic-modal[open] sp-dialog').waitFor({ state: 'detached' });
     }
 
     async cancelMnemonicModal() {
         await this.mnemonicModalCancelButton.click();
-        await this.mnemonicModalDialog.waitFor({ state: 'hidden' });
+        await this.page.locator('mas-mnemonic-modal[open] sp-dialog').waitFor({ state: 'detached' });
     }
 
     async getMnemonicIconURL() {
-        const currentTab = await this.page.locator('mas-mnemonic-modal sp-tabs').getAttribute('selected');
+        const currentTab = await this.page.locator('mas-mnemonic-modal[open] sp-tabs').getAttribute('selected');
         if (currentTab === 'url') {
             return await this.mnemonicUrlIconInput.inputValue();
         }
-        const selectedProduct = await this.page.locator('mas-mnemonic-modal .icon-item.selected span').textContent();
+        const selectedProduct = await this.page.locator('mas-mnemonic-modal[open] .icon-item.selected span').textContent();
         if (selectedProduct) {
             const productId = selectedProduct.toLowerCase().replace(/\s+/g, '-');
             return `https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${productId}.svg`;

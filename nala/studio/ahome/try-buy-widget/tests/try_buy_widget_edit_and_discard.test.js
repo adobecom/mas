@@ -206,8 +206,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await editor.saveMnemonicModal();
         });
 
-        await test.step('step-4: Validate edited mnemonic field in Editor panel', async () => {
-        });
+        await test.step('step-4: Validate edited mnemonic field in Editor panel', async () => {});
 
         await test.step('step-5: Validate edited mnemonic on the card', async () => {
             await expect(await trybuywidget.cardIcon).toHaveAttribute('src', data.icon.updated);

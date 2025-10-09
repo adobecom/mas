@@ -240,8 +240,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await editor.saveMnemonicModal();
         });
 
-        await test.step('step-4: Validate edited mnemonic URL field in Editor panel', async () => {
-        });
+        await test.step('step-4: Validate edited mnemonic URL field in Editor panel', async () => {});
 
         await test.step('step-5: Validate edited mnemonic src on the card', async () => {
             await expect(await slice.cardIcon).toHaveAttribute('src', data.iconURL.updated);

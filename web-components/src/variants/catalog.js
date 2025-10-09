@@ -10,6 +10,7 @@ export const CATALOG_AEM_FRAGMENT_MAPPING = {
     description: { tag: 'div', slot: 'body-xs' },
     mnemonics: { size: 'l' },
     prices: { tag: 'h3', slot: 'heading-xs' },
+    shortDescription: { tag: 'div', slot: 'action-menu-content' },
     size: ['wide', 'super-wide'],
     title: { tag: 'h3', slot: 'heading-xs' },
 };
@@ -44,9 +45,9 @@ export class Catalog extends VariantLayout {
                         tabindex="0"
                         aria-expanded="false"
                         role="button"
-                    >
-                        ${this.card.actionMenuLabel} - ${this.card.title}
-                    </div>
+                        aria-label="${this.card.actionMenuLabel} - ${this.card
+                            .title}"
+                    ></div>
                 </div>
                 <slot
                     name="action-menu-content"

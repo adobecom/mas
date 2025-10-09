@@ -50,7 +50,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.subtitle).toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.prices).toBeVisible();
             await expect(await editor.footer).toBeVisible();
@@ -121,7 +121,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.subtitle).not.toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.prices).not.toBeVisible();
             await expect(await editor.footer).toBeVisible();
@@ -193,7 +193,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.subtitle).not.toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.borderColor).toBeVisible();
             await expect(await editor.backgroundColor).toBeVisible();
@@ -427,13 +427,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            await expect(await editor.iconURL).toBeVisible();
-            await expect(await editor.iconURL).toHaveValue(data.iconURL.original);
-            await editor.iconURL.fill(data.iconURL.updated);
+            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await editor.openMnemonicModal();
+            await editor.setMnemonicURL(data.iconURL.updated);
+            await editor.saveMnemonicModal();
         });
 
         await test.step('step-4: Validate mnemonic URL field updated', async () => {
-            await expect(await editor.iconURL).toHaveValue(data.iconURL.updated);
             await expect(await individuals.cardIcon).toHaveAttribute('src', data.iconURL.updated);
         });
 

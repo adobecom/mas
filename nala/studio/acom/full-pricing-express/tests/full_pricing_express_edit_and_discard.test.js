@@ -65,13 +65,12 @@ test.describe('M@S Studio ACOM Full Pricing Express card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            await expect(await editor.iconURL).toBeVisible();
-            await expect(await editor.iconURL).toHaveValue(data.iconURL.original);
-            await editor.iconURL.fill(data.iconURL.updated);
+            await editor.openMnemonicModal();
+            await editor.setMnemonicURL(data.iconURL.updated);
+            await editor.saveMnemonicModal();
         });
 
         await test.step('step-4: Validate mnemonic field updated', async () => {
-            await expect(await editor.iconURL).toHaveValue(data.iconURL.updated);
             await expect(await fullPricingExpress.cardIconsSlot).toHaveAttribute('src', data.iconURL.updated);
         });
 

@@ -15,7 +15,20 @@ export default class EditorPage {
         this.badgeColor = this.panel.locator('sp-picker#badgeColor');
         this.badgeBorderColor = this.panel.locator('sp-picker#badgeBorderColor');
         this.cardBorderColor = this.panel.locator('sp-picker#border-color');
-        this.iconURL = this.panel.locator('#mnemonics #icon input');
+        this.mnemonicEditButton = this.panel.locator('mas-mnemonic-field sp-action-button');
+        this.mnemonicModal = page.locator('mas-mnemonic-modal');
+        this.mnemonicModalUnderlay = page.locator('sp-underlay[open]');
+        this.mnemonicModalDialog = page.locator('mas-mnemonic-modal sp-dialog');
+        this.mnemonicProductTab = page.locator('mas-mnemonic-modal sp-tab[value="product-icon"]');
+        this.mnemonicUrlTab = page.locator('mas-mnemonic-modal sp-tab[value="url"]');
+        this.mnemonicProductGrid = page.locator('mas-mnemonic-modal .icon-grid');
+        this.mnemonicUrlIconInput = page.locator('mas-mnemonic-modal #url-icon >> input');
+        this.mnemonicUrlAltInput = page.locator('mas-mnemonic-modal #url-alt >> input');
+        this.mnemonicUrlLinkInput = page.locator('mas-mnemonic-modal #url-link >> input');
+        this.mnemonicProductAltInput = page.locator('mas-mnemonic-modal #product-alt >> input');
+        this.mnemonicProductLinkInput = page.locator('mas-mnemonic-modal #product-link >> input');
+        this.mnemonicModalSaveButton = page.locator('mas-mnemonic-modal sp-button[variant="accent"]');
+        this.mnemonicModalCancelButton = page.locator('mas-mnemonic-modal sp-button[variant="secondary"]');
         this.promoText = this.panel.locator('#promo-text input');
         this.backgroundImage = this.panel.locator('#background-image input');
         this.prices = this.panel.locator('sp-field-group#prices');
@@ -96,5 +109,65 @@ export default class EditorPage {
         }
 
         return this.linkVariant.locator(link);
+    }
+
+    async openMnemonicModal(index = 0) {
+        const editButton = this.mnemonicEditButton.nth(index);
+        await editButton.waitFor({ state: 'visible' });
+        await editButton.click();
+        await this.mnemonicModalDialog.waitFor({ state: 'visible' });
+    }
+
+    async selectProductIcon(productName) {
+        await this.mnemonicProductTab.click();
+        const iconItem = this.page.locator(`mas-mnemonic-modal .icon-item:has-text("${productName}")`);
+        await iconItem.waitFor({ state: 'visible' });
+        await iconItem.click();
+    }
+
+    async setMnemonicURL(url, alt = '', link = '') {
+        await this.mnemonicUrlTab.click();
+        const iconField = this.page.locator('mas-mnemonic-modal #url-icon');
+        await iconField.waitFor({ state: 'visible' });
+        await iconField.evaluate((el, value) => { el.value = value; }, url);
+        if (alt) {
+            const altField = this.page.locator('mas-mnemonic-modal #url-alt');
+            await altField.evaluate((el, value) => { el.value = value; }, alt);
+        }
+        if (link) {
+            const linkField = this.page.locator('mas-mnemonic-modal #url-link');
+            await linkField.evaluate((el, value) => { el.value = value; }, link);
+        }
+    }
+
+    async setMnemonicProductAlt(text) {
+        await this.mnemonicProductAltInput.fill(text);
+    }
+
+    async setMnemonicProductLink(url) {
+        await this.mnemonicProductLinkInput.fill(url);
+    }
+
+    async saveMnemonicModal() {
+        await this.mnemonicModalSaveButton.click();
+        await this.mnemonicModalDialog.waitFor({ state: 'hidden' });
+    }
+
+    async cancelMnemonicModal() {
+        await this.mnemonicModalCancelButton.click();
+        await this.mnemonicModalDialog.waitFor({ state: 'hidden' });
+    }
+
+    async getMnemonicIconURL() {
+        const currentTab = await this.page.locator('mas-mnemonic-modal sp-tabs').getAttribute('selected');
+        if (currentTab === 'url') {
+            return await this.mnemonicUrlIconInput.inputValue();
+        }
+        const selectedProduct = await this.page.locator('mas-mnemonic-modal .icon-item.selected span').textContent();
+        if (selectedProduct) {
+            const productId = selectedProduct.toLowerCase().replace(/\s+/g, '-');
+            return `https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${productId}.svg`;
+        }
+        return '';
     }
 }

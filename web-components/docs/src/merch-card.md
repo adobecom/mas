@@ -102,11 +102,11 @@ Adobe Home Gallery provides a comprehensive list of all supported card variants 
 
 | Name        | Description                                                                                                                                                                                           | Default Value | Required | Provider |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | -------- | -------- |
-| `variant`   | Variant in terms design. Not required when used with an `aem-fragment`                                                                                                                                |               | `false`  | mas.js   |
-| `consonant` | Uses Consonant for the footer CTA styles during hydration from an aem fragment                                                                                                                        | `false`       | `false`  | mas.js   |
-| `spectrum`  | Uses Spectrum for the footer CTA styles during hydration from an aem fragment. (options: `css`, `swc`)                                                                                                | `css`         | `false`  | mas.js   |
-| `size`      | card width; a card can span over 2 columns or entire row on a css grid `wide\|super-wide`                                                                                                             |               | `false`  | mas.js   |
-| `daa-lh`    | Analytics identifier of a card. Value is coming from the 'PRODUCT_CODE' tag set on the card (for now manual authoring required, later will be tagged automatically). Sample values: 'ccsn' or 'phlt'. |               | `false`  | mas.js   |
+| `variant`   | Variant in terms design. Not required when used with an `aem-fragment`                                                                                                                                |               |          | mas.js   |
+| `consonant` | Uses Consonant for the footer CTA styles during hydration from an aem fragment                                                                                                                        | `false`       |          | mas.js   |
+| `spectrum`  | Uses Spectrum for the footer CTA styles during hydration from an aem fragment. (options: `css`, `swc`)                                                                                                | `css`         |          | mas.js   |
+| `size`      | card width; a card can span over 2 columns or entire row on a css grid `wide\|super-wide`                                                                                                             |               |          | mas.js   |
+| `daa-lh`    | Analytics identifier of a card. Value is coming from the 'PRODUCT_CODE' tag set on the card (for now manual authoring required, later will be tagged automatically). Sample values: 'ccsn' or 'phlt'. |               |          | mas.js   |
 
 #### Active variants:
 
@@ -121,12 +121,28 @@ Adobe Home Gallery provides a comprehensive list of all supported card variants 
 - `ccd-slice`
 - `ccd-suggested`
 - `ah-try-buy-widget`
+- `mini` (a headless card variant that provides merch data for custom rendering with frameworks like React, Vue, or vanilla JavaScript)
 
 ### Properties
 
-| Name             | Description                                                                                                                                                      |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `updateComplete` | a promise that resolves when the `merch-card` finishes to execute render method. Doesn't mean that card is ready, for that use 'mas:ready' or 'mas:error' event. |
+| Name                | Description                                                                                                         | Type                                                |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `title`             | The title of the card.                                                                                              | `string`                                            |
+| `prices`            | inline-price elements that are rendered in the card.                                                                | `Array`                                             |
+| `promoPrice`        | An inline-price element that contains the promo price, if applicable.                                               | `inline-price`                                      |
+| `promotionCode`     | The promotion code of the offer.                                                                                    | `string`                                            |
+| `regularPrice`      | The regular price of the offer. It could be the strikethrough price if promo price is present or the regular price. | `inline-price`                                      |
+| `annualPrice`       | The annual price of the offer.                                                                                      | `inline-price`                                      |
+| `planTypeText`      | Plan type text, e.g. Annual, paid monthly.                                                                          | `inline-price`                                      |
+| `promoText`         | The promo text, e.g. "Save over 30% with an annual plan.".                                                          | `string`                                            |
+| `taxText`           | The text for the tax.                                                                                               | `string`                                            |
+| `recurrenceText`    | The text for the billing frequency.                                                                                 | `string`                                            |
+| `seeTermsInfo`      | The see terms text and link href value.                                                                             | `{analyticsId: string, href: string, text: string}` |
+| `renewalText`       | Subscription renewal text.                                                                                          | `string`                                            |
+| `promoDurationText` | Promo duration text.                                                                                                | `string`                                            |
+| `ctas`              | checkout-link (if consonant) / checkout-button elements that are rendered in the card.                              | `Array`                                             |
+| `primaryCta`        | Primary CTA element, mostly for checkout buttons for BASE offers                                                    | `{analyticsId: string, href: string, text: string}` |
+| `secondaryCta`      | Secondary CTA element, mostly for checkout buttons for TRIAL offers                                                 | `{analyticsId: string, href: string, text: string}` |
 
 ### Events
 
@@ -179,7 +195,7 @@ The reason is that some merch cards are resolved very quickly and event could di
                 message(event, 'mas:failed'),
             );
         });
-        // Freyja request failed
+        // Fragment request failed
         document.addEventListener('aem:error', (event) =>
             log(
                 document.getElementById('log-aem-error'),
@@ -366,71 +382,6 @@ However, it can be accessed via `e.target.source` property.
 ```
 
 ```html {#log3}
-
-```
-
-## aem-fragment custom element
-
-`aem-fragment` custom element is used to load a fragment from Odin/Frejya.
-It supports retrying to load the fragment in case of errors two times with 500ms of delay between attempts.
-It also falls back to last successfully loaded fragment for the same fragment id.
-
-### Attributes
-
-| Name       | Description                                                                              | Default Value | Required | Provider      |
-| ---------- | ---------------------------------------------------------------------------------------- | ------------- | -------- | ------------- |
-| `fragment` | Fragment id. The copy/use feature in M@S Studio will copy the id/markup to the clipboard |               | `true`   | consumer code |
-| `title`    | Informative title                                                                        |               | `false`  | consumer code |
-| `ims`      | attempts to use an IMS access token via `window.adobeid.authorize()` to fetch a fragment |               | `false`  | mas.js        |
-
-### Properties
-
-| Name             | Description                                                                        |
-| ---------------- | ---------------------------------------------------------------------------------- |
-| `data`           | Current fragment RAW data that is used to render the merch-card                    |
-| `updateComplete` | Promise that resolves when the fragment is retrieved and `aem:load` event is fired |
-
-### Methods
-
-| Name        | Description                          |
-| ----------- | ------------------------------------ |
-| `refresh()` | Refreshes fragment content from Odin |
-
-### Events
-
-| Name        | Description                                                                             |
-| ----------- | --------------------------------------------------------------------------------------- |
-| `aem:load`  | fires when the fragment is successfully loaded                                          |
-| `aem:error` | fires when the fragment cannot be loaded, e.g. network error, wrong fragment id, etc... |
-
-```html {.demo .light}
-<merch-card id="psCard2">
-    <aem-fragment
-        fragment="d8008cac-010f-4607-bacc-a7a327da1312"
-    ></aem-fragment>
-</merch-card>
-<button id="btnRefresh">Refresh</button>
-<script type="module">
-    {
-        const target = document.getElementById('log4');
-
-        const psCard = document.getElementById('psCard2');
-        psCard.addEventListener('mas:ready', (e) => {
-            log(target, 'merch-card is ready: ', e.target.variant);
-        });
-        const aemFragment = psCard.querySelector('aem-fragment');
-        aemFragment.addEventListener('aem:load', (e) => {
-            log(target, JSON.stringify(e.detail, null, 2));
-            log(target, 'aem-fragment has loaded');
-        });
-        document.getElementById('btnRefresh').addEventListener('click', () => {
-            aemFragment.refresh();
-        });
-    }
-</script>
-```
-
-```html {#log4}
 
 ```
 

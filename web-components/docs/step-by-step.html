@@ -33,7 +33,6 @@
                     <a
                         class="header-anchor"
                         href="#step-by-step---enable-m%40s"
-                        href="#step-by-step---enable-m%40s"
                         title="Permalink to this heading"
                         >#</a
                     >
@@ -42,7 +41,6 @@
                     1. Import polyfills, if required
                     <a
                         class="header-anchor"
-                        href="#1.-import-polyfills%2C-if-required"
                         href="#1.-import-polyfills%2C-if-required"
                         title="Permalink to this heading"
                         >#</a
@@ -53,12 +51,12 @@
                 <p>Example how to load polyfill only if required:</p>
                 <pre><code class="hljs language-js"><span class="hljs-keyword">let</span> isSupported = <span class="hljs-literal">false</span>;
 <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">&#x27;div&#x27;</span>, {
-  <span class="hljs-keyword">get</span> <span class="hljs-title function_">is</span>() {
-    isSupported = <span class="hljs-literal">true</span>;
-  },
+    <span class="hljs-keyword">get</span> <span class="hljs-title function_">is</span>() {
+        isSupported = <span class="hljs-literal">true</span>;
+    },
 });
 <span class="hljs-keyword">if</span> (!isSupported) {
-  <span class="hljs-keyword">await</span> <span class="hljs-keyword">import</span>(<span class="hljs-string">&#x27;https://www.adobe.com/libs/deps/custom-elements.js&#x27;</span>);
+    <span class="hljs-keyword">await</span> <span class="hljs-keyword">import</span>(<span class="hljs-string">&#x27;https://www.adobe.com/libs/deps/custom-elements.js&#x27;</span>);
 }
 </code></pre>
                 <h2 id="2.-import-mas.js" tabindex="-1">
@@ -66,12 +64,14 @@
                     <a
                         class="header-anchor"
                         href="#2.-import-mas.js"
-                        href="#2.-import-mas.js"
                         title="Permalink to this heading"
                         >#</a
                     >
                 </h2>
-                <pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;https://www.adobe.com/libs/features/mas/dist/mas.js&quot;</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;module&quot;</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
+                <pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">script</span>
+    <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;https://www.adobe.com/libs/features/mas/dist/mas.js&quot;</span>
+    <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;module&quot;</span>
+&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
 </code></pre>
                 <h2
                     id="3.-add-%3Cmas-commerce-service%3E-element"
@@ -81,39 +81,39 @@
                     <a
                         class="header-anchor"
                         href="#3.-add-%3Cmas-commerce-service%3E-element"
-                        href="#3.-add-%3Cmas-commerce-service%3E-element"
                         title="Permalink to this heading"
                         >#</a
                     >
                 </h2>
                 <p>
-                    Preferrably, place it inside the
-                    <code>&lt;head&gt;</code> tag. (!) Mas Commerce Service
-                    should be attached to DOM <em>before</em>
+                    Preferrably, place it inside the &lt;head&gt; tag. (!) Mas
+                    Commerce Service should be attached to DOM <em>before</em>
                     <code>&lt;aem-fragment&gt;</code> elements are created.
                 </p>
                 <pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">head</span>&gt;</span>
-  ...
-  <span class="hljs-tag">&lt;<span class="hljs-name">mas-commerce-service</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">mas-commerce-service</span>&gt;</span>
-<span class="hljs-tag">&lt;/<span class="hljs-name">head</span>&gt;</span>  
+    ...
+    <span class="hljs-tag">&lt;<span class="hljs-name">mas-commerce-service</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">mas-commerce-service</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">head</span>&gt;</span>
 </code></pre>
                 <h2 id="4.-add-%3Cmerch-card%3E-elements." tabindex="-1">
                     4. Add <code>&lt;merch-card&gt;</code> elements.
                     <a
                         class="header-anchor"
                         href="#4.-add-%3Cmerch-card%3E-elements."
-                        href="#4.-add-%3Cmerch-card%3E-elements."
                         title="Permalink to this heading"
                         >#</a
                     >
                 </h2>
-                <pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">merch-card</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">aem-fragment</span> <span class="hljs-attr">fragment</span>=<span class="hljs-string">&quot;a1ca4a50-dd85-4cf9-94e2-a9e90ad4bb27&quot;</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">aem-fragment</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">merch-card</span>&gt;</span>
+                <pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">merch-card</span>
+    &gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">aem-fragment</span>
+        <span class="hljs-attr">fragment</span>=<span class="hljs-string">&quot;a1ca4a50-dd85-4cf9-94e2-a9e90ad4bb27&quot;</span>
+    &gt;</span>&lt;/aem-fragment
+&gt;<span class="hljs-tag">&lt;/<span class="hljs-name">merch-card</span>&gt;</span>
 </code></pre>
                 <h2 id="5.-import-styles" tabindex="-1">
                     5. Import styles
                     <a
                         class="header-anchor"
-                        href="#5.-import-styles"
                         href="#5.-import-styles"
                         title="Permalink to this heading"
                         >#</a

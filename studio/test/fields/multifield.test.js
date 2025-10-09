@@ -101,8 +101,16 @@ describe('Multifield', () => {
 
         const [, mnemonic2] = el.shadowRoot.querySelectorAll('mas-mnemonic-field');
         const listener = oneEvent(el, 'input');
-        mnemonic2.altElement.value = 'This is new alt text';
-        mnemonic2.altElement.dispatchEvent(new Event('input'));
+        mnemonic2.alt = 'This is new alt text';
+        const event = new CustomEvent('input', {
+            bubbles: true,
+            composed: true,
+        });
+        Object.defineProperty(event, 'target', {
+            value: mnemonic2,
+            enumerable: true,
+        });
+        mnemonic2.dispatchEvent(event);
         await listener;
         const [value1, value2] = el.value;
         const newValue = [value1, { ...value2, alt: 'This is new alt text' }];

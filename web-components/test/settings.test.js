@@ -1,10 +1,20 @@
-import { Landscape, WCS_PROD_URL, WCS_STAGE_URL } from '../src/constants.js';
+import {
+    Landscape,
+    WCS_PROD_URL,
+    WCS_STAGE_URL,
+    PARAM_ENV,
+    PARAM_LANDSCAPE,
+    FF_DEFAULTS,
+} from '../src/constants.js';
 import { Defaults } from '../src/defaults.js';
 import { Env } from '../src/constants.js';
 import { getPreviewSurface, getSettings } from '../src/settings.js';
 
 import { expect } from './utilities.js';
-import { PARAM_ENV, PARAM_LANDSCAPE, FF_DEFAULTS } from '../src/constants.js';
+
+const mockService = {
+    featureFlags: { [FF_DEFAULTS]: true },
+};
 
 describe('getSettings', () => {
     let href;
@@ -21,15 +31,10 @@ describe('getSettings', () => {
 
     before(() => {
         ({ href } = window.location);
-
-        const metaDefaultFlag = document.createElement('meta');
-        metaDefaultFlag.name = FF_DEFAULTS;
-        metaDefaultFlag.content = 'on';
-        document.head.appendChild(metaDefaultFlag);
     });
 
     it('returns default settings, if called without arguments', () => {
-        expect(getSettings()).to.deep.equal({
+        expect(getSettings(undefined, mockService)).to.deep.equal({
             ...Defaults,
             locale: `${Defaults.language}_${Defaults.country}`,
             masIOUrl: 'https://www.adobe.com/mas/io',
@@ -47,7 +52,7 @@ describe('getSettings', () => {
         url.searchParams.set('checkoutWorkflowStep', checkoutWorkflowStep);
         url.searchParams.set('promotionCode', promotionCode);
         url.searchParams.set('displayOldPrice', 'false');
-        url.searchParams.set('displayPerUnit', 'true');
+        url.searchParams.set('displayPerUnit', 'false');
         url.searchParams.set('displayRecurrence', 'false');
         url.searchParams.set('displayTax', 'true');
         url.searchParams.set('displayPlanType', 'true');
@@ -61,13 +66,13 @@ describe('getSettings', () => {
         window.history.replaceState({}, '', url.toString());
 
         const config = { commerce: { allowOverride: '' } };
-        expect(getSettings(config)).to.deep.equal({
+        expect(getSettings(config, mockService)).to.deep.equal({
             ...Defaults,
             checkoutClientId,
             checkoutWorkflowStep,
             promotionCode,
             displayOldPrice: false,
-            displayPerUnit: true,
+            displayPerUnit: false,
             displayRecurrence: false,
             displayTax: true,
             displayPlanType: true,
@@ -98,10 +103,13 @@ describe('getSettings', () => {
             'commerce.landscape': 'DRAFT',
         };
         expect(
-            getSettings({
-                commerce,
-                locale: 'nb_NO',
-            }),
+            getSettings(
+                {
+                    commerce,
+                    locale: 'nb_NO',
+                },
+                mockService,
+            ),
         ).to.deep.equal({
             ...Defaults,
             forceTaxExclusive: true,
@@ -121,21 +129,21 @@ describe('getSettings', () => {
 
     it('host env "local" -> WCS prod origin + prod akamai', () => {
         const config = { commerce: {}, env: { name: 'local' } };
-        const settings = getSettings(config);
+        const settings = getSettings(config, mockService);
         expect(settings.wcsURL).to.equal(WCS_PROD_URL);
         expect(settings.env).to.equal(Env.PRODUCTION);
     });
 
     it('host env "stage" -> WCS prod origin + prod akamai', () => {
         const config = { commerce: {}, env: { name: 'stage' } };
-        const settings = getSettings(config);
+        const settings = getSettings(config, mockService);
         expect(settings.wcsURL).to.equal(WCS_PROD_URL);
         expect(settings.env).to.equal(Env.PRODUCTION);
     });
 
     it('host env "prod" -> WCS prod origin + prod akamai', () => {
         const config = { commerce: {}, env: { name: 'prod' } };
-        const settings = getSettings(config);
+        const settings = getSettings(config, mockService);
         expect(settings.wcsURL).to.equal(WCS_PROD_URL);
         expect(settings.env).to.equal(Env.PRODUCTION);
     });
@@ -144,7 +152,7 @@ describe('getSettings', () => {
         window.sessionStorage.setItem(PARAM_ENV, 'stage');
         window.sessionStorage.setItem(PARAM_LANDSCAPE, 'DRAFT');
         const config = { commerce: { allowOverride: 'true' } };
-        const settings = getSettings(config);
+        const settings = getSettings(config, mockService);
         expect(settings.wcsURL).to.equal(WCS_STAGE_URL);
         expect(settings.landscape).to.equal(Landscape.DRAFT);
         expect(settings.env).to.equal(Env.STAGE);
@@ -154,7 +162,7 @@ describe('getSettings', () => {
         window.sessionStorage.setItem(PARAM_ENV, 'stage');
         window.sessionStorage.setItem(PARAM_LANDSCAPE, 'DRAFT');
         const config = { commerce: {} };
-        const settings = getSettings(config);
+        const settings = getSettings(config, mockService);
         expect(settings.wcsURL).to.equal(WCS_PROD_URL);
         expect(settings.landscape).to.equal(Landscape.PUBLISHED);
         expect(settings.env).to.equal(Env.PRODUCTION);
@@ -166,7 +174,7 @@ describe('getSettings', () => {
             'wcsApiKey',
             'wcms-commerce-ims-ro-user-milo',
         );
-        const settings = getSettings(config);
+        const settings = getSettings(config, mockService);
         expect(settings.preview).to.equal(true);
     });
 
@@ -177,7 +185,7 @@ describe('getSettings', () => {
             'wcms-commerce-ims-ro-user-milo',
         );
         window.sessionStorage.setItem('mas.preview', 'on');
-        const settings = getSettings(config);
+        const settings = getSettings(config, mockService);
         expect(settings.preview).to.equal(true);
     });
 
@@ -188,7 +196,7 @@ describe('getSettings', () => {
             'wcms-commerce-ims-ro-user-milo',
         );
         window.sessionStorage.setItem('mas.preview', 'off');
-        const settings = getSettings(config);
+        const settings = getSettings(config, mockService);
         expect(settings.preview).to.be.undefined;
     });
 });

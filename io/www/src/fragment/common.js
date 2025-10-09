@@ -57,7 +57,7 @@ function createTimeoutPromise(timeout, handler) {
 
 function mark(context, label) {
     context.marks = context.marks || {};
-    context.marks[label] = performance.now().toFixed(2);
+    return (context.marks[label] = performance.now().toFixed(2));
 }
 
 function measureTiming(context, label, startLabel = label) {

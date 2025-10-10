@@ -70,6 +70,7 @@ export const LOCALES = [
     { code: 'de_DE', flag: '🇩🇪', name: 'Germany' },
     { code: 'hu_HU', flag: '🇭🇺', name: 'Hungary' },
     { code: 'id_ID', flag: '🇮🇩', name: 'Indonesia' },
+    { code: 'en_IN', flag: '🇮🇳', name: 'India' },
     { code: 'it_IT', flag: '🇮🇹', name: 'Italy' },
     { code: 'ja_JP', flag: '🇯🇵', name: 'Japan' },
     { code: 'es_MX', flag: '🇲🇽', name: 'Mexico' },

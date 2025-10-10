@@ -55,7 +55,7 @@ function applyPlansSettings(fragment, context) {
         fragment.priceLiterals ??= {};
         fragment.priceLiterals.perUnitLabel = fragment.fields.perUnitLabel;
     }
-    if (locale === 'en_US') {
+    if (locale === 'en_US' || locale === 'en_IN') {
         fragment.settings.displayPlanType ??= true;
     }
 }

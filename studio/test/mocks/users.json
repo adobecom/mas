@@ -1,0 +1,26 @@
+{
+    "items": [
+        [
+            {
+                "displayName": "John Doe",
+                "userPrincipalName": "user1@example.com"
+            },
+            {
+                "displayName": "Jane Smith",
+                "userPrincipalName": "user2@example.com"
+            },
+            {
+                "displayName": "Alex Johnson",
+                "userPrincipalName": "user3@example.com"
+            },
+            {
+                "displayName": "Maria Garcia",
+                "userPrincipalName": "user4@example.com"
+            },
+            {
+                "displayName": "Robert Chen",
+                "userPrincipalName": "user5@example.com"
+            }
+        ]
+    ]
+}

@@ -60,8 +60,8 @@
                     });
 
                     it('should make a POST fetch request when form is submitted', async () => {
-                        Store.search.set({ path: 'sandbox' });
-                        Store.filters.set({ locale: 'en_US' });
+                        Store.surface.set('sandbox');
+                        Store.locale.set('en_US');
 
                         dialog._onOstSelect({
                             detail: { offerSelectorId: 'ABC123', offer: {} },

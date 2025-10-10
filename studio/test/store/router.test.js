@@ -34,15 +34,12 @@ describe('Router URL parameter handling', async () => {
 
     it('should link store to hash parameters', async () => {
         const router = new Router({
-            hash: '#path=/content/dam/test&tags=tag1%2Ctag2',
+            hash: '#surface=/content/dam/test&tags=tag1%2Ctag2',
         });
         router.start();
-        expect(Store.search.get()).to.deep.include({
-            path: '/content/dam/test',
-        });
-        expect(Store.filters.get()).to.deep.include({
-            tags: 'tag1,tag2',
-        });
+        expect(Store.surface.get()).to.equal('/content/dam/test');
+        expect(Store.content.filters.tags.get()).to.include('tag1');
+        expect(Store.content.filters.tags.get()).to.include('tag2');
     });
 
     it('should update hash when store values change', async () => {

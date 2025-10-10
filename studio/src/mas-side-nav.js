@@ -27,9 +27,15 @@ class MasSideNav extends LitElement {
 
         .dropdown-container {
             display: flex;
+            flex-direction: column;
             align-items: center;
             padding: 8px 16px;
             margin-top: 16px;
+            gap: 16px;
+        }
+
+        mas-locale-picker {
+            align-self: start;
         }
 
         side-nav sp-sidenav-item {
@@ -76,6 +82,7 @@ class MasSideNav extends LitElement {
         return html`<side-nav>
             <div class="dropdown-container">
                 <mas-folder-picker></mas-folder-picker>
+                <mas-locale-picker></mas-locale-picker>
             </div>
             <sp-sidenav>
                 <sp-sidenav-item

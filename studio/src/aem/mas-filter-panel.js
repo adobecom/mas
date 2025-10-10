@@ -3,6 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import router from '../router.js';
+import { EMPTY_TAGS } from '../constants.js';
 
 function pathToTagId(path) {
     return `mas:${path.replace('/content/cq:tags/mas/', '')}`;
@@ -11,17 +12,6 @@ function pathToTagId(path) {
 function pathsToTagIds(paths) {
     return paths.map(({ path }) => pathToTagId(path)).join(',');
 }
-
-const EMPTY_TAGS = {
-    offer_type: [],
-    plan_type: [],
-    market_segments: [],
-    customer_segment: [],
-    product_code: [],
-    status: [],
-    'studio/content-type': [],
-    variant: [],
-};
 
 class MasFilterPanel extends LitElement {
     static properties = {
@@ -44,10 +34,19 @@ class MasFilterPanel extends LitElement {
             min-height: 32px;
             align-items: center;
             flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        #tags-panel {
+            display: flex;
+            gap: 8px;
+            padding-inline: 4px;
+            align-items: center;
+            min-height: 32px;
         }
     `;
 
-    reactiveController = new ReactiveController(this, [Store.profile, Store.createdByUsers, Store.users]);
+    reactiveController = new ReactiveController(this, [Store.profile, Store.createdByUsers, Store.users, Store.content.total]);
 
     constructor() {
         super();
@@ -74,9 +73,8 @@ class MasFilterPanel extends LitElement {
         this.tagsByType = {
             ...EMPTY_TAGS,
         };
-        const filters = Store.filters.get();
-        if (!filters.tags) return;
-        this.tagsByType = filters.tags.split(',').reduce(
+        const tags = Store.content.filters.tags.value;
+        this.tagsByType = tags.reduce(
             (acc, tag) => {
                 // Remove 'mas:' prefix
                 const tagPath = tag.replace('mas:', '');
@@ -135,18 +133,30 @@ class MasFilterPanel extends LitElement {
             },
             { ...EMPTY_TAGS },
         );
+        /* Populate all tags */
+        const pickers = this.shadowRoot.querySelectorAll('aem-tag-picker-field');
+        const populateTagsByType = () => {
+            const tagsValue = {};
+            for (const tagPicker of pickers) {
+                tagsValue[tagPicker.top] = tagPicker.flatTags.map((t) => pathToTagId(t));
+            }
+            Store.tags.set(tagsValue);
+        };
+        if (pickers.length === 0) return;
+        /* allTags should probably NOT be a Promise first & then a Map tho */
+        if (pickers[0].allTags instanceof Promise) {
+            pickers[0].allTags.then(populateTagsByType);
+        }
+        if (pickers[0].allTags instanceof Map) populateTagsByType();
     }
 
     #updateFiltersParams() {
-        const tagValues = Object.values(this.tagsByType ?? EMPTY_TAGS)
-            .flat()
-            .map((tag) => pathToTagId(tag.path))
-            .filter(Boolean);
-
-        Store.filters.set((prev) => ({
-            ...prev,
-            tags: tagValues.join(','),
-        }));
+        const tags = Object.entries(this.tagsByType || EMPTY_TAGS)
+            .map(([, value]) => {
+                return value.map((tag) => pathToTagId(tag.path)).filter(Boolean);
+            })
+            .flat();
+        Store.content.filters.tags.set(tags);
     }
 
     #handleTagChange(e) {
@@ -164,19 +174,16 @@ class MasFilterPanel extends LitElement {
     }
 
     #handleRefresh() {
-        Store.search.set((prev) => ({
-            ...prev,
+        Store.content.search.set({
+            field: 'all',
             query: '',
-        }));
+        });
 
-        Store.filters.set((prev) => ({
-            ...prev,
-            tags: '',
-        }));
+        Store.content.filters.tags.set([]);
 
         Store.createdByUsers.set([]);
 
-        this.tagsByType = { ...EMPTY_TAGS };
+        this.tagsByType = EMPTY_TAGS;
         this.shadowRoot.querySelectorAll('aem-tag-picker-field').forEach((tagPicker) => {
             tagPicker.clear();
         });
@@ -232,8 +239,6 @@ class MasFilterPanel extends LitElement {
                     value=${pathsToTagIds(this.tagsByType.plan_type)}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
-
-                <mas-locale-picker></mas-locale-picker>
 
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
@@ -307,20 +312,27 @@ class MasFilterPanel extends LitElement {
                     <sp-icon-refresh slot="icon"></sp-icon-refresh>
                 </sp-action-button>
             </div>
-            <sp-tags>
-                ${repeat(
-                    Object.values(this.tagsByType)
-                        .flat()
-                        .filter((tag) => tag),
-                    (tag) => tag.path,
-                    (tag) => html`
-                        <sp-tag key=${tag.path} size="s" deletable @delete=${this.#handleTagDelete} .value=${tag}
-                            >${tag.title}</sp-tag
-                        >
-                    `,
-                )}
-                ${this.createdByUsersTags}
-            </sp-tags>
+            <div id="tags-panel">
+                <span
+                    ><strong>${Store.content.total.value}</strong> ${Store.content.total.value === 1
+                        ? 'result'
+                        : 'results'}</span
+                >
+                <sp-tags>
+                    ${repeat(
+                        Object.values(this.tagsByType)
+                            .flat()
+                            .filter((tag) => tag),
+                        (tag) => tag.path,
+                        (tag) => html`
+                            <sp-tag key=${tag.path} size="s" deletable @delete=${this.#handleTagDelete} .value=${tag}
+                                >${tag.title}</sp-tag
+                            >
+                        `,
+                    )}
+                    ${this.createdByUsersTags}
+                </sp-tags>
+            </div>
         `;
     }
 

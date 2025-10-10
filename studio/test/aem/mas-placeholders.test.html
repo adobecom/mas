@@ -1,29 +1,86 @@
 <!doctype html>
 <html>
     <head>
-        <title>Merch at Scale Studio - Placeholders Test</title>
+        <title>mas-placeholders unit tests</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <!-- Load Spectrum Web Components -->
         <script src="../../src/swc.js" type="module"></script>
-        <!-- Load the test runner script -->
-        <script src="./mas-placeholders.test.html.js" type="module"></script>
         <style>
-            /* Add basic styles if needed for layout during testing */
-            body {
-                margin: 0;
-                padding: 16px;
+            main {
+                display: flex;
+                flex-direction: column;
+                gap: 32px;
+            }
+
+            sp-theme {
+                display: contents;
             }
         </style>
     </head>
 
     <body>
-        <!-- Basic theme wrapper required by Spectrum Web Components -->
-        <sp-theme color="light" scale="medium">
-            <!-- Test content will be added dynamically by the tests -->
-        </sp-theme>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { fixture, oneEvent } from '@open-wc/testing-helpers/pure';
+            import { delay, initElementFromTemplate } from '../utils.js';
+            import '../../src/mas-repository.js';
+            import '../../src/placeholders/mas-placeholders.js';
+            import Store from '../../src/store.js';
+            import '../mocks/aem-fragment.js';
 
-        <!-- Template potentially used by initElementFromTemplate (keep if utils rely on it) -->
-        <template id="mas-placeholders-with-repository">
+            runTests(async () => {
+                before(async () => {
+                    Store.surface.set('sandbox');
+                    Store.page.set('placeholders');
+                    const originalFetch = window.fetch;
+
+                    const { items: users } = await originalFetch('/test/mocks/users.json').then((res) => res.json());
+                    Store.profile.set(users[0]);
+
+                    window.fetch = async function (args) {
+                        const { pathname, search } = new URL(args);
+                        if (/sling:Folder/.test(search)) {
+                            return originalFetch('/test/mocks/folders.json');
+                        }
+                        if (/search/.test(pathname) && /dictionary/.test(search)) {
+                            return originalFetch('/test/mocks/placeholders.json');
+                        }
+                        return originalFetch(...arguments);
+                    };
+                });
+
+                describe('mas-placeholders feature', async () => {
+                    it('displays the list of placeholders', async function () {
+                        const parent = initElementFromTemplate('mas-placeholders-with-repo', this.test.title);
+                        const masPlaceholders = parent.querySelector('mas-placeholders');
+                        await delay(200);
+                        expect(masPlaceholders.placeholders.length).to.equal(19);
+                        expect(Store.placeholders.index.value).to.not.be.null;
+                    });
+
+                    it('searches through placeholders by key or value', async function () {
+                        const parent = initElementFromTemplate('mas-placeholders-with-repo', this.test.title);
+                        const masPlaceholders = parent.querySelector('mas-placeholders');
+
+                        /* Note: internalPlaceholders are filtered & sorted */
+                        await delay(200);
+
+                        expect(masPlaceholders.internalPlaceholders.length).to.equal(19);
+                        expect(masPlaceholders.placeholders.length).to.equal(19);
+
+                        Store.placeholders.search.set('cai');
+                        await delay(200);
+
+                        expect(masPlaceholders.internalPlaceholders.length).to.equal(1);
+                        expect(masPlaceholders.placeholders.length).to.equal(19);
+                    });
+                });
+            });
+        </script>
+        <main>
+            <sp-theme color="light" scale="medium"></sp-theme>
+        </main>
+        <template id="mas-placeholders-with-repo">
             <div>
                 <mas-repository bucket="test-bucket"></mas-repository>
                 <mas-placeholders></mas-placeholders>

@@ -151,6 +151,17 @@ describe('settings transformer', () => {
         });
     });
 
+    it('should add displayPlanType when locale is en_IN', async () => {
+        context.locale = 'en_IN';
+        context.body.fields.variant = 'plans';
+
+        const result = await settings.process(context);
+        expect(result.body.settings).to.deep.equal({
+            secureLabel: '{{secure-label}}',
+            displayPlanType: true,
+        });
+    });
+
     it('should not add any settings when variant is not plans', async () => {
         context.body.fields.variant = 'other';
 

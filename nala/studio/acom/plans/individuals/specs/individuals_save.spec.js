@@ -147,7 +147,7 @@ export default {
                     name: 'Photoshop',
                     alt: 'Adobe Photoshop Application',
                     link: 'https://www.adobe.com/products/photoshop.html',
-                    expectedURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
+                    expectedURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
                 },
             },
             browserParams: '#page=content&path=nala&query=',

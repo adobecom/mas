@@ -1,6 +1,8 @@
 import { exit } from 'process';
 import { execSync } from 'child_process';
 import { isBranchURLValid } from '../libs/baseurl.js';
+import GlobalRequestCounter, { DEFAULT_TRACKED_URLS } from '../libs/global-request-counter.js';
+import { createRunId } from './fragment-tracker.js';
 
 const MAIN_BRANCH_LIVE_URL = 'https://main--mas--adobecom.aem.live';
 const STAGE_URL = 'https://mas.stage.adobe.com';
@@ -132,6 +134,33 @@ async function getLocalBranchLiveUrl() {
 
 async function globalSetup() {
     console.info('---- Executing Nala Global setup ----\n');
+
+    // Initialize fragment tracker run ID at the very start of test suite
+    const runId = createRunId();
+    console.info(`🆔 Test suite run ID: ${runId}\n`);
+
+    // Store run ID in GitHub environment for cross-step access
+    if (process.env.GITHUB_ACTIONS === 'true' && process.env.GITHUB_ENV) {
+        try {
+            const fs = await import('fs');
+            fs.appendFileSync(process.env.GITHUB_ENV, `NALA_RUN_ID=${runId}\n`);
+            console.info(`📝 Stored run ID in GitHub environment for cross-step access\n`);
+        } catch (error) {
+            console.warn(`⚠️ Could not store run ID in GitHub environment: ${error.message}\n`);
+        }
+    }
+
+    // Reset request counter for fresh test run
+    try {
+        GlobalRequestCounter.reset();
+
+        // Configure tracked URLs (defaults)
+        for (const [serviceName, defaultUrl] of Object.entries(DEFAULT_TRACKED_URLS)) {
+            GlobalRequestCounter.setTargetUrl(defaultUrl, serviceName);
+        }
+    } catch (error) {
+        console.log(`⚠️  Warning: Could not reset request counter: ${error.message}\n`);
+    }
 
     if (process.env.GITHUB_ACTIONS === 'true') {
         console.info('---- Running Nala Tests in the GitHub environment ----\n');

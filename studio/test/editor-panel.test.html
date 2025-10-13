@@ -44,7 +44,7 @@
             import { FragmentStore } from '../src/reactivity/fragment-store.js';
             import Store from '../src/store.js';
             import { generateCodeToUse } from '../src/utils.js';
-            import { createFromTemplate, delay, triggerInput } from './utils.js';
+            import { createFromTemplate, delay, triggerInput, triggerRteInput } from './utils.js';
 
             runTests(async () => {
                 const spTheme = document.querySelector('sp-theme');
@@ -82,7 +82,7 @@
                         const discardButton = document.querySelector('sp-action-button[value="discard"]');
                         const titleField = () => document.getElementById('card-title');
                         expect(discardButton.disabled).to.be.true;
-                        triggerInput(titleField(), 'test title');
+                        triggerRteInput(titleField(), 'test title');
                         expect(fragment.getField('cardTitle').values).to.deep.equal(['test title']);
                         await editorPanel.updateComplete;
                         const merchCardEditor = document.querySelector('merch-card-editor');
@@ -95,7 +95,7 @@
                         btnDiscard.click();
                         await delay(100);
                         expect(fragment.getField('cardTitle').values).to.deep.equal([]);
-                        expect(titleField().value).to.equal('');
+                        expect(titleField().innerHTML).to.equal('');
                     });
 
                     it('implements "use"', async () => {
@@ -106,7 +106,7 @@
                         await editorPanel.updateComplete;
                         await editorPanel.refreshed;
                         const titleField = () => document.getElementById('card-title');
-                        triggerInput(titleField(), 'test title');
+                        triggerRteInput(titleField(), 'test title');
                         await editorPanel.updateComplete;
                         const { authorPath, href, richText } = generateCodeToUse(
                             editorPanel.fragment,

@@ -12,6 +12,10 @@ import { transformer as settings } from './settings.js';
 import { transformer as translate } from './translate.js';
 import { transformer as wcs } from './wcs.js';
 
+let cachedConfiguration = null;
+let configurationTimestamp = null;
+const CONFIG_CACHE_TTL = 5 * 60 * 1000;
+
 function calculateHash(body) {
     return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
 }
@@ -36,7 +40,7 @@ async function main(params) {
         ...params,
         api_key,
         requestId,
-        transformer: 'pipeline',
+        loggedTransformer: 'pipeline',
         DEFAULT_HEADERS,
         status: 200,
     };
@@ -48,7 +52,19 @@ async function main(params) {
         context.state = await stateLib.init();
     }
     try {
-        const { json: configuration } = await getJsonFromState('configuration', context);
+        const now = mark(context, 'config-check');
+        const cacheExpired = !configurationTimestamp || now - configurationTimestamp > CONFIG_CACHE_TTL;
+        let configuration;
+        if (!cachedConfiguration || cacheExpired) {
+            const result = await getJsonFromState('configuration', context);
+            configuration = result.json;
+            cachedConfiguration = configuration;
+            configurationTimestamp = now;
+            logDebug(`Configuration cache ${cacheExpired ? 'expired' : 'empty'}, refreshed from state`, context);
+        } else {
+            configuration = cachedConfiguration;
+            logDebug('Using cached configuration', context);
+        }
         context = configuration ? { ...context, ...configuration } : context;
         const initTime = measureTiming(context, 'init', 'start').duration;
         let timeout = context.networkConfig?.mainTimeout || 5000;
@@ -76,18 +92,8 @@ async function main(params) {
             };
         }
     }
-    const pipelineMeasure = measureTiming(context, 'pipeline', 'start');
-    log(
-        `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.id} (${returnValue.statusCode}) in ${pipelineMeasure.duration}ms`,
-        {
-            ...context,
-            transformer: 'pipeline',
-        },
-    );
-    const measures = context.measures
-        .map((measure) => `${measure.label} t:${measure.startTime}, d:${measure.duration}`)
-        .join('|');
-    log(`timings (time and duration) region: ${region}: ${measures}`, context);
+    mark(context, 'end');
+    context.loggedTransformer = 'pipeline';
     delete returnValue.id; // id is not part of the response
     returnValue.headers = {
         ...returnValue.headers,
@@ -95,6 +101,16 @@ async function main(params) {
     };
     returnValue.body = returnValue.body?.length > 0 ? zlib.brotliCompressSync(returnValue.body).toString('base64') : undefined;
     logDebug(() => 'full response: ' + JSON.stringify(returnValue), context);
+    measureTiming(context, 'endProcess', 'end');
+    const pipelineMeasure = measureTiming(context, 'pipeline', 'start');
+    const measures = context.measures
+        .map((measure) => `${measure.label} t:${measure.startTime}, d:${measure.duration}`)
+        .join('|');
+    log(`timings (time and duration) region: ${region}: ${measures}`, context);
+    log(
+        `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.id} (${returnValue.statusCode}) in ${pipelineMeasure.duration}ms`,
+        context,
+    );
     return returnValue;
 }
 
@@ -157,7 +173,9 @@ async function mainProcess(context) {
                 dictionaryId: context.dictionaryId,
             });
             log(`updating cache for ${requestKey} -> ${metadata}`, context);
+            mark(context, 'req-state-put');
             await context.state.put(requestKey, metadata);
+            measureTiming(context, 'req-state-put');
         } else if (cachedMetadata?.lastModified) {
             lastModified = new Date(cachedMetadata.lastModified);
         }
@@ -182,6 +200,11 @@ async function mainProcess(context) {
     }
     returnValue.body = responseBody;
     return returnValue;
+}
+
+export function resetCache() {
+    cachedConfiguration = null;
+    configurationTimestamp = null;
 }
 
 export { main };

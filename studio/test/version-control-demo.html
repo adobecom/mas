@@ -1,0 +1,170 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Version Control Demo</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="../style.css" />
+        <style>
+            body {
+                margin: 32px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+            }
+            sp-theme {
+                display: contents;
+            }
+            editor-panel {
+                width: 800px;
+                height: 600px;
+                border: 1px solid #ccc;
+            }
+            .demo-info {
+                margin-bottom: 20px;
+                padding: 16px;
+                background-color: #f0f0f0;
+                border-radius: 8px;
+                max-width: 800px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="demo-info">
+            <h2>Fragment Version Control Demo</h2>
+            <p>This demo shows the new version control functionality in the editor panel.</p>
+            <p><strong>Features:</strong></p>
+            <ul>
+                <li>Version history component with history icon in the editor toolbar</li>
+                <li>Side panel version history (400px width, full height)</li>
+                <li>Slides in from the right side of the screen</li>
+                <li>Back arrow button to return to the editor</li>
+                <li>Direct version selection - click any version to switch immediately</li>
+                <li>Load fragment versions using getFragmentVersions()</li>
+                <li>Switch between different fragment versions</li>
+                <li>Editor content updates when version changes</li>
+                <li>Fragment store automatically updates with version data</li>
+                <li>Save button becomes enabled when version is selected</li>
+                <li>Visual feedback when switching versions</li>
+                <li>Responsive design for mobile devices</li>
+            </ul>
+            <p><strong>How to test:</strong></p>
+            <ol>
+                <li>Open a fragment for editing</li>
+                <li>Look for the "Version History" component with the history icon in the toolbar</li>
+                <li>Click the component to open the side panel version history</li>
+                <li>Use the back arrow button to close the panel</li>
+                <li>Click any version card to immediately switch to that version</li>
+                <li>Panel stays open so you can easily switch between versions</li>
+                <li>Notice the "Save" button becomes enabled when a version is selected</li>
+                <li>Observe how the editor content updates to reflect the selected version</li>
+                <li>Check the browser console for debugging information</li>
+            </ol>
+        </div>
+        
+        <script type="module">
+            import '../src/swc.js';
+            import '../src/editor-panel.js';
+            import '../src/editors/version-panel.js';
+            import '../src/editors/merch-card-editor.js';
+            import '../src/mas-repository.js';
+            import { Fragment } from '../src/aem/fragment.js';
+            import { FragmentStore } from '../src/reactivity/fragment-store.js';
+            import Store from '../src/store.js';
+
+            // Mock fragment data for demo
+            const mockFragmentData = {
+                id: 'demo-fragment-123',
+                title: 'Demo Fragment',
+                description: 'A demo fragment for testing version control',
+                path: '/content/dam/mas/acom/en_US/demo-fragment',
+                model: {
+                    id: 'card-model',
+                    path: '/conf/mas/settings/dam/cfm/models/card'
+                },
+                fields: [
+                    {
+                        name: 'cardTitle',
+                        type: 'text',
+                        values: ['Demo Card Title']
+                    },
+                    {
+                        name: 'cardName',
+                        type: 'text',
+                        values: ['demo-card']
+                    },
+                    {
+                        name: 'variant',
+                        type: 'text',
+                        values: ['default']
+                    }
+                ],
+                tags: [],
+                status: 'DRAFT',
+                created: '2023-01-01T00:00:00Z',
+                modified: '2023-01-01T00:00:00Z'
+            };
+
+            // Mock versions data
+            const mockVersions = {
+                items: [
+                    {
+                        id: 'version-1',
+                        version: '1.0',
+                        created: '2023-01-01T00:00:00Z'
+                    },
+                    {
+                        id: 'version-2',
+                        version: '2.0',
+                        created: '2023-01-02T00:00:00Z'
+                    },
+                    {
+                        id: 'version-3',
+                        version: '3.0',
+                        created: '2023-01-03T00:00:00Z'
+                    }
+                ]
+            };
+
+            // Mock the repository and AEM client
+            const repository = document.querySelector('mas-repository');
+            if (repository) {
+                // Mock the getVersions method following Adobe AEM API specification
+                repository.aem.sites.cf.fragments.getVersions = async (id, options = {}) => {
+                    console.log('Loading versions for fragment:', id, 'with options:', options);
+                    return mockVersions;
+                };
+
+                // Mock the getVersion method to return different versions
+                repository.aem.sites.cf.fragments.getVersion = async (fragmentId, versionId) => {
+                    console.log('Loading fragment version:', fragmentId, versionId);
+                    // Return different data based on version ID
+                    const versionData = { ...mockFragmentData };
+                    if (versionId === 'version-2') {
+                        versionData.fields[0].values = ['Updated Card Title v2'];
+                    } else if (versionId === 'version-3') {
+                        versionData.fields[0].values = ['Updated Card Title v3'];
+                    }
+                    return versionData;
+                };
+            }
+
+            // Create a demo fragment and open it in the editor
+            const fragment = new Fragment(mockFragmentData);
+            const fragmentStore = new FragmentStore(fragment);
+            
+            // Set up the editor panel
+            const editorPanel = document.querySelector('editor-panel');
+            if (editorPanel) {
+                // Open the fragment for editing
+                editorPanel.editFragment(fragmentStore);
+                
+                console.log('Demo ready! Open the editor panel to see version control in action.');
+            }
+        </script>
+        
+        <mas-repository base-url="http://localhost:2023/test/mocks"></mas-repository>
+        <editor-panel></editor-panel>
+        <sp-theme color="light" scale="medium"></sp-theme>
+    </body>
+</html>

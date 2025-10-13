@@ -14,6 +14,7 @@ import { getFragmentMapping } from '../utils.js';
 import '../fields/addon-field.js';
 import Store from '../store.js';
 import { VARIANT_NAMES } from './variant-picker.js';
+import ReactiveController from '../reactivity/reactive-controller.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -79,6 +80,7 @@ class MerchCardEditor extends LitElement {
         this.fragmentStore = null;
         this.updateFragment = null;
         this.currentVariantMapping = null;
+        this.reactiveController = null;
     }
 
     createRenderRoot() {
@@ -91,10 +93,23 @@ class MerchCardEditor extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        if (this.reactiveController) {
+            this.reactiveController.hostDisconnected();
+        }
     }
 
     willUpdate(changedProperties) {
         if (changedProperties.has('fragmentStore')) {
+            // Clean up old reactive controller
+            if (this.reactiveController) {
+                this.reactiveController.hostDisconnected();
+            }
+            
+            // Set up new reactive controller for the fragment store
+            if (this.fragmentStore) {
+                this.reactiveController = new ReactiveController(this, [this.fragmentStore]);
+            }
+            
             this.#updateCurrentVariantMapping();
             this.#updateAvailableSizes();
             this.#updateAvailableColors();

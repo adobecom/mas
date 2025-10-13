@@ -38,6 +38,7 @@
             import '../src/aem/aem-tag-picker-field.js';
             import '../src/editor-panel.js';
             import '../src/editors/merch-card-editor.js';
+            import '../src/editors/version-panel.js';
             import '../src/mas-repository.js';
             import { Fragment } from '../src/aem/fragment.js';
             import { FragmentStore } from '../src/reactivity/fragment-store.js';
@@ -120,6 +121,41 @@
                         expect(href).to.equal(
                             'https://mas.adobe.com/studio.html#content-type=merch-card&page=welcome&path=acom&query=cc-all-apps',
                         );
+                    });
+
+                    it('loads fragment versions when editing a fragment', async () => {
+                        // Mock the getFragmentVersions method
+                        const mockVersions = {
+                            items: [
+                                { id: 'version1', version: '1.0', created: '2023-01-01T00:00:00Z' },
+                                { id: 'version2', version: '2.0', created: '2023-01-02T00:00:00Z' }
+                            ]
+                        };
+                        
+                        const repository = document.querySelector('mas-repository');
+                        const originalGetVersions = repository.aem.sites.cf.fragments.getVersions;
+                        repository.aem.sites.cf.fragments.getVersions = sinon.stub().resolves(mockVersions);
+                        
+                        // Edit a fragment to trigger version loading
+                        await editorPanel.editFragment(fragmentStore);
+                        await editorPanel.updateComplete;
+                        
+                        // Check that versions were loaded
+                        expect(editorPanel.fragmentVersions).to.deep.equal(mockVersions.items);
+                        expect(editorPanel.selectedVersion).to.equal('version1');
+                        
+                        // Restore original method
+                        repository.aem.sites.cf.fragments.getVersions = originalGetVersions;
+                    });
+
+                    it('displays version history button in toolbar', async () => {
+                        await editorPanel.editFragment(fragmentStore);
+                        await editorPanel.updateComplete;
+                        
+                        const versionHistory = document.querySelector('version-history');
+                        expect(versionHistory).to.exist;
+                        expect(versionHistory.versions).to.deep.equal(editorPanel.fragmentVersions);
+                        expect(versionHistory.selectedVersion).to.equal(editorPanel.selectedVersion);
                     });
                 });
             });

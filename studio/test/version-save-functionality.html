@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Version Save Functionality Test</title>
+        <script type="module" src="https://unpkg.com/@spectrum-web-components/action-button/sp-action-button.js"></script>
+        <script type="module" src="https://unpkg.com/@spectrum-web-components/tooltip/sp-tooltip.js"></script>
+        <script type="module" src="https://unpkg.com/@spectrum-web-components/theme/sp-theme.js"></script>
+        <script type="module" src="../src/editors/version-panel.js"></script>
+        <script type="module" src="../src/editors/merch-card-editor.js"></script>
+        <script type="module" src="../src/reactivity/fragment-store.js"></script>
+        <script type="module" src="../src/aem/fragment.js"></script>
+        <style>
+            body {
+                margin: 0;
+                padding: 20px;
+                font-family: Arial, sans-serif;
+                background: #f5f5f5;
+            }
+            
+            .test-container {
+                max-width: 1200px;
+                margin: 0 auto;
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+            
+            .demo-info {
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 8px;
+                border-left: 4px solid #4caf50;
+                margin-bottom: 30px;
+            }
+            
+            .test-area {
+                display: grid;
+                grid-template-columns: 1fr 400px;
+                gap: 20px;
+                margin: 20px 0;
+            }
+            
+            .editor-section {
+                border: 2px dashed #ccc;
+                padding: 20px;
+                background: #fafafa;
+                border-radius: 8px;
+            }
+            
+            .version-section {
+                border: 2px dashed #4caf50;
+                padding: 20px;
+                background: #f1f8e9;
+                border-radius: 8px;
+            }
+            
+            .fragment-info {
+                background: #e3f2fd;
+                padding: 15px;
+                border-radius: 6px;
+                margin: 15px 0;
+                font-family: monospace;
+                font-size: 12px;
+            }
+            
+            .save-status {
+                background: #fff3e0;
+                padding: 15px;
+                border-radius: 6px;
+                margin: 15px 0;
+                border-left: 4px solid #ff9800;
+            }
+            
+            .save-button {
+                background: #4caf50;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px;
+                margin: 10px 0;
+            }
+            
+            .save-button:disabled {
+                background: #ccc;
+                cursor: not-allowed;
+            }
+            
+            .instructions {
+                background: #e8f5e8;
+                padding: 15px;
+                border-radius: 6px;
+                border-left: 4px solid #4caf50;
+                margin: 15px 0;
+            }
+            
+            .instructions ol {
+                margin: 0;
+                padding-left: 20px;
+            }
+            
+            .instructions li {
+                margin-bottom: 8px;
+                color: #2e7d32;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="test-container">
+            <div class="demo-info">
+                <h1>Version Save Functionality Test</h1>
+                <p>This test demonstrates how the save button becomes enabled when a version is selected.</p>
+                
+                <div class="instructions">
+                    <h3>Test the Save Functionality:</h3>
+                    <ol>
+                        <li>Notice the "Save" button is initially disabled</li>
+                        <li>Click "Version History" to open the side panel</li>
+                        <li>Select a different version and click "Switch to Selected Version"</li>
+                        <li><strong>Save button becomes enabled</strong> - you can now save the selected version</li>
+                        <li>Click "Save" to apply the version changes</li>
+                        <li>Save button becomes disabled again after saving</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <div class="test-area">
+                <div class="editor-section">
+                    <h2>Editor Panel with Save Button</h2>
+                    <div id="editor-container"></div>
+                    
+                    <div class="save-status">
+                        <h4>Save Status:</h4>
+                        <button id="save-button" class="save-button" disabled>Save Changes</button>
+                        <div id="save-status">No changes to save</div>
+                    </div>
+                    
+                    <div class="fragment-info">
+                        <h4>Fragment Store Data:</h4>
+                        <div id="fragment-info"></div>
+                    </div>
+                </div>
+                
+                <div class="version-section">
+                    <h2>Version History</h2>
+                    <div id="version-history-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <script type="module">
+            // Mock fragment data with different versions
+            const mockFragmentData = {
+                id: 'fragment-123',
+                etag: 'etag-123',
+                model: { path: 'merch-card' },
+                path: '/content/dam/fragments/test-fragment',
+                title: 'Test Fragment',
+                description: 'Test fragment description',
+                status: 'draft',
+                created: '2023-01-01T00:00:00Z',
+                modified: '2023-01-01T00:00:00Z',
+                published: null,
+                fields: [
+                    {
+                        name: 'name',
+                        values: ['Test Card']
+                    },
+                    {
+                        name: 'cardTitle',
+                        values: ['Test Card Title']
+                    },
+                    {
+                        name: 'variant',
+                        values: ['mini']
+                    }
+                ],
+                tags: [],
+                references: []
+            };
+
+            // Mock version data
+            const mockVersions = [
+                {
+                    id: 'version-1',
+                    version: '1.0',
+                    title: 'Price and image updated',
+                    created: '2025-08-11T14:30:00Z',
+                    createdBy: 'Geri Wittig',
+                    comment: 'Updated logo and price. New logo from a design team and new price for US are applied.'
+                },
+                {
+                    id: 'version-2', 
+                    version: '1.1',
+                    title: 'Text updated',
+                    created: '2025-08-11T14:15:00Z',
+                    createdBy: 'Geri Wittig',
+                    comment: 'Improved UX writing of the description for Added device types.'
+                },
+                {
+                    id: 'version-3',
+                    version: '1.2',
+                    title: 'First version',
+                    created: '2025-08-11T14:01:00Z',
+                    createdBy: 'Geri Wittig',
+                    comment: 'Draft design is applied. Might be changed in a while.'
+                }
+            ];
+
+            // Mock different fragment data for each version
+            const versionFragmentData = {
+                'version-1': {
+                    ...mockFragmentData,
+                    fields: [
+                        { name: 'name', values: ['Version 1 Card'] },
+                        { name: 'cardTitle', values: ['Version 1 Title'] },
+                        { name: 'variant', values: ['mini'] }
+                    ]
+                },
+                'version-2': {
+                    ...mockFragmentData,
+                    fields: [
+                        { name: 'name', values: ['Version 2 Card'] },
+                        { name: 'cardTitle', values: ['Version 2 Title'] },
+                        { name: 'variant', values: ['standard'] }
+                    ]
+                },
+                'version-3': {
+                    ...mockFragmentData,
+                    fields: [
+                        { name: 'name', values: ['Version 3 Card'] },
+                        { name: 'cardTitle', values: ['Version 3 Title'] },
+                        { name: 'variant', values: ['premium'] }
+                    ]
+                }
+            };
+
+            // Create fragment store
+            const fragmentStore = new FragmentStore(mockFragmentData);
+            
+            // Create merch-card-editor
+            const editor = document.createElement('merch-card-editor');
+            editor.fragmentStore = fragmentStore;
+            editor.updateFragment = (fieldName, value) => {
+                fragmentStore.updateField(fieldName, value);
+            };
+            
+            // Add editor to page
+            document.getElementById('editor-container').appendChild(editor);
+
+            // Create version history component
+            const versionHistory = document.createElement('version-history');
+            versionHistory.versions = mockVersions;
+            versionHistory.selectedVersion = 'version-1';
+            versionHistory.loading = false;
+
+            // Add event listener for version changes
+            versionHistory.addEventListener('version-change', (event) => {
+                console.log('Version changed:', event.detail);
+                
+                const { versionId, version } = event.detail;
+                const newFragmentData = versionFragmentData[versionId];
+                
+                if (newFragmentData) {
+                    // Update fragment store with new version data
+                    fragmentStore.refreshFrom(newFragmentData);
+                    
+                    // Mark fragment as having changes so save button is enabled
+                    fragmentStore.value.hasChanges = true;
+                    fragmentStore.notify();
+                    
+                    // Show success message
+                    alert(`Switched to version ${version.version || versionId}. Save button is now enabled!`);
+                }
+            });
+
+            // Add version history to page
+            document.getElementById('version-history-container').appendChild(versionHistory);
+
+            // Save button functionality
+            const saveButton = document.getElementById('save-button');
+            const saveStatus = document.getElementById('save-status');
+            
+            saveButton.addEventListener('click', () => {
+                // Simulate save operation
+                fragmentStore.value.hasChanges = false;
+                fragmentStore.notify();
+                
+                saveStatus.textContent = 'Changes saved successfully!';
+                saveStatus.style.color = '#4caf50';
+                
+                setTimeout(() => {
+                    saveStatus.textContent = 'No changes to save';
+                    saveStatus.style.color = '#666';
+                }, 3000);
+            });
+
+            // Update fragment info display
+            function updateFragmentInfo() {
+                const info = document.getElementById('fragment-info');
+                const hasChanges = fragmentStore.value.hasChanges;
+                
+                info.innerHTML = `
+                    <div><strong>ID:</strong> ${fragmentStore.value.id}</div>
+                    <div><strong>Title:</strong> ${fragmentStore.value.title}</div>
+                    <div><strong>Name:</strong> ${fragmentStore.value.getField('name')?.values[0] || 'N/A'}</div>
+                    <div><strong>Card Title:</strong> ${fragmentStore.value.getField('cardTitle')?.values[0] || 'N/A'}</div>
+                    <div><strong>Variant:</strong> ${fragmentStore.value.getField('variant')?.values[0] || 'N/A'}</div>
+                    <div><strong>Has Changes:</strong> ${hasChanges}</div>
+                `;
+                
+                // Update save button state
+                saveButton.disabled = !hasChanges;
+                if (hasChanges) {
+                    saveStatus.textContent = 'Changes detected - Save button enabled';
+                    saveStatus.style.color = '#ff9800';
+                } else {
+                    saveStatus.textContent = 'No changes to save';
+                    saveStatus.style.color = '#666';
+                }
+            }
+
+            // Listen for fragment store changes
+            fragmentStore.subscribe(updateFragmentInfo);
+            
+            // Initial update
+            updateFragmentInfo();
+            
+            console.log('Version save functionality test ready!');
+        </script>
+        
+        <sp-theme color="light" scale="medium"></sp-theme>
+    </body>
+</html>

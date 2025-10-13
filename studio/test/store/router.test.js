@@ -113,17 +113,15 @@ describe('Router URL parameter handling', async () => {
     });
 
     it('should initialize all stores in start method', async () => {
-        const router = new Router({ hash: '#page=content&commerce.env=stage' });
-
-        const pageSetSpy = sandbox.spy(Store.page, 'set');
-        const commerceEnvSetSpy = sandbox.spy(Store.commerceEnv, 'set');
+        const router = new Router({ hash: '#page=content&commerce.landscape=DRAFT' });
 
         router.start();
 
-        expect(pageSetSpy.called).to.be.true;
-        expect(commerceEnvSetSpy.called).to.be.true;
+        // Wait a bit for the stores to be initialized
+        await delay(50);
+
         expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
-        expect(Store.commerceEnv.get()).to.equal('stage');
+        expect(Store.landscape.get()).to.equal('DRAFT');
     });
 
     it('should initialize landscape store with hash parameter', async () => {

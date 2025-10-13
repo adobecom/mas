@@ -58,7 +58,7 @@ export default {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
                 iconURL: {
                     original: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
-                    updated: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                    updated: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg',
                 },
             },
             browserParams: '#page=content&path=nala&query=',

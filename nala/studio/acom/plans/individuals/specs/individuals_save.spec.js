@@ -30,7 +30,7 @@ export default {
                 title: 'Change title',
                 badge: 'Change badge',
                 description: 'New Test Description',
-                iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
+                iconURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
                 callout: 'AI Assistant add-on available',
                 promoText: 'Test promotion text',
                 osi: {

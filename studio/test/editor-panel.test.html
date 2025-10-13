@@ -133,7 +133,9 @@
                         };
 
                         const repository = document.querySelector('mas-repository');
-                        const getVersionsStub = sinon.stub(repository.aem.sites.cf.fragments, 'getVersions').resolves(mockVersions);
+                        const getVersionsStub = sinon
+                            .stub(repository.aem.sites.cf.fragments, 'getVersions')
+                            .resolves(mockVersions);
 
                         // Create a new fragment store to trigger version loading
                         const newFragment = new Fragment(fragmentData);

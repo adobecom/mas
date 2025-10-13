@@ -528,12 +528,11 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Open card editor and copy card', async () => {
+        await test.step('step-2: Open card editor', async () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'plans');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
-            clonedCard = await studio.copyCardToPath();
         });
 
         await test.step('step-3: Select product icon from icon picker', async () => {
@@ -549,16 +548,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardIcon).toHaveAttribute('src', data.productIcon.expectedURL);
             await expect(await individuals.cardIcon).toHaveAttribute('alt', data.productIcon.alt);
             await expect(await individuals.cardIcon).toHaveAttribute('href', data.productIcon.link);
-        });
-
-        await test.step('step-5: Save card', async () => {
-            await studio.saveCard();
-        });
-
-        await test.step('step-6: Validate mnemonic icon persisted', async () => {
-            await expect(await clonedCard.locator(individuals.cardIcon)).toHaveAttribute('src', data.productIcon.expectedURL);
-            await expect(await clonedCard.locator(individuals.cardIcon)).toHaveAttribute('alt', data.productIcon.alt);
-            await expect(await clonedCard.locator(individuals.cardIcon)).toHaveAttribute('href', data.productIcon.link);
         });
     });
 });

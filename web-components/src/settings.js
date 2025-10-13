@@ -41,14 +41,15 @@ function getPreviewSurface(wcsApiKey, previewParam) {
     return previewParam ?? wcsApiKey;
 }
 
-function getSettings(config = {}) {
-    const ffDefaults = getParameter(FF_DEFAULTS) === 'on';
+function getSettings(config = {}, service) {
+    const ffDefaults = service.featureFlags[FF_DEFAULTS];
     // Always use `prod` env by default, regardless Milo env
     // but allow overriding it in metadata, location.search or storage
     // See https://github.com/adobecom/milo/pull/923
     // TODO: add alias names for meta, search and storage
     // See https://git.corp.adobe.com/wcms/tacocat.js/pull/348#discussion_r6557570
     const { commerce = {} } = config;
+
     let env = Env.PRODUCTION;
     let wcsURL = WCS_PROD_URL;
 
@@ -59,14 +60,10 @@ function getSettings(config = {}) {
         CheckoutWorkflowStep,
         Defaults.checkoutWorkflowStep,
     );
-    const displayOldPrice = toBoolean(
-        getParameter('displayOldPrice', commerce),
-        ffDefaults ? Defaults.displayOldPrice : !Defaults.displayOldPrice,
-    );
-    const displayPerUnit = toBoolean(
-        getParameter('displayPerUnit', commerce),
-        ffDefaults ? Defaults.displayPerUnit : !Defaults.displayPerUnit,
-    );
+    const displayOldPrice = Defaults.displayOldPrice;
+
+    const displayPerUnit = Defaults.displayPerUnit;
+
     const displayRecurrence = toBoolean(
         getParameter('displayRecurrence', commerce),
         Defaults.displayRecurrence,

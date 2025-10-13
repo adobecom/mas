@@ -12,6 +12,10 @@ import { transformer as settings } from './settings.js';
 import { transformer as translate } from './translate.js';
 import { transformer as wcs } from './wcs.js';
 
+let cachedConfiguration = null;
+let configurationTimestamp = null;
+const CONFIG_CACHE_TTL = 5 * 60 * 1000;
+
 function calculateHash(body) {
     return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
 }
@@ -48,7 +52,19 @@ async function main(params) {
         context.state = await stateLib.init();
     }
     try {
-        const { json: configuration } = await getJsonFromState('configuration', context);
+        const now = mark(context, 'config-check');
+        const cacheExpired = !configurationTimestamp || now - configurationTimestamp > CONFIG_CACHE_TTL;
+        let configuration;
+        if (!cachedConfiguration || cacheExpired) {
+            const result = await getJsonFromState('configuration', context);
+            configuration = result.json;
+            cachedConfiguration = configuration;
+            configurationTimestamp = now;
+            logDebug(`Configuration cache ${cacheExpired ? 'expired' : 'empty'}, refreshed from state`, context);
+        } else {
+            configuration = cachedConfiguration;
+            logDebug('Using cached configuration', context);
+        }
         context = configuration ? { ...context, ...configuration } : context;
         const initTime = measureTiming(context, 'init', 'start').duration;
         let timeout = context.networkConfig?.mainTimeout || 5000;
@@ -184,6 +200,11 @@ async function mainProcess(context) {
     }
     returnValue.body = responseBody;
     return returnValue;
+}
+
+export function resetCache() {
+    cachedConfiguration = null;
+    configurationTimestamp = null;
 }
 
 export { main };

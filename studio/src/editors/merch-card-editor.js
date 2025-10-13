@@ -104,12 +104,12 @@ class MerchCardEditor extends LitElement {
             if (this.reactiveController) {
                 this.reactiveController.hostDisconnected();
             }
-            
+
             // Set up new reactive controller for the fragment store
             if (this.fragmentStore) {
                 this.reactiveController = new ReactiveController(this, [this.fragmentStore]);
             }
-            
+
             this.#updateCurrentVariantMapping();
             this.#updateAvailableSizes();
             this.#updateAvailableColors();

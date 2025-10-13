@@ -128,22 +128,22 @@
                         const mockVersions = {
                             items: [
                                 { id: 'version1', version: '1.0', created: '2023-01-01T00:00:00Z' },
-                                { id: 'version2', version: '2.0', created: '2023-01-02T00:00:00Z' }
-                            ]
+                                { id: 'version2', version: '2.0', created: '2023-01-02T00:00:00Z' },
+                            ],
                         };
-                        
+
                         const repository = document.querySelector('mas-repository');
                         const originalGetVersions = repository.aem.sites.cf.fragments.getVersions;
                         repository.aem.sites.cf.fragments.getVersions = sinon.stub().resolves(mockVersions);
-                        
+
                         // Edit a fragment to trigger version loading
                         await editorPanel.editFragment(fragmentStore);
                         await editorPanel.updateComplete;
-                        
+
                         // Check that versions were loaded
                         expect(editorPanel.fragmentVersions).to.deep.equal(mockVersions.items);
                         expect(editorPanel.selectedVersion).to.equal('version1');
-                        
+
                         // Restore original method
                         repository.aem.sites.cf.fragments.getVersions = originalGetVersions;
                     });
@@ -151,7 +151,7 @@
                     it('displays version history button in toolbar', async () => {
                         await editorPanel.editFragment(fragmentStore);
                         await editorPanel.updateComplete;
-                        
+
                         const versionHistory = document.querySelector('version-history');
                         expect(versionHistory).to.exist;
                         expect(versionHistory.versions).to.deep.equal(editorPanel.fragmentVersions);

@@ -61,7 +61,7 @@
                 <li>Check the browser console for debugging information</li>
             </ol>
         </div>
-        
+
         <script type="module">
             import '../src/swc.js';
             import '../src/editor-panel.js';
@@ -80,29 +80,29 @@
                 path: '/content/dam/mas/acom/en_US/demo-fragment',
                 model: {
                     id: 'card-model',
-                    path: '/conf/mas/settings/dam/cfm/models/card'
+                    path: '/conf/mas/settings/dam/cfm/models/card',
                 },
                 fields: [
                     {
                         name: 'cardTitle',
                         type: 'text',
-                        values: ['Demo Card Title']
+                        values: ['Demo Card Title'],
                     },
                     {
                         name: 'cardName',
                         type: 'text',
-                        values: ['demo-card']
+                        values: ['demo-card'],
                     },
                     {
                         name: 'variant',
                         type: 'text',
-                        values: ['default']
-                    }
+                        values: ['default'],
+                    },
                 ],
                 tags: [],
                 status: 'DRAFT',
                 created: '2023-01-01T00:00:00Z',
-                modified: '2023-01-01T00:00:00Z'
+                modified: '2023-01-01T00:00:00Z',
             };
 
             // Mock versions data
@@ -111,19 +111,19 @@
                     {
                         id: 'version-1',
                         version: '1.0',
-                        created: '2023-01-01T00:00:00Z'
+                        created: '2023-01-01T00:00:00Z',
                     },
                     {
                         id: 'version-2',
                         version: '2.0',
-                        created: '2023-01-02T00:00:00Z'
+                        created: '2023-01-02T00:00:00Z',
                     },
                     {
                         id: 'version-3',
                         version: '3.0',
-                        created: '2023-01-03T00:00:00Z'
-                    }
-                ]
+                        created: '2023-01-03T00:00:00Z',
+                    },
+                ],
             };
 
             // Mock the repository and AEM client
@@ -152,17 +152,17 @@
             // Create a demo fragment and open it in the editor
             const fragment = new Fragment(mockFragmentData);
             const fragmentStore = new FragmentStore(fragment);
-            
+
             // Set up the editor panel
             const editorPanel = document.querySelector('editor-panel');
             if (editorPanel) {
                 // Open the fragment for editing
                 editorPanel.editFragment(fragmentStore);
-                
+
                 console.log('Demo ready! Open the editor panel to see version control in action.');
             }
         </script>
-        
+
         <mas-repository base-url="http://localhost:2023/test/mocks"></mas-repository>
         <editor-panel></editor-panel>
         <sp-theme color="light" scale="medium"></sp-theme>

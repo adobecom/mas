@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
@@ -15,7 +15,7 @@
                 font-family: Arial, sans-serif;
                 background: #f5f5f5;
             }
-            
+
             .test-container {
                 max-width: 800px;
                 margin: 0 auto;
@@ -24,7 +24,7 @@
                 border-radius: 8px;
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             }
-            
+
             .demo-info {
                 background: #f8f9fa;
                 padding: 20px;
@@ -32,7 +32,7 @@
                 border-left: 4px solid #4caf50;
                 margin-bottom: 30px;
             }
-            
+
             .test-area {
                 border: 2px dashed #4caf50;
                 padding: 20px;
@@ -46,9 +46,11 @@
         <div class="test-container">
             <div class="demo-info">
                 <h1>Version Title Test</h1>
-                <p>This test verifies that version titles are displayed correctly using the "title" field instead of "label".</p>
+                <p>
+                    This test verifies that version titles are displayed correctly using the "title" field instead of "label".
+                </p>
             </div>
-            
+
             <div class="test-area">
                 <h2>Version History with Titles</h2>
                 <div id="version-history-container"></div>
@@ -64,15 +66,15 @@
                     title: 'Price and image updated',
                     created: '2025-08-11T14:30:00Z',
                     createdBy: 'Geri Wittig',
-                    comment: 'Updated logo and price. New logo from a design team and new price for US are applied.'
+                    comment: 'Updated logo and price. New logo from a design team and new price for US are applied.',
                 },
                 {
-                    id: 'version-2', 
+                    id: 'version-2',
                     version: '1.1',
                     title: 'Text updated',
                     created: '2025-08-11T14:15:00Z',
                     createdBy: 'Geri Wittig',
-                    comment: 'Improved UX writing of the description for Added device types.'
+                    comment: 'Improved UX writing of the description for Added device types.',
                 },
                 {
                     id: 'version-3',
@@ -80,8 +82,8 @@
                     title: 'First version',
                     created: '2025-08-11T14:01:00Z',
                     createdBy: 'Geri Wittig',
-                    comment: 'Draft design is applied. Might be changed in a while.'
-                }
+                    comment: 'Draft design is applied. Might be changed in a while.',
+                },
             ];
 
             // Create version history component
@@ -99,11 +101,10 @@
 
             // Add version history to page
             document.getElementById('version-history-container').appendChild(versionHistory);
-            
+
             console.log('Version title test ready!');
         </script>
-        
+
         <sp-theme color="light" scale="medium"></sp-theme>
     </body>
 </html>
-

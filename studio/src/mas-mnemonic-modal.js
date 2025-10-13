@@ -270,7 +270,7 @@ class MasMnemonicModal extends LitElement {
     #handleSubmit(e) {
         e.preventDefault();
 
-        let iconValue, altValue, linkValue;
+        let iconValue;
 
         if (this.selectedTab === 'product-icon') {
             if (this.selectedProductId) {
@@ -278,12 +278,8 @@ class MasMnemonicModal extends LitElement {
             } else {
                 iconValue = '';
             }
-            altValue = this.shadowRoot.querySelector('#product-alt')?.value || '';
-            linkValue = this.shadowRoot.querySelector('#product-link')?.value || '';
         } else {
-            iconValue = this.shadowRoot.querySelector('#url-icon')?.value || '';
-            altValue = this.shadowRoot.querySelector('#url-alt')?.value || '';
-            linkValue = this.shadowRoot.querySelector('#url-link')?.value || '';
+            iconValue = this.icon || '';
         }
 
         if (!iconValue.trim()) {
@@ -296,8 +292,8 @@ class MasMnemonicModal extends LitElement {
                 composed: true,
                 detail: {
                     icon: iconValue,
-                    alt: altValue,
-                    link: linkValue,
+                    alt: this.alt || '',
+                    link: this.link || '',
                 },
             }),
         );
@@ -305,7 +301,7 @@ class MasMnemonicModal extends LitElement {
         this.#handleClose();
     }
 
-    #renderProductIconTab() {
+    get productIconTab() {
         return html`
             <div class="tab-content">
                 <div class="icon-grid">
@@ -334,18 +330,28 @@ class MasMnemonicModal extends LitElement {
                         id="product-alt"
                         placeholder="Descriptive text for accessibility"
                         value="${this.alt}"
+                        @input=${(e) => {
+                            this.alt = e.target.value;
+                        }}
                     ></sp-textfield>
                 </div>
 
                 <div class="form-field">
                     <sp-field-label for="product-link">Link URL</sp-field-label>
-                    <sp-textfield id="product-link" placeholder="https://example.com" value="${this.link}"></sp-textfield>
+                    <sp-textfield
+                        id="product-link"
+                        placeholder="https://example.com"
+                        value="${this.link}"
+                        @input=${(e) => {
+                            this.link = e.target.value;
+                        }}
+                    ></sp-textfield>
                 </div>
             </div>
         `;
     }
 
-    #renderUrlTab() {
+    get urlTab() {
         return html`
             <div class="tab-content">
                 <div class="form-field">
@@ -355,6 +361,9 @@ class MasMnemonicModal extends LitElement {
                         required
                         placeholder="https://example.com/icon.svg"
                         value="${this.icon}"
+                        @input=${(e) => {
+                            this.icon = e.target.value;
+                        }}
                     ></sp-textfield>
                 </div>
 
@@ -364,12 +373,22 @@ class MasMnemonicModal extends LitElement {
                         id="url-alt"
                         placeholder="Descriptive text for accessibility"
                         value="${this.alt}"
+                        @input=${(e) => {
+                            this.alt = e.target.value;
+                        }}
                     ></sp-textfield>
                 </div>
 
                 <div class="form-field">
                     <sp-field-label for="url-link">Link URL</sp-field-label>
-                    <sp-textfield id="url-link" placeholder="https://example.com" value="${this.link}"></sp-textfield>
+                    <sp-textfield
+                        id="url-link"
+                        placeholder="https://example.com"
+                        value="${this.link}"
+                        @input=${(e) => {
+                            this.link = e.target.value;
+                        }}
+                    ></sp-textfield>
                 </div>
             </div>
         `;
@@ -387,8 +406,8 @@ class MasMnemonicModal extends LitElement {
                     <sp-tabs selected="${this.selectedTab}" @change=${this.#handleTabChange}>
                         <sp-tab value="product-icon">Product Icon</sp-tab>
                         <sp-tab value="url">URL</sp-tab>
-                        <sp-tab-panel value="product-icon"> ${this.#renderProductIconTab()} </sp-tab-panel>
-                        <sp-tab-panel value="url"> ${this.#renderUrlTab()} </sp-tab-panel>
+                        <sp-tab-panel value="product-icon"> ${this.productIconTab} </sp-tab-panel>
+                        <sp-tab-panel value="url"> ${this.urlTab} </sp-tab-panel>
                     </sp-tabs>
                 </form>
 

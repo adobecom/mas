@@ -131,17 +131,20 @@ export default class EditorPage {
         await iconField.waitFor({ state: 'visible' });
         await iconField.evaluate((el, value) => {
             el.value = value;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
         }, url);
         if (alt) {
             const altField = this.page.locator('mas-mnemonic-modal[open] #url-alt');
             await altField.evaluate((el, value) => {
                 el.value = value;
+                el.dispatchEvent(new Event('input', { bubbles: true }));
             }, alt);
         }
         if (link) {
             const linkField = this.page.locator('mas-mnemonic-modal[open] #url-link');
             await linkField.evaluate((el, value) => {
                 el.value = value;
+                el.dispatchEvent(new Event('input', { bubbles: true }));
             }, link);
         }
     }

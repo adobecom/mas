@@ -137,5 +137,21 @@ export default {
             browserParams: '#locale=fr_FR&query=',
             tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
         },
+        {
+            tcid: '7',
+            name: '@studio-plans-individuals-save-product-icon-picker',
+            path: '/studio.html',
+            data: {
+                cardid: '6f189be0-d64b-468f-b340-92888206cce8',
+                productIcon: {
+                    name: 'Photoshop',
+                    alt: 'Adobe Photoshop Application',
+                    link: 'https://www.adobe.com/products/photoshop.html',
+                    expectedURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
+                },
+            },
+            browserParams: '#page=content&path=nala&query=',
+            tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
+        },
     ],
 };

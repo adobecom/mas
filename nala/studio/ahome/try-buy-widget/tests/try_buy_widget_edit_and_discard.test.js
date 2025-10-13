@@ -206,17 +206,15 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await editor.saveMnemonicModal();
         });
 
-        await test.step('step-4: Validate edited mnemonic field in Editor panel', async () => {});
-
-        await test.step('step-5: Validate edited mnemonic on the card', async () => {
+        await test.step('step-4: Validate edited mnemonic on the card', async () => {
             await expect(await trybuywidget.cardIcon).toHaveAttribute('src', data.icon.updated);
         });
 
-        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+        await test.step('step-5: Close the editor and verify discard is triggered', async () => {
             await studio.discardEditorChanges(editor);
         });
 
-        await test.step('step-7: Verify that the changes are not reflected on the card', async () => {
+        await test.step('step-6: Verify that the changes are not reflected on the card', async () => {
             await expect(await trybuywidget.cardIcon).toHaveAttribute('src', data.icon.original);
         });
     });

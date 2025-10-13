@@ -16,17 +16,11 @@ export default class EditorPage {
         this.badgeBorderColor = this.panel.locator('sp-picker#badgeBorderColor');
         this.cardBorderColor = this.panel.locator('sp-picker#border-color');
         this.mnemonicEditButton = this.panel.locator('mas-mnemonic-field sp-action-button');
-        this.mnemonicModal = page.locator('mas-mnemonic-modal[open]');
-        this.mnemonicModalUnderlay = page.locator('sp-underlay[open]');
-        this.mnemonicModalDialog = page.locator('mas-mnemonic-modal[open] sp-dialog');
         this.mnemonicProductTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="product-icon"]');
         this.mnemonicUrlTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="url"]');
-        this.mnemonicProductGrid = page.locator('mas-mnemonic-modal[open] .icon-grid');
         this.mnemonicUrlIconInput = page.locator('mas-mnemonic-modal[open] #url-icon >> input');
         this.mnemonicUrlAltInput = page.locator('mas-mnemonic-modal[open] #url-alt >> input');
         this.mnemonicUrlLinkInput = page.locator('mas-mnemonic-modal[open] #url-link >> input');
-        this.mnemonicProductAltInput = page.locator('mas-mnemonic-modal[open] #product-alt >> input');
-        this.mnemonicProductLinkInput = page.locator('mas-mnemonic-modal[open] #product-link >> input');
         this.mnemonicModalSaveButton = page.locator('mas-mnemonic-modal[open] sp-button[variant="accent"]');
         this.mnemonicModalCancelButton = page.locator('mas-mnemonic-modal[open] sp-button[variant="secondary"]');
         this.promoText = this.panel.locator('#promo-text input');
@@ -149,14 +143,6 @@ export default class EditorPage {
         }
     }
 
-    async setMnemonicProductAlt(text) {
-        await this.mnemonicProductAltInput.fill(text);
-    }
-
-    async setMnemonicProductLink(url) {
-        await this.mnemonicProductLinkInput.fill(url);
-    }
-
     async saveMnemonicModal() {
         await this.mnemonicModalSaveButton.click();
         await this.page.locator('mas-mnemonic-modal[open] sp-dialog').waitFor({ state: 'detached' });
@@ -165,18 +151,5 @@ export default class EditorPage {
     async cancelMnemonicModal() {
         await this.mnemonicModalCancelButton.click();
         await this.page.locator('mas-mnemonic-modal[open] sp-dialog').waitFor({ state: 'detached' });
-    }
-
-    async getMnemonicIconURL() {
-        const currentTab = await this.page.locator('mas-mnemonic-modal[open] sp-tabs').getAttribute('selected');
-        if (currentTab === 'url') {
-            return await this.mnemonicUrlIconInput.inputValue();
-        }
-        const selectedProduct = await this.page.locator('mas-mnemonic-modal[open] .icon-item.selected span').textContent();
-        if (selectedProduct) {
-            const productId = selectedProduct.toLowerCase().replace(/\s+/g, '-');
-            return `https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${productId}.svg`;
-        }
-        return '';
     }
 }

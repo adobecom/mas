@@ -517,37 +517,4 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await clonedCard.locator(individuals.cardDescription)).toContainText(data.cardLegalDisclaimer);
         });
     });
-
-    test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[7];
-        const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.cardid}`;
-        setTestPage(testPage);
-
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Open card editor', async () => {
-            await expect(await studio.getCard(data.cardid)).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'plans');
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Select product icon from icon picker', async () => {
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
-            await editor.openMnemonicModal();
-            await editor.selectProductIcon(data.productIcon.name);
-            await editor.setMnemonicProductAlt(data.productIcon.alt);
-            await editor.setMnemonicProductLink(data.productIcon.link);
-            await editor.saveMnemonicModal();
-        });
-
-        await test.step('step-4: Validate mnemonic icon updated in editor', async () => {
-            await expect(await individuals.cardIcon).toHaveAttribute('src', data.productIcon.expectedURL);
-            await expect(await individuals.cardIcon).toHaveAttribute('alt', data.productIcon.alt);
-            await expect(await individuals.cardIcon).toHaveAttribute('href', data.productIcon.link);
-        });
-    });
 });

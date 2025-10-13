@@ -75,7 +75,7 @@ class GlobalRequestCounter {
         try {
             this._saveToIndividualFile();
         } catch (error) {
-            console.log(`❌ Failed to save request count: ${error.message}`);
+            console.log(`\x1b[31m✘\x1b[0m Failed to save request count: ${error.message}`);
         }
     }
 
@@ -145,7 +145,7 @@ class GlobalRequestCounter {
      */
     static setTargetUrl(url, serviceName = 'ODIN_AEM') {
         globalThis.requestCounter.trackedUrls[serviceName] = url;
-        console.log(`🎯 Target URL set to: ${url} for service: ${serviceName}`);
+        console.log(`🎯 Target URL set to: ${url} for service: ${serviceName}\n`);
     }
 }
 

@@ -73,7 +73,7 @@ export default class RequestCountingReporter {
 
         // Print summary for each service
         if (Object.keys(serviceTotals).length > 0) {
-            console.log('\n    \x1b[1m\x1b[34m---------Request Summary--------------\x1b[0m');
+            console.log('\n    \x1b[1m\x1b[34m---------Request Summary------------------\x1b[0m');
 
             for (const [serviceName, total] of Object.entries(serviceTotals).sort()) {
                 // Service header
@@ -96,7 +96,7 @@ export default class RequestCountingReporter {
                 console.log(`        \x1b[1m\x1b[33m${urlLabel}${urlPadding}: \x1b[0m\x1b[32m${targetUrl}\x1b[0m\n`);
             }
         } else {
-            console.log('\n    \x1b[1m\x1b[34m---------Request Summary--------------\x1b[0m');
+            console.log('\n    \x1b[1m\x1b[34m---------Request Summary------------------\x1b[0m');
             console.log('    \x1b[1m\x1b[33mNo requests tracked\x1b[0m');
         }
     }

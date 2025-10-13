@@ -134,13 +134,22 @@
 
                         const repository = document.querySelector('mas-repository');
                         const originalGetVersions = repository.aem.sites.cf.fragments.getVersions;
-                        repository.aem.sites.cf.fragments.getVersions = sinon.stub().resolves(mockVersions);
+                        const getVersionsStub = sinon.stub().resolves(mockVersions);
+                        repository.aem.sites.cf.fragments.getVersions = getVersionsStub;
 
-                        // Edit a fragment to trigger version loading
-                        await editorPanel.editFragment(fragmentStore);
+                        // Create a new fragment store to trigger version loading
+                        const newFragment = new Fragment(fragmentData);
+                        const newFragmentStore = new FragmentStore(newFragment);
+
+                        // Edit the fragment to trigger version loading
+                        await editorPanel.editFragment(newFragmentStore);
                         await editorPanel.updateComplete;
 
+                        // Wait for versions to load
+                        await delay(100);
+
                         // Check that versions were loaded
+                        expect(getVersionsStub.called).to.be.true;
                         expect(editorPanel.fragmentVersions).to.deep.equal(mockVersions.items);
                         expect(editorPanel.selectedVersion).to.equal('version1');
 

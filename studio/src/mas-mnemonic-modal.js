@@ -69,7 +69,6 @@ class MasMnemonicModal extends LitElement {
 
         .tab-content {
             margin-top: 20px;
-            min-height: 400px;
             display: flex;
             flex-direction: column;
             width: 100%;
@@ -86,6 +85,7 @@ class MasMnemonicModal extends LitElement {
             border: 1px solid var(--spectrum-gray-200);
             border-radius: 4px;
             background: var(--spectrum-gray-50);
+            min-height: fit-content;
         }
 
         .icon-grid::-webkit-scrollbar {
@@ -184,33 +184,6 @@ class MasMnemonicModal extends LitElement {
         sp-button[slot='button'][variant='accent'] {
             margin-left: auto;
         }
-
-        @media (max-width: 768px) {
-            sp-dialog {
-                max-width: 95vw;
-            }
-
-            .icon-grid {
-                grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-                max-height: 300px;
-                gap: 6px;
-                padding: 8px;
-            }
-
-            .icon-item {
-                padding: 6px 2px;
-                min-height: 50px;
-            }
-
-            .icon-item img {
-                width: 18px;
-                height: 18px;
-            }
-
-            .icon-item span {
-                font-size: 9px;
-            }
-        }
     `;
 
     constructor() {
@@ -255,7 +228,7 @@ class MasMnemonicModal extends LitElement {
     }
 
     #handleTabChange(e) {
-        this.selectedTab = e.target.selected;
+        this.selectedTab = e.currentTarget.selected;
     }
 
     #handleProductSelect(productId) {

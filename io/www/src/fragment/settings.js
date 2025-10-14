@@ -1,4 +1,10 @@
 const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
+
+/**
+ * Plan type label will be enabled by default for the following locales.
+ * Plan type literal has the format {planType, select, ABM {Annual, billed monthly} M2M {Monthly} PUF {Annual, prepaid} other {}}
+ * and different labels are displayed for different customer/market segments.
+ */
 const PLAN_TYPE_LOCALES = [
     'en_US',
     'en_AU',

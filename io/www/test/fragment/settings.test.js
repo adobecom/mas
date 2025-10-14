@@ -151,14 +151,15 @@ describe('settings transformer', () => {
         });
     });
 
-    it('should add displayPlanType when locale is en_IN', async () => {
-        context.locale = 'en_IN';
+    it('should add displayPlanType when locale is APAC', async () => {
         context.body.fields.variant = 'plans';
-
-        const result = await settings.process(context);
-        expect(result.body.settings).to.deep.equal({
-            secureLabel: '{{secure-label}}',
-            displayPlanType: true,
+        ['en_AU', 'en_HK', 'zh_HK', 'en_ID', 'id_ID', 'en_MY', 'ms_MY', 'en_NZ', 'en_PH', 'fil_PH', 'en_SG', 'en_TH', 'th_TH', 'zh_TW', 'en_VN', 'vi_VN'].forEach(async (loc) => {
+            context.locale = loc;
+            const result = await settings.process(context);
+            expect(result.body.settings).to.deep.equal({
+                secureLabel: '{{secure-label}}',
+                displayPlanType: true,
+            });
         });
     });
 

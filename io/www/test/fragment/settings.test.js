@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { transformer as settings } from '../../src/fragment/settings.js';
+import { transformer as settings, PLAN_TYPE_LOCALES } from '../../src/fragment/settings.js';
 
 describe('settings transformer', () => {
     let context;
@@ -153,7 +153,7 @@ describe('settings transformer', () => {
 
     it('should add displayPlanType when locale is APAC', async () => {
         context.body.fields.variant = 'plans';
-        ['en_AU', 'en_HK', 'zh_HK', 'en_ID', 'id_ID', 'en_MY', 'ms_MY', 'en_NZ', 'en_PH', 'fil_PH', 'en_SG', 'en_TH', 'th_TH', 'zh_TW', 'en_VN', 'vi_VN'].forEach(async (loc) => {
+        PLAN_TYPE_LOCALES.forEach(async (loc) => {
             context.locale = loc;
             const result = await settings.process(context);
             expect(result.body.settings).to.deep.equal({

@@ -1,5 +1,24 @@
 const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
-const PLAN_TYPE_LOCALES = ['en_US', 'en_AU', 'en_HK', 'zh_HK', 'en_ID', 'id_ID', 'en_MY', 'ms_MY', 'en_NZ', 'en_PH', 'fil_PH', 'en_SG', 'en_TH', 'th_TH', 'zh_TW', 'en_VN', 'vi_VN'];
+const PLAN_TYPE_LOCALES = [
+    'en_US',
+    'en_AU',
+    'en_HK',
+    'zh_HK',
+    'en_ID',
+    'id_ID',
+    'en_MY',
+    'ms_MY',
+    'en_NZ',
+    'en_PH',
+    'fil_PH',
+    'en_SG',
+    'en_TH',
+    'th_TH',
+    'zh_TW',
+    'en_VN',
+    'vi_VN',
+    'en_IN',
+];
 
 function applyCollectionSettings(context) {
     if (context.body?.references) {
@@ -111,4 +130,4 @@ export const transformer = {
     name: 'settings',
     process: settings,
 };
-export { applyCollectionSettings };
+export { applyCollectionSettings, PLAN_TYPE_LOCALES };

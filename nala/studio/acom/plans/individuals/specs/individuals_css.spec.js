@@ -7,7 +7,7 @@ export default {
             path: '/studio.html',
             browserParams: '#page=content&path=nala&query=',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
             },
             tags: '@mas-studio @acom @acom-css @acom-plans @acom-plans-css @acom-plans-individuals @acom-plans-individuals-css',
         },

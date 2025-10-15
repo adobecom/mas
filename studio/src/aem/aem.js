@@ -564,28 +564,15 @@ class AEM {
     }
 
     /**
-     * Attempts to publish a fragment, failing silently if unsuccessful
-     * @param {Object} fragment - The fragment to publish
-     * @returns {Promise<void>}
-     */
-    async publishFragmentSafely(fragment) {
-        try {
-            await this.publishFragment(fragment);
-        } catch {
-            // Silent fail - publishing is not critical
-        }
-    }
-
-    /**
      * Copies a fragment to a new folder location with optional renaming and locale support
+     * The copied fragment is always created in draft status
      * @param {Object} fragment - The fragment to copy (must have path and id properties)
      * @param {string} targetPath - The destination folder path
      * @param {string} customName - Optional custom name for the copied fragment
      * @param {string} targetLocale - Target locale (defaults to 'en_US')
-     * @param {boolean} shouldPublish - Whether to publish after copying (defaults to true)
      * @returns {Promise<Object>} The copied fragment with metadata
      */
-    async copyToFolder(fragment, targetPath, customName = null, targetLocale = 'en_US', shouldPublish = true) {
+    async copyToFolder(fragment, targetPath, customName = null, targetLocale = 'en_US') {
         this.validateFragmentForCopy(fragment);
 
         const originalName = fragment.path.split('/').pop();
@@ -604,10 +591,6 @@ class AEM {
             await this.copyFragmentTags(copiedFragment, fullFragment.tags);
 
             const finalFragment = await this.sites.cf.fragments.getById(copiedFragment.id);
-
-            if (shouldPublish) {
-                await this.publishFragmentSafely(finalFragment);
-            }
 
             if (renamed) {
                 finalFragment.renamedTo = finalName;

@@ -86,7 +86,10 @@ class MasFragmentTable extends LitElement {
             <sp-table-cell class="price">${this.price}</sp-table-cell>
             <sp-table-cell class="offer-id" title=${this.offerData?.offerId}>${this.offerData?.offerId} </sp-table-cell>
             ${this.customRender?.(data)}
-            <sp-table-cell class="status ${data.status?.toLowerCase()}-cell">${data.status}</sp-table-cell>
+            <sp-table-cell class="status ${data.status?.toLowerCase()}-cell"
+                ><div class="status-dot"></div>
+                <span class="status-text">${data.status}</span></sp-table-cell
+            >
             ${data.model.path === CARD_MODEL_PATH
                 ? html`<sp-table-cell class="preview" @mouseover=${this.openCardPreview} @mouseout=${closePreview}
                       ><sp-icon-preview label="Preview item"></sp-icon-preview

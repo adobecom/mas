@@ -16,6 +16,37 @@ import './rte-mnemonic-editor.js';
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
 
+// Parse query string or JSON to object, preserving curly braces
+const parseCheckoutParams = (input) => {
+    if (!input) return {};
+
+    const trimmed = input.trim();
+    if (trimmed.startsWith('{')) {
+        try {
+            return JSON.parse(trimmed);
+        } catch {
+            return {};
+        }
+    }
+
+    const params = {};
+    trimmed.split('&').forEach((pair) => {
+        const [key, value = ''] = pair.split('=');
+        if (key) {
+            params[decodeURIComponent(key)] = value.replace(/%7B/gi, '{').replace(/%7D/gi, '}');
+        }
+    });
+    return params;
+};
+
+// Convert object to query string, preserving curly braces
+const stringifyCheckoutParams = (obj) => {
+    return Object.entries(obj || {})
+        .filter(([, v]) => v != null)
+        .map(([k, v]) => `${encodeURIComponent(k)}=${v}`)
+        .join('&');
+};
+
 // Function to check if a node is a checkout link
 const isNodeCheckoutLink = (node) => {
     if (!node) return false;
@@ -1132,9 +1163,9 @@ class RteField extends LitElement {
         let checkoutParameters = undefined;
         if (isCheckoutLink) {
             try {
-                checkoutParameters = new URLSearchParams(
-                    JSON.parse(selection.node.attrs['data-extra-options'] ?? '{}'),
-                ).toString();
+                const extraOptions = selection.node.attrs['data-extra-options'] ?? '{}';
+                const paramsObj = parseCheckoutParams(extraOptions);
+                checkoutParameters = stringifyCheckoutParams(paramsObj);
             } catch (error) {
                 console.error('Error parsing checkout parameters:', error);
             }
@@ -1212,7 +1243,8 @@ class RteField extends LitElement {
 
         if (checkoutParameters) {
             try {
-                checkoutParameters = JSON.stringify(Object.fromEntries(new URLSearchParams(checkoutParameters).entries()));
+                const paramsObj = parseCheckoutParams(checkoutParameters);
+                checkoutParameters = JSON.stringify(paramsObj);
             } catch (error) {
                 console.error('Error parsing checkout parameters:', error);
             }

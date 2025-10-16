@@ -290,6 +290,12 @@ mas-content {
     overflow: hidden;
 }
 
+sp-table-row {
+    height: 68px;
+    background-color: var(--spectrum-gray-50);
+    border-bottom: 1px solid var(--spectrum-gray-75);
+}
+
 #content #render {
     width: 100%;
     display: flex;
@@ -300,9 +306,12 @@ mas-content {
 sp-table-cell {
     display: flex;
     align-items: center;
+    height: 68px;
+    padding: var(--spectrum-global-dimension-size-160) var(--spectrum-global-dimension-size-200);
+    gap: var(--spectrum-global-dimension-static-size-100);
+    box-sizing: border-box;
 
     &.name {
-        gap: 8px;
         flex-grow: var(--table-content-name-flex-grow);
 
         & img {
@@ -332,20 +341,35 @@ sp-table-cell {
 
     &.status {
         flex-grow: var(--table-content-status-flex-grow);
+        min-width: 120px;
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 400;
+        gap: 8px;
+        color: var(--spectrum-gray-800);
 
-        &.new-cell,
-        &.draft-cell {
-            color: var(--spectrum-blue-800);
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
         }
 
-        &.modified-cell {
-            color: var(--spectrum-yellow-600);
+        .status-text {
+            line-height: 1;
+            white-space: nowrap;
         }
 
-        &.published-cell {
-            color: var(--spectrum-green-700);
+        &.new-cell .status-dot,
+        &.draft-cell .status-dot {
+            background-color: var(--spectrum-blue-800);
+        }
+
+        &.modified-cell .status-dot {
+            background-color: var(--spectrum-yellow-600);
+        }
+
+        &.published-cell .status-dot {
+            background-color: var(--spectrum-green-700);
         }
     }
 

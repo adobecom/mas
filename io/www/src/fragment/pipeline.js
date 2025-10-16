@@ -26,6 +26,7 @@ const RESPONSE_HEADERS = {
     'Access-Control-Expose-Headers': 'X-Request-Id,Etag,Last-Modified,server-timing',
     'Content-Type': 'application/json',
     'Content-Encoding': 'br',
+    'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400',
 };
 
 async function main(params) {

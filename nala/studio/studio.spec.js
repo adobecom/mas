@@ -88,7 +88,7 @@ export default {
             name: '@studio-plans-individuals-editor',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-plans @acom-plans-individuals',

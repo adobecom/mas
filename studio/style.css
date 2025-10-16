@@ -280,6 +280,10 @@ mas-content {
     --table-content-status-flex-grow: 0.3;
     --table-content-preview-flex-grow: 0.1;
     width: 100%;
+    border: 1px solid var(--spectrum-gray-200);
+    border-radius: 8px;
+    overflow: hidden;
+
     & sp-table-body {
         background-color: var(--spectrum-gray-100);
     }
@@ -290,10 +294,10 @@ mas-content {
     overflow: hidden;
 }
 
-sp-table-row {
+#content sp-table-row {
     height: 68px;
     background-color: var(--spectrum-gray-50);
-    border-bottom: 1px solid var(--spectrum-gray-75);
+    border-bottom: 1px solid var(--spectrum-gray-200) !important;
 }
 
 #content #render {
@@ -380,6 +384,16 @@ sp-table-cell {
 }
 
 sp-table-head-cell {
+    height: var(--spectrum-global-dimension-size-550);
+    padding: 12px 20px;
+    background-color: var(--spectrum-gray-100);
+    border-bottom: 1px solid var(--spectrum-gray-200);
+    box-sizing: border-box;
+
+    &:last-child {
+        border-right: none;
+    }
+
     &.name {
         flex-grow: var(--table-content-name-flex-grow);
     }

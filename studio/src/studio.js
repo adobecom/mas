@@ -21,6 +21,7 @@ import './mas-recently-updated.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './mas-confirm-dialog.js';
+import './mas-product-feed-dialog.js';
 import './mas-card-preview.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
@@ -178,6 +179,7 @@ class MasStudio extends LitElement {
             <editor-panel></editor-panel>
             <mas-toast></mas-toast>
             <mas-confirm-dialog></mas-confirm-dialog>
+            <mas-product-feed-dialog></mas-product-feed-dialog>
             <mas-card-preview></mas-card-preview>
         `;
     }

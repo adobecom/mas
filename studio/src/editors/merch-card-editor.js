@@ -7,13 +7,15 @@ import '../aem/aem-tag-picker-field.js';
 import './variant-picker.js';
 import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 import '../rte/osi-field.js';
-import { CARD_MODEL_PATH } from '../constants.js';
+import { CARD_MODEL_PATH, PRODUCT_FEED_MODES, ENVS } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import { getFragmentMapping } from '../utils.js';
 import '../fields/addon-field.js';
 import Store from '../store.js';
 import { VARIANT_NAMES } from './variant-picker.js';
+import { ProductFeedTransformer } from '../services/product-feed-transformer.js';
+import { showProductFeedDialog } from '../mas-product-feed-dialog.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -31,6 +33,8 @@ class MerchCardEditor extends LitElement {
         currentVariantMapping: { type: Object, attribute: false },
         fragmentStore: { type: Object, attribute: false },
         updateFragment: { type: Function },
+        lastSentProductId: { type: String, state: true },
+        lastSentResponse: { type: Object, state: true },
     };
 
     styles = {
@@ -79,6 +83,8 @@ class MerchCardEditor extends LitElement {
         this.fragmentStore = null;
         this.updateFragment = null;
         this.currentVariantMapping = null;
+        this.lastSentProductId = null;
+        this.lastSentResponse = null;
     }
 
     createRenderRoot() {
@@ -641,6 +647,7 @@ class MerchCardEditor extends LitElement {
                     @input="${this.#handlePerUnitLabelUpdate}"
                 ></sp-textfield>
             </sp-field-group>
+            ${this.#renderProductFeedSection()}
         `;
     }
 
@@ -1297,6 +1304,313 @@ class MerchCardEditor extends LitElement {
                 </sp-picker>
             </sp-field-group>
         `;
+    }
+
+    #renderProductFeedSection() {
+        const mode = this.#getProductFeedMode();
+        const hasOpenAIAccess = this.#hasOpenAIAccess();
+
+        console.log('[Product Feed] Rendering section', {
+            fragment: !!this.fragment,
+            disabled: this.disabled,
+            mode,
+            hasOpenAIAccess,
+            lastSentProductId: this.lastSentProductId,
+        });
+
+        return html`
+            <sp-divider size="m"></sp-divider>
+            <sp-field-group>
+                <sp-field-label>ChatGPT Product Feed</sp-field-label>
+
+                <sp-picker
+                    id="product-feed-mode"
+                    label="Test Mode"
+                    value="${mode}"
+                    @change="${this.#handleModeChange}"
+                    style="margin-bottom: 12px;"
+                >
+                    <sp-menu-item value="${PRODUCT_FEED_MODES.BYPASS}"> Bypass (Local Testing) </sp-menu-item>
+                    <sp-menu-item value="${PRODUCT_FEED_MODES.STAGE}"> Stage (Preview) </sp-menu-item>
+                    <sp-menu-item value="${PRODUCT_FEED_MODES.PROD}" ?disabled="${!hasOpenAIAccess}">
+                        Production (OpenAI)
+                    </sp-menu-item>
+                </sp-picker>
+
+                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                    <sp-button
+                        id="send-to-chatgpt-btn"
+                        variant="secondary"
+                        size="m"
+                        @click="${this.#handleSendToChatGPT}"
+                        ?disabled="${!this.fragment || this.disabled}"
+                        style="flex: 1;"
+                    >
+                        Preview & Send to Feed
+                    </sp-button>
+
+                    ${mode === PRODUCT_FEED_MODES.STAGE && this.lastSentProductId
+                        ? html`
+                              <sp-button variant="secondary" size="m" @click="${this.#handlePreviewProduct}">
+                                  Preview Result
+                              </sp-button>
+                          `
+                        : nothing}
+                </div>
+
+                ${!this.fragment || this.disabled
+                    ? html`<sp-help-text variant="negative">Card must be loaded to send to Product Feed</sp-help-text>`
+                    : nothing}
+
+                <sp-help-text>${this.#getModeHelpText()}</sp-help-text>
+            </sp-field-group>
+        `;
+    }
+
+    #getProductFeedMode() {
+        return localStorage.getItem('product-feed-mode') || PRODUCT_FEED_MODES.BYPASS;
+    }
+
+    #handleModeChange(event) {
+        localStorage.setItem('product-feed-mode', event.target.value);
+        this.requestUpdate();
+    }
+
+    #getCurrentEnvironment() {
+        const hostname = window.location.hostname;
+        if (hostname.includes('stage') || hostname.includes('stg')) {
+            return 'stage';
+        }
+        return 'prod';
+    }
+
+    #hasOpenAIAccess() {
+        return localStorage.getItem('openai-merchant-approved') === 'true';
+    }
+
+    #getModeHelpText() {
+        const mode = this.#getProductFeedMode();
+        switch (mode) {
+            case PRODUCT_FEED_MODES.BYPASS:
+                return 'Validates product data locally without API calls';
+            case PRODUCT_FEED_MODES.STAGE:
+                return 'Sends to staging endpoint for preview (not visible in ChatGPT)';
+            case PRODUCT_FEED_MODES.PROD:
+                return 'Sends to OpenAI - product will be searchable in ChatGPT';
+            default:
+                return '';
+        }
+    }
+
+    #handleSendToChatGPT = async (event) => {
+        console.log('[Product Feed] Send button clicked', {
+            fragment: !!this.fragment,
+            disabled: this.disabled,
+        });
+
+        const button = event.target;
+        button.pending = true;
+
+        try {
+            console.log('[Product Feed] Validating fragment...');
+            this.#validateFragment();
+
+            console.log('[Product Feed] Transforming product data...');
+            const productData = await ProductFeedTransformer.transform(this.fragment);
+            console.log('[Product Feed] Product data:', productData);
+
+            const mode = this.#getProductFeedMode();
+
+            console.log('[Product Feed] Showing editable modal...');
+            const result = await showProductFeedDialog(productData, mode);
+
+            if (!result.confirmed) {
+                console.log('[Product Feed] User cancelled send');
+                return;
+            }
+
+            console.log('[Product Feed] User confirmed, proceeding with send...', result.data);
+            await this.#confirmAndSendToChatGPT(result.data, mode);
+        } catch (error) {
+            console.error('[Product Feed] Error:', error);
+            this.#showToast('negative', `✗ Failed: ${error.message}`);
+        } finally {
+            button.pending = false;
+        }
+    };
+
+    #validateFragment() {
+        const form = Object.fromEntries(this.fragment.fields.map((f) => [f.name, f]));
+        const errors = [];
+
+        if (!form.cardTitle?.values[0]) errors.push('Title is required');
+        if (!form.description?.values[0]) errors.push('Description is required');
+        if (!form.osi?.values[0]) errors.push('OSI (price) is required');
+        if (!form.variant?.values[0]) errors.push('Variant is required');
+
+        if (errors.length > 0) {
+            throw new Error(`Validation failed: ${errors.join(', ')}`);
+        }
+    }
+
+    async #sendToProductFeed(productData, mode) {
+        if (mode === PRODUCT_FEED_MODES.BYPASS) {
+            return this.#localValidation(productData);
+        }
+
+        const env = this.#getCurrentEnvironment();
+        const endpoint = this.#getEndpointForMode(mode, env);
+        const token = await this.#getIOToken();
+
+        const requestBody = {
+            productData,
+            apiKey: mode === PRODUCT_FEED_MODES.PROD ? 'managed-by-runtime' : 'mock-key',
+            bypass: false,
+        };
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+                'x-test-mode': mode === PRODUCT_FEED_MODES.STAGE ? 'true' : 'false',
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || error.body?.message || `HTTP ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result.body || result;
+    }
+
+    #getEndpointForMode(mode, env) {
+        const envConfig = ENVS[env];
+
+        switch (mode) {
+            case PRODUCT_FEED_MODES.STAGE:
+                return envConfig.productFeed.mockEndpoint;
+            case PRODUCT_FEED_MODES.PROD:
+                return envConfig.productFeed.endpoint;
+            default:
+                throw new Error(`Unknown mode: ${mode}`);
+        }
+    }
+
+    async #getIOToken() {
+        if (window.adobeIMS) {
+            return window.adobeIMS.getAccessToken();
+        }
+        throw new Error('Adobe IMS not available');
+    }
+
+    #localValidation(productData) {
+        const errors = this.#validateProductData(productData);
+
+        if (errors.length > 0) {
+            throw new Error(`Validation failed: ${errors.join(', ')}`);
+        }
+
+        return {
+            success: true,
+            productId: productData.id,
+            message: 'Local validation passed',
+            bypass: true,
+            timestamp: new Date().toISOString(),
+        };
+    }
+
+    #validateProductData(product) {
+        const errors = [];
+
+        if (!product.id) errors.push('id is required');
+        if (!product.title) errors.push('title is required');
+        if (!product.description) errors.push('description is required');
+        if (!product.price) errors.push('price is required');
+        if (!product.link) errors.push('link is required');
+
+        if (product.price && !product.price.match(/^\d+\.\d{2}\s+[A-Z]{3}$/)) {
+            errors.push('price must be in format "99.99 USD"');
+        }
+
+        if (product.title && product.title.length > 150) {
+            errors.push('title must be max 150 characters');
+        }
+
+        return errors;
+    }
+
+    #getSuccessMessage(mode, result) {
+        switch (mode) {
+            case PRODUCT_FEED_MODES.BYPASS:
+                return `✓ Validation passed: ${result.productId}`;
+            case PRODUCT_FEED_MODES.STAGE:
+                return `✓ Sent to staging: ${result.results?.[0]?.productId || result.productId}`;
+            case PRODUCT_FEED_MODES.PROD:
+                return `✓ Published to ChatGPT: ${result.results?.[0]?.productId || result.productId}`;
+            default:
+                return '✓ Success';
+        }
+    }
+
+    async #confirmAndSendToChatGPT(productData, mode) {
+        console.log('[Product Feed] Sending confirmed by user, mode:', mode);
+
+        const result = await this.#sendToProductFeed(productData, mode);
+        console.log('[Product Feed] Result:', result);
+
+        this.lastSentProductId = productData.id;
+        this.lastSentResponse = result;
+
+        const message = this.#getSuccessMessage(mode, result);
+        this.#showToast('positive', message);
+
+        if (mode === PRODUCT_FEED_MODES.STAGE) {
+            this.requestUpdate();
+        }
+    }
+
+    #handlePreviewProduct = () => {
+        console.log('[Product Feed] Preview button clicked', {
+            hasResponse: !!this.lastSentResponse,
+        });
+
+        if (!this.lastSentResponse) {
+            console.warn('[Product Feed] No response to preview');
+            return;
+        }
+        this.#showPreviewDialog(this.lastSentResponse);
+    };
+
+    #showPreviewDialog(response) {
+        const content = JSON.stringify(response, null, 2);
+        const event = new CustomEvent('show-dialog', {
+            detail: {
+                heading: 'Product Feed Preview',
+                content: html`<pre style="max-height: 400px; overflow: auto; margin: 0;">${content}</pre>`,
+            },
+            bubbles: true,
+            composed: true,
+        });
+        this.dispatchEvent(event);
+    }
+
+    #showToast(variant, message) {
+        console.log('[Product Feed] Showing toast:', { variant, message });
+        const event = new CustomEvent('toast', {
+            detail: { variant, message },
+            bubbles: true,
+            composed: true,
+        });
+        this.dispatchEvent(event);
+
+        if (!event.defaultPrevented) {
+            console.warn('[Product Feed] Toast event not handled by parent component');
+            alert(`${variant.toUpperCase()}: ${message}`);
+        }
     }
 }
 

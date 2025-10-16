@@ -115,6 +115,10 @@ export const ENVS = {
         account: 'stage.account.adobe.com',
         edgeConfigId: 'e065836d-be57-47ef-b8d1-999e1657e8fd',
         pdfViewerClientId: 'a76f1668fd3244d98b3838e189900a5e',
+        productFeed: {
+            endpoint: 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/product/feed',
+            mockEndpoint: 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/product/feed-mock',
+        },
     },
     prod: {
         name: 'prod',
@@ -124,6 +128,10 @@ export const ENVS = {
         account: 'account.adobe.com',
         edgeConfigId: '913eac4d-900b-45e8-9ee7-306216765cd2',
         pdfViewerClientId: '3c0a5ddf2cc04d3198d9e48efc390fa9',
+        productFeed: {
+            endpoint: 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/product/feed',
+            mockEndpoint: 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/product/feed-mock',
+        },
     },
 };
 
@@ -177,4 +185,11 @@ export const VARIANT_CAPABILITIES = {
         label: 'Default Card',
         helpText: 'Drag a card here to set as default',
     },
+};
+
+// Product Feed modes
+export const PRODUCT_FEED_MODES = {
+    BYPASS: 'bypass',
+    STAGE: 'stage',
+    PROD: 'prod',
 };

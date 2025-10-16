@@ -6,7 +6,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-variant-change-to-suggested',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
@@ -16,7 +16,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-variant-change-to-slice',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
@@ -26,7 +26,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-variant-change-to-ah-try-buy-widget',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
@@ -36,7 +36,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-size',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
@@ -46,7 +46,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-title',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 title: {
                     original: 'MAS Automation Test Card',
                     updated: 'Change title',
@@ -60,7 +60,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-badge',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 badge: {
                     original: 'DO NOT EDIT',
                     updated: 'Change badge',
@@ -74,7 +74,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-description',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 description: {
                     original: 'Edit and organize photos. Save 25% for the first 6 months. Ends Feb 26.',
                     updated: 'New Test Description',
@@ -88,7 +88,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-mnemonic',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 iconURL: {
                     original: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
                     updated: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
@@ -102,7 +102,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-callout',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 calloutText: {
                     original: 'AI Assistant add-on available',
                     updated: 'New callout text',
@@ -116,7 +116,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-promo-text',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 promoText: {
                     original: 'Test promotion text',
                     updated: 'New Promo Text',
@@ -130,7 +130,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-price',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 price: {
                     original: 'US$17.24/mo',
                     updated: 'US$17.24/moper license',
@@ -149,7 +149,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-osi',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 osi: {
                     original: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                     updated: '1RwmqQ0NVsrtYr1bj05lZCJBavU6JGa67djrwKE8k8o',
@@ -175,7 +175,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-stock-checkbox',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit @nopr',
@@ -185,7 +185,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-quantity-selector',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 startValue: {
                     original: '3',
                     updated: '2',
@@ -203,7 +203,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-whats-included',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 whatsIncluded: {
                     text: 'List of items:',
                     iconURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
@@ -218,7 +218,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-badge-color',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 color: {
                     original: 'Yellow 300',
                     updated: 'Green 900',
@@ -236,7 +236,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-badge-border-color',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 color: {
                     original: 'Yellow 300',
                     updated: 'Green 900',
@@ -254,7 +254,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-card-border-color',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 color: {
                     original: 'Yellow 300',
                     updated: 'Gray 300',
@@ -272,7 +272,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-price-promo',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 promo: {
                     original: 'UMRM2MUSPr501YOC',
                     updated: 'testpromo',
@@ -286,7 +286,7 @@ export default {
             name: '@studio-plans-individuals-phone-number',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 phoneNumber: '1234567890',
             },
             browserParams: '#page=content&path=nala&query=',
@@ -297,7 +297,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-cta-variant',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 cta: {
                     original: {
@@ -323,7 +323,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-cta-checkout-params',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 checkoutParams: {
                     mv: '1',
@@ -339,7 +339,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-cta-ost',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 cta: {
                     original: {
@@ -358,7 +358,7 @@ export default {
                     ctx: 'fp',
                     lang: 'en',
                     client: 'adobe_com',
-                    promo: 'FY25PLES256MROW',
+                    promo: 'UMRM2MUSPr501YOC',
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -369,7 +369,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-cta-label',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 label: {
                     original: 'Buy now',
@@ -384,10 +384,10 @@ export default {
             name: '@studio-plans-individuals-edit-discard-cta-promo',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 promo: {
-                    original: 'FY25PLES256MROW',
-                    updated: 'testpromo',
+                    original: 'UMRM2MUSPr501YOC',
+                    updated: 'UMRABMUSPr501YOC',
                 },
                 ucv3: 'commerce.adobe.com/store/email',
                 country: 'US',
@@ -403,7 +403,7 @@ export default {
             name: '@studio-plans-individuals-add-description-price-legal-disclamer',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 osi: {
                     original: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                     updated: 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8',

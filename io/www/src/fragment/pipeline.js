@@ -82,7 +82,6 @@ async function main(params) {
         ]);
     } catch (error) {
         logError(`Error occurred while processing request: ${error.message} ${error.stack}`, context);
-        cacheControl = 'public, max-age=300, stale-while-revalidate=86400';
         if (error.isTimeout) {
             returnValue = {
                 statusCode: 504,

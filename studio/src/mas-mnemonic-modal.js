@@ -1,37 +1,5 @@
 import { LitElement, html, css } from 'lit';
-
-const ADOBE_PRODUCTS = [
-    { id: 'creative-cloud', name: 'Creative Cloud' },
-    { id: 'photoshop', name: 'Photoshop' },
-    { id: 'lightroom', name: 'Lightroom' },
-    { id: 'illustrator', name: 'Illustrator' },
-    { id: 'indesign', name: 'InDesign' },
-    { id: 'premiere-pro', name: 'Premiere Pro' },
-    { id: 'after-effects', name: 'After Effects' },
-    { id: 'acrobat-pro', name: 'Acrobat Pro' },
-    { id: 'dreamweaver', name: 'Dreamweaver' },
-    { id: 'animate', name: 'Animate' },
-    { id: 'audition', name: 'Audition' },
-    { id: 'bridge', name: 'Bridge' },
-    { id: 'character-animator', name: 'Character Animator' },
-    { id: 'dimension', name: 'Dimension' },
-    { id: 'xd', name: 'XD' },
-    { id: 'firefly', name: 'Firefly' },
-    { id: 'cc-express', name: 'Adobe Express' },
-    { id: 'fresco', name: 'Fresco' },
-    { id: 'aero', name: 'Aero' },
-    { id: 'substance-3d-modeler', name: 'Substance 3D Modeler' },
-    { id: 'substance-3d-stager', name: 'Substance 3D Stager' },
-    { id: 'substance-3d-painter', name: 'Substance 3D Painter' },
-    { id: 'substance-3d-sampler', name: 'Substance 3D Sampler' },
-    { id: 'substance-3d-designer', name: 'Substance 3D Designer' },
-    { id: 'substance-3d-assets', name: 'Substance 3D Assets' },
-    { id: 'stock', name: 'Stock' },
-    { id: 'fonts', name: 'Fonts' },
-    { id: 'color', name: 'Color' },
-    { id: 'capture', name: 'Capture' },
-    { id: 'incopy', name: 'InCopy' },
-];
+import { ADOBE_PRODUCTS } from './constants/adobe-products.js';
 
 class MasMnemonicModal extends LitElement {
     static properties = {
@@ -57,7 +25,7 @@ class MasMnemonicModal extends LitElement {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            z-index: 1;
+            z-index: 2000;
             background: var(--spectrum-gray-100);
         }
 

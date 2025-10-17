@@ -200,24 +200,21 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            await expect(await editor.iconURL).toBeVisible();
-            await expect(await editor.iconURL).toHaveValue(data.icon.original);
-            await editor.iconURL.fill(data.icon.updated);
+            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await editor.openMnemonicModal();
+            await editor.setMnemonicURL(data.icon.updated);
+            await editor.saveMnemonicModal();
         });
 
-        await test.step('step-4: Validate edited mnemonic field in Editor panel', async () => {
-            await expect(await editor.iconURL).toHaveValue(data.icon.updated);
-        });
-
-        await test.step('step-5: Validate edited mnemonic on the card', async () => {
+        await test.step('step-4: Validate edited mnemonic on the card', async () => {
             await expect(await trybuywidget.cardIcon).toHaveAttribute('src', data.icon.updated);
         });
 
-        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+        await test.step('step-5: Close the editor and verify discard is triggered', async () => {
             await studio.discardEditorChanges(editor);
         });
 
-        await test.step('step-7: Verify that the changes are not reflected on the card', async () => {
+        await test.step('step-6: Verify that the changes are not reflected on the card', async () => {
             await expect(await trybuywidget.cardIcon).toHaveAttribute('src', data.icon.original);
         });
     });
@@ -437,7 +434,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await editor.subtitle).not.toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await expect(await editor.borderColor).not.toBeVisible();
             await expect(await editor.backgroundColor).not.toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
@@ -499,7 +496,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await editor.subtitle).toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await expect(await editor.borderColor).not.toBeVisible();
             await expect(await editor.backgroundColor).not.toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();

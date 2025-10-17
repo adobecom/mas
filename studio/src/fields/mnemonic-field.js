@@ -25,6 +25,7 @@ class MnemonicField extends LitElement {
             border: 1px solid var(--spectrum-gray-300);
             border-radius: 4px;
             min-height: 48px;
+            max-width: 340px;
         }
 
         .icon-preview {

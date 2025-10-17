@@ -6,14 +6,14 @@
  */
 
 export class AnthropicClient {
-    constructor() {
-        this.apiKey = process.env.ANTHROPIC_API_KEY;
-        this.modelId = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
+    constructor(apiKey, modelId = 'claude-sonnet-4-20250514') {
+        this.apiKey = apiKey;
+        this.modelId = modelId;
         this.baseURL = 'https://api.anthropic.com/v1/messages';
         this.apiVersion = '2023-06-01';
 
         if (!this.apiKey) {
-            throw new Error('ANTHROPIC_API_KEY environment variable is required');
+            throw new Error('ANTHROPIC_API_KEY is required');
         }
     }
 

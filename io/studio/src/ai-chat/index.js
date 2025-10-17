@@ -11,7 +11,7 @@
  */
 
 import { Ims } from '@adobe/aio-lib-ims';
-import { BedrockClient } from './bedrock-client.js';
+import { AnthropicClient } from './anthropic-client.js';
 import { CARD_CREATION_SYSTEM_PROMPT, COLLECTION_CREATION_SYSTEM_PROMPT } from './prompt-templates.js';
 import { OPERATIONS_SYSTEM_PROMPT } from './operations-prompt.js';
 import { buildDocumentationPrompt } from './docs/documentation-prompt.js';
@@ -22,15 +22,10 @@ import { getVariantConfig } from './variant-configs.js';
 
 /**
  * Get CORS headers for development
- * @returns {Object} - CORS headers
+ * @returns {Object} - CORS headers (empty - let Adobe I/O Runtime handle CORS automatically)
  */
 function getCorsHeaders() {
-    return {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-api-key',
-        'Access-Control-Allow-Credentials': 'true',
-    };
+    return {};
 }
 
 /**
@@ -95,11 +90,12 @@ async function main(params) {
     }
 
     try {
-        const bedrockClient = new BedrockClient();
+        const { ANTHROPIC_API_KEY, ANTHROPIC_MODEL } = params;
+        const anthropicClient = new AnthropicClient(ANTHROPIC_API_KEY, ANTHROPIC_MODEL);
 
         const systemPrompt = determineSystemPrompt(intentHint, conversationHistory, message);
 
-        const response = await bedrockClient.sendWithContext(conversationHistory, message, systemPrompt, context);
+        const response = await anthropicClient.sendWithContext(conversationHistory, message, systemPrompt, context);
 
         if (!response.success) {
             return {
@@ -200,6 +196,46 @@ async function main(params) {
                         valid: cardValidations.every((v) => v.valid),
                         cardValidations,
                     },
+                    usage: response.usage,
+                    conversationHistory: [
+                        ...conversationHistory,
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: response.message },
+                    ],
+                },
+            };
+        }
+
+        if (parsedResponse.type === 'collection-selection') {
+            return {
+                statusCode: 200,
+                headers: {
+                    ...getCorsHeaders(),
+                },
+                body: {
+                    type: 'collection-selection',
+                    message: parsedResponse.message,
+                    usage: response.usage,
+                    conversationHistory: [
+                        ...conversationHistory,
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: response.message },
+                    ],
+                },
+            };
+        }
+
+        if (parsedResponse.type === 'collection-preview') {
+            return {
+                statusCode: 200,
+                headers: {
+                    ...getCorsHeaders(),
+                },
+                body: {
+                    type: 'collection-preview',
+                    message: parsedResponse.message,
+                    fragmentIds: parsedResponse.fragmentIds,
+                    suggestedTitle: parsedResponse.suggestedTitle,
                     usage: response.usage,
                     conversationHistory: [
                         ...conversationHistory,

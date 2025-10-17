@@ -54,13 +54,32 @@ export function extractConversationalText(responseText) {
 /**
  * Parse AI response into structured format
  * @param {string} responseText - Raw AI response from Claude
- * @returns {Object} - {type, message, cardConfig, collectionConfig}
+ * @returns {Object} - {type, message, cardConfig, collectionConfig, fragmentIds}
  */
 export function parseAIResponse(responseText) {
     const cardConfig = extractJSON(responseText);
     const conversationalText = extractConversationalText(responseText);
 
     if (cardConfig) {
+        if (cardConfig.type === 'collection-selection') {
+            return {
+                type: 'collection-selection',
+                message:
+                    conversationalText ||
+                    cardConfig.message ||
+                    "I'll help you create a collection. Click the button below to select cards from your existing cards.",
+            };
+        }
+
+        if (cardConfig.type === 'collection-preview') {
+            return {
+                type: 'collection-preview',
+                message: conversationalText || cardConfig.message || 'Preview collection',
+                fragmentIds: cardConfig.fragmentIds || [],
+                suggestedTitle: cardConfig.suggestedTitle || null,
+            };
+        }
+
         if (cardConfig.type === 'collection') {
             return {
                 type: 'collection',

@@ -140,10 +140,10 @@ export const PAGE_NAMES = {
     CHAT: 'chat',
 };
 
-// AI Chat endpoint - auto-detects local vs production
+// AI Chat endpoint - use workspace for localhost, production for mas.adobe.com
 export const AI_CHAT_BASE_URL =
     window.location.hostname === 'localhost'
-        ? 'https://localhost:9080/api/v1/web/MerchAtScaleStudio'
+        ? 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScaleStudio'
         : 'https://mas.adobe.com/io';
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';

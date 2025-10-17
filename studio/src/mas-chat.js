@@ -12,6 +12,7 @@ import { executeOperationWithFeedback } from './utils/ai-operations-executor.js'
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { showToast } from './utils.js';
 import { AI_CHAT_BASE_URL, TAG_MODEL_ID_MAPPING } from './constants.js';
+import { getDamPath } from './mas-repository.js';
 
 /**
  * Main AI Chat Component
@@ -191,6 +192,7 @@ export class MasChat extends LitElement {
                         content: response.message,
                         type: response.type,
                         fragmentIds: response.fragmentIds,
+                        suggestedTitle: response.suggestedTitle,
                         timestamp: Date.now(),
                     },
                 ];
@@ -291,7 +293,7 @@ export class MasChat extends LitElement {
             const title = this.extractTitle(cardConfig);
             const fragmentData = createFragmentDataForAEM(cardConfig, cardConfig.variant, {
                 title,
-                parentPath: Store.search.value.path || '/content/dam/mas',
+                parentPath: `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`,
             });
 
             const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
@@ -339,7 +341,7 @@ export class MasChat extends LitElement {
                 throw new Error('Repository not found');
             }
 
-            const parentPath = Store.search.value.path || '/content/dam/mas';
+            const parentPath = `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`;
             const collectionTitle = collectionConfig.title || 'AI Generated Collection';
 
             showToast(`Saving ${collectionConfig.cards.length} cards...`, 'info');
@@ -362,7 +364,7 @@ export class MasChat extends LitElement {
                 ...this.messages,
                 {
                     role: 'assistant',
-                    content: `✓ Collection saved with ${savedCards.length} cards:\n${savedCards.map((f) => `- ${f.title}`).join('\n')}`,
+                    content: `Collection saved with ${savedCards.length} cards in ${this.capitalize(Store.search.value.path)} folder, ${Store.filters.value.locale || 'en_US'} locale.`,
                     timestamp: Date.now(),
                 },
             ];
@@ -389,19 +391,18 @@ export class MasChat extends LitElement {
         return tempDiv.textContent || 'AI Generated Card';
     }
 
+    capitalize(str) {
+        if (!str) return '';
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
     async handleCardsSelected(event) {
         const { cardIds } = event.detail;
         await this.createCollection(cardIds, 'Selected Cards Collection');
     }
 
     async handleCreateCollectionFromPreview(event) {
-        const { fragmentIds, fragments } = event.detail;
-
-        const title =
-            fragments.length > 0
-                ? `${fragments[0].title} and ${fragments.length - 1} more`
-                : `AI Generated Collection (${fragmentIds.length} cards)`;
-
+        const { fragmentIds, title } = event.detail;
         await this.createCollection(fragmentIds, title);
     }
 
@@ -413,12 +414,12 @@ export class MasChat extends LitElement {
             if (!repository) throw new Error('Repository not found');
 
             const collectionData = {
-                modelId: TAG_MODEL_ID_MAPPING['mas:studio/content-type/collection'],
+                modelId: TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card-collection'],
                 title,
-                parentPath: Store.search.value.path || '/content/dam/mas',
+                parentPath: `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`,
                 fields: [
-                    { name: 'cards', values: cardIds },
-                    { name: 'label', values: [title] },
+                    { name: 'cards', type: 'content-fragment', multiple: true, values: cardIds },
+                    { name: 'label', type: 'text', values: [title] },
                 ],
             };
 
@@ -428,7 +429,7 @@ export class MasChat extends LitElement {
                 ...this.messages,
                 {
                     role: 'assistant',
-                    content: `✓ Collection "${title}" created with ${cardIds.length} cards at: ${newCollection.path}`,
+                    content: `Collection "${title}" created with ${cardIds.length} cards in ${this.capitalize(Store.search.value.path)} folder, ${Store.filters.value.locale || 'en_US'} locale.`,
                     timestamp: Date.now(),
                 },
             ];

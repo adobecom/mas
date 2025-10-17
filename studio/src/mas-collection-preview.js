@@ -3,9 +3,11 @@ import { LitElement, html, css } from 'lit';
 class MasCollectionPreview extends LitElement {
     static properties = {
         fragmentIds: { type: Array },
+        suggestedTitle: { type: String },
         fragments: { type: Array, state: true },
         loading: { type: Boolean, state: true },
         error: { type: String, state: true },
+        collectionTitle: { type: String, state: true },
     };
 
     static styles = css`
@@ -61,9 +63,11 @@ class MasCollectionPreview extends LitElement {
     constructor() {
         super();
         this.fragmentIds = [];
+        this.suggestedTitle = null;
         this.fragments = [];
         this.loading = false;
         this.error = null;
+        this.collectionTitle = '';
     }
 
     createRenderRoot() {
@@ -73,6 +77,9 @@ class MasCollectionPreview extends LitElement {
     async updated(changedProperties) {
         if (changedProperties.has('fragmentIds') && this.fragmentIds.length) {
             await this.fetchFragments();
+        }
+        if (changedProperties.has('suggestedTitle') && this.suggestedTitle && !this.collectionTitle) {
+            this.collectionTitle = this.suggestedTitle;
         }
     }
 
@@ -116,11 +123,16 @@ class MasCollectionPreview extends LitElement {
                 detail: {
                     fragmentIds: this.fragments.map((f) => f.id),
                     fragments: this.fragments,
+                    title: this.collectionTitle || `Collection (${this.fragments.length} cards)`,
                 },
                 bubbles: true,
                 composed: true,
             }),
         );
+    }
+
+    handleTitleInput(e) {
+        this.collectionTitle = e.target.value;
     }
 
     render() {
@@ -166,9 +178,27 @@ class MasCollectionPreview extends LitElement {
                     )}
                 </div>
 
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px;">
+                    <sp-field-label for="collection-title">Collection Title</sp-field-label>
+                    <sp-textfield
+                        id="collection-title"
+                        .value=${this.collectionTitle}
+                        @input=${this.handleTitleInput}
+                        placeholder="Enter collection title"
+                    ></sp-textfield>
+                    ${this.suggestedTitle
+                        ? html`<sp-help-text slot="help-text">AI suggested: "${this.suggestedTitle}"</sp-help-text>`
+                        : ''}
+                </div>
+
                 <div class="preview-actions">
-                    <sp-button size="m" variant="accent" @click=${this.handleCreateCollection}>
-                        Create Collection with These Cards
+                    <sp-button
+                        size="m"
+                        variant="accent"
+                        @click=${this.handleCreateCollection}
+                        ?disabled=${!this.collectionTitle}
+                    >
+                        Create Collection
                     </sp-button>
                 </div>
             </div>

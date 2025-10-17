@@ -184,6 +184,7 @@ export class MasChatMessage extends LitElement {
                 <p>${this.message.content}</p>
                 <mas-collection-preview
                     .fragmentIds=${this.message.fragmentIds}
+                    .suggestedTitle=${this.message.suggestedTitle}
                     @create-collection=${this.handleCreateFromPreview}
                 ></mas-collection-preview>
             </div>

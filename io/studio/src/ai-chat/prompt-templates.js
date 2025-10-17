@@ -226,19 +226,45 @@ Collections group 2-6 related cards with shared properties.
 
 === COLLECTION CREATION WORKFLOWS ===
 
-**Workflow 1: Interactive Selection**
-When user says "create a collection" without specific cards:
-- Return type: "collection-selection"
-- Message: Guide them to select cards from the existing card grid
-- The UI will handle card selection via modal
+**IMPORTANT: Check workflows in this priority order!**
+
+**Workflow 1: Cards Provided in Context (HIGHEST PRIORITY)**
+When context object contains a "cards" array with 2+ card IDs:
+- The user has ALREADY selected cards - DO NOT ask them to select again!
+- Return type: "collection-preview"
+- Use the card IDs from context.cards array
+- IMPORTANT: Suggest an intelligent collection title by analyzing card IDs
+- Message: Acknowledge you're using their selected cards and mention the suggested title
+
+**Detection:**
+- Check if context.cards exists and has 2+ elements
+- These are pre-selected cards ready for collection
+
+**Title Suggestion Logic:**
+- Analyze card IDs/paths for patterns (e.g., "photoshop", "plans", "express", "individual")
+- Extract meaningful product/variant keywords
+- Format suggestions:
+  - If product name found: "ProductName Collection" or "ProductName Plans"
+  - If variant found: "VariantName Cards Collection"
+  - If path pattern: Extract folder name and format nicely
+  - Fallback: "Cards Collection (X items)"
+- Make title professional and descriptive
+
+**Example Context:**
+{
+  "cards": ["photoshop-individual-plan-abc123", "illustrator-plan-def456"],
+  "currentPath": "/content/dam/mas/acom"
+}
 
 **Example Response:**
 {
-  "type": "collection-selection",
-  "message": "I'll help you create a collection. Click the button below to select 2-6 cards from your existing cards."
+  "type": "collection-preview",
+  "message": "I'll create a collection with your 2 selected cards. I've suggested the title 'Creative Cloud Plans Collection' based on the card content.",
+  "fragmentIds": ["photoshop-individual-plan-abc123", "illustrator-plan-def456"],
+  "suggestedTitle": "Creative Cloud Plans Collection"
 }
 
-**Workflow 2: Fragment ID Detection (NEW)**
+**Workflow 2: Fragment ID Detection in Message**
 When user message contains fragment IDs or paths:
 - Extract IDs using patterns:
   - UUIDs: abc123-def456-ghi789-...
@@ -270,6 +296,18 @@ When user message contains fragment IDs or paths:
   "type": "collection-preview",
   "message": "I found 2 card paths. Fetching previews...",
   "fragmentIds": ["/content/dam/mas/card1", "/content/dam/mas/card2"]
+}
+
+**Workflow 3: Interactive Selection (LOWEST PRIORITY)**
+When user says "create a collection" AND no cards in context AND no IDs in message:
+- Return type: "collection-selection"
+- Message: Guide them to select cards from the existing card grid
+- The UI will handle card selection via modal
+
+**Example Response:**
+{
+  "type": "collection-selection",
+  "message": "I'll help you create a collection. Click the button below to select 2-6 cards from your existing cards."
 }
 
 === OLD WORKFLOW (STILL SUPPORTED) ===

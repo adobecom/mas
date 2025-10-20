@@ -15,6 +15,7 @@ export const VARIANT_NAMES = {
     MINI: 'mini',
     SIMPLIFIED_PRICING_EXPRESS: 'simplified-pricing-express',
     M7CARD: 'm7card',
+    BUNDLE_OPTION_CARD_3_IN_1: 'bundleoptioncard3in1',
 };
 //TODO make that feed (excepts ALL maybe) dynamically served from milo
 export const VARIANTS = [
@@ -66,6 +67,11 @@ export const VARIANTS = [
     {
         label: 'M7 Card',
         value: VARIANT_NAMES.M7CARD,
+        surface: 'commerce',
+    },
+    {
+        label: 'Bundle Option Card 3 in 1',
+        value: VARIANT_NAMES.BUNDLE_OPTION_CARD_3_IN_1,
         surface: 'commerce',
     },
 ];

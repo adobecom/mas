@@ -462,4 +462,59 @@ describe('configuration caching', () => {
         performanceStub.restore();
         stateGetSpy.restore();
     });
+    it('should use stale cache when configuration refresh times out', async () => {
+        setupFragmentMocks({
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+
+        const state = new MockState();
+        await state.put('configuration', JSON.stringify({ debugLogs: true }));
+        const originalGet = state.get.bind(state);
+        let configCallCount = 0;
+        const getStub = sinon.stub(state, 'get');
+        getStub.callsFake(async (key) => {
+            if (key === 'configuration') {
+                configCallCount++;
+                const delay = configCallCount === 1 ? 0 : 250;
+                await new Promise((resolve) => setTimeout(resolve, delay));
+                return originalGet(key);
+            }
+            return originalGet(key);
+        });
+
+        // First request - fetches and caches config
+        const result1 = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+        });
+        expect(result1.statusCode).to.equal(200);
+        expect(configCallCount).to.equal(1);
+
+        // Simulate cache expiration
+        const performanceStub = sinon.stub(performance, 'now');
+        performanceStub.returns(5 * 60 * 1000 + 1000);
+
+        setupFragmentMocks({
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+
+        const result2 = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+        });
+
+        expect(result2.statusCode).to.equal(200);
+        expect(configCallCount).to.equal(2); // Call was attempted
+
+        const timedOutCall = logDebugSpy.getCalls().find((call) => call.args[0]?.includes('timed out'));
+        expect(timedOutCall).to.not.be.undefined;
+
+        performanceStub.restore();
+        getStub.restore();
+        consoleLogSpy.restore();
+    });
 });

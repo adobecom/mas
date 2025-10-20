@@ -24,6 +24,10 @@ const PLAN_TYPE_LOCALES = [
     'en_VN',
     'vi_VN',
     'en_IN',
+    'de_AT',
+    'de_CH',
+    'de_DE',
+    'de_LU',
 ];
 
 function applyCollectionSettings(context) {

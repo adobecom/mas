@@ -513,13 +513,15 @@ describe('configuration caching', () => {
     });
 
     it('should respect configTimeout from networkConfig', async () => {
+        const performanceStub = sinon.stub(performance, 'now');
+        performanceStub.returns(0);
         setupFragmentMocks({
             id: 'some-en-us-fragment',
             path: 'someFragment',
         });
 
         const state = new MockState();
-        state.put('configuration', '{"networkConfig":{"configTimeout": 50}}');
+        await state.put('configuration', '{"networkConfig":{"configTimeout": 50}}');
 
         const originalGet = state.get.bind(state);
         const stateGetStub = sinon.stub(state, 'get');
@@ -539,7 +541,6 @@ describe('configuration caching', () => {
         let configCalls = stateGetStub.getCalls().filter((call) => call.args[0] === 'configuration');
         expect(configCalls).to.have.length(1);
 
-        const performanceStub = sinon.stub(performance, 'now');
         performanceStub.returns(5 * 60 * 1000 + 1000);
 
         setupFragmentMocks({

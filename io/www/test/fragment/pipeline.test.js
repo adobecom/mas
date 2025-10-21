@@ -519,7 +519,7 @@ describe('configuration caching', () => {
         });
 
         const state = new MockState();
-        state.put('configuration', '{"networkConfig":{"configTimeout": 1}}');
+        state.put('configuration', '{"networkConfig":{"configTimeout": 50}}');
 
         const originalGet = state.get.bind(state);
         const stateGetStub = sinon.stub(state, 'get');

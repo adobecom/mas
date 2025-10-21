@@ -462,4 +462,103 @@ describe('configuration caching', () => {
         performanceStub.restore();
         stateGetSpy.restore();
     });
+
+    it('should use stale cache when configuration refresh times out', async () => {
+        setupFragmentMocks({
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+
+        const state = new MockState();
+        await state.put('configuration', JSON.stringify({ debugLogs: true }));
+
+        const originalGet = state.get.bind(state);
+        const stateGetStub = sinon.stub(state, 'get');
+        stateGetStub.callsFake(async (key) => {
+            if (key === 'configuration') {
+                await new Promise((resolve) => setTimeout(resolve, 250));
+            }
+            return originalGet(key);
+        });
+
+        const result1 = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+        });
+        expect(result1.statusCode).to.equal(200);
+        let configCalls = stateGetStub.getCalls().filter((call) => call.args[0] === 'configuration');
+        expect(configCalls).to.have.length(1);
+
+        const performanceStub = sinon.stub(performance, 'now');
+        performanceStub.returns(5 * 60 * 1000 + 1000);
+
+        setupFragmentMocks({
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+
+        const result2 = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+        });
+
+        expect(result2.statusCode).to.equal(200);
+        configCalls = stateGetStub.getCalls().filter((call) => call.args[0] === 'configuration');
+        expect(configCalls).to.have.length(2);
+
+        performanceStub.restore();
+        stateGetStub.restore();
+    });
+
+    it('should respect configTimeout from networkConfig', async () => {
+        const performanceStub = sinon.stub(performance, 'now');
+        performanceStub.returns(0);
+        setupFragmentMocks({
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+
+        const state = new MockState();
+        await state.put('configuration', '{"networkConfig":{"configTimeout": 50}}');
+
+        const originalGet = state.get.bind(state);
+        const stateGetStub = sinon.stub(state, 'get');
+        stateGetStub.callsFake(async (key) => {
+            if (key === 'configuration') {
+                await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+            return originalGet(key);
+        });
+
+        const result1 = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+        });
+        expect(result1.statusCode).to.equal(200);
+        let configCalls = stateGetStub.getCalls().filter((call) => call.args[0] === 'configuration');
+        expect(configCalls).to.have.length(1);
+
+        performanceStub.returns(5 * 60 * 1000 + 1000);
+
+        setupFragmentMocks({
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+
+        const result2 = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+        });
+
+        expect(result2.statusCode).to.equal(200);
+        configCalls = stateGetStub.getCalls().filter((call) => call.args[0] === 'configuration');
+        expect(configCalls).to.have.length(2);
+
+        performanceStub.restore();
+        stateGetStub.restore();
+    });
 });

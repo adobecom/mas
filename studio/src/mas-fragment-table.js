@@ -1,6 +1,6 @@
 import { LitElement, html } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { generateCodeToUse, getService } from './utils.js';
+import { generateCodeToUse, getService, showToast } from './utils.js';
 import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './editor-panel.js';
 import Store from './store.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
@@ -77,14 +77,43 @@ class MasFragmentTable extends LitElement {
         openPreview(this.fragmentStore.value.id, { left: 'min(300px, 15%)' });
     }
 
+    getTruncatedOfferId() {
+        const offerId = this.offerData?.offerId;
+        if (!offerId || offerId.length <= 5) return offerId;
+        return `...${offerId.slice(-5)}`;
+    }
+
+    async copyOfferIdToClipboard(e) {
+        e.stopPropagation();
+        const offerId = this.offerData?.offerId;
+        if (!offerId) return;
+
+        try {
+            await navigator.clipboard.writeText(offerId);
+            showToast('Offer ID copied to clipboard', 'positive');
+        } catch (err) {
+            console.error('Failed to copy offer ID:', err);
+            showToast('Failed to copy Offer ID', 'negative');
+        }
+    }
+
     render() {
         const data = this.fragmentStore.value;
         return html`<sp-table-row value="${data.id}"
             ><sp-table-cell class="name"> ${this.icon} ${this.getFragmentName(data)} </sp-table-cell>
             <sp-table-cell class="title">${data.title}</sp-table-cell>
+            <sp-table-cell class="offer-id">
+                <span class="offer-id-text" title=${this.offerData?.offerId}> ${this.getTruncatedOfferId()} </span>
+                ${this.offerData?.offerId
+                    ? html`<sp-icon-copy
+                          label="Copy to clipboard"
+                          class="copy-icon"
+                          @click=${this.copyOfferIdToClipboard}
+                      ></sp-icon-copy>`
+                    : ''}
+            </sp-table-cell>
             <sp-table-cell class="offer-type">${this.offerData?.offerType}</sp-table-cell>
             <sp-table-cell class="price">${this.price}</sp-table-cell>
-            <sp-table-cell class="offer-id" title=${this.offerData?.offerId}>${this.offerData?.offerId} </sp-table-cell>
             ${this.customRender?.(data)}
             <sp-table-cell class="status ${data.status?.toLowerCase()}-cell"
                 ><div class="status-dot"></div>

@@ -63,9 +63,10 @@ async function main(params) {
             logDebug('Configuration cache empty, fetched from state', context);
         } else if (cacheExpired) {
             try {
+                const configTimeout = cachedConfiguration.networkConfig?.configTimeout || 200;
                 const result = await Promise.race([
                     getJsonFromState('configuration', context),
-                    createTimeoutPromise(200, () => {}),
+                    createTimeoutPromise(configTimeout, () => {}),
                 ]);
                 configuration = result.json;
                 cachedConfiguration = configuration;

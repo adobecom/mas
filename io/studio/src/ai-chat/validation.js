@@ -27,8 +27,13 @@ export function validateAIConfig(aiConfig, variantConfig) {
     // Validate CTA style
     if (aiConfig.ctas && variantConfig.ctaStyle) {
         const expectedClass = variantConfig.ctaStyle;
-        if (!aiConfig.ctas.includes(expectedClass)) {
-            warnings.push(`CTA style mismatch. Expected "${expectedClass}" for ${aiConfig.variant}`);
+
+        if (typeof aiConfig.ctas === 'string') {
+            if (!aiConfig.ctas.includes(expectedClass)) {
+                warnings.push(`CTA style mismatch. Expected "${expectedClass}" for ${aiConfig.variant}`);
+            }
+        } else {
+            warnings.push(`CTA field should be HTML string, received ${typeof aiConfig.ctas}`);
         }
     }
 

@@ -15,5 +15,8 @@
     "main": "src/index.js",
     "keywords": [],
     "author": "",
-    "license": "ISC"
+    "license": "ISC",
+    "dependencies": {
+        "@spectrum-web-components/banner": "^0.49.0"
+    }
 }

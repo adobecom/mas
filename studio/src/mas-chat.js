@@ -9,6 +9,7 @@ import './mas-chat-session-selector.js';
 import Store, { editFragment } from './store.js';
 import { createFragmentFromAIConfig, createFragmentDataForAEM } from './utils/ai-card-mapper.js';
 import { executeOperationWithFeedback } from './utils/ai-operations-executor.js';
+import { Fragment } from './aem/fragment.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { showToast } from './utils.js';
 import { AI_CHAT_BASE_URL, TAG_MODEL_ID_MAPPING } from './constants.js';
@@ -448,6 +449,15 @@ export class MasChat extends LitElement {
         }
     }
 
+    generateUniqueFragmentName(title) {
+        const baseName = title
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+        const timestamp = Date.now();
+        return `${baseName}-${timestamp}`;
+    }
+
     async saveDraftToAEM(cardConfig) {
         const repository = document.querySelector('mas-repository');
         if (!repository) {
@@ -455,12 +465,20 @@ export class MasChat extends LitElement {
         }
 
         const title = this.extractTitle(cardConfig);
+        const uniqueName = this.generateUniqueFragmentName(title);
         const fragmentData = createFragmentDataForAEM(cardConfig, cardConfig.variant, {
             title,
+            name: uniqueName,
             parentPath: `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`,
         });
 
         const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
+
+        const AemFragmentElement = customElements.get('aem-fragment');
+        if (AemFragmentElement && newFragment) {
+            AemFragmentElement.cache.add(newFragment);
+        }
+
         return newFragment;
     }
 
@@ -471,7 +489,8 @@ export class MasChat extends LitElement {
                 throw new Error('Repository not found');
             }
 
-            const fragment = await repository.aem.sites.cf.fragments.getById(fragmentId);
+            const fragmentData = await repository.aem.sites.cf.fragments.getById(fragmentId);
+            const fragment = new Fragment(fragmentData);
             const fragmentStore = new FragmentStore(fragment);
             editFragment(fragmentStore);
             showToast('Draft card opened in editor');
@@ -732,18 +751,39 @@ export class MasChat extends LitElement {
         showToast('Card opened in editor');
     }
 
-    scrollToBottom() {
+    scrollToBottom(smooth = false) {
         const messagesContainer = this.querySelector('.chat-messages');
         if (messagesContainer) {
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            const scrollOptions = smooth ? { behavior: 'smooth' } : {};
+
+            messagesContainer.scrollTo({
+                top: messagesContainer.scrollHeight,
+                ...scrollOptions,
+            });
+
+            requestAnimationFrame(() => {
+                messagesContainer.scrollTo({
+                    top: messagesContainer.scrollHeight,
+                    ...scrollOptions,
+                });
+            });
+
+            setTimeout(() => {
+                messagesContainer.scrollTo({
+                    top: messagesContainer.scrollHeight,
+                    ...scrollOptions,
+                });
+            }, 300);
         }
     }
 
     updated(changedProperties) {
         super.updated(changedProperties);
-        if (changedProperties.has('messages')) {
-            setTimeout(() => this.scrollToBottom(), 100);
-            this.saveCurrentSession();
+        if (changedProperties.has('messages') || changedProperties.has('isLoading')) {
+            this.scrollToBottom();
+            if (changedProperties.has('messages')) {
+                this.saveCurrentSession();
+            }
         }
     }
 

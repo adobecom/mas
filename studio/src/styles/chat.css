@@ -3,7 +3,7 @@
  */
 
 .chat-page-container {
-    height: 93vh;
+    height: 90vh;
     border-radius: 8px;
     padding-inline: 24px;
     background-color: var(--spectrum-white);
@@ -195,7 +195,7 @@
 /* Container */
 .chat-container {
     display: grid;
-    grid-template-columns: 1fr 350px;
+    grid-template-columns: 1fr;
     gap: var(--spectrum-global-dimension-size-250);
     flex: 1;
     overflow: hidden;
@@ -611,7 +611,6 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 350px;
     border: 1px solid var(--spectrum-global-color-gray-200);
 }
 
@@ -624,15 +623,15 @@
     background: white;
 }
 
-.card-visual-preview merch-card[variant="fries"] {
+.card-visual-preview merch-card[variant='fries'] {
     max-width: 500px;
 }
 
-.card-visual-preview merch-card[variant="mini"] {
+.card-visual-preview merch-card[variant='mini'] {
     max-width: 300px;
 }
 
-.card-visual-preview merch-card[variant="plans"][size="super-wide"] {
+.card-visual-preview merch-card[variant='plans'][size='super-wide'] {
     max-width: 500px;
 }
 

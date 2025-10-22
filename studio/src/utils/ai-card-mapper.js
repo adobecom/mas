@@ -10,6 +10,32 @@ import { TAG_MODEL_ID_MAPPING, CARD_MODEL_PATH } from '../constants.js';
 import { getFragmentMapping } from '../utils.js';
 
 /**
+ * Maps variant field names to AEM field names
+ * This is needed because variant mappings use generic names (title, description)
+ * but AEM model expects specific names (cardTitle, etc.)
+ */
+const VARIANT_TO_AEM_FIELD_MAPPING = {
+    title: 'cardTitle',
+};
+
+/**
+ * Determines the AEM field type based on variant mapping
+ * @param {string} fieldName - AEM field name
+ * @param {Object} mappingConfig - Field mapping configuration
+ * @returns {string} - 'long-text' for HTML fields, 'text' for plain text
+ */
+function getFieldType(fieldName, mappingConfig) {
+    if (fieldName === 'cardTitle') {
+        return 'text';
+    }
+
+    if (mappingConfig?.tag || mappingConfig?.slot) {
+        return 'long-text';
+    }
+    return 'text';
+}
+
+/**
  * Maps AI-generated config to AEM Fragment fields
  * @param {Object} aiConfig - AI-generated card configuration
  * @param {string} variant - Card variant
@@ -25,7 +51,7 @@ export function mapAIConfigToFragmentFields(aiConfig, variant) {
     const fields = [];
 
     // Map variant
-    fields.push({ name: 'variant', values: [variant] });
+    fields.push({ name: 'variant', type: 'text', values: [variant] });
 
     // Map each field based on AI config and Milo mapping
     for (const [fieldName, value] of Object.entries(aiConfig)) {
@@ -40,10 +66,12 @@ export function mapAIConfigToFragmentFields(aiConfig, variant) {
         } else if (fieldName === 'badge' && typeof value === 'object') {
             fields.push(...mapBadge(value, mappingConfig));
         } else if (fieldName === 'osi') {
-            fields.push({ name: 'osi', values: [value] });
+            fields.push({ name: 'osi', type: 'text', values: [value] });
         } else if (mappingConfig) {
-            // Standard field mapping
-            fields.push({ name: fieldName, values: [value] });
+            // Translate variant field name to AEM field name
+            const aemFieldName = VARIANT_TO_AEM_FIELD_MAPPING[fieldName] || fieldName;
+            const fieldType = getFieldType(aemFieldName, mappingConfig);
+            fields.push({ name: aemFieldName, type: fieldType, values: [value] });
         }
     }
 
@@ -59,11 +87,9 @@ function mapMnemonics(mnemonics, config) {
     }
 
     return [
-        { name: 'mnemonicIcon', values: mnemonics.map((m) => m.icon || '') },
-        { name: 'mnemonicAlt', values: mnemonics.map((m) => m.alt || '') },
-        { name: 'mnemonicLink', values: mnemonics.map((m) => m.link || '') },
-        { name: 'mnemonicTooltipText', values: mnemonics.map((m) => m.mnemonicText || '') },
-        { name: 'mnemonicTooltipPlacement', values: mnemonics.map((m) => m.mnemonicPlacement || 'top') },
+        { name: 'mnemonicIcon', type: 'text', multiple: true, values: mnemonics.map((m) => m.icon || '') },
+        { name: 'mnemonicAlt', type: 'text', multiple: true, values: mnemonics.map((m) => m.alt || '') },
+        { name: 'mnemonicLink', type: 'text', multiple: true, values: mnemonics.map((m) => m.link || '') },
     ];
 }
 
@@ -84,7 +110,7 @@ function mapBadge(badge, config) {
 
     badgeHTML += `>${badge.text}</merch-badge>`;
 
-    return [{ name: 'badge', values: [badgeHTML] }];
+    return [{ name: 'badge', type: 'long-text', values: [badgeHTML] }];
 }
 
 /**

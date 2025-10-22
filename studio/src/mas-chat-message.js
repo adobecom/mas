@@ -312,6 +312,7 @@ export class MasChatMessage extends LitElement {
             operation,
             operationResult,
             operationType,
+            fragmentId,
         } = this.message;
 
         const messageClass = `chat-message chat-message-${role}`;
@@ -403,8 +404,8 @@ export class MasChatMessage extends LitElement {
                         ${this.showSuggestions ? html`<mas-prompt-suggestions></mas-prompt-suggestions>` : ''}
                     </div>
 
-                    ${cardConfig ? this.renderCardPreview() : ''} ${collectionConfig ? this.renderCollectionPreview() : ''}
-                    ${operation ? this.renderOperationRequest() : ''}
+                    ${cardConfig || fragmentId ? this.renderCardPreview() : ''}
+                    ${collectionConfig ? this.renderCollectionPreview() : ''} ${operation ? this.renderOperationRequest() : ''}
                     ${operationResult
                         ? html`<mas-operation-result
                               .result=${operationResult}

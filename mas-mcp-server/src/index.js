@@ -16,13 +16,14 @@ import { OfferTools } from './tools/offer-tools.js';
 import { OfferSelectorTools } from './tools/offer-selector-tools.js';
 import { PricingTools } from './tools/pricing-tools.js';
 import { CardOfferTools } from './tools/card-offer-tools.js';
+import { StudioOperations } from './tools/studio-operations.js';
 import { SURFACES } from './config/constants.js';
 
 /**
  * MAS MCP Server
  * Model Context Protocol server for Merch at Scale operations
  */
-class MASMCPServer {
+export class MASMCPServer {
     constructor(config) {
         this.server = new Server(
             {
@@ -61,6 +62,7 @@ class MASMCPServer {
         this.offerSelectorTools = new OfferSelectorTools(this.aosClient, this.urlBuilder);
         this.pricingTools = new PricingTools(this.aosClient);
         this.cardOfferTools = new CardOfferTools(this.aemClient, this.aosClient, this.urlBuilder);
+        this.studioOperations = new StudioOperations(this.aemClient, this.urlBuilder);
 
         this.setupHandlers();
     }
@@ -372,6 +374,99 @@ class MASMCPServer {
                     required: ['cardId'],
                 },
             },
+            {
+                name: 'studio_publish_card',
+                description: 'Publish a card to production (Studio operation)',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', description: 'Card ID to publish' },
+                        publishReferences: {
+                            type: 'boolean',
+                            description: 'Whether to publish referenced fragments (default: true)',
+                        },
+                    },
+                    required: ['id'],
+                },
+            },
+            {
+                name: 'studio_unpublish_card',
+                description: 'Unpublish a card from production (Studio operation)',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', description: 'Card ID to unpublish' },
+                    },
+                    required: ['id'],
+                },
+            },
+            {
+                name: 'studio_get_card',
+                description: 'Get card details by ID (Studio operation)',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', description: 'Card ID' },
+                    },
+                    required: ['id'],
+                },
+            },
+            {
+                name: 'studio_search_cards',
+                description: 'Search for cards with filters (Studio operation)',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        surface: {
+                            type: 'string',
+                            description: 'Surface to search in (commerce, acom, ccd, adobe-home)',
+                            enum: ['commerce', 'acom', 'ccd', 'adobe-home'],
+                        },
+                        query: { type: 'string', description: 'Search query' },
+                        tags: { type: 'array', items: { type: 'string' }, description: 'Tag filters' },
+                        limit: { type: 'number', description: 'Max results (default: 10)' },
+                    },
+                    required: ['surface'],
+                },
+            },
+            {
+                name: 'studio_delete_card',
+                description: 'Delete a card (Studio operation, requires confirmation)',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', description: 'Card ID to delete' },
+                    },
+                    required: ['id'],
+                },
+            },
+            {
+                name: 'studio_copy_card',
+                description: 'Copy/duplicate a card (Studio operation)',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', description: 'Card ID to copy' },
+                        parentPath: { type: 'string', description: 'Parent path for the copy (optional)' },
+                        newTitle: { type: 'string', description: 'Title for the copied card (optional)' },
+                    },
+                    required: ['id'],
+                },
+            },
+            {
+                name: 'studio_update_card',
+                description: 'Update card fields (Studio operation)',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', description: 'Card ID to update' },
+                        fields: { type: 'object', description: 'Fields to update' },
+                        title: { type: 'string', description: 'New title (optional)' },
+                        tags: { type: 'array', items: { type: 'string' }, description: 'New tags (optional)' },
+                    },
+                    required: ['id'],
+                },
+            },
         ];
     }
 
@@ -419,6 +514,21 @@ class MASMCPServer {
                 return this.cardOfferTools.linkCardToOffer(args);
             case 'validate_card_offer':
                 return this.cardOfferTools.validateCardOfferConsistency(args);
+
+            case 'studio_publish_card':
+                return this.studioOperations.publishCard(args);
+            case 'studio_unpublish_card':
+                return this.studioOperations.unpublishCard(args);
+            case 'studio_get_card':
+                return this.studioOperations.getCard(args);
+            case 'studio_search_cards':
+                return this.studioOperations.searchCards(args);
+            case 'studio_delete_card':
+                return this.studioOperations.deleteCard(args);
+            case 'studio_copy_card':
+                return this.studioOperations.copyCard(args);
+            case 'studio_update_card':
+                return this.studioOperations.updateCard(args);
 
             default:
                 throw new Error(`Unknown tool: ${name}`);

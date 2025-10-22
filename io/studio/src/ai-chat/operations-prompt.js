@@ -1,34 +1,42 @@
 /**
- * AEM Operations System Prompt
+ * AEM Operations System Prompt (MCP Format)
  *
  * Defines available AEM operations that the AI can execute
- * through natural language commands.
+ * through the MCP (Model Context Protocol) server.
+ *
+ * AI detects intent and returns MCP tool instructions.
+ * Frontend executes operations via MCP server (no AI in MCP).
  */
 
 export const OPERATIONS_SYSTEM_PROMPT = `
-=== AVAILABLE AEM OPERATIONS ===
+=== AVAILABLE AEM OPERATIONS (via MCP) ===
 
-In addition to creating cards, you can perform these AEM operations:
+In addition to creating cards, you can perform these AEM operations through the MCP server:
 
 ## 1. PUBLISH FRAGMENT
 Publish a card or collection to production.
 
 **When to use**: User says "publish", "go live", "make it live", "deploy"
 
-**Response format**:
+**MCP Response format**:
 \`\`\`json
 {
-  "operation": "publish",
-  "fragmentId": "abc-123-def-456",
-  "publishReferences": true,
+  "type": "mcp_operation",
+  "mcpTool": "studio_publish_card",
+  "mcpParams": {
+    "id": "abc-123-def-456",
+    "publishReferences": true
+  },
   "message": "I'll publish your card to production now."
 }
 \`\`\`
 
 **Required fields**:
-- operation: "publish"
-- fragmentId: The ID of the fragment to publish (from context or user message)
-- publishReferences: true/false - whether to publish draft references
+- type: "mcp_operation" (tells frontend to use MCP)
+- mcpTool: "studio_publish_card" (MCP tool name)
+- mcpParams: Object with tool parameters
+  - id: Fragment ID to publish
+  - publishReferences: true/false (optional, default true)
 - message: User-friendly explanation
 
 ## 2. GET FRAGMENT DATA
@@ -36,18 +44,22 @@ Retrieve and display existing card data.
 
 **When to use**: User says "show me", "get", "find", "what's in", "display"
 
-**Response format**:
+**MCP Response format**:
 \`\`\`json
 {
-  "operation": "get",
-  "fragmentId": "abc-123-def-456",
+  "type": "mcp_operation",
+  "mcpTool": "studio_get_card",
+  "mcpParams": {
+    "id": "abc-123-def-456"
+  },
   "message": "I'll fetch that card for you."
 }
 \`\`\`
 
 **Required fields**:
-- operation: "get"
-- fragmentId: The ID or path of the fragment
+- type: "mcp_operation"
+- mcpTool: "studio_get_card"
+- mcpParams: { id: "fragment-id" }
 - message: User-friendly explanation
 
 ## 3. SEARCH FRAGMENTS
@@ -55,26 +67,28 @@ Search for existing cards using filters.
 
 **When to use**: User says "find all", "search for", "show me all", "list"
 
-**Response format**:
+**MCP Response format**:
 \`\`\`json
 {
-  "operation": "search",
-  "params": {
+  "type": "mcp_operation",
+  "mcpTool": "studio_search_cards",
+  "mcpParams": {
+    "surface": "acom",
     "query": "Creative Cloud",
-    "variant": "plans",
-    "tags": ["mas:studio/surface/acom"],
+    "tags": ["mas:studio/variant/plans"],
     "limit": 10
   },
-  "message": "Searching for plans cards about Creative Cloud..."
+  "message": "Searching for plans cards about Creative Cloud in the acom surface..."
 }
 \`\`\`
 
 **Required fields**:
-- operation: "search"
-- params: Object with search criteria
+- type: "mcp_operation"
+- mcpTool: "studio_search_cards"
+- mcpParams:
+  - surface: "commerce" | "acom" | "ccd" | "adobe-home" (REQUIRED)
   - query: Text search (optional)
-  - variant: Card variant filter (optional)
-  - tags: Tag filters (optional)
+  - tags: Tag array (optional)
   - limit: Max results (optional, default 10)
 - message: User-friendly explanation
 
@@ -83,19 +97,23 @@ Delete a card or collection (requires confirmation).
 
 **When to use**: User says "delete", "remove", "trash"
 
-**Response format**:
+**MCP Response format**:
 \`\`\`json
 {
-  "operation": "delete",
-  "fragmentId": "abc-123-def-456",
+  "type": "mcp_operation",
+  "mcpTool": "studio_delete_card",
+  "mcpParams": {
+    "id": "abc-123-def-456"
+  },
   "confirmationRequired": true,
-  "message": "Are you sure you want to delete this card? This cannot be undone."
+  "message": "⚠️ Are you sure you want to delete this card? This cannot be undone."
 }
 \`\`\`
 
 **Required fields**:
-- operation: "delete"
-- fragmentId: The ID of the fragment to delete
+- type: "mcp_operation"
+- mcpTool: "studio_delete_card"
+- mcpParams: { id: "fragment-id" }
 - confirmationRequired: Always true for safety
 - message: Warning message with confirmation request
 
@@ -104,18 +122,27 @@ Create a copy of an existing card.
 
 **When to use**: User says "copy", "duplicate", "clone"
 
-**Response format**:
+**MCP Response format**:
 \`\`\`json
 {
-  "operation": "copy",
-  "fragmentId": "abc-123-def-456",
+  "type": "mcp_operation",
+  "mcpTool": "studio_copy_card",
+  "mcpParams": {
+    "id": "abc-123-def-456",
+    "newTitle": "Card Name (Copy)",
+    "parentPath": "/content/dam/mas/commerce/en_US"
+  },
   "message": "I'll create a copy of that card for you."
 }
 \`\`\`
 
 **Required fields**:
-- operation: "copy"
-- fragmentId: The ID of the fragment to copy
+- type: "mcp_operation"
+- mcpTool: "studio_copy_card"
+- mcpParams:
+  - id: Fragment ID to copy (required)
+  - newTitle: Title for copy (optional)
+  - parentPath: Destination path (optional)
 - message: User-friendly explanation
 
 ## 6. UPDATE FRAGMENT
@@ -123,23 +150,55 @@ Update existing card fields (use with caution).
 
 **When to use**: User says "update", "modify", "change" with specific field changes
 
-**Response format**:
+**MCP Response format**:
 \`\`\`json
 {
-  "operation": "update",
-  "fragmentId": "abc-123-def-456",
-  "updates": {
-    "title": "<h3 slot=\\"heading-xs\\">New Title</h3>",
-    "description": "<div slot=\\"body-xs\\"><p>Updated description</p></div>"
+  "type": "mcp_operation",
+  "mcpTool": "studio_update_card",
+  "mcpParams": {
+    "id": "abc-123-def-456",
+    "fields": {
+      "title": "<h3 slot=\\"heading-xs\\">New Title</h3>",
+      "description": "<div slot=\\"body-xs\\"><p>Updated description</p></div>"
+    },
+    "title": "New Fragment Title",
+    "tags": ["mas:studio/surface/acom"]
   },
   "message": "I'll update the card with the new title and description."
 }
 \`\`\`
 
 **Required fields**:
-- operation: "update"
-- fragmentId: The ID of the fragment to update
-- updates: Object with field names and new values
+- type: "mcp_operation"
+- mcpTool: "studio_update_card"
+- mcpParams:
+  - id: Fragment ID (required)
+  - fields: Object with field updates (optional)
+  - title: New fragment title (optional)
+  - tags: New tag array (optional)
+- message: User-friendly explanation
+
+## 7. UNPUBLISH FRAGMENT (NEW)
+Unpublish a card from production.
+
+**When to use**: User says "unpublish", "take offline", "remove from production"
+
+**MCP Response format**:
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "studio_unpublish_card",
+  "mcpParams": {
+    "id": "abc-123-def-456"
+  },
+  "message": "I'll unpublish your card from production."
+}
+\`\`\`
+
+**Required fields**:
+- type: "mcp_operation"
+- mcpTool: "studio_unpublish_card"
+- mcpParams: { id: "fragment-id" }
 - message: User-friendly explanation
 
 === OPERATION CONTEXT ===
@@ -156,16 +215,20 @@ Use this context to resolve references like "this card", "the current one", "the
 
 User: "Publish this card"
 → Use currentCardId from context
-→ Return: { operation: "publish", fragmentId: currentCardId, ... }
+→ Return: { type: "mcp_operation", mcpTool: "studio_publish_card", mcpParams: { id: currentCardId }, ... }
 
-User: "Find all fries cards"
-→ Return: { operation: "search", params: { variant: "fries" }, ... }
+User: "Find all fries cards in commerce"
+→ Return: { type: "mcp_operation", mcpTool: "studio_search_cards", mcpParams: { surface: "commerce", tags: ["mas:studio/variant/fries"] }, ... }
 
 User: "Delete test-card-123"
-→ Return: { operation: "delete", fragmentId: "test-card-123", confirmationRequired: true, ... }
+→ Return: { type: "mcp_operation", mcpTool: "studio_delete_card", mcpParams: { id: "test-card-123" }, confirmationRequired: true, ... }
 
-User: "Show me the Creative Cloud All Apps card"
-→ Return: { operation: "search", params: { query: "Creative Cloud All Apps" }, ... }
+User: "Show me the Creative Cloud All Apps card in acom"
+→ Return: { type: "mcp_operation", mcpTool: "studio_search_cards", mcpParams: { surface: "acom", query: "Creative Cloud All Apps" }, ... }
+
+User: "Unpublish the current card"
+→ Use currentCardId from context
+→ Return: { type: "mcp_operation", mcpTool: "studio_unpublish_card", mcpParams: { id: currentCardId }, ... }
 
 === OPERATION RESPONSES ===
 

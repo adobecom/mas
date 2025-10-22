@@ -2,7 +2,7 @@
  * AI Chat Action for MAS Studio
  *
  * Adobe I/O Runtime action that handles AI-powered card creation conversations.
- * Uses Anthropic Direct API to generate merch card configurations.
+ * Uses AWS Bedrock with Claude Sonnet 4 to generate merch card configurations.
  *
  * Expected parameters:
  * - message: User's message
@@ -11,7 +11,7 @@
  */
 
 import { Ims } from '@adobe/aio-lib-ims';
-import { AnthropicClient } from './anthropic-client.js';
+import { BedrockClient } from './bedrock-client.js';
 import { CARD_CREATION_SYSTEM_PROMPT, COLLECTION_CREATION_SYSTEM_PROMPT } from './prompt-templates.js';
 import { OPERATIONS_SYSTEM_PROMPT } from './operations-prompt.js';
 import { buildDocumentationPrompt } from './docs/documentation-prompt.js';
@@ -19,6 +19,7 @@ import { parseAIResponse, validateCardConfig, validateCollectionConfig } from '.
 import { handleOperation } from './operations-handler.js';
 import { validateAIConfig } from './validation.js';
 import { getVariantConfig } from './variant-configs.js';
+import { getVariantsForSurface } from './variant-knowledge-builder.js';
 
 /**
  * Get CORS headers for development
@@ -26,6 +27,53 @@ import { getVariantConfig } from './variant-configs.js';
  */
 function getCorsHeaders() {
     return {};
+}
+
+/**
+ * Extract surface from AEM path
+ * @param {string} path - AEM content path (e.g., /content/dam/mas/commerce/...)
+ * @returns {string|null} - Surface name (acom, ccd, commerce, adobe-home) or null
+ */
+function extractSurfaceFromPath(path) {
+    if (!path || typeof path !== 'string') return null;
+
+    const pathParts = path.split('/');
+    const surfaceIndex = pathParts.indexOf('mas') + 1;
+
+    if (surfaceIndex === 0 || surfaceIndex >= pathParts.length) return null;
+
+    const pathSegment = pathParts[surfaceIndex];
+
+    const surfaceMap = {
+        acom: 'acom',
+        ccd: 'ccd',
+        commerce: 'commerce',
+        ahome: 'adobe-home',
+    };
+
+    return surfaceMap[pathSegment] || null;
+}
+
+/**
+ * Enrich context with surface-specific information
+ * @param {Object} context - Original context from frontend
+ * @returns {Object} - Enriched context
+ */
+function enrichContextWithSurface(context) {
+    if (!context) return null;
+
+    const enrichedContext = { ...context };
+
+    if (context.currentPath) {
+        const surface = extractSurfaceFromPath(context.currentPath);
+
+        if (surface) {
+            enrichedContext.surface = surface;
+            enrichedContext.suggestedVariants = getVariantsForSurface(surface);
+        }
+    }
+
+    return enrichedContext;
 }
 
 /**
@@ -90,12 +138,20 @@ async function main(params) {
     }
 
     try {
-        const { ANTHROPIC_API_KEY, ANTHROPIC_MODEL } = params;
-        const anthropicClient = new AnthropicClient(ANTHROPIC_API_KEY, ANTHROPIC_MODEL);
+        const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, BEDROCK_MODEL_ID } = params;
+
+        const bedrockClient = new BedrockClient({
+            accessKeyId: AWS_ACCESS_KEY_ID,
+            secretAccessKey: AWS_SECRET_ACCESS_KEY,
+            region: AWS_REGION,
+            modelId: BEDROCK_MODEL_ID,
+        });
 
         const systemPrompt = determineSystemPrompt(intentHint, conversationHistory, message);
 
-        const response = await anthropicClient.sendWithContext(conversationHistory, message, systemPrompt, context);
+        const enrichedContext = enrichContextWithSurface(context);
+
+        const response = await bedrockClient.sendWithContext(conversationHistory, message, systemPrompt, enrichedContext);
 
         if (!response.success) {
             return {
@@ -114,6 +170,28 @@ async function main(params) {
         const operationResult = handleOperation(response.message);
 
         if (operationResult) {
+            if (operationResult.type === 'mcp_operation') {
+                return {
+                    statusCode: 200,
+                    headers: {
+                        ...getCorsHeaders(),
+                    },
+                    body: {
+                        type: 'mcp_operation',
+                        mcpTool: operationResult.mcpTool,
+                        mcpParams: operationResult.mcpParams,
+                        message: operationResult.message,
+                        confirmationRequired: operationResult.confirmationRequired,
+                        usage: response.usage,
+                        conversationHistory: [
+                            ...conversationHistory,
+                            { role: 'user', content: message },
+                            { role: 'assistant', content: response.message },
+                        ],
+                    },
+                };
+            }
+
             return {
                 statusCode: 200,
                 headers: {

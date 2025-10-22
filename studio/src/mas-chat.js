@@ -2,10 +2,10 @@ import { LitElement, html, css } from 'lit';
 import StoreController from './reactivity/store-controller.js';
 import './mas-chat-message.js';
 import './mas-chat-input.js';
-import './mas-chat-preview.js';
 import './mas-prompt-suggestions.js';
 import './mas-card-selection-dialog.js';
 import './mas-operation-result.js';
+import './mas-chat-session-selector.js';
 import Store, { editFragment } from './store.js';
 import { createFragmentFromAIConfig, createFragmentDataForAEM } from './utils/ai-card-mapper.js';
 import { executeOperationWithFeedback } from './utils/ai-operations-executor.js';
@@ -13,6 +13,7 @@ import { FragmentStore } from './reactivity/fragment-store.js';
 import { showToast } from './utils.js';
 import { AI_CHAT_BASE_URL, TAG_MODEL_ID_MAPPING } from './constants.js';
 import { getDamPath } from './mas-repository.js';
+import sessionManager from './services/chat-session-manager.js';
 
 /**
  * Main AI Chat Component
@@ -22,19 +23,19 @@ export class MasChat extends LitElement {
     static properties = {
         messages: { type: Array },
         isLoading: { type: Boolean },
-        currentCardConfig: { type: Object },
         error: { type: String },
         showPromptSuggestions: { type: Boolean },
+        currentSessionId: { type: String },
     };
 
     constructor() {
         super();
         this.messages = [];
         this.isLoading = false;
-        this.currentCardConfig = null;
         this.error = null;
         this.conversationHistory = [];
         this.showPromptSuggestions = true;
+        this.currentSessionId = null;
     }
 
     createRenderRoot() {
@@ -43,23 +44,97 @@ export class MasChat extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.addWelcomeMessage();
+        this.loadActiveSession();
         this.addEventListener('cards-selected', this.handleCardsSelected);
         this.addEventListener('create-collection-from-preview', this.handleCreateCollectionFromPreview);
         this.addEventListener('prompt-selected', this.handlePromptSelected);
         this.addEventListener('direct-action', this.handleDirectAction);
         this.addEventListener('operation-action', this.handleOperationAction);
         this.addEventListener('open-card', this.handleOpenCardFromOperation);
+        this.addEventListener('session-changed', this.handleSessionChanged);
+        this.addEventListener('session-cleared', this.handleSessionCleared);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        this.saveCurrentSession();
         this.removeEventListener('cards-selected', this.handleCardsSelected);
         this.removeEventListener('create-collection-from-preview', this.handleCreateCollectionFromPreview);
         this.removeEventListener('prompt-selected', this.handlePromptSelected);
         this.removeEventListener('direct-action', this.handleDirectAction);
         this.removeEventListener('operation-action', this.handleOperationAction);
         this.removeEventListener('open-card', this.handleOpenCardFromOperation);
+        this.removeEventListener('session-changed', this.handleSessionChanged);
+        this.removeEventListener('session-cleared', this.handleSessionCleared);
+    }
+
+    loadActiveSession() {
+        const session = sessionManager.getActiveSession();
+        this.currentSessionId = session.id;
+
+        if (session.messages && session.messages.length > 0) {
+            this.messages = session.messages;
+            this.conversationHistory = session.conversationHistory || [];
+            this.showPromptSuggestions = false;
+        } else {
+            this.addWelcomeMessage();
+        }
+    }
+
+    saveCurrentSession() {
+        if (!this.currentSessionId) return;
+
+        const session = sessionManager.getSession(this.currentSessionId);
+        if (!session) return;
+
+        if (this.messages.length > 0 && !session.name.startsWith('Chat ')) {
+            const firstUserMessage = this.messages.find((m) => m.role === 'user');
+            if (firstUserMessage) {
+                const generatedName = sessionManager.generateSessionName(firstUserMessage.content);
+                sessionManager.renameSession(this.currentSessionId, generatedName);
+            }
+        }
+
+        sessionManager.updateSessionDebounced(this.currentSessionId, {
+            messages: this.messages,
+            conversationHistory: this.conversationHistory,
+        });
+    }
+
+    handleSessionChanged(event) {
+        this.saveCurrentSession();
+
+        const { sessionId } = event.detail;
+        const session = sessionManager.getSession(sessionId);
+
+        if (!session) {
+            this.addWelcomeMessage();
+            return;
+        }
+
+        this.currentSessionId = sessionId;
+        this.messages = session.messages || [];
+        this.conversationHistory = session.conversationHistory || [];
+        this.showPromptSuggestions = this.messages.length === 0 || this.messages.every((m) => m.role === 'assistant');
+
+        if (this.messages.length === 0) {
+            this.addWelcomeMessage();
+        }
+
+        const selector = this.querySelector('mas-chat-session-selector');
+        if (selector) {
+            selector.loadSessions();
+        }
+    }
+
+    handleSessionCleared(event) {
+        const { sessionId } = event.detail;
+        if (sessionId === this.currentSessionId) {
+            this.messages = [];
+            this.conversationHistory = [];
+            this.showPromptSuggestions = true;
+            this.addWelcomeMessage();
+        }
     }
 
     addWelcomeMessage() {
@@ -72,6 +147,7 @@ export class MasChat extends LitElement {
                 showSuggestions: true,
             },
         ];
+        this.saveCurrentSession();
     }
 
     handlePromptSelected(event) {
@@ -138,7 +214,6 @@ export class MasChat extends LitElement {
         try {
             const enrichedContext = {
                 ...context,
-                currentCardId: this.currentCardConfig?.id,
                 currentPath: Store.search.value.path,
             };
 
@@ -148,31 +223,72 @@ export class MasChat extends LitElement {
                 context: enrichedContext,
             });
 
-            if (response.type === 'operation') {
-                this.messages = [
-                    ...this.messages,
-                    {
-                        role: 'assistant',
-                        content: response.message,
-                        operation: response.data,
-                        operationType: response.operation,
-                        confirmationRequired: response.confirmationRequired,
-                        timestamp: Date.now(),
-                    },
-                ];
-            } else if (response.type === 'card') {
-                this.currentCardConfig = response.cardConfig;
+            if (response.type === 'operation' || response.type === 'mcp_operation') {
+                const messageData = {
+                    role: 'assistant',
+                    content: response.message,
+                    confirmationRequired: response.confirmationRequired,
+                    timestamp: Date.now(),
+                };
 
+                if (response.type === 'mcp_operation') {
+                    messageData.mcpOperation = {
+                        mcpTool: response.mcpTool,
+                        mcpParams: response.mcpParams,
+                    };
+                    messageData.operationType = 'mcp_operation';
+                } else {
+                    messageData.operation = response.data;
+                    messageData.operationType = response.operation;
+                }
+
+                this.messages = [...this.messages, messageData];
+            } else if (response.type === 'card') {
+                const messageIndex = this.messages.length;
                 this.messages = [
                     ...this.messages,
                     {
                         role: 'assistant',
                         content: response.message,
-                        cardConfig: response.cardConfig,
+                        isCreatingDraft: true,
                         validation: response.validation,
                         timestamp: Date.now(),
                     },
                 ];
+
+                try {
+                    const draftFragment = await this.saveDraftToAEM(response.cardConfig);
+
+                    this.messages = [
+                        ...this.messages.slice(0, messageIndex),
+                        {
+                            role: 'assistant',
+                            content: response.message,
+                            fragmentId: draftFragment.id,
+                            fragmentPath: draftFragment.path,
+                            fragmentTitle: draftFragment.title,
+                            fragmentStatus: draftFragment.status,
+                            validation: response.validation,
+                            timestamp: Date.now(),
+                        },
+                        ...this.messages.slice(messageIndex + 1),
+                    ];
+
+                    showToast(`Draft card "${draftFragment.title}" created`, 'positive');
+                } catch (error) {
+                    console.error('Failed to create draft:', error);
+                    showToast(`Failed to create draft: ${error.message}`, 'negative');
+
+                    this.messages = [
+                        ...this.messages.slice(0, messageIndex),
+                        {
+                            role: 'error',
+                            content: `Failed to create draft card: ${error.message}. You can try regenerating the card.`,
+                            timestamp: Date.now(),
+                        },
+                        ...this.messages.slice(messageIndex + 1),
+                    ];
+                }
             } else if (response.type === 'collection') {
                 this.messages = [
                     ...this.messages,
@@ -247,12 +363,20 @@ export class MasChat extends LitElement {
     }
 
     async handleCardAction(event) {
-        const { action, config } = event.detail;
+        const { action, config, fragmentId, fragmentTitle } = event.detail;
 
         if (action === 'edit') {
-            this.openInEditor(config);
+            if (fragmentId) {
+                await this.openDraftInEditor(fragmentId);
+            } else {
+                this.openInEditor(config);
+            }
         } else if (action === 'save') {
             await this.saveToAEM(config);
+        } else if (action === 'publish') {
+            await this.publishDraft(fragmentId);
+        } else if (action === 'delete') {
+            await this.deleteDraft(fragmentId, fragmentTitle);
         } else if (action === 'regenerate') {
             const regenerateMessage = 'Can you regenerate that card?';
             this.handleSendMessage({
@@ -319,6 +443,97 @@ export class MasChat extends LitElement {
                     timestamp: Date.now(),
                 },
             ];
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    async saveDraftToAEM(cardConfig) {
+        const repository = document.querySelector('mas-repository');
+        if (!repository) {
+            throw new Error('Repository not found');
+        }
+
+        const title = this.extractTitle(cardConfig);
+        const fragmentData = createFragmentDataForAEM(cardConfig, cardConfig.variant, {
+            title,
+            parentPath: `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`,
+        });
+
+        const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
+        return newFragment;
+    }
+
+    async openDraftInEditor(fragmentId) {
+        try {
+            const repository = document.querySelector('mas-repository');
+            if (!repository) {
+                throw new Error('Repository not found');
+            }
+
+            const fragment = await repository.aem.sites.cf.fragments.getById(fragmentId);
+            const fragmentStore = new FragmentStore(fragment);
+            editFragment(fragmentStore);
+            showToast('Draft card opened in editor');
+        } catch (error) {
+            console.error('Failed to open draft in editor:', error);
+            showToast(`Failed to open card: ${error.message}`, 'negative');
+        }
+    }
+
+    async publishDraft(fragmentId) {
+        try {
+            this.isLoading = true;
+            const repository = document.querySelector('mas-repository');
+            if (!repository) {
+                throw new Error('Repository not found');
+            }
+
+            const fragment = await repository.aem.sites.cf.fragments.getById(fragmentId);
+            await repository.aem.sites.cf.fragments.publishFragment(fragment);
+
+            showToast(`Card "${fragment.title}" published successfully!`, 'positive');
+
+            this.messages = [
+                ...this.messages,
+                {
+                    role: 'assistant',
+                    content: `✓ Card "${fragment.title}" has been published to production.`,
+                    timestamp: Date.now(),
+                },
+            ];
+        } catch (error) {
+            console.error('Failed to publish draft:', error);
+            showToast(`Failed to publish: ${error.message}`, 'negative');
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    async deleteDraft(fragmentId, fragmentTitle) {
+        try {
+            this.isLoading = true;
+            const repository = document.querySelector('mas-repository');
+            if (!repository) {
+                throw new Error('Repository not found');
+            }
+
+            const fragment = await repository.aem.sites.cf.fragments.getById(fragmentId);
+            await repository.aem.sites.cf.fragments.delete(fragment);
+
+            showToast(`Draft "${fragmentTitle}" deleted successfully!`, 'positive');
+
+            this.messages = [
+                ...this.messages,
+                {
+                    role: 'assistant',
+                    content: `✓ Draft card "${fragmentTitle}" has been deleted.`,
+                    timestamp: Date.now(),
+                },
+            ];
+        } catch (error) {
+            console.error('Failed to delete draft:', error);
+            showToast(`Failed to delete: ${error.message}`, 'negative');
         } finally {
             this.isLoading = false;
         }
@@ -423,7 +638,7 @@ export class MasChat extends LitElement {
                 ],
             };
 
-            const newCollection = await repository.aem.sites.cf.fragments.create(collectionData);
+            await repository.aem.sites.cf.fragments.create(collectionData);
 
             this.messages = [
                 ...this.messages,
@@ -478,7 +693,9 @@ export class MasChat extends LitElement {
             return;
         }
 
-        const result = await executeOperationWithFeedback(
+        const operationType = operation.type === 'mcp_operation' ? operation.mcpTool : operation.operation;
+
+        await executeOperationWithFeedback(
             operation,
             repository,
             (res) => {
@@ -488,7 +705,7 @@ export class MasChat extends LitElement {
                         role: 'assistant',
                         content: res.message,
                         operationResult: res,
-                        operationType: operation.operation,
+                        operationType,
                         timestamp: Date.now(),
                     },
                 ];
@@ -526,6 +743,7 @@ export class MasChat extends LitElement {
         super.updated(changedProperties);
         if (changedProperties.has('messages')) {
             setTimeout(() => this.scrollToBottom(), 100);
+            this.saveCurrentSession();
         }
     }
 
@@ -539,6 +757,9 @@ export class MasChat extends LitElement {
                             <h2>Merch at Scale AI Creator</h2>
                             <p>Create merch cards with natural language</p>
                         </div>
+                    </div>
+                    <div class="chat-header-actions">
+                        <mas-chat-session-selector></mas-chat-session-selector>
                     </div>
                 </div>
 
@@ -573,10 +794,6 @@ export class MasChat extends LitElement {
                                   ></mas-chat-message>
                               `
                             : ''}
-                    </div>
-
-                    <div class="chat-preview">
-                        <mas-chat-preview .cardConfig=${this.currentCardConfig}></mas-chat-preview>
                     </div>
                 </div>
 

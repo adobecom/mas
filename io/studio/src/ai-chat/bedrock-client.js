@@ -2,20 +2,48 @@
  * AWS Bedrock Client
  *
  * Handles communication with AWS Bedrock for Claude Sonnet 4 API calls.
+ * Uses permanent IAM user credentials (no session token required).
+ *
+ * Constructor accepts credentials object with the following properties:
+ * - accessKeyId: IAM user access key (starts with AKIA)
+ * - secretAccessKey: IAM user secret key
+ * - region: AWS region (default: us-west-2)
+ * - modelId: Bedrock model ID (default: anthropic.claude-sonnet-4-20250514-v1:0)
+ *
+ * Falls back to process.env if credentials not provided (for local development).
  */
 
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 
 export class BedrockClient {
-    constructor() {
+    constructor(credentials = {}) {
+        const accessKeyId = credentials.accessKeyId || process.env.AWS_ACCESS_KEY_ID;
+        const secretAccessKey = credentials.secretAccessKey || process.env.AWS_SECRET_ACCESS_KEY;
+        const region = credentials.region || process.env.AWS_REGION || 'us-west-2';
+        const modelId = credentials.modelId || process.env.BEDROCK_MODEL_ID || 'us.anthropic.claude-sonnet-4-20250514-v1:0';
+
+        console.log('BedrockClient initialization:', {
+            hasAccessKeyId: !!accessKeyId,
+            accessKeyIdPrefix: accessKeyId ? accessKeyId.substring(0, 4) : 'undefined',
+            hasSecretAccessKey: !!secretAccessKey,
+            region,
+            modelId,
+        });
+
+        if (!accessKeyId || !secretAccessKey) {
+            const errorMsg = `AWS credentials missing: accessKeyId=${!!accessKeyId}, secretAccessKey=${!!secretAccessKey}`;
+            console.error(errorMsg);
+            throw new Error(errorMsg);
+        }
+
         this.client = new BedrockRuntimeClient({
-            region: process.env.AWS_REGION || 'us-east-1',
+            region,
             credentials: {
-                accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-                secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+                accessKeyId,
+                secretAccessKey,
             },
         });
-        this.modelId = process.env.BEDROCK_MODEL_ID || 'anthropic.claude-sonnet-4-20250514-v1:0';
+        this.modelId = modelId;
     }
 
     /**

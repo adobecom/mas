@@ -4,6 +4,7 @@ import './mas-card-selection-dialog.js';
 import './mas-collection-preview.js';
 import './mas-prompt-suggestions.js';
 import './mas-operation-result.js';
+import { parseMarkdown } from './utils/markdown-parser.js';
 
 /**
  * Chat Message Component
@@ -34,6 +35,8 @@ export class MasChatMessage extends LitElement {
                 detail: {
                     action,
                     config: this.message.cardConfig,
+                    fragmentId: this.message.fragmentId,
+                    fragmentTitle: this.message.fragmentTitle,
                 },
                 bubbles: true,
                 composed: true,
@@ -42,12 +45,29 @@ export class MasChatMessage extends LitElement {
     }
 
     renderCardPreview() {
-        const { cardConfig, validation } = this.message;
+        const { fragmentId, fragmentPath, fragmentTitle, fragmentStatus, validation, isCreatingDraft } = this.message;
+
+        if (isCreatingDraft) {
+            return html`
+                <div class="message-card-preview">
+                    <div class="draft-creating">
+                        <sp-progress-circle indeterminate size="m"></sp-progress-circle>
+                        <span>Creating draft card...</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (!fragmentId) {
+            return html`<div class="message-card-preview">
+                <p>Card preview unavailable</p>
+            </div>`;
+        }
 
         return html`
             <div class="message-card-preview">
                 <div class="card-info">
-                    <sp-badge size="s">${cardConfig.variant}</sp-badge>
+                    <sp-badge size="s" variant="notice">${fragmentStatus || 'DRAFT'}</sp-badge>
                     ${validation?.warnings?.length > 0
                         ? html` <sp-badge size="s" variant="yellow">${validation.warnings.length} warnings</sp-badge> `
                         : ''}
@@ -71,20 +91,30 @@ export class MasChatMessage extends LitElement {
                       `
                     : ''}
 
+                <div class="card-visual-preview">
+                    <merch-card>
+                        <aem-fragment fragment="${fragmentId}" author ims></aem-fragment>
+                    </merch-card>
+                </div>
+
+                <div class="card-path-info">
+                    <sp-icon-folder size="s"></sp-icon-folder>
+                    <span>${fragmentPath}</span>
+                </div>
+
                 <div class="card-actions">
-                    <sp-button size="s" variant="secondary" @click=${() => this.handleCardAction('edit')}>
+                    <sp-button size="s" variant="accent" @click=${() => this.handleCardAction('edit')}>
+                        <sp-icon-edit slot="icon"></sp-icon-edit>
                         Open in Editor
                     </sp-button>
-                    <sp-button
-                        size="s"
-                        variant="primary"
-                        @click=${() => this.handleCardAction('save')}
-                        ?disabled=${validation?.errors?.length > 0}
-                    >
-                        Save to AEM
+                    <sp-button size="s" variant="primary" @click=${() => this.handleCardAction('publish')}>
+                        Publish to Production
                     </sp-button>
                     <sp-button size="s" variant="secondary" @click=${() => this.handleCardAction('regenerate')}>
                         Regenerate
+                    </sp-button>
+                    <sp-button size="s" variant="negative" @click=${() => this.handleCardAction('delete')}>
+                        Delete Draft
                     </sp-button>
                 </div>
             </div>
@@ -212,11 +242,19 @@ export class MasChatMessage extends LitElement {
     }
 
     handleOperationAction(action) {
+        const operationData = this.message.mcpOperation
+            ? {
+                  type: 'mcp_operation',
+                  mcpTool: this.message.mcpOperation.mcpTool,
+                  mcpParams: this.message.mcpOperation.mcpParams,
+              }
+            : this.message.operation;
+
         this.dispatchEvent(
             new CustomEvent('operation-action', {
                 detail: {
                     action,
-                    operation: this.message.operation,
+                    operation: operationData,
                 },
                 bubbles: true,
                 composed: true,
@@ -361,7 +399,7 @@ export class MasChatMessage extends LitElement {
                                       <span>Thinking...</span>
                                   </div>
                               `
-                            : html` <div class="message-text">${content}</div> `}
+                            : html` <div class="message-text">${isUser ? content : unsafeHTML(parseMarkdown(content))}</div> `}
                         ${this.showSuggestions ? html`<mas-prompt-suggestions></mas-prompt-suggestions>` : ''}
                     </div>
 

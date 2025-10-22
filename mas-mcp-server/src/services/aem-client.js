@@ -207,6 +207,54 @@ export class AEMClient {
     }
 
     /**
+     * Unpublish a fragment
+     */
+    async unpublishFragment(id) {
+        const authHeader = await this.authManager.getAuthHeader();
+        const csrfToken = await this.getCsrfToken();
+
+        const url = `${this.baseUrl}/adobe/sites/cf/fragments/${encodeURIComponent(id)}/unpublish`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Authorization: authHeader,
+                'Content-Type': 'application/json',
+                'CSRF-Token': csrfToken,
+            },
+            body: JSON.stringify({}),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to unpublish fragment: ${response.statusText}`);
+        }
+    }
+
+    /**
+     * Copy/duplicate a fragment
+     */
+    async copyFragment(params) {
+        const { id, parentPath, newTitle } = params;
+
+        const fragment = await this.getFragment(id);
+
+        if (!fragment) {
+            throw new Error(`Fragment ${id} not found`);
+        }
+
+        const copyData = {
+            title: newTitle || `${fragment.title} (Copy)`,
+            description: fragment.description,
+            model: fragment.model?.id || fragment.model,
+            parentPath: parentPath || fragment.parentPath,
+            fields: fragment.fields,
+            tags: fragment.tags || [],
+        };
+
+        return await this.createFragment(copyData);
+    }
+
+    /**
      * Get CSRF token for write operations
      */
     async getCsrfToken() {

@@ -3,17 +3,23 @@
  *
  * Executes AEM operations requested by the AI through natural language.
  * Runs in the frontend with access to the repository.
+ * Supports both legacy operations (direct repository access) and MCP operations (via MCP server).
  */
 
 import { showToast } from '../utils.js';
+import { executeStudioOperation } from '../services/mcp-client.js';
 
 /**
  * Execute an operation received from the AI
- * @param {Object} operation - Operation data from backend
+ * @param {Object} operation - Operation data from backend (legacy or MCP format)
  * @param {Object} repository - mas-repository instance
  * @returns {Promise<Object>} - Operation result
  */
 export async function executeOperation(operation, repository) {
+    if (operation.type === 'mcp_operation') {
+        return await executeStudioOperation(operation.mcpTool, operation.mcpParams);
+    }
+
     if (!operation || !operation.operation) {
         throw new Error('Invalid operation data');
     }

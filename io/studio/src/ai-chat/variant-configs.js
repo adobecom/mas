@@ -205,6 +205,76 @@ export const VARIANT_CONFIGS = {
             ctas: { slot: 'footer', size: 'm' },
         },
     },
+
+    'ah-try-buy-widget': {
+        name: 'Adobe Home Try Buy Widget',
+        description: 'Adobe Home compact widget for try/buy actions',
+        ctaStyle: 'primary',
+        ctaSize: 'S',
+        requiredFields: ['title', 'description', 'ctas'],
+        optionalFields: ['mnemonics', 'prices', 'backgroundImage', 'backgroundColor', 'borderColor', 'badge'],
+        sizes: ['single', 'double', 'triple'],
+        mapping: {
+            mnemonics: { size: 's' },
+            title: { tag: 'h3', slot: 'heading-xxxs', maxCount: 40, withSuffix: true },
+            badge: { tag: 'div', slot: 'badge', default: 'fuchsia' },
+            description: { tag: 'div', slot: 'body-xxs', maxCount: 200, withSuffix: false },
+            prices: { tag: 'p', slot: 'price' },
+            ctas: { slot: 'cta', size: 'S' },
+            backgroundImage: { tag: 'div', slot: 'image' },
+            backgroundColor: { attribute: 'background-color' },
+            borderColor: { attribute: 'border-color' },
+        },
+    },
+
+    'ah-promoted-plans': {
+        name: 'Adobe Home Promoted Plans',
+        description: 'Adobe Home promoted plan cards with gradient border support',
+        ctaStyle: 'primary',
+        ctaSize: 'S',
+        requiredFields: ['title', 'description', 'ctas'],
+        optionalFields: ['mnemonics', 'prices', 'backgroundImage', 'backgroundColor', 'borderColor'],
+        sizes: [],
+        mapping: {
+            mnemonics: { size: 's' },
+            title: { tag: 'h3', slot: 'heading-xxxs', maxCount: 40, withSuffix: true },
+            description: { tag: 'div', slot: 'body-xxs', maxCount: 200, withSuffix: false },
+            prices: { tag: 'p', slot: 'price' },
+            ctas: { slot: 'cta', size: 'S' },
+            backgroundImage: { tag: 'div', slot: 'image' },
+            backgroundColor: { attribute: 'background-color' },
+            borderColor: {
+                attribute: 'border-color',
+                specialValues: { gradient: 'linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%)' },
+            },
+        },
+    },
+
+    'simplified-pricing-express': {
+        name: 'Simplified Pricing Express',
+        description: 'Simplified pricing cards for Adobe Express',
+        ctaStyle: 'primary',
+        ctaSize: 'XL',
+        requiredFields: ['title', 'description', 'prices', 'ctas'],
+        optionalFields: ['badge', 'borderColor'],
+        sizes: [],
+        mapping: {
+            title: { tag: 'h3', slot: 'heading-xs', maxCount: 250, withSuffix: true },
+            badge: { tag: 'div', slot: 'badge', default: 'spectrum-blue-400' },
+            description: { tag: 'div', slot: 'body-xs', maxCount: 2000, withSuffix: false },
+            prices: { tag: 'div', slot: 'price' },
+            ctas: { slot: 'cta', size: 'XL' },
+            borderColor: {
+                attribute: 'border-color',
+                specialValues: {
+                    gray: 'var(--spectrum-gray-300)',
+                    blue: 'var(--spectrum-blue-400)',
+                    'gradient-purple-blue': 'linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)',
+                    'gradient-firefly-spectrum': 'linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)',
+                },
+            },
+        },
+    },
 };
 
 /**

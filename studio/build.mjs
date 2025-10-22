@@ -29,3 +29,9 @@ await build({
     entryPoints: ['src/spectrum.css.js'],
     outfile: 'libs/spectrum.js',
 });
+
+await build({
+    ...defaults,
+    entryPoints: ['src/markdown.js'],
+    outfile: 'libs/markdown.js',
+});

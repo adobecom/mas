@@ -1,22 +1,22 @@
-'use strict';
-
-import { createTimeoutPromise, log, logDebug, logError, mark, measureTiming, getJsonFromState } from './common.js';
+import { createTimeoutPromise, mark, measureTiming, getJsonFromState } from './utils/common.js';
+import { log, logError, logDebug } from './utils/log.js';
 import crypto from 'crypto';
 import zlib from 'zlib';
 import stateLib from '@adobe/aio-lib-state';
 
-import { transformer as fetchFragment } from './fetch.js';
-import { transformer as corrector } from './corrector.js';
-import { transformer as replace } from './replace.js';
-import { transformer as settings } from './settings.js';
-import { transformer as translate } from './translate.js';
-import { transformer as wcs } from './wcs.js';
+import { transformer as fetchFragment } from './transformers/fetchFragment.js';
+import { transformer as corrector } from './transformers/corrector.js';
+import { transformer as replace } from './transformers/replace.js';
+import { transformer as promotions } from './transformers/promotions.js';
+import { transformer as settings } from './transformers/settings.js';
+import { transformer as customize } from './transformers/customize.js';
+import { transformer as wcs } from './transformers/wcs.js';
 
 function calculateHash(body) {
     return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
 }
 
-const PIPELINE = [fetchFragment, translate, settings, replace, wcs, corrector];
+const PIPELINE = [fetchFragment, promotions, customize, settings, replace, wcs, corrector];
 
 const RESPONSE_HEADERS = {
     'Access-Control-Expose-Headers': 'X-Request-Id,Etag,Last-Modified,server-timing',
@@ -24,8 +24,18 @@ const RESPONSE_HEADERS = {
     'Content-Encoding': 'br',
 };
 
+async function getRequestMetadata(context) {
+    const requestKey = `req-${context.id}-${context.locale}`;
+    const { json: cachedMetadata, str: cachedMetadataStr } = await getJsonFromState(requestKey, context);
+    if (cachedMetadata) {
+        log(`found cached metadata for ${requestKey} -> ${cachedMetadataStr}`, context);
+        return cachedMetadata;
+    }
+    return null;
+}
+
 async function main(params) {
-    const requestId = params.__ow_headers?.['x-request-id'] || 'mas-' + Date.now();
+    const requestId = params.__ow_headers?.['x-request-id'] || 'mas-' + performance.now();
     const region = process.env.__OW_REGION || 'unknown';
     const api_key = params.api_key || 'n/a';
     const DEFAULT_HEADERS = {
@@ -100,27 +110,38 @@ async function main(params) {
 
 async function mainProcess(context) {
     const originalContext = context;
-    const requestKey = `req-${context.id}-${context.locale}`;
-    const { json: cachedMetadata, str: cachedMetadataStr } = await getJsonFromState(requestKey, context);
-    if (cachedMetadata) {
-        log(`found cached metadata for ${requestKey} -> ${cachedMetadataStr}`, context);
-        const { translatedId, dictionaryId } = cachedMetadata;
-        context = { ...context, translatedId, dictionaryId };
-    }
 
+    const cachedMetadata = await getRequestMetadata(context);
+    const { fragmentsIds, surface, parsedLocale, fragmentPath } = cachedMetadata || {};
+    const requestKey = `req-${context.id}-${context.locale}`;
+    context = {
+        ...context,
+        fragmentsIds,
+        surface,
+        parsedLocale,
+        fragmentPath,
+    };
     // Initialize all transformers that have an init function
     // those requests are done in parallel and results stored in context.promises
+    const initPromises = {};
+    context.fragmentsIds = context.fragmentsIds || {};
     for (const transformer of PIPELINE) {
         if (transformer.init) {
             //we fork context to avoid init to override any context property
-            const initContext = structuredClone(context);
+            const initContext = {
+                ...structuredClone(context),
+                promises: initPromises,
+                fragmentsIds: context.fragmentsIds,
+            };
             initContext.loggedTransformer = `${transformer.name}-init`;
-            context.promises = context.promises || {};
-            context.promises[transformer.name] = transformer.init(initContext);
+            initPromises[transformer.name] = transformer.init(initContext);
         }
     }
+    context.status = 200;
+    context.promises = initPromises;
 
     for (const transformer of PIPELINE) {
+        logDebug(() => `starting transformer ${transformer.name}`, context);
         /* c8 ignore next 5*/
         if (originalContext.timedOut) {
             context.status = 504;
@@ -149,12 +170,15 @@ async function mainProcess(context) {
         const hash = calculateHash(responseBody);
         const updated = !cachedMetadata?.hash || cachedMetadata.hash !== hash;
         let lastModified = new Date(Date.now());
-        if (updated) {
+        if (updated || !cachedMetadata?.fragmentPath) {
+            //we add fragment path to condition to ensure cache is updated
             const metadata = JSON.stringify({
+                fragmentsIds: context.fragmentsIds,
+                fragmentPath: context.fragmentPath,
                 hash,
                 lastModified: lastModified.toUTCString(),
-                translatedId: context.translatedId,
-                dictionaryId: context.dictionaryId,
+                parsedLocale: context.parsedLocale,
+                surface: context.surface,
             });
             log(`updating cache for ${requestKey} -> ${metadata}`, context);
             mark(context, 'req-state-put');

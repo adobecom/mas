@@ -8,7 +8,7 @@ import mockPlaceholders from '../fragment/mocks/preview-placeholders.json' with 
 // Import the actual source file without coverage instrumentation
 let previewFragment;
 before(async () => {
-    const module = await import('../../src/fragment-client.js');
+    const module = await import('../../../../studio/libs/fragment-client.js');
     previewFragment = module.previewFragment;
 });
 

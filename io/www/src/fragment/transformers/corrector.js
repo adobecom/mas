@@ -1,4 +1,4 @@
-import { logDebug } from './common.js';
+import { logDebug } from '../utils/log.js';
 /**
  * checking and eventually fixing content we know is not correct
  * @param {} context

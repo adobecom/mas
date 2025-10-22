@@ -33,7 +33,7 @@
         "test:coverage": "c8 --reporter=lcov --reporter=text-summary --check-coverage --lines=99 --functions=99 --branches=99 --statements=99 --exclude=src/fragment/odinSchemaTransform.js --exclude=src/ost-products/read.js --exclude=src/ost-products/write.js --exclude=test/**/* mocha --recursive ./test",
         "lint": "eslint --ignore-pattern web-src --no-error-on-unmatched-pattern test src actions",
         "lint:fix": "npm run lint -- --fix",
-        "build:client": "rollup -c rollup.config.cjs"
+        "build:client": "rollup -c rollup.config.js"
     },
     "engines": {
         "node": ">=22"

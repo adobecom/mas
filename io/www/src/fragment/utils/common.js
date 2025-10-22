@@ -1,39 +1,6 @@
 import fetch from 'node-fetch';
 import { transformBody } from './odinSchemaTransform.js';
-
-function logPrefix(context, type = 'info') {
-    return `[${type}][${context.api_key}][${context.requestId}][${context.id}][${context.locale}][${context.loggedTransformer}]`;
-}
-
-function log(message, context) {
-    console.log(`${logPrefix(context)} ${message}`);
-}
-
-function logError(message, context) {
-    console.error(`${logPrefix(context, 'error')} ${message}`);
-}
-
-function logDebug(getMessage, context) {
-    if (context.debugLogs) {
-        console.log(`${logPrefix(context, 'debug')} ${getMessage()}`);
-    }
-}
-
-async function getErrorContext(response) {
-    return {
-        status: response.status,
-        message: await getErrorMessage(response),
-    };
-}
-
-async function getErrorMessage(response) {
-    let message = response.message ?? 'nok';
-    try {
-        const json = await response.json();
-        message = json?.detail;
-    } catch (e) {}
-    return message;
-}
+import { log, logDebug, logError, getErrorMessage } from '../utils/log.js';
 
 async function computeBody(response, context) {
     let body = await response.json();
@@ -177,15 +144,71 @@ async function getJsonFromState(key, context) {
     return { str: null, json: null };
 }
 
+/**
+ * get fragment id from odin for a given path
+ * @param {*} context
+ * @param {*} odinUrl
+ * @param {*} mark
+ * @returns {id, status}
+ */
+async function getFragmentId(context, odinUrl, mark) {
+    if (context.fragmentsIds) {
+        const cachedId = context.fragmentsIds[mark];
+        if (cachedId) {
+            logDebug(() => `Using cached fragment id for ${mark}: ${cachedId}`, context);
+            return {
+                id: cachedId,
+                status: 200,
+            };
+        }
+    }
+    const response = await internalFetch(odinUrl, context, mark);
+    if (response.status == 200) {
+        const { items } = response.body;
+        if (items?.length > 0) {
+            const id = items[0].id;
+            context.fragmentsIds = context.fragmentsIds || {};
+            context.fragmentsIds[mark] = id;
+            return {
+                id,
+                status: 200,
+            };
+        } else {
+            return {
+                message: 'Fragment not found',
+                status: 404,
+            };
+        }
+    }
+    return {
+        message: response.message || 'Error fetching fragment id',
+        status: 503,
+    };
+}
+
+/**
+ * get default request information either from state cache, or from fetchFragment promise
+ * @param {*} context
+ * @returns parsedLocale, surface, fragmentPath
+ */
+async function getRequestInfos(context) {
+    let { body, parsedLocale, surface, fragmentPath } = context;
+    if (!parsedLocale || !surface || !fragmentPath || !body) {
+        const fetchResult = await context.promises?.fetchFragment;
+        if (fetchResult) {
+            ({ parsedLocale, surface, fragmentPath, body } = fetchResult);
+        }
+    }
+    return { parsedLocale, surface, fragmentPath, body };
+}
+
 export {
     createTimeoutPromise,
     internalFetch as fetch,
-    getErrorContext,
+    getRequestInfos,
+    getFragmentId,
     getJsonFromState,
     getFromState,
-    log,
-    logDebug,
-    logError,
     mark,
     measureTiming,
 };

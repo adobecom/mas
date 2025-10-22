@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import nock from 'nock';
-import { MAS_ELEMENT_REGEXP, transformer as wcs } from '../../src/fragment/wcs.js';
+import { MAS_ELEMENT_REGEXP, transformer as wcs } from '../../src/fragment/transformers/wcs.js';
 
 import FRAGMENT from './mocks/fragment.json' with { type: 'json' };
 const CONFIGURATION = (keys = ['foo', 'testing_wcs', 'bar']) => [

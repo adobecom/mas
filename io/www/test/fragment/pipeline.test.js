@@ -4,7 +4,7 @@ import { main as action } from '../../src/fragment/pipeline.js';
 import { mockDictionary } from './replace.test.js';
 import zlib from 'zlib';
 
-import FRAGMENT_RESPONSE_EN from './mocks/fragment.json' with { type: 'json' };
+import FRAGMENT_RESPONSE_EN from './mocks/fragment-en-default.json' with { type: 'json' };
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import DICTIONARY_FOR_COLLECTION_RESPONSE from './mocks/dictionaryForCollection.json' with { type: 'json' };
 import COLLECTION_RESPONSE from './mocks/collection.json' with { type: 'json' };
@@ -32,30 +32,38 @@ const EXPECTED_HEADERS = {
 };
 
 function setupFragmentMocks({ id, path, fields = {} }, preview = false) {
+    // setup dictionary mocks
+    mockDictionary(preview);
+
     const odinDomain = `https://${preview ? 'odinpreview.corp' : 'odin'}.adobe.com`;
     const odinUriRoot = preview ? '/adobe/sites/cf/fragments' : '/adobe/sites/fragments';
     // english fragment by id
-    nock(odinDomain).get(`${odinUriRoot}/some-en-us-fragment?references=all-hydrated`).reply(200, FRAGMENT_RESPONSE_EN);
+    nock(odinDomain)
+        .get(`${odinUriRoot}/some-en-us-fragment`)
+        .query({ references: 'all-hydrated' })
+        .reply(200, FRAGMENT_RESPONSE_EN)
+        .persist();
 
     // french fragment by path
     nock(odinDomain)
-        .get(`${odinUriRoot}?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app`)
-        .reply(200, {
-            items: [
-                {
-                    id: 'some-fr-fr-fragment',
-                },
-            ],
-        });
+        .get(`${odinUriRoot}`)
+        .query({ path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app' })
+        .reply(200, { items: [{ id: 'some-fr-fr-fragment' }] })
+        .persist();
     // candadian french fragment by path
-    nock(odinDomain).get(`${odinUriRoot}?path=/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app`).reply(200, {
-        items: [],
-    });
+    nock(odinDomain)
+        .get(`${odinUriRoot}`)
+        .query({ path: '/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app' })
+        .reply(200, {
+            items: [],
+        })
+        .persist();
     // french fragment by id
-    nock(odinDomain).get(`${odinUriRoot}/some-fr-fr-fragment?references=all-hydrated`).reply(200, FRAGMENT_RESPONSE_FR);
-
-    // dictionary by id
-    nock(odinDomain).get(`${odinUriRoot}/dictionary?references=all-hydrated`).reply(200, mockDictionary());
+    nock(odinDomain)
+        .get(`${odinUriRoot}/some-fr-fr-fragment`)
+        .query({ references: 'all-hydrated' })
+        .reply(200, FRAGMENT_RESPONSE_FR)
+        .persist();
 }
 
 const EXPECTED_BODY = {
@@ -63,7 +71,7 @@ const EXPECTED_BODY = {
     path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
 };
 //EXPECTED BODY SHA256 hash
-const EXPECTED_BODY_HASH = '54155ef064f4d37a6797c394f1a6352833d94ce02d1d829c813f84c4b8783f09';
+const EXPECTED_BODY_HASH = '798aa27d44ff060fe2261cb1a873863ce8a9d6a989df13e9a0f6ec359b1c89e4';
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 
@@ -90,11 +98,6 @@ const runOnFilledState = async (entry, headers) => {
 describe('pipeline full use case', () => {
     beforeEach(() => {
         nock.cleanAll();
-        mockDictionary();
-    });
-
-    afterEach(() => {
-        nock.cleanAll();
     });
 
     it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment', async () => {
@@ -118,14 +121,15 @@ describe('pipeline full use case', () => {
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR']);
         delete json.lastModified; // removing the date to avoid flakiness
         expect(json).to.deep.include({
-            dictionaryId: 'fr_FR_dictionary',
-            translatedId: 'some-fr-fr-fragment',
+            fragmentsIds: {
+                'dictionary-id': 'fr_FR_dictionary',
+                'default-locale-id': 'some-fr-fr-fragment',
+            },
             hash: EXPECTED_BODY_HASH,
         });
     });
 
     it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment from preview too', async () => {
-        mockDictionary(true);
         setupFragmentMocks(
             {
                 id: 'some-en-us-fragment',
@@ -152,8 +156,10 @@ describe('pipeline full use case', () => {
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR']);
         delete json.lastModified; // removing the date to avoid flakiness
         expect(json).to.deep.include({
-            dictionaryId: 'fr_FR_dictionary',
-            translatedId: 'some-fr-fr-fragment',
+            fragmentsIds: {
+                'dictionary-id': 'fr_FR_dictionary',
+                'default-locale-id': 'some-fr-fr-fragment',
+            },
             hash: EXPECTED_BODY_HASH,
         });
     });
@@ -161,8 +167,11 @@ describe('pipeline full use case', () => {
     it('should detect already treated /content/dam/mas/sandbox/fr_FR/someFragment if not changed', async () => {
         const result = await runOnFilledState(
             JSON.stringify({
-                dictionaryId: 'fr_FR_dictionary',
-                translatedId: 'some-fr-fr-fragment',
+                fragmentsIds: {
+                    'dictionary-id': 'fr_FR_dictionary',
+                    'default-locale-id': 'some-fr-fr-fragment',
+                },
+                fragmentPath: 'someFragment',
                 lastModified: RANDOM_OLD_DATE,
                 hash: EXPECTED_BODY_HASH,
             }),
@@ -177,13 +186,13 @@ describe('pipeline full use case', () => {
     });
 
     it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment from fr_CA locale request', async () => {
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_CA/dictionary/index')
-            .reply(404, {});
         setupFragmentMocks({
             id: 'some-en-us-fragment',
             path: 'someFragment',
         });
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_CA/dictionary/index')
+            .reply(404, {});
         const state = new MockState();
         const result = await getFragment({
             id: 'some-en-us-fragment',
@@ -191,21 +200,20 @@ describe('pipeline full use case', () => {
             locale: 'fr_CA',
         });
         expect(result.statusCode).to.equal(200);
-        expect(result.body).to.deep.include(EXPECTED_BODY);
+        expect(result.body).to.deep.include({
+            path: '/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app',
+            id: 'd99c359d-5349-43cc-95f4-8e388c299855',
+        });
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
         expect(Object.keys(state.store).length).to.equal(1);
         expect(state.store).to.have.property('req-some-en-us-fragment-fr_CA');
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA']);
-        //we should not have translatedId as there is no guarantee it stays that way
-        expect(json.dictionaryId).to.not.equal('fr_FR_dictionary');
-        expect(json).to.not.have.property('translatedId');
+        expect(json.fragmentsIds['dictionary-id']).to.not.equal('fr_FR_dictionary');
+        expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
     });
-});
 
-describe('collection placeholders', () => {
-    it('should work', async () => {
-        nock.cleanAll();
+    it('should replace settings placeholders', async () => {
         const state = new MockState();
         nock('https://odin.adobe.com')
             .get('/adobe/sites/fragments/07f9729e-dc1f-4634-829d-7aa469bb0d33')
@@ -217,7 +225,7 @@ describe('collection placeholders', () => {
             .reply(200, DICTIONARY_FOR_COLLECTION_RESPONSE);
         state.put(
             'req-07f9729e-dc1f-4634-829d-7aa469bb0d33-en_US',
-            '{"hash":"c4b6f3c040708c47444316d4e103268c8f2fb91c35dc4609ecccc29803f2aec0","lastModified":"Mon, 09 Jun 2025 07:43:58 GMT","dictionaryId":"412fda08-7b73-4a01-a04f-1953e183bad2"}',
+            '{"hash":"c4b6f3c040708c47444316d4e103268c8f2fb91c35dc4609ecccc29803f2aec0","lastModified":"Mon, 09 Jun 2025 07:43:58 GMT","fragmentsIds":{"dictionary-id":"412fda08-7b73-4a01-a04f-1953e183bad2"}}',
         );
         const result = await getFragment({
             id: '07f9729e-dc1f-4634-829d-7aa469bb0d33',
@@ -233,11 +241,6 @@ describe('collection placeholders', () => {
 describe('pipeline corner cases', () => {
     beforeEach(() => {
         nock.cleanAll();
-        mockDictionary();
-    });
-
-    afterEach(() => {
-        nock.cleanAll();
     });
 
     it('action should be defined', () => {
@@ -251,7 +254,7 @@ describe('pipeline corner cases', () => {
         expect(result).to.deep.equal({
             headers: EXPECTED_HEADERS,
             body: {
-                message: 'requested parameters are not present',
+                message: 'requested parameters id & locale are not present',
             },
             statusCode: 400,
         });
@@ -316,11 +319,6 @@ describe('pipeline corner cases', () => {
     });
 
     it('should handle 404 response status', async () => {
-        nock('https://odin.adobe.com').get('/adobe/sites/fragments/test-fragment').reply(404, {
-            message: 'Fragment not found',
-        });
-
-        // Also mock the request with references=all-hydrated parameter
         nock('https://odin.adobe.com').get('/adobe/sites/fragments/test-fragment?references=all-hydrated').reply(404, {
             message: 'Fragment not found',
         });
@@ -343,8 +341,10 @@ describe('pipeline corner cases', () => {
     it('should manage ignore old if-modified', async () => {
         const result = await runOnFilledState(
             JSON.stringify({
-                dictionaryId: 'fr_FR_dictionary',
-                translatedId: 'some-fr-fr-fragment',
+                fragmentsIds: {
+                    'dictionary-id': 'fr_FR_dictionary',
+                    'default-locale-id': 'some-fr-fr-fragment',
+                },
                 lastModified: 'Tue, 21 Nov 2024 08:00:00 GMT',
                 hash: EXPECTED_BODY_HASH,
             }),

@@ -13,6 +13,18 @@ export const ANALYTICS_SECTION_ATTR = 'daa-lh';
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
 
+/**
+ * Normalizes variant names for consistency.
+ * Converts any variant starting with 'plans' to just 'plans'.
+ * @param {string} variant - The variant name to normalize
+ * @returns {string} The normalized variant name
+ */
+export function normalizeVariant(variant) {
+    if (!variant) return variant;
+    if (variant.startsWith('plans')) return 'plans';
+    return variant;
+}
+
 export function appendSlot(fieldName, fields, el, mapping) {
     const config = mapping[fieldName];
     if (fields[fieldName] && config) {
@@ -99,14 +111,24 @@ function processBadge(fields, merchCard, mapping) {
     } else {
         if (fields.badge) {
             merchCard.setAttribute('badge-text', fields.badge);
-            merchCard.setAttribute(
-                'badge-color',
-                fields.badgeColor || DEFAULT_BADGE_COLOR,
-            );
-            merchCard.setAttribute(
-                'badge-background-color',
-                fields.badgeBackgroundColor || DEFAULT_BADGE_BACKGROUND_COLOR,
-            );
+
+            // Only set badge-color if not disabled
+            if (!mapping.disabledAttributes?.includes('badgeColor')) {
+                merchCard.setAttribute(
+                    'badge-color',
+                    fields.badgeColor || DEFAULT_BADGE_COLOR,
+                );
+            }
+
+            // Only set badge-background-color if not disabled
+            if (!mapping.disabledAttributes?.includes('badgeBackgroundColor')) {
+                merchCard.setAttribute(
+                    'badge-background-color',
+                    fields.badgeBackgroundColor ||
+                        DEFAULT_BADGE_BACKGROUND_COLOR,
+                );
+            }
+
             merchCard.setAttribute(
                 'border-color',
                 fields.badgeBackgroundColor || DEFAULT_BADGE_BACKGROUND_COLOR,
@@ -123,8 +145,12 @@ function processBadge(fields, merchCard, mapping) {
 export function processTrialBadge(fields, merchCard, mapping) {
     if (mapping.trialBadge && fields.trialBadge) {
         if (!fields.trialBadge.startsWith('<merch-badge')) {
+            // Only use trialBadgeBorderColor if not disabled
             const borderColorToUse =
-                fields.trialBadgeBorderColor ||
+                (!mapping.disabledAttributes?.includes(
+                    'trialBadgeBorderColor',
+                ) &&
+                    fields.trialBadgeBorderColor) ||
                 DEFAULT_TRIAL_BADGE_BORDER_COLOR;
             fields.trialBadge = `<merch-badge variant="${fields.variant}" border-color="${borderColorToUse}">${fields.trialBadge}</merch-badge>`;
         }
@@ -135,6 +161,12 @@ export function processTrialBadge(fields, merchCard, mapping) {
 export function processSize(fields, merchCard, sizeConfig) {
     if (sizeConfig?.includes(fields.size)) {
         merchCard.setAttribute('size', fields.size);
+    }
+}
+
+export function processCardName(fields, merchCard) {
+    if (fields.cardName) {
+        merchCard.setAttribute('name', fields.cardName);
     }
 }
 
@@ -178,22 +210,40 @@ export function processBackgroundColor(
 
 export function processBorderColor(fields, merchCard, variantMapping) {
     const borderColorConfig = variantMapping?.borderColor;
-    const customBorderColor = '--merch-card-custom-border-color';
+    const customBorderColor = '--consonant-merch-card-border-color';
 
     if (fields.borderColor?.toLowerCase() === 'transparent') {
-        merchCard.style.removeProperty(customBorderColor);
-        if (
-            variantMapping?.allowedBorderColors?.includes(
-                variantMapping?.badge?.default,
-            )
-        ) {
-            merchCard.style.setProperty(customBorderColor, 'transparent');
-        }
+        merchCard.style.setProperty(customBorderColor, 'transparent');
     } else if (fields.borderColor && borderColorConfig) {
-        if (/-gradient/.test(fields.borderColor)) {
+        // Check if it's a gradient using specialValues or pattern matching
+        const specialValue =
+            borderColorConfig?.specialValues?.[fields.borderColor];
+        const isGradient =
+            specialValue?.includes('gradient') ||
+            /-gradient/.test(fields.borderColor);
+
+        if (isGradient) {
+            // For gradients, set both attributes needed for CSS selectors
             merchCard.setAttribute('gradient-border', 'true');
+
+            // Find the key name for this gradient value
+            let borderColorKey = fields.borderColor;
+            if (borderColorConfig?.specialValues) {
+                // Reverse lookup: find which key maps to this value
+                for (const [key, value] of Object.entries(
+                    borderColorConfig.specialValues,
+                )) {
+                    if (value === fields.borderColor) {
+                        borderColorKey = key;
+                        break;
+                    }
+                }
+            }
+
+            merchCard.setAttribute('border-color', borderColorKey);
             merchCard.style.removeProperty(customBorderColor);
         } else {
+            // For regular colors, use CSS variable
             merchCard.style.setProperty(
                 customBorderColor,
                 `var(--${fields.borderColor})`,
@@ -235,7 +285,29 @@ export function processBackgroundImage(
     }
 }
 
+/**
+ * Process mnemonic elements in HTML content
+ * Ensures mas-mnemonic elements have proper structure
+ */
+function processMnemonicElements(htmlContent) {
+    if (!htmlContent || typeof htmlContent !== 'string') return htmlContent;
+
+    // This function ensures mas-mnemonic elements are properly formed
+    // The actual parsing happens when the HTML is added to the DOM
+    // and the mas-mnemonic web component initializes
+
+    // Import mas-mnemonic to ensure it's loaded when mnemonics are used
+    if (htmlContent.includes('<mas-mnemonic')) {
+        import('./mas-mnemonic.js').catch(console.error);
+    }
+
+    return htmlContent;
+}
+
 export function processPrices(fields, merchCard, mapping) {
+    if (fields.prices) {
+        fields.prices = processMnemonicElements(fields.prices);
+    }
     appendSlot('prices', fields, merchCard, mapping);
 }
 
@@ -262,6 +334,7 @@ function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
             isAccent,
             isCheckoutLink,
             isLinkStyle,
+            isPrimary,
         );
     } else if (isLinkStyle) {
         newButtonElement = linkElement;
@@ -312,6 +385,14 @@ function processDescriptionLinks(merchCard, aemFragmentMapping) {
 }
 
 export function processDescription(fields, merchCard, mapping) {
+    // Process tooltips in description field
+    if (fields.description) {
+        fields.description = processMnemonicElements(fields.description);
+    }
+    if (fields.promoText) {
+        fields.promoText = processMnemonicElements(fields.promoText);
+    }
+
     appendSlot('promoText', fields, merchCard, mapping);
     appendSlot('description', fields, merchCard, mapping);
     processDescriptionLinks(merchCard, mapping);
@@ -523,16 +604,25 @@ function createSpectrumSwcButton(
     return spectrumCta;
 }
 
-function createConsonantButton(cta, isAccent, isCheckout, isLinkStyle) {
+function createConsonantButton(
+    cta,
+    isAccent,
+    isCheckout,
+    isLinkStyle,
+    isPrimary,
+) {
     let button = cta;
     if (isCheckout) {
         const CheckoutLink = customElements.get('checkout-link');
         button = CheckoutLink.createCheckoutLink(cta.dataset, cta.innerHTML);
     }
     if (!isLinkStyle) {
-        button.classList.add('con-button');
+        button.classList.add('button', 'con-button');
         if (isAccent) {
             button.classList.add('blue');
+        }
+        if (isPrimary) {
+            button.classList.add('primary');
         }
     }
     return button;
@@ -540,6 +630,9 @@ function createConsonantButton(cta, isAccent, isCheckout, isLinkStyle) {
 
 export function processCTAs(fields, merchCard, aemFragmentMapping, variant) {
     if (fields.ctas) {
+        // Process tooltips in CTAs
+        fields.ctas = processMnemonicElements(fields.ctas);
+
         const { slot } = aemFragmentMapping.ctas;
         const footer = createTag('div', { slot }, fields.ctas);
         const ctas = [...footer.querySelectorAll('a')].map((cta) => {
@@ -641,11 +734,12 @@ export async function hydrate(fragment, merchCard) {
         );
     }
 
-    const { id, fields, settings = {} } = fragment;
+    const { id, fields, settings = {}, priceLiterals } = fragment;
     const { variant } = fields;
     if (!variant) throw new Error(`hydrate: no variant found in payload ${id}`);
     cleanup(merchCard);
     merchCard.settings = settings;
+    if (priceLiterals) merchCard.priceLiterals = priceLiterals;
     merchCard.id ??= fragment.id;
     merchCard.variant = variant;
     await merchCard.updateComplete;
@@ -661,6 +755,7 @@ export async function hydrate(fragment, merchCard) {
     processBadge(fields, merchCard, mapping);
     processTrialBadge(fields, merchCard, mapping);
     processSize(fields, merchCard, mapping.size);
+    processCardName(fields, merchCard);
     processTitle(fields, merchCard, mapping.title);
     processSubtitle(fields, merchCard, mapping);
     processPrices(fields, merchCard, mapping);

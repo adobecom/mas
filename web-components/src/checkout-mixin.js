@@ -14,6 +14,7 @@ const CHECKOUT_PARAM_VALUE_MAPPING = {
 };
 
 export function createCheckoutElement(Class, options = {}, innerHTML = '') {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const service = getService();
     if (!service) return null;
     const {
@@ -129,6 +130,7 @@ export function CheckoutMixin(Base) {
         }
 
         async render(overrides = {}) {
+            // eslint-disable-next-line react-hooks/rules-of-hooks
             const service = getService();
             if (!service) return false;
             if (!this.dataset.imsCountry) {
@@ -185,11 +187,10 @@ export function CheckoutMixin(Base) {
             checkoutAction = undefined,
             version = undefined,
         ) {
+            // eslint-disable-next-line react-hooks/rules-of-hooks
             const service = getService();
             if (!service) return false;
-            const extraOptions = JSON.parse(
-                this.dataset.extraOptions ?? 'null',
-            );
+            const extraOptions = JSON.parse(this.dataset.extraOptions ?? '{}');
             options = { ...extraOptions, ...options, ...overrides };
             version ??= this.masElement.togglePending(options);
             if (this.checkoutActionHandler) {
@@ -243,6 +244,7 @@ export function CheckoutMixin(Base) {
         }
 
         updateOptions(options = {}) {
+            // eslint-disable-next-line react-hooks/rules-of-hooks
             const service = getService();
             if (!service) return false;
             const {

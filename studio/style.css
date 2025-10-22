@@ -135,10 +135,10 @@ sp-underlay + sp-dialog {
 #editor {
     position: relative;
     z-index: 2;
-    width: 460px;
     max-height: calc(100vh - 60px);
     background-color: var(--spectrum-white);
     padding: 0px 20px 20px 20px;
+    overflow-x: hidden;
     overflow-y: auto;
     box-sizing: border-box;
     box-shadow: 0px 1px 4px 4px rgb(0 0 0 / 10%);

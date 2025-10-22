@@ -302,6 +302,14 @@ class MerchCardCollectionEditor extends LitElement {
         `;
     }
 
+    #extractPlainText(html) {
+        if (!html) return '';
+        if (!html.includes('<')) return html;
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        return doc.body.textContent || '';
+    }
+
     #getFragmentInfo(fragment) {
         const isCollection = fragment.model?.path === COLLECTION_MODEL_PATH;
 
@@ -361,8 +369,8 @@ class MerchCardCollectionEditor extends LitElement {
                                         ? html` <sp-icon-star class="default-indicator" size="s"></sp-icon-star> `
                                         : nothing}
                                     <div class="item-text">
-                                        <div class="item-label">${label}</div>
-                                        <div class="item-subtext">${fragment.title}</div>
+                                        <div class="item-label">${this.#extractPlainText(label)}</div>
+                                        <div class="item-subtext">${this.#extractPlainText(fragment.title)}</div>
                                     </div>
                                     ${iconPaths.length > 0
                                         ? html`

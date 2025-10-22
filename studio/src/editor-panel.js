@@ -126,7 +126,8 @@ export default class EditorPanel extends LitElement {
         this.resizeStartY = 0;
         this.resizeStartWidth = 0;
         this.resizeStartHeight = 0;
-
+        this.resizeStartDragX = 0;
+        this.resizeStartDragY = 0;
         this.handleClose = this.handleClose.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.updateFragment = this.updateFragment.bind(this);
@@ -803,7 +804,6 @@ export default class EditorPanel extends LitElement {
                     break;
             }
         }
-
         const editorStyles = `
             position: fixed;
             left: ${this.dragX}px;

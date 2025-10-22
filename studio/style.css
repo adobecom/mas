@@ -131,21 +131,22 @@ sp-underlay + sp-dialog {
 }
 
 #editor {
-    position: fixed;
-    bottom: 0;
-    top: 0;
+    position: relative;
     z-index: 2;
-    left: var(--editor-left);
-    right: var(--editor-right);
-    height: 100vh;
     width: 460px;
+    max-height: calc(100vh - 60px);
     background-color: var(--spectrum-white);
-    padding: 20px;
+    padding: 0px 20px 20px 20px;
     overflow-y: auto;
     box-sizing: border-box;
     box-shadow: 0px 1px 4px 4px rgb(0 0 0 / 10%);
-    border-radius: 8px;
-    transition: right 0.3s ease-in-out;
+    border-radius: 24px;
+    border: 1px solid transparent;
+    transition: border-color 0.2s;
+}
+
+#editor:hover {
+    border-color: var(--spectrum-global-color-gray-300);
 }
 
 #editor sp-divider {
@@ -158,16 +159,101 @@ sp-underlay + sp-dialog {
     gap: 5px;
 }
 
+.drag-handle {
+    width: 40px;
+    height: 4px;
+    background-color: var(--spectrum-global-color-gray-400);
+    border-radius: 2px;
+    margin: 0 auto 8px;
+    opacity: 0.6;
+}
+
+.editor-drag-section {
+    position: sticky;
+    top: 0;
+    background-color: var(--spectrum-white);
+    z-index: 1;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    cursor: grab;
+}
+
+.editor-drag-section:active {
+    cursor: grabbing;
+}
+
+.resize-handle {
+    position: absolute;
+    background-color: transparent;
+}
+
+.resize-n,
+.resize-s {
+    height: 6px;
+    width: 100%;
+    left: 0;
+    cursor: ns-resize;
+}
+
+.resize-n {
+    top: 0;
+}
+
+.resize-s {
+    bottom: 0;
+}
+
+.resize-e,
+.resize-w {
+    width: 6px;
+    height: 100%;
+    top: 0;
+    cursor: ew-resize;
+}
+
+.resize-e {
+    right: 0;
+}
+
+.resize-w {
+    left: 0;
+}
+
+.resize-ne,
+.resize-nw,
+.resize-se,
+.resize-sw {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+.resize-ne {
+    top: -2px;
+    right: -2px;
+    cursor: nesw-resize;
+}
+
+.resize-nw {
+    top: -2px;
+    left: -2px;
+    cursor: nwse-resize;
+}
+
+.resize-se {
+    bottom: -2px;
+    right: -2px;
+    cursor: nwse-resize;
+}
+
+.resize-sw {
+    bottom: -2px;
+    left: -2px;
+    cursor: nesw-resize;
+}
+
 #editor aem-tag-picker-field {
     margin-top: 20px;
-}
-
-editor-panel[position='left'] #move-left {
-    display: none;
-}
-
-editor-panel[position='right'] #move-right {
-    display: none;
 }
 
 #actions {

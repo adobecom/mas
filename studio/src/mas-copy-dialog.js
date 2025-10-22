@@ -325,8 +325,6 @@ export class MasCopyDialog extends LitElement {
                     composed: true,
                 }),
             );
-
-            this.close();
         } catch (err) {
             this.handleCopyError(err);
         }
@@ -335,7 +333,7 @@ export class MasCopyDialog extends LitElement {
     close() {
         this.dialog.open = false;
         this.dispatchEvent(
-            new CustomEvent('dialog-closed', {
+            new CustomEvent('cancel', {
                 bubbles: true,
                 composed: true,
             }),

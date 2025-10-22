@@ -351,7 +351,7 @@ class MasToolbar extends LitElement {
                 ? html`<mas-copy-dialog
                       .fragment=${this.fragmentToCopy}
                       @fragment-copied=${this.handleFragmentCopied}
-                      @dialog-closed=${() => {
+                      @cancel=${() => {
                           this.copyDialogOpen = false;
                           this.fragmentToCopy = null;
                       }}

@@ -519,13 +519,15 @@ class AEM {
      * @returns {Promise<Object>} The newly created fragment
      */
     async createFragmentCopy(fullFragment, targetPath, name, csrfToken) {
+        const fields = fullFragment.fields.filter((field) => field.name !== 'originalId');
+
         const copyData = {
             title: fullFragment.title,
             description: fullFragment.description,
             modelId: fullFragment.model.id,
             parentPath: targetPath,
             name,
-            fields: fullFragment.fields,
+            fields,
         };
 
         const response = await fetch(this.cfFragmentsUrl, {

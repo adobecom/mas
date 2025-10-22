@@ -87,9 +87,9 @@ function mapMnemonics(mnemonics, config) {
     }
 
     return [
-        { name: 'mnemonicIcon', type: 'text', multiple: true, values: mnemonics.map((m) => m.icon || '') },
-        { name: 'mnemonicAlt', type: 'text', multiple: true, values: mnemonics.map((m) => m.alt || '') },
-        { name: 'mnemonicLink', type: 'text', multiple: true, values: mnemonics.map((m) => m.link || '') },
+        { name: 'mnemonicIcon', type: 'text', values: mnemonics.map((m) => m.icon || '') },
+        { name: 'mnemonicAlt', type: 'text', values: mnemonics.map((m) => m.alt || '') },
+        { name: 'mnemonicLink', type: 'text', values: mnemonics.map((m) => m.link || '') },
     ];
 }
 

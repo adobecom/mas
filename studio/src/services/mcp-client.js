@@ -14,13 +14,34 @@ import { MCP_SERVER_URL } from '../constants.js';
  * @returns {Promise<Object>} - Tool execution result
  */
 export async function executeMCPTool(toolName, params) {
+    console.log('[MCP Client] executeMCPTool called:', toolName, params);
     try {
+        const accessToken = window.adobeIMS?.getAccessToken()?.token;
+        const aemBaseUrl = document.querySelector('meta[name="aem-base-url"]')?.getAttribute('content');
+
+        console.log('[MCP Client] Access token:', accessToken ? 'EXISTS' : 'MISSING');
+        console.log('[MCP Client] AEM Base URL:', aemBaseUrl);
+
+        const headers = {
+            'Content-Type': 'application/json',
+        };
+
+        if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+            console.log('[MCP Client] Added Authorization header');
+        } else {
+            console.warn('[MCP Client] No access token available!');
+        }
+
+        const requestBody = {
+            ...params,
+            _aemBaseUrl: aemBaseUrl,
+        };
+
         const response = await fetch(`${MCP_SERVER_URL}/tools/${toolName}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(params),
+            headers,
+            body: JSON.stringify(requestBody),
         });
 
         if (!response.ok) {
@@ -82,9 +103,9 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
             return {
                 success: true,
                 operation: 'search',
-                results: result.cards,
-                count: result.cards.length,
-                message: `Found ${result.cards.length} card${result.cards.length !== 1 ? 's' : ''}`,
+                results: result.results,
+                count: result.results.length,
+                message: `Found ${result.results.length} card${result.results.length !== 1 ? 's' : ''}`,
             };
 
         case 'studio_delete_card':

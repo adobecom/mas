@@ -142,6 +142,7 @@ export default class EditorPanel extends LitElement {
         this.startResize = this.startResize.bind(this);
         this.resize = this.resize.bind(this);
         this.endResize = this.endResize.bind(this);
+        this.positionNextToCard = this.positionNextToCard.bind(this);
     }
 
     createRenderRoot() {
@@ -223,6 +224,8 @@ export default class EditorPanel extends LitElement {
         const editorElement = this.querySelector('#editor');
         this.resizeStartWidth = editorElement?.offsetWidth || this.editorWidth;
         this.resizeStartHeight = editorElement?.offsetHeight || 600;
+        this.resizeStartDragX = this.dragX;
+        this.resizeStartDragY = this.dragY;
 
         document.addEventListener('mousemove', this.resize);
         document.addEventListener('mouseup', this.endResize);
@@ -241,8 +244,8 @@ export default class EditorPanel extends LitElement {
 
         let newWidth = this.resizeStartWidth;
         let newHeight = this.resizeStartHeight;
-        let newX = this.dragX;
-        let newY = this.dragY;
+        let newX = this.resizeStartDragX;
+        let newY = this.resizeStartDragY;
 
         if (this.resizeDirection.includes('e')) {
             newWidth = Math.max(minWidth, Math.min(maxWidth, this.resizeStartWidth + deltaX));
@@ -251,7 +254,7 @@ export default class EditorPanel extends LitElement {
             const proposedWidth = this.resizeStartWidth - deltaX;
             if (proposedWidth >= minWidth && proposedWidth <= maxWidth) {
                 newWidth = proposedWidth;
-                newX = this.dragX + deltaX;
+                newX = this.resizeStartDragX + deltaX;
             }
         }
         if (this.resizeDirection.includes('s')) {
@@ -261,17 +264,23 @@ export default class EditorPanel extends LitElement {
             const proposedHeight = this.resizeStartHeight - deltaY;
             if (proposedHeight >= minHeight && proposedHeight <= maxHeight) {
                 newHeight = proposedHeight;
-                newY = this.dragY + deltaY;
+                newY = this.resizeStartDragY + deltaY;
             }
         }
 
-        const maxX = window.innerWidth - newWidth;
-        const maxY = window.innerHeight - newHeight;
-
         this.editorWidth = newWidth;
         this.editorHeight = newHeight;
-        this.dragX = Math.max(0, Math.min(newX, maxX));
-        this.dragY = Math.max(0, Math.min(newY, maxY));
+
+        if (this.resizeDirection.includes('w')) {
+            const maxX = window.innerWidth - newWidth;
+            this.dragX = Math.max(0, Math.min(newX, maxX));
+        }
+
+        if (this.resizeDirection.includes('n')) {
+            const maxY = window.innerHeight - newHeight;
+            this.dragY = Math.max(0, Math.min(newY, maxY));
+        }
+
         this.requestUpdate();
     }
 
@@ -280,6 +289,53 @@ export default class EditorPanel extends LitElement {
         this.resizeDirection = null;
         document.removeEventListener('mousemove', this.resize);
         document.removeEventListener('mouseup', this.endResize);
+    }
+
+    positionNextToCard() {
+        if (!this.fragment?.id) return;
+
+        const cardElement = document.querySelector(`[data-id="${this.fragment.id}"]`);
+        if (!cardElement) {
+            console.warn('Card element not found');
+            return;
+        }
+
+        cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        setTimeout(() => {
+            const cardRect = cardElement.getBoundingClientRect();
+            const editorElement = this.querySelector('#editor');
+            const editorWidth = editorElement?.offsetWidth || this.editorWidth;
+            const editorHeight = editorElement?.offsetHeight || 600;
+            const gap = 16;
+
+            const spaceOnRight = window.innerWidth - (cardRect.right + gap + editorWidth);
+            const spaceOnLeft = cardRect.left - gap - editorWidth;
+
+            let newX, newY;
+
+            if (spaceOnRight >= 0) {
+                newX = cardRect.right + gap;
+            } else if (spaceOnLeft >= 0) {
+                newX = cardRect.left - gap - editorWidth;
+            } else {
+                if (spaceOnRight > spaceOnLeft) {
+                    newX = cardRect.right + gap;
+                } else {
+                    newX = cardRect.left - gap - editorWidth;
+                }
+            }
+
+            newY = cardRect.top + cardRect.height / 2 - editorHeight / 2;
+
+            const maxX = window.innerWidth - editorWidth;
+            const maxY = window.innerHeight - editorHeight;
+
+            this.dragX = Math.max(0, Math.min(newX, maxX));
+            this.dragY = Math.max(0, Math.min(newY, maxY));
+
+            this.requestUpdate();
+        }, 300);
     }
 
     needsMask(fragment) {
@@ -588,6 +644,10 @@ export default class EditorPanel extends LitElement {
                             : html` <sp-icon-delete-outline slot="icon"></sp-icon-delete-outline>`}
 
                         <sp-tooltip self-managed placement="bottom">Delete fragment</sp-tooltip>
+                    </sp-action-button>
+                    <sp-action-button label="Position next to card" value="position" @click="${this.positionNextToCard}">
+                        <sp-icon-move slot="icon"></sp-icon-move>
+                        <sp-tooltip self-managed placement="bottom">Position next to card</sp-tooltip>
                     </sp-action-button>
                     <sp-action-button title="Close" label="Close" value="close" @click="${this.closeEditor}">
                         <sp-icon-close-circle slot="icon"></sp-icon-close-circle>

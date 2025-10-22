@@ -55,7 +55,7 @@ function extractSurfaceFromPath(path) {
 }
 
 /**
- * Enrich context with surface-specific information
+ * Enrich context with surface-specific and locale information
  * @param {Object} context - Original context from frontend
  * @returns {Object} - Enriched context
  */
@@ -71,6 +71,10 @@ function enrichContextWithSurface(context) {
             enrichedContext.surface = surface;
             enrichedContext.suggestedVariants = getVariantsForSurface(surface);
         }
+    }
+
+    if (context.currentLocale) {
+        enrichedContext.locale = context.currentLocale;
     }
 
     return enrichedContext;
@@ -380,12 +384,19 @@ function determineSystemPrompt(intentHint, conversationHistory, message) {
 
     const documentationKeywords = [
         'what is',
+        'what are',
+        "what's",
         'how do i',
+        'how do',
         'how to',
+        'how does',
         'why',
         'where',
+        'when',
+        'which',
         'explain',
         'tell me about',
+        'describe',
         'odin',
         'freyja',
         'wcs',
@@ -406,10 +417,13 @@ function determineSystemPrompt(intentHint, conversationHistory, message) {
     ];
     const hasDocumentationKeyword = documentationKeywords.some((keyword) => lowerMessage.includes(keyword));
 
+    const isQuestion =
+        lowerMessage.trim().endsWith('?') || /^(what|how|why|where|when|which|who|can|does|is|are)\b/i.test(lowerMessage);
+
     const cardCreationKeywords = ['create', 'make', 'generate', 'card', 'collection'];
     const hasCardCreationKeyword = cardCreationKeywords.some((keyword) => lowerMessage.includes(keyword));
 
-    if (hasDocumentationKeyword && !hasCardCreationKeyword) {
+    if ((hasDocumentationKeyword || isQuestion) && !hasCardCreationKeyword) {
         return buildDocumentationPrompt(message);
     }
 

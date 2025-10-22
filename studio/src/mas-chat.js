@@ -49,7 +49,6 @@ export class MasChat extends LitElement {
         this.addEventListener('cards-selected', this.handleCardsSelected);
         this.addEventListener('create-collection-from-preview', this.handleCreateCollectionFromPreview);
         this.addEventListener('prompt-selected', this.handlePromptSelected);
-        this.addEventListener('direct-action', this.handleDirectAction);
         this.addEventListener('operation-action', this.handleOperationAction);
         this.addEventListener('open-card', this.handleOpenCardFromOperation);
         this.addEventListener('session-changed', this.handleSessionChanged);
@@ -62,7 +61,6 @@ export class MasChat extends LitElement {
         this.removeEventListener('cards-selected', this.handleCardsSelected);
         this.removeEventListener('create-collection-from-preview', this.handleCreateCollectionFromPreview);
         this.removeEventListener('prompt-selected', this.handlePromptSelected);
-        this.removeEventListener('direct-action', this.handleDirectAction);
         this.removeEventListener('operation-action', this.handleOperationAction);
         this.removeEventListener('open-card', this.handleOpenCardFromOperation);
         this.removeEventListener('session-changed', this.handleSessionChanged);
@@ -157,33 +155,6 @@ export class MasChat extends LitElement {
         this.handleSendMessage({ detail: { message: prompt, context: {} } });
     }
 
-    handleDirectAction(event) {
-        const { action, prompt } = event.detail;
-        this.showPromptSuggestions = false;
-
-        if (action === 'open-collection-selector') {
-            this.messages = [
-                ...this.messages,
-                {
-                    role: 'user',
-                    content: prompt,
-                    timestamp: Date.now(),
-                },
-            ];
-
-            this.messages = [
-                ...this.messages,
-                {
-                    role: 'assistant',
-                    content:
-                        "I'll help you create a collection. Click the button below to select cards from your existing cards.",
-                    type: 'collection-selection',
-                    timestamp: Date.now(),
-                },
-            ];
-        }
-    }
-
     async handleSendMessage(event) {
         const { message, context } = event.detail;
 
@@ -216,6 +187,7 @@ export class MasChat extends LitElement {
             const enrichedContext = {
                 ...context,
                 currentPath: Store.search.value.path,
+                currentLocale: Store.filters.value.locale || 'en_US',
             };
 
             const response = await this.callAIChatAction({
@@ -225,6 +197,14 @@ export class MasChat extends LitElement {
             });
 
             if (response.type === 'operation' || response.type === 'mcp_operation') {
+                if (response.type === 'mcp_operation' && response.mcpTool === 'studio_search_cards') {
+                    const surface = this.extractSurfaceFromPath(Store.search.value.path);
+                    if (surface) {
+                        response.mcpParams.surface = surface;
+                    }
+                    response.mcpParams.locale = Store.filters.value.locale || 'en_US';
+                }
+
                 const messageData = {
                     role: 'assistant',
                     content: response.message,
@@ -244,6 +224,19 @@ export class MasChat extends LitElement {
                 }
 
                 this.messages = [...this.messages, messageData];
+
+                if (!response.confirmationRequired) {
+                    const operationToExecute =
+                        response.type === 'mcp_operation'
+                            ? {
+                                  type: 'mcp_operation',
+                                  mcpTool: response.mcpTool,
+                                  mcpParams: response.mcpParams,
+                              }
+                            : response.data;
+
+                    await this.executeOperation(operationToExecute);
+                }
             } else if (response.type === 'card') {
                 const messageIndex = this.messages.length;
                 this.messages = [
@@ -713,35 +706,71 @@ export class MasChat extends LitElement {
         }
 
         const operationType = operation.type === 'mcp_operation' ? operation.mcpTool : operation.operation;
+        const loadingMessage = this.getOperationLoadingMessage(operationType);
+
+        const loadingMessageObj = {
+            role: 'assistant',
+            content: loadingMessage,
+            operationLoading: true,
+            operationType,
+            timestamp: Date.now(),
+        };
+
+        this.messages = [...this.messages, loadingMessageObj];
 
         await executeOperationWithFeedback(
             operation,
             repository,
             (res) => {
-                this.messages = [
-                    ...this.messages,
-                    {
-                        role: 'assistant',
-                        content: res.message,
-                        operationResult: res,
-                        operationType,
-                        timestamp: Date.now(),
-                    },
-                ];
+                this.messages = this.messages.map((msg) =>
+                    msg === loadingMessageObj
+                        ? {
+                              role: 'assistant',
+                              content: res.message,
+                              operationResult: res,
+                              operationType,
+                              operationLoading: false,
+                              timestamp: Date.now(),
+                          }
+                        : msg,
+                );
             },
             (error) => {
-                this.messages = [
-                    ...this.messages,
-                    {
-                        role: 'error',
-                        content: `Operation failed: ${error.message}`,
-                        timestamp: Date.now(),
-                    },
-                ];
+                this.messages = this.messages.map((msg) =>
+                    msg === loadingMessageObj
+                        ? {
+                              role: 'error',
+                              content: `Operation failed: ${error.message}`,
+                              operationLoading: false,
+                              timestamp: Date.now(),
+                          }
+                        : msg,
+                );
             },
         );
 
         this.isLoading = false;
+    }
+
+    getOperationLoadingMessage(operationType) {
+        const messages = {
+            studio_search_cards: 'Searching for cards...',
+            search: 'Searching for cards...',
+            studio_publish_card: 'Publishing card...',
+            publish: 'Publishing card...',
+            studio_unpublish_card: 'Unpublishing card...',
+            unpublish: 'Unpublishing card...',
+            studio_delete_card: 'Deleting card...',
+            delete: 'Deleting card...',
+            studio_copy_card: 'Copying card...',
+            copy: 'Copying card...',
+            studio_update_card: 'Updating card...',
+            update: 'Updating card...',
+            studio_get_card: 'Fetching card details...',
+            get: 'Fetching card details...',
+        };
+
+        return messages[operationType] || 'Executing operation...';
     }
 
     handleOpenCardFromOperation(event) {
@@ -749,6 +778,26 @@ export class MasChat extends LitElement {
         const fragmentStore = new FragmentStore(fragment);
         editFragment(fragmentStore);
         showToast('Card opened in editor');
+    }
+
+    extractSurfaceFromPath(path) {
+        if (!path || typeof path !== 'string') return null;
+
+        const pathParts = path.split('/');
+        const surfaceIndex = pathParts.indexOf('mas') + 1;
+
+        if (surfaceIndex === 0 || surfaceIndex >= pathParts.length) return null;
+
+        const pathSegment = pathParts[surfaceIndex];
+
+        const surfaceMap = {
+            acom: 'acom',
+            ccd: 'ccd',
+            commerce: 'commerce',
+            ahome: 'adobe-home',
+        };
+
+        return surfaceMap[pathSegment] || null;
     }
 
     scrollToBottom(smooth = false) {
@@ -794,8 +843,10 @@ export class MasChat extends LitElement {
                     <div class="chat-header-content">
                         <sp-icon-magic-wand size="l" class="chat-header-icon"></sp-icon-magic-wand>
                         <div class="chat-header-text">
-                            <h2>Merch at Scale AI Creator</h2>
-                            <p>Create merch cards with natural language</p>
+                            <h2>Merch at Scale AI Assistant (Beta)</h2>
+                            <p>
+                                Ask anything about Studio, create merch cards, build collections, and perform content operations
+                            </p>
                         </div>
                     </div>
                     <div class="chat-header-actions">

@@ -235,4 +235,15 @@ Your responses should:
 - Don't invent information not in your knowledge base
 - Direct users to appropriate channels when you don't have the answer
 - Keep answers concise but complete
+
+# CRITICAL: Response Format
+
+**NEVER include JSON in documentation responses!**
+- Respond with plain text and markdown ONLY
+- Do NOT wrap examples in \`\`\`json code blocks
+- Do NOT include card configurations or structured data objects
+- If showing data structures, use generic code blocks without language specifier
+- Example: Use \`\`\`\ndata here\n\`\`\` NOT \`\`\`json\ndata\n\`\`\`
+
+If users ask about card structure or examples, describe them in prose rather than showing JSON.
 `;

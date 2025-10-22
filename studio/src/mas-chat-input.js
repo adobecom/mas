@@ -82,9 +82,12 @@ export class MasChatInput extends LitElement {
     }
 
     handleRteFocus() {
-        if (this.isPlaceholderActive) {
-            const rteField = this.querySelector('rte-field');
-            if (rteField && rteField.editorView) {
+        const rteField = this.querySelector('rte-field');
+        if (rteField && rteField.editorView) {
+            const currentText = rteField.editorView.state.doc.textContent;
+            const placeholderText = "Type your message... (e.g., 'Create a fries card for Photoshop')";
+
+            if (currentText === placeholderText || this.isPlaceholderActive) {
                 rteField.editorView.dispatch(
                     rteField.editorView.state.tr.delete(0, rteField.editorView.state.doc.content.size),
                 );
@@ -125,30 +128,20 @@ export class MasChatInput extends LitElement {
             }),
         );
 
-        rteField.editorView.dispatch(rteField.editorView.state.tr.delete(0, rteField.editorView.state.doc.content.size));
         this.message = '';
         this.selectedOsi = null;
         this.selectedOffer = null;
         this.selectedCards = [];
         this.isPlaceholderActive = true;
 
-        setTimeout(() => {
-            const updatedRteField = this.querySelector('rte-field');
-            if (updatedRteField && updatedRteField.editorView) {
-                const placeholderText = "Type your message... (e.g., 'Create a fries card for Photoshop')";
-                const parser = DOMParser.fromSchema(updatedRteField.editorView.state.schema);
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = `<p>${placeholderText}</p>`;
-                const doc = parser.parse(tempDiv);
-                updatedRteField.editorView.dispatch(
-                    updatedRteField.editorView.state.tr.replaceWith(
-                        0,
-                        updatedRteField.editorView.state.doc.content.size,
-                        doc.content,
-                    ),
-                );
-            }
-        }, 50);
+        const placeholderText = "Type your message... (e.g., 'Create a fries card for Photoshop')";
+        const parser = DOMParser.fromSchema(rteField.editorView.state.schema);
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = `<p>${placeholderText}</p>`;
+        const doc = parser.parse(tempDiv);
+        rteField.editorView.dispatch(
+            rteField.editorView.state.tr.replaceWith(0, rteField.editorView.state.doc.content.size, doc.content),
+        );
     }
 
     handleOsiSelect() {

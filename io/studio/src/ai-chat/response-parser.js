@@ -23,15 +23,6 @@ export function extractJSON(responseText) {
         }
     }
 
-    const jsonObjectMatch = responseText.match(/\{[\s\S]*\}/);
-    if (jsonObjectMatch) {
-        try {
-            return JSON.parse(jsonObjectMatch[0]);
-        } catch (error) {
-            console.error('Failed to parse JSON object:', error);
-        }
-    }
-
     return null;
 }
 

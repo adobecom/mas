@@ -57,9 +57,31 @@ async function startHttpServer() {
 
     app.post('/tools/:toolName', async (req, res) => {
         const { toolName } = req.params;
-        const params = req.body;
+        const { _aemBaseUrl, ...params } = req.body;
+        const authHeader = req.headers.authorization;
 
         try {
+            console.log('[HTTP] Request to:', toolName);
+            console.log('[HTTP] Auth header present:', !!authHeader);
+            console.log('[HTTP] _aemBaseUrl:', _aemBaseUrl);
+
+            if (authHeader?.startsWith('Bearer ')) {
+                const token = authHeader.slice(7);
+                console.log('[HTTP] Received token:', token.slice(0, 20) + '...');
+                mcpServer.authManager.setAccessToken(token);
+            } else {
+                console.log('[HTTP] WARNING: No auth header received');
+            }
+
+            if (_aemBaseUrl) {
+                mcpServer.aemClient.baseUrl = _aemBaseUrl.replace(/\/$/, '');
+                mcpServer.aemClient.cfFragmentsUrl = `${mcpServer.aemClient.baseUrl}/adobe/sites/cf/fragments`;
+                mcpServer.aemClient.cfSearchUrl = `${mcpServer.aemClient.cfFragmentsUrl}/search`;
+                mcpServer.aemClient.cfPublishUrl = `${mcpServer.aemClient.cfFragmentsUrl}/publish`;
+                mcpServer.aemClient.wcmcommandUrl = `${mcpServer.aemClient.baseUrl}/bin/wcmcommand`;
+                mcpServer.aemClient.csrfTokenUrl = `${mcpServer.aemClient.baseUrl}/libs/granite/csrf/token.json`;
+            }
+
             const result = await mcpServer.handleToolCall(toolName, params);
             res.json(result);
         } catch (error) {

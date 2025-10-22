@@ -45,7 +45,15 @@
     margin: 0 0 var(--spectrum-global-dimension-size-50) 0;
     font-size: var(--spectrum-alias-heading-m-text-size);
     font-weight: var(--spectrum-alias-heading-text-font-weight-regular);
-    color: var(--spectrum-global-color-gray-900);
+    background: linear-gradient(
+        135deg,
+        var(--spectrum-global-color-purple-600),
+        var(--spectrum-global-color-fuchsia-600),
+        var(--spectrum-global-color-indigo-600)
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .chat-header-text p {
@@ -486,6 +494,19 @@
     gap: var(--spectrum-global-dimension-size-150);
     color: var(--spectrum-global-color-gray-700);
     font-style: italic;
+}
+
+.operation-loading {
+    display: flex;
+    align-items: center;
+    gap: var(--spectrum-global-dimension-size-150);
+    padding: var(--spectrum-global-dimension-size-200);
+    margin-top: var(--spectrum-global-dimension-size-150);
+    background: var(--spectrum-global-color-gray-50);
+    border-radius: var(--spectrum-global-dimension-size-100);
+    color: var(--spectrum-global-color-gray-700);
+    font-style: italic;
+    border: 1px solid var(--spectrum-global-color-gray-200);
 }
 
 /* Message Offer Context */
@@ -1024,6 +1045,19 @@
     gap: var(--spectrum-global-dimension-size-150);
 }
 
+.search-results-preview {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spectrum-global-dimension-size-100);
+    margin-bottom: var(--spectrum-global-dimension-size-200);
+}
+
+.search-results-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--spectrum-global-dimension-size-200);
+}
+
 .search-result-card {
     display: flex;
     justify-content: space-between;
@@ -1035,6 +1069,19 @@
     transition:
         border-color 0.2s,
         box-shadow 0.2s;
+}
+
+.search-result-card.compact {
+    padding: var(--spectrum-global-dimension-size-150);
+}
+
+.search-result-card.compact .card-info h4 {
+    font-size: var(--spectrum-global-dimension-size-150);
+    margin-bottom: var(--spectrum-global-dimension-size-50);
+}
+
+.search-result-card.compact .card-meta {
+    gap: var(--spectrum-global-dimension-size-75);
 }
 
 .search-result-card:hover {

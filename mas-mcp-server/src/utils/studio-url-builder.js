@@ -163,6 +163,22 @@ export class StudioURLBuilder {
     }
 
     /**
+     * Create a folder link for a surface
+     */
+    createFolderLink(surface) {
+        const surfaceMap = {
+            commerce: '/content/dam/mas/commerce',
+            acom: '/content/dam/mas/acom',
+            ccd: '/content/dam/mas/ccd',
+            'adobe-home': '/content/dam/mas/adobe-home',
+        };
+
+        const path = surfaceMap[surface] || '/content/dam/mas';
+
+        return this.buildContentLink({ path });
+    }
+
+    /**
      * Create links for offer-related operations
      */
     createOfferLinks(offer) {

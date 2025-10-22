@@ -128,12 +128,6 @@ function validateMCPOperation(operation) {
             break;
 
         case 'studio_search_cards':
-            if (!operation.mcpParams.surface) {
-                return {
-                    valid: false,
-                    error: 'studio_search_cards requires mcpParams.surface (commerce, acom, ccd, or adobe-home)',
-                };
-            }
             break;
     }
 

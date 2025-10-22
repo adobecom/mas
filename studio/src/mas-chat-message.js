@@ -231,6 +231,20 @@ export class MasChatMessage extends LitElement {
         );
     }
 
+    async handleViewAllCards(event) {
+        const { results } = event.detail;
+
+        const dialog = document.createElement('mas-card-selection-dialog');
+        document.body.appendChild(dialog);
+
+        await dialog.open({
+            mode: 'view-only',
+            fragments: results,
+        });
+
+        dialog.remove();
+    }
+
     getOfferProductName(offer) {
         if (!offer) return '';
         return offer.productName || offer.name || 'Unknown Product';
@@ -312,6 +326,7 @@ export class MasChatMessage extends LitElement {
             operation,
             operationResult,
             operationType,
+            operationLoading,
             fragmentId,
         } = this.message;
 
@@ -400,16 +415,28 @@ export class MasChatMessage extends LitElement {
                                       <span>Thinking...</span>
                                   </div>
                               `
-                            : html` <div class="message-text">${isUser ? content : unsafeHTML(parseMarkdown(content))}</div> `}
+                            : html` <div class="message-text">${unsafeHTML(isUser ? content : parseMarkdown(content))}</div> `}
                         ${this.showSuggestions ? html`<mas-prompt-suggestions></mas-prompt-suggestions>` : ''}
                     </div>
 
                     ${cardConfig || fragmentId ? this.renderCardPreview() : ''}
-                    ${collectionConfig ? this.renderCollectionPreview() : ''} ${operation ? this.renderOperationRequest() : ''}
+                    ${collectionConfig ? this.renderCollectionPreview() : ''}
+                    ${operation || (this.message.mcpOperation && this.message.confirmationRequired)
+                        ? this.renderOperationRequest()
+                        : ''}
+                    ${operationLoading
+                        ? html`
+                              <div class="operation-loading">
+                                  <sp-progress-circle indeterminate size="s"></sp-progress-circle>
+                                  <span>Processing...</span>
+                              </div>
+                          `
+                        : ''}
                     ${operationResult
                         ? html`<mas-operation-result
                               .result=${operationResult}
                               .operationType=${operationType}
+                              @view-all-cards=${this.handleViewAllCards}
                           ></mas-operation-result>`
                         : ''}
                 </div>

@@ -1,6 +1,7 @@
 import { LitElement, html } from 'lit';
 import sessionManager from './services/chat-session-manager.js';
 import { showToast } from './utils.js';
+import { confirmation } from './mas-confirm-dialog.js';
 
 export class MasChatSessionSelector extends LitElement {
     static properties = {
@@ -14,6 +15,7 @@ export class MasChatSessionSelector extends LitElement {
         this.activeSessionId = null;
         this.sessions = [];
         this.isOpen = false;
+        this.handleClickOutside = this.handleClickOutside.bind(this);
     }
 
     createRenderRoot() {
@@ -23,6 +25,25 @@ export class MasChatSessionSelector extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         this.loadSessions();
+        document.addEventListener('click', this.handleClickOutside);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        document.removeEventListener('click', this.handleClickOutside);
+    }
+
+    handleClickOutside(event) {
+        if (!this.isOpen) return;
+
+        const path = event.composedPath();
+        const clickedInside = path.some(
+            (el) => el === this || (el.classList && el.classList.contains('chat-session-selector')),
+        );
+
+        if (!clickedInside) {
+            this.isOpen = false;
+        }
     }
 
     loadSessions() {
@@ -69,40 +90,40 @@ export class MasChatSessionSelector extends LitElement {
         }
     }
 
-    handleDeleteSession(event, sessionId) {
+    async handleDeleteSession(event, sessionId) {
         event.stopPropagation();
 
         const session = sessionManager.getSession(sessionId);
         if (!session) return;
 
-        const dialog = document.querySelector('mas-confirm-dialog');
-        if (!dialog) return;
+        this.isOpen = false;
 
-        dialog.open({
+        const confirmed = await confirmation({
             title: 'Delete Chat Session',
-            message: `Are you sure you want to delete "${session.name}"? This action cannot be undone.`,
-            confirmText: 'Delete',
-            onConfirm: () => {
-                try {
-                    const newActiveSessionId = sessionManager.deleteSession(sessionId);
-                    this.loadSessions();
-
-                    if (sessionId === this.activeSessionId) {
-                        this.dispatchEvent(
-                            new CustomEvent('session-changed', {
-                                detail: { sessionId: newActiveSessionId },
-                                bubbles: true,
-                                composed: true,
-                            }),
-                        );
-                    }
-
-                    showToast('Session deleted', 'positive');
-                } catch (error) {
-                    showToast(`Failed to delete session: ${error.message}`, 'negative');
-                }
-            },
+            content: `Are you sure you want to delete "${session.name}"? This action cannot be undone.`,
+            confirmLabel: 'Delete',
         });
+
+        if (!confirmed) return;
+
+        try {
+            const newActiveSessionId = sessionManager.deleteSession(sessionId);
+            this.loadSessions();
+
+            if (sessionId === this.activeSessionId) {
+                this.dispatchEvent(
+                    new CustomEvent('session-changed', {
+                        detail: { sessionId: newActiveSessionId },
+                        bubbles: true,
+                        composed: true,
+                    }),
+                );
+            }
+
+            showToast('Session deleted', 'positive');
+        } catch (error) {
+            showToast(`Failed to delete session: ${error.message}`, 'negative');
+        }
     }
 
     handleRenameSession(event, sessionId) {
@@ -123,40 +144,40 @@ export class MasChatSessionSelector extends LitElement {
         }
     }
 
-    handleClearSession(event, sessionId) {
+    async handleClearSession(event, sessionId) {
         event.stopPropagation();
 
         const session = sessionManager.getSession(sessionId);
         if (!session) return;
 
-        const dialog = document.querySelector('mas-confirm-dialog');
-        if (!dialog) return;
+        this.isOpen = false;
 
-        dialog.open({
+        const confirmed = await confirmation({
             title: 'Clear Chat History',
-            message: `Clear all messages in "${session.name}"? The session will be kept but the conversation will be reset.`,
-            confirmText: 'Clear',
-            onConfirm: () => {
-                try {
-                    sessionManager.clearSession(sessionId);
-                    this.loadSessions();
-
-                    if (sessionId === this.activeSessionId) {
-                        this.dispatchEvent(
-                            new CustomEvent('session-cleared', {
-                                detail: { sessionId },
-                                bubbles: true,
-                                composed: true,
-                            }),
-                        );
-                    }
-
-                    showToast('Chat history cleared', 'positive');
-                } catch (error) {
-                    showToast(`Failed to clear session: ${error.message}`, 'negative');
-                }
-            },
+            content: `Clear all messages in "${session.name}"? The session will be kept but the conversation will be reset.`,
+            confirmLabel: 'Clear',
         });
+
+        if (!confirmed) return;
+
+        try {
+            sessionManager.clearSession(sessionId);
+            this.loadSessions();
+
+            if (sessionId === this.activeSessionId) {
+                this.dispatchEvent(
+                    new CustomEvent('session-cleared', {
+                        detail: { sessionId },
+                        bubbles: true,
+                        composed: true,
+                    }),
+                );
+            }
+
+            showToast('Chat history cleared', 'positive');
+        } catch (error) {
+            showToast(`Failed to clear session: ${error.message}`, 'negative');
+        }
     }
 
     toggleDropdown() {

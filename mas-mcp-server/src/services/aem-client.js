@@ -17,22 +17,41 @@ export class AEMClient {
         const { path = '/content/dam/mas', query, tags, limit = 100, offset = 0 } = params;
 
         const authHeader = await this.authManager.getAuthHeader();
+        console.log('[AEMClient] Auth header:', authHeader ? `${authHeader.slice(0, 27)}...` : 'MISSING');
+        console.log('[AEMClient] Base URL:', this.baseUrl);
 
-        const searchParams = new URLSearchParams({
-            path,
-            limit: String(limit),
-            offset: String(offset),
-        });
+        const filter = { path };
 
         if (query) {
-            searchParams.set('fulltext', query);
+            filter.fullText = {
+                text: encodeURIComponent(query),
+                queryMode: 'EDGES',
+            };
         }
 
         if (tags && tags.length > 0) {
-            searchParams.set('tags', tags.join(','));
+            filter.tags = tags;
+        }
+
+        const searchQuery = {
+            filter,
+        };
+
+        const searchParams = new URLSearchParams({
+            query: JSON.stringify(searchQuery),
+        });
+
+        if (limit) {
+            searchParams.set('limit', String(limit));
+        }
+
+        if (offset) {
+            searchParams.set('offset', String(offset));
         }
 
         const url = `${this.baseUrl}/adobe/sites/cf/fragments/search?${searchParams}`;
+
+        console.log('[AEMClient] Request URL:', url);
 
         const response = await fetch(url, {
             method: 'GET',
@@ -43,6 +62,9 @@ export class AEMClient {
         });
 
         if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            console.error('[AEMClient] Response status:', response.status);
+            console.error('[AEMClient] Response body:', errorText);
             throw new Error(`AEM search failed: ${response.statusText}`);
         }
 

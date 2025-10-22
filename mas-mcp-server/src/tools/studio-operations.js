@@ -134,14 +134,14 @@ export class StudioOperations {
 
         const fragments = await this.aemClient.searchFragments(searchParams);
 
-        const cards = fragments.map((fragment) => this.formatCard(fragment));
+        const results = fragments.map((fragment) => this.formatCard(fragment));
 
         return {
             success: true,
             operation: 'search',
-            cards,
-            count: cards.length,
-            message: `Found ${cards.length} card${cards.length !== 1 ? 's' : ''}`,
+            results,
+            count: results.length,
+            message: `Found ${results.length} card${results.length !== 1 ? 's' : ''}`,
             studioLinks: {
                 viewFolder: this.urlBuilder.createFolderLink(surface),
             },

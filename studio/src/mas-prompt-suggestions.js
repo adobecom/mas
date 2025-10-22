@@ -13,22 +13,20 @@ export class MasPromptSuggestions extends LitElement {
         super();
         this.suggestions = [
             {
-                text: 'Create a collection',
-                prompt: 'Create a collection',
-                skipLLM: true,
-                action: 'open-collection-selector',
+                text: 'Create a new merch card',
+                prompt: 'Create a new merch card',
             },
             {
-                text: 'Create a plans card',
-                prompt: 'Create a plans card for Adobe Creative Cloud',
+                text: 'Create a merch card collection',
+                prompt: 'Create a merch card collection',
             },
             {
-                text: 'Create a fries card',
-                prompt: 'Create a fries card for Adobe Express',
+                text: 'Get help with M@S Studio',
+                prompt: 'Get help with M@S Studio',
             },
             {
-                text: 'Create a special offers card',
-                prompt: 'Create a special offers card with discount pricing',
+                text: 'Something else',
+                prompt: 'Something else',
             },
         ];
     }
@@ -38,26 +36,13 @@ export class MasPromptSuggestions extends LitElement {
     }
 
     handleSuggestionClick(suggestion) {
-        if (suggestion.skipLLM) {
-            this.dispatchEvent(
-                new CustomEvent('direct-action', {
-                    detail: {
-                        action: suggestion.action,
-                        prompt: suggestion.prompt,
-                    },
-                    bubbles: true,
-                    composed: true,
-                }),
-            );
-        } else {
-            this.dispatchEvent(
-                new CustomEvent('prompt-selected', {
-                    detail: { prompt: suggestion.prompt },
-                    bubbles: true,
-                    composed: true,
-                }),
-            );
-        }
+        this.dispatchEvent(
+            new CustomEvent('prompt-selected', {
+                detail: { prompt: suggestion.prompt },
+                bubbles: true,
+                composed: true,
+            }),
+        );
     }
 
     render() {

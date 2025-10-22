@@ -23,6 +23,8 @@ class MasCardSelectionDialog extends LitElement {
         viewMode: { state: true },
         currentFilters: { state: true },
         cardsRendering: { state: true },
+        mode: { type: String },
+        preloadedFragments: { type: Array },
     };
 
     selection = new StoreController(this, Store.selection);
@@ -47,22 +49,39 @@ class MasCardSelectionDialog extends LitElement {
         this.cardLoadObserver = null;
         this.loadedCardsSet = new Set();
         this.reflowTimeout = null;
+        this.mode = 'selection';
+        this.preloadedFragments = null;
     }
 
     createRenderRoot() {
         return this;
     }
 
-    async open() {
+    async open(options = {}) {
+        this.mode = options.mode || 'selection';
+        this.preloadedFragments = options.fragments || null;
+
         return new Promise((resolve) => {
             this.resolver = resolve;
-            this.previousSelectingState = Store.selecting.get();
-            Store.selecting.set(true);
-            this.loadFragments();
+
+            if (this.mode === 'selection') {
+                this.previousSelectingState = Store.selecting.get();
+                Store.selecting.set(true);
+            }
+
+            if (this.preloadedFragments) {
+                this.firstPageLoaded.value = true;
+            } else {
+                this.loadFragments();
+            }
         });
     }
 
     async loadFragments() {
+        if (this.preloadedFragments) {
+            return;
+        }
+
         try {
             const repository = document.querySelector('mas-repository');
             if (!repository) {
@@ -268,7 +287,38 @@ class MasCardSelectionDialog extends LitElement {
         Store.selection.set(Array.from(event.target.selectedSet));
     }
 
+    async handleOpenCard(fragment) {
+        const { Fragment } = await import('./aem/fragment.js');
+        const { FragmentStore } = await import('./reactivity/fragment-store.js');
+        const { editFragment } = await import('./store.js');
+
+        const fragmentInstance = new Fragment(fragment);
+        const fragmentStore = new FragmentStore(fragmentInstance);
+        editFragment(fragmentStore);
+
+        this.dispatchEvent(
+            new CustomEvent('card-opened', {
+                detail: { fragment },
+                bubbles: true,
+                composed: true,
+            }),
+        );
+    }
+
     get filteredFragments() {
+        if (this.preloadedFragments) {
+            let filtered = this.preloadedFragments;
+
+            if (this.searchQuery) {
+                filtered = filtered.filter((fragment) => {
+                    const title = (fragment.title || '').toLowerCase();
+                    return title.includes(this.searchQuery);
+                });
+            }
+
+            return filtered;
+        }
+
         const filterTags = this.currentFilters?.tags ? this.currentFilters.tags.split(',').filter(Boolean) : [];
 
         const variantFilters = filterTags
@@ -420,13 +470,13 @@ class MasCardSelectionDialog extends LitElement {
     }
 
     renderCardGrid() {
-        if (this.viewMode === 'table') {
+        if (this.viewMode === 'table' && !this.preloadedFragments) {
             return this.tableView;
         }
 
         const filtered = this.filteredFragments;
 
-        if (this.fragmentsLoading.value && filtered.length === 0) {
+        if (this.fragmentsLoading.value && filtered.length === 0 && !this.preloadedFragments) {
             return html`
                 <div class="loading-state">
                     <sp-progress-circle indeterminate size="l"></sp-progress-circle>
@@ -440,13 +490,60 @@ class MasCardSelectionDialog extends LitElement {
                 <div class="empty-state">
                     <sp-icon-view-grid></sp-icon-view-grid>
                     <h3>No cards found</h3>
-                    <p>Try adjusting your filters or search query.</p>
+                    <p>Try adjusting your${this.preloadedFragments ? '' : ' filters or'} search query.</p>
                 </div>
             `;
         }
 
         const displayedCards = filtered.slice(0, this.displayCount);
         const hasMore = this.displayCount < filtered.length;
+        const isViewOnly = this.mode === 'view-only';
+
+        if (this.preloadedFragments) {
+            return html`
+                <div class="card-grid">
+                    ${displayedCards.map(
+                        (fragment) => html`
+                            <div class="card-wrapper view-only">
+                                <div class="status-badge ${fragment.status?.toLowerCase() || 'draft'}">
+                                    ${fragment.status || 'Draft'}
+                                </div>
+
+                                <merch-card>
+                                    <aem-fragment author fragment="${fragment.id}"></aem-fragment>
+                                </merch-card>
+
+                                <div class="card-metadata">
+                                    <sp-badge variant="info" size="s">
+                                        ${fragment.tags?.find((t) => t.id.includes('variant/'))
+                                            ? fragment.tags
+                                                  .find((t) => t.id.includes('variant/'))
+                                                  .id.split('/')
+                                                  .pop()
+                                            : 'N/A'}
+                                    </sp-badge>
+                                    <div class="card-title" title="${fragment.title}">${fragment.title}</div>
+                                </div>
+
+                                <div class="card-actions-overlay">
+                                    <sp-button size="s" variant="accent" @click=${() => this.handleOpenCard(fragment)}>
+                                        <sp-icon-edit slot="icon"></sp-icon-edit>
+                                        Open in Editor
+                                    </sp-button>
+                                </div>
+                            </div>
+                        `,
+                    )}
+                    ${hasMore
+                        ? html`
+                              <div class="loading-more">
+                                  <sp-progress-circle indeterminate size="m"></sp-progress-circle>
+                              </div>
+                          `
+                        : ''}
+                </div>
+            `;
+        }
 
         return html`
             <div class="card-grid">
@@ -464,22 +561,26 @@ class MasCardSelectionDialog extends LitElement {
 
                         return html`
                             <div
-                                class="card-wrapper ${isSelected ? 'selected' : ''}"
-                                @click=${() => this.handleCardClick(fragmentStore)}
+                                class="card-wrapper ${isSelected ? 'selected' : ''} ${isViewOnly ? 'view-only' : ''}"
+                                @click=${() => (isViewOnly ? null : this.handleCardClick(fragmentStore))}
                             >
                                 <div class="status-badge ${status}">${fullFragment?.status || 'Draft'}</div>
 
-                                <div
-                                    class="selection-overlay ${isSelected ? 'selected' : ''}"
-                                    @click=${(e) => {
-                                        e.stopPropagation();
-                                        this.handleCardClick(fragmentStore);
-                                    }}
-                                >
-                                    ${isSelected
-                                        ? html`<sp-icon-checkmark-circle size="s"></sp-icon-checkmark-circle>`
-                                        : html`<sp-icon-add-circle size="s"></sp-icon-add-circle>`}
-                                </div>
+                                ${!isViewOnly
+                                    ? html`
+                                          <div
+                                              class="selection-overlay ${isSelected ? 'selected' : ''}"
+                                              @click=${(e) => {
+                                                  e.stopPropagation();
+                                                  this.handleCardClick(fragmentStore);
+                                              }}
+                                          >
+                                              ${isSelected
+                                                  ? html`<sp-icon-checkmark-circle size="s"></sp-icon-checkmark-circle>`
+                                                  : html`<sp-icon-add-circle size="s"></sp-icon-add-circle>`}
+                                          </div>
+                                      `
+                                    : ''}
 
                                 <merch-card>
                                     <aem-fragment author fragment="${fragment.id}"></aem-fragment>
@@ -490,6 +591,21 @@ class MasCardSelectionDialog extends LitElement {
                                     <div class="card-title" title="${title}">${title}</div>
                                     ${osi ? html`<div class="card-osi">OSI: ${osi}</div>` : ''}
                                 </div>
+
+                                ${isViewOnly
+                                    ? html`
+                                          <div class="card-actions-overlay">
+                                              <sp-button
+                                                  size="s"
+                                                  variant="accent"
+                                                  @click=${() => this.handleOpenCard(fullFragment)}
+                                              >
+                                                  <sp-icon-edit slot="icon"></sp-icon-edit>
+                                                  Open in Editor
+                                              </sp-button>
+                                          </div>
+                                      `
+                                    : ''}
                             </div>
                         `;
                     },
@@ -506,6 +622,16 @@ class MasCardSelectionDialog extends LitElement {
     }
 
     renderFooter() {
+        if (this.mode === 'view-only') {
+            return html`
+                <div class="dialog-footer">
+                    <div class="action-buttons">
+                        <sp-button variant="secondary" @click=${this.handleCancel}>Close</sp-button>
+                    </div>
+                </div>
+            `;
+        }
+
         return html`
             <div class="dialog-footer">
                 <div class="selection-info">
@@ -794,6 +920,24 @@ class MasCardSelectionDialog extends LitElement {
                     color: white;
                 }
 
+                mas-card-selection-dialog .card-actions-overlay {
+                    position: absolute;
+                    bottom: 60px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    opacity: 0;
+                    transition: opacity 0.2s ease;
+                    z-index: 20;
+                }
+
+                mas-card-selection-dialog .card-wrapper.view-only:hover .card-actions-overlay {
+                    opacity: 1;
+                }
+
+                mas-card-selection-dialog .card-wrapper.view-only {
+                    cursor: default;
+                }
+
                 mas-card-selection-dialog .loading-state {
                     display: flex;
                     flex-direction: column;
@@ -949,15 +1093,19 @@ class MasCardSelectionDialog extends LitElement {
             <div class="collection-dialog-container">
                 <sp-theme system="express" color="light" scale="medium">
                     <sp-dialog-wrapper mode="fullscreen" open underlay dismissable @close=${this.handleCancel}>
-                        <h2 slot="headline">Select Cards</h2>
+                        <h2 slot="headline">${this.mode === 'view-only' ? 'Search Results' : 'Select Cards'}</h2>
 
                         <sp-action-button quiet class="close-button" @click=${this.handleCancel}>
                             <sp-icon-close slot="icon"></sp-icon-close>
                         </sp-action-button>
 
                         <div class="dialog-content">
-                            ${this.renderFilterBar()} ${this.renderCardGrid()}
-                            ${this.firstPageLoaded.value && this.fragments.value.length > 0 ? this.renderFooter() : ''}
+                            ${this.mode === 'view-only' && !this.preloadedFragments ? '' : this.renderFilterBar()}
+                            ${this.renderCardGrid()}
+                            ${(this.mode === 'view-only' && this.preloadedFragments) ||
+                            (this.firstPageLoaded.value && this.fragments.value.length > 0)
+                                ? this.renderFooter()
+                                : ''}
                         </div>
                     </sp-dialog-wrapper>
                 </sp-theme>

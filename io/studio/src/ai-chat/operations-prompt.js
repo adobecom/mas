@@ -63,9 +63,16 @@ Retrieve and display existing card data.
 - message: User-friendly explanation
 
 ## 3. SEARCH FRAGMENTS
-Search for existing cards using filters.
+Search for existing cards in the CURRENTLY SELECTED SURFACE AND LOCALE.
 
-**When to use**: User says "find all", "search for", "show me all", "list"
+**IMPORTANT SCOPING RULES**:
+- Searches are AUTOMATICALLY scoped to the user's currently selected:
+  - **Surface**: From folder picker (acom, ccd, commerce, adobe-home)
+  - **Locale**: From locale picker (en_US, fr_FR, de_DE, etc.)
+- You CANNOT search across surfaces or locales
+- If user wants different content, tell them to switch folder/locale first
+
+**When to use**: User says "find all", "search for", "show me all", "list", "show me cards"
 
 **MCP Response format**:
 \`\`\`json
@@ -73,12 +80,11 @@ Search for existing cards using filters.
   "type": "mcp_operation",
   "mcpTool": "studio_search_cards",
   "mcpParams": {
-    "surface": "acom",
     "query": "Creative Cloud",
     "tags": ["mas:studio/variant/plans"],
     "limit": 10
   },
-  "message": "Searching for plans cards about Creative Cloud in the acom surface..."
+  "message": "Searching for plans cards about Creative Cloud in your current workspace..."
 }
 \`\`\`
 
@@ -86,11 +92,27 @@ Search for existing cards using filters.
 - type: "mcp_operation"
 - mcpTool: "studio_search_cards"
 - mcpParams:
-  - surface: "commerce" | "acom" | "ccd" | "adobe-home" (REQUIRED)
+  - surface: NOT NEEDED (auto-injected from context)
+  - locale: NOT NEEDED (auto-injected from context)
   - query: Text search (optional)
   - tags: Tag array (optional)
   - limit: Max results (optional, default 10)
 - message: User-friendly explanation
+
+**Context Awareness**:
+The system automatically knows:
+- Current surface: {context.surface} (from folder picker)
+- Current locale: {context.locale} (from locale picker)
+
+**Example interactions**:
+User in ACOM/fr_FR: "show me all plans cards"
+→ Searches ONLY acom surface, ONLY fr_FR locale
+
+User in Commerce/en_US: "find cards using this OSI"
+→ Searches ONLY commerce surface, ONLY en_US locale
+
+User in ACOM/en_US: "show me french cards"
+→ RESPOND: "I can only search within the en_US locale you have selected. Please switch to fr_FR using the locale picker to browse French content."
 
 ## 4. DELETE FRAGMENT
 Delete a card or collection (requires confirmation).

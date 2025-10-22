@@ -9,7 +9,8 @@ const config = {
     testDir: './nala',
     outputDir: './test-results',
     globalSetup: './nala/utils/global.setup.js',
-    globalTeardown: './nala/utils/global.teardown.js',
+    /* On GitHub Actions, teardown runs as separate workflow step; otherwise runs automatically */
+    globalTeardown: process.env.GITHUB_ACTIONS === 'true' ? undefined : './nala/utils/global.teardown.js',
     /* Maximum time one test can run for. */
     timeout: 45 * 1000,
     expect: {
@@ -30,13 +31,8 @@ const config = {
     workers: process.env.CI ? 4 : 3,
     /* Reporter to use. */
     reporter: process.env.CI
-        ? [['github'], ['list'], ['./nala/utils/base-reporter.js'], ['./nala/utils/request-counting-reporter.js']]
-        : [
-              ['html', { outputFolder: 'test-html-results' }],
-              ['list'],
-              ['./nala/utils/base-reporter.js'],
-              ['./nala/utils/request-counting-reporter.js'],
-          ],
+        ? [['github'], ['list'], ['./nala/utils/base-reporter.js']]
+        : [['html', { outputFolder: 'test-html-results' }], ['list'], ['./nala/utils/base-reporter.js']],
     /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
     use: {
         /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */

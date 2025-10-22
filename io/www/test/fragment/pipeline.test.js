@@ -1,8 +1,9 @@
 import { expect } from 'chai';
 import nock from 'nock';
-import { main as action } from '../../src/fragment/pipeline.js';
+import { main as action, resetCache } from '../../src/fragment/pipeline.js';
 import { mockDictionary } from './replace.test.js';
 import zlib from 'zlib';
+import sinon from 'sinon';
 
 import FRAGMENT_RESPONSE_EN from './mocks/fragment-en-default.json' with { type: 'json' };
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
@@ -241,6 +242,12 @@ describe('pipeline full use case', () => {
 describe('pipeline corner cases', () => {
     beforeEach(() => {
         nock.cleanAll();
+        mockDictionary();
+        resetCache();
+    });
+
+    afterEach(() => {
+        nock.cleanAll();
     });
 
     it('action should be defined', () => {
@@ -381,5 +388,83 @@ describe('pipeline corner cases', () => {
         const result = await runOnFilledState('null', {});
         expect(result.body).to.deep.include(EXPECTED_BODY);
         expect(result.statusCode).to.equal(200);
+    });
+});
+
+describe('configuration caching', () => {
+    beforeEach(() => {
+        nock.cleanAll();
+        resetCache();
+    });
+
+    afterEach(() => {
+        nock.cleanAll();
+    });
+
+    it('should cache configuration and reuse it on subsequent requests', async () => {
+        setupFragmentMocks({
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+            fields: {
+                description: 'corps',
+                cta: '{{buy-now}}',
+            },
+        });
+
+        const state = new MockState();
+        await state.put('configuration', JSON.stringify({ debugLogs: true }));
+        const stateGetSpy = sinon.spy(state, 'get');
+
+        const result1 = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+        });
+        expect(result1.statusCode).to.equal(200);
+
+        setupFragmentMocks({
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+            fields: {
+                description: 'corps',
+                cta: '{{buy-now}}',
+            },
+        });
+
+        const result2 = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+        });
+        expect(result2.statusCode).to.equal(200);
+        expect(result1.body).to.deep.equal(result2.body);
+
+        let configCalls = stateGetSpy.getCalls().filter((call) => call.args[0] === 'configuration');
+        expect(configCalls).to.have.length(1);
+
+        const performanceStub = sinon.stub(performance, 'now');
+        performanceStub.returns(5 * 60 * 1000 + 1000);
+
+        setupFragmentMocks({
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+            fields: {
+                description: 'corps',
+                cta: '{{buy-now}}',
+            },
+        });
+
+        const result3 = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+        });
+        expect(result3.statusCode).to.equal(200);
+
+        configCalls = stateGetSpy.getCalls().filter((call) => call.args[0] === 'configuration');
+        expect(configCalls).to.have.length(2);
+
+        performanceStub.restore();
+        stateGetSpy.restore();
     });
 });

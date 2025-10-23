@@ -24,7 +24,7 @@ async function init(initContext) {
 
             const { parsedLocale, surface, fragmentPath } = match.groups;
             resolve({
-                ...context,
+                ...initContext,
                 status: 200,
                 body: response.body,
                 parsedLocale,

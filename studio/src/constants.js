@@ -40,9 +40,11 @@ export const ANALYTICS_LINK_IDS = [
 ];
 
 export const CONSUMER_FEATURE_FLAGS = {
-    ccd: {
-        'mas-ff-defaults': 'on',
-    },
+    /* uncomment to disable FF for some surface
+    nala: {
+        'mas-ff-defaults': 'off',
+    }
+    */
 };
 
 // TODO remove these?

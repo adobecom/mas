@@ -95,7 +95,7 @@ async function getDefaultLanguageVariation(context) {
  * @returns
  */
 async function getRegionalVariations(context) {
-    const { surface, locale, fragmentPath } = context;
+    const { country, locale, fragmentPath, surface } = context;
     if (!surface || !fragmentPath) {
         return { status: 400, message: 'Missing surface or fragmentPath' };
     }
@@ -103,10 +103,13 @@ async function getRegionalVariations(context) {
     if (status != 200) {
         return { status, message };
     }
+    const defaultLocale = context.defaultLocale || locale;
     const variations = [body];
-    if (context.defaultLocale !== locale && body?.referencesTree) {
-        logDebug(() => `Looking for regional variation for ${surface}/${locale}/${fragmentPath}`, context);
-        const regionCustomizationPath = odinPath(surface, locale, fragmentPath);
+    const isRegionLocale = country ? defaultLocale.indexOf(`_${country}`) == -1 : defaultLocale !== locale;
+    if (isRegionLocale && body?.referencesTree) {
+        const regionLocale = country ? `${defaultLocale.split('_')[0]}_${country.toUpperCase()}` : locale;
+        logDebug(() => `Looking for regional variation for ${surface}/${regionLocale}/${fragmentPath}`, context);
+        const regionCustomizationPath = odinPath(surface, regionLocale, fragmentPath);
         const [regionalRef] = Object.values(body.referencesTree)
             .filter((ref) => ref.fieldName === 'variations')
             .filter((variation) => body.references[variation.identifier]?.value?.path === regionCustomizationPath);
@@ -146,12 +149,28 @@ async function init(context) {
     return await getVariations(context);
 }
 
+function deepMerge(...objects) {
+    const result = {};
+    for (const obj of objects) {
+        for (const key in obj) {
+            if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
+                result[key] = deepMerge(result[key] || {}, obj[key]);
+            } else {
+                if (!Array.isArray(obj[key]) || obj[key].length > 0) {
+                    result[key] = obj[key];
+                }
+            }
+        }
+    }
+    return result;
+}
+
 async function customize(context) {
     const { variations, status, message } = await context.promises?.customize;
     if (status != 200) {
         return { status, message };
     }
-    const customizedBody = Object.assign({}, ...variations);
+    const customizedBody = deepMerge(...variations);
 
     return {
         ...context,

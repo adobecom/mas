@@ -8,7 +8,6 @@ import {
 } from '../../src/fragment/transformers/customize.js';
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import FRAGMENT_RESPONSE_EN from './mocks/fragment-en-default.json' with { type: 'json' };
-import { context } from 'esbuild';
 
 const FAKE_CONTEXT = {
     status: 200,
@@ -157,6 +156,52 @@ describe('customize typical cases', function () {
         expect(result.body).to.deep.include({
             path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
         });
+    });
+
+    it('should return canadian fragment with override (us fragment, fr locale, ca country)', async function () {
+        // french fragment by id
+        nockFrenchFragment();
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            body: {
+                path: '/content/dam/mas/sandbox/en_US/some-en-us-fragment',
+            },
+            fragmentPath: 'ccd-slice-wide-cc-all-app',
+            locale: 'fr_FR',
+            country: 'CA',
+        });
+        expect(result.status).to.equal(200);
+        expect(result.body).to.deep.include({
+            path: '/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app',
+        });
+        expect(result.body.fields.badge.value).to.equal('canadian card');
+        expect(result.body.fields.description.value).to.equal('<p>french default description</p>');
+        //icons should have been overridden
+        expect(result.body.fields.mnemonicIcon.length).to.equal(2);
+    });
+
+    it('should return canadian fragment with override (us fragment, fr locale, ch country)', async function () {
+        // french fragment by id
+        nockFrenchFragment();
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            body: {
+                path: '/content/dam/mas/sandbox/en_US/some-en-us-fragment',
+            },
+            fragmentPath: 'ccd-slice-wide-cc-all-app',
+            locale: 'fr_FR',
+            country: 'CH',
+        });
+        expect(result.status).to.equal(200);
+        expect(result.body).to.deep.include({
+            path: '/content/dam/mas/sandbox/fr_CH/ccd-slice-wide-cc-all-app',
+        });
+        expect(result.body.fields.badge.value).to.equal('swiss card');
+        expect(result.body.fields.description.value).to.equal('<p>swiss description</p>');
+        //icons should have been inherited
+        expect(result.body.fields.mnemonicIcon.length).to.equal(1);
     });
 
     it('should return fr fragment (us fragment, fr_BE locale)', async function () {

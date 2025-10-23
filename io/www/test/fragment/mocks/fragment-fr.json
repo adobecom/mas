@@ -22,7 +22,7 @@
         },
         "shortDescription": { "mimeType": "text/html" },
         "description": {
-            "value": "<p>Corps XS/Regular Obtenez plus de 20 applications pour tous types de travaux créatifs, de l'édition de photos et de vidéos à la conception de logos et plus encore.</p><p><a class=\"primary-link\" href=\"https://example.com\" target=\"_self\">{{learn-more}}</a></p>",
+            "value": "<p>french default description</p>",
             "mimeType": "text/html"
         },
         "callout": {
@@ -56,22 +56,19 @@
                     ],
                     "mnemonicAlt": ["Lightroom", "Illustrator"],
                     "mnemonicLink": ["https://www.adobe.com/products/catalog.html", "https://www.adobe.com"],
-                    "badge": { "mimeType": "text/html" },
+                    "badge": { "value": "canadian card", "mimeType": "text/html" },
                     "trialBadge": { "mimeType": "text/html" },
                     "backgroundImage": "https://main--milo--adobecom.hlx.page/drafts/axel/media_144906e76fce812811940ce88ceded4f8d12098b5.png?width=2000&format=webply&optimize=medium",
                     "cardTitle": "Photography  (1TB)",
                     "prices": {
-                        "value": "<span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"K79yhO4-kgnn85ghM8NwRIACiaH_LucDbaIKajqpYk8\"></span>",
                         "mimeType": "text/html"
                     },
                     "shortDescription": { "mimeType": "text/html" },
                     "description": {
-                        "value": "<p>Edit this is the {{demo-sunil}} organize photos for Fred. Save&nbsp;25% for the first 6 months.&nbsp;Ends Feb 26.&nbsp;<a href=\"https://www.adobe.com/offer-terms/ccpp-1tb-terms.html\" target=\"_blank\">See terms.</a> {{how-is-nico}}<a href=\"https://www.adobe.com/creativecloud/photography/compare-plans.html\">Compare photography plans</a><br><a class=\"modal-Link\" href=\"https://www.adobe.com/plans-fragments/modals/individual/modals-content-rich/photography1tb/master.html\" target=\"_blank\">See all plans &amp; pricing details</a></p>",
                         "mimeType": "text/html"
                     },
                     "callout": { "mimeType": "text/html" },
                     "ctas": {
-                        "value": "<p><b><a data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"email\" data-quantity=\"1\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\">Buy now</a></b></p>\n",
                         "mimeType": "text/html"
                     },
                     "variations": [],
@@ -100,13 +97,10 @@
                     "variant": "plans",
                     "osi": "BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c",
                     "size": "Default",
-                    "mnemonicIcon": [
-                        "https://www.adobe.com/content/dam/shared/images/product-icons/svg/lightroom.svg",
-                        "https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg"
-                    ],
-                    "mnemonicAlt": ["Lightroom", "Illustrator"],
-                    "mnemonicLink": ["https://www.adobe.com/products/catalog.html", "https://www.adobe.com"],
-                    "badge": { "mimeType": "text/html" },
+                    "mnemonicIcon": [],
+                    "mnemonicAlt": [],
+                    "mnemonicLink": [],
+                    "badge": { "value": "swiss card", "mimeType": "text/html" },
                     "trialBadge": { "mimeType": "text/html" },
                     "backgroundImage": "https://main--milo--adobecom.hlx.page/drafts/axel/media_144906e76fce812811940ce88ceded4f8d12098b5.png?width=2000&format=webply&optimize=medium",
                     "cardTitle": "Photography  (1TB)",
@@ -116,7 +110,7 @@
                     },
                     "shortDescription": { "mimeType": "text/html" },
                     "description": {
-                        "value": "<p>Edit this is the {{demo-sunil}} organize photos for Fred. Save&nbsp;25% for the first 6 months.&nbsp;Ends Feb 26.&nbsp;<a href=\"https://www.adobe.com/offer-terms/ccpp-1tb-terms.html\" target=\"_blank\">See terms.</a> {{how-is-nico}}<a href=\"https://www.adobe.com/creativecloud/photography/compare-plans.html\">Compare photography plans</a><br><a class=\"modal-Link\" href=\"https://www.adobe.com/plans-fragments/modals/individual/modals-content-rich/photography1tb/master.html\" target=\"_blank\">See all plans &amp; pricing details</a></p>",
+                        "value": "<p>swiss description</p>",
                         "mimeType": "text/html"
                     },
                     "callout": { "mimeType": "text/html" },

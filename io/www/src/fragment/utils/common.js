@@ -193,7 +193,7 @@ async function getFragmentId(context, odinUrl, mark) {
  */
 async function getRequestInfos(context) {
     let { body, parsedLocale, surface, fragmentPath } = context;
-    if (!parsedLocale || !surface || !fragmentPath || !body) {
+    if (!parsedLocale || !surface || !fragmentPath || !body) {
         const fetchResult = await context.promises?.fetchFragment;
         if (fetchResult) {
             ({ parsedLocale, surface, fragmentPath, body } = fetchResult);

@@ -27,11 +27,13 @@ const mockDictionary = (preview = false) => {
     nock(odinDomain)
         .get(odinUriRoot)
         .query({ path: '/content/dam/mas/sandbox/fr_FR/dictionary/index' })
-        .reply(200, DICTIONARY_CF_RESPONSE).persist();
+        .reply(200, DICTIONARY_CF_RESPONSE)
+        .persist();
     nock(odinDomain)
         .get(`${odinUriRoot}/fr_FR_dictionary`)
         .query({ references: 'all-hydrated' })
-        .reply(200, DICTIONARY_RESPONSE).persist();
+        .reply(200, DICTIONARY_RESPONSE)
+        .persist();
 };
 
 const getResponse = async (description, cta) => {

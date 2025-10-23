@@ -119,7 +119,7 @@ describe('pipeline full use case', () => {
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR']);
         delete json.lastModified; // removing the date to avoid flakiness
         expect(json).to.deep.include({
-            dictionaryId: 'fr_FR_dictionary',
+            dictionaryId: 'sandbox_fr_FR_dictionary',
             translatedId: 'some-fr-fr-fragment',
             hash: EXPECTED_BODY_HASH,
         });
@@ -153,7 +153,7 @@ describe('pipeline full use case', () => {
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR']);
         delete json.lastModified; // removing the date to avoid flakiness
         expect(json).to.deep.include({
-            dictionaryId: 'fr_FR_dictionary',
+            dictionaryId: 'sandbox_fr_FR_dictionary',
             translatedId: 'some-fr-fr-fragment',
             hash: EXPECTED_BODY_HASH,
         });
@@ -162,7 +162,7 @@ describe('pipeline full use case', () => {
     it('should detect already treated /content/dam/mas/sandbox/fr_FR/someFragment if not changed', async () => {
         const result = await runOnFilledState(
             JSON.stringify({
-                dictionaryId: 'fr_FR_dictionary',
+                dictionaryId: 'sandbox_fr_FR_dictionary',
                 translatedId: 'some-fr-fr-fragment',
                 lastModified: RANDOM_OLD_DATE,
                 hash: EXPECTED_BODY_HASH,
@@ -345,7 +345,7 @@ describe('pipeline corner cases', () => {
     it('should manage ignore old if-modified', async () => {
         const result = await runOnFilledState(
             JSON.stringify({
-                dictionaryId: 'fr_FR_dictionary',
+                dictionaryId: 'sandbox_fr_FR_dictionary',
                 translatedId: 'some-fr-fr-fragment',
                 lastModified: 'Tue, 21 Nov 2024 08:00:00 GMT',
                 hash: EXPECTED_BODY_HASH,
@@ -361,7 +361,7 @@ describe('pipeline corner cases', () => {
     it('should manage same etag with no lastmodified', async () => {
         const result = await runOnFilledState(
             JSON.stringify({
-                dictionaryId: 'fr_FR_dictionary',
+                dictionaryId: 'sandbox_fr_FR_dictionary',
                 translatedId: 'some-fr-fr-fragment',
                 hash: EXPECTED_BODY_HASH,
             }),

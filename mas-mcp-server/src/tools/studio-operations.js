@@ -128,7 +128,7 @@ export class StudioOperations {
         const searchParams = {
             path: this.getSurfacePath(surface),
             query,
-            tags,
+            tags: [...tags, 'mas:studio/content-type/merch-card'],
             limit,
         };
 

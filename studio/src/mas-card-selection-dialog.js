@@ -70,11 +70,50 @@ class MasCardSelectionDialog extends LitElement {
             }
 
             if (this.preloadedFragments) {
+                this.#cachePreloadedFragments();
                 this.firstPageLoaded.value = true;
             } else {
                 this.loadFragments();
             }
         });
+    }
+
+    #cachePreloadedFragments() {
+        const AemFragmentElement = customElements.get('aem-fragment');
+        if (!AemFragmentElement || !this.preloadedFragments) return;
+
+        this.preloadedFragments.forEach((fragment) => {
+            const cacheData = {
+                id: fragment.id,
+                fields: this.#convertFragmentFields(fragment.fields),
+            };
+            AemFragmentElement.cache.add(cacheData);
+        });
+    }
+
+    #convertFragmentFields(fields) {
+        if (!fields) return {};
+
+        let fieldsObj = fields;
+        if (Array.isArray(fields)) {
+            fieldsObj = fields.reduce((acc, field) => {
+                if (field.name) {
+                    acc[field.name] = field;
+                }
+                return acc;
+            }, {});
+        }
+
+        return Object.entries(fieldsObj).reduce((acc, [key, field]) => {
+            if (field?.value !== undefined) {
+                acc[key] = field.value;
+            } else if (field?.values !== undefined) {
+                acc[key] = field.values.length === 1 ? field.values[0] : field.values;
+            } else {
+                acc[key] = field;
+            }
+            return acc;
+        }, {});
     }
 
     async loadFragments() {
@@ -502,25 +541,37 @@ class MasCardSelectionDialog extends LitElement {
         if (this.preloadedFragments) {
             return html`
                 <div class="card-grid">
-                    ${displayedCards.map(
-                        (fragment) => html`
-                            <div class="card-wrapper view-only">
+                    ${displayedCards.map((fragment) => {
+                        const isCollection = fragment.model?.path === '/conf/mas/settings/dam/cfm/models/collection';
+
+                        return html`
+                            <div class="card-wrapper view-only ${isCollection ? 'collection-item' : ''}">
                                 <div class="status-badge ${fragment.status?.toLowerCase() || 'draft'}">
                                     ${fragment.status || 'Draft'}
                                 </div>
 
-                                <merch-card>
-                                    <aem-fragment author fragment="${fragment.id}"></aem-fragment>
-                                </merch-card>
+                                ${isCollection
+                                    ? html`
+                                          <merch-card-collection class="collection-preview">
+                                              <aem-fragment fragment="${fragment.id}"></aem-fragment>
+                                          </merch-card-collection>
+                                      `
+                                    : html`
+                                          <merch-card>
+                                              <aem-fragment fragment="${fragment.id}"></aem-fragment>
+                                          </merch-card>
+                                      `}
 
                                 <div class="card-metadata">
                                     <sp-badge variant="info" size="s">
-                                        ${fragment.tags?.find((t) => t.id.includes('variant/'))
-                                            ? fragment.tags
-                                                  .find((t) => t.id.includes('variant/'))
-                                                  .id.split('/')
-                                                  .pop()
-                                            : 'N/A'}
+                                        ${isCollection
+                                            ? 'Collection'
+                                            : fragment.tags?.find((t) => t.id.includes('variant/'))
+                                              ? fragment.tags
+                                                    .find((t) => t.id.includes('variant/'))
+                                                    .id.split('/')
+                                                    .pop()
+                                              : 'N/A'}
                                     </sp-badge>
                                     <div class="card-title" title="${fragment.title}">${fragment.title}</div>
                                 </div>
@@ -532,8 +583,8 @@ class MasCardSelectionDialog extends LitElement {
                                     </sp-button>
                                 </div>
                             </div>
-                        `,
-                    )}
+                        `;
+                    })}
                     ${hasMore
                         ? html`
                               <div class="loading-more">
@@ -936,6 +987,15 @@ class MasCardSelectionDialog extends LitElement {
 
                 mas-card-selection-dialog .card-wrapper.view-only {
                     cursor: default;
+                }
+
+                mas-card-selection-dialog .card-wrapper.collection-item {
+                    min-height: auto;
+                }
+
+                mas-card-selection-dialog .card-wrapper.collection-item merch-card-collection {
+                    display: block;
+                    width: 100%;
                 }
 
                 mas-card-selection-dialog .loading-state {

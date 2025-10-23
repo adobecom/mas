@@ -419,8 +419,8 @@ export class MASMCPServer {
                     properties: {
                         surface: {
                             type: 'string',
-                            description: 'Surface to search in (commerce, acom, ccd, adobe-home)',
-                            enum: ['commerce', 'acom', 'ccd', 'adobe-home'],
+                            description: 'Surface to search in (commerce, acom, ccd, adobe-home, sandbox, nala)',
+                            enum: Object.values(SURFACES),
                         },
                         query: { type: 'string', description: 'Search query' },
                         tags: { type: 'array', items: { type: 'string' }, description: 'Tag filters' },

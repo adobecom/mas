@@ -143,7 +143,7 @@ export function createFragmentFromAIConfig(aiConfig, variant, options = {}) {
         const cacheData = {
             id: fragment.id,
             fields: fragment.fields.reduce((acc, field) => {
-                acc[field.name] = field.values;
+                acc[field.name] = field.values.length === 1 ? field.values[0] : field.values;
                 return acc;
             }, {}),
         };

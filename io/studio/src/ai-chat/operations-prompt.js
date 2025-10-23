@@ -63,7 +63,7 @@ Retrieve and display existing card data.
 - message: User-friendly explanation
 
 ## 3. SEARCH FRAGMENTS
-Search for existing cards in the CURRENTLY SELECTED SURFACE AND LOCALE.
+Search for existing CARDS ONLY in the CURRENTLY SELECTED SURFACE AND LOCALE.
 
 **IMPORTANT SCOPING RULES**:
 - Searches are AUTOMATICALLY scoped to the user's currently selected:
@@ -72,7 +72,9 @@ Search for existing cards in the CURRENTLY SELECTED SURFACE AND LOCALE.
 - You CANNOT search across surfaces or locales
 - If user wants different content, tell them to switch folder/locale first
 
-**When to use**: User says "find all", "search for", "show me all", "list", "show me cards"
+**CARDS ONLY**: This operation searches for CARDS ONLY. Collections are automatically excluded.
+
+**When to use**: User says "find all", "search for", "show me all", "list", "show me cards" (NOT collections)
 
 **MCP Response format**:
 \`\`\`json

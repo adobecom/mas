@@ -106,12 +106,12 @@ async function executeSearch(operation, repository) {
     const searchParams = {
         path: repository.search.value.path,
         query,
-        tags,
+        tags: [...tags, 'mas:studio/content-type/merch-card'],
         modelIds: [],
     };
 
     if (variant) {
-        searchParams.tags = [...tags, `mas:studio/variant/${variant}`];
+        searchParams.tags = [...searchParams.tags, `mas:studio/variant/${variant}`];
     }
 
     const results = [];
@@ -122,11 +122,15 @@ async function executeSearch(operation, repository) {
         if (results.length >= limit) break;
     }
 
+    const filteredResults = results
+        .filter((fragment) => fragment.model?.path === '/conf/mas/settings/dam/cfm/models/card')
+        .slice(0, limit);
+
     return {
         success: true,
-        results: results.slice(0, limit),
-        count: results.length,
-        message: `Found ${results.length} card${results.length !== 1 ? 's' : ''}`,
+        results: filteredResults,
+        count: filteredResults.length,
+        message: `Found ${filteredResults.length} card${filteredResults.length !== 1 ? 's' : ''}`,
     };
 }
 

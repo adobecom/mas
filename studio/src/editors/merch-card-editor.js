@@ -323,6 +323,7 @@ class MerchCardEditor extends LitElement {
                 <rte-field
                     id="card-title"
                     inline
+                    link
                     mnemonic
                     data-field="cardTitle"
                     .osi=${form.osi.values[0]}

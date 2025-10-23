@@ -3,7 +3,6 @@ export async function polyfills() {
     if (polyfillsPromise) return polyfillsPromise;
     let isSupported = false;
     document.createElement('div', {
-        // eslint-disable-next-line getter-return
         get is() {
             isSupported = true;
         },

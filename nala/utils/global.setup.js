@@ -108,6 +108,7 @@ async function getLocalBranchLiveUrl() {
                 cwd: localGitRootDir,
                 encoding: 'utf-8',
             }).trim();
+
             const match = gitRemoteOriginUrl.match(/github\.com\/(.*?)\/(.*?)\.git/);
 
             if (match) {

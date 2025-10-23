@@ -86,7 +86,7 @@ async function getDefaultLanguageVariation(context) {
         ({ body } = response);
     }
     context.defaultLocale = defaultLocale;
-    return { body, status: 200 };
+    return { body, defaultLocale, status: 200 };
 }
 
 /**
@@ -99,11 +99,10 @@ async function getRegionalVariations(context) {
     if (!surface || !fragmentPath) {
         return { status: 400, message: 'Missing surface or fragmentPath' };
     }
-    const { body, status, message } = await getDefaultLanguageVariation(context);
+    const { body, defaultLocale, status, message } = await getDefaultLanguageVariation(context);
     if (status != 200) {
         return { status, message };
     }
-    const defaultLocale = context.defaultLocale || locale;
     const variations = [body];
     const isRegionLocale = country ? defaultLocale.indexOf(`_${country}`) == -1 : defaultLocale !== locale;
     if (isRegionLocale && body?.referencesTree) {

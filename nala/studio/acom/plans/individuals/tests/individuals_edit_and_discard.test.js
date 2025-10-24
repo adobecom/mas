@@ -1553,6 +1553,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
     });
 
+    // @studio-plans-individuals-edit-discard-product-icon-picker - Validate edit and discard product icon using icon picker for plans individuals card in mas studio
     test(`${features[26].name},${features[26].tags}`, async ({ page, baseURL }) => {
         const { data } = features[26];
         const testPage = `${baseURL}${features[26].path}${miloLibs}${features[26].browserParams}${data.cardid}`;

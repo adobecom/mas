@@ -201,6 +201,7 @@ class MasMnemonicModal extends LitElement {
 
     #handleProductSelect(productId) {
         this.selectedProductId = productId;
+        this.icon = `https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${productId}.svg`;
     }
 
     #handleClose() {

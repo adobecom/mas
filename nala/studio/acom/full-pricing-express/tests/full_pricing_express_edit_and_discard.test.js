@@ -65,6 +65,7 @@ test.describe('M@S Studio ACOM Full Pricing Express card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
+            await expect(await fullPricingExpress.cardIconsSlot).toHaveAttribute('src', data.iconURL.original);
             await editor.openMnemonicModal();
             await editor.setMnemonicURL(data.iconURL.updated);
             await editor.saveMnemonicModal();

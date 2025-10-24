@@ -517,4 +517,43 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await clonedCard.locator(individuals.cardDescription)).toContainText(data.cardLegalDisclaimer);
         });
     });
+
+    // @studio-plans-individuals-save-product-icon-picker - Validate save product icon using icon picker for plans individuals card in mas studio
+    test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[7];
+        const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.cardid}`;
+        setTestPage(testPage);
+        let clonedCard;
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Clone card and open editor', async () => {
+            await studio.cloneCard(data.cardid);
+            clonedCard = await studio.getCard(data.cardid, 'cloned');
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
+            await expect(await clonedCard).toBeVisible();
+            await clonedCard.dblclick();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-3: Validate original icon', async () => {
+            await expect(await clonedCard.locator(individuals.cardIcon)).toHaveAttribute('src', data.productIcon.original.src);
+        });
+
+        await test.step('step-4: Select product icon from icon picker', async () => {
+            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await editor.openMnemonicModal();
+            await editor.selectProductIcon(data.productIcon.name);
+            await editor.saveMnemonicModal();
+            await studio.saveCard();
+        });
+
+        await test.step('step-5: Validate mnemonic icon saved', async () => {
+            await expect(await clonedCard.locator(individuals.cardIcon)).toHaveAttribute('src', data.productIcon.updated.src);
+        });
+    });
 });

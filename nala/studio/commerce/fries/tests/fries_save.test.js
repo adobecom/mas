@@ -75,8 +75,6 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
                 // Validate mnemonic in editor and card
                 test.step('Validation-3: Validate edited mnemonic', async () => {
-                    await editor.openMnemonicModal(0);
-                    await editor.cancelMnemonicModal();
                     await expect(await clonedCard.locator(fries.icon).first()).toHaveAttribute('src', data.iconURL.updated);
                 }),
             ]);

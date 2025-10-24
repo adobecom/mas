@@ -48,6 +48,7 @@ Promise.all([
         ...defaults,
         stdin: { contents: '' },
         inject: ['./src/merch-offer.js', './src/merch-offer-select.js'],
+        plugins: [rewriteImportsToLibsFolder()],
         outfile: `${outfolder}/merch-offer-select.js`,
     }),
     build({

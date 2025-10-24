@@ -2,6 +2,10 @@ import { LitElement, html, css } from 'lit';
 import { ADOBE_PRODUCTS } from './constants/adobe-products.js';
 
 class MasMnemonicModal extends LitElement {
+    #originalIcon = '';
+    #originalAlt = '';
+    #originalLink = '';
+
     static properties = {
         open: { type: Boolean, reflect: true },
         icon: { type: String },
@@ -168,13 +172,20 @@ class MasMnemonicModal extends LitElement {
         });
     }
 
+    #storeOriginalValues() {
+        this.#originalIcon = this.icon;
+        this.#originalAlt = this.alt;
+        this.#originalLink = this.link;
+    }
+
     connectedCallback() {
         super.connectedCallback();
         this.#initializeFromIcon();
     }
 
     updated(changedProperties) {
-        if (changedProperties.has('icon')) {
+        if (changedProperties.has('open') && this.open) {
+            this.#storeOriginalValues();
             this.#initializeFromIcon();
         }
     }
@@ -197,6 +208,23 @@ class MasMnemonicModal extends LitElement {
 
     #handleTabChange(e) {
         this.selectedTab = e.currentTarget.selected;
+
+        if (this.selectedTab === 'product-icon') {
+            this.#syncProductIconFromUrl();
+        }
+    }
+
+    #syncProductIconFromUrl() {
+        if (this.icon && this.icon.includes('/product-icons/svg/')) {
+            const match = this.icon.match(/\/([^/]+)\.svg$/);
+            if (match) {
+                const productId = match[1];
+                const product = ADOBE_PRODUCTS.find((p) => p.id === productId);
+                if (product) {
+                    this.selectedProductId = productId;
+                }
+            }
+        }
     }
 
     #handleProductSelect(productId) {
@@ -207,6 +235,13 @@ class MasMnemonicModal extends LitElement {
     #handleClose() {
         this.open = false;
         this.dispatchEvent(new CustomEvent('close', { bubbles: true, composed: true }));
+    }
+
+    #handleCancel() {
+        this.icon = this.#originalIcon;
+        this.alt = this.#originalAlt;
+        this.link = this.#originalLink;
+        this.#handleClose();
     }
 
     #handleSubmit(e) {
@@ -353,7 +388,7 @@ class MasMnemonicModal extends LitElement {
                     </sp-tabs>
                 </form>
 
-                <sp-button slot="button" variant="secondary" treatment="outline" @click=${this.#handleClose} type="button">
+                <sp-button slot="button" variant="secondary" treatment="outline" @click=${this.#handleCancel} type="button">
                     Cancel
                 </sp-button>
                 <sp-button slot="button" variant="accent" @click=${this.#handleSubmit}>

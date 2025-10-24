@@ -42,7 +42,7 @@ export const ANALYTICS_LINK_IDS = [
 export const CONSUMER_FEATURE_FLAGS = {
     'adobe-home': {
         'mas-ff-defaults': 'off',
-    }
+    },
 };
 
 // TODO remove these?

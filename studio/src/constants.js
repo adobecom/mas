@@ -40,11 +40,9 @@ export const ANALYTICS_LINK_IDS = [
 ];
 
 export const CONSUMER_FEATURE_FLAGS = {
-    /* uncomment to disable FF for some surface
-    nala: {
+    'adobe-home': {
         'mas-ff-defaults': 'off',
     }
-    */
 };
 
 // TODO remove these?

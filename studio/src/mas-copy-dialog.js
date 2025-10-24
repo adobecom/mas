@@ -15,7 +15,6 @@ export class MasCopyDialog extends LitElement {
         selectedLocale: { state: true },
         loading: { state: true },
         error: { state: true },
-        fragmentName: { state: true },
     };
 
     static styles = css`
@@ -139,7 +138,6 @@ export class MasCopyDialog extends LitElement {
         this.error = null;
         this.merchFolders = [];
         this.aem = null;
-        this.fragmentName = '';
 
         this.handleSubmit = this.handleSubmit.bind(this);
         this.close = this.close.bind(this);
@@ -151,10 +149,6 @@ export class MasCopyDialog extends LitElement {
         document.addEventListener(EVENT_KEYDOWN, this.handleKeyDown);
         this.aem = document.querySelector('mas-repository')?.aem;
 
-        if (this.fragment?.name) {
-            this.fragmentName = this.fragment.name;
-        }
-
         if (this.aem) {
             this.loadMerchFolders();
         } else {
@@ -165,10 +159,6 @@ export class MasCopyDialog extends LitElement {
 
     updated(changedProperties) {
         super.updated(changedProperties);
-
-        if (changedProperties.has('fragment') && this.fragment?.name) {
-            this.fragmentName = this.fragment.name;
-        }
 
         if (this.aem && this.merchFolders.length === 0 && !this.loading) {
             this.loadMerchFolders();
@@ -240,11 +230,6 @@ export class MasCopyDialog extends LitElement {
             return false;
         }
 
-        if (!this.fragmentName?.trim()) {
-            this.error = 'Please enter a name for the fragment';
-            return false;
-        }
-
         if (!this.aem) {
             this.error = 'AEM instance not available';
             return false;
@@ -260,20 +245,8 @@ export class MasCopyDialog extends LitElement {
 
     showSuccessMessage(copiedFragment) {
         const folderName = this.selectedFolder.displayName;
-
-        if (copiedFragment.renamedTo && copiedFragment.renamedTo !== this.fragment.name) {
-            showToast(
-                `Fragment copied to ${folderName} and renamed to '${copiedFragment.renamedTo}' to avoid conflicts`,
-                'positive',
-            );
-        } else if (copiedFragment.name && copiedFragment.name !== this.fragment.name) {
-            showToast(
-                `Fragment copied to ${folderName} and renamed to '${copiedFragment.name}' to avoid conflicts`,
-                'positive',
-            );
-        } else {
-            showToast(`Fragment copied to ${folderName}`, 'positive');
-        }
+        const localeName = this.selectedLocale;
+        showToast(`Fragment copied to ${folderName} (${localeName})`, 'positive');
     }
 
     handleCopyError(error) {
@@ -292,12 +265,38 @@ export class MasCopyDialog extends LitElement {
         showToast(`Failed to copy fragment: ${error.message}`, 'negative');
     }
 
+    extractSubfolderPath() {
+        if (!this.fragment?.path || !this.selectedFolder?.fullPath) {
+            return '';
+        }
+
+        const fragmentPath = this.fragment.path;
+        const surfacePath = this.selectedFolder.fullPath;
+
+        const pathParts = fragmentPath.split('/');
+        const surfaceParts = surfacePath.split('/');
+
+        const surfaceIndex = pathParts.findIndex(
+            (part, idx) => idx < pathParts.length - 2 && part === surfaceParts[surfaceParts.length - 1],
+        );
+
+        if (surfaceIndex === -1) return '';
+
+        const localeIndex = pathParts.findIndex((part, idx) => idx > surfaceIndex && /^[a-z]{2}_[A-Z]{2}$/.test(part));
+
+        if (localeIndex === -1 || localeIndex <= surfaceIndex + 1) return '';
+
+        return pathParts.slice(surfaceIndex + 1, localeIndex).join('/');
+    }
+
     async performCopy() {
-        const customName = this.fragmentName.trim();
+        const subfolderPath = this.extractSubfolderPath();
+        const targetPath = subfolderPath ? `${this.selectedFolder.fullPath}/${subfolderPath}` : this.selectedFolder.fullPath;
+
         const copiedFragment = await this.aem.sites.cf.fragments.copyToFolder(
             this.fragment,
-            this.selectedFolder.fullPath,
-            customName !== this.fragment.name ? customName : null,
+            targetPath,
+            null,
             this.selectedLocale,
         );
 
@@ -344,7 +343,7 @@ export class MasCopyDialog extends LitElement {
         return html`
             <div class="dialog-backdrop" @click=${this.handleBackdropClick}>
                 <sp-dialog-wrapper
-                    headline="Copy Fragment to Folder"
+                    headline="Copy fragment"
                     mode="modal"
                     confirm-label="Copy"
                     cancel-label="Cancel"
@@ -353,16 +352,6 @@ export class MasCopyDialog extends LitElement {
                     ?dismissable=${!this.loading}
                     @click=${(e) => e.stopPropagation()}
                 >
-                    <div class="form-field">
-                        <sp-field-label for="fragment-name">Fragment Name</sp-field-label>
-                        <sp-textfield
-                            id="fragment-name"
-                            value=${this.fragmentName}
-                            @input=${(e) => (this.fragmentName = e.target.value)}
-                            placeholder="Enter fragment name"
-                        ></sp-textfield>
-                    </div>
-
                     <div class="form-field">
                         <sp-field-label for="locale-picker">Select Locale</sp-field-label>
                         <sp-picker
@@ -382,7 +371,6 @@ export class MasCopyDialog extends LitElement {
 
                     <div class="form-field">
                         <sp-field-label for="folder-picker">Select Destination Folder</sp-field-label>
-                        <div class="current-path">Current location: ${this.fragment?.path || ''}</div>
 
                         ${this.loading
                             ? html` <sp-progress-circle indeterminate></sp-progress-circle> `

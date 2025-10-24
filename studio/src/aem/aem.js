@@ -482,6 +482,60 @@ class AEM {
         }
     }
 
+    async ensureFolderExists(folderPath) {
+        try {
+            const response = await fetch(`${this.baseUrl}${folderPath}.json`, {
+                method: 'GET',
+                headers: this.headers,
+            });
+
+            if (response.ok) {
+                return true;
+            }
+
+            if (response.status === 404) {
+                const csrfToken = await this.getCsrfToken();
+                const pathParts = folderPath.split('/').filter(Boolean);
+                let currentPath = '';
+
+                for (const part of pathParts) {
+                    if (currentPath.startsWith('/content/dam/mas')) {
+                        const testPath = `${currentPath}/${part}`;
+                        const checkResponse = await fetch(`${this.baseUrl}${testPath}.json`, {
+                            method: 'GET',
+                            headers: this.headers,
+                        });
+
+                        if (!checkResponse.ok && checkResponse.status === 404) {
+                            const formData = new FormData();
+                            formData.append('jcr:primaryType', 'sling:Folder');
+                            formData.append('jcr:title', part);
+
+                            const createResponse = await fetch(`${this.baseUrl}${currentPath}/${part}`, {
+                                method: 'POST',
+                                headers: {
+                                    ...this.headers,
+                                    'CSRF-Token': csrfToken,
+                                },
+                                body: formData,
+                            });
+
+                            if (!createResponse.ok) {
+                                throw new Error(`Failed to create folder ${part}: ${createResponse.statusText}`);
+                            }
+                        }
+                    }
+                    currentPath = currentPath ? `${currentPath}/${part}` : `/${part}`;
+                }
+                return true;
+            }
+
+            throw new Error(`Failed to check folder: ${response.statusText}`);
+        } catch (err) {
+            throw new Error(`Error ensuring folder exists: ${err.message}`);
+        }
+    }
+
     /**
      * Generates a unique name by appending a number suffix if the name already exists
      * @param {string} basePath - The target directory path
@@ -584,6 +638,8 @@ class AEM {
         const csrfToken = await this.getCsrfToken();
 
         try {
+            await this.ensureFolderExists(finalTargetPath);
+
             const fullFragment = await this.sites.cf.fragments.getById(fragment.id);
             const { name: finalName, renamed } = await this.generateUniqueName(finalTargetPath, assetName);
 

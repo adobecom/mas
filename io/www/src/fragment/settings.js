@@ -1,5 +1,35 @@
 const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
 
+/**
+ * Plan type label will be enabled by default for the following locales.
+ * Plan type literal has the format {planType, select, ABM {Annual, billed monthly} M2M {Monthly} PUF {Annual, prepaid} other {}}
+ * and different labels are displayed for different customer/market segments.
+ */
+const PLAN_TYPE_LOCALES = [
+    'en_US',
+    'en_AU',
+    'en_HK',
+    'zh_HK',
+    'en_ID',
+    'id_ID',
+    'en_MY',
+    'ms_MY',
+    'en_NZ',
+    'en_PH',
+    'fil_PH',
+    'en_SG',
+    'en_TH',
+    'th_TH',
+    'zh_TW',
+    'en_VN',
+    'vi_VN',
+    'en_IN',
+    'de_AT',
+    'de_CH',
+    'de_DE',
+    'de_LU',
+];
+
 function applyCollectionSettings(context) {
     if (context.body?.references) {
         Object.entries(context.body.references).forEach(([key, ref]) => {
@@ -55,7 +85,7 @@ function applyPlansSettings(fragment, context) {
         fragment.priceLiterals ??= {};
         fragment.priceLiterals.perUnitLabel = fragment.fields.perUnitLabel;
     }
-    if (locale === 'en_US') {
+    if (PLAN_TYPE_LOCALES.includes(locale)) {
         fragment.settings.displayPlanType ??= true;
     }
 }
@@ -110,4 +140,4 @@ export const transformer = {
     name: 'settings',
     process: settings,
 };
-export { applyCollectionSettings };
+export { applyCollectionSettings, PLAN_TYPE_LOCALES };

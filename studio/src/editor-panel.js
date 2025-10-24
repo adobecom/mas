@@ -60,7 +60,14 @@ export default class EditorPanel extends LitElement {
         showDeleteDialog: { type: Boolean, state: true },
         showDiscardDialog: { type: Boolean, state: true },
         showCloneDialog: { type: Boolean, state: true },
-        showEditor: { type: Boolean, state: true }, // Used to force re-rendering of the editor
+        showEditor: { type: Boolean, state: true },
+        dragX: { type: Number, state: true },
+        dragY: { type: Number, state: true },
+        isDragging: { type: Boolean, state: true },
+        editorWidth: { type: Number, state: true },
+        editorHeight: { type: Number, state: true },
+        isResizing: { type: Boolean, state: true },
+        resizeDirection: { type: String, state: true },
     };
 
     static styles = css`
@@ -81,7 +88,6 @@ export default class EditorPanel extends LitElement {
             width: 360px;
         }
 
-        /* Optional: Styles for the dialog */
         sp-dialog {
             max-width: 500px;
         }
@@ -101,13 +107,27 @@ export default class EditorPanel extends LitElement {
         this.showCloneDialog = false;
         this.cloneInProgress = false;
         this.showEditor = true;
-        // Used to resolve the discard confirmation promise.
         this.#discardPromiseResolver = null;
         this.titleClone = '';
         this.tagsClone = [];
         this.osiClone = null;
 
-        // Bind methods
+        this.dragX = window.innerWidth - 480;
+        this.dragY = 20;
+        this.isDragging = false;
+        this.dragStartX = 0;
+        this.dragStartY = 0;
+
+        this.editorWidth = 460;
+        this.editorHeight = null;
+        this.isResizing = false;
+        this.resizeDirection = null;
+        this.resizeStartX = 0;
+        this.resizeStartY = 0;
+        this.resizeStartWidth = 0;
+        this.resizeStartHeight = 0;
+        this.resizeStartDragX = 0;
+        this.resizeStartDragY = 0;
         this.handleClose = this.handleClose.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.updateFragment = this.updateFragment.bind(this);
@@ -117,6 +137,13 @@ export default class EditorPanel extends LitElement {
         this.discardConfirmed = this.discardConfirmed.bind(this);
         this.cancelDiscard = this.cancelDiscard.bind(this);
         this.onToolbarDiscard = this.onToolbarDiscard.bind(this);
+        this.startDrag = this.startDrag.bind(this);
+        this.drag = this.drag.bind(this);
+        this.endDrag = this.endDrag.bind(this);
+        this.startResize = this.startResize.bind(this);
+        this.resize = this.resize.bind(this);
+        this.endResize = this.endResize.bind(this);
+        this.positionNextToCard = this.positionNextToCard.bind(this);
     }
 
     createRenderRoot() {
@@ -151,6 +178,165 @@ export default class EditorPanel extends LitElement {
         this.style.setProperty('--editor-left', position === 'left' ? '0' : 'inherit');
         this.style.setProperty('--editor-right', position === 'right' ? '0' : 'inherit');
         this.setAttribute('position', position);
+    }
+
+    startDrag(e) {
+        if (e.button !== 0) return;
+        this.isDragging = true;
+        this.dragStartX = e.clientX - this.dragX;
+        this.dragStartY = e.clientY - this.dragY;
+        document.addEventListener('mousemove', this.drag);
+        document.addEventListener('mouseup', this.endDrag);
+        e.preventDefault();
+    }
+
+    drag(e) {
+        if (!this.isDragging) return;
+        const newX = e.clientX - this.dragStartX;
+        const newY = e.clientY - this.dragStartY;
+
+        const editorElement = this.querySelector('#editor');
+        const editorWidth = editorElement?.offsetWidth || this.editorWidth;
+        const editorHeight = editorElement?.offsetHeight || 600;
+        const maxX = window.innerWidth - editorWidth;
+        const maxY = window.innerHeight - editorHeight;
+
+        this.dragX = Math.max(0, Math.min(newX, maxX));
+        this.dragY = Math.max(0, Math.min(newY, maxY));
+        this.requestUpdate();
+    }
+
+    endDrag() {
+        this.isDragging = false;
+        document.removeEventListener('mousemove', this.drag);
+        document.removeEventListener('mouseup', this.endDrag);
+    }
+
+    startResize(direction, e) {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+        e.preventDefault();
+
+        this.isResizing = true;
+        this.resizeDirection = direction;
+        this.resizeStartX = e.clientX;
+        this.resizeStartY = e.clientY;
+
+        const editorElement = this.querySelector('#editor');
+        this.resizeStartWidth = editorElement?.offsetWidth || this.editorWidth;
+        this.resizeStartHeight = editorElement?.offsetHeight || 600;
+        this.resizeStartDragX = this.dragX;
+        this.resizeStartDragY = this.dragY;
+
+        document.addEventListener('mousemove', this.resize);
+        document.addEventListener('mouseup', this.endResize);
+    }
+
+    resize(e) {
+        if (!this.isResizing) return;
+
+        const deltaX = e.clientX - this.resizeStartX;
+        const deltaY = e.clientY - this.resizeStartY;
+
+        const minWidth = 360;
+        const maxWidth = 800;
+        const minHeight = 400;
+        const maxHeight = window.innerHeight - 40;
+
+        let newWidth = this.resizeStartWidth;
+        let newHeight = this.resizeStartHeight;
+        let newX = this.resizeStartDragX;
+        let newY = this.resizeStartDragY;
+
+        if (this.resizeDirection.includes('e')) {
+            newWidth = Math.max(minWidth, Math.min(maxWidth, this.resizeStartWidth + deltaX));
+        }
+        if (this.resizeDirection.includes('w')) {
+            const proposedWidth = this.resizeStartWidth - deltaX;
+            if (proposedWidth >= minWidth && proposedWidth <= maxWidth) {
+                newWidth = proposedWidth;
+                newX = this.resizeStartDragX + deltaX;
+            }
+        }
+        if (this.resizeDirection.includes('s')) {
+            newHeight = Math.max(minHeight, Math.min(maxHeight, this.resizeStartHeight + deltaY));
+        }
+        if (this.resizeDirection.includes('n')) {
+            const proposedHeight = this.resizeStartHeight - deltaY;
+            if (proposedHeight >= minHeight && proposedHeight <= maxHeight) {
+                newHeight = proposedHeight;
+                newY = this.resizeStartDragY + deltaY;
+            }
+        }
+
+        this.editorWidth = newWidth;
+        this.editorHeight = newHeight;
+
+        if (this.resizeDirection.includes('w')) {
+            const maxX = window.innerWidth - newWidth;
+            this.dragX = Math.max(0, Math.min(newX, maxX));
+        }
+
+        if (this.resizeDirection.includes('n')) {
+            const maxY = window.innerHeight - newHeight;
+            this.dragY = Math.max(0, Math.min(newY, maxY));
+        }
+
+        this.requestUpdate();
+    }
+
+    endResize() {
+        this.isResizing = false;
+        this.resizeDirection = null;
+        document.removeEventListener('mousemove', this.resize);
+        document.removeEventListener('mouseup', this.endResize);
+    }
+
+    positionNextToCard() {
+        if (!this.fragment?.id) return;
+
+        const cardElement = document.querySelector(`[data-id="${this.fragment.id}"]`);
+        if (!cardElement) {
+            console.warn('Card element not found');
+            return;
+        }
+
+        cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        setTimeout(() => {
+            const cardRect = cardElement.getBoundingClientRect();
+            const editorElement = this.querySelector('#editor');
+            const editorWidth = editorElement?.offsetWidth || this.editorWidth;
+            const editorHeight = editorElement?.offsetHeight || 600;
+            const gap = 16;
+
+            const spaceOnRight = window.innerWidth - (cardRect.right + gap + editorWidth);
+            const spaceOnLeft = cardRect.left - gap - editorWidth;
+
+            let newX, newY;
+
+            if (spaceOnRight >= 0) {
+                newX = cardRect.right + gap;
+            } else if (spaceOnLeft >= 0) {
+                newX = cardRect.left - gap - editorWidth;
+            } else {
+                if (spaceOnRight > spaceOnLeft) {
+                    newX = cardRect.right + gap;
+                } else {
+                    newX = cardRect.left - gap - editorWidth;
+                }
+            }
+
+            newY = cardRect.top + cardRect.height / 2 - editorHeight / 2;
+
+            const maxX = window.innerWidth - editorWidth;
+            const maxY = window.innerHeight - editorHeight;
+
+            this.dragX = Math.max(0, Math.min(newX, maxX));
+            this.dragY = Math.max(0, Math.min(newY, maxY));
+
+            this.requestUpdate();
+        }, 300);
     }
 
     needsMask(fragment) {
@@ -406,16 +592,6 @@ export default class EditorPanel extends LitElement {
             <div id="editor-toolbar">
                 <sp-action-group aria-label="Fragment actions" role="group" size="l" compact emphasized quiet>
                     <sp-action-button
-                        label="Move left"
-                        title="Move left"
-                        value="left"
-                        id="move-left"
-                        @click="${() => this.updatePosition('left')}"
-                    >
-                        <sp-icon-chevron-left slot="icon"></sp-icon-chevron-left>
-                        <sp-tooltip self-managed placement="bottom">Move left</sp-tooltip>
-                    </sp-action-button>
-                    <sp-action-button
                         label="Save"
                         title="Save changes"
                         value="save"
@@ -470,19 +646,13 @@ export default class EditorPanel extends LitElement {
 
                         <sp-tooltip self-managed placement="bottom">Delete fragment</sp-tooltip>
                     </sp-action-button>
+                    <sp-action-button label="Position next to card" value="position" @click="${this.positionNextToCard}">
+                        <sp-icon-move slot="icon"></sp-icon-move>
+                        <sp-tooltip self-managed placement="bottom">Position next to card</sp-tooltip>
+                    </sp-action-button>
                     <sp-action-button title="Close" label="Close" value="close" @click="${this.closeEditor}">
                         <sp-icon-close-circle slot="icon"></sp-icon-close-circle>
                         <sp-tooltip self-managed placement="bottom">Close</sp-tooltip>
-                    </sp-action-button>
-                    <sp-action-button
-                        label="Move right"
-                        title="Move right"
-                        value="right"
-                        id="move-right"
-                        @click="${() => this.updatePosition('right')}"
-                    >
-                        <sp-icon-chevron-right slot="icon"></sp-icon-chevron-right>
-                        <sp-tooltip self-managed placement="bottom">Move right</sp-tooltip>
                     </sp-action-button>
                 </sp-action-group>
             </div>
@@ -634,9 +804,20 @@ export default class EditorPanel extends LitElement {
                     break;
             }
         }
+        const editorStyles = `
+            position: fixed;
+            left: ${this.dragX}px;
+            top: ${this.dragY}px;
+            width: ${this.editorWidth}px;
+            ${this.editorHeight ? `height: ${this.editorHeight}px;` : ''}
+        `;
+
         return html`
-            <div id="editor">
-                ${this.fragmentEditorToolbar}
+            <div id="editor" style="${editorStyles}">
+                <div class="editor-drag-section" @mousedown="${this.startDrag}">
+                    <div class="drag-handle"></div>
+                    ${this.fragmentEditorToolbar}
+                </div>
                 <sp-divider size="s"></sp-divider>
                 <div>
                     <p id="author-path">${this.authorPath}</p>
@@ -646,6 +827,15 @@ export default class EditorPanel extends LitElement {
                 <sp-divider size="s"></sp-divider>
                 ${this.fragmentEditor} ${this.deleteConfirmationDialog} ${this.discardConfirmationDialog}
                 ${this.cloneConfirmationDialog}
+
+                <div class="resize-handle resize-n" @mousedown="${(e) => this.startResize('n', e)}"></div>
+                <div class="resize-handle resize-s" @mousedown="${(e) => this.startResize('s', e)}"></div>
+                <div class="resize-handle resize-e" @mousedown="${(e) => this.startResize('e', e)}"></div>
+                <div class="resize-handle resize-w" @mousedown="${(e) => this.startResize('w', e)}"></div>
+                <div class="resize-handle resize-ne" @mousedown="${(e) => this.startResize('ne', e)}"></div>
+                <div class="resize-handle resize-nw" @mousedown="${(e) => this.startResize('nw', e)}"></div>
+                <div class="resize-handle resize-se" @mousedown="${(e) => this.startResize('se', e)}"></div>
+                <div class="resize-handle resize-sw" @mousedown="${(e) => this.startResize('sw', e)}"></div>
             </div>
         `;
     }

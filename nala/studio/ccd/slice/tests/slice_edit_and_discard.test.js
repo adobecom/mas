@@ -758,6 +758,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.marketSegmentsTag}`));
 
             await (await editor.OSIButton).click();
+            await ost.backButton.click();
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.osi);
             await (await ost.nextButton).click();

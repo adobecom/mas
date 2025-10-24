@@ -27,7 +27,7 @@ function extractValue(ref) {
 }
 
 // Helper function to process entries for a fragment and its parents
-function processDictionaryHierarchy(fragmentId, rootFragment, references, dictionary) {
+function collectDictionariesEntries(fragmentId, rootFragment, references, dictionary) {
     // Get the fragment from references or use root
     const fragment = fragmentId === rootFragment.id ? rootFragment : references[fragmentId]?.value;
 
@@ -47,7 +47,7 @@ function processDictionaryHierarchy(fragmentId, rootFragment, references, dictio
     // Then process parent if exists
     const parentId = fragment.fields?.parent;
     if (parentId) {
-        processDictionaryHierarchy(parentId, rootFragment, references, dictionary);
+        collectDictionariesEntries(parentId, rootFragment, references, dictionary);
     }
 }
 
@@ -65,7 +65,7 @@ export async function getDictionary(context) {
         const rootFragment = response.body;
 
         // Start processing from root fragment (handles hierarchical parent chain)
-        processDictionaryHierarchy(rootFragment.id, rootFragment, references, dictionary);
+        collectDictionariesEntries(rootFragment.id, rootFragment, references, dictionary);
 
         // Also process any additional entries in references not in entries array
         Object.keys(references).forEach((refId) => {

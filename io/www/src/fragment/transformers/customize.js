@@ -31,8 +31,8 @@ const LOCALE_DEFAULTS = [
     'ms_MY',
     'nl_NL',
     'nb_NO',
-    'pt_PT',
-    'ru_CIS',
+    'pt_BR',
+    'ru_RU',
     'sk_SK',
     'sl_SI',
     'sv_SE',
@@ -40,7 +40,6 @@ const LOCALE_DEFAULTS = [
     'tr_TR',
     'uk_UA',
     'vi_VN',
-    'pt_BR',
 ];
 
 function getCorrespondingLocale(locale) {

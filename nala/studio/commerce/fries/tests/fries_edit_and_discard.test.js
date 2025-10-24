@@ -101,23 +101,21 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            await expect(await editor.iconURL.first()).toBeVisible();
-            await editor.iconURL.first().fill(data.iconURL.updated);
+            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await editor.openMnemonicModal();
+            await editor.setMnemonicURL(data.iconURL.updated);
+            await editor.saveMnemonicModal();
         });
 
-        await test.step('step-4: Validate edited mnemonic URL field in Editor panel', async () => {
-            await expect(await editor.iconURL.first()).toHaveValue(data.iconURL.updated);
-        });
-
-        await test.step('step-5: Validate edited mnemonic URL on the card', async () => {
+        await test.step('step-4: Validate edited mnemonic URL on the card', async () => {
             await expect(await fries.icon.first()).toHaveAttribute('src', data.iconURL.updated);
         });
 
-        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+        await test.step('step-5: Close the editor and verify discard is triggered', async () => {
             await studio.discardEditorChanges(editor);
         });
 
-        await test.step('step-7: Verify there is no changes of the card', async () => {
+        await test.step('step-6: Verify there is no changes of the card', async () => {
             await expect(await fries.icon.first()).toHaveAttribute('src', data.iconURL.original);
         });
     });

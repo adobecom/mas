@@ -4,6 +4,8 @@ import { COLLECTION_MODEL_PATH } from '../constants.js';
 const NETWORK_ERROR_MESSAGE = 'Network error';
 const MAX_POLL_ATTEMPTS = 10;
 const POLL_TIMEOUT = 250;
+const MAX_NAME_ATTEMPTS = 10;
+const COPY_WAIT_TIME = 1000;
 
 const defaultSearchOptions = {
     sort: [{ on: 'created', order: 'ASC' }],
@@ -280,9 +282,7 @@ class AEM {
             await fetch(`${this.cfFragmentsUrl}/${fragment.id}/tags`, {
                 method: 'PUT',
                 headers,
-                body: JSON.stringify({
-                    tags: newTags,
-                }),
+                body: JSON.stringify({ tags: newTags }),
             }).catch((err) => {
                 throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
             });
@@ -471,6 +471,195 @@ class AEM {
         return response; //204 No Content
     }
 
+    /**
+     * Validates that a fragment has the required properties for copying
+     * @param {Object} fragment - The fragment to validate
+     * @throws {Error} If fragment is invalid
+     */
+    validateFragmentForCopy(fragment) {
+        if (!fragment?.path?.trim()) {
+            throw new Error('Invalid fragment: missing or empty path');
+        }
+    }
+
+    async ensureFolderExists(folderPath) {
+        try {
+            const response = await fetch(`${this.baseUrl}${folderPath}.json`, {
+                method: 'GET',
+                headers: this.headers,
+            });
+
+            if (response.ok) {
+                return true;
+            }
+
+            if (response.status === 404) {
+                const csrfToken = await this.getCsrfToken();
+                const pathParts = folderPath.split('/').filter(Boolean);
+                let currentPath = '';
+
+                for (const part of pathParts) {
+                    if (currentPath.startsWith('/content/dam/mas')) {
+                        const testPath = `${currentPath}/${part}`;
+                        const checkResponse = await fetch(`${this.baseUrl}${testPath}.json`, {
+                            method: 'GET',
+                            headers: this.headers,
+                        });
+
+                        if (!checkResponse.ok && checkResponse.status === 404) {
+                            const formData = new FormData();
+                            formData.append('jcr:primaryType', 'sling:Folder');
+                            formData.append('jcr:title', part);
+
+                            const createResponse = await fetch(`${this.baseUrl}${currentPath}/${part}`, {
+                                method: 'POST',
+                                headers: {
+                                    ...this.headers,
+                                    'CSRF-Token': csrfToken,
+                                },
+                                body: formData,
+                            });
+
+                            if (!createResponse.ok) {
+                                throw new Error(`Failed to create folder ${part}: ${createResponse.statusText}`);
+                            }
+                        }
+                    }
+                    currentPath = currentPath ? `${currentPath}/${part}` : `/${part}`;
+                }
+                return true;
+            }
+
+            throw new Error(`Failed to check folder: ${response.statusText}`);
+        } catch (err) {
+            throw new Error(`Error ensuring folder exists: ${err.message}`);
+        }
+    }
+
+    /**
+     * Generates a unique name by appending a number suffix if the name already exists
+     * @param {string} basePath - The target directory path
+     * @param {string} assetName - The desired asset name
+     * @returns {Promise<{name: string, renamed: boolean}>} The final name and whether it was renamed
+     */
+    async generateUniqueName(basePath, assetName) {
+        let finalName = assetName;
+        let attempt = 0;
+
+        while (attempt < MAX_NAME_ATTEMPTS) {
+            try {
+                await this.sites.cf.fragments.getByPath(`${basePath}/${finalName}`);
+                // Name exists, generate new one
+                attempt++;
+                const dotIndex = assetName.lastIndexOf('.');
+                const [base, ext] =
+                    dotIndex > 0 ? [assetName.substring(0, dotIndex), assetName.substring(dotIndex)] : [assetName, ''];
+                finalName = `${base}-${attempt}${ext}`;
+            } catch {
+                // Name available
+                return { name: finalName, renamed: attempt > 0 };
+            }
+        }
+
+        throw new Error(`Cannot create unique name after ${MAX_NAME_ATTEMPTS} attempts`);
+    }
+
+    /**
+     * Creates a copy of a fragment in the specified location
+     * @param {Object} fullFragment - The complete fragment data to copy
+     * @param {string} targetPath - The destination path for the copy
+     * @param {string} name - The name for the copied fragment
+     * @param {string} csrfToken - CSRF token for authentication
+     * @returns {Promise<Object>} The newly created fragment
+     */
+    async createFragmentCopy(fullFragment, targetPath, name, csrfToken) {
+        const fields = fullFragment.fields.filter((field) => field.name !== 'originalId');
+
+        const copyData = {
+            title: fullFragment.title,
+            description: fullFragment.description,
+            modelId: fullFragment.model.id,
+            parentPath: targetPath,
+            name,
+            fields,
+        };
+
+        const response = await fetch(this.cfFragmentsUrl, {
+            method: 'POST',
+            headers: {
+                ...this.headers,
+                'Content-Type': 'application/json',
+                'CSRF-Token': csrfToken,
+            },
+            body: JSON.stringify(copyData),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`Copy failed: ${response.status} ${errorText}`);
+        }
+
+        return response.json();
+    }
+
+    /**
+     * Copies tags from the original fragment to the copied fragment
+     * @param {Object} copiedFragment - The newly copied fragment
+     * @param {Array} tags - Array of tags to copy
+     * @returns {Promise<void>}
+     */
+    async copyFragmentTags(copiedFragment, tags) {
+        if (!tags?.length) return;
+
+        try {
+            const tagIds = tags.map((tag) => tag.id || tag);
+            await this.saveTags({ ...copiedFragment, newTags: tagIds });
+        } catch {
+            // Silent fail - tags are not critical
+        }
+    }
+
+    /**
+     * Copies a fragment to a new folder location with optional renaming and locale support
+     * The copied fragment is always created in draft status
+     * @param {Object} fragment - The fragment to copy (must have path and id properties)
+     * @param {string} targetPath - The destination folder path
+     * @param {string} customName - Optional custom name for the copied fragment
+     * @param {string} targetLocale - Target locale (defaults to 'en_US')
+     * @returns {Promise<Object>} The copied fragment with metadata
+     */
+    async copyToFolder(fragment, targetPath, customName = null, targetLocale = 'en_US') {
+        this.validateFragmentForCopy(fragment);
+
+        const originalName = fragment.path.split('/').pop();
+        const assetName = customName || originalName;
+        const finalTargetPath = `${targetPath}/${targetLocale}`;
+
+        const csrfToken = await this.getCsrfToken();
+
+        try {
+            await this.ensureFolderExists(finalTargetPath);
+
+            const fullFragment = await this.sites.cf.fragments.getById(fragment.id);
+            const { name: finalName, renamed } = await this.generateUniqueName(finalTargetPath, assetName);
+
+            const copiedFragment = await this.createFragmentCopy(fullFragment, finalTargetPath, finalName, csrfToken);
+
+            await this.wait(COPY_WAIT_TIME);
+            await this.copyFragmentTags(copiedFragment, fullFragment.tags);
+
+            const finalFragment = await this.sites.cf.fragments.getById(copiedFragment.id);
+
+            if (renamed) {
+                finalFragment.renamedTo = finalName;
+            }
+
+            return finalFragment;
+        } catch (err) {
+            throw new Error(`Failed to copy fragment: ${err.message}`);
+        }
+    }
+
     async listFolders(path) {
         const name = path?.replace(/^\/content\/dam/, '');
         const response = await fetch(
@@ -576,6 +765,10 @@ class AEM {
                  * @see AEM#deleteFragment
                  */
                 delete: this.deleteFragment.bind(this),
+                /**
+                 * @see AEM#copyToFolder
+                 */
+                copyToFolder: this.copyToFolder.bind(this),
             },
         },
     };

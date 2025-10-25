@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { PATH_TOKENS, odinReferences, FRAGMENT_URL_PREFIX } from '../../src/fragment/paths.js';
+import { PATH_TOKENS, odinReferences, FRAGMENT_URL_PREFIX } from '../../src/fragment/utils/paths.js';
 
 describe('PATH_TOKENS', () => {
     it('should work with adobe-home surface', async () => {

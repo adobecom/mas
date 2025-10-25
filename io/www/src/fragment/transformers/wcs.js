@@ -1,4 +1,5 @@
-import { log, logError, fetch } from './common.js';
+import { fetch } from '../utils/common.js';
+import { log, logError } from '../utils/log.js';
 
 const MAS_ELEMENT_REGEXP = /<[^>]+data-wcs-osi=\\"(?<osi>[^\\]+)\\"[^>]*?>/gm;
 const PROMOCODE_REGEXP = /(?<promo>data-promotion-code=\\"(?<promotionCode>[^\\]+)\\")/;

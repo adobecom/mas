@@ -113,4 +113,8 @@ export class Fragment {
         if (fieldName === 'tags') this.newTags = value;
         return change;
     }
+
+    listLocaleVariations() {
+        return this.references?.filter((reference) => reference.path.split('/').pop() === this.path.split('/').pop());
+    }
 }

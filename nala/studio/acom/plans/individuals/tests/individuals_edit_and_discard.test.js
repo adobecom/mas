@@ -429,11 +429,15 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-3: Edit mnemonic URL field', async () => {
             await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
-            await editor.setMnemonicURL(data.iconURL.updated);
-            await editor.saveMnemonicModal();
+            await editor.mnemonicUrlTab.click();
+            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.iconURL).toHaveValue(data.iconURL.original);
+            await editor.iconURL.fill(data.iconURL.updated);
         });
 
         await test.step('step-4: Validate mnemonic URL field updated', async () => {
+            await expect(await editor.iconURL).toHaveValue(data.iconURL.updated);
+            await editor.saveMnemonicModal();
             await expect(await individuals.cardIcon).toHaveAttribute('src', data.iconURL.updated);
         });
 

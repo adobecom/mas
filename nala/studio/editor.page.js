@@ -152,4 +152,8 @@ export default class EditorPage {
         await this.mnemonicModalCancelButton.click();
         await this.page.locator('mas-mnemonic-modal[open] sp-dialog').waitFor({ state: 'detached' });
     }
+
+    get iconURL() {
+        return this.mnemonicUrlIconInput;
+    }
 }

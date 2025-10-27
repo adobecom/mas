@@ -202,11 +202,15 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-3: Edit mnemonic URL field', async () => {
             await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
-            await editor.setMnemonicURL(data.icon.updated);
-            await editor.saveMnemonicModal();
+            await editor.mnemonicUrlTab.click();
+            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.iconURL).toHaveValue(data.icon.original);
+            await editor.iconURL.fill(data.icon.updated);
         });
 
         await test.step('step-4: Validate edited mnemonic on the card', async () => {
+            await expect(await editor.iconURL).toHaveValue(data.icon.updated);
+            await editor.saveMnemonicModal();
             await expect(await trybuywidget.cardIcon).toHaveAttribute('src', data.icon.updated);
         });
 
@@ -771,6 +775,47 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await trybuywidget.cardCTA.first()).toHaveAttribute('data-analytics-id', data.analyticsID.original);
             await expect(await trybuywidget.cardCTA.first()).toHaveAttribute('daa-ll', data.daaLL.original);
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('daa-lh', data.daaLH);
+        });
+    });
+
+    // @studio-try-buy-widget-edit-discard-product-icon-picker - Validate edit and discard product icon using icon picker for try buy widget card in mas studio
+    test(`${features[14].name},${features[14].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[14];
+        const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}${data.cardid}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Validate original icon', async () => {
+            await expect(await trybuywidget.cardIcon).toHaveAttribute('src', data.productIcon.original.src);
+        });
+
+        await test.step('step-4: Select product icon from icon picker', async () => {
+            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await editor.openMnemonicModal();
+            await editor.selectProductIcon(data.productIcon.name);
+            await editor.saveMnemonicModal();
+        });
+
+        await test.step('step-5: Validate mnemonic icon updated in editor', async () => {
+            await expect(await trybuywidget.cardIcon).toHaveAttribute('src', data.productIcon.updated.src);
+        });
+
+        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+            await studio.discardEditorChanges(editor);
+        });
+
+        await test.step('step-7: Validate icon reverted to original', async () => {
+            await expect(await trybuywidget.cardIcon).toHaveAttribute('src', data.productIcon.original.src);
         });
     });
 });

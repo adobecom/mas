@@ -238,5 +238,24 @@ export default {
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-edit @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
+        {
+            tcid: '14',
+            name: '@studio-try-buy-widget-edit-discard-product-icon-picker',
+            path: '/studio.html',
+            data: {
+                cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
+                productIcon: {
+                    name: 'Illustrator',
+                    original: {
+                        src: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
+                    },
+                    updated: {
+                        src: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg',
+                    },
+                },
+            },
+            browserParams: '#page=content&path=nala&query=',
+            tags: '@mas-studio @ahome @ahome-edit @ahome-try-buy-widget @ahome-try-buy-widget-edit',
+        },
     ],
 };

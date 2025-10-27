@@ -103,11 +103,15 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         await test.step('step-3: Edit mnemonic URL field', async () => {
             await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
-            await editor.setMnemonicURL(data.iconURL.updated);
-            await editor.saveMnemonicModal();
+            await editor.mnemonicUrlTab.click();
+            await expect(await editor.iconURL).toBeVisible();
+            await expect(await editor.iconURL).toHaveValue(data.iconURL.original);
+            await editor.iconURL.fill(data.iconURL.updated);
         });
 
         await test.step('step-4: Validate edited mnemonic URL on the card', async () => {
+            await expect(await editor.iconURL).toHaveValue(data.iconURL.updated);
+            await editor.saveMnemonicModal();
             await expect(await fries.icon.first()).toHaveAttribute('src', data.iconURL.updated);
         });
 
@@ -225,6 +229,47 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
             await expect(await fries.cta).toContainText(data.ctaText.original);
+        });
+    });
+
+    // @studio-fries-edit-discard-product-icon-picker - Validate edit and discard product icon using icon picker for fries card in mas studio
+    test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[5];
+        const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.cardid}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Open card editor', async () => {
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+
+        await test.step('step-3: Validate original icon', async () => {
+            await expect(await fries.icon.first()).toHaveAttribute('src', data.productIcon.original.src);
+        });
+
+        await test.step('step-4: Select product icon from icon picker', async () => {
+            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await editor.openMnemonicModal();
+            await editor.selectProductIcon(data.productIcon.name);
+            await editor.saveMnemonicModal();
+        });
+
+        await test.step('step-5: Validate mnemonic icon updated in editor', async () => {
+            await expect(await fries.icon.first()).toHaveAttribute('src', data.productIcon.updated.src);
+        });
+
+        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+            await studio.discardEditorChanges(editor);
+        });
+
+        await test.step('step-7: Validate icon reverted to original', async () => {
+            await expect(await fries.icon.first()).toHaveAttribute('src', data.productIcon.original.src);
         });
     });
 });

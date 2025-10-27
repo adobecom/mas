@@ -109,6 +109,11 @@ side-nav sp-sidenav-item:hover {
     position: relative;
 }
 
+#content-anchor {
+    position: absolute;
+    bottom: 300px;
+}
+
 mas-studio > ul > li {
     list-style: none;
     position: relative;
@@ -269,6 +274,9 @@ mas-content {
     display: flex;
     justify-content: center;
     padding-bottom: 30px;
+    flex-direction: column;
+    gap: 20px;
+    position: relative;
 }
 
 #content sp-table {
@@ -593,4 +601,13 @@ sp-progress-circle.next-page {
     sp-table-cell.offer-id {
         word-break: break-all;
     }
+}
+
+.pagination-wrapper {
+    position: fixed;
+    bottom: 20px;
+    padding-inline: 20px;
+    padding-block: 10px;
+    left: calc(50% + 120px); /* Account for sidenav */
+    transform: translateX(-50%);
 }

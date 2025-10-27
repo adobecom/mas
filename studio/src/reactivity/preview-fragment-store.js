@@ -62,8 +62,8 @@ export class PreviewFragmentStore extends FragmentStore {
         }
 
         const context = {
-            locale: Store.filters.value.locale,
-            surface: Store.search.value.path,
+            locale: Store.locale.value,
+            surface: Store.surface.value,
             dictionary: Store.placeholders.preview.value,
         };
         const result = await previewStudioFragment(body, context);

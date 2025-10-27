@@ -49,7 +49,7 @@ class MasPlaceholders extends LitElement {
         Store.placeholders.list.loading,
         Store.placeholders.selection,
         Store.placeholders.index,
-        Store.filters,
+        Store.locale,
     ]);
     filterAndSortReactiveController = new ReactiveController(
         this,
@@ -90,7 +90,7 @@ class MasPlaceholders extends LitElement {
     }
 
     get locale() {
-        return Store.filters.get().locale;
+        return Store.locale.value;
     }
 
     get loading() {
@@ -285,11 +285,7 @@ class MasPlaceholders extends LitElement {
                 <div class="placeholders-header">
                     <div class="header-left">
                         <mas-locale-picker
-                            @locale-changed=${(event) =>
-                                Store.filters.set((prev) => ({
-                                    ...prev,
-                                    locale: event.detail.locale,
-                                }))}
+                            @locale-changed=${(event) => Store.locale.set(event.detail.locale)}
                             .value=${this.locale}
                         ></mas-locale-picker>
                     </div>
@@ -315,7 +311,7 @@ class MasPlaceholders extends LitElement {
                     </div>
                 </div>
 
-                <div class="placeholders-content">${this.loadingIndicator()}${this.renderTable()}</div>
+                <div class="placeholders-content">${this.loadingIndicator}${this.renderTable()}</div>
 
                 ${this.showCreationModal
                     ? html`<mas-placeholders-creation-modal
@@ -333,9 +329,9 @@ class MasPlaceholders extends LitElement {
         `;
     }
 
-    loadingIndicator() {
+    get loadingIndicator() {
         if (!this.loading) return nothing;
-        return html`<sp-progress-circle style="top:-60px" indeterminate size="l"></sp-progress-circle>`;
+        return html`<mas-loader></mas-loader>`;
     }
 
     // #region Table

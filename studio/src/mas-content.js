@@ -6,6 +6,7 @@ import Store from './store.js';
 import './mas-fragment.js';
 import Events from './events.js';
 import { CARD_MODEL_PATH } from './constants.js';
+import './content-handling.js';
 
 const variantValues = VARIANTS.map((v) => v.value);
 class MasContent extends LitElement {
@@ -16,59 +17,47 @@ class MasContent extends LitElement {
     constructor() {
         super();
         this.goToFragment = this.goToFragment.bind(this);
-        this.subscriptions = [];
+        this.anchorObserver = null;
     }
 
-    loading = new StoreController(this, Store.fragments.list.loading);
-    firstPageLoaded = new StoreController(this, Store.fragments.list.firstPageLoaded);
-    fragments = new StoreController(this, Store.fragments.list.data);
+    loading = new StoreController(this, Store.content.loading);
+    fragments = new StoreController(this, Store.content.displaying);
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
     selection = new StoreController(this, Store.selection);
+    total = new StoreController(this, Store.content.total);
+    pagination = new StoreController(this, Store.content.pagination);
 
     connectedCallback() {
         super.connectedCallback();
+
         Events.fragmentAdded.subscribe(this.goToFragment);
         Events.fragmentDeleted.subscribe(this.onFragmentDeleted);
+    }
 
-        this.subscriptions.push(
-            Store.fragments.list.data.subscribe(() => {
-                this.requestUpdate();
-            }),
+    firstUpdated() {
+        super.firstUpdated();
+        this.anchorObserver = new IntersectionObserver(
+            ([entry]) => {
+                if (!entry.isIntersecting) return;
+                Events.scrolledToBottom.emit();
+            },
+            { threshold: 0 },
         );
-
-        this.subscriptions.push(
-            Store.filters.subscribe(() => {
-                this.requestUpdate();
-            }),
-        );
+        this.anchorObserver.observe(document.querySelector('#content-anchor'));
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
+
         Events.fragmentAdded.unsubscribe(this.goToFragment);
         Events.fragmentDeleted.unsubscribe(this.onFragmentDeleted);
-
-        if (this.subscriptions && this.subscriptions.length) {
-            this.subscriptions.forEach((subscription) => {
-                if (subscription) {
-                    subscription.unsubscribe();
-                }
-            });
-        }
-        this.subscriptions = [];
+        this.anchorObserver.disconnect();
     }
 
     onFragmentDeleted(fragment) {
-        Store.fragments.list.data.set((prev) => {
-            const result = [...prev];
-            const index = result.findIndex((fragmentStore) => fragmentStore.get().id === fragment.id);
-            if (index !== -1) {
-                result.splice(index, 1);
-            }
-            return result;
-        });
-        Store.fragments.inEdit.set(null);
+        Store.content.data.remove(fragment.id);
+        Store.content.inEdit.set(null);
     }
 
     async goToFragment(id, skipUpdate = false) {
@@ -131,32 +120,28 @@ class MasContent extends LitElement {
         </sp-table>`;
     }
 
-    /** main spinner to show while loading the first page */
-    get firstPageLoadingSpinner() {
-        if (!this.loading.value || this.firstPageLoaded.value) return nothing;
-        return html`<sp-progress-circle class="fragments" indeterminate size="l"></sp-progress-circle>`;
+    get loader() {
+        if (!this.loading.value) return nothing;
+        return html`<mas-loader></mas-loader>`;
     }
 
-    /** spinner to show at the bottom of the page if next page is being loaded */
-    get pageLoadingSpinner() {
-        if (!this.loading.value || !this.firstPageLoaded.value) return nothing;
-        return html`<sp-progress-circle class="next-page" indeterminate size="l"></sp-progress-circle>`;
+    get view() {
+        switch (this.renderMode.value) {
+            case 'render':
+                return this.renderView;
+            case 'table':
+                return this.tableView;
+            default:
+                return this.renderView;
+        }
     }
 
     render() {
-        let view = nothing;
-        switch (this.renderMode.value) {
-            case 'render':
-                view = this.renderView;
-                break;
-            case 'table':
-                view = this.tableView;
-                break;
-            default:
-                view = this.renderView;
-        }
-        return html`<div id="content">${view} ${this.firstPageLoadingSpinner}</div>
-            ${this.pageLoadingSpinner}`;
+        return html`<div id="content">
+                ${this.view}
+                <div id="content-anchor"></div>
+            </div>
+            ${this.loader}`;
     }
 }
 

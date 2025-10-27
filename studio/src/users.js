@@ -37,8 +37,9 @@ export async function initUsers() {
             Store.users.set(uniqueEditors);
         }
 
-        Store.search.subscribe(async ({ path }) => {
-            if (path !== 'sandbox') return;
+        Store.surface.subscribe(async (value) => {
+            if (value !== 'sandbox') return;
+            if (Store.singleFragmentMode.value) return;
             Store.createdByUsers.set([
                 {
                     displayName: profile.displayName,

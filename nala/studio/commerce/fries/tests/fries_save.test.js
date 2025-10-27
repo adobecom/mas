@@ -1,55 +1,24 @@
-import { expect, test } from '@playwright/test';
-import StudioPage from '../../../studio.page.js';
-import CCDFriesSpec from '../specs/fries_save.spec.js';
-import CCDFries from '../fries.page.js';
-import WebUtil from '../../../../libs/webutil.js';
-import EditorPage from '../../../editor.page.js';
-import OSTPage from '../../../ost.page.js';
+import {
+    test,
+    expect,
+    studio,
+    editor,
+    fries,
+    setClonedCardID,
+    getClonedCardID,
+    miloLibs,
+    setTestPage,
+} from '../../../../libs/mas-test.js';
+import COMFriesSpec from '../specs/fries_save.spec.js';
 
-const { features } = CCDFriesSpec;
-const miloLibs = process.env.MILO_LIBS || '';
-
-let studio;
-let fries;
-let webUtil;
-let editor;
-let ost;
-let clonedCardID;
-
-test.beforeEach(async ({ page, browserName }) => {
-    test.slow();
-    if (browserName === 'chromium') {
-        await page.setExtraHTTPHeaders({
-            'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
-        });
-    }
-    studio = new StudioPage(page);
-    fries = new CCDFries(page);
-    webUtil = new WebUtil(page);
-    editor = new EditorPage(page);
-    ost = new OSTPage(page);
-});
-
-test.afterEach(async ({ page }) => {
-    if (await editor.panel.isVisible()) {
-        await editor.closeEditor.click();
-        await expect(await editor.panel).not.toBeVisible();
-    }
-
-    if (clonedCardID && (await (await studio.getCard(clonedCardID)).isVisible())) {
-        await studio.deleteCard(clonedCardID);
-        await expect(await studio.getCard(clonedCardID)).not.toBeVisible();
-    }
-
-    await page.close();
-});
+const { features } = COMFriesSpec;
 
 test.describe('M@S Studio Commerce Fries card test suite', () => {
-    // @studio-fries-save-edited-title - Validate saving card after editing card title
+    // @studio-fries-save-edited-RTE-fields - Validate saving card after editing title, description, and mnemonic
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+        setTestPage(testPage);
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -60,101 +29,74 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-3: Edit title and save card', async () => {
+        await test.step('step-3: Edit title field', async () => {
             await expect(await editor.title).toBeVisible();
-            await editor.title.fill(data.newTitle);
-            await studio.saveCard();
+            await editor.title.fill(data.title.updated);
         });
 
-        await test.step('step-4: Validate edited card title', async () => {
-            await expect(await editor.title).toHaveValue(data.newTitle);
-            await expect(await clonedCard.locator(fries.title)).toHaveText(data.newTitle);
-        });
-    });
-
-    // @studio-fries-save-edited-description - Validate saving card after editing card description
-    test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[1];
-        const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
-        let clonedCard;
-
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid);
-            clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
-            await expect(await clonedCard).toBeVisible();
-            await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
-        });
-
-        await test.step('step-3: Edit description and save card', async () => {
+        await test.step('step-4: Edit description field', async () => {
             await expect(await editor.description).toBeVisible();
-            await editor.description.fill(data.newDescription);
-            await studio.saveCard();
+            await editor.description.fill(data.description.updated);
         });
 
-        await test.step('step-4: Validate edited card description', async () => {
-            await expect(await editor.description).toContainText(data.newDescription);
-            await expect(await clonedCard.locator(fries.description)).toHaveText(data.newDescription);
-        });
-    });
-
-    // @studio-fries-save-edited-mnemonic - Validate saving card after editing card mnemonic
-    test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[2];
-        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
-        let clonedCard;
-
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid);
-            clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
-            await expect(await clonedCard).toBeVisible();
-            await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
-        });
-
-        await test.step('step-3: Edit mnemonic and save card', async () => {
-            // Use first() to avoid multiple elements issue
+        await test.step('step-5: Edit mnemonic field', async () => {
             const iconInput = await editor.iconURL.first();
             await expect(iconInput).toBeVisible();
-            await iconInput.fill(data.newIconURL);
+            await iconInput.fill(data.iconURL.updated);
+        });
+
+        await test.step('step-6: Save card', async () => {
             await studio.saveCard();
         });
 
-        await test.step('step-4: Validate edited card mnemonic', async () => {
-            const iconInput = await editor.iconURL.first();
-            await expect(iconInput).toHaveValue(data.newIconURL);
-            await expect(await clonedCard.locator(fries.icon).first()).toHaveAttribute('src', data.newIconURL);
+        await test.step('step-7: Validate edited fields in parallel', async () => {
+            const validationLabels = ['title', 'description', 'mnemonic'];
+
+            const results = await Promise.allSettled([
+                // Validate title in editor and card
+                test.step('Validation-1: Validate edited title', async () => {
+                    await expect(await editor.title).toContainText(data.title.updated);
+                    await expect(await clonedCard.locator(fries.title)).toHaveText(data.title.updated);
+                }),
+
+                // Validate description in editor and card
+                test.step('Validation-2: Validate edited description', async () => {
+                    await expect(await editor.description).toContainText(data.description.updated);
+                    await expect(await clonedCard.locator(fries.description)).toHaveText(data.description.updated);
+                }),
+
+                // Validate mnemonic in editor and card
+                test.step('Validation-3: Validate edited mnemonic', async () => {
+                    const iconInput = await editor.iconURL.first();
+                    await expect(iconInput).toHaveValue(data.iconURL.updated);
+                    await expect(await clonedCard.locator(fries.icon).first()).toHaveAttribute('src', data.iconURL.updated);
+                }),
+            ]);
+
+            // Check results and report any failures
+            const failures = results
+                .map((result, index) => ({ result, index }))
+                .filter(({ result }) => result.status === 'rejected')
+                .map(({ result, index }) => `🔍 Validation-${index + 1} (${validationLabels[index]}) failed: ${result.reason}`);
+
+            if (failures.length > 0) {
+                throw new Error(`\x1b[31m✘\x1b[0m Fries card field save validation failures:\n${failures.join('\n')}`);
+            }
         });
     });
 
     // @studio-fries-save-edited-price - Validate saving card after editing card price
-    test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[3];
-        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+    test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[1];
+        const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
+        setTestPage(testPage);
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -165,8 +107,8 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);
@@ -184,10 +126,10 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
     });
 
     // @studio-fries-save-edited-cta-label - Validate saving card after editing CTA label
-    test(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[4];
-        const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.cardid}`;
-        console.info('[Test Page]: ', testPage);
+    test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[2];
+        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
+        setTestPage(testPage);
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -198,8 +140,8 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
-            clonedCardID = await clonedCard.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardID = await clonedCardID;
+            setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
+            data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
             await page.waitForTimeout(2000);
@@ -210,7 +152,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
                 await editor.CTA.click();
                 if ((await editor.footer.locator(editor.linkEdit).count()) > 0) {
                     await editor.footer.locator(editor.linkEdit).click();
-                    await editor.linkText.fill(data.newCtaText);
+                    await editor.linkText.fill(data.ctaText.updated);
                     await editor.linkSave.click();
                 }
             }
@@ -219,10 +161,10 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
         await test.step('step-4: Validate edited card CTA', async () => {
             if ((await editor.footer.count()) > 0) {
-                await expect(await editor.footer).toContainText(data.newCtaText);
+                await expect(await editor.footer).toContainText(data.ctaText.updated);
             }
             if ((await clonedCard.locator(fries.cta).count()) > 0) {
-                await expect(await clonedCard.locator(fries.cta)).toContainText(data.newCtaText);
+                await expect(await clonedCard.locator(fries.cta)).toContainText(data.ctaText.updated);
             }
         });
     });

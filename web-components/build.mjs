@@ -49,19 +49,18 @@ Promise.all([
         stdin: { contents: '' },
         inject: ['./src/merch-offer.js', './src/merch-offer-select.js'],
         outfile: `${outfolder}/merch-offer-select.js`,
-        external: ['lit'],
     }),
     build({
         ...defaults,
         entryPoints: ['./src/merch-card-collection.js'],
-        external: ['lit'],
+        plugins: [rewriteImportsToLibsFolder()],
         outfile: `${outfolder}/merch-card-collection.js`,
     }),
     build({
         ...defaults,
         entryPoints: ['./src/sidenav/merch-sidenav.js'],
         outfile: `${outfolder}/merch-sidenav.js`,
-        external: ['lit'],
+        plugins: [rewriteImportsToLibsFolder()],
     }),
     buildLitComponent('merch-card'),
     buildLitComponent('merch-icon'),
@@ -79,6 +78,21 @@ async function buildLitComponent(name) {
         external: ['lit'],
         metafile: true,
         outfile: `${outfolder}/${name}.js`,
+        plugins: [rewriteImportsToLibsFolder()],
     });
     writeFileSync(`${outfolder}/${name}.json`, JSON.stringify(metafile));
+}
+
+function rewriteImportsToLibsFolder() {
+    return {
+        name: 'rewrite-imports-to-libs-folder',
+        setup(build) {
+            build.onResolve({ filter: /^lit(\/.*)?$/ }, () => {
+                return {
+                    path: '/deps/lit-all.min.js',
+                    external: true,
+                };
+            });
+        },
+    };
 }

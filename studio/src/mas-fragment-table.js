@@ -5,20 +5,30 @@ import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './editor-pan
 import Store from './store.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
 import { CARD_MODEL_PATH } from './constants.js';
+import { MasRepository } from './mas-repository.js';
+import { FragmentStore } from './reactivity/fragment-store.js';
+import { Fragment } from './aem/fragment.js';
 
 class MasFragmentTable extends LitElement {
     static properties = {
         fragmentStore: { type: Object, attribute: false },
         customRender: { type: Function, attribute: false },
         offerData: { type: Object, state: true, attribute: false },
+        expanded: { type: Boolean, state: true, attribute: false },
     };
 
     constructor() {
         super();
         this.offerData = null;
+        this.expanded = false;
     }
 
     #reactiveControllers = new ReactiveController(this);
+
+    /** @type {MasRepository} */
+    get repository() {
+        return document.querySelector('mas-repository');
+    }
 
     createRenderRoot() {
         return this;
@@ -97,34 +107,104 @@ class MasFragmentTable extends LitElement {
         }
     }
 
+    async toggleExpand(e) {
+        e.stopPropagation();
+        this.expanded = !this.expanded;
+        const fragment = this.fragmentStore.value;
+        // Fetch references only when expanding and references are not yet loaded
+        if (this.expanded && this.repository && !fragment.references?.length) {
+            const references = await this.repository.loadReferences(fragment.id);
+            this.fragmentStore.value.references = references;
+            this.requestUpdate();
+        }
+    }
+
+    renderExpandedContent() {
+        const fragment = this.fragmentStore.value;
+        const variations = fragment.listLocaleVariations();
+        const hasVariations = variations && Array.isArray(variations) && variations.length > 0;
+
+        return html`
+            <div class="expanded-content">
+                ${hasVariations
+                    ? html`<h3 class="expanded-title">Variations</h3>`
+                    : html`<h3 class="expanded-title">No Variations found.</h3>`}
+                <sp-tabs selected="locale" quiet>
+                    <sp-tab value="locale" label="Locale">Locale</sp-tab>
+                    <sp-tab value="promotion" label="Promotion">Promotion</sp-tab>
+                    <sp-tab value="personalization" label="Personalization">Personalization</sp-tab>
+                    <sp-tab-panel value="locale">
+                        <div class="embedded-table-container">
+                            ${hasVariations
+                                ? variations.map(
+                                      (variationFragment) => html`
+                                          <mas-fragment-table
+                                              class="mas-fragment"
+                                              data-id="${variationFragment.id}"
+                                              .fragmentStore=${new FragmentStore(new Fragment(variationFragment))}
+                                          ></mas-fragment-table>
+                                      `,
+                                  )
+                                : html`<p>No locale variations found</p>`}
+                        </div>
+                    </sp-tab-panel>
+                    <sp-tab-panel value="promotion">
+                        <div class="tab-content-placeholder">
+                            <p>Promotion content will be displayed here</p>
+                        </div>
+                    </sp-tab-panel>
+                    <sp-tab-panel value="personalization">
+                        <div class="tab-content-placeholder">
+                            <p>Personalization content will be displayed here</p>
+                        </div>
+                    </sp-tab-panel>
+                </sp-tabs>
+            </div>
+        `;
+    }
+
     render() {
         const data = this.fragmentStore.value;
-        return html`<sp-table-row value="${data.id}"
-            ><sp-table-cell class="name"> ${this.icon} ${this.getFragmentName(data)} </sp-table-cell>
-            <sp-table-cell class="title">${data.title}</sp-table-cell>
-            <sp-table-cell class="offer-id">
-                <span class="offer-id-text" title=${this.offerData?.offerId}> ${this.getTruncatedOfferId()} </span>
-                ${this.offerData?.offerId
-                    ? html`<sp-icon-copy
-                          label="Copy to clipboard"
-                          class="copy-icon"
-                          @click=${this.copyOfferIdToClipboard}
-                      ></sp-icon-copy>`
-                    : ''}
-            </sp-table-cell>
-            <sp-table-cell class="offer-type">${this.offerData?.offerType}</sp-table-cell>
-            <sp-table-cell class="price">${this.price}</sp-table-cell>
-            ${this.customRender?.(data)}
-            <sp-table-cell class="status ${data.status?.toLowerCase()}-cell"
-                ><div class="status-dot"></div>
-                <span class="status-text">${data.status}</span></sp-table-cell
-            >
-            ${data.model.path === CARD_MODEL_PATH
-                ? html`<sp-table-cell class="preview" @mouseover=${this.openCardPreview} @mouseout=${closePreview}
-                      ><sp-icon-preview label="Preview item"></sp-icon-preview
-                  ></sp-table-cell>`
-                : html`<sp-table-cell class="preview"></sp-table-cell>`}</sp-table-row
-        >`;
+        return html`
+            <sp-table-row value="${data.id}" class="${this.expanded ? 'expanded' : ''}">
+                <sp-table-cell class="name">
+                    <button
+                        class="expand-button"
+                        @click=${this.toggleExpand}
+                        aria-label="${this.expanded ? 'Collapse' : 'Expand'} row"
+                    >
+                        ${this.expanded
+                            ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
+                            : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
+                    </button>
+                    ${this.icon} ${this.getFragmentName(data)}
+                </sp-table-cell>
+                <sp-table-cell class="title">${data.title}</sp-table-cell>
+                <sp-table-cell class="offer-id">
+                    <span class="offer-id-text" title=${this.offerData?.offerId}> ${this.getTruncatedOfferId()} </span>
+                    ${this.offerData?.offerId
+                        ? html`<sp-icon-copy
+                              label="Copy to clipboard"
+                              class="copy-icon"
+                              @click=${this.copyOfferIdToClipboard}
+                          ></sp-icon-copy>`
+                        : ''}
+                </sp-table-cell>
+                <sp-table-cell class="offer-type">${this.offerData?.offerType}</sp-table-cell>
+                <sp-table-cell class="price">${this.price}</sp-table-cell>
+                ${this.customRender?.(data)}
+                <sp-table-cell class="status ${data.status?.toLowerCase()}-cell"
+                    ><div class="status-dot"></div>
+                    <span class="status-text">${data.status}</span></sp-table-cell
+                >
+                ${data.model.path === CARD_MODEL_PATH
+                    ? html`<sp-table-cell class="preview" @mouseover=${this.openCardPreview} @mouseout=${closePreview}
+                          ><sp-icon-preview label="Preview item"></sp-icon-preview
+                      ></sp-table-cell>`
+                    : html`<sp-table-cell class="preview"></sp-table-cell>`}
+            </sp-table-row>
+            ${this.expanded ? html`<div class="expanded-row-container">${this.renderExpandedContent()}</div>` : ''}
+        `;
     }
 }
 

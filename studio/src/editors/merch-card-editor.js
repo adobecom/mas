@@ -320,13 +320,16 @@ class MerchCardEditor extends LitElement {
             </sp-field-group>
             <sp-field-group class="toggle" id="title">
                 <sp-field-label for="card-title">Title</sp-field-label>
-                <sp-textfield
-                    placeholder="Enter card title"
+                <rte-field
                     id="card-title"
+                    inline
+                    link
+                    mnemonic
                     data-field="cardTitle"
-                    value="${form.cardTitle.values[0]}"
-                    @input="${this.#handleFragmentUpdate}"
-                ></sp-textfield>
+                    .osi=${form.osi.values[0]}
+                    @change="${this.#handleFragmentUpdate}"
+                    >${unsafeHTML(form.cardTitle.values[0] || '')}</rte-field
+                >
             </sp-field-group>
             <sp-field-group class="toggle" id="subtitle">
                 <sp-field-label for="card-subtitle">Subtitle</sp-field-label>
@@ -478,12 +481,29 @@ class MerchCardEditor extends LitElement {
                     upt-link
                     list
                     mnemonic
+                    divider
                     .marks=${VARIANT_RTE_MARKS[this.fragment.variant]?.description?.marks}
                     data-field="description"
                     .osi=${form.osi.values[0]}
                     default-link-style="secondary-link"
                     @change="${this.#handleFragmentUpdate}"
                     >${unsafeHTML(form.description.values[0])}</rte-field
+                >
+            </sp-field-group>
+            <sp-field-group class="toggle" id="shortDescription">
+                <sp-field-label for="shortDescription">Short Description</sp-field-label>
+                <rte-field
+                    id="shortDescription"
+                    styling
+                    link
+                    upt-link
+                    list
+                    mnemonic
+                    data-field="shortDescription"
+                    .osi=${form.osi.values[0]}
+                    default-link-style="secondary-link"
+                    @change="${this.#handleFragmentUpdate}"
+                    >${unsafeHTML(form.shortDescription?.values[0] || '')}</rte-field
                 >
             </sp-field-group>
             <sp-field-group class="toggle" id="callout">

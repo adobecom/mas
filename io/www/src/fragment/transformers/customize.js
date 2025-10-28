@@ -67,15 +67,11 @@ async function getDefaultLanguageVariation(context) {
     const { surface, locale, fragmentPath, preview, parsedLocale } = context;
     const defaultLocale = locale ? getCorrespondingLocale(locale) : parsedLocale;
     if (defaultLocale !== parsedLocale) {
-        let defaultLocaleId = context.fragmentsIds?.['default-locale-id'];
-        if (!defaultLocaleId) {
-            logDebug(() => `Looking for fragment id for ${surface}/${defaultLocale}/${fragmentPath}`, context);
-            const defaultLocaleIdUrl = odinUrl(surface, defaultLocale, fragmentPath, preview);
-            const { id, status, message } = await getFragmentId(context, defaultLocaleIdUrl, 'default-locale-id');
-            if (status != 200) {
-                return { status, message };
-            }
-            defaultLocaleId = id;
+        logDebug(() => `Looking for fragment id for ${surface}/${defaultLocale}/${fragmentPath}`, context);
+        const defaultLocaleIdUrl = odinUrl(surface, defaultLocale, fragmentPath, preview);
+        const { id: defaultLocaleId, status, message } = await getFragmentId(context, defaultLocaleIdUrl, 'default-locale-id');
+        if (status != 200) {
+            return { status, message };
         }
         const defaultLocaleUrl = odinReferences(defaultLocaleId, true, preview);
         const response = await fetch(defaultLocaleUrl, context, 'default-locale-fragment');

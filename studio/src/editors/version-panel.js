@@ -625,7 +625,7 @@ class VersionHistoryButton extends LitElement {
                                             ? html`
                                                   <div class="current-indicator">
                                                       <div class="current-dot"></div>
-                                                      Current version
+                                                      Latest version
                                                   </div>
                                               `
                                             : nothing}

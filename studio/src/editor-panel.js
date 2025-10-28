@@ -448,14 +448,11 @@ export default class EditorPanel extends LitElement {
         if (version && versionId) {
             // Load the selected version of the fragment using the proper API
             try {
-                console.log('Loading version:', versionId, 'for fragment:', this.fragment.id);
                 const versionFragment = await this.repository.aem.sites.cf.fragments.getVersion(this.fragment.id, versionId);
-                console.log('Version fragment loaded:', versionFragment);
 
                 if (versionFragment) {
                     // Update the fragment store with the version data
                     this.fragmentStore.refreshFrom(versionFragment);
-                    console.log('Fragment store updated with version data');
 
                     // Mark fragment as having changes so save button is enabled
                     this.fragmentStore.value.hasChanges = true;
@@ -478,8 +475,6 @@ export default class EditorPanel extends LitElement {
 
     handleVersionUpdated(event) {
         const { version, oldVersion } = event.detail;
-        console.log('Version updated:', version);
-
         // Update the fragment versions list
         const versionIndex = this.fragmentVersions.findIndex((v) => v.id === version.id);
         if (versionIndex !== -1) {
@@ -691,7 +686,6 @@ export default class EditorPanel extends LitElement {
     }
 
     get fragmentEditor() {
-        console.log('fragmentEditor', this.fragment);
         return html`
             ${this.fragment
                 ? html`

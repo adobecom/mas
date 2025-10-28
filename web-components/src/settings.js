@@ -25,6 +25,7 @@ function getLocaleSettings({
     country = undefined,
     language = undefined,
 } = {}) {
+    console.log('my test change', locale);
     language ??= locale?.split('_')?.[0] || Defaults.language;
     country ??= locale?.split('_')?.[1] || Defaults.country;
     locale ??= `${language}_${country}`;

@@ -91,7 +91,7 @@ export default {
                 cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 iconURL: {
                     original: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
-                    updated: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
+                    updated: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -206,7 +206,7 @@ export default {
                 cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 whatsIncluded: {
                     text: 'List of items:',
-                    iconURL: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
+                    iconURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
                     iconLabel: 'Photoshop icon',
                 },
             },
@@ -410,6 +410,25 @@ export default {
                 },
                 legalDisclaimer: 'per licenseAnnual, billed monthly',
                 cardLegalDisclaimer: 'per license',
+            },
+            browserParams: '#page=content&path=nala&query=',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
+        },
+        {
+            tcid: '26',
+            name: '@studio-plans-individuals-edit-discard-product-icon-picker',
+            path: '/studio.html',
+            data: {
+                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                productIcon: {
+                    name: 'Photoshop',
+                    original: {
+                        src: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                    },
+                    updated: {
+                        src: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
+                    },
+                },
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',

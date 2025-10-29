@@ -7,7 +7,10 @@ this action sits behind mas/io/fragment in CDN and treats multiple odin related 
 - placeholders,
 - settings,
 - promotion,
-- translation (we don't want surface to handle id mapping for each locale)
+- regional and personalization customization,
+
+that each stand behind so called transformers. To optimize calls make to odin, the sequence is based on promises created at init time and sometimes depending on each other. You can see the full flow on below diagram:
+![flow](image.png)
 
 ## configuration
 

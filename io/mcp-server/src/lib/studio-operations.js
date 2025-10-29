@@ -1,3 +1,5 @@
+import { AEMClient } from './aem-client.js';
+import { StudioURLBuilder } from './studio-url-builder.js';
 
 /**
  * Studio Operations Tools
@@ -5,6 +7,7 @@
  *
  * These tools handle AEM operations requested through Studio's AI chat.
  * AI intent detection happens in Adobe I/O Runtime, these tools only execute.
+ * Auto-synced to io/mcp-server via Claude Code hook (verified working)
  */
 export class StudioOperations {
     constructor(aemClient, urlBuilder) {
@@ -114,25 +117,67 @@ export class StudioOperations {
 
     /**
      * Search for cards with filters
-     * @param {Object} params - { surface: string, query?: string, tags?: string[], limit?: number }
+     * @param {Object} params - { surface: string, query?: string, tags?: string[], limit?: number, offset?: number, locale?: string, variant?: string }
      */
     async searchCards(params) {
-        const { surface, query, tags = [], limit = 10 } = params;
+        const { surface, query, tags = [], limit = 10, locale = 'en_US', variant, offset = 0 } = params;
 
         if (!surface) {
             throw new Error('Surface is required for search operation');
         }
 
+        const requestLimit = Math.min(limit * 2, 50);
+
         const searchParams = {
-            path: this.getSurfacePath(surface),
+            path: this.getSurfacePath(surface, locale),
             query,
             tags: [...tags, 'mas:studio/content-type/merch-card'],
-            limit,
+            limit: requestLimit,
+            offset,
         };
 
         const fragments = await this.aemClient.searchFragments(searchParams);
 
-        const results = fragments.map((fragment) => this.formatCard(fragment));
+        const validFragments = await Promise.all(
+            fragments.map(async (fragment, index) => {
+                try {
+                    const fullFragment = await this.aemClient.getFragment(fragment.id);
+                    if (!fullFragment || !fullFragment.id || !fullFragment.fields) {
+                        console.warn(
+                            `[StudioOperations] Fragment ${fragment.id} (index ${index}) invalid: missing id or fields`,
+                        );
+                        return null;
+                    }
+                    return fullFragment;
+                } catch (error) {
+                    console.warn(
+                        `[StudioOperations] Fragment ${fragment.id} (index ${index}) failed to load: ${error.message}`,
+                    );
+                    return null;
+                }
+            }),
+        );
+
+        let filteredFragments = validFragments.filter((fragment) => fragment !== null);
+
+        if (variant) {
+            filteredFragments = filteredFragments.filter((fragment) => {
+                const fragmentVariant = Array.isArray(fragment.fields)
+                    ? fragment.fields.find((f) => f.name === 'variant')?.values?.[0]
+                    : fragment.fields?.variant?.value || fragment.fields?.variant;
+                return fragmentVariant === variant;
+            });
+        }
+
+        console.log(
+            `[StudioOperations] Search returned ${fragments.length} fragments, ${filteredFragments.length} valid${variant ? ` (filtered by variant: ${variant})` : ''}, returning ${Math.min(filteredFragments.length, limit)}`,
+        );
+
+        const results = filteredFragments.slice(0, limit).map((fragment) => {
+            const card = this.formatCard(fragment);
+            card.fragmentData = this.formatFragmentForCache(fragment, card);
+            return card;
+        });
 
         return {
             success: true,
@@ -276,30 +321,49 @@ export class StudioOperations {
         const transformedFields = {};
 
         if (fragment.fields) {
-            Object.entries(fragment.fields).forEach(([key, value]) => {
-                if (value && typeof value === 'object') {
-                    if (value.mimeType) {
-                        transformedFields[key] = value.value || value;
-                    } else if (value.value !== undefined) {
-                        transformedFields[key] = value.value;
-                    } else if (Array.isArray(value.values)) {
-                        transformedFields[key] = value.multiple ? value.values : value.values[0];
+            if (Array.isArray(fragment.fields)) {
+                fragment.fields.forEach((field) => {
+                    if (field.name) {
+                        const key = field.name;
+                        if (field.mimeType) {
+                            transformedFields[key] = field.values?.[0] || '';
+                        } else if (Array.isArray(field.values)) {
+                            transformedFields[key] = field.multiple ? field.values : field.values[0];
+                        } else if (field.value !== undefined) {
+                            transformedFields[key] = field.value;
+                        } else {
+                            transformedFields[key] = field.values?.[0];
+                        }
+                    }
+                });
+            } else {
+                Object.entries(fragment.fields).forEach(([key, value]) => {
+                    if (value && typeof value === 'object') {
+                        if (value.mimeType) {
+                            transformedFields[key] = value.value || value;
+                        } else if (value.value !== undefined) {
+                            transformedFields[key] = value.value;
+                        } else if (Array.isArray(value.values)) {
+                            transformedFields[key] = value.multiple ? value.values : value.values[0];
+                        } else {
+                            transformedFields[key] = value;
+                        }
                     } else {
                         transformedFields[key] = value;
                     }
-                } else {
-                    transformedFields[key] = value;
-                }
-            });
+                });
+            }
         }
+
+        const model = fragment.model || '/conf/mas/settings/dam/cfm/models/card';
 
         return {
             id: fragment.id,
             path: fragment.path,
             title: fragment.title,
-            model: fragment.model,
-            variant: transformedFields.variant || fragment.fields?.variant?.value || 'unknown',
-            size: transformedFields.size || fragment.fields?.size?.value || 'wide',
+            model,
+            variant: transformedFields.variant || 'unknown',
+            size: transformedFields.size || 'wide',
             fields: transformedFields,
             tags: fragment.tags || [],
             modified: fragment.modified,
@@ -309,10 +373,53 @@ export class StudioOperations {
     }
 
     /**
-     * Get AEM path for surface
+     * Format fragment for cache (matches I/O Runtime structure)
+     * Transforms nested fields to flat structure that merch-card expects
      * @private
      */
-    getSurfacePath(surface) {
+    formatFragmentForCache(fragment, card) {
+        const transformedFields = {};
+
+        if (fragment.fields) {
+            if (Array.isArray(fragment.fields)) {
+                fragment.fields.forEach((field) => {
+                    if (field.name) {
+                        transformedFields[field.name] = field.multiple ? field.values : field.values?.[0] || field.value || '';
+                    }
+                });
+            } else {
+                Object.entries(fragment.fields).forEach(([key, value]) => {
+                    if (value && typeof value === 'object') {
+                        transformedFields[key] = value.mimeType
+                            ? value.value
+                            : value.multiple
+                              ? value.values
+                              : value.values?.[0] || value.value || '';
+                    } else {
+                        transformedFields[key] = value || '';
+                    }
+                });
+            }
+        }
+
+        const result = {
+            id: fragment.id,
+            fields: transformedFields,
+            tags: fragment.tags || [],
+            settings: fragment.settings || {},
+            priceLiterals: fragment.priceLiterals || {},
+            dictionary: fragment.dictionary || {},
+            placeholders: fragment.placeholders || {},
+        };
+
+        return result;
+    }
+
+    /**
+     * Get AEM path for surface with locale
+     * @private
+     */
+    getSurfacePath(surface, locale = 'en_US') {
         const surfaceMap = {
             commerce: '/content/dam/mas/commerce',
             acom: '/content/dam/mas/acom',
@@ -320,6 +427,7 @@ export class StudioOperations {
             'adobe-home': '/content/dam/mas/adobe-home',
         };
 
-        return surfaceMap[surface] || '/content/dam/mas';
+        const basePath = surfaceMap[surface] || '/content/dam/mas';
+        return `${basePath}/${locale}`;
     }
 }

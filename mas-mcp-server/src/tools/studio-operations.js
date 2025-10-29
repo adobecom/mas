@@ -7,6 +7,7 @@ import { StudioURLBuilder } from '../utils/studio-url-builder.js';
  *
  * These tools handle AEM operations requested through Studio's AI chat.
  * AI intent detection happens in Adobe I/O Runtime, these tools only execute.
+ * Auto-synced to io/mcp-server via Claude Code hook (verified working)
  */
 export class StudioOperations {
     constructor(aemClient, urlBuilder) {
@@ -116,20 +117,23 @@ export class StudioOperations {
 
     /**
      * Search for cards with filters
-     * @param {Object} params - { surface: string, query?: string, tags?: string[], limit?: number, locale?: string, variant?: string }
+     * @param {Object} params - { surface: string, query?: string, tags?: string[], limit?: number, offset?: number, locale?: string, variant?: string }
      */
     async searchCards(params) {
-        const { surface, query, tags = [], limit = 10, locale = 'en_US', variant } = params;
+        const { surface, query, tags = [], limit = 10, locale = 'en_US', variant, offset = 0 } = params;
 
         if (!surface) {
             throw new Error('Surface is required for search operation');
         }
 
+        const requestLimit = Math.min(limit * 2, 50);
+
         const searchParams = {
             path: this.getSurfacePath(surface, locale),
             query,
             tags: [...tags, 'mas:studio/content-type/merch-card'],
-            limit: limit * 2,
+            limit: requestLimit,
+            offset,
         };
 
         const fragments = await this.aemClient.searchFragments(searchParams);

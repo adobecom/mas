@@ -14,7 +14,7 @@ export class AEMClient {
      * Search for fragments with filters
      */
     async searchFragments(params) {
-        const { path = '/content/dam/mas', query, tags, limit = 100, offset = 0 } = params;
+        const { path = '/content/dam/mas', query, tags, limit = 50, offset = 0 } = params;
 
         const authHeader = await this.authManager.getAuthHeader();
         console.log('[AEMClient] Auth header:', authHeader ? `${authHeader.slice(0, 27)}...` : 'MISSING');
@@ -22,9 +22,9 @@ export class AEMClient {
 
         const filter = { path };
 
-        if (query) {
+        if (query && query.trim()) {
             filter.fullText = {
-                text: encodeURIComponent(query),
+                text: query.trim(),
                 queryMode: 'EDGES',
             };
         }
@@ -36,6 +36,8 @@ export class AEMClient {
         const searchQuery = {
             filter,
         };
+
+        console.log('[AEMClient] Search query structure:', JSON.stringify(searchQuery, null, 2));
 
         const searchParams = new URLSearchParams({
             query: JSON.stringify(searchQuery),
@@ -63,9 +65,12 @@ export class AEMClient {
 
         if (!response.ok) {
             const errorText = await response.text().catch(() => '');
-            console.error('[AEMClient] Response status:', response.status);
+            console.error('[AEMClient] Search failed!');
+            console.error('[AEMClient] Response status:', response.status, response.statusText);
+            console.error('[AEMClient] Response headers:', Object.fromEntries(response.headers.entries()));
             console.error('[AEMClient] Response body:', errorText);
-            throw new Error(`AEM search failed: ${response.statusText}`);
+            console.error('[AEMClient] Search params:', { path, query, tags, limit, offset });
+            throw new Error(`AEM search failed: ${response.statusText}${errorText ? ` - ${errorText}` : ''}`);
         }
 
         const data = await response.json();

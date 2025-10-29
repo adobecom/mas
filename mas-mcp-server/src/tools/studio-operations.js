@@ -116,17 +116,17 @@ export class StudioOperations {
 
     /**
      * Search for cards with filters
-     * @param {Object} params - { surface: string, query?: string, tags?: string[], limit?: number }
+     * @param {Object} params - { surface: string, query?: string, tags?: string[], limit?: number, locale?: string, variant?: string }
      */
     async searchCards(params) {
-        const { surface, query, tags = [], limit = 10 } = params;
+        const { surface, query, tags = [], limit = 10, locale = 'en_US', variant } = params;
 
         if (!surface) {
             throw new Error('Surface is required for search operation');
         }
 
         const searchParams = {
-            path: this.getSurfacePath(surface),
+            path: this.getSurfacePath(surface, locale),
             query,
             tags: [...tags, 'mas:studio/content-type/merch-card'],
             limit: limit * 2,
@@ -154,9 +154,19 @@ export class StudioOperations {
             }),
         );
 
-        const filteredFragments = validFragments.filter((fragment) => fragment !== null);
+        let filteredFragments = validFragments.filter((fragment) => fragment !== null);
+
+        if (variant) {
+            filteredFragments = filteredFragments.filter((fragment) => {
+                const fragmentVariant = Array.isArray(fragment.fields)
+                    ? fragment.fields.find((f) => f.name === 'variant')?.values?.[0]
+                    : fragment.fields?.variant?.value || fragment.fields?.variant;
+                return fragmentVariant === variant;
+            });
+        }
+
         console.log(
-            `[StudioOperations] Search returned ${fragments.length} fragments, ${filteredFragments.length} valid, returning ${Math.min(filteredFragments.length, limit)}`,
+            `[StudioOperations] Search returned ${fragments.length} fragments, ${filteredFragments.length} valid${variant ? ` (filtered by variant: ${variant})` : ''}, returning ${Math.min(filteredFragments.length, limit)}`,
         );
 
         const results = filteredFragments.slice(0, limit).map((fragment) => {
@@ -398,16 +408,14 @@ export class StudioOperations {
             placeholders: fragment.placeholders || {},
         };
 
-        console.log('[DEBUG] formatFragmentForCache result.fields:', JSON.stringify(result.fields, null, 2));
-
         return result;
     }
 
     /**
-     * Get AEM path for surface
+     * Get AEM path for surface with locale
      * @private
      */
-    getSurfacePath(surface) {
+    getSurfacePath(surface, locale = 'en_US') {
         const surfaceMap = {
             commerce: '/content/dam/mas/commerce',
             acom: '/content/dam/mas/acom',
@@ -415,6 +423,7 @@ export class StudioOperations {
             'adobe-home': '/content/dam/mas/adobe-home',
         };
 
-        return surfaceMap[surface] || '/content/dam/mas';
+        const basePath = surfaceMap[surface] || '/content/dam/mas';
+        return `${basePath}/${locale}`;
     }
 }

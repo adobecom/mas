@@ -1,4 +1,5 @@
 import { LitElement, html } from 'lit';
+import { repeat } from 'lit/directives/repeat.js';
 
 /**
  * Operation Result Display Component
@@ -8,15 +9,72 @@ export class MasOperationResult extends LitElement {
     static properties = {
         result: { type: Object },
         operationType: { type: String },
+        displayCount: { type: Number },
     };
+
+    constructor() {
+        super();
+        this.displayCount = 5;
+    }
 
     createRenderRoot() {
         return this;
     }
 
+    cacheFragments(fragments) {
+        const AemFragmentElement = customElements.get('aem-fragment');
+        if (!AemFragmentElement || !fragments) return;
+
+        fragments.forEach((fragment) => {
+            const cachedFragment = {
+                ...fragment,
+                fields: this.convertFragmentFields(fragment.fields),
+            };
+            AemFragmentElement.cache.add(cachedFragment);
+        });
+    }
+
+    convertFragmentFields(fields) {
+        if (!fields) return {};
+
+        const isAlreadyFlat = Object.values(fields).every(
+            (value) => typeof value !== 'object' || value === null || Array.isArray(value),
+        );
+
+        if (isAlreadyFlat) {
+            const normalizedFields = { ...fields };
+            ['mnemonicIcon', 'mnemonicAlt', 'mnemonicLink'].forEach((key) => {
+                if (normalizedFields[key] && !Array.isArray(normalizedFields[key])) {
+                    normalizedFields[key] = [normalizedFields[key]];
+                }
+            });
+            return normalizedFields;
+        }
+
+        let fieldsObj = fields;
+        if (Array.isArray(fields)) {
+            fieldsObj = fields.reduce((acc, field) => {
+                if (field.name) {
+                    acc[field.name] = field;
+                }
+                return acc;
+            }, {});
+        }
+
+        return Object.entries(fieldsObj).reduce((acc, [key, field]) => {
+            if (field?.value !== undefined) {
+                acc[key] = field.value;
+            } else if (field?.values !== undefined) {
+                acc[key] = field.values.length === 1 ? field.values[0] : field.values;
+            } else {
+                acc[key] = field;
+            }
+            return acc;
+        }, {});
+    }
+
     renderSearchResults() {
         const { results = [] } = this.result;
-        const INLINE_DISPLAY_THRESHOLD = 5;
 
         if (results.length === 0) {
             return html`
@@ -27,8 +85,11 @@ export class MasOperationResult extends LitElement {
             `;
         }
 
-        const shouldShowModal = results.length > INLINE_DISPLAY_THRESHOLD;
-        const displayResults = shouldShowModal ? results.slice(0, 3) : results;
+        this.cacheFragments(results);
+
+        const displayResults = results.slice(0, this.displayCount);
+        const hasMore = results.length > displayResults.length;
+        const remainingCount = results.length - displayResults.length;
 
         return html`
             <div class="operation-result search-result">
@@ -37,82 +98,44 @@ export class MasOperationResult extends LitElement {
                     <span>${results.length} card${results.length !== 1 ? 's' : ''} found</span>
                 </div>
 
-                ${shouldShowModal
+                <div class="search-results-cards-grid">
+                    ${repeat(
+                        displayResults,
+                        (fragment) => fragment.id,
+                        (fragment) => {
+                            const isCollection = fragment.tags?.some((t) => t.id.includes('card-type/collection'));
+
+                            return isCollection
+                                ? html`
+                                      <merch-card-collection>
+                                          <aem-fragment fragment="${fragment.id}"></aem-fragment>
+                                      </merch-card-collection>
+                                  `
+                                : html`
+                                      <merch-card>
+                                          <aem-fragment fragment="${fragment.id}"></aem-fragment>
+                                      </merch-card>
+                                  `;
+                        },
+                    )}
+                </div>
+
+                ${hasMore
                     ? html`
-                          <div class="search-results-preview">
-                              ${displayResults.map(
-                                  (fragment) => html`
-                                      <div class="search-result-card compact" data-fragment-id="${fragment.id}">
-                                          <div class="card-info">
-                                              <h4>${fragment.title}</h4>
-                                              <div class="card-meta">
-                                                  ${fragment.tags?.find((t) => t.id.includes('variant/'))
-                                                      ? html`<sp-badge size="s">${this.extractVariant(fragment)}</sp-badge>`
-                                                      : ''}
-                                                  <span class="card-status">${fragment.status}</span>
-                                              </div>
-                                          </div>
-                                          <sp-action-button
-                                              size="s"
-                                              quiet
-                                              @click=${() => this.handleOpenCard(fragment)}
-                                              title="Open in editor"
-                                          >
-                                              <sp-icon-edit slot="icon"></sp-icon-edit>
-                                          </sp-action-button>
-                                      </div>
-                                  `,
-                              )}
-                          </div>
                           <div class="search-results-actions">
-                              <sp-button size="m" variant="accent" @click=${() => this.handleViewAllCards()}>
-                                  <sp-icon-view-list slot="icon"></sp-icon-view-list>
-                                  View All ${results.length} Cards
+                              <sp-button size="m" variant="secondary" @click=${() => this.handleShowMore(results.length)}>
+                                  Show ${remainingCount} More Card${remainingCount !== 1 ? 's' : ''}
                               </sp-button>
                           </div>
                       `
-                    : html`
-                          <div class="search-results-grid">
-                              ${results.map(
-                                  (fragment) => html`
-                                      <div class="search-result-card" data-fragment-id="${fragment.id}">
-                                          <div class="card-info">
-                                              <h4>${fragment.title}</h4>
-                                              <p class="card-path">${fragment.path}</p>
-                                              <div class="card-meta">
-                                                  ${fragment.tags?.find((t) => t.id.includes('variant/'))
-                                                      ? html`<sp-badge>${this.extractVariant(fragment)}</sp-badge>`
-                                                      : ''}
-                                                  <span class="card-status">${fragment.status}</span>
-                                              </div>
-                                          </div>
-                                          <div class="card-actions">
-                                              <sp-action-button
-                                                  size="s"
-                                                  quiet
-                                                  @click=${() => this.handleOpenCard(fragment)}
-                                                  title="Open in editor"
-                                              >
-                                                  <sp-icon-edit slot="icon"></sp-icon-edit>
-                                              </sp-action-button>
-                                          </div>
-                                      </div>
-                                  `,
-                              )}
-                          </div>
-                      `}
+                    : ''}
             </div>
         `;
     }
 
-    handleViewAllCards() {
-        this.dispatchEvent(
-            new CustomEvent('view-all-cards', {
-                detail: { results: this.result.results },
-                bubbles: true,
-                composed: true,
-            }),
-        );
+    handleShowMore(totalCount) {
+        const increment = 5;
+        this.displayCount = Math.min((this.displayCount || 5) + increment, totalCount);
     }
 
     renderPublishResult() {

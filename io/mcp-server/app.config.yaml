@@ -1,0 +1,79 @@
+application:
+    actions: actions
+    hooks:
+        test: npm run test
+    runtimeManifest:
+        packages:
+            MerchAtScaleMCP:
+                license: Apache-2.0
+                actions:
+                    publish-card:
+                        function: src/actions/publish-card.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: true
+                            final: true
+                    unpublish-card:
+                        function: src/actions/unpublish-card.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: true
+                            final: true
+                    get-card:
+                        function: src/actions/get-card.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: true
+                            final: true
+                    search-cards:
+                        function: src/actions/search-cards.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: true
+                            final: true
+                    delete-card:
+                        function: src/actions/delete-card.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: true
+                            final: true
+                    copy-card:
+                        function: src/actions/copy-card.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: true
+                            final: true
+                    update-card:
+                        function: src/actions/update-card.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: true
+                            final: true

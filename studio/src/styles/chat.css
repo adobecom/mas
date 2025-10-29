@@ -1130,6 +1130,29 @@
     color: var(--spectrum-global-color-gray-400);
 }
 
+/* Card Grid for Rendered Merch Cards */
+.search-results-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spectrum-global-dimension-size-200);
+    margin-top: var(--spectrum-global-dimension-size-250);
+    width: 100%;
+}
+
+.search-results-cards-grid merch-card,
+.search-results-cards-grid merch-card-collection {
+    width: 100%;
+    min-width: 0;
+}
+
+.search-results-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--spectrum-global-dimension-size-300);
+    padding-top: var(--spectrum-global-dimension-size-200);
+    border-top: 1px solid var(--spectrum-global-color-gray-300);
+}
+
 /* Fragment Preview in Get Result */
 .fragment-preview {
     padding: var(--spectrum-global-dimension-size-200);

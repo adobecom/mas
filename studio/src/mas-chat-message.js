@@ -231,20 +231,6 @@ export class MasChatMessage extends LitElement {
         );
     }
 
-    async handleViewAllCards(event) {
-        const { results } = event.detail;
-
-        const dialog = document.createElement('mas-card-selection-dialog');
-        document.body.appendChild(dialog);
-
-        await dialog.open({
-            mode: 'view-only',
-            fragments: results,
-        });
-
-        dialog.remove();
-    }
-
     getOfferProductName(offer) {
         if (!offer) return '';
         return offer.productName || offer.name || 'Unknown Product';
@@ -436,7 +422,6 @@ export class MasChatMessage extends LitElement {
                         ? html`<mas-operation-result
                               .result=${operationResult}
                               .operationType=${operationType}
-                              @view-all-cards=${this.handleViewAllCards}
                           ></mas-operation-result>`
                         : ''}
                 </div>

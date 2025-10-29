@@ -146,8 +146,11 @@ export const AI_CHAT_BASE_URL =
         ? 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScaleStudio'
         : 'https://mas.adobe.com/io';
 
-// MCP Server endpoint - localhost for development, production for mas.adobe.com
-export const MCP_SERVER_URL = window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://mas-mcp.adobe.com';
+// MCP Server endpoint - localhost for development, Runtime for production
+export const MCP_SERVER_URL =
+    window.location.hostname === 'localhost'
+        ? 'http://localhost:3001'
+        : 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScaleMCP';
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
 export const TAG_STATUS_PUBLISHED_PATH = '/content/cq:tags/mas/status/published';

@@ -94,6 +94,20 @@ class MasCardSelectionDialog extends LitElement {
     #convertFragmentFields(fields) {
         if (!fields) return {};
 
+        const isAlreadyFlat = Object.values(fields).every(
+            (value) => typeof value !== 'object' || value === null || Array.isArray(value),
+        );
+
+        if (isAlreadyFlat) {
+            const normalizedFields = { ...fields };
+            ['mnemonicIcon', 'mnemonicAlt', 'mnemonicLink'].forEach((key) => {
+                if (normalizedFields[key] && !Array.isArray(normalizedFields[key])) {
+                    normalizedFields[key] = [normalizedFields[key]];
+                }
+            });
+            return normalizedFields;
+        }
+
         let fieldsObj = fields;
         if (Array.isArray(fields)) {
             fieldsObj = fields.reduce((acc, field) => {

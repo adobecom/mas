@@ -1,0 +1,27 @@
+{
+    "name": "MerchAtScaleMCP",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Adobe I/O Runtime actions for MAS Studio MCP operations",
+    "type": "module",
+    "dependencies": {
+        "@adobe/aio-sdk": "^6",
+        "node-fetch": "^2.6.0"
+    },
+    "devDependencies": {
+        "eslint": "^8",
+        "mocha": "^10.2.0",
+        "chai": "^4.3.6"
+    },
+    "scripts": {
+        "test": "mocha --recursive ./test",
+        "lint": "eslint src",
+        "lint:fix": "eslint src --fix",
+        "deploy": "aio app deploy",
+        "deploy:all": "aio app deploy --all",
+        "undeploy": "aio app undeploy"
+    },
+    "engines": {
+        "node": ">=22"
+    }
+}

@@ -6,7 +6,11 @@ import {
     Env,
     Commitment,
     Term,
+    SUPPORTED_LANGUAGE_COUNTRY,
+    SUPPORTED_LANGUAGES,
+    SUPPORTED_COUNTRIES,
 } from './constants.js';
+import { Defaults } from './defaults.js';
 
 import { PlanType, applyPlanType } from '@dexter/tacocat-core';
 import { Log } from './log.js';
@@ -277,7 +281,20 @@ export function Wcs({ settings }) {
         promotionCode = '',
         wcsOsi = [],
     }) {
-        const locale = `${language}_${country}`;
+        if (country && !SUPPORTED_COUNTRIES.includes(country)) {
+            console.error(`Country ${country} is not supported`);
+            return [];
+        }
+        if (language && !SUPPORTED_LANGUAGES.includes(language)) {
+            console.error(`Language ${language} is not supported`);
+            return [];
+        }
+        let locale = '';
+        if (!(country && language)) {
+            locale = `${language}_${country}`;
+        } else {
+            locale = SUPPORTED_LANGUAGE_COUNTRY.includes(`${language}_${country}`) ? `${language}_${country}` : `${Defaults.language}_${Defaults.country}`;
+        }
         if (country !== 'GB' && !perpetual) language = 'MULT';
         const groupKey = [country, language, promotionCode]
             .filter((val) => val)

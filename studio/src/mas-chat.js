@@ -11,7 +11,7 @@ import { createFragmentFromAIConfig, createFragmentDataForAEM } from './utils/ai
 import { executeOperationWithFeedback } from './utils/ai-operations-executor.js';
 import { Fragment } from './aem/fragment.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
-import { showToast } from './utils.js';
+import { showToast, getHashParam } from './utils.js';
 import { AI_CHAT_BASE_URL, TAG_MODEL_ID_MAPPING } from './constants.js';
 import { getDamPath } from './mas-repository.js';
 import sessionManager from './services/chat-session-manager.js';
@@ -184,10 +184,11 @@ export class MasChat extends LitElement {
         this.error = null;
 
         try {
+            const currentPath = Store.search?.value?.path || getHashParam('path');
             const enrichedContext = {
                 ...context,
-                currentPath: Store.search.value.path,
-                currentLocale: Store.filters.value.locale || 'en_US',
+                currentPath: currentPath ? `/content/dam/mas/${currentPath}` : null,
+                currentLocale: Store.filters?.value?.locale || 'en_US',
             };
 
             const response = await this.callAIChatAction({
@@ -198,11 +199,18 @@ export class MasChat extends LitElement {
 
             if (response.type === 'operation' || response.type === 'mcp_operation') {
                 if (response.type === 'mcp_operation' && response.mcpTool === 'studio_search_cards') {
-                    const surface = this.extractSurfaceFromPath(Store.search.value.path);
+                    let surface = null;
+                    if (Store.search?.value?.path) {
+                        surface = this.extractSurfaceFromPath(Store.search.value.path);
+                    } else {
+                        const hashPath = getHashParam('path');
+                        const surfaceMap = { acom: 'acom', ccd: 'ccd', commerce: 'commerce', ahome: 'adobe-home' };
+                        surface = surfaceMap[hashPath] || null;
+                    }
                     if (surface) {
                         response.mcpParams.surface = surface;
                     }
-                    response.mcpParams.locale = Store.filters.value.locale || 'en_US';
+                    response.mcpParams.locale = Store.filters?.value?.locale || 'en_US';
                 }
 
                 const messageData = {

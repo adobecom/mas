@@ -175,6 +175,15 @@ async function main(params) {
 
         if (operationResult) {
             if (operationResult.type === 'mcp_operation') {
+                if (operationResult.mcpTool === 'studio_search_cards' && enrichedContext) {
+                    if (enrichedContext.surface && !operationResult.mcpParams.surface) {
+                        operationResult.mcpParams.surface = enrichedContext.surface;
+                    }
+                    if (enrichedContext.locale && !operationResult.mcpParams.locale) {
+                        operationResult.mcpParams.locale = enrichedContext.locale;
+                    }
+                }
+
                 return {
                     statusCode: 200,
                     headers: {

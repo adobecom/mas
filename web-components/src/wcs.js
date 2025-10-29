@@ -293,7 +293,11 @@ export function Wcs({ settings }) {
         if (!(country && language)) {
             locale = `${language}_${country}`;
         } else {
-            locale = SUPPORTED_LANGUAGE_COUNTRY.includes(`${language}_${country}`) ? `${language}_${country}` : `${Defaults.language}_${Defaults.country}`;
+            locale = SUPPORTED_LANGUAGE_COUNTRY.includes(
+                `${language}_${country}`,
+            )
+                ? `${language}_${country}`
+                : `${Defaults.language}_${Defaults.country}`;
         }
         if (country !== 'GB' && !perpetual) language = 'MULT';
         const groupKey = [country, language, promotionCode]

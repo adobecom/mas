@@ -831,7 +831,7 @@ var fi,
 var Jn,
     bi,
     Cs,
-    Zd,
+    Jd,
     ks,
     to,
     Ps,
@@ -843,13 +843,13 @@ var Jn,
         Zn();
         (bi = window),
             (Cs = bi.trustedTypes),
-            (Zd = Cs ? Cs.emptyScript : ''),
+            (Jd = Cs ? Cs.emptyScript : ''),
             (ks = bi.reactiveElementPolyfillSupport),
             (to = {
                 toAttribute(e, t) {
                     switch (t) {
                         case Boolean:
-                            e = e ? Zd : null;
+                            e = e ? Jd : null;
                             break;
                         case Object:
                         case Array:
@@ -1236,12 +1236,12 @@ var io,
     oo,
     je,
     Hs,
-    Jd,
+    eh,
     dt,
     _r,
     Tr,
     Ds,
-    eh,
+    th,
     no,
     Sr,
     Rs,
@@ -1252,18 +1252,18 @@ var io,
     Bs,
     Us,
     g,
-    hf,
+    pf,
     ht,
     N,
     Is,
     lt,
-    th,
+    rh,
     Cr,
     ao,
     kr,
     Ot,
     so,
-    rh,
+    ih,
     co,
     lo,
     ho,
@@ -1278,13 +1278,13 @@ var io,
             (oo = '$lit$'),
             (je = `lit$${(Math.random() + '').slice(9)}$`),
             (Hs = '?' + je),
-            (Jd = `<${Hs}>`),
+            (eh = `<${Hs}>`),
             (dt = document),
             (_r = () => dt.createComment('')),
             (Tr = (e) =>
                 e === null || (typeof e != 'object' && typeof e != 'function')),
             (Ds = Array.isArray),
-            (eh = (e) => Ds(e) || typeof e?.[Symbol.iterator] == 'function'),
+            (th = (e) => Ds(e) || typeof e?.[Symbol.iterator] == 'function'),
             (no = `[ 	
 \f\r]`),
             (Sr = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g),
@@ -1302,12 +1302,12 @@ var io,
                 (e) =>
                 (t, ...r) => ({ _$litType$: e, strings: t, values: r })),
             (g = Us(1)),
-            (hf = Us(2)),
+            (pf = Us(2)),
             (ht = Symbol.for('lit-noChange')),
             (N = Symbol.for('lit-nothing')),
             (Is = new WeakMap()),
             (lt = dt.createTreeWalker(dt, 129, null, !1));
-        (th = (e, t) => {
+        (rh = (e, t) => {
             let r = e.length - 1,
                 i = [],
                 n,
@@ -1357,7 +1357,7 @@ var io,
                 let m = a === ct && e[s + 1].startsWith('/>') ? ' ' : '';
                 o +=
                     a === Sr
-                        ? c + Jd
+                        ? c + eh
                         : p >= 0
                           ? (i.push(l),
                             c.slice(0, p) + oo + c.slice(p) + je + m)
@@ -1373,7 +1373,7 @@ var io,
                         a = 0,
                         s = t.length - 1,
                         c = this.parts,
-                        [l, d] = th(t, r);
+                        [l, d] = rh(t, r);
                     if (
                         ((this.el = e.createElement(l, i)),
                         (lt.currentNode = this.el.content),
@@ -1544,7 +1544,7 @@ var io,
                               ? this.g(t)
                               : t.nodeType !== void 0
                                 ? this.$(t)
-                                : eh(t)
+                                : th(t)
                                   ? this.T(t)
                                   : this._(t);
                 }
@@ -1691,14 +1691,14 @@ var io,
                     this.element[this.name] = t === N ? void 0 : t;
                 }
             }),
-            (rh = Lt ? Lt.emptyScript : ''),
+            (ih = Lt ? Lt.emptyScript : ''),
             (co = class extends Ot {
                 constructor() {
                     super(...arguments), (this.type = 4);
                 }
                 j(t) {
                     t && t !== N
-                        ? this.element.setAttribute(this.name, rh)
+                        ? this.element.setAttribute(this.name, ih)
                         : this.element.removeAttribute(this.name);
                 }
             }),
@@ -1850,7 +1850,7 @@ var R = Ye(() => {
 });
 var uo = {};
 No(uo, { default: () => pt });
-function ih() {
+function nh() {
     return (
         customElements.get('sp-tooltip') !== void 0 &&
         customElements.get('overlay-trigger') !== void 0 &&
@@ -1893,7 +1893,7 @@ var pt,
                 let t = this.effectiveContent,
                     r = this.effectivePlacement;
                 return t
-                    ? ih()
+                    ? nh()
                         ? g`
                 <overlay-trigger placement="${r}">
                     <span slot="trigger">${this.renderIcon()}</span>
@@ -2497,7 +2497,7 @@ var xn = 'ABM',
     Al = 'TAX_INCLUSIVE_DETAILS',
     Sl = 'TAX_EXCLUSIVE',
     Wo = { ABM: xn, PUF: bn, M2M: vn, PERPETUAL: yn, P3Y: En },
-    Zh = {
+    Jh = {
         [xn]: { commitment: se.YEAR, term: pe.MONTHLY },
         [bn]: { commitment: se.YEAR, term: pe.ANNUAL },
         [vn]: { commitment: se.MONTH, term: pe.MONTHLY },
@@ -3269,7 +3269,7 @@ function Fl(e) {
         throw new Error('Argument "checkoutData" is not valid, missing: items');
     return !0;
 }
-var L = Object.freeze({
+var C = Object.freeze({
     checkoutClientId: 'adobe_com',
     checkoutWorkflowStep: ee.EMAIL,
     country: 'US',
@@ -3317,8 +3317,8 @@ function ca({ settings: e, providers: t }) {
         let {
                 checkoutMarketSegment: S,
                 checkoutWorkflowStep: O = c,
-                imsCountry: P,
-                country: C = P ?? l,
+                imsCountry: L,
+                country: k = L ?? l,
                 language: M = d,
                 quantity: I = f,
                 entitlement: F,
@@ -3330,15 +3330,15 @@ function ca({ settings: e, providers: t }) {
                 extraOptions: de,
                 ...He
             } = Object.assign(x, a?.dataset ?? {}, o ?? {}),
-            Ee = ar(O, ee, L.checkoutWorkflowStep);
+            Ee = ar(O, ee, C.checkoutWorkflowStep);
         return (
             (x = Yr({
                 ...He,
                 extraOptions: de,
                 checkoutClientId: s,
                 checkoutMarketSegment: S,
-                country: C,
-                quantity: _t(I, L.quantity),
+                country: k,
+                quantity: _t(I, C.quantity),
                 checkoutWorkflowStep: Ee,
                 language: M,
                 entitlement: A(F),
@@ -3365,12 +3365,12 @@ function ca({ settings: e, providers: t }) {
                 preselectPlan: x,
                 ms: S,
                 cs: O,
-                ...P
+                ...L
             } = r(a),
-            C = document.querySelector('meta[name=mas-ff-3in1]'),
+            k = document.querySelector('meta[name=mas-ff-3in1]'),
             M =
                 Object.values(Je).includes(a.modal) &&
-                (!C || C.content !== 'off'),
+                (!k || k.content !== 'off'),
             I = window.frameElement || M ? 'if' : 'fp',
             [
                 {
@@ -3399,7 +3399,7 @@ function ca({ settings: e, providers: t }) {
                 productArrangementCode: F,
                 workflowStep: p,
                 landscape: c,
-                ...P,
+                ...L,
             },
             He = b[0] > 1 ? b[0] : void 0;
         if (o.length === 1) {
@@ -3465,7 +3465,7 @@ var da = window.masPriceLiterals;
 function ha(e) {
     if (Array.isArray(da)) {
         let t = (i) => da.find((n) => dn(n.lang, i)),
-            r = t(e.language) ?? t(L.language);
+            r = t(e.language) ?? t(C.language);
         if (r) return Object.freeze(r);
     }
     return {};
@@ -4727,10 +4727,10 @@ var Rn,
                                             ? ua(O)
                                             : {},
                                     },
-                                    P = s === 'date' ? B.date : B.time;
+                                    L = s === 'date' ? B.date : B.time;
                                 return {
                                     val: {
-                                        type: P,
+                                        type: L,
                                         value: i,
                                         location: x,
                                         style: f,
@@ -4760,11 +4760,11 @@ var Rn,
                     case 'plural':
                     case 'selectordinal':
                     case 'select': {
-                        var C = this.clonePosition();
+                        var k = this.clonePosition();
                         if ((this.bumpSpace(), !this.bumpIf(',')))
                             return this.error(
                                 w.EXPECT_SELECT_ARGUMENT_OPTIONS,
-                                T(C, _({}, C)),
+                                T(k, _({}, k)),
                             );
                         this.bumpSpace();
                         var M = this.parseIdentifierIfPossible(),
@@ -5600,15 +5600,15 @@ function gr(e, t, r, i, n, o, a) {
                 S = n[x];
             if (!vd(S)) throw new Ia(x, 'function', a);
             var O = gr(b, t, r, i, n, o),
-                P = S(
+                L = S(
                     O.map(function (I) {
                         return I.value;
                     }),
                 );
-            Array.isArray(P) || (P = [P]),
+            Array.isArray(L) || (L = [L]),
                 s.push.apply(
                     s,
-                    P.map(function (I) {
+                    L.map(function (I) {
                         return {
                             type: typeof I == 'string' ? J.literal : J.object,
                             value: I,
@@ -5617,14 +5617,14 @@ function gr(e, t, r, i, n, o, a) {
                 );
         }
         if (ci(d)) {
-            var C = d.options[f] || d.options.other;
-            if (!C) throw new Bn(d.value, f, Object.keys(d.options), a);
-            s.push.apply(s, gr(C.value, t, r, i, n));
+            var k = d.options[f] || d.options.other;
+            if (!k) throw new Bn(d.value, f, Object.keys(d.options), a);
+            s.push.apply(s, gr(k.value, t, r, i, n));
             continue;
         }
         if (li(d)) {
-            var C = d.options['='.concat(f)];
-            if (!C) {
+            var k = d.options['='.concat(f)];
+            if (!k) {
                 if (!Intl.PluralRules)
                     throw new fr(
                         `Intl.PluralRules is not available in this environment.
@@ -5636,10 +5636,10 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
                 var M = r
                     .getPluralRules(t, { type: d.pluralType })
                     .select(f - (d.offset || 0));
-                C = d.options[M] || d.options.other;
+                k = d.options[M] || d.options.other;
             }
-            if (!C) throw new Bn(d.value, f, Object.keys(d.options), a);
-            s.push.apply(s, gr(C.value, t, r, i, n, f - (d.offset || 0)));
+            if (!k) throw new Bn(d.value, f, Object.keys(d.options), a);
+            s.push.apply(s, gr(k.value, t, r, i, n, f - (d.offset || 0)));
             continue;
         }
     }
@@ -6213,8 +6213,8 @@ var ie =
                 offerSelectorIds: x,
                 formatString: S,
                 price: O,
-                priceWithoutDiscount: P,
-                taxDisplay: C,
+                priceWithoutDiscount: L,
+                taxDisplay: k,
                 taxTerm: M,
                 term: I,
                 usePrecision: F,
@@ -6235,7 +6235,7 @@ var ie =
             });
             let V = { ...Vn, ...p },
                 H = `${d.toLowerCase()}-${o.toUpperCase()}`,
-                Z = r && P ? P : O,
+                Z = r && L ? L : O,
                 de = t ? Ya : Xa;
             i && (de = Ka);
             let {
@@ -6248,7 +6248,7 @@ var ie =
                     instant: n,
                     isIndianPrice: o === 'IN',
                     originalPrice: O,
-                    priceWithoutDiscount: P,
+                    priceWithoutDiscount: L,
                     price: t ? O : Z,
                     promotion: W,
                     quantity: f,
@@ -6272,7 +6272,7 @@ var ie =
                 (Fr += Oe(
                     V,
                     H,
-                    C === jn ? Fe.taxExclusiveLabel : Fe.taxInclusiveLabel,
+                    k === jn ? Fe.taxExclusiveLabel : Fe.taxInclusiveLabel,
                     { taxTerm: M },
                 ))),
                 r &&
@@ -6518,14 +6518,14 @@ var us = 'INDIVIDUAL_COM',
         return o
             ? o.includes(e) || o.includes(n)
                 ? !0
-                : L.displayTax
-            : L.displayTax;
+                : C.displayTax
+            : C.displayTax;
     },
     gs = async (e, t, r, i) => {
         let n = Yd(e, t, r, i);
         return {
             displayTax: n,
-            forceTaxExclusive: n ? Wd(e, t, r, i) : L.forceTaxExclusive,
+            forceTaxExclusive: n ? Wd(e, t, r, i) : C.forceTaxExclusive,
         };
     },
     br = class br extends HTMLSpanElement {
@@ -6732,8 +6732,8 @@ function xs({ literals: e, providers: t, settings: r }) {
             perpetual: x,
             displayAnnual: S,
             promotionCode: O,
-            quantity: P,
-            alternativePrice: C,
+            quantity: L,
+            alternativePrice: k,
             wcsOsi: M,
             ...I
         } = Object.assign(c, s?.dataset ?? {}, a ?? {});
@@ -6751,8 +6751,8 @@ function xs({ literals: e, providers: t, settings: r }) {
                     perpetual: A(x),
                     displayAnnual: A(S),
                     promotionCode: Kr(O).effectivePromoCode,
-                    quantity: _t(P, L.quantity),
-                    alternativePrice: A(C),
+                    quantity: _t(L, C.quantity),
+                    alternativePrice: A(k),
                     wcsOsi: Zr(M),
                 }),
             )),
@@ -6798,15 +6798,99 @@ function xs({ literals: e, providers: t, settings: r }) {
         createInlinePrice: o,
     };
 }
-function Xd({
+var Xd = [
+    'en_US',
+    'ar_DZ',
+    'ar_EG',
+    'ar_SA',
+    'bg_BG',
+    'cs_CZ',
+    'da_DK',
+    'de_AT',
+    'de_CH',
+    'de_DE',
+    'de_LU',
+    'el_GR',
+    'en_AU',
+    'en_AZ',
+    'en_BE',
+    'en_CA',
+    'en_DZ',
+    'en_EG',
+    'en_GB',
+    'en_GR',
+    'en_ID',
+    'en_IE',
+    'en_IN',
+    'en_LU',
+    'en_MT',
+    'en_MU',
+    'en_MY',
+    'en_NG',
+    'en_NZ',
+    'en_SA',
+    'en_SG',
+    'en_TH',
+    'en_ZA',
+    'es_AR',
+    'es_CL',
+    'es_CO',
+    'es_CR',
+    'es_DO',
+    'es_EC',
+    'es_ES',
+    'es_GT',
+    'es_MX',
+    'es_PE',
+    'es_US',
+    'et_EE',
+    'fi_FI',
+    'fr_BE',
+    'fr_CH',
+    'fr_FR',
+    'fr_LU',
+    'hi_IN',
+    'hu_HU',
+    'in_ID',
+    'it_CH',
+    'it_IT',
+    'iw_IL',
+    'ja_JP',
+    'ko_KR',
+    'lt_LT',
+    'lv_LV',
+    'ms_MY',
+    'nb_NO',
+    'nl_BE',
+    'nl_NL',
+    'pl_PL',
+    'pt_BR',
+    'pt_PT',
+    'ro_RO',
+    'ru_AZ',
+    'ru_RU',
+    'sk_SK',
+    'sl_SI',
+    'sv_SE',
+    'th_TH',
+    'tr_TR',
+    'uk_UA',
+    'zh-Hans_CN',
+    'zh-Hant_HK',
+    'zh-Hant_TW',
+];
+function Kd({
     locale: e = void 0,
     country: t = void 0,
     language: r = void 0,
 } = {}) {
     return (
-        r ?? (r = e?.split('_')?.[0] || L.language),
-        t ?? (t = e?.split('_')?.[1] || L.country),
-        e ?? (e = `${r}_${t}`),
+        r ?? (r = e?.split('_')?.[0] || C.language),
+        t ?? (t = e?.split('_')?.[1] || C.country),
+        e ??
+            (e = Xd.includes(`${r}_${t}`)
+                ? `${r}_${t}`
+                : `${C.language}_${C.country}`),
         { locale: e, country: t, language: r }
     );
 }
@@ -6815,26 +6899,26 @@ function bs(e = {}, t) {
         { commerce: i = {} } = e,
         n = we.PRODUCTION,
         o = on,
-        a = D('checkoutClientId', i) ?? L.checkoutClientId,
-        s = ar(D('checkoutWorkflowStep', i), ee, L.checkoutWorkflowStep),
-        c = L.displayOldPrice,
-        l = L.displayPerUnit,
-        d = A(D('displayRecurrence', i), L.displayRecurrence),
-        p = A(D('displayTax', i), L.displayTax),
-        f = A(D('displayPlanType', i), L.displayPlanType),
-        m = A(D('entitlement', i), L.entitlement),
-        b = A(D('modal', i), L.modal),
-        x = A(D('forceTaxExclusive', i), L.forceTaxExclusive),
-        S = D('promotionCode', i) ?? L.promotionCode,
+        a = D('checkoutClientId', i) ?? C.checkoutClientId,
+        s = ar(D('checkoutWorkflowStep', i), ee, C.checkoutWorkflowStep),
+        c = C.displayOldPrice,
+        l = C.displayPerUnit,
+        d = A(D('displayRecurrence', i), C.displayRecurrence),
+        p = A(D('displayTax', i), C.displayTax),
+        f = A(D('displayPlanType', i), C.displayPlanType),
+        m = A(D('entitlement', i), C.entitlement),
+        b = A(D('modal', i), C.modal),
+        x = A(D('forceTaxExclusive', i), C.forceTaxExclusive),
+        S = D('promotionCode', i) ?? C.promotionCode,
         O = _t(D('quantity', i)),
-        P = D('wcsApiKey', i) ?? L.wcsApiKey,
-        C = i?.env === 'stage',
+        L = D('wcsApiKey', i) ?? C.wcsApiKey,
+        k = i?.env === 'stage',
         M = Be.PUBLISHED;
     ['true', ''].includes(i.allowOverride) &&
-        ((C =
+        ((k =
             (D(rn, i, { metadata: !1 })?.toLowerCase() ?? i?.env) === 'stage'),
         (M = ar(D(nn, i), Be, M))),
-        C && ((n = we.STAGE), (o = an));
+        k && ((n = we.STAGE), (o = an));
     let F = D(tn) ?? e.preview,
         W = typeof F < 'u' && F !== 'off' && F !== 'false',
         te = {};
@@ -6845,7 +6929,7 @@ function bs(e = {}, t) {
             `https://www${n === we.STAGE ? '.stage' : ''}.adobe.com/mas/io`,
         H = D('preselect-plan') ?? void 0;
     return {
-        ...Xd(e),
+        ...Kd(e),
         ...te,
         displayOldPrice: c,
         checkoutClientId: a,
@@ -6855,14 +6939,14 @@ function bs(e = {}, t) {
         displayTax: p,
         displayPlanType: f,
         entitlement: m,
-        extraOptions: L.extraOptions,
+        extraOptions: C.extraOptions,
         modal: b,
         env: n,
         forceTaxExclusive: x,
         promotionCode: S,
         quantity: O,
-        alternativePrice: L.alternativePrice,
-        wcsApiKey: P,
+        alternativePrice: C.alternativePrice,
+        wcsApiKey: L,
         wcsURL: o,
         landscape: M,
         masIOUrl: V,
@@ -6881,7 +6965,7 @@ async function ui(e, t = {}, r = 2, i = 100) {
         }
     throw n;
 }
-var Kd = 'mas-commerce-service';
+var Qd = 'mas-commerce-service';
 function vr(e, t) {
     let r;
     return function () {
@@ -6905,7 +6989,7 @@ function vs() {
     return window.matchMedia('(max-width: 1024px)').matches;
 }
 function ot() {
-    return document.getElementsByTagName(Kd)?.[0];
+    return document.getElementsByTagName(Qd)?.[0];
 }
 function yr(e) {
     let t = window.getComputedStyle(e);
@@ -6925,8 +7009,8 @@ function ys({ settings: e }) {
         let S = re(),
             O = Zi;
         t.debug('Fetching:', m);
-        let P = '',
-            C;
+        let L = '',
+            k;
         if (m.offerSelectorIds.length > 1)
             throw new Error('Multiple OSIs are not supported anymore');
         let M = new Map(b),
@@ -6938,25 +7022,25 @@ function ys({ settings: e }) {
         try {
             if (
                 (performance.mark(W),
-                (P = new URL(e.wcsURL)),
-                P.searchParams.set('offer_selector_ids', I),
-                P.searchParams.set('country', m.country),
-                P.searchParams.set('locale', m.locale),
-                P.searchParams.set(
+                (L = new URL(e.wcsURL)),
+                L.searchParams.set('offer_selector_ids', I),
+                L.searchParams.set('country', m.country),
+                L.searchParams.set('locale', m.locale),
+                L.searchParams.set(
                     'landscape',
                     r === we.STAGE ? 'ALL' : e.landscape,
                 ),
-                P.searchParams.set('api_key', i),
-                m.language && P.searchParams.set('language', m.language),
+                L.searchParams.set('api_key', i),
+                m.language && L.searchParams.set('language', m.language),
                 m.promotionCode &&
-                    P.searchParams.set('promotion_code', m.promotionCode),
-                m.currency && P.searchParams.set('currency', m.currency),
-                (C = await ui(P.toString(), { credentials: 'omit' })),
-                C.ok)
+                    L.searchParams.set('promotion_code', m.promotionCode),
+                m.currency && L.searchParams.set('currency', m.currency),
+                (k = await ui(L.toString(), { credentials: 'omit' })),
+                k.ok)
             ) {
                 let H = [];
                 try {
-                    let Z = await C.json();
+                    let Z = await k.json();
                     t.debug('Fetched:', m, Z), (H = Z.resolvedOffers ?? []);
                 } catch (Z) {
                     t.error(`Error parsing JSON: ${Z.message}`, {
@@ -6981,13 +7065,13 @@ function ys({ settings: e }) {
         }
         if (x && b.size) {
             t.debug('Missing:', { offerSelectorIds: [...b.keys()] });
-            let H = Jr(C);
+            let H = Jr(k);
             b.forEach((Z) => {
                 Z.reject(
                     new Le(O, {
                         ...m,
                         ...H,
-                        response: C,
+                        response: k,
                         measure: Ae(V),
                         ...S?.duration,
                     }),
@@ -7026,22 +7110,22 @@ function ys({ settings: e }) {
         promotionCode: S = '',
         wcsOsi: O = [],
     }) {
-        let P = `${b}_${m}`;
+        let L = `${b}_${m}`;
         m !== 'GB' && !x && (b = 'MULT');
-        let C = [m, b, S]
+        let k = [m, b, S]
             .filter((M) => M)
             .join('-')
             .toLowerCase();
         return O.map((M) => {
-            let I = `${M}-${C}`;
+            let I = `${M}-${k}`;
             if (n.has(I)) return n.get(I);
             let F = new Promise((W, te) => {
-                let V = o.get(C);
+                let V = o.get(k);
                 if (!V) {
-                    let H = { country: m, locale: P, offerSelectorIds: [] };
+                    let H = { country: m, locale: L, offerSelectorIds: [] };
                     m !== 'GB' && !x && (H.language = b),
                         (V = { options: H, promises: new Map() }),
-                        o.set(C, V);
+                        o.set(k, V);
                 }
                 S && (V.options.promotionCode = S),
                     V.options.offerSelectorIds.push(M),
@@ -7113,7 +7197,7 @@ var Es = 'mas-commerce-service',
                     ...ln,
                     Log: ce,
                     get defaults() {
-                        return L;
+                        return C;
                     },
                     get log() {
                         return ce;
@@ -7268,7 +7352,7 @@ u(wr, 'is', 'checkout-button'), u(wr, 'tag', 'button');
 var Pt = wr;
 window.customElements.get(Pt.is) ||
     window.customElements.define(Pt.is, Pt, { extends: Pt.tag });
-function Qd(e) {
+function Zd(e) {
     return `https://${e === 'PRODUCTION' ? 'www.adobe.com' : 'www.stage.adobe.com'}/offers/promo-terms.html`;
 }
 var st,
@@ -7326,7 +7410,7 @@ var st,
                     d = `locale=${c}_${s}&country=${s}&offer_id=${a.offerId}`,
                     p = this.getAttribute('data-promotion-code');
                 p && (d += `&promotion_code=${encodeURIComponent(p)}`),
-                    (this.href = `${Qd(l)}?${d}`),
+                    (this.href = `${Zd(l)}?${d}`),
                     this.masElement.toggleResolved(n, a, i);
             } catch (a) {
                 let s = new Error(
@@ -7640,7 +7724,7 @@ var qs = y`
         `,
     ];
 R();
-function nh() {
+function oh() {
     return (
         customElements.get('sp-tooltip') !== void 0 ||
         document.querySelector('sp-theme') !== null
@@ -7654,7 +7738,7 @@ var Mt = class extends $ {
         super.connectedCallback(), setTimeout(() => this.handleTooltips(), 0);
     }
     handleTooltips() {
-        if (nh()) return;
+        if (oh()) return;
         this.querySelectorAll('sp-tooltip, overlay-trigger').forEach((r) => {
             let i = '',
                 n = 'top';
@@ -8083,7 +8167,7 @@ var $t,
         }
     };
 ($t = new WeakMap()), u(Or, 'styleMap', {});
-var k = Or;
+var P = Or;
 R();
 var Ys = `
 :root {
@@ -8218,7 +8302,7 @@ var Xs = {
         size: ['wide', 'super-wide'],
         title: { tag: 'h3', slot: 'heading-xs' },
     },
-    Ht = class extends k {
+    Ht = class extends P {
         constructor(r) {
             super(r);
             u(this, 'dispatchActionMenuToggle', () => {
@@ -8392,7 +8476,7 @@ var Ks = `
   }
 }
 `;
-var Pi = class extends k {
+var Pi = class extends P {
     constructor(t) {
         super(t);
     }
@@ -8468,7 +8552,7 @@ var Qs = `
   }
 }
 `;
-var Li = class extends k {
+var Li = class extends P {
     constructor(t) {
         super(t);
     }
@@ -9006,8 +9090,8 @@ merch-card .footer-row-cell:nth-child(8) {
   min-height: var(--consonant-merch-card-footer-row-8-min-height);
 }
 `;
-var oh = 32,
-    Dt = class extends k {
+var ah = 32,
+    Dt = class extends P {
         constructor(r) {
             super(r);
             u(
@@ -9071,7 +9155,7 @@ var oh = 32,
                 !r.children ||
                 [...r.children].forEach((i, n) => {
                     let o = Math.max(
-                            oh,
+                            ah,
                             parseFloat(window.getComputedStyle(i).height) || 0,
                         ),
                         a =
@@ -9746,7 +9830,7 @@ var Ri = {
             return n;
         })(),
     },
-    oe = class extends k {
+    oe = class extends P {
         constructor(t) {
             super(t), (this.adaptForMedia = this.adaptForMedia.bind(this));
         }
@@ -10176,7 +10260,7 @@ var rc = `
   }
 }
 `;
-var Bt = class extends k {
+var Bt = class extends P {
     constructor(t) {
         super(t),
             (this.postCardUpdateHook = this.postCardUpdateHook.bind(this));
@@ -10372,7 +10456,7 @@ var ic = `
   }
 }
 `;
-var Ut = class extends k {
+var Ut = class extends P {
     constructor(t) {
         super(t);
     }
@@ -10475,7 +10559,7 @@ var oc = {
         description: { tag: 'div', slot: 'body-xs' },
         ctas: { slot: 'footer', size: 'l' },
     },
-    zt = class extends k {
+    zt = class extends P {
         constructor(t) {
             super(t);
         }
@@ -10883,7 +10967,7 @@ var Oi = () => window.matchMedia(ge).matches,
         ],
         supportsDefaultChild: !0,
     },
-    Ft = class extends k {
+    Ft = class extends P {
         getGlobalCSS() {
             return ac;
         }
@@ -11412,7 +11496,7 @@ var cc = {
         planType: !0,
         ctas: { slot: 'ctas', size: 'S' },
     },
-    Gt = class extends k {
+    Gt = class extends P {
         constructor() {
             super(...arguments);
             u(this, 'legal');
@@ -12238,7 +12322,7 @@ var hc = 'fragment',
     xo = 'aem-fragment',
     gc = 'eager',
     xc = 'cache',
-    ah = [gc, xc],
+    sh = [gc, xc],
     _e,
     ut,
     xe,
@@ -12375,7 +12459,7 @@ var qe = new bo(),
         }
         attributeChangedCallback(r, i, n) {
             r === hc && (v(this, ae, n), v(this, X, qe.getFetchInfo(n))),
-                r === uc && ah.includes(n) && v(this, Mr, n),
+                r === uc && sh.includes(n) && v(this, Mr, n),
                 r === fc && v(this, Nr, parseInt(n, 10)),
                 r === pc && v(this, Ir, ['', 'true'].includes(n)),
                 r === mc && v(this, jt, n);
@@ -12830,15 +12914,15 @@ u(
         mobileRows: { type: Number, attribute: !0 },
     });
 customElements.define('merch-whats-included', Dr);
-var sh = '#000000',
+var ch = '#000000',
     yo = '#F8D904',
-    ch = '#EAEAEA',
-    lh = '#31A547',
-    dh = /(accent|primary|secondary)(-(outline|link))?/,
-    hh = 'mas:product_code/',
-    ph = 'daa-ll',
+    lh = '#EAEAEA',
+    dh = '#31A547',
+    hh = /(accent|primary|secondary)(-(outline|link))?/,
+    ph = 'mas:product_code/',
+    mh = 'daa-ll',
     $i = 'daa-lh',
-    mh = ['XL', 'L', 'M', 'S'],
+    uh = ['XL', 'L', 'M', 'S'],
     Eo = '...';
 function ye(e, t, r, i) {
     let n = i[e];
@@ -12846,14 +12930,14 @@ function ye(e, t, r, i) {
         let o = { slot: n?.slot },
             a = t[e];
         if (n.maxCount && typeof a == 'string') {
-            let [c, l] = Lh(a, n.maxCount, n.withSuffix);
+            let [c, l] = Rh(a, n.maxCount, n.withSuffix);
             c !== a && ((o.title = l), (a = c));
         }
         let s = ne(n.tag, o, a);
         r.append(s);
     }
 }
-function uh(e, t, r) {
+function fh(e, t, r) {
     let i = e.mnemonicIcon?.map((o, a) => ({
         icon: o,
         alt: e.mnemonicAlt[a] ?? '',
@@ -12879,7 +12963,7 @@ function uh(e, t, r) {
     let n = t.shadowRoot.querySelector('slot[name="icons"]');
     !i?.length && n && n.remove();
 }
-function fh(e, t, r) {
+function gh(e, t, r) {
     if (r.badge?.slot) {
         if (e.badge?.length && !e.badge?.startsWith('<merch-badge')) {
             let i = yo,
@@ -12896,40 +12980,40 @@ function fh(e, t, r) {
         e.badge
             ? (t.setAttribute('badge-text', e.badge),
               r.disabledAttributes?.includes('badgeColor') ||
-                  t.setAttribute('badge-color', e.badgeColor || sh),
+                  t.setAttribute('badge-color', e.badgeColor || ch),
               r.disabledAttributes?.includes('badgeBackgroundColor') ||
                   t.setAttribute(
                       'badge-background-color',
                       e.badgeBackgroundColor || yo,
                   ),
               t.setAttribute('border-color', e.badgeBackgroundColor || yo))
-            : t.setAttribute('border-color', e.borderColor || ch);
+            : t.setAttribute('border-color', e.borderColor || lh);
 }
-function gh(e, t, r) {
+function xh(e, t, r) {
     if (r.trialBadge && e.trialBadge) {
         if (!e.trialBadge.startsWith('<merch-badge')) {
             let i =
                 (!r.disabledAttributes?.includes('trialBadgeBorderColor') &&
                     e.trialBadgeBorderColor) ||
-                lh;
+                dh;
             e.trialBadge = `<merch-badge variant="${e.variant}" border-color="${i}">${e.trialBadge}</merch-badge>`;
         }
         ye('trialBadge', e, t, r);
     }
 }
-function xh(e, t, r) {
+function bh(e, t, r) {
     r?.includes(e.size) && t.setAttribute('size', e.size);
 }
-function bh(e, t) {
+function vh(e, t) {
     e.cardName && t.setAttribute('name', e.cardName);
 }
-function vh(e, t, r) {
+function yh(e, t, r) {
     ye('cardTitle', e, t, { cardTitle: r });
 }
-function yh(e, t, r) {
+function Eh(e, t, r) {
     ye('subtitle', e, t, r);
 }
-function Eh(e, t, r, i) {
+function wh(e, t, r, i) {
     if (!e.backgroundColor || e.backgroundColor.toLowerCase() === 'default') {
         t.style.removeProperty('--merch-card-custom-background-color'),
             t.removeAttribute('background-color');
@@ -12946,7 +13030,7 @@ function Eh(e, t, r, i) {
           (t.setAttribute(i.attribute, e.backgroundColor),
           t.style.removeProperty('--merch-card-custom-background-color'));
 }
-function wh(e, t, r) {
+function Ah(e, t, r) {
     let i = r?.borderColor,
         n = '--consonant-merch-card-border-color';
     if (e.borderColor?.toLowerCase() === 'transparent')
@@ -12968,7 +13052,7 @@ function wh(e, t, r) {
             t.setAttribute('border-color', s), t.style.removeProperty(n);
         } else t.style.setProperty(n, `var(--${e.borderColor})`);
 }
-function Ah(e, t, r) {
+function Sh(e, t, r) {
     if (e.backgroundImage) {
         let i = { loading: t.loading ?? 'lazy', src: e.backgroundImage };
         if (
@@ -12996,13 +13080,13 @@ function Ii(e) {
         e
     );
 }
-function Sh(e, t, r) {
+function _h(e, t, r) {
     e.prices && (e.prices = Ii(e.prices)), ye('prices', e, t, r);
 }
 function wc(e, t, r) {
     let i = e.hasAttribute('data-wcs-osi') && !!e.getAttribute('data-wcs-osi'),
         n = e.className || '',
-        o = dh.exec(n)?.[0] ?? 'accent',
+        o = hh.exec(n)?.[0] ?? 'accent',
         a = o.includes('accent'),
         s = o.includes('primary'),
         c = o.includes('secondary'),
@@ -13010,16 +13094,16 @@ function wc(e, t, r) {
         d = o.includes('-link');
     e.classList.remove('accent', 'primary', 'secondary');
     let p;
-    if (t.consonant) p = Nh(e, a, i, d, s);
+    if (t.consonant) p = Ih(e, a, i, d, s);
     else if (d) p = e;
     else {
         let f;
         a ? (f = 'accent') : s ? (f = 'primary') : c && (f = 'secondary'),
-            (p = t.spectrum === 'swc' ? Mh(e, r, l, f, i) : Oh(e, r, l, f, i));
+            (p = t.spectrum === 'swc' ? Nh(e, r, l, f, i) : Mh(e, r, l, f, i));
     }
     return p;
 }
-function _h(e, t) {
+function Th(e, t) {
     let { slot: r } = t?.description,
         i = e.querySelectorAll(`[slot="${r}"] a[data-wcs-osi]`);
     i.length &&
@@ -13028,17 +13112,17 @@ function _h(e, t) {
             n.replaceWith(o);
         });
 }
-function Th(e, t, r) {
+function Ch(e, t, r) {
     e.description && (e.description = Ii(e.description)),
         e.promoText && (e.promoText = Ii(e.promoText)),
         ye('promoText', e, t, r),
         ye('description', e, t, r),
-        _h(t, r),
+        Th(t, r),
         ye('callout', e, t, r),
         ye('quantitySelect', e, t, r),
         ye('whatsIncluded', e, t, r);
 }
-function Ch(e, t, r) {
+function kh(e, t, r) {
     if (!r.addon) return;
     let i = e.addon?.replace(/[{}]/g, '');
     if (!i || /disabled/.test(i)) return;
@@ -13049,15 +13133,15 @@ function Ch(e, t, r) {
     }),
         t.append(n);
 }
-function kh(e, t, r) {
+function Ph(e, t, r) {
     e.addonConfirmation && ye('addonConfirmation', e, t, r);
 }
-function Ph(e, t, r, i) {
+function Lh(e, t, r, i) {
     i?.secureLabel &&
         r?.secureLabel &&
         t.setAttribute('secure-label', i.secureLabel);
 }
-function Lh(e, t, r = !0) {
+function Rh(e, t, r = !0) {
     try {
         let i = typeof e != 'string' ? '' : e,
             n = Ec(i);
@@ -13108,13 +13192,13 @@ function Ec(e) {
     }
     return t;
 }
-function Rh(e, t) {
+function Oh(e, t) {
     t.querySelectorAll('a.upt-link').forEach((i) => {
         let n = Ge.createFrom(i);
         i.replaceWith(n), n.initializeWcsData(e.osi, e.promoCode);
     });
 }
-function Oh(e, t, r, i, n) {
+function Mh(e, t, r, i, n) {
     let o = e;
     n
         ? (o = customElements
@@ -13127,13 +13211,13 @@ function Oh(e, t, r, i, n) {
     o.firstElementChild?.classList.add('spectrum-Button-label');
     let a = t?.ctas?.size ?? 'M',
         s = `spectrum-Button--${i}`,
-        c = mh.includes(a)
+        c = uh.includes(a)
             ? `spectrum-Button--size${a}`
             : 'spectrum-Button--sizeM',
         l = ['spectrum-Button', s, c];
     return r && l.push('spectrum-Button--outline'), o.classList.add(...l), o;
 }
-function Mh(e, t, r, i, n) {
+function Nh(e, t, r, i, n) {
     let o = e;
     n &&
         ((o = customElements
@@ -13167,7 +13251,7 @@ function Mh(e, t, r, i, n) {
         s
     );
 }
-function Nh(e, t, r, i, n) {
+function Ih(e, t, r, i, n) {
     let o = e;
     return (
         r &&
@@ -13181,7 +13265,7 @@ function Nh(e, t, r, i, n) {
         o
     );
 }
-function Ih(e, t, r, i) {
+function $h(e, t, r, i) {
     if (e.ctas) {
         e.ctas = Ii(e.ctas);
         let { slot: n } = r.ctas,
@@ -13190,10 +13274,10 @@ function Ih(e, t, r, i) {
         (o.innerHTML = ''), o.append(...a), t.append(o);
     }
 }
-function $h(e, t) {
+function Hh(e, t) {
     let { tags: r } = e,
         i = r
-            ?.find((o) => o.startsWith(hh))
+            ?.find((o) => o.startsWith(ph))
             ?.split('/')
             .pop();
     if (!i) return;
@@ -13206,10 +13290,10 @@ function $h(e, t) {
                 'a[data-analytics-id],button[data-analytics-id]',
             ),
         ].forEach((o, a) => {
-            o.setAttribute(ph, `${o.dataset.analyticsId}-${a + 1}`);
+            o.setAttribute(mh, `${o.dataset.analyticsId}-${a + 1}`);
         });
 }
-function Hh(e) {
+function Dh(e) {
     e.spectrum === 'css' &&
         [
             ['primary-link', 'primary'],
@@ -13221,7 +13305,7 @@ function Hh(e) {
             });
         });
 }
-function Dh(e) {
+function Bh(e) {
     e.querySelectorAll('[slot]').forEach((i) => {
         i.remove();
     }),
@@ -13270,7 +13354,7 @@ async function Ac(e, t) {
     let { id: r, fields: i, settings: n = {}, priceLiterals: o } = e,
         { variant: a } = i;
     if (!a) throw new Error(`hydrate: no variant found in payload ${r}`);
-    Dh(t),
+    Bh(t),
         (t.settings = n),
         o && (t.priceLiterals = o),
         t.id ?? (t.id = e.id),
@@ -13279,25 +13363,25 @@ async function Ac(e, t) {
     let { aemFragmentMapping: s } = t.variantLayout;
     if (!s) throw new Error(`hydrate: variant mapping not found for ${r}`);
     s.style === 'consonant' && t.setAttribute('consonant', !0),
-        uh(i, t, s.mnemonics),
-        fh(i, t, s),
+        fh(i, t, s.mnemonics),
         gh(i, t, s),
-        xh(i, t, s.size),
-        bh(i, t),
-        vh(i, t, s.title),
-        yh(i, t, s),
-        Sh(i, t, s),
-        Ah(i, t, s.backgroundImage),
-        Eh(i, t, s.allowedColors, s.backgroundColor),
-        wh(i, t, s),
-        Th(i, t, s),
+        xh(i, t, s),
+        bh(i, t, s.size),
+        vh(i, t),
+        yh(i, t, s.title),
+        Eh(i, t, s),
+        _h(i, t, s),
+        Sh(i, t, s.backgroundImage),
+        wh(i, t, s.allowedColors, s.backgroundColor),
+        Ah(i, t, s),
         Ch(i, t, s),
         kh(i, t, s),
-        Ph(i, t, s, n),
-        Rh(i, t),
-        Ih(i, t, s, a),
-        $h(i, t),
-        Hh(t);
+        Ph(i, t, s),
+        Lh(i, t, s, n),
+        Oh(i, t),
+        $h(i, t, s, a),
+        Hh(i, t),
+        Dh(t);
 }
 var Ao = 'merch-card',
     wo = 2e4,
@@ -13310,10 +13394,10 @@ function _c(e, t) {
         Object.assign(t.literals, r.priceLiterals)),
         r.variantLayout?.priceOptionsProvider?.(e, t);
 }
-function Bh(e) {
+function Uh(e) {
     e.providers.has(_c) || e.providers.price(_c);
 }
-var Uh = 0,
+var zh = 0,
     Wt,
     Yt,
     Xt,
@@ -13532,7 +13616,7 @@ var Uh = 0,
         connectedCallback() {
             var i;
             super.connectedCallback(),
-                h(this, Yt) || v(this, Yt, Uh++),
+                h(this, Yt) || v(this, Yt, zh++),
                 this.aemFragment ||
                     ((i = h(this, Ce)) == null || i.call(this),
                     v(this, Ce, void 0)),
@@ -13545,7 +13629,7 @@ var Uh = 0,
                 v(this, Wt, `${Sc}${r}${tt}`),
                 performance.mark(h(this, gt)),
                 v(this, $e, ot()),
-                Bh(h(this, $e)),
+                Uh(h(this, $e)),
                 v(this, Xt, h(this, $e).Log.module(Ao)),
                 this.addEventListener(ke, this.handleQuantitySelection),
                 this.addEventListener(jr, this.handleAddonAndQuantityUpdate),
@@ -14341,7 +14425,7 @@ var Cc = y`
         height: 40px;
     }
 `;
-var zh = 'merch-offer',
+var Fh = 'merch-offer',
     Ur = class extends $ {
         constructor() {
             super();
@@ -14430,7 +14514,7 @@ u(Ur, 'properties', {
     planType: { type: String, attribute: 'plan-type', reflect: !0 },
 }),
     u(Ur, 'styles', [Cc]);
-customElements.define(zh, Ur);
+customElements.define(Fh, Ur);
 R();
 R();
 var kc = y`
@@ -14584,7 +14668,7 @@ var kc = y`
         background-repeat: no-repeat;
     }
 `;
-var [_b, Tb, So, _o, Pc, Lc] = [
+var [Tb, Cb, So, _o, Pc, Lc] = [
     'ArrowLeft',
     'ArrowRight',
     'ArrowUp',
@@ -14903,7 +14987,7 @@ var Oc = {
         subtitle: { tag: 'h4', slot: 'detail-s' },
         title: { tag: 'h3', slot: 'heading-xs' },
     },
-    Qt = class extends k {
+    Qt = class extends P {
         getGlobalCSS() {
             return Rc;
         }
@@ -15105,7 +15189,7 @@ var Nc = {
         mnemonics: { size: 'm' },
         size: ['wide'],
     },
-    Zt = class extends k {
+    Zt = class extends P {
         getGlobalCSS() {
             return Mc;
         }
@@ -15398,7 +15482,7 @@ var Co = {
         allowedColors: { gray: '--spectrum-gray-100' },
         size: ['single', 'double', 'triple'],
     },
-    Jt = class extends k {
+    Jt = class extends P {
         getGlobalCSS() {
             return Ic;
         }
@@ -15627,7 +15711,7 @@ var ko = {
             },
         },
     },
-    er = class extends k {
+    er = class extends P {
         getGlobalCSS() {
             return $c;
         }
@@ -15922,7 +16006,7 @@ var Po = {
             specialValues: { gray: '--spectrum-gray-300' },
         },
     },
-    tr = class extends k {
+    tr = class extends P {
         getGlobalCSS() {
             return Hc;
         }

@@ -702,25 +702,25 @@ window.masPriceLiterals = {
     ],
     ':type': 'sheet',
 }.data;
-var wr = Object.defineProperty;
-var Rr = (e) => {
+var Rr = Object.defineProperty;
+var wr = (e) => {
     throw TypeError(e);
 };
 var Ii = (e, t, r) =>
     t in e
-        ? wr(e, t, { enumerable: !0, configurable: !0, writable: !0, value: r })
+        ? Rr(e, t, { enumerable: !0, configurable: !0, writable: !0, value: r })
         : (e[t] = r);
 var Hi = (e, t) => {
-    for (var r in t) wr(e, r, { get: t[r], enumerable: !0 });
+    for (var r in t) Rr(e, r, { get: t[r], enumerable: !0 });
 };
-var y = (e, t, r) => Ii(e, typeof t != 'symbol' ? t + '' : t, r),
-    At = (e, t, r) => t.has(e) || Rr('Cannot ' + r);
+var b = (e, t, r) => Ii(e, typeof t != 'symbol' ? t + '' : t, r),
+    At = (e, t, r) => t.has(e) || wr('Cannot ' + r);
 var z = (e, t, r) => (
         At(e, t, 'read from private field'), r ? r.call(e) : t.get(e)
     ),
     re = (e, t, r) =>
         t.has(e)
-            ? Rr('Cannot add the same private member more than once')
+            ? wr('Cannot add the same private member more than once')
             : t instanceof WeakSet
               ? t.add(e)
               : t.set(e, r),
@@ -745,14 +745,14 @@ Hi(Bt, {
     EVENT_MAS_ERROR: () => no,
     EVENT_MAS_READY: () => ro,
     EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE: () => Xi,
-    EVENT_MERCH_CARD_ACTION_MENU_TOGGLE: () => Gi,
+    EVENT_MERCH_CARD_ACTION_MENU_TOGGLE: () => Fi,
     EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED: () => Ki,
-    EVENT_MERCH_CARD_COLLECTION_SHOWMORE: () => Zi,
-    EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED: () => Qi,
+    EVENT_MERCH_CARD_COLLECTION_SHOWMORE: () => Qi,
+    EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED: () => Zi,
     EVENT_MERCH_CARD_COLLECTION_SORT: () => zi,
     EVENT_MERCH_CARD_QUANTITY_CHANGE: () => ji,
     EVENT_MERCH_OFFER_READY: () => ki,
-    EVENT_MERCH_OFFER_SELECT_READY: () => Fi,
+    EVENT_MERCH_OFFER_SELECT_READY: () => Gi,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE: () => Wi,
     EVENT_MERCH_SEARCH_CHANGE: () => qi,
     EVENT_MERCH_SIDENAV_SELECT: () => Ji,
@@ -765,7 +765,7 @@ Hi(Bt, {
     Env: () => K,
     FF_DEFAULTS: () => se,
     HEADER_X_REQUEST_ID: () => Le,
-    LOG_NAMESPACE: () => wt,
+    LOG_NAMESPACE: () => Rt,
     Landscape: () => oe,
     MARK_DURATION_SUFFIX: () => Ut,
     MARK_START_SUFFIX: () => Dt,
@@ -774,7 +774,7 @@ Hi(Bt, {
     PARAM_AOS_API_KEY: () => oo,
     PARAM_ENV: () => Nt,
     PARAM_LANDSCAPE: () => Ot,
-    PARAM_MAS_PREVIEW: () => Rt,
+    PARAM_MAS_PREVIEW: () => wt,
     PARAM_WCS_API_KEY: () => so,
     PROVIDER_ENVIRONMENT: () => Mt,
     SELECTOR_MAS_CHECKOUT_LINK: () => Ir,
@@ -785,7 +785,7 @@ Hi(Bt, {
     SORT_ORDER: () => ho,
     STATE_FAILED: () => X,
     STATE_PENDING: () => ie,
-    STATE_RESOLVED: () => Q,
+    STATE_RESOLVED: () => Z,
     TAG_NAME_SERVICE: () => Ui,
     TEMPLATE_PRICE: () => ao,
     TEMPLATE_PRICE_ANNUAL: () => lo,
@@ -833,8 +833,8 @@ var le = Object.freeze({
     Hr = 'a[is="upt-link"]',
     Tt = `${Or},${Ir},${Hr}`,
     ki = 'merch-offer:ready',
-    Fi = 'merch-offer-select:ready',
-    Gi = 'merch-card:action-menu-toggle',
+    Gi = 'merch-offer-select:ready',
+    Fi = 'merch-card:action-menu-toggle',
     Vi = 'merch-offer:selected',
     $i = 'merch-stock:change',
     Yi = 'merch-storage:change',
@@ -844,8 +844,8 @@ var le = Object.freeze({
     qi = 'merch-search:change',
     zi = 'merch-card-collection:sort',
     Ki = 'merch-card-collection:literals-changed',
-    Qi = 'merch-card-collection:sidenav-attached',
-    Zi = 'merch-card-collection:showmore',
+    Zi = 'merch-card-collection:sidenav-attached',
+    Qi = 'merch-card-collection:showmore',
     Ji = 'merch-sidenav:select',
     eo = 'aem:load',
     to = 'aem:error',
@@ -859,8 +859,8 @@ var le = Object.freeze({
     io = 'Literals URL not provided',
     Ct = 'mas:failed',
     Lt = 'mas:resolved',
-    wt = 'mas/commerce',
-    Rt = 'mas.preview',
+    Rt = 'mas/commerce',
+    wt = 'mas.preview',
     Nt = 'commerce.env',
     Ot = 'commerce.landscape',
     oo = 'commerce.aosKey',
@@ -869,7 +869,7 @@ var le = Object.freeze({
     Ht = 'https://www.stage.adobe.com/web_commerce_artifact_stage',
     X = 'failed',
     ie = 'pending',
-    Q = 'resolved',
+    Z = 'resolved',
     oe = { DRAFT: 'DRAFT', PUBLISHED: 'PUBLISHED' },
     Le = 'X-Request-Id',
     B = Object.freeze({
@@ -913,7 +913,7 @@ var kt = (e, t) =>
                     '"': '&quot;',
                 })[t] ?? t,
         ) ?? '';
-function R(
+function w(
     e,
     t = {},
     { metadata: r = !0, search: n = !0, storage: i = !0 } = {},
@@ -942,7 +942,7 @@ var fo = (e) => typeof e == 'boolean',
     Br = (e) => e != null && typeof e == 'object';
 var Ae = (e) => typeof e == 'string',
     kr = (e) => Ae(e) && e,
-    we = (e) => ze(e) && Number.isFinite(e) && e > 0;
+    Re = (e) => ze(e) && Number.isFinite(e) && e > 0;
 function Ke(e, t = (r) => r == null || r === '') {
     return (
         e != null &&
@@ -957,7 +957,7 @@ function g(e, t) {
     let r = String(e);
     return r === '1' || r === 'true' ? !0 : r === '0' || r === 'false' ? !1 : t;
 }
-function Re(e, t, r) {
+function we(e, t, r) {
     let n = Object.values(t);
     return n.find((i) => kt(i, e)) ?? r ?? n[0];
 }
@@ -970,27 +970,27 @@ function po(e = '') {
         .replace(/\W+/gu, '-')
         .toLowerCase();
 }
-function Fr(e, t = 1) {
+function Gr(e, t = 1) {
     return (
         ze(e) || (e = Number.parseInt(e, 10)),
         !Number.isNaN(e) && e > 0 && Number.isFinite(e) ? e : t
     );
 }
 var mo = Date.now(),
-    Ft = () => `(+${Date.now() - mo}ms)`,
-    Qe = new Set(),
-    Eo = g(R('tacocat.debug', {}, { metadata: !1 }), !1);
-function Gr(e) {
+    Gt = () => `(+${Date.now() - mo}ms)`,
+    Ze = new Set(),
+    Eo = g(w('tacocat.debug', {}, { metadata: !1 }), !1);
+function Fr(e) {
     let t = `[${Dr}/${e}]`,
         r = (s, a, ...c) => (s ? !0 : (i(a, ...c), !1)),
         n = Eo
             ? (s, ...a) => {
-                  console.debug(`${t} ${s}`, ...a, Ft());
+                  console.debug(`${t} ${s}`, ...a, Gt());
               }
             : () => {},
         i = (s, ...a) => {
             let c = `${t} ${s}`;
-            Qe.forEach(([u]) => u(c, ...a));
+            Ze.forEach(([u]) => u(c, ...a));
         };
     return {
         assert: r,
@@ -998,38 +998,38 @@ function Gr(e) {
         error: i,
         warn: (s, ...a) => {
             let c = `${t} ${s}`;
-            Qe.forEach(([, u]) => u(c, ...a));
+            Ze.forEach(([, u]) => u(c, ...a));
         },
     };
 }
 function go(e, t) {
     let r = [e, t];
     return (
-        Qe.add(r),
+        Ze.add(r),
         () => {
-            Qe.delete(r);
+            Ze.delete(r);
         }
     );
 }
 go(
     (e, ...t) => {
-        console.error(e, ...t, Ft());
+        console.error(e, ...t, Gt());
     },
     (e, ...t) => {
-        console.warn(e, ...t, Ft());
+        console.warn(e, ...t, Gt());
     },
 );
-var xo = 'no promo',
+var _o = 'no promo',
     Vr = 'promo-tag',
-    _o = 'yellow',
+    xo = 'yellow',
     Ao = 'neutral',
     To = (e, t, r) => {
-        let n = (o) => o || xo,
+        let n = (o) => o || _o,
             i = r ? ` (was "${n(t)}")` : '';
         return `${n(e)}${i}`;
     },
     yo = 'cancel-context',
-    Ze = (e, t) => {
+    Qe = (e, t) => {
         let r = e === yo,
             n = !r && e?.length > 0,
             i = (n || r) && ((t && t != e) || (!t && !r)),
@@ -1040,14 +1040,14 @@ var xo = 'no promo',
             overridenPromoCode: e,
             className: o ? Vr : `${Vr} no-promo`,
             text: To(s, t, i),
-            variant: o ? _o : Ao,
+            variant: o ? xo : Ao,
             isOverriden: i,
         };
     };
-var Gt;
+var Ft;
 (function (e) {
     (e.BASE = 'BASE'), (e.TRIAL = 'TRIAL'), (e.PROMOTION = 'PROMOTION');
-})(Gt || (Gt = {}));
+})(Ft || (Ft = {}));
 var V;
 (function (e) {
     (e.MONTH = 'MONTH'),
@@ -1108,7 +1108,7 @@ var jt = 'ABM',
     bo = 'TAX_INCLUSIVE_DETAILS',
     So = 'TAX_EXCLUSIVE',
     $r = { ABM: jt, PUF: Xt, M2M: qt, PERPETUAL: zt, P3Y: Kt },
-    la = {
+    ua = {
         [jt]: { commitment: V.YEAR, term: j.MONTHLY },
         [Xt]: { commitment: V.YEAR, term: j.ANNUAL },
         [qt]: { commitment: V.MONTH, term: j.MONTHLY },
@@ -1189,7 +1189,7 @@ function Oe(e, { country: t, forceTaxExclusive: r }) {
 var Je = (e) => window.setTimeout(e);
 function Te(e, t = 1) {
     if (e == null) return [t];
-    let r = (Array.isArray(e) ? e : String(e).split(',')).map(Fr).filter(we);
+    let r = (Array.isArray(e) ? e : String(e).split(',')).map(Gr).filter(Re);
     return r.length || (r = [t]), r;
 }
 function et(e) {
@@ -1197,7 +1197,7 @@ function et(e) {
         ? []
         : (Array.isArray(e) ? e : String(e).split(',')).filter(kr);
 }
-function F() {
+function G() {
     return document.getElementsByTagName(vo)?.[0];
 }
 function jr(e) {
@@ -1242,10 +1242,10 @@ function qr(e) {
     }
     return e;
 }
-function wo(e, t) {
+function Ro(e, t) {
     if (!he.ignoredProperties.includes(e)) return qr(t);
 }
-var Qt = {
+var Zt = {
     append(e) {
         if (e.level !== 'error') return;
         let { message: t, params: r } = e,
@@ -1261,7 +1261,7 @@ var Qt = {
         c.length > Xr && (c = `${c.slice(0, Xr)}<trunc>`),
             (o += c),
             i.length &&
-                ((o += `${he.delimiter}facts=`), (o += JSON.stringify(i, wo))),
+                ((o += `${he.delimiter}facts=`), (o += JSON.stringify(i, Ro))),
             window.lana?.log(o, he);
     },
 };
@@ -1281,17 +1281,17 @@ function tt(e) {
     );
 }
 var zr = { LOCAL: 'local', PROD: 'prod', STAGE: 'stage' },
-    Zt = { DEBUG: 'debug', ERROR: 'error', INFO: 'info', WARN: 'warn' },
+    Qt = { DEBUG: 'debug', ERROR: 'error', INFO: 'info', WARN: 'warn' },
     Jt = new Set(),
     er = new Set(),
     Kr = new Map(),
-    Qr = {
+    Zr = {
         append({ level: e, message: t, params: r, timestamp: n, source: i }) {
             console[e](`${n}ms [${i}] %c${t}`, 'font-weight: bold;', ...r);
         },
     },
-    Zr = { filter: ({ level: e }) => e !== Zt.DEBUG },
-    Ro = { filter: () => !1 };
+    Qr = { filter: ({ level: e }) => e !== Qt.DEBUG },
+    wo = { filter: () => !1 };
 function No(e, t, r, n, i) {
     return {
         level: e,
@@ -1323,7 +1323,7 @@ function Jr(e) {
             updateConfig: tt,
         };
     return (
-        Object.values(Zt).forEach((i) => {
+        Object.values(Qt).forEach((i) => {
             n[i] = (o, ...s) => Oo(No(i, o, e, s, r));
         }),
         Object.seal(n)
@@ -1337,20 +1337,20 @@ function rt(...e) {
 }
 function Io(e = {}) {
     let { name: t } = e,
-        r = g(R('commerce.debug', { search: !0, storage: !0 }), t === zr.LOCAL);
-    return rt(r ? Qr : Zr), t === zr.PROD && rt(Qt), $;
+        r = g(w('commerce.debug', { search: !0, storage: !0 }), t === zr.LOCAL);
+    return rt(r ? Zr : Qr), t === zr.PROD && rt(Zt), $;
 }
 function Ho() {
     Jt.clear(), er.clear();
 }
 var $ = {
-    ...Jr(wt),
-    Level: Zt,
+    ...Jr(Rt),
+    Level: Qt,
     Plugins: {
-        consoleAppender: Qr,
-        debugFilter: Zr,
-        quietFilter: Ro,
-        lanaAppender: Qt,
+        consoleAppender: Zr,
+        debugFilter: Qr,
+        quietFilter: wo,
+        lanaAppender: Zt,
     },
     init: Io,
     reset: Ho,
@@ -1384,33 +1384,33 @@ Caused by: ${this.cause}`),
         );
     }
 };
-var Mo = { [X]: yt, [ie]: bt, [Q]: St },
-    Do = { [X]: Ct, [Q]: Lt },
+var Mo = { [X]: yt, [ie]: bt, [Z]: St },
+    Do = { [X]: Ct, [Z]: Lt },
     Ie,
     ae = class {
         constructor(t) {
             re(this, Ie);
-            y(this, 'changes', new Map());
-            y(this, 'connected', !1);
-            y(this, 'error');
-            y(this, 'log');
-            y(this, 'options');
-            y(this, 'promises', []);
-            y(this, 'state', ie);
-            y(this, 'timer', null);
-            y(this, 'value');
-            y(this, 'version', 0);
-            y(this, 'wrapperElement');
+            b(this, 'changes', new Map());
+            b(this, 'connected', !1);
+            b(this, 'error');
+            b(this, 'log');
+            b(this, 'options');
+            b(this, 'promises', []);
+            b(this, 'state', ie);
+            b(this, 'timer', null);
+            b(this, 'value');
+            b(this, 'version', 0);
+            b(this, 'wrapperElement');
             (this.wrapperElement = t), (this.log = $.module('mas-element'));
         }
         update() {
-            [X, ie, Q].forEach((t) => {
+            [X, ie, Z].forEach((t) => {
                 this.wrapperElement.classList.toggle(Mo[t], t === this.state);
             });
         }
         notify() {
-            (this.state === Q || this.state === X) &&
-                (this.state === Q
+            (this.state === Z || this.state === X) &&
+                (this.state === Z
                     ? this.promises.forEach(({ resolve: r }) =>
                           r(this.wrapperElement),
                       )
@@ -1428,7 +1428,7 @@ var Mo = { [X]: yt, [ie]: bt, [Q]: St },
             this.changes.set(t, n), this.requestUpdate();
         }
         connectedCallback() {
-            ne(this, Ie, F()), this.requestUpdate(!0);
+            ne(this, Ie, G()), this.requestUpdate(!0);
         }
         disconnectedCallback() {
             this.connected &&
@@ -1439,7 +1439,7 @@ var Mo = { [X]: yt, [ie]: bt, [Q]: St },
         }
         onceSettled() {
             let { error: t, promises: r, state: n } = this;
-            return Q === n
+            return Z === n
                 ? Promise.resolve(this.wrapperElement)
                 : X === n
                   ? Promise.reject(t)
@@ -1451,7 +1451,7 @@ var Mo = { [X]: yt, [ie]: bt, [Q]: St },
             return t !== this.version
                 ? !1
                 : (n !== void 0 && (this.options = n),
-                  (this.state = Q),
+                  (this.state = Z),
                   (this.value = r),
                   this.update(),
                   this.log?.debug('Resolved:', {
@@ -1491,7 +1491,7 @@ var Mo = { [X]: yt, [ie]: bt, [Q]: St },
             );
         }
         requestUpdate(t = !1) {
-            if (!this.wrapperElement.isConnected || !F() || this.timer) return;
+            if (!this.wrapperElement.isConnected || !G() || this.timer) return;
             let { error: r, options: n, state: i, value: o, version: s } = this;
             (this.state = ie),
                 (this.timer = Je(async () => {
@@ -1551,7 +1551,7 @@ var rn = 'download',
     nn = 'upgrade',
     on = { e: 'EDU', t: 'TEAM' };
 function it(e, t = {}, r = '') {
-    let n = F();
+    let n = G();
     if (!n) return null;
     let {
             checkoutMarketSegment: i,
@@ -1567,7 +1567,7 @@ function it(e, t = {}, r = '') {
             extraOptions: d,
             analyticsId: m,
         } = n.collectCheckoutOptions(t),
-        x = nt(e, {
+        _ = nt(e, {
             checkoutMarketSegment: i,
             checkoutWorkflow: o,
             checkoutWorkflowStep: s,
@@ -1582,16 +1582,16 @@ function it(e, t = {}, r = '') {
             analyticsId: m,
         });
     return (
-        r && (x.innerHTML = `<span style="pointer-events: none;">${r}</span>`),
-        x
+        r && (_.innerHTML = `<span style="pointer-events: none;">${r}</span>`),
+        _
     );
 }
 function ot(e) {
     return class extends e {
         constructor() {
             super(...arguments);
-            y(this, 'checkoutActionHandler');
-            y(this, 'masElement', new ae(this));
+            b(this, 'checkoutActionHandler');
+            b(this, 'masElement', new ae(this));
         }
         attributeChangedCallback(n, i, o) {
             this.masElement.attributeChangedCallback(n, i, o);
@@ -1648,7 +1648,7 @@ function ot(e) {
             ];
         }
         async render(n = {}) {
-            let i = F();
+            let i = G();
             if (!i) return !1;
             this.dataset.imsCountry ||
                 i.imsCountryPromise.then((f) => {
@@ -1680,7 +1680,7 @@ function ot(e) {
             return this.renderOffers(u.flat(), o, {}, l, a);
         }
         renderOffers(n, i, o = {}, s = void 0, a = void 0) {
-            let c = F();
+            let c = G();
             if (!c) return !1;
             if (
                 ((i = {
@@ -1723,7 +1723,7 @@ function ot(e) {
         setCheckoutUrl() {}
         clickHandler(n) {}
         updateOptions(n = {}) {
-            let i = F();
+            let i = G();
             if (!i) return !1;
             let {
                 checkoutMarketSegment: o,
@@ -1772,10 +1772,10 @@ var He = class He extends ot(HTMLAnchorElement) {
         }
     }
 };
-y(He, 'is', 'checkout-link'), y(He, 'tag', 'a');
-var Z = He;
-window.customElements.get(Z.is) ||
-    window.customElements.define(Z.is, Z, { extends: Z.tag });
+b(He, 'is', 'checkout-link'), b(He, 'tag', 'a');
+var Q = He;
+window.customElements.get(Q.is) ||
+    window.customElements.define(Q.is, Q, { extends: Q.tag });
 var Uo = 'p_draft_landscape',
     Bo = '/store/',
     ko = new Map([
@@ -1844,7 +1844,7 @@ var Uo = 'p_draft_landscape',
         'so.tr',
         'so.va',
     ]),
-    Fo = ['env', 'workflowStep', 'clientId', 'country'],
+    Go = ['env', 'workflowStep', 'clientId', 'country'],
     sn = (e) => ko.get(e) ?? e;
 function rr(e, t, r) {
     for (let [n, i] of Object.entries(e)) {
@@ -1852,7 +1852,7 @@ function rr(e, t, r) {
         i != null && r.has(o) && t.set(o, i);
     }
 }
-function Go(e) {
+function Fo(e) {
     switch (e) {
         case Mt.PRODUCTION:
             return 'https://commerce.adobe.com';
@@ -1902,7 +1902,7 @@ function an(e) {
             preselectPlan: f,
             ...p
         } = e,
-        h = new URL(Go(t));
+        h = new URL(Fo(t));
     if (
         ((h.pathname = `${Bo}${n}`),
         n !== B.SEGMENTATION &&
@@ -1934,7 +1934,7 @@ function an(e) {
     return h.toString();
 }
 function Yo(e) {
-    for (let t of Fo)
+    for (let t of Go)
         if (!e[t])
             throw new Error(
                 'Argument "checkoutData" is not valid, missing: ' + t,
@@ -1947,7 +1947,7 @@ function Yo(e) {
         throw new Error('Argument "checkoutData" is not valid, missing: items');
     return !0;
 }
-var S = Object.freeze({
+var T = Object.freeze({
     checkoutClientId: 'adobe_com',
     checkoutWorkflowStep: B.EMAIL,
     country: 'US',
@@ -1993,10 +1993,10 @@ function cn({ settings: e, providers: t }) {
             };
         if (s) for (let ge of t.checkout) ge(s, m);
         let {
-                checkoutMarketSegment: x,
+                checkoutMarketSegment: _,
                 checkoutWorkflowStep: P = c,
-                imsCountry: b,
-                country: T = b ?? u,
+                imsCountry: S,
+                country: y = S ?? u,
                 language: v = l,
                 quantity: C = p,
                 entitlement: N,
@@ -2008,22 +2008,22 @@ function cn({ settings: e, providers: t }) {
                 extraOptions: Y,
                 ...te
             } = Object.assign(m, s?.dataset ?? {}, o ?? {}),
-            q = Re(P, B, S.checkoutWorkflowStep);
+            q = we(P, B, T.checkoutWorkflowStep);
         return (
             (m = Ke({
                 ...te,
                 extraOptions: Y,
                 checkoutClientId: a,
-                checkoutMarketSegment: x,
-                country: T,
-                quantity: Te(C, S.quantity),
+                checkoutMarketSegment: _,
+                country: y,
+                quantity: Te(C, T.quantity),
                 checkoutWorkflowStep: q,
                 language: v,
                 entitlement: g(N),
                 upgrade: g(H),
                 modal: k,
                 perpetual: g(O),
-                promotionCode: Ze(L).effectivePromoCode,
+                promotionCode: Qe(L).effectivePromoCode,
                 wcsOsi: et(D),
                 preselectPlan: h,
             })),
@@ -2041,14 +2041,14 @@ function cn({ settings: e, providers: t }) {
                 promotionCode: h,
                 quantity: d,
                 preselectPlan: m,
-                ms: x,
+                ms: _,
                 cs: P,
-                ...b
+                ...S
             } = r(s),
-            T = document.querySelector('meta[name=mas-ff-3in1]'),
+            y = document.querySelector('meta[name=mas-ff-3in1]'),
             v =
                 Object.values(ue).includes(s.modal) &&
-                (!T || T.content !== 'off'),
+                (!y || y.content !== 'off'),
             C = window.frameElement || v ? 'if' : 'fp',
             [
                 {
@@ -2058,7 +2058,7 @@ function cn({ settings: e, providers: t }) {
                     offerType: O,
                 },
             ] = o,
-            L = x ?? H ?? l,
+            L = _ ?? H ?? l,
             D = P ?? k;
         m?.toLowerCase() === 'edu'
             ? (L = 'EDU')
@@ -2077,7 +2077,7 @@ function cn({ settings: e, providers: t }) {
                 productArrangementCode: N,
                 workflowStep: f,
                 landscape: c,
-                ...b,
+                ...S,
             },
             te = d[0] > 1 ? d[0] : void 0;
         if (o.length === 1) {
@@ -2093,9 +2093,9 @@ function cn({ settings: e, providers: t }) {
             );
         return an(Y);
     }
-    let { createCheckoutLink: i } = Z;
+    let { createCheckoutLink: i } = Q;
     return {
-        CheckoutLink: Z,
+        CheckoutLink: Q,
         CheckoutWorkflowStep: B,
         buildCheckoutURL: n,
         collectCheckoutOptions: r,
@@ -2143,7 +2143,7 @@ var un = window.masPriceLiterals;
 function hn(e) {
     if (Array.isArray(un)) {
         let t = (n) => un.find((i) => kt(i.lang, n)),
-            r = t(e.language) ?? t(S.language);
+            r = t(e.language) ?? t(T.language);
         if (r) return Object.freeze(r);
     }
     return {};
@@ -2177,9 +2177,9 @@ function Me(e, t) {
     e.prototype =
         t === null ? Object.create(t) : ((r.prototype = t.prototype), new r());
 }
-var _ = function () {
+var x = function () {
     return (
-        (_ =
+        (x =
             Object.assign ||
             function (t) {
                 for (var r, n = 1, i = arguments.length; n < i; n++) {
@@ -2190,7 +2190,7 @@ var _ = function () {
                 }
                 return t;
             }),
-        _.apply(this, arguments)
+        x.apply(this, arguments)
     );
 };
 function st(e, t, r) {
@@ -2241,7 +2241,7 @@ var E;
         (e[(e.UNMATCHED_CLOSING_TAG = 26)] = 'UNMATCHED_CLOSING_TAG'),
         (e[(e.UNCLOSED_TAG = 27)] = 'UNCLOSED_TAG');
 })(E || (E = {}));
-var w;
+var R;
 (function (e) {
     (e[(e.literal = 0)] = 'literal'),
         (e[(e.argument = 1)] = 'argument'),
@@ -2252,37 +2252,37 @@ var w;
         (e[(e.plural = 6)] = 'plural'),
         (e[(e.pound = 7)] = 'pound'),
         (e[(e.tag = 8)] = 'tag');
-})(w || (w = {}));
+})(R || (R = {}));
 var fe;
 (function (e) {
     (e[(e.number = 0)] = 'number'), (e[(e.dateTime = 1)] = 'dateTime');
 })(fe || (fe = {}));
 function ir(e) {
-    return e.type === w.literal;
+    return e.type === R.literal;
 }
 function fn(e) {
-    return e.type === w.argument;
+    return e.type === R.argument;
 }
 function at(e) {
-    return e.type === w.number;
+    return e.type === R.number;
 }
 function ct(e) {
-    return e.type === w.date;
+    return e.type === R.date;
 }
 function lt(e) {
-    return e.type === w.time;
+    return e.type === R.time;
 }
 function ut(e) {
-    return e.type === w.select;
+    return e.type === R.select;
 }
 function ht(e) {
-    return e.type === w.plural;
+    return e.type === R.plural;
 }
 function pn(e) {
-    return e.type === w.pound;
+    return e.type === R.pound;
 }
 function ft(e) {
-    return e.type === w.tag;
+    return e.type === R.tag;
 }
 function pt(e) {
     return !!(e && typeof e == 'object' && e.type === fe.number);
@@ -2415,7 +2415,7 @@ function mn(e) {
     );
 }
 var dn = /[\t-\r \x85\u200E\u200F\u2028\u2029]/i;
-function _n(e) {
+function xn(e) {
     if (e.length === 0) throw new Error('Number skeleton cannot be empty');
     for (
         var t = e.split(dn).filter(function (p) {
@@ -2494,7 +2494,7 @@ function yn(e) {
             return { signDisplay: 'never' };
     }
 }
-function Qo(e) {
+function Zo(e) {
     var t;
     if (
         (e[0] === 'E' && e[1] === 'E'
@@ -2516,7 +2516,7 @@ function Qo(e) {
     }
     return t;
 }
-function xn(e) {
+function _n(e) {
     var t = {},
         r = yn(e);
     return r || t;
@@ -2556,18 +2556,18 @@ function bn(e) {
                 (t.notation = 'compact'), (t.compactDisplay = 'long');
                 continue;
             case 'scientific':
-                t = _(
-                    _(_({}, t), { notation: 'scientific' }),
+                t = x(
+                    x(x({}, t), { notation: 'scientific' }),
                     i.options.reduce(function (c, u) {
-                        return _(_({}, c), xn(u));
+                        return x(x({}, c), _n(u));
                     }, {}),
                 );
                 continue;
             case 'engineering':
-                t = _(
-                    _(_({}, t), { notation: 'engineering' }),
+                t = x(
+                    x(x({}, t), { notation: 'engineering' }),
                     i.options.reduce(function (c, u) {
-                        return _(_({}, c), xn(u));
+                        return x(x({}, c), _n(u));
                     }, {}),
                 );
                 continue;
@@ -2636,18 +2636,18 @@ function bn(e) {
             });
             var o = i.options[0];
             o === 'w'
-                ? (t = _(_({}, t), { trailingZeroDisplay: 'stripIfInteger' }))
-                : o && (t = _(_({}, t), gn(o)));
+                ? (t = x(x({}, t), { trailingZeroDisplay: 'stripIfInteger' }))
+                : o && (t = x(x({}, t), gn(o)));
             continue;
         }
         if (An.test(i.stem)) {
-            t = _(_({}, t), gn(i.stem));
+            t = x(x({}, t), gn(i.stem));
             continue;
         }
         var s = yn(i.stem);
-        s && (t = _(_({}, t), s));
-        var a = Qo(i.stem);
-        a && (t = _(_({}, t), a));
+        s && (t = x(x({}, t), s));
+        var a = Zo(i.stem);
+        a && (t = x(x({}, t), a));
     }
     return t;
 }
@@ -2917,14 +2917,14 @@ function Sn(e, t) {
             var s = 1 + (o & 1),
                 a = o < 2 ? 1 : 3 + (o >> 1),
                 c = 'a',
-                u = Zo(t);
+                u = Qo(t);
             for ((u == 'H' || u == 'k') && (a = 0); a-- > 0; ) r += c;
             for (; s-- > 0; ) r = u + r;
         } else i === 'J' ? (r += 'H') : (r += i);
     }
     return r;
 }
-function Zo(e) {
+function Qo(e) {
     var t = e.hourCycle;
     if (
         (t === void 0 &&
@@ -2976,7 +2976,7 @@ var ts = !!String.prototype.startsWith,
           },
     cr = !0;
 try {
-    (Pn = wn('([^\\p{White_Space}\\p{Pattern_Syntax}]*)', 'yu')),
+    (Pn = Rn('([^\\p{White_Space}\\p{Pattern_Syntax}]*)', 'yu')),
         (cr =
             ((sr = Pn.exec('a')) === null || sr === void 0 ? void 0 : sr[0]) ===
             'a');
@@ -3052,12 +3052,12 @@ var Pn,
         : function (t) {
               return t.replace(es, '');
           };
-function wn(e, t) {
+function Rn(e, t) {
     return new RegExp(e, t);
 }
 var ur;
 cr
-    ? ((ar = wn('([^\\p{White_Space}\\p{Pattern_Syntax}]*)', 'yu')),
+    ? ((ar = Rn('([^\\p{White_Space}\\p{Pattern_Syntax}]*)', 'yu')),
       (ur = function (t, r) {
           var n;
           ar.lastIndex = r;
@@ -3073,7 +3073,7 @@ cr
           return lr.apply(void 0, n);
       });
 var ar,
-    Rn = (function () {
+    wn = (function () {
         function e(t, r) {
             r === void 0 && (r = {}),
                 (this.message = t),
@@ -3105,7 +3105,7 @@ var ar,
                             var a = this.clonePosition();
                             this.bump(),
                                 i.push({
-                                    type: w.pound,
+                                    type: R.pound,
                                     location: A(a, this.clonePosition()),
                                 });
                         } else if (
@@ -3142,7 +3142,7 @@ var ar,
                 if ((this.bumpSpace(), this.bumpIf('/>')))
                     return {
                         val: {
-                            type: w.literal,
+                            type: R.literal,
                             value: '<'.concat(i, '/>'),
                             location: A(n, this.clonePosition()),
                         },
@@ -3170,7 +3170,7 @@ var ar,
                               this.bumpIf('>')
                                   ? {
                                         val: {
-                                            type: w.tag,
+                                            type: R.tag,
                                             value: i,
                                             children: s,
                                             location: A(
@@ -3222,7 +3222,7 @@ var ar,
                 }
                 var c = A(n, this.clonePosition());
                 return {
-                    val: { type: w.literal, value: i, location: c },
+                    val: { type: R.literal, value: i, location: c },
                     err: null,
                 };
             }),
@@ -3303,7 +3303,7 @@ var ar,
                             this.bump(),
                             {
                                 val: {
-                                    type: w.argument,
+                                    type: R.argument,
                                     value: i,
                                     location: A(n, this.clonePosition()),
                                 },
@@ -3372,17 +3372,17 @@ var ar,
                         if (d.err) return d;
                         var m = A(i, this.clonePosition());
                         if (u && vn(u?.style, '::', 0)) {
-                            var x = ls(u.style.slice(2));
+                            var _ = ls(u.style.slice(2));
                             if (a === 'number') {
                                 var f = this.parseNumberSkeletonFromString(
-                                    x,
+                                    _,
                                     u.styleLocation,
                                 );
                                 return f.err
                                     ? f
                                     : {
                                           val: {
-                                              type: w.number,
+                                              type: R.number,
                                               value: n,
                                               location: m,
                                               style: f.val,
@@ -3390,13 +3390,13 @@ var ar,
                                           err: null,
                                       };
                             } else {
-                                if (x.length === 0)
+                                if (_.length === 0)
                                     return this.error(
                                         E.EXPECT_DATE_TIME_SKELETON,
                                         m,
                                     );
-                                var P = x;
-                                this.locale && (P = Sn(x, this.locale));
+                                var P = _;
+                                this.locale && (P = Sn(_, this.locale));
                                 var p = {
                                         type: fe.dateTime,
                                         pattern: P,
@@ -3405,10 +3405,10 @@ var ar,
                                             ? mn(P)
                                             : {},
                                     },
-                                    b = a === 'date' ? w.date : w.time;
+                                    S = a === 'date' ? R.date : R.time;
                                 return {
                                     val: {
-                                        type: b,
+                                        type: S,
                                         value: n,
                                         location: m,
                                         style: p,
@@ -3421,10 +3421,10 @@ var ar,
                             val: {
                                 type:
                                     a === 'number'
-                                        ? w.number
+                                        ? R.number
                                         : a === 'date'
-                                          ? w.date
-                                          : w.time,
+                                          ? R.date
+                                          : R.time,
                                 value: n,
                                 location: m,
                                 style:
@@ -3438,11 +3438,11 @@ var ar,
                     case 'plural':
                     case 'selectordinal':
                     case 'select': {
-                        var T = this.clonePosition();
+                        var y = this.clonePosition();
                         if ((this.bumpSpace(), !this.bumpIf(',')))
                             return this.error(
                                 E.EXPECT_SELECT_ARGUMENT_OPTIONS,
-                                A(T, _({}, T)),
+                                A(y, x({}, y)),
                             );
                         this.bumpSpace();
                         var v = this.parseIdentifierIfPossible(),
@@ -3474,7 +3474,7 @@ var ar,
                         return a === 'select'
                             ? {
                                   val: {
-                                      type: w.select,
+                                      type: R.select,
                                       value: n,
                                       options: Cn(N.val),
                                       location: H,
@@ -3483,7 +3483,7 @@ var ar,
                               }
                             : {
                                   val: {
-                                      type: w.plural,
+                                      type: R.plural,
                                       value: n,
                                       options: Cn(N.val),
                                       offset: C,
@@ -3552,7 +3552,7 @@ var ar,
             (e.prototype.parseNumberSkeletonFromString = function (t, r) {
                 var n = [];
                 try {
-                    n = _n(t);
+                    n = xn(t);
                 } catch {
                     return this.error(E.INVALID_NUMBER_SKELETON, r);
                 }
@@ -4049,8 +4049,8 @@ function fr(e) {
 }
 function On(e, t) {
     t === void 0 && (t = {}),
-        (t = _({ shouldParseSkeletons: !0, requiresOtherClause: !0 }, t));
-    var r = new Rn(e, t).parse();
+        (t = x({ shouldParseSkeletons: !0, requiresOtherClause: !0 }, t));
+    var r = new wn(e, t).parse();
     if (r.err) {
         var n = SyntaxError(E[r.err.kind]);
         throw (
@@ -4062,8 +4062,8 @@ function On(e, t) {
     return t?.captureLocation || fr(r.val), r.val;
 }
 function Be(e, t) {
-    var r = t && t.cache ? t.cache : _s,
-        n = t && t.serializer ? t.serializer : xs,
+    var r = t && t.cache ? t.cache : xs,
+        n = t && t.serializer ? t.serializer : _s,
         i = t && t.strategy ? t.strategy : ds;
     return i(e, { cache: r, serializer: n });
 }
@@ -4094,7 +4094,7 @@ function Es(e, t) {
 function gs(e, t) {
     return pr(e, this, In, t.cache.create(), t.serializer);
 }
-var xs = function () {
+var _s = function () {
     return JSON.stringify(arguments);
 };
 function mr() {
@@ -4106,7 +4106,7 @@ mr.prototype.get = function (e) {
 mr.prototype.set = function (e, t) {
     this.cache[e] = t;
 };
-var _s = {
+var xs = {
         create: function () {
             return new mr();
         },
@@ -4200,7 +4200,7 @@ function As(e) {
 function Ts(e) {
     return typeof e == 'function';
 }
-function Fe(e, t, r, n, i, o, s) {
+function Ge(e, t, r, n, i, o, s) {
     if (e.length === 1 && ir(e[0]))
         return [{ type: U.literal, value: e[0].value }];
     for (var a = [], c = 0, u = e; c < u.length; c++) {
@@ -4275,18 +4275,18 @@ function Fe(e, t, r, n, i, o, s) {
         if (ft(l)) {
             var d = l.children,
                 m = l.value,
-                x = i[m];
-            if (!Ts(x)) throw new Mn(m, 'function', s);
-            var P = Fe(d, t, r, n, i, o),
-                b = x(
+                _ = i[m];
+            if (!Ts(_)) throw new Mn(m, 'function', s);
+            var P = Ge(d, t, r, n, i, o),
+                S = _(
                     P.map(function (C) {
                         return C.value;
                     }),
                 );
-            Array.isArray(b) || (b = [b]),
+            Array.isArray(S) || (S = [S]),
                 a.push.apply(
                     a,
-                    b.map(function (C) {
+                    S.map(function (C) {
                         return {
                             type: typeof C == 'string' ? U.literal : U.object,
                             value: C,
@@ -4295,14 +4295,14 @@ function Fe(e, t, r, n, i, o, s) {
                 );
         }
         if (ut(l)) {
-            var T = l.options[p] || l.options.other;
-            if (!T) throw new dr(l.value, p, Object.keys(l.options), s);
-            a.push.apply(a, Fe(T.value, t, r, n, i));
+            var y = l.options[p] || l.options.other;
+            if (!y) throw new dr(l.value, p, Object.keys(l.options), s);
+            a.push.apply(a, Ge(y.value, t, r, n, i));
             continue;
         }
         if (ht(l)) {
-            var T = l.options['='.concat(p)];
-            if (!T) {
+            var y = l.options['='.concat(p)];
+            if (!y) {
                 if (!Intl.PluralRules)
                     throw new ke(
                         `Intl.PluralRules is not available in this environment.
@@ -4314,10 +4314,10 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
                 var v = r
                     .getPluralRules(t, { type: l.pluralType })
                     .select(p - (l.offset || 0));
-                T = l.options[v] || l.options.other;
+                y = l.options[v] || l.options.other;
             }
-            if (!T) throw new dr(l.value, p, Object.keys(l.options), s);
-            a.push.apply(a, Fe(T.value, t, r, n, i, p - (l.offset || 0)));
+            if (!y) throw new dr(l.value, p, Object.keys(l.options), s);
+            a.push.apply(a, Ge(y.value, t, r, n, i, p - (l.offset || 0)));
             continue;
         }
     }
@@ -4325,10 +4325,10 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
 }
 function ys(e, t) {
     return t
-        ? _(
-              _(_({}, e || {}), t || {}),
+        ? x(
+              x(x({}, e || {}), t || {}),
               Object.keys(e).reduce(function (r, n) {
-                  return (r[n] = _(_({}, e[n]), t[n] || {})), r;
+                  return (r[n] = x(x({}, e[n]), t[n] || {})), r;
               }, {}),
           )
         : e;
@@ -4339,7 +4339,7 @@ function bs(e, t) {
               function (r, n) {
                   return (r[n] = ys(e[n], t[n])), r;
               },
-              _({}, e),
+              x({}, e),
           )
         : e;
 }
@@ -4423,7 +4423,7 @@ var Un = (function () {
                 return c.length <= 1 ? c[0] || '' : c;
             }),
             (this.formatToParts = function (s) {
-                return Fe(
+                return Ge(
                     o.ast,
                     o.locales,
                     o.formatters,
@@ -4564,7 +4564,7 @@ function Ls(e, t, r) {
             (a = o < 0 ? '' : (+('0.' + a)).toFixed(o + 1).replace('0.', '')),
         (i.integer = s),
         (i.fraction = a),
-        ws(i, t),
+        Rs(i, t),
         (i.result === '0' || i.result === '') && ((n = !1), (i.sign = '')),
         !n && t.maskHasPositiveSign
             ? (i.sign = '+')
@@ -4578,7 +4578,7 @@ function Ls(e, t, r) {
         i
     );
 }
-function ws(e, t) {
+function Rs(e, t) {
     e.result = '';
     let r = t.integer.split(t.separator),
         n = r.join(''),
@@ -4598,14 +4598,14 @@ function ws(e, t) {
         (e.result += t.fraction && e.fraction ? t.decimal + e.fraction : ''), e
     );
 }
-function Rs(e, t, r = {}) {
+function ws(e, t, r = {}) {
     if (!e || isNaN(Number(t))) return t;
     let n = Cs(e),
         i = Ls(t, n, r);
     return n.prefix + i.sign + i.result + n.suffix;
 }
-var Fn = Rs;
-var Gn = '.',
+var Gn = ws;
+var Fn = '.',
     Ns = ',',
     $n = /^\s+/,
     Yn = /\s+$/,
@@ -4636,23 +4636,23 @@ var Gn = '.',
         [W.THREE_YEARS]: 36,
         [W.TWO_YEARS]: 24,
     },
-    xr = (e, t) => ({ accept: e, round: t }),
+    _r = (e, t) => ({ accept: e, round: t }),
     Is = [
-        xr(
+        _r(
             ({ divisor: e, price: t }) => t % e == 0,
             ({ divisor: e, price: t }) => t / e,
         ),
-        xr(
+        _r(
             ({ usePrecision: e }) => e,
             ({ divisor: e, price: t }) => Math.round((t / e) * 100) / 100,
         ),
-        xr(
+        _r(
             () => !0,
             ({ divisor: e, price: t }) =>
                 Math.ceil(Math.floor((t * 100) / e) / 100),
         ),
     ],
-    _r = {
+    xr = {
         [le.YEAR]: { [W.MONTHLY]: me.MONTH, [W.ANNUAL]: me.YEAR },
         [le.MONTH]: { [W.MONTHLY]: me.MONTH },
     },
@@ -4675,7 +4675,7 @@ var Gn = '.',
         return { currencySymbol: t, isCurrencyFirst: r, hasCurrencySpace: i };
     },
     jn = (e) => e.replace($n, Vn).replace(Yn, Vn),
-    Us = (e) => (e.match(/#(.?)#/)?.[1] === Gn ? Ns : Gn),
+    Us = (e) => (e.match(/#(.?)#/)?.[1] === Fn ? Ns : Fn),
     Bs = (e) => e.match(/'(.*?)'/)?.[1] ?? '',
     Xn = (e) => e.match(/0(.?)0/)?.[1] ?? '';
 function be(
@@ -4693,17 +4693,17 @@ function be(
                   minimumFractionDigits: f,
                   maximumFractionDigits: f,
               })
-            : Fn(l, p),
+            : Gn(l, p),
         d = r ? h.lastIndexOf(u) : h.length,
         m = h.substring(0, d),
-        x = h.substring(d + 1);
+        _ = h.substring(d + 1);
     return {
         accessiblePrice: e
             .replace(/'.*?'/, 'SYMBOL')
             .replace(/#.*0/, h)
             .replace(/SYMBOL/, s),
         currencySymbol: s,
-        decimals: x,
+        decimals: _,
         decimalsDelimiter: u,
         hasCurrencySpace: c,
         integer: m,
@@ -4714,7 +4714,7 @@ function be(
 var qn = (e) => {
         let { commitment: t, term: r, usePrecision: n } = e,
             i = Os[r] ?? 1;
-        return be(e, i > 1 ? me.MONTH : _r[t]?.[r], (o) => {
+        return be(e, i > 1 ? me.MONTH : xr[t]?.[r], (o) => {
             let s = { divisor: i, price: o, usePrecision: n },
                 { round: a } = Is.find(({ accept: c }) => c(s));
             if (!a)
@@ -4724,7 +4724,7 @@ var qn = (e) => {
             return a(s);
         });
     },
-    zn = ({ commitment: e, term: t, ...r }) => be(r, _r[e]?.[t]),
+    zn = ({ commitment: e, term: t, ...r }) => be(r, xr[e]?.[t]),
     Kn = (e) => {
         let {
             commitment: t,
@@ -4759,7 +4759,7 @@ var qn = (e) => {
                     return be(e, me.YEAR, () => gr(o ?? n));
             }
         }
-        return be(e, _r[t]?.[c]);
+        return be(e, xr[t]?.[c]);
     };
 var Ar = {
         recurrenceLabel:
@@ -4779,8 +4779,8 @@ var Ar = {
         planTypeLabel:
             '{planType, select, ABM {Annual, billed monthly} other {}}',
     },
-    ks = Gr('ConsonantTemplates/price'),
-    Fs = /<\/?[^>]+(>|$)/g,
+    ks = Fr('ConsonantTemplates/price'),
+    Gs = /<\/?[^>]+(>|$)/g,
     I = {
         container: 'price',
         containerOptical: 'price-optical',
@@ -4810,7 +4810,7 @@ var Ar = {
         alternativePriceAriaLabel: 'alternativePriceAriaLabel',
     },
     Tr = 'TAX_EXCLUSIVE',
-    Gs = (e) =>
+    Fs = (e) =>
         Br(e)
             ? Object.entries(e)
                   .filter(([, t]) => Ae(t) || ze(t) || t === !0)
@@ -4821,12 +4821,12 @@ var Ar = {
                   )
             : '',
     M = (e, t, r, n = !1) =>
-        `<span class="${e}${t ? '' : ' ' + I.disabled}"${Gs(r)}>${n ? jn(t) : (t ?? '')}</span>`;
+        `<span class="${e}${t ? '' : ' ' + I.disabled}"${Fs(r)}>${n ? jn(t) : (t ?? '')}</span>`;
 function J(e, t, r, n) {
     let i = e[r];
     if (i == null) return '';
     try {
-        return new Bn(i.replace(Fs, ''), t).format(n);
+        return new Bn(i.replace(Gs, ''), t).format(n);
     } catch {
         return ks.error('Failed to format literal:', i), '';
     }
@@ -4866,7 +4866,7 @@ function Vs(
         M(e, m, { ...p })
     );
 }
-var G =
+var F =
         ({
             isAlternativePrice: e = !1,
             displayOptical: t = !1,
@@ -4889,10 +4889,10 @@ var G =
             {
                 commitment: d,
                 offerSelectorIds: m,
-                formatString: x,
+                formatString: _,
                 price: P,
-                priceWithoutDiscount: b,
-                taxDisplay: T,
+                priceWithoutDiscount: S,
+                taxDisplay: y,
                 taxTerm: v,
                 term: C,
                 usePrecision: N,
@@ -4902,7 +4902,7 @@ var G =
         ) => {
             Object.entries({
                 country: o,
-                formatString: x,
+                formatString: _,
                 language: l,
                 price: P,
             }).forEach(([Ni, Oi]) => {
@@ -4913,7 +4913,7 @@ var G =
             });
             let O = { ...Ar, ...f },
                 L = `${l.toLowerCase()}-${o.toUpperCase()}`,
-                D = r && b ? b : P,
+                D = r && S ? S : P,
                 Y = t ? qn : zn;
             n && (Y = Kn);
             let {
@@ -4922,11 +4922,11 @@ var G =
                     ...ge
                 } = Y({
                     commitment: d,
-                    formatString: x,
+                    formatString: _,
                     instant: i,
                     isIndianPrice: o === 'IN',
                     originalPrice: P,
-                    priceWithoutDiscount: b,
+                    priceWithoutDiscount: S,
                     price: t ? P : D,
                     promotion: H,
                     quantity: p,
@@ -4934,11 +4934,11 @@ var G =
                     usePrecision: N,
                 }),
                 gt = '',
-                xt = '',
-                _t = '';
+                _t = '',
+                xt = '';
             g(a) &&
                 q &&
-                (_t = J(O, L, ce.recurrenceLabel, { recurrenceTerm: q }));
+                (xt = J(O, L, ce.recurrenceLabel, { recurrenceTerm: q }));
             let We = '';
             g(c) &&
                 (h && (We += ' '),
@@ -4950,7 +4950,7 @@ var G =
                 (je += J(
                     O,
                     L,
-                    T === Tr ? ce.taxExclusiveLabel : ce.taxInclusiveLabel,
+                    y === Tr ? ce.taxExclusiveLabel : ce.taxInclusiveLabel,
                     { taxTerm: v },
                 ))),
                 r &&
@@ -4958,24 +4958,24 @@ var G =
                         strikethroughPrice: gt,
                     })),
                 e &&
-                    (xt = J(O, L, ce.alternativePriceAriaLabel, {
-                        alternativePrice: xt,
+                    (_t = J(O, L, ce.alternativePriceAriaLabel, {
+                        alternativePrice: _t,
                     }));
-            let xe = I.container;
+            let _e = I.container;
             if (
-                (t && (xe += ' ' + I.containerOptical),
-                r && (xe += ' ' + I.containerStrikethrough),
-                e && (xe += ' ' + I.containerAlternative),
-                n && (xe += ' ' + I.containerAnnual),
+                (t && (_e += ' ' + I.containerOptical),
+                r && (_e += ' ' + I.containerStrikethrough),
+                e && (_e += ' ' + I.containerAlternative),
+                n && (_e += ' ' + I.containerAnnual),
                 g(s))
             )
                 return Vs(
-                    xe,
+                    _e,
                     {
                         ...ge,
                         accessibleLabel: gt,
-                        altAccessibleLabel: xt,
-                        recurrenceLabel: _t,
+                        altAccessibleLabel: _t,
+                        recurrenceLabel: xt,
                         perUnitLabel: We,
                         taxInclusivityLabel: je,
                     },
@@ -4987,24 +4987,24 @@ var G =
                     decimalsDelimiter: Ci,
                     hasCurrencySpace: Lr,
                     integer: Li,
-                    isCurrencyFirst: wi,
+                    isCurrencyFirst: Ri,
                 } = ge,
-                _e = [Li, Ci, vi];
-            wi
-                ? (_e.unshift(Lr ? '\xA0' : ''), _e.unshift(Cr))
-                : (_e.push(Lr ? '\xA0' : ''), _e.push(Cr)),
-                _e.push(_t, We, je);
-            let Ri = _e.join('');
-            return M(xe, Ri, k);
+                xe = [Li, Ci, vi];
+            Ri
+                ? (xe.unshift(Lr ? '\xA0' : ''), xe.unshift(Cr))
+                : (xe.push(Lr ? '\xA0' : ''), xe.push(Cr)),
+                xe.push(xt, We, je);
+            let wi = xe.join('');
+            return M(_e, wi, k);
         },
-    Qn = () => (e, t, r) => {
+    Zn = () => (e, t, r) => {
         let i =
             (e.displayOldPrice === void 0 || g(e.displayOldPrice)) &&
             t.priceWithoutDiscount &&
             t.priceWithoutDiscount != t.price;
-        return `${i ? G({ displayStrikethrough: !0 })(e, t, r) + '&nbsp;' : ''}${G({ isAlternativePrice: i })(e, t, r)}`;
+        return `${i ? F({ displayStrikethrough: !0 })(e, t, r) + '&nbsp;' : ''}${F({ isAlternativePrice: i })(e, t, r)}`;
     },
-    Zn = () => (e, t, r) => {
+    Qn = () => (e, t, r) => {
         let { instant: n } = e;
         try {
             n ||
@@ -5020,13 +5020,13 @@ var G =
                 (e.displayOldPrice === void 0 || g(e.displayOldPrice)) &&
                 t.priceWithoutDiscount &&
                 t.priceWithoutDiscount != t.price;
-        return `${s ? G({ displayStrikethrough: !0 })(i, t, r) + '&nbsp;' : ''}${G({ isAlternativePrice: s })(e, t, r)}${M(I.containerAnnualPrefix, '&nbsp;(')}${G({ displayAnnual: !0, instant: n })(i, t, r)}${M(I.containerAnnualSuffix, ')')}`;
+        return `${s ? F({ displayStrikethrough: !0 })(i, t, r) + '&nbsp;' : ''}${F({ isAlternativePrice: s })(e, t, r)}${M(I.containerAnnualPrefix, '&nbsp;(')}${F({ displayAnnual: !0, instant: n })(i, t, r)}${M(I.containerAnnualSuffix, ')')}`;
     },
     Jn = () => (e, t, r) => {
         let n = { ...e, displayTax: !1, displayPerUnit: !1 };
-        return `${G({ isAlternativePrice: e.displayOldPrice })(e, t, r)}${M(I.containerAnnualPrefix, '&nbsp;(')}${G({ displayAnnual: !0 })(n, t, r)}${M(I.containerAnnualSuffix, ')')}`;
+        return `${F({ isAlternativePrice: e.displayOldPrice })(e, t, r)}${M(I.containerAnnualPrefix, '&nbsp;(')}${F({ displayAnnual: !0 })(n, t, r)}${M(I.containerAnnualSuffix, ')')}`;
     };
-var Ge = { ...I, containerLegal: 'price-legal', planType: 'price-plan-type' },
+var Fe = { ...I, containerLegal: 'price-legal', planType: 'price-plan-type' },
     dt = { ...ce, planTypeLabel: 'planTypeLabel' };
 function $s(
     e,
@@ -5035,10 +5035,10 @@ function $s(
 ) {
     let o = '';
     return (
-        (o += M(Ge.unitType, t, null, !0)),
+        (o += M(Fe.unitType, t, null, !0)),
         r && n && (r += '. '),
-        (o += M(Ge.taxInclusivity, r, !0)),
-        (o += M(Ge.planType, n, null)),
+        (o += M(Fe.taxInclusivity, r, !0)),
+        (o += M(Fe.planType, n, null)),
         M(e, o, { ...i })
     );
 }
@@ -5070,24 +5070,24 @@ var ei = (
             ));
     let d = '';
     g(n) && c && (d = J(l, f, dt.planTypeLabel, { planType: c }));
-    let m = Ge.container;
+    let m = Fe.container;
     return (
-        (m += ' ' + Ge.containerLegal),
+        (m += ' ' + Fe.containerLegal),
         $s(m, { perUnitLabel: p, taxInclusivityLabel: h, planTypeLabel: d }, u)
     );
 };
-var ti = G(),
-    ri = Qn(),
-    ni = G({ displayOptical: !0 }),
-    ii = G({ displayStrikethrough: !0 }),
-    oi = G({ displayAnnual: !0 }),
-    si = G({ displayOptical: !0, isAlternativePrice: !0 }),
-    ai = G({ isAlternativePrice: !0 }),
+var ti = F(),
+    ri = Zn(),
+    ni = F({ displayOptical: !0 }),
+    ii = F({ displayStrikethrough: !0 }),
+    oi = F({ displayAnnual: !0 }),
+    si = F({ displayOptical: !0, isAlternativePrice: !0 }),
+    ai = F({ isAlternativePrice: !0 }),
     ci = Jn(),
-    li = Zn(),
+    li = Qn(),
     ui = ei;
 var Ys = (e, t) => {
-        if (!(!we(e) || !we(t))) return Math.floor(((t - e) / t) * 100);
+        if (!(!Re(e) || !Re(t))) return Math.floor(((t - e) / t) * 100);
     },
     hi = () => (e, t) => {
         let { price: r, priceWithoutDiscount: n } = t,
@@ -5196,20 +5196,20 @@ var mi = 'INDIVIDUAL_COM',
         return o
             ? o.includes(e) || o.includes(i)
                 ? !0
-                : S.displayTax
-            : S.displayTax;
+                : T.displayTax
+            : T.displayTax;
     },
     Ei = async (e, t, r, n) => {
         let i = Ks(e, t, r, n);
         return {
             displayTax: i,
-            forceTaxExclusive: i ? zs(e, t, r, n) : S.forceTaxExclusive,
+            forceTaxExclusive: i ? zs(e, t, r, n) : T.forceTaxExclusive,
         };
     },
     Ve = class Ve extends HTMLSpanElement {
         constructor() {
             super();
-            y(this, 'masElement', new ae(this));
+            b(this, 'masElement', new ae(this));
             this.handleClick = this.handleClick.bind(this);
         }
         static get observedAttributes() {
@@ -5228,7 +5228,7 @@ var mi = 'INDIVIDUAL_COM',
             ];
         }
         static createInlinePrice(r) {
-            let n = F();
+            let n = G();
             if (!n) return null;
             let {
                 displayOldPrice: i,
@@ -5243,7 +5243,7 @@ var mi = 'INDIVIDUAL_COM',
                 quantity: h,
                 alternativePrice: d,
                 template: m,
-                wcsOsi: x,
+                wcsOsi: _,
             } = n.collectPriceOptions(r);
             return nt(Ve, {
                 displayOldPrice: i,
@@ -5258,7 +5258,7 @@ var mi = 'INDIVIDUAL_COM',
                 quantity: h,
                 alternativePrice: d,
                 template: m,
-                wcsOsi: x,
+                wcsOsi: _,
             });
         }
         get isInlinePrice() {
@@ -5303,7 +5303,7 @@ var mi = 'INDIVIDUAL_COM',
         }
         async render(r = {}) {
             if (!this.isConnected) return !1;
-            let n = F();
+            let n = G();
             if (!n) return !1;
             let i = n.collectPriceOptions(r, this),
                 o = { ...n.settings, ...i };
@@ -5341,7 +5341,7 @@ var mi = 'INDIVIDUAL_COM',
         }
         renderOffers(r, n, i = void 0) {
             if (!this.isConnected) return;
-            let o = F();
+            let o = G();
             if (!o) return !1;
             if ((i ?? (i = this.masElement.togglePending()), r.length)) {
                 if (this.masElement.toggleResolved(i, r, n)) {
@@ -5387,7 +5387,7 @@ var mi = 'INDIVIDUAL_COM',
             return !1;
         }
     };
-y(Ve, 'is', 'inline-price'), y(Ve, 'tag', 'span');
+b(Ve, 'is', 'inline-price'), b(Ve, 'tag', 'span');
 var ee = Ve;
 window.customElements.get(ee.is) ||
     window.customElements.define(ee.is, ee, { extends: ee.tag });
@@ -5408,10 +5408,10 @@ function gi({ literals: e, providers: t, settings: r }) {
             displayPlanType: h,
             forceTaxExclusive: d,
             perpetual: m,
-            displayAnnual: x,
+            displayAnnual: _,
             promotionCode: P,
-            quantity: b,
-            alternativePrice: T,
+            quantity: S,
+            alternativePrice: y,
             wcsOsi: v,
             ...C
         } = Object.assign(c, a?.dataset ?? {}, s ?? {});
@@ -5427,10 +5427,10 @@ function gi({ literals: e, providers: t, settings: r }) {
                     displayPlanType: g(h),
                     forceTaxExclusive: g(d),
                     perpetual: g(m),
-                    displayAnnual: g(x),
-                    promotionCode: Ze(P).effectivePromoCode,
-                    quantity: Te(b, S.quantity),
-                    alternativePrice: g(T),
+                    displayAnnual: g(_),
+                    promotionCode: Qe(P).effectivePromoCode,
+                    quantity: Te(S, T.quantity),
+                    alternativePrice: g(y),
                     wcsOsi: et(v),
                 }),
             )),
@@ -5476,52 +5476,136 @@ function gi({ literals: e, providers: t, settings: r }) {
         createInlinePrice: o,
     };
 }
+var Zs = [
+    'en_US',
+    'ar_DZ',
+    'ar_EG',
+    'ar_SA',
+    'bg_BG',
+    'cs_CZ',
+    'da_DK',
+    'de_AT',
+    'de_CH',
+    'de_DE',
+    'de_LU',
+    'el_GR',
+    'en_AU',
+    'en_AZ',
+    'en_BE',
+    'en_CA',
+    'en_DZ',
+    'en_EG',
+    'en_GB',
+    'en_GR',
+    'en_ID',
+    'en_IE',
+    'en_IN',
+    'en_LU',
+    'en_MT',
+    'en_MU',
+    'en_MY',
+    'en_NG',
+    'en_NZ',
+    'en_SA',
+    'en_SG',
+    'en_TH',
+    'en_ZA',
+    'es_AR',
+    'es_CL',
+    'es_CO',
+    'es_CR',
+    'es_DO',
+    'es_EC',
+    'es_ES',
+    'es_GT',
+    'es_MX',
+    'es_PE',
+    'es_US',
+    'et_EE',
+    'fi_FI',
+    'fr_BE',
+    'fr_CH',
+    'fr_FR',
+    'fr_LU',
+    'hi_IN',
+    'hu_HU',
+    'in_ID',
+    'it_CH',
+    'it_IT',
+    'iw_IL',
+    'ja_JP',
+    'ko_KR',
+    'lt_LT',
+    'lv_LV',
+    'ms_MY',
+    'nb_NO',
+    'nl_BE',
+    'nl_NL',
+    'pl_PL',
+    'pt_BR',
+    'pt_PT',
+    'ro_RO',
+    'ru_AZ',
+    'ru_RU',
+    'sk_SK',
+    'sl_SI',
+    'sv_SE',
+    'th_TH',
+    'tr_TR',
+    'uk_UA',
+    'zh-Hans_CN',
+    'zh-Hant_HK',
+    'zh-Hant_TW',
+];
 function Qs({
     locale: e = void 0,
     country: t = void 0,
     language: r = void 0,
 } = {}) {
     return (
-        r ?? (r = e?.split('_')?.[0] || S.language),
-        t ?? (t = e?.split('_')?.[1] || S.country),
-        e ?? (e = `${r}_${t}`),
+        r ?? (r = e?.split('_')?.[0] || T.language),
+        t ?? (t = e?.split('_')?.[1] || T.country),
+        e ??
+            (e = Zs.includes(`${r}_${t}`)
+                ? `${r}_${t}`
+                : `${T.language}_${T.country}`),
         { locale: e, country: t, language: r }
     );
 }
-function xi(e = {}, t) {
+function _i(e = {}, t) {
     let r = t.featureFlags[se],
         { commerce: n = {} } = e,
         i = K.PRODUCTION,
         o = It,
-        s = R('checkoutClientId', n) ?? S.checkoutClientId,
-        a = Re(R('checkoutWorkflowStep', n), B, S.checkoutWorkflowStep),
-        c = S.displayOldPrice,
-        u = S.displayPerUnit,
-        l = g(R('displayRecurrence', n), S.displayRecurrence),
-        f = g(R('displayTax', n), S.displayTax),
-        p = g(R('displayPlanType', n), S.displayPlanType),
-        h = g(R('entitlement', n), S.entitlement),
-        d = g(R('modal', n), S.modal),
-        m = g(R('forceTaxExclusive', n), S.forceTaxExclusive),
-        x = R('promotionCode', n) ?? S.promotionCode,
-        P = Te(R('quantity', n)),
-        b = R('wcsApiKey', n) ?? S.wcsApiKey,
-        T = n?.env === 'stage',
+        s = w('checkoutClientId', n) ?? T.checkoutClientId,
+        a = we(w('checkoutWorkflowStep', n), B, T.checkoutWorkflowStep),
+        c = T.displayOldPrice,
+        u = T.displayPerUnit,
+        l = g(w('displayRecurrence', n), T.displayRecurrence),
+        f = g(w('displayTax', n), T.displayTax),
+        p = g(w('displayPlanType', n), T.displayPlanType),
+        h = g(w('entitlement', n), T.entitlement),
+        d = g(w('modal', n), T.modal),
+        m = g(w('forceTaxExclusive', n), T.forceTaxExclusive),
+        _ = w('promotionCode', n) ?? T.promotionCode,
+        P = Te(w('quantity', n)),
+        S = w('wcsApiKey', n) ?? T.wcsApiKey,
+        y = n?.env === 'stage',
         v = oe.PUBLISHED;
     ['true', ''].includes(n.allowOverride) &&
-        ((T =
-            (R(Nt, n, { metadata: !1 })?.toLowerCase() ?? n?.env) === 'stage'),
-        (v = Re(R(Ot, n), oe, v))),
-        T && ((i = K.STAGE), (o = Ht));
-    let N = R(Rt) ?? e.preview,
+        ((y =
+            (w(Nt, n, { metadata: !1 })?.toLowerCase() ?? n?.env) === 'stage'),
+        (v = we(w(Ot, n), oe, v))),
+        y && ((i = K.STAGE), (o = Ht));
+    let N = w(wt) ?? e.preview,
         H = typeof N < 'u' && N !== 'off' && N !== 'false',
         k = {};
     H && (k = { preview: H });
     let O =
-            R('mas-io-url') ??
+            w('mas-io-url') ??
             e.masIOUrl ??
             `https://www${i === K.STAGE ? '.stage' : ''}.adobe.com/mas/io`,
-        L = R('preselect-plan') ?? void 0;
+        L = w('preselect-plan') ?? void 0;
     return {
         ...Qs(e),
         ...k,
@@ -5533,21 +5617,21 @@ function xi(e = {}, t) {
         displayTax: f,
         displayPlanType: p,
         entitlement: h,
-        extraOptions: S.extraOptions,
+        extraOptions: T.extraOptions,
         modal: d,
         env: i,
         forceTaxExclusive: m,
-        promotionCode: x,
+        promotionCode: _,
         quantity: P,
-        alternativePrice: S.alternativePrice,
-        wcsApiKey: b,
+        alternativePrice: T.alternativePrice,
+        wcsApiKey: S,
         wcsURL: o,
         landscape: v,
         masIOUrl: O,
         ...(L && { preselectPlan: L }),
     };
 }
-async function _i(e, t = {}, r = 2, n = 100) {
+async function xi(e, t = {}, r = 2, n = 100) {
     let i;
     for (let o = 0; o <= r; o++)
         try {
@@ -5559,12 +5643,12 @@ async function _i(e, t = {}, r = 2, n = 100) {
         }
     throw i;
 }
-var Zs = 'mas-commerce-service';
+var Js = 'mas-commerce-service';
 function Et(e) {
     return `startTime:${e.startTime.toFixed(2)}|duration:${e.duration.toFixed(2)}`;
 }
 function Sr() {
-    return document.getElementsByTagName(Zs)?.[0];
+    return document.getElementsByTagName(Js)?.[0];
 }
 var Pr = 'wcs';
 function Ai({ settings: e }) {
@@ -5575,11 +5659,11 @@ function Ai({ settings: e }) {
         s,
         a = new Map();
     async function c(h, d, m = !0) {
-        let x = F(),
+        let _ = G(),
             P = vt;
         t.debug('Fetching:', h);
-        let b = '',
-            T;
+        let S = '',
+            y;
         if (h.offerSelectorIds.length > 1)
             throw new Error('Multiple OSIs are not supported anymore');
         let v = new Map(d),
@@ -5591,30 +5675,30 @@ function Ai({ settings: e }) {
         try {
             if (
                 (performance.mark(H),
-                (b = new URL(e.wcsURL)),
-                b.searchParams.set('offer_selector_ids', C),
-                b.searchParams.set('country', h.country),
-                b.searchParams.set('locale', h.locale),
-                b.searchParams.set(
+                (S = new URL(e.wcsURL)),
+                S.searchParams.set('offer_selector_ids', C),
+                S.searchParams.set('country', h.country),
+                S.searchParams.set('locale', h.locale),
+                S.searchParams.set(
                     'landscape',
                     r === K.STAGE ? 'ALL' : e.landscape,
                 ),
-                b.searchParams.set('api_key', n),
-                h.language && b.searchParams.set('language', h.language),
+                S.searchParams.set('api_key', n),
+                h.language && S.searchParams.set('language', h.language),
                 h.promotionCode &&
-                    b.searchParams.set('promotion_code', h.promotionCode),
-                h.currency && b.searchParams.set('currency', h.currency),
-                (T = await _i(b.toString(), { credentials: 'omit' })),
-                T.ok)
+                    S.searchParams.set('promotion_code', h.promotionCode),
+                h.currency && S.searchParams.set('currency', h.currency),
+                (y = await xi(S.toString(), { credentials: 'omit' })),
+                y.ok)
             ) {
                 let L = [];
                 try {
-                    let D = await T.json();
+                    let D = await y.json();
                     t.debug('Fetched:', h, D), (L = D.resolvedOffers ?? []);
                 } catch (D) {
                     t.error(`Error parsing JSON: ${D.message}`, {
                         ...D.context,
-                        ...x?.duration,
+                        ..._?.duration,
                     });
                 }
                 (L = L.map(Ne)),
@@ -5634,15 +5718,15 @@ function Ai({ settings: e }) {
         }
         if (m && d.size) {
             t.debug('Missing:', { offerSelectorIds: [...d.keys()] });
-            let L = jr(T);
+            let L = jr(y);
             d.forEach((D) => {
                 D.reject(
                     new ye(P, {
                         ...h,
                         ...L,
-                        response: T,
+                        response: y,
                         measure: Et(O),
-                        ...x?.duration,
+                        ..._?.duration,
                     }),
                 );
             });
@@ -5662,8 +5746,8 @@ function Ai({ settings: e }) {
             t.warn(`No cache found for environment: ${r}`);
             return;
         }
-        for (let [x, P] of Object.entries(m))
-            i.set(x, Promise.resolve(P.map(Ne)));
+        for (let [_, P] of Object.entries(m))
+            i.set(_, Promise.resolve(P.map(Ne)));
         t.debug(`Prefilled WCS cache with ${m.size} entries`);
     }
     function f() {
@@ -5676,27 +5760,27 @@ function Ai({ settings: e }) {
         country: h,
         language: d,
         perpetual: m = !1,
-        promotionCode: x = '',
+        promotionCode: _ = '',
         wcsOsi: P = [],
     }) {
-        let b = `${d}_${h}`;
+        let S = `${d}_${h}`;
         h !== 'GB' && !m && (d = 'MULT');
-        let T = [h, d, x]
+        let y = [h, d, _]
             .filter((v) => v)
             .join('-')
             .toLowerCase();
         return P.map((v) => {
-            let C = `${v}-${T}`;
+            let C = `${v}-${y}`;
             if (i.has(C)) return i.get(C);
             let N = new Promise((H, k) => {
-                let O = o.get(T);
+                let O = o.get(y);
                 if (!O) {
-                    let L = { country: h, locale: b, offerSelectorIds: [] };
+                    let L = { country: h, locale: S, offerSelectorIds: [] };
                     h !== 'GB' && !m && (L.language = d),
                         (O = { options: L, promises: new Map() }),
-                        o.set(T, O);
+                        o.set(y, O);
                 }
-                x && (O.options.promotionCode = x),
+                _ && (O.options.promotionCode = _),
                     O.options.offerSelectorIds.push(v),
                     O.promises.set(v, { resolve: H, reject: k }),
                     u();
@@ -5731,7 +5815,7 @@ var Ti = 'mas-commerce-service',
             re(this, Pe);
             re(this, $e);
             re(this, Se);
-            y(this, 'lastLoggingTime', 0);
+            b(this, 'lastLoggingTime', 0);
         }
         async registerCheckoutAction(r) {
             typeof r == 'function' &&
@@ -5749,7 +5833,7 @@ var Ti = 'mas-commerce-service',
         }
         activate() {
             let r = z(this, Pe, Si),
-                n = xi(r, this);
+                n = _i(r, this);
             tt(r.lana);
             let i = $.init(r.hostEnv).module('service');
             i.debug('Activating:', r);
@@ -5766,7 +5850,7 @@ var Ti = 'mas-commerce-service',
                     ...Bt,
                     Log: $,
                     get defaults() {
-                        return S;
+                        return T;
                     },
                     get log() {
                         return $;
@@ -5892,7 +5976,7 @@ var Ti = 'mas-commerce-service',
     }),
     (Pi = function (r) {
         return ['on', 'true', !0].includes(
-            this.getAttribute(`data-${r}`) || R(r),
+            this.getAttribute(`data-${r}`) || w(r),
         );
     });
 window.customElements.get(Ti) || window.customElements.define(Ti, vr);
@@ -5917,18 +6001,18 @@ var Ye = class Ye extends ot(HTMLButtonElement) {
         this.href && (window.location.href = this.href);
     }
 };
-y(Ye, 'is', 'checkout-button'), y(Ye, 'tag', 'button');
+b(Ye, 'is', 'checkout-button'), b(Ye, 'tag', 'button');
 var ve = Ye;
 window.customElements.get(ve.is) ||
     window.customElements.define(ve.is, ve, { extends: ve.tag });
-function Js(e) {
+function ea(e) {
     return `https://${e === 'PRODUCTION' ? 'www.adobe.com' : 'www.stage.adobe.com'}/offers/promo-terms.html`;
 }
 var Ee,
     de = class de extends HTMLAnchorElement {
         constructor() {
             super();
-            y(this, 'masElement', new ae(this));
+            b(this, 'masElement', new ae(this));
             re(this, Ee);
             this.setAttribute('is', de.is);
         }
@@ -5979,7 +6063,7 @@ var Ee,
                     l = `locale=${c}_${a}&country=${a}&offer_id=${s.offerId}`,
                     f = this.getAttribute('data-promotion-code');
                 f && (l += `&promotion_code=${encodeURIComponent(f)}`),
-                    (this.href = `${Js(u)}?${l}`),
+                    (this.href = `${ea(u)}?${l}`),
                     this.masElement.toggleResolved(i, s, n);
             } catch (s) {
                 let a = new Error(
@@ -6005,9 +6089,9 @@ var Ee,
         }
     };
 (Ee = new WeakMap()),
-    y(de, 'is', 'upt-link'),
-    y(de, 'tag', 'a'),
-    y(de, 'observedAttributes', [
+    b(de, 'is', 'upt-link'),
+    b(de, 'tag', 'a'),
+    b(de, 'observedAttributes', [
         'data-wcs-osi',
         'data-promotion-code',
         'data-ims-country',
@@ -6018,7 +6102,7 @@ window.customElements.get(Ce.is) ||
 export {
     Mr as CheckoutWorkflow,
     B as CheckoutWorkflowStep,
-    S as Defaults,
+    T as Defaults,
     $ as Log,
     Ne as applyPlanType,
     Ei as resolvePriceTaxFlags,

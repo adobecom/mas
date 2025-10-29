@@ -25,52 +25,11 @@ export class MasOperationResult extends LitElement {
         const AemFragmentElement = customElements.get('aem-fragment');
         if (!AemFragmentElement || !fragments) return;
 
-        fragments.forEach((fragment) => {
-            const cachedFragment = {
-                ...fragment,
-                fields: this.convertFragmentFields(fragment.fields),
-            };
-            AemFragmentElement.cache.add(cachedFragment);
-        });
-    }
-
-    convertFragmentFields(fields) {
-        if (!fields) return {};
-
-        const isAlreadyFlat = Object.values(fields).every(
-            (value) => typeof value !== 'object' || value === null || Array.isArray(value),
-        );
-
-        if (isAlreadyFlat) {
-            const normalizedFields = { ...fields };
-            ['mnemonicIcon', 'mnemonicAlt', 'mnemonicLink'].forEach((key) => {
-                if (normalizedFields[key] && !Array.isArray(normalizedFields[key])) {
-                    normalizedFields[key] = [normalizedFields[key]];
-                }
-            });
-            return normalizedFields;
-        }
-
-        let fieldsObj = fields;
-        if (Array.isArray(fields)) {
-            fieldsObj = fields.reduce((acc, field) => {
-                if (field.name) {
-                    acc[field.name] = field;
-                }
-                return acc;
-            }, {});
-        }
-
-        return Object.entries(fieldsObj).reduce((acc, [key, field]) => {
-            if (field?.value !== undefined) {
-                acc[key] = field.value;
-            } else if (field?.values !== undefined) {
-                acc[key] = field.values.length === 1 ? field.values[0] : field.values;
-            } else {
-                acc[key] = field;
+        fragments.forEach((card) => {
+            if (card.fragmentData) {
+                AemFragmentElement.cache.add(card.fragmentData);
             }
-            return acc;
-        }, {});
+        });
     }
 
     renderSearchResults() {

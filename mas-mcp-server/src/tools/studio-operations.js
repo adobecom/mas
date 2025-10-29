@@ -129,12 +129,41 @@ export class StudioOperations {
             path: this.getSurfacePath(surface),
             query,
             tags: [...tags, 'mas:studio/content-type/merch-card'],
-            limit,
+            limit: limit * 2,
         };
 
         const fragments = await this.aemClient.searchFragments(searchParams);
 
-        const results = fragments.map((fragment) => this.formatCard(fragment));
+        const validFragments = await Promise.all(
+            fragments.map(async (fragment, index) => {
+                try {
+                    const fullFragment = await this.aemClient.getFragment(fragment.id);
+                    if (!fullFragment || !fullFragment.id || !fullFragment.fields) {
+                        console.warn(
+                            `[StudioOperations] Fragment ${fragment.id} (index ${index}) invalid: missing id or fields`,
+                        );
+                        return null;
+                    }
+                    return fullFragment;
+                } catch (error) {
+                    console.warn(
+                        `[StudioOperations] Fragment ${fragment.id} (index ${index}) failed to load: ${error.message}`,
+                    );
+                    return null;
+                }
+            }),
+        );
+
+        const filteredFragments = validFragments.filter((fragment) => fragment !== null);
+        console.log(
+            `[StudioOperations] Search returned ${fragments.length} fragments, ${filteredFragments.length} valid, returning ${Math.min(filteredFragments.length, limit)}`,
+        );
+
+        const results = filteredFragments.slice(0, limit).map((fragment) => {
+            const card = this.formatCard(fragment);
+            card.fragmentData = this.formatFragmentForCache(fragment, card);
+            return card;
+        });
 
         return {
             success: true,
@@ -278,36 +307,100 @@ export class StudioOperations {
         const transformedFields = {};
 
         if (fragment.fields) {
-            Object.entries(fragment.fields).forEach(([key, value]) => {
-                if (value && typeof value === 'object') {
-                    if (value.mimeType) {
-                        transformedFields[key] = value.value || value;
-                    } else if (value.value !== undefined) {
-                        transformedFields[key] = value.value;
-                    } else if (Array.isArray(value.values)) {
-                        transformedFields[key] = value.multiple ? value.values : value.values[0];
+            if (Array.isArray(fragment.fields)) {
+                fragment.fields.forEach((field) => {
+                    if (field.name) {
+                        const key = field.name;
+                        if (field.mimeType) {
+                            transformedFields[key] = field.values?.[0] || '';
+                        } else if (Array.isArray(field.values)) {
+                            transformedFields[key] = field.multiple ? field.values : field.values[0];
+                        } else if (field.value !== undefined) {
+                            transformedFields[key] = field.value;
+                        } else {
+                            transformedFields[key] = field.values?.[0];
+                        }
+                    }
+                });
+            } else {
+                Object.entries(fragment.fields).forEach(([key, value]) => {
+                    if (value && typeof value === 'object') {
+                        if (value.mimeType) {
+                            transformedFields[key] = value.value || value;
+                        } else if (value.value !== undefined) {
+                            transformedFields[key] = value.value;
+                        } else if (Array.isArray(value.values)) {
+                            transformedFields[key] = value.multiple ? value.values : value.values[0];
+                        } else {
+                            transformedFields[key] = value;
+                        }
                     } else {
                         transformedFields[key] = value;
                     }
-                } else {
-                    transformedFields[key] = value;
-                }
-            });
+                });
+            }
         }
+
+        const model = fragment.model || '/conf/mas/settings/dam/cfm/models/card';
 
         return {
             id: fragment.id,
             path: fragment.path,
             title: fragment.title,
-            model: fragment.model,
-            variant: transformedFields.variant || fragment.fields?.variant?.value || 'unknown',
-            size: transformedFields.size || fragment.fields?.size?.value || 'wide',
+            model,
+            variant: transformedFields.variant || 'unknown',
+            size: transformedFields.size || 'wide',
             fields: transformedFields,
             tags: fragment.tags || [],
             modified: fragment.modified,
             published: fragment.published,
             status: fragment.status,
         };
+    }
+
+    /**
+     * Format fragment for cache (matches I/O Runtime structure)
+     * Transforms nested fields to flat structure that merch-card expects
+     * @private
+     */
+    formatFragmentForCache(fragment, card) {
+        const transformedFields = {};
+
+        if (fragment.fields) {
+            if (Array.isArray(fragment.fields)) {
+                fragment.fields.forEach((field) => {
+                    if (field.name) {
+                        transformedFields[field.name] = field.multiple ? field.values : field.values?.[0] || field.value || '';
+                    }
+                });
+            } else {
+                Object.entries(fragment.fields).forEach(([key, value]) => {
+                    if (value && typeof value === 'object') {
+                        transformedFields[key] = value.mimeType
+                            ? value.value
+                            : value.multiple
+                              ? value.values
+                              : value.values?.[0] || value.value || '';
+                    } else {
+                        transformedFields[key] = value || '';
+                    }
+                });
+            }
+        }
+
+        const result = {
+            id: fragment.id,
+            fields: transformedFields,
+            tags: fragment.tags || [],
+            settings: fragment.settings || {},
+            priceLiterals: fragment.priceLiterals || {},
+            dictionary: fragment.dictionary || {},
+            placeholders: fragment.placeholders || {},
+        };
+
+        console.log('[DEBUG] formatFragmentForCache result.fields:', JSON.stringify(result.fields, null, 2));
+
+        return result;
     }
 
     /**

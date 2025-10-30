@@ -945,22 +945,6 @@ class MerchCardEditor extends LitElement {
         }
     }
 
-    #onBadgeColorChange = (event) => {
-        this.#updateBadge(this.badge.text, event.target.value, this.badge.borderColor);
-    };
-
-    #onBadgeBorderColorChange = (event) => {
-        this.#updateBadge(this.badge.text, this.badge.bgColor, event.target.value);
-    };
-
-    #onTrialBadgeColorChange = (event) => {
-        this.#updateTrialBadge(this.trialBadge.text, event.target.value, this.trialBadge.borderColor);
-    };
-
-    #onTrialBadgeBorderColorChange = (event) => {
-        this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, event.target.value);
-    };
-
     #updateBadge = (text, bgColor, borderColor) => {
         const element = this.#createBadgeElement(text, bgColor, borderColor);
         this.fragmentStore.updateField('badge', [element?.outerHTML || '']);

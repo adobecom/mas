@@ -431,7 +431,7 @@ export class MasRepository extends LitElement {
         if (!locale) return null;
         const [languageCode] = locale.split('_');
         const match = LANGUAGE_DEFAULTS.find((defaultLocale) => defaultLocale.startsWith(`${languageCode}_`));
-        return match || LANGUAGE_DEFAULTS[0];
+        return match || null;
     }
 
     async ensureDictionaryFolder(dictionaryPath) {
@@ -552,7 +552,7 @@ export class MasRepository extends LitElement {
         }
     }
 
-    async createDictionaryIndexFragment({ parentPath, parentReference, initialEntries = [], publish = true }) {
+    async createDictionaryIndexFragment({ parentPath, parentReference, publish = true }) {
         try {
             const fields = [
                 {
@@ -566,7 +566,7 @@ export class MasRepository extends LitElement {
                     name: 'entries',
                     type: 'content-fragment',
                     multiple: true,
-                    values: initialEntries,
+                    values: [],
                 },
             ];
 

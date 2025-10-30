@@ -650,6 +650,9 @@ class MasPlaceholders extends LitElement {
                 const locale = this.selectedLocale || 'en_US';
                 const dictionaryPath = `/content/dam/mas/${folderPath}/${locale}/dictionary`;
 
+                // Ensure dictionary index exists before loading placeholders
+                await this.repository.ensureDictionaryIndex(dictionaryPath);
+
                 const searchOptions = {
                     path: dictionaryPath,
                     sort: [{ on: 'created', order: 'ASC' }],
@@ -836,7 +839,7 @@ class MasPlaceholders extends LitElement {
             }
 
             const indexUpdateResult = await this.updateIndexFragment(dictionaryPath, fragmentPath, false);
-            if (!indexUpdateResult) {
+            if (!indexUpdateResult || !indexUpdateResult.success) {
                 throw new Error('Failed to update index fragment with new placeholder reference');
             }
 
@@ -918,27 +921,9 @@ class MasPlaceholders extends LitElement {
                 indexFragment = null;
             }
 
-            if (!indexFragment) {
-                const created = await repository.createDictionaryIndexFragment({
-                    parentPath,
-                    parentReference: null,
-                    initialEntries: fragmentPath ? [fragmentPath] : [],
-                    publish: shouldPublish,
-                });
-                if (!created) {
-                    return { success: false };
-                }
-                return {
-                    success: true,
-                    wasUpdated: true,
-                    publishedIndex: shouldPublish ? created : null,
-                    indexPath,
-                };
-            }
-
             if (!indexFragment || !indexFragment.id) {
-                console.error('Index fragment is invalid');
-                return false;
+                console.error('Index fragment does not exist. It should be created before updating.');
+                return { success: false };
             }
 
             const freshIndex = await repository.aem.sites.cf.fragments.getById(indexFragment.id);

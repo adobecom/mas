@@ -2,7 +2,6 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { MasRepository } from '../src/mas-repository.js';
 import { ROOT_PATH } from '../src/constants.js';
-import { LANGUAGE_DEFAULTS } from '../libs/fragment-client.js';
 import { SURFACES } from '../src/editors/variant-picker.js';
 
 describe('MasRepository dictionary helpers', () => {
@@ -100,10 +99,10 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.getFallbackLocale('fr_CA')).to.equal('fr_FR');
         });
 
-        it('falls back to the first default when no match is found', () => {
+        it('returns null when no matching language code is found', () => {
             const repository = createRepository();
 
-            expect(repository.getFallbackLocale('ja_JP')).to.equal(LANGUAGE_DEFAULTS[0]);
+            expect(repository.getFallbackLocale('ja_JP')).to.be.null;
         });
 
         it('returns null when locale is empty', () => {
@@ -116,7 +115,8 @@ describe('MasRepository dictionary helpers', () => {
     describe('ensureReferenceField', () => {
         it('adds a missing reference field', () => {
             const repository = createRepository();
-            const { fields: updatedFields, changed } = repository.ensureReferenceField([], 'parent', '/foo');
+            const parentPath = '/content/dam/mas/acom/en_US/dictionary/index';
+            const { fields: updatedFields, changed } = repository.ensureReferenceField([], 'parent', parentPath);
 
             expect(changed).to.be.true;
             expect(updatedFields).to.have.lengthOf(1);
@@ -125,7 +125,7 @@ describe('MasRepository dictionary helpers', () => {
                 type: 'content-fragment',
                 multiple: false,
             });
-            expect(updatedFields[0].values).to.deep.equal(['/foo']);
+            expect(updatedFields[0].values).to.deep.equal([parentPath]);
         });
 
         it('does not update the field when values already match', () => {
@@ -191,7 +191,7 @@ describe('MasRepository dictionary helpers', () => {
     });
 
     describe('createDictionaryIndexFragment', () => {
-        it('creates and publishes a new dictionary index with parent reference', async () => {
+        it('creates and publishes a new dictionary index with parent reference and empty entries', async () => {
             const repository = createRepository();
             const createdFragment = createFragment({ id: '123', path: '/index' });
             const createStub = sandbox.stub().resolves(createdFragment);
@@ -215,33 +215,12 @@ describe('MasRepository dictionary helpers', () => {
                 values: ['/parent/index'],
             });
             expect(payload.fields[1]).to.deep.include({ name: 'entries', type: 'content-fragment', multiple: true });
-            expect(payload.fields[1].values).to.deep.equal([]);
+            expect(payload.fields[1].values).to.deep.equal([]); // Entries are always empty on creation
             expect(repository.publishFragment.calledWith(createdFragment, [], false)).to.be.true;
             expect(result).to.equal(createdFragment);
         });
 
-        it('creates index with initial entries', async () => {
-            const repository = createRepository();
-            const createdFragment = createFragment({ id: '123', path: '/index' });
-            const createStub = sandbox.stub().resolves(createdFragment);
-
-            repository.aem = createAemMock({ fragments: { create: createStub } });
-            repository.publishFragment = sandbox.stub().resolves();
-
-            const result = await repository.createDictionaryIndexFragment({
-                parentPath: dictPath('acom'),
-                parentReference: null,
-                initialEntries: ['/fragment1', '/fragment2'],
-            });
-
-            const payload = createStub.firstCall.args[0];
-            expect(payload.fields).to.have.lengthOf(2);
-            expect(payload.fields[0].name).to.equal('parent');
-            expect(payload.fields[1].values).to.deep.equal(['/fragment1', '/fragment2']);
-            expect(result).to.equal(createdFragment);
-        });
-
-        it('skips publishing when publish is false', async () => {
+        it('creates index with empty entries and skips publishing when publish is false', async () => {
             const repository = createRepository();
             const createdFragment = createFragment({ id: '123', path: '/index' });
             const createStub = sandbox.stub().resolves(createdFragment);
@@ -267,6 +246,8 @@ describe('MasRepository dictionary helpers', () => {
                 children: pathsWithChildren[path]?.map((name) => ({ name, path: `${path}/${name}` })) || [],
             }));
 
+        // Test: When creating a dictionary index (e.g., acom/surface/fr_CA), if the same-surface fallback exists
+        // (e.g., acom/surface/fr_FR), it should use that as the parent reference.
         it('creates a missing index using a same-surface fallback locale', async () => {
             const repository = createRepository();
             const dictionaryPath = dictPath(`${SURFACES.ACOM}/surface`, 'fr_CA');
@@ -299,10 +280,12 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.aem.folders.create.calledWith(parentPath, 'dictionary', 'dictionary')).to.be.true;
         });
 
+        // Test: When creating a dictionary index (e.g., ccd/fr_CA), if the same-surface fallback exists
+        // (e.g., ccd/fr_FR), it should use that as the parent reference, even if ACOM fallback also exists.
         it('derives the parent reference from the surface fallback locale', async () => {
             const repository = createRepository();
-            const dictionaryPath = dictPath(`${SURFACES.CCD}/foo`, 'fr_CA');
-            const fallbackDictPath = dictPath(`${SURFACES.CCD}/foo`, 'fr_FR');
+            const dictionaryPath = dictPath(SURFACES.CCD, 'fr_CA');
+            const fallbackDictPath = dictPath(SURFACES.CCD, 'fr_FR');
             const acomDictPath = dictPath(SURFACES.ACOM, 'fr_FR');
             const acomIndex = createFragment({ id: 'acom-index', path: indexPath(acomDictPath) });
             const fallbackIndex = createFragment({ id: 'fallback-index', path: indexPath(fallbackDictPath) });
@@ -338,15 +321,17 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.aem.folders.create.calledWith(parentPath, 'dictionary', 'dictionary')).to.be.true;
         });
 
-        it('derives the parent reference from the ACOM surface when surface fallback is missing', async () => {
+        // Test: When creating a dictionary index (e.g., ccd/fr_CA), if the same-surface fallback doesn't exist
+        // (e.g., ccd/fr_FR), it should recursively create it first. During that creation, since fr_FR has no
+        // fallback locale, it should use the ACOM fallback (acom/fr_FR) as parent. Then ccd/fr_CA uses ccd/fr_FR.
+        it('recursively creates surface fallback when missing, then uses ACOM fallback for it', async () => {
             const repository = createRepository();
-            const dictionaryPath = dictPath(`${SURFACES.CCD}/foo`, 'fr_CA');
-            const fallbackDictPath = dictPath(`${SURFACES.CCD}/foo`, 'fr_FR');
+            const dictionaryPath = dictPath(SURFACES.CCD, 'fr_CA');
+            const fallbackDictPath = dictPath(SURFACES.CCD, 'fr_FR');
             const acomDictPath = dictPath(SURFACES.ACOM, 'fr_FR');
             const acomIndex = createFragment({ id: 'acom-index', path: indexPath(acomDictPath) });
             const createdFallbackIndex = createFragment({ id: 'fallback-index', path: indexPath(fallbackDictPath) });
             const createdIndex = createFragment({ id: 'ccd-index', path: indexPath(dictionaryPath) });
-            const parentPath = dictionaryPath.replace(/\/dictionary$/, '');
             const fallbackParentPath = fallbackDictPath.replace(/\/dictionary$/, '');
 
             repository.aem = createAemMock({
@@ -357,9 +342,10 @@ describe('MasRepository dictionary helpers', () => {
                     create: sandbox.stub().resolves({}),
                 },
             });
+            // Surface fallback (ccd/fr_FR) doesn't exist, only ACOM fallback (acom/fr_FR) exists
             sandbox.stub(repository, 'fetchIndexFragment').callsFake(async (path) => {
                 if (path === indexPath(acomDictPath)) return acomIndex;
-                return null;
+                return null; // ccd/fr_FR doesn't exist yet
             });
             sandbox.stub(repository, 'ensureIndexFallbackFields').resolvesArg(0);
             const createStub = sandbox.stub(repository, 'createDictionaryIndexFragment').callsFake(async (args) => {
@@ -369,11 +355,13 @@ describe('MasRepository dictionary helpers', () => {
 
             const result = await repository.ensureDictionaryIndex(dictionaryPath);
 
+            // First creates ccd/fr_FR with acom/fr_FR as parent (step 3)
             expect(createStub.calledTwice).to.be.true;
             expect(createStub.firstCall.args[0]).to.deep.include({
                 parentPath: fallbackDictPath,
                 parentReference: acomIndex.path,
             });
+            // Then creates ccd/fr_CA with ccd/fr_FR as parent (step 2)
             expect(createStub.secondCall.args[0]).to.deep.include({
                 parentPath: dictionaryPath,
                 parentReference: createdFallbackIndex.path,
@@ -383,6 +371,8 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.aem.folders.create.calledWith(fallbackParentPath, 'dictionary', 'dictionary')).to.be.true;
         });
 
+        // Test: When a dictionary index already exists and has a parent reference set, we should return it
+        // immediately without checking folders or creating anything. This is the happy path optimization.
         it('returns existing index without touching folders when parent reference is present', async () => {
             const repository = createRepository();
             const dictionaryPath = dictPath(`${SURFACES.ACOM}/surface`, 'en_US');
@@ -411,9 +401,15 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.aem.folders.create.called).to.be.false;
         });
 
+        // Test: When dictionary indices exist but are missing parent references in the fallback chain,
+        // it should repair the entire chain. For example, if ccd/fr_LU exists but has no parent,
+        // and ccd/fr_FR exists but has no parent, it should:
+        // 1. First repair ccd/fr_FR to point to acom/fr_FR
+        // 2. Then repair ccd/fr_LU to point to ccd/fr_FR
+        // This ensures the complete fallback chain is properly linked.
         it('repairs missing parent references up to ACOM without publishing', async () => {
             const repository = createRepository();
-            const surfacePath = `${SURFACES.CCD}/foo`;
+            const surfacePath = SURFACES.CCD;
             const dictionaryPath = dictPath(surfacePath, 'fr_LU');
             const fallbackDictPath = dictPath(surfacePath, 'fr_FR');
             const acomDictPath = dictPath(SURFACES.ACOM, 'fr_FR');
@@ -451,9 +447,13 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.publishFragment.called).to.be.false;
         });
 
+        // Test: When ensuring a dictionary index (e.g., ccd/fr_LU) that already has the correct parent
+        // reference (e.g., ccd/fr_FR), but the parent (ccd/fr_FR) itself is missing its parent reference,
+        // it should still repair the parent's chain. This ensures the entire fallback chain is always complete,
+        // even if the current index is already correct.
         it('updates fallback chain even when current locale already references it', async () => {
             const repository = createRepository();
-            const surfacePath = `${SURFACES.CCD}/foo`;
+            const surfacePath = SURFACES.CCD;
             const dictionaryPath = dictPath(surfacePath, 'fr_LU');
             const fallbackDictPath = dictPath(surfacePath, 'fr_FR');
             const acomDictPath = dictPath(SURFACES.ACOM, 'fr_FR');

@@ -93,6 +93,7 @@ describe('pipeline full use case', () => {
     beforeEach(() => {
         nock.cleanAll();
         mockDictionary();
+        resetCache();
     });
 
     afterEach(() => {
@@ -480,7 +481,9 @@ describe('configuration caching', () => {
         expect(configCalls).to.have.length(1);
 
         const performanceStub = sinon.stub(performance, 'now');
-        performanceStub.returns(5 * 60 * 1000 + 1000);
+        // Return a time that's guaranteed to be > 5 minutes after any test start time
+        // Tests typically start around 0-2000ms, so 305000 ensures > 5min difference
+        performanceStub.returns(5 * 60 * 1000 + 5000);
 
         setupFragmentMocks({
             id: 'some-en-us-fragment',

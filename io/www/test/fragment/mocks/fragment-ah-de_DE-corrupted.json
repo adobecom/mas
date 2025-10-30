@@ -1,394 +1,282 @@
 {
   "path": "/content/dam/mas/adobe-home/de_DE/slice-cc-allapps3121132111",
+  "name": "",
   "title": "CCD Suggested CC All Apps",
-  "description": "",
   "id": "8ede258f-a996-43c4-8525-b52543925ab0",
-  "created": {
-    "at": "2025-08-21T18:05:25.227Z",
-    "by": "sling-distribution-importer",
-    "fullName": "sling-distribution-importer"
-  },
-  "modified": {
-    "at": "2025-10-24T18:02:04.434Z",
-    "by": "walf",
-    "fullName": "walf"
-  },
-  "status": "DRAFT",
-  "previewReplicationStatus": "NEVER_PUBLISHED",
-  "fields": [
-    {
-      "name": "variant",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": [
-        "ah-try-buy-widget"
-      ]
-    },
-    {
-      "name": "osi",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": [
-        "r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8"
-      ]
-    },
-    {
-      "name": "size",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": [
-        "Default"
-      ]
-    },
-    {
-      "name": "mnemonicIcon",
-      "type": "text",
-      "multiple": true,
-      "locked": false,
-      "values": [
-        "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/creative-cloud.svg"
-      ]
-    },
-    {
-      "name": "mnemonicAlt",
-      "type": "text",
-      "multiple": true,
-      "locked": false,
-      "values": [
-        ""
-      ]
-    },
-    {
-      "name": "mnemonicLink",
-      "type": "text",
-      "multiple": true,
-      "locked": false,
-      "values": [
-        ""
-      ]
-    },
-    {
-      "name": "badge",
-      "type": "long-text",
-      "multiple": false,
-      "locked": false,
-      "mimeType": "text/html",
-      "values": [
-        "\u003Cp\u003EAktionsangebot\u003C/p\u003E"
-      ]
-    },
-    {
-      "name": "trialBadge",
-      "type": "long-text",
-      "multiple": false,
-      "locked": false,
-      "mimeType": "text/html",
-      "values": []
-    },
-    {
-      "name": "backgroundColor",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": []
-    },
-    {
-      "name": "borderColor",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": [
-        "spectrum-orange-800"
-      ]
-    },
-    {
-      "name": "backgroundImage",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": []
-    },
-    {
-      "name": "backgroundImageAltText",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": []
-    },
-    {
-      "name": "cardTitle",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": [
-        "Creative Cloud Pro"
-      ]
-    },
-    {
-      "name": "cardName",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": []
-    },
-    {
-      "name": "cardTitleLink",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": []
-    },
-    {
-      "name": "subtitle",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": []
-    },
-    {
-      "name": "prices",
-      "type": "long-text",
-      "multiple": false,
-      "locked": false,
-      "mimeType": "text/html",
-      "values": []
-    },
-    {
-      "name": "shortDescription",
-      "type": "long-text",
-      "multiple": false,
-      "locked": false,
-      "mimeType": "text/html",
-      "values": []
-    },
-    {
-      "name": "promoText",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": []
-    },
-    {
-      "name": "promoCode",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": [
-        "CCI_AA_3MO_UK"
-      ]
-    },
-    {
-      "name": "description",
-      "type": "long-text",
-      "multiple": false,
-      "locked": false,
-      "mimeType": "text/html",
-      "values": [
-        "\u003Cp\u003E3 Monate lang 50 % Rabatt auf Creative Cloud Pro, danach 9 Monate lang zum regulären Preis. Jahres-Abo erforderlich. \u003Ca class=\"primary-link\" title=\"Siehe Bedingungen\" href=\"https://www.adobe.com/de/offer-terms/cc-full-special-offer.html\" target=\"_blank\" rel=\"noopener\" data-analytics-id=\"see-terms\"\u003ESiehe Bedingungen\u003C/a\u003E\u003C/p\u003E"
-      ]
-    },
-    {
-      "name": "callout",
-      "type": "long-text",
-      "multiple": false,
-      "locked": false,
-      "mimeType": "text/html",
-      "values": []
-    },
-    {
-      "name": "showSecureLabel",
-      "type": "boolean",
-      "multiple": false,
-      "locked": false,
-      "values": []
-    },
-    {
-      "name": "showPlanType",
-      "type": "boolean",
-      "multiple": false,
-      "locked": false,
-      "values": []
-    },
-    {
-      "name": "quantitySelect",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": []
-    },
-    {
-      "name": "addon",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": []
-    },
-    {
-      "name": "addonConfirmation",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": []
-    },
-    {
-      "name": "ctas",
-      "type": "long-text",
-      "multiple": false,
-      "locked": false,
-      "mimeType": "text/html",
-      "values": [
-        "\u003Ca class=\"secondary\" data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"segmentation\" data-extra-options=\"{\"actionId\":\"try\",\"ctx\":\"if\"}\" data-wcs-osi=\"JzW8dgW8U1SrgbHDmTE-ABsOKPgtl5jugiW8bA5PtKg\" data-template=\"checkoutUrl\" title=\"Kostenlos testen\" target=\"_self\" data-analytics-id=\"free-trial\"\u003EKostenlos testen\u003C/a\u003E\u003Ca class=\"primary\" data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"segmentation\" data-extra-options=\"{\"actionId\":\"buy\",\"ctx\":\"if\"}\" data-wcs-osi=\"r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8\" data-template=\"checkoutUrl\" title=\"Abonnieren\" target=\"_self\" data-analytics-id=\"buy-now\"\u003EAbonnieren\u003C/a\u003E"
-      ]
-    },
-    {
-      "name": "variations",
-      "type": "content-fragment",
-      "multiple": true,
-      "locked": false,
-      "values": []
-    },
-    {
-      "name": "product",
-      "type": "content-reference",
-      "multiple": false,
-      "locked": false,
-      "values": []
-    },
-    {
-      "name": "whatsIncluded",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": []
-    },
-    {
-      "name": "tags",
-      "type": "tag",
-      "multiple": true,
-      "locked": false,
-      "values": [
-        "mas:product/cc/creativecloud",
-        "mas:offer_type/base",
-        "mas:plan_type/abm",
-        "mas:customer_segment/individual",
-        "mas:product_code/ccsn",
-        "mas:market_segments/com"
-      ]
-    },
-    {
-      "name": "perUnitLabel",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": []
-    },
-    {
-      "name": "originalId",
-      "type": "text",
-      "multiple": false,
-      "locked": false,
-      "values": [
-        "2411af1b-c4a9-4567-8c79-414dde16b1c4"
-      ]
-    },
-    {
-      "name": "locReady",
-      "type": "boolean",
-      "multiple": false,
-      "locked": false,
-      "values": [true]
-    }
-  ],
-  "variations": [],
-  "tags": [
-    {
-      "id": "mas:product_code/ccsn",
-      "title": "CCSN",
-      "i18n": [],
-      "titlePath": "Merch at Scale : Product code / CCSN",
-      "name": "ccsn",
-      "path": "/content/cq:tags/mas/product_code/ccsn",
-      "description": ""
-    },
-    {
-      "id": "mas:product/cc/creativecloud",
-      "title": "Creative Cloud All Apps",
-      "i18n": [],
-      "titlePath": "Merch at Scale : Product / Creative Cloud / Creative Cloud All Apps",
-      "name": "creativecloud",
-      "path": "/content/cq:tags/mas/product/cc/creativecloud",
-      "description": ""
-    }
-  ],
-  "references": [],
+  "description": "",
   "model": {
-    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ",
-    "path": "/conf/mas/settings/dam/cfm/models/card",
-    "name": "Card",
-    "title": "Card",
-    "description": "universal m@s card model"
+    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
   },
-  "validationStatus": [
+  "fields": {
+    "variant": "ah-try-buy-widget",
+    "osi": "r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8",
+    "size": "Default",
+    "mnemonicIcon": [
+      "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/creative-cloud.svg"
+    ],
+    "mnemonicAlt": [
+      ""
+    ],
+    "mnemonicLink": [
+      ""
+    ],
+    "badge": {
+      "value": "\u003Cp\u003EAktionsangebot\u003C/p\u003E",
+      "mimeType": "text/html"
+    },
+    "trialBadge": {
+      "mimeType": "text/html"
+    },
+    "borderColor": "spectrum-orange-800",
+    "cardTitle": "Creative Cloud Pro",
+    "prices": {
+      "mimeType": "text/html"
+    },
+    "shortDescription": {
+      "mimeType": "text/html"
+    },
+    "promoCode": "CCI_AA_3MO_UK",
+    "description": {
+      "value": "\u003Cp\u003E3 Monate lang 50 % Rabatt auf Creative Cloud Pro, danach 9 Monate lang zum regulären Preis. Jahres-Abo erforderlich. \u003Ca class=\"primary-link\" title=\"Siehe Bedingungen\" href=\"https://www.adobe.com/de/offer-terms/cc-full-special-offer.html\" target=\"_blank\" rel=\"noopener\" data-analytics-id=\"see-terms\"\u003ESiehe Bedingungen\u003C/a\u003E\u003C/p\u003E",
+      "mimeType": "text/html"
+    },
+    "callout": {
+      "mimeType": "text/html"
+    },
+    "ctas": {
+      "value": "\u003Ca class=\"secondary\" data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"segmentation\" data-extra-options=\"{\"actionId\":\"try\",\"ctx\":\"if\"}\" data-wcs-osi=\"JzW8dgW8U1SrgbHDmTE-ABsOKPgtl5jugiW8bA5PtKg\" data-template=\"checkoutUrl\" title=\"Kostenlos testen\" target=\"_self\" data-analytics-id=\"free-trial\"\u003EKostenlos testen\u003C/a\u003E\u003Ca class=\"primary\" data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"segmentation\" data-extra-options=\"{\"actionId\":\"buy\",\"ctx\":\"if\"}\" data-wcs-osi=\"r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8\" data-template=\"checkoutUrl\" title=\"Abonnieren\" target=\"_self\" data-analytics-id=\"buy-now\"\u003EAbonnieren\u003C/a\u003E",
+      "mimeType": "text/html"
+    },
+    "variations": [],
+    "tags": [
+      "mas:product/cc/creativecloud",
+      "mas:offer_type/base",
+      "mas:plan_type/abm",
+      "mas:customer_segment/individual",
+      "mas:product_code/ccsn",
+      "mas:market_segments/com"
+    ],
+    "originalId": "2411af1b-c4a9-4567-8c79-414dde16b1c4",
+    "locReady": true
+  },
+  "references": {
+    "mas:product/cc/creativecloud": {
+      "type": "tag",
+      "value": {
+        "path": "/content/cq:tags/mas/product/cc/creativecloud",
+        "name": "creativecloud",
+        "title": "Creative Cloud All Apps",
+        "id": "mas:product/cc/creativecloud",
+        "i18n": [],
+        "titlePath": "Merch at Scale : Product / Creative Cloud / Creative Cloud All Apps",
+        "description": ""
+      }
+    },
+    "mas:offer_type/base": {
+      "type": "tag",
+      "value": {
+        "path": "/content/cq:tags/mas/offer_type/base",
+        "name": "base",
+        "title": "Base",
+        "id": "mas:offer_type/base",
+        "i18n": [],
+        "titlePath": "Merch at Scale : Offer type / Base",
+        "description": null
+      }
+    },
+    "mas:plan_type/abm": {
+      "type": "tag",
+      "value": {
+        "path": "/content/cq:tags/mas/plan_type/abm",
+        "name": "abm",
+        "title": "ABM",
+        "id": "mas:plan_type/abm",
+        "i18n": [],
+        "titlePath": "Merch at Scale : Plan type / ABM",
+        "description": ""
+      }
+    },
+    "mas:customer_segment/individual": {
+      "type": "tag",
+      "value": {
+        "path": "/content/cq:tags/mas/customer_segment/individual",
+        "name": "individual",
+        "title": "Individual",
+        "id": "mas:customer_segment/individual",
+        "i18n": [],
+        "titlePath": "Merch at Scale : Customer segment / Individual",
+        "description": null
+      }
+    },
+    "mas:product_code/ccsn": {
+      "type": "tag",
+      "value": {
+        "path": "/content/cq:tags/mas/product_code/ccsn",
+        "name": "ccsn",
+        "title": "CCSN",
+        "id": "mas:product_code/ccsn",
+        "i18n": [],
+        "titlePath": "Merch at Scale : Product code / CCSN",
+        "description": ""
+      }
+    },
+    "mas:market_segments/com": {
+      "type": "tag",
+      "value": {
+        "path": "/content/cq:tags/mas/market_segments/com",
+        "name": "com",
+        "title": "COM",
+        "id": "mas:market_segments/com",
+        "i18n": [],
+        "titlePath": "Merch at Scale : Market segments / COM",
+        "description": ""
+      }
+    }
+  },
+  "referencesTree": [
     {
-      "property": "fields.ctas.values[0].\u003Clist element\u003E",
-      "message": "is not valid HTML"
+      "fieldName": "tags",
+      "identifier": "mas:product/cc/creativecloud",
+      "referencesTree": []
+    },
+    {
+      "fieldName": "tags",
+      "identifier": "mas:offer_type/base",
+      "referencesTree": []
+    },
+    {
+      "fieldName": "tags",
+      "identifier": "mas:plan_type/abm",
+      "referencesTree": []
+    },
+    {
+      "fieldName": "tags",
+      "identifier": "mas:customer_segment/individual",
+      "referencesTree": []
+    },
+    {
+      "fieldName": "tags",
+      "identifier": "mas:product_code/ccsn",
+      "referencesTree": []
+    },
+    {
+      "fieldName": "tags",
+      "identifier": "mas:market_segments/com",
+      "referencesTree": []
     }
   ],
-  "fieldTags": [
-    {
-      "id": "mas:product/cc/creativecloud",
-      "title": "Creative Cloud All Apps",
-      "i18n": [],
-      "titlePath": "Merch at Scale : Product / Creative Cloud / Creative Cloud All Apps",
-      "name": "creativecloud",
-      "path": "/content/cq:tags/mas/product/cc/creativecloud",
-      "description": ""
-    },
-    {
-      "id": "mas:offer_type/base",
-      "title": "Base",
-      "i18n": [],
-      "titlePath": "Merch at Scale : Offer type / Base",
-      "name": "base",
-      "path": "/content/cq:tags/mas/offer_type/base"
-    },
-    {
-      "id": "mas:plan_type/abm",
-      "title": "ABM",
-      "i18n": [],
-      "titlePath": "Merch at Scale : Plan type / ABM",
-      "name": "abm",
-      "path": "/content/cq:tags/mas/plan_type/abm",
-      "description": ""
-    },
-    {
-      "id": "mas:customer_segment/individual",
-      "title": "Individual",
-      "i18n": [],
-      "titlePath": "Merch at Scale : Customer segment / Individual",
-      "name": "individual",
-      "path": "/content/cq:tags/mas/customer_segment/individual"
-    },
-    {
-      "id": "mas:product_code/ccsn",
-      "title": "CCSN",
-      "i18n": [],
-      "titlePath": "Merch at Scale : Product code / CCSN",
-      "name": "ccsn",
-      "path": "/content/cq:tags/mas/product_code/ccsn",
-      "description": ""
-    },
-    {
-      "id": "mas:market_segments/com",
-      "title": "COM",
-      "i18n": [],
-      "titlePath": "Merch at Scale : Market segments / COM",
-      "name": "com",
-      "path": "/content/cq:tags/mas/market_segments/com",
-      "description": ""
+  "modelReferences": {
+    "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ": {
+      "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ",
+      "path": "/conf/mas/settings/dam/cfm/models/card",
+      "title": "Card",
+      "fields": {
+        "variant": {
+          "type": "text"
+        },
+        "osi": {
+          "type": "text"
+        },
+        "size": {
+          "type": "text"
+        },
+        "mnemonicIcon": {
+          "type": "text"
+        },
+        "mnemonicAlt": {
+          "type": "text"
+        },
+        "mnemonicLink": {
+          "type": "text"
+        },
+        "badge": {
+          "type": "long-text"
+        },
+        "trialBadge": {
+          "type": "long-text"
+        },
+        "backgroundColor": {
+          "type": "text"
+        },
+        "borderColor": {
+          "type": "text"
+        },
+        "backgroundImage": {
+          "type": "text"
+        },
+        "backgroundImageAltText": {
+          "type": "text"
+        },
+        "cardTitle": {
+          "type": "text"
+        },
+        "cardName": {
+          "type": "text"
+        },
+        "cardTitleLink": {
+          "type": "text"
+        },
+        "subtitle": {
+          "type": "text"
+        },
+        "prices": {
+          "type": "long-text"
+        },
+        "shortDescription": {
+          "type": "long-text"
+        },
+        "promoText": {
+          "type": "text"
+        },
+        "promoCode": {
+          "type": "text"
+        },
+        "description": {
+          "type": "long-text"
+        },
+        "callout": {
+          "type": "long-text"
+        },
+        "showSecureLabel": {
+          "type": "boolean"
+        },
+        "showPlanType": {
+          "type": "boolean"
+        },
+        "quantitySelect": {
+          "type": "text"
+        },
+        "addon": {
+          "type": "text"
+        },
+        "addonConfirmation": {
+          "type": "text"
+        },
+        "ctas": {
+          "type": "long-text"
+        },
+        "variations": {
+          "type": "content-fragment"
+        },
+        "product": {
+          "type": "content-reference"
+        },
+        "whatsIncluded": {
+          "type": "text"
+        },
+        "tags": {
+          "type": "tag"
+        },
+        "perUnitLabel": {
+          "type": "text"
+        },
+        "originalId": {
+          "type": "text"
+        },
+        "locReady": {
+          "type": "boolean"
+        }
+      }
     }
-  ]
+  }
 }

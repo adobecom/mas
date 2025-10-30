@@ -33,7 +33,7 @@ async function corrector(context) {
             delete context.body.priceLiterals[key];
         }
     }
-    //fixAdobeHomeDataExtraOptions(context);
+    fixAdobeHomeDataExtraOptions(context);
     return context;
 }
 

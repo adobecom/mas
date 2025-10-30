@@ -947,16 +947,9 @@ export class MasRepository extends LitElement {
 
         const indexPath = `${parentPath}/index`;
 
-        // Ensure the dictionary index exists first (handles creation if needed)
-        const ensuredIndex = await this.ensureDictionaryIndex(parentPath);
-        if (!ensuredIndex) {
-            console.error(`Failed to ensure dictionary index exists at ${parentPath}`);
-            return false;
-        }
-
         const indexFragment = await this.getIndexFragment(indexPath);
         if (!indexFragment) {
-            console.error(`Index fragment not found at ${indexPath} after ensureDictionaryIndex`);
+            console.error(`Index fragment does not exist at ${indexPath}.`);
             return false;
         }
 
@@ -1044,10 +1037,6 @@ export class MasRepository extends LitElement {
         if ([CARD_MODEL_PATH, COLLECTION_MODEL_PATH].includes(latest.model.path)) {
             // originalId allows to keep track of the relation between en_US fragment and the current one if in different locales
             const originalId = store.get().getOriginalIdField();
-            if (!originalId) {
-                console.error('Original ID field not found for fragment:', latest.id);
-                return;
-            }
             if (this.filters.value.locale === LOCALE_DEFAULT) {
                 originalId.values = [latest.id];
             } else {

@@ -6,9 +6,6 @@ const DATA_EXTRA_OPTIONS_REGEX = /data-extra-options="(\{[^}]*\})"/g;
  * @param {object} context - Context object
  */
 function fixAdobeHomeDataExtraOptions(context) {
-    if (context.surface !== 'adobe-home') {
-        return;
-    }
     const ctasValue = context.body?.fields?.ctas?.value;
     if (ctasValue) {
         const fixedCtasValue = ctasValue.replace(DATA_EXTRA_OPTIONS_REGEX, (match, jsonContent) => {
@@ -33,7 +30,11 @@ async function corrector(context) {
             delete context.body.priceLiterals[key];
         }
     }
-    fixAdobeHomeDataExtraOptions(context);
+    if (context.surface === 'adobe-home') {
+        fixAdobeHomeDataExtraOptions(context);
+    } else {
+        logDebug(() => `no data-extra-options fixing needed for ${context.surface} surface`, context);
+    }
     return context;
 }
 

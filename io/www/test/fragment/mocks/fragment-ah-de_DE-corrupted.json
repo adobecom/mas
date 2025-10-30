@@ -1,57 +1,49 @@
 {
-  "path": "/content/dam/mas/adobe-home/de_DE/slice-cc-allapps3121132111",
-  "name": "",
-  "title": "CCD Suggested CC All Apps",
-  "id": "8ede258f-a996-43c4-8525-b52543925ab0",
-  "description": "",
-  "model": {
-    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
-  },
-  "fields": {
-    "variant": "ah-try-buy-widget",
-    "osi": "r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8",
-    "size": "Default",
-    "mnemonicIcon": [
-      "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/creative-cloud.svg"
-    ],
-    "mnemonicAlt": [
-      ""
-    ],
-    "mnemonicLink": [
-      ""
-    ],
-    "badge": {
-      "value": "\u003Cp\u003EAktionsangebot\u003C/p\u003E",
-      "mimeType": "text/html"
+    "path": "/content/dam/mas/adobe-home/de_DE/slice-cc-allapps3121132111",
+    "name": "",
+    "title": "CCD Suggested CC All Apps",
+    "id": "8ede258f-a996-43c4-8525-b52543925ab0",
+    "description": "",
+    "model": {
+        "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
     },
-    "trialBadge": {
-      "mimeType": "text/html"
-    },
-    "borderColor": "spectrum-orange-800",
-    "cardTitle": "Creative Cloud Pro",
-    "prices": {
-      "mimeType": "text/html"
-    },
-    "shortDescription": {
-      "mimeType": "text/html"
-    },
-    "promoCode": "CCI_AA_3MO_UK",
-    "description": {
-      "value": "\u003Cp\u003E3 Monate lang 50 % Rabatt auf Creative Cloud Pro, danach 9 Monate lang zum regulären Preis. Jahres-Abo erforderlich. \u003Ca class=\"primary-link\" title=\"Siehe Bedingungen\" href=\"https://www.adobe.com/de/offer-terms/cc-full-special-offer.html\" target=\"_blank\" rel=\"noopener\" data-analytics-id=\"see-terms\"\u003ESiehe Bedingungen\u003C/a\u003E\u003C/p\u003E",
-      "mimeType": "text/html"
-    },
-    "callout": {
-      "mimeType": "text/html"
-    },
-    "ctas": {
-      "value": "\u003Ca class=\"secondary\" data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"segmentation\" data-extra-options=\"{\"actionId\":\"try\",\"ctx\":\"if\"}\" data-wcs-osi=\"JzW8dgW8U1SrgbHDmTE-ABsOKPgtl5jugiW8bA5PtKg\" data-template=\"checkoutUrl\" title=\"Kostenlos testen\" target=\"_self\" data-analytics-id=\"free-trial\"\u003EKostenlos testen\u003C/a\u003E\u003Ca class=\"primary\" data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"segmentation\" data-extra-options=\"{\"actionId\":\"buy\",\"ctx\":\"if\"}\" data-wcs-osi=\"r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8\" data-template=\"checkoutUrl\" title=\"Abonnieren\" target=\"_self\" data-analytics-id=\"buy-now\"\u003EAbonnieren\u003C/a\u003E",
-      "mimeType": "text/html"
-    },
-    "variations": [],
-    "tags": [
-      "mas:product/cc/creativecloud",
-    ],
-    "originalId": "2411af1b-c4a9-4567-8c79-414dde16b1c4",
-    "locReady": true
-  }
+    "fields": {
+        "variant": "ah-try-buy-widget",
+        "osi": "r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8",
+        "size": "Default",
+        "mnemonicIcon": ["https://www.adobe.com/cc-shared/assets/img/product-icons/svg/creative-cloud.svg"],
+        "mnemonicAlt": [""],
+        "mnemonicLink": [""],
+        "badge": {
+            "value": "\u003Cp\u003EAktionsangebot\u003C/p\u003E",
+            "mimeType": "text/html"
+        },
+        "trialBadge": {
+            "mimeType": "text/html"
+        },
+        "borderColor": "spectrum-orange-800",
+        "cardTitle": "Creative Cloud Pro",
+        "prices": {
+            "mimeType": "text/html"
+        },
+        "shortDescription": {
+            "mimeType": "text/html"
+        },
+        "promoCode": "CCI_AA_3MO_UK",
+        "description": {
+            "value": "\u003Cp\u003E3 Monate lang 50 % Rabatt auf Creative Cloud Pro, danach 9 Monate lang zum regulären Preis. Jahres-Abo erforderlich. \u003Ca class=\"primary-link\" title=\"Siehe Bedingungen\" href=\"https://www.adobe.com/de/offer-terms/cc-full-special-offer.html\" target=\"_blank\" rel=\"noopener\" data-analytics-id=\"see-terms\"\u003ESiehe Bedingungen\u003C/a\u003E\u003C/p\u003E",
+            "mimeType": "text/html"
+        },
+        "callout": {
+            "mimeType": "text/html"
+        },
+        "ctas": {
+            "value": "\u003Ca class=\"secondary\" data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"segmentation\" data-extra-options=\"{\"actionId\":\"try\",\"ctx\":\"if\"}\" data-wcs-osi=\"JzW8dgW8U1SrgbHDmTE-ABsOKPgtl5jugiW8bA5PtKg\" data-template=\"checkoutUrl\" title=\"Kostenlos testen\" target=\"_self\" data-analytics-id=\"free-trial\"\u003EKostenlos testen\u003C/a\u003E\u003Ca class=\"primary\" data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"segmentation\" data-extra-options=\"{\"actionId\":\"buy\",\"ctx\":\"if\"}\" data-wcs-osi=\"r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8\" data-template=\"checkoutUrl\" title=\"Abonnieren\" target=\"_self\" data-analytics-id=\"buy-now\"\u003EAbonnieren\u003C/a\u003E",
+            "mimeType": "text/html"
+        },
+        "variations": [],
+        "tags": ["mas:product/cc/creativecloud"],
+        "originalId": "2411af1b-c4a9-4567-8c79-414dde16b1c4",
+        "locReady": true
+    }
 }

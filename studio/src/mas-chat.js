@@ -200,17 +200,66 @@ export class MasChat extends LitElement {
             if (response.type === 'operation' || response.type === 'mcp_operation') {
                 if (response.type === 'mcp_operation' && response.mcpTool === 'studio_search_cards') {
                     let surface = null;
+                    let detectionMethod = null;
+
+                    console.log('[AI Chat] Surface Detection Debug:');
+                    console.log('  Store.search.value.path:', Store.search?.value?.path);
+                    console.log('  URL hash param (path):', getHashParam('path'));
+                    console.log('  Store.folders.data:', Store.folders?.data?.value);
+
                     if (Store.search?.value?.path) {
                         surface = this.extractSurfaceFromPath(Store.search.value.path);
-                    } else {
+                        detectionMethod = 'Store.search.value.path';
+                        console.log(`  ✓ Method 1 (Store.search.value.path): ${surface}`);
+                    }
+
+                    if (!surface) {
                         const hashPath = getHashParam('path');
-                        const surfaceMap = { acom: 'acom', ccd: 'ccd', commerce: 'commerce', ahome: 'adobe-home' };
+                        const surfaceMap = {
+                            acom: 'acom',
+                            ccd: 'ccd',
+                            commerce: 'commerce',
+                            ahome: 'adobe-home',
+                            express: 'express',
+                            sandbox: 'sandbox',
+                            docs: 'docs',
+                            nala: 'nala',
+                        };
                         surface = surfaceMap[hashPath] || null;
+                        if (surface) {
+                            detectionMethod = 'URL hash parameter';
+                            console.log(`  ✓ Method 2 (URL hash): ${surface}`);
+                        } else {
+                            console.log(`  ✗ Method 2 (URL hash): Failed (hashPath: ${hashPath})`);
+                        }
                     }
-                    if (surface) {
-                        response.mcpParams.surface = surface;
+
+                    if (!surface && Store.folders?.data?.value?.length > 0) {
+                        const firstFolder = Store.folders.data.value[0];
+                        surface = this.extractSurfaceFromPath(firstFolder);
+                        if (surface) {
+                            detectionMethod = 'First folder from Store.folders.data';
+                            console.log(`  ✓ Method 3 (First folder): ${surface} (from ${firstFolder})`);
+                        }
                     }
+
+                    if (!surface) {
+                        surface = 'acom';
+                        detectionMethod = 'Default fallback';
+                        console.log(`  ✓ Method 4 (Default): ${surface}`);
+                    }
+
+                    console.log(`[AI Chat] Final surface: ${surface} (via ${detectionMethod})`);
+
+                    response.mcpParams.surface = surface;
                     response.mcpParams.locale = Store.filters?.value?.locale || 'en_US';
+
+                    console.log('[AI Chat] MCP Params:', {
+                        surface: response.mcpParams.surface,
+                        locale: response.mcpParams.locale,
+                        query: response.mcpParams.query,
+                        limit: response.mcpParams.limit,
+                    });
                 }
 
                 const messageData = {
@@ -803,6 +852,10 @@ export class MasChat extends LitElement {
             ccd: 'ccd',
             commerce: 'commerce',
             ahome: 'adobe-home',
+            express: 'express',
+            sandbox: 'sandbox',
+            docs: 'docs',
+            nala: 'nala',
         };
 
         return surfaceMap[pathSegment] || null;
@@ -852,9 +905,7 @@ export class MasChat extends LitElement {
                         <sp-icon-magic-wand size="l" class="chat-header-icon"></sp-icon-magic-wand>
                         <div class="chat-header-text">
                             <h2>Merch at Scale AI Assistant (Beta)</h2>
-                            <p>
-                                Ask anything about Studio, create merch cards, build collections, and perform content operations
-                            </p>
+                            <p>What can I help you with today?</p>
                         </div>
                     </div>
                     <div class="chat-header-actions">

@@ -1,6 +1,13 @@
 import { AEMClient } from './aem-client.js';
 import { StudioURLBuilder } from './studio-url-builder.js';
 
+const TAG_MODEL_ID_MAPPING = {
+    'mas:studio/content-type/merch-card-collection': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
+    'mas:studio/content-type/merch-card': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
+};
+
+const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);
+
 /**
  * Studio Operations Tools
  * MCP tools for Studio AI Chat operations (NO AI CALLS - pure execution only)
@@ -122,19 +129,38 @@ export class StudioOperations {
     async searchCards(params) {
         const { surface, query, tags = [], limit = 10, locale = 'en_US', variant, offset = 0 } = params;
 
+        console.log('[StudioOperations] searchCards received params:', {
+            surface,
+            locale,
+            query,
+            limit,
+            variant,
+            offset,
+        });
+
         if (!surface) {
             throw new Error('Surface is required for search operation');
         }
 
         const requestLimit = Math.min(limit * 2, 50);
 
+        const surfacePath = this.getSurfacePath(surface, locale);
+        console.log(`[StudioOperations] getSurfacePath(${surface}, ${locale}) = ${surfacePath}`);
+
         const searchParams = {
-            path: this.getSurfacePath(surface, locale),
+            path: surfacePath,
             query,
-            tags: [...tags, 'mas:studio/content-type/merch-card'],
+            tags,
+            modelIds: EDITABLE_FRAGMENT_MODEL_IDS,
             limit: requestLimit,
             offset,
         };
+
+        console.log('[StudioOperations] Search params with modelIds:', {
+            path: surfacePath,
+            modelIds: EDITABLE_FRAGMENT_MODEL_IDS,
+            limit: requestLimit,
+        });
 
         const fragments = await this.aemClient.searchFragments(searchParams);
 
@@ -425,6 +451,10 @@ export class StudioOperations {
             acom: '/content/dam/mas/acom',
             ccd: '/content/dam/mas/ccd',
             'adobe-home': '/content/dam/mas/adobe-home',
+            express: '/content/dam/mas/express',
+            sandbox: '/content/dam/mas/sandbox',
+            docs: '/content/dam/mas/docs',
+            nala: '/content/dam/mas/nala',
         };
 
         const basePath = surfaceMap[surface] || '/content/dam/mas';

@@ -14,7 +14,7 @@ export class AEMClient {
      * Search for fragments with filters
      */
     async searchFragments(params) {
-        const { path = '/content/dam/mas', query, tags, limit = 50, offset = 0 } = params;
+        const { path = '/content/dam/mas', query, tags, modelIds, limit = 50, offset = 0 } = params;
 
         const authHeader = await this.authManager.getAuthHeader();
         console.log('[AEMClient] Auth header:', authHeader ? `${authHeader.slice(0, 27)}...` : 'MISSING');
@@ -31,6 +31,10 @@ export class AEMClient {
 
         if (tags && tags.length > 0) {
             filter.tags = tags;
+        }
+
+        if (modelIds && modelIds.length > 0) {
+            filter.modelIds = modelIds;
         }
 
         const searchQuery = {

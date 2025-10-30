@@ -420,10 +420,7 @@ export default class EditorPanel extends LitElement {
         this.versionsLoading = true;
         try {
             // Use enhanced API with proper options following Adobe AEM API specification
-            const versions = await this.repository.aem.sites.cf.fragments.getVersions(this.fragment.id, {
-                limit: 50, // Limit to 50 most recent versions
-                sort: 'created:desc', // Sort by creation date, newest first
-            });
+            const versions = await this.repository.aem.sites.cf.fragments.getVersions(this.fragment.id);
             this.fragmentVersions = versions.items || [];
             // Set the current version as selected (usually the first/latest)
             if (this.fragmentVersions.length > 0) {

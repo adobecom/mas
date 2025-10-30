@@ -546,7 +546,7 @@ class AEM {
      * @param {string} [options.sort] - Sort order (e.g., 'created:desc')
      * @returns {Promise<Object>} Versions response with items array
      */
-    async getFragmentVersions(id, options = {}) {
+    async getFragmentVersions(id, options = { limit: 50, sort: 'created:desc' }) {
         if (!id) {
             throw new Error('Fragment ID is required');
         }

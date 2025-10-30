@@ -238,6 +238,42 @@ describe('corrector', () => {
 
             expect(context.body.fields.ctas.value).to.equal(originalValue);
         });
+
+        it('should fix escaped quotes when ctas is a string directly', async () => {
+            const context = {
+                surface: 'adobe-home',
+                body: {
+                    priceLiterals: {},
+                    fields: {
+                        ctas: '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>',
+                    },
+                },
+            };
+
+            await transformer.process(context);
+
+            expect(context.body.fields.ctas).to.equal(
+                '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>',
+            );
+        });
+
+        it('should fix literal quotes when ctas is a string directly', async () => {
+            const context = {
+                surface: 'adobe-home',
+                body: {
+                    priceLiterals: {},
+                    fields: {
+                        ctas: '<a data-extra-options="{"actionId":"try"}">Test</a>',
+                    },
+                },
+            };
+
+            await transformer.process(context);
+
+            expect(context.body.fields.ctas).to.equal(
+                '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>',
+            );
+        });
     });
 
     describe('corrector transformer integration', () => {

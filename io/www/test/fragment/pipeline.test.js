@@ -204,7 +204,7 @@ describe('pipeline full use case', () => {
         expect(json).to.not.have.property('translatedId');
     });
 
-    it.only('should fix corrupted data-extra-options in adobe-home fragment', async () => {
+    it('should fix corrupted data-extra-options in adobe-home fragment', async () => {
         const fragmentId = '8ede258f-a996-43c4-8525-b52543925ab0';
 
         // Mock the fragment fetch

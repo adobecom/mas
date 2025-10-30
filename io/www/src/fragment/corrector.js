@@ -6,14 +6,23 @@ const DATA_EXTRA_OPTIONS_REGEX = /data-extra-options="(\{[^}]*\})"/g;
  * @param {object} context - Context object
  */
 function fixAdobeHomeDataExtraOptions(context) {
-    const ctasValue = context.body?.fields?.ctas?.value;
+    const ctasField = context.body?.fields?.['ctas'];
+    // Check if ctas is an object with value property or a string directly
+    const ctasValue = typeof ctasField === 'string' ? ctasField : ctasField?.value;
+
     if (ctasValue) {
         const fixedCtasValue = ctasValue.replace(DATA_EXTRA_OPTIONS_REGEX, (match, jsonContent) => {
             // Replace both \" and literal " with &quot; inside the JSON object
             const fixedJson = jsonContent.replace(/\\"/g, '&quot;').replace(/"/g, '&quot;');
             return `data-extra-options="${fixedJson}"`;
         });
-        context.body.fields.ctas.value = fixedCtasValue;
+
+        // Update the value based on the structure
+        if (typeof ctasField === 'string') {
+            context.body.fields['ctas'] = fixedCtasValue;
+        } else {
+            context.body.fields['ctas'].value = fixedCtasValue;
+        }
     }
     logDebug(() => `Fixed data-extra-options attributes for adobe-home surface`, context);
 }

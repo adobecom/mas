@@ -10,7 +10,7 @@ import './rte/rte-field.js';
 import './mas-fragment-status.js';
 import {
     ROOT_PATH,
-    DICTIONARY_MODEL_ID,
+    DICTIONARY_ENTRY_MODEL_ID,
     PAGE_NAMES,
     OPERATIONS,
     STATUS_DRAFT,
@@ -310,21 +310,15 @@ class MasPlaceholders extends LitElement {
             const folderPath = this.selectedFolder.path;
             const locale = this.newPlaceholder.locale || this.selectedLocale || 'en_US';
 
-            const repository = this.ensureRepository();
-
             const dictionaryPath = getDictionaryPath(folderPath, locale);
             if (!dictionaryPath) {
                 throw new Error('Failed to construct dictionary path');
             }
 
-            if (!DICTIONARY_MODEL_ID) {
-                throw new Error('Dictionary model ID is not defined');
-            }
-
             const fragmentData = {
                 name: this.newPlaceholder.key,
                 parentPath: dictionaryPath,
-                modelId: DICTIONARY_MODEL_ID,
+                modelId: DICTIONARY_ENTRY_MODEL_ID,
                 title: this.newPlaceholder.key,
                 description: `Placeholder for ${this.newPlaceholder.key}`,
                 data: {
@@ -921,7 +915,25 @@ class MasPlaceholders extends LitElement {
             try {
                 indexFragment = await repository.aem.sites.cf.fragments.getByPath(indexPath);
             } catch (error) {
-                return await this.createIndexFragment(parentPath, fragmentPath, shouldPublish);
+                indexFragment = null;
+            }
+
+            if (!indexFragment) {
+                const created = await repository.createDictionaryIndexFragment({
+                    parentPath,
+                    parentReference: null,
+                    initialEntries: fragmentPath ? [fragmentPath] : [],
+                    publish: shouldPublish,
+                });
+                if (!created) {
+                    return { success: false };
+                }
+                return {
+                    success: true,
+                    wasUpdated: true,
+                    publishedIndex: shouldPublish ? created : null,
+                    indexPath,
+                };
             }
 
             if (!indexFragment || !indexFragment.id) {
@@ -1511,90 +1523,6 @@ class MasPlaceholders extends LitElement {
                 </div>
             </div>
         `;
-    }
-
-    /**
-     * Creates a new index fragment with initial entries
-     * @param {string} parentPath - Parent path for the index
-     * @param {string} fragmentPath - Initial fragment path to include
-     * @param {boolean} shouldPublish - Whether to publish the index after creation
-     * @returns {Promise<boolean>} - Success status
-     */
-    async createIndexFragment(parentPath, fragmentPath, shouldPublish = false) {
-        if (!parentPath || !fragmentPath) {
-            console.error('Missing parentPath or fragmentPath for createIndexFragment');
-            return false;
-        }
-
-        try {
-            const repository = this.ensureRepository();
-
-            let fragmentToAdd;
-            try {
-                fragmentToAdd = await repository.aem.sites.cf.fragments.getByPath(fragmentPath);
-                if (!fragmentToAdd || !fragmentToAdd.id) {
-                    console.error('Failed to get fragment to add to new index - missing ID');
-                    return false;
-                }
-            } catch (error) {
-                console.error('Failed to get fragment by path:', error);
-                return false;
-            }
-
-            const indexFragment = await repository.aem.sites.cf.fragments.create({
-                parentPath,
-                modelId: DICTIONARY_MODEL_ID,
-                name: 'index',
-                title: 'Dictionary Index',
-                description: 'Index of dictionary placeholders',
-                fields: [
-                    {
-                        name: 'entries',
-                        type: 'content-fragment',
-                        multiple: true,
-                        values: [fragmentToAdd.path],
-                    },
-                    {
-                        name: 'key',
-                        type: 'text',
-                        multiple: false,
-                        values: ['index'],
-                    },
-                    {
-                        name: 'value',
-                        type: 'text',
-                        multiple: false,
-                        values: ['Dictionary index'],
-                    },
-                    {
-                        name: 'locReady',
-                        type: 'boolean',
-                        multiple: false,
-                        values: [true],
-                    },
-                ],
-            });
-
-            if (!indexFragment || !indexFragment.id) {
-                console.error('Failed to create index fragment');
-                return false;
-            }
-
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-
-            if (shouldPublish) {
-                try {
-                    await repository.aem.sites.cf.fragments.publish(indexFragment);
-                } catch (publishError) {
-                    console.error('Failed to publish index with references:', publishError);
-                }
-            }
-
-            return true;
-        } catch (error) {
-            console.error('Failed to create index fragment:', error);
-            return false;
-        }
     }
 
     /**

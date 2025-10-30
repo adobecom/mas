@@ -10,7 +10,7 @@ import { transformer as fetchFragment } from './fragment/fetch.js';
 import { getDictionary, transformer as replace } from './fragment/replace.js';
 import { transformer as settings } from './fragment/settings.js';
 import { transformer as translate } from './fragment/translate.js';
-
+import { LANGUAGE_DEFAULTS } from './fragment/translate.js';
 const PIPELINE = [fetchFragment, translate, settings, replace, corrector];
 
 async function previewFragment(id, options) {
@@ -95,4 +95,4 @@ async function previewStudioFragment(body, options) {
     return context.body;
 }
 
-export { previewFragment, previewStudioFragment, translate, settings, replace, getDictionary, corrector };
+export { previewFragment, previewStudioFragment, translate, settings, replace, getDictionary, corrector, LANGUAGE_DEFAULTS };

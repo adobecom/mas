@@ -16,56 +16,65 @@ export const VARIANT_NAMES = {
     SIMPLIFIED_PRICING_EXPRESS: 'simplified-pricing-express',
 };
 //TODO make that feed (excepts ALL maybe) dynamically served from milo
+
+export const SURFACES = {
+    ACOM: 'acom',
+    CCD: 'ccd',
+    ADOBE_HOME: 'adobe-home',
+    COMMERCE: 'commerce',
+    NALA: 'nala',
+    SANDBOX: 'sandbox',
+};
 export const VARIANTS = [
     { label: 'All', value: VARIANT_NAMES.ALL, surface: 'all' },
-    { label: 'Catalog', value: VARIANT_NAMES.CATALOG, surface: 'acom' },
-    { label: 'Plans', value: VARIANT_NAMES.PLANS, surface: 'acom' },
+    { label: 'Catalog', value: VARIANT_NAMES.CATALOG, surface: SURFACES.ACOM },
+    { label: 'Plans', value: VARIANT_NAMES.PLANS, surface: SURFACES.ACOM },
     {
         label: 'Plans Students',
         value: VARIANT_NAMES.PLANS_STUDENTS,
-        surface: 'acom',
+        surface: SURFACES.ACOM,
     },
     {
         label: 'Plans Education',
         value: VARIANT_NAMES.PLANS_EDUCATION,
-        surface: 'acom',
+        surface: SURFACES.ACOM,
     },
-    { label: 'Slice', value: VARIANT_NAMES.SLICES, surface: 'ccd' },
+    { label: 'Slice', value: VARIANT_NAMES.SLICES, surface: SURFACES.CCD },
     {
         label: 'Special offers',
         value: VARIANT_NAMES.SPECIAL_OFFERS,
-        surface: 'acom',
+        surface: SURFACES.ACOM,
     },
-    { label: 'Suggested', value: VARIANT_NAMES.SUGGESTED, surface: 'ccd' },
+    { label: 'Suggested', value: VARIANT_NAMES.SUGGESTED, surface: SURFACES.CCD },
     {
         label: 'Try Buy Widget',
         value: VARIANT_NAMES.TRY_BUY_WIDGET,
-        surface: 'adobe-home',
+        surface: SURFACES.ADOBE_HOME,
     },
     {
         label: 'Promoted Plans',
         value: VARIANT_NAMES.PROMOTED_PLANS,
-        surface: 'adobe-home',
+        surface: SURFACES.ADOBE_HOME,
     },
     {
         label: 'Fries',
         value: VARIANT_NAMES.FRIES,
-        surface: 'commerce',
+        surface: SURFACES.COMMERCE,
     },
     {
         label: 'Simplified pricing Express',
         value: VARIANT_NAMES.SIMPLIFIED_PRICING_EXPRESS,
-        surface: 'acom',
+        surface: SURFACES.ACOM,
     },
     {
         label: 'Mini',
         value: VARIANT_NAMES.MINI,
-        surface: 'acom',
+        surface: SURFACES.ACOM,
     },
     {
         label: 'Full Pricing Express',
         value: 'full-pricing-express',
-        surface: 'acom',
+        surface: SURFACES.ACOM,
     },
 ];
 

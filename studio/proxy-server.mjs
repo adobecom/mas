@@ -59,7 +59,8 @@ function requestHandler(req, res) {
         // Remove or modify headers as needed
         delete headers['host'];
         delete headers['referer'];
-        headers['origin'] = 'https://www.adobe.com';
+        headers['origin'] = 'https://mas.adobe.com';
+        headers['referer'] = 'https://mas.adobe.com';
 
         const options = {
             protocol: targetUrl.protocol,

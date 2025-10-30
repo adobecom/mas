@@ -260,6 +260,43 @@ export function Wcs({ settings }) {
     }
 
     /**
+     * Resolves and normalizes language, country, and locale parameters.
+     * Validates that country and language are supported and determines the appropriate locale.
+     *
+     * @param {string} country - The country code
+     * @param {string} language - The language code
+     * @param {boolean} perpetual - Whether to use perpetual offers
+     * @returns {{language: string, locale: string, isValid: boolean}} Resolved language and locale values
+     */
+    function resolveLanguageAndLocale(country, language, perpetual) {
+        if (country && !SUPPORTED_COUNTRIES.includes(country)) {
+            console.error(`Country ${country} is not supported`);
+            return { language, locale: '', isValid: false };
+        }
+        if (language && !SUPPORTED_LANGUAGES.includes(language)) {
+            console.error(`Language ${language} is not supported`);
+            return { language, locale: '', isValid: false };
+        }
+
+        let locale = '';
+        if (!(country && language)) {
+            locale = `${language}_${country}`;
+        } else {
+            locale = SUPPORTED_LANGUAGE_COUNTRY.includes(
+                `${language}_${country}`,
+            )
+                ? `${language}_${country}`
+                : `${Defaults.language}_${Defaults.country}`;
+        }
+
+        if (country !== 'GB' && !perpetual) {
+            language = 'MULT';
+        }
+
+        return { language, locale, isValid: true };
+    }
+
+    /**
      * Resolves requested list of "Offer Selector Ids" (`osis`) from WCS or local cache.
      * Returns one promise per OSI, the promise resolves to array of product offers
      * associated with this OSI.
@@ -281,26 +318,9 @@ export function Wcs({ settings }) {
         promotionCode = '',
         wcsOsi = [],
     }) {
-        if (country && !SUPPORTED_COUNTRIES.includes(country)) {
-            console.error(`Country ${country} is not supported`);
-            return [];
-        }
-        if (language && !SUPPORTED_LANGUAGES.includes(language)) {
-            console.error(`Language ${language} is not supported`);
-            return [];
-        }
-        let locale = '';
-        if (!(country && language)) {
-            locale = `${language}_${country}`;
-        } else {
-            locale = SUPPORTED_LANGUAGE_COUNTRY.includes(
-                `${language}_${country}`,
-            )
-                ? `${language}_${country}`
-                : `${Defaults.language}_${Defaults.country}`;
-        }
-        if (country !== 'GB' && !perpetual) language = 'MULT';
-        const groupKey = [country, language, promotionCode]
+        const { isValid, language: lang, locale } = resolveLanguageAndLocale(country, language, perpetual);
+        if (!isValid) throw new Error('Invalid language or country');
+        const groupKey = [country, lang, promotionCode]
             .filter((val) => val)
             .join('-')
             .toLowerCase();
@@ -319,7 +339,7 @@ export function Wcs({ settings }) {
                         offerSelectorIds: [],
                     };
                     if (country !== 'GB' && !perpetual)
-                        options.language = language;
+                        options.language = lang;
                     const promises = new Map();
                     group = { options, promises };
                     queue.set(groupKey, group);
@@ -352,6 +372,7 @@ export function Wcs({ settings }) {
         resolveOfferSelectors,
         flushWcsCacheInternal,
         prefillWcsCache,
+        resolveLanguageAndLocale,
     };
 }
 

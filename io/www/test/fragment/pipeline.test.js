@@ -9,6 +9,7 @@ import FRAGMENT_RESPONSE_EN from './mocks/fragment.json' with { type: 'json' };
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import DICTIONARY_FOR_COLLECTION_RESPONSE from './mocks/dictionaryForCollection.json' with { type: 'json' };
 import COLLECTION_RESPONSE from './mocks/collection.json' with { type: 'json' };
+import FRAGMENT_AH_DE_DE_CORRUPTED from './mocks/fragment-ah-de_DE-corrupted.json' with { type: 'json' };
 import { MockState } from './mocks/MockState.js';
 
 function decompress(response) {
@@ -201,6 +202,47 @@ describe('pipeline full use case', () => {
         //we should not have translatedId as there is no guarantee it stays that way
         expect(json.dictionaryId).to.not.equal('fr_FR_dictionary');
         expect(json).to.not.have.property('translatedId');
+    });
+
+    it.only('should fix corrupted data-extra-options in adobe-home fragment', async () => {
+        const fragmentId = '8ede258f-a996-43c4-8525-b52543925ab0';
+
+        // Mock the fragment fetch
+        nock('https://odin.adobe.com')
+            .get(`/adobe/sites/fragments/${fragmentId}?references=all-hydrated`)
+            .reply(200, FRAGMENT_AH_DE_DE_CORRUPTED);
+
+        // Mock dictionary for adobe-home de_DE (note the path structure matches adobe-home)
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments?path=/content/dam/mas/adobe-home/de_DE/dictionary/index')
+            .reply(200, {
+                items: [
+                    {
+                        id: 'de_DE_dictionary',
+                    },
+                ],
+            });
+
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments/de_DE_dictionary?references=all-hydrated')
+            .reply(200, mockDictionary());
+
+        const state = new MockState();
+        const result = await getFragment({
+            id: fragmentId,
+            state: state,
+            locale: 'de_DE',
+            surface: 'adobe-home',
+        });
+
+        expect(result.statusCode).to.equal(200);
+        expect(result.body.fields.ctas.value).to.include(
+            'data-extra-options="{&quot;actionId&quot;:&quot;try&quot;,&quot;ctx&quot;:&quot;if&quot;}"',
+        );
+        expect(result.body.fields.ctas.value).to.include(
+            'data-extra-options="{&quot;actionId&quot;:&quot;buy&quot;,&quot;ctx&quot;:&quot;if&quot;}"',
+        );
+        expect(result.body.fields.ctas.value).to.not.include('\\"actionId\\"');
     });
 });
 

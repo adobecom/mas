@@ -457,10 +457,9 @@ export default class EditorPanel extends LitElement {
                     // Mark fragment as having changes so save button is enabled
                     this.fragmentStore.value.hasChanges = true;
                     this.fragmentStore.notify();
-
                     Events.toast.emit({
                         variant: 'positive',
-                        content: `Switched to version ${version.version || versionId}. Save to apply changes.`,
+                        content: `Switched to version ${version.title || versionId}. Save to apply changes.`,
                     });
                 }
             } catch (error) {

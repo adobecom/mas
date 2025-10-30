@@ -37,7 +37,7 @@ class VersionHistoryButton extends LitElement {
             background: white;
             display: flex;
             flex-direction: column;
-            width: 400px;
+            width: 292px
             border-left: 1px solid #ccc;
             box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
         }
@@ -265,7 +265,7 @@ class VersionHistoryButton extends LitElement {
             background: white;
             border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-            width: 400px;
+            width: 292px;
             max-width: 90vw;
             position: relative;
         }
@@ -284,73 +284,11 @@ class VersionHistoryButton extends LitElement {
             margin: 0 0 20px 0;
         }
 
-        .edit-modal-field {
-            margin-bottom: 16px;
-        }
-
-        .edit-modal-label {
-            display: block;
-            font-size: 14px;
-            font-weight: 500;
-            color: #333;
-            margin-bottom: 6px;
-        }
-
-        .edit-modal-input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: border-color 0.2s;
-            box-sizing: border-box;
-        }
-
-        .edit-modal-input:focus {
-            outline: none;
-            border-color: #2196f3;
-        }
-
-        .edit-modal-input::placeholder {
-            color: #999;
-        }
-
         .edit-modal-actions {
             display: flex;
             gap: 12px;
             justify-content: flex-end;
             margin-top: 20px;
-        }
-
-        .edit-modal-button {
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 1px solid;
-        }
-
-        .edit-modal-button.discard {
-            background: white;
-            border-color: #ddd;
-            color: #666;
-        }
-
-        .edit-modal-button.discard:hover {
-            background: #f5f5f5;
-        }
-
-        .edit-modal-button.save {
-            background: #2196f3;
-            border-color: #2196f3;
-            color: white;
-        }
-
-        .edit-modal-button.save:hover {
-            background: #1976d2;
-            border-color: #1976d2;
         }
 
         .loading-message {
@@ -739,29 +677,33 @@ class VersionHistoryButton extends LitElement {
                           <div class="edit-modal" @click="${(e) => e.stopPropagation()}">
                               <div class="edit-modal-content">
                                   <h3 class="edit-modal-title">Name your version</h3>
-                                  <div class="edit-modal-field">
-                                      <label class="edit-modal-label">Title</label>
-                                      <input
-                                          class="edit-modal-input"
-                                          type="text"
-                                          .value="${this.editTitle}"
-                                          @input="${this.handleEditTitleChange}"
+                                  <sp-field-group id="title">
+                                      <sp-field-label for="version-title">Version title</sp-field-label>
+                                      <sp-textfield
                                           placeholder="Enter card title"
-                                      />
-                                  </div>
-                                  <div class="edit-modal-field">
-                                      <label class="edit-modal-label">Comment</label>
-                                      <input
-                                          class="edit-modal-input"
-                                          type="text"
-                                          .value="${this.editComment}"
-                                          @input="${this.handleEditCommentChange}"
+                                          id="version-title"
+                                          data-field="version-title"
+                                          value="${this.editTitle}"
+                                          @input=${this.handleEditTitleChange}
+                                      ></sp-textfield>
+                                  </sp-field-group>
+                                  <sp-field-group id="comment">
+                                      <sp-field-label for="comment">Comment</sp-field-label>
+                                      <sp-textfield
                                           placeholder="Describe your changes (optional)"
-                                      />
-                                  </div>
+                                          id="comment"
+                                          data-field="comment"
+                                          value="${this.editComment}"
+                                          @input=${this.handleEditCommentChange}
+                                      ></sp-textfield>
+                                  </sp-field-group>
                                   <div class="edit-modal-actions">
-                                      <button class="edit-modal-button discard" @click="${this.closeEditModal}">Discard</button>
-                                      <button class="edit-modal-button save" @click="${this.saveVersionEdit}">Save</button>
+                                      <sp-button slot="button" variant="secondary" @click="${this.closeEditModal}"
+                                          >Discard</sp-button
+                                      >
+                                      <sp-button slot="button" variant="accent" @click="${this.saveVersionEdit}"
+                                          >Save</sp-button
+                                      >
                                   </div>
                               </div>
                           </div>

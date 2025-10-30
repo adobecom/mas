@@ -17,7 +17,7 @@ export default {
                 },
                 iconURL: {
                     original: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
-                    updated: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                    updated: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg',
                 },
             },
             browserParams: '#page=content&path=nala&query=',

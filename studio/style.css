@@ -274,16 +274,12 @@ mas-content {
 #content sp-table {
     --table-content-name-flex-grow: 1.6;
     --table-content-title-flex-grow: 1;
-    --table-content-offer-id-flex-grow: 1.1;
     --table-content-offer-type-flex-grow: 0.4;
     --table-content-price-flex-grow: 0.4;
+    --table-content-offer-id-flex-grow: 1.1;
     --table-content-status-flex-grow: 0.3;
     --table-content-preview-flex-grow: 0.1;
     width: 100%;
-    border: 1px solid var(--spectrum-gray-200);
-    border-radius: 8px;
-    overflow: hidden;
-
     & sp-table-body {
         background-color: var(--spectrum-gray-100);
     }
@@ -292,12 +288,6 @@ mas-content {
 
 #content sp-table-body {
     overflow: hidden;
-}
-
-#content sp-table-row {
-    height: 68px;
-    background-color: var(--spectrum-gray-50);
-    border-bottom: 1px solid var(--spectrum-gray-200) !important;
 }
 
 #content #render {
@@ -310,12 +300,9 @@ mas-content {
 sp-table-cell {
     display: flex;
     align-items: center;
-    height: 68px;
-    padding: var(--spectrum-global-dimension-size-160) var(--spectrum-global-dimension-size-200);
-    gap: var(--spectrum-global-dimension-static-size-100);
-    box-sizing: border-box;
 
     &.name {
+        gap: 8px;
         flex-grow: var(--table-content-name-flex-grow);
 
         & img {
@@ -330,26 +317,6 @@ sp-table-cell {
         word-break: break-all;
     }
 
-    &.offer-id {
-        flex-grow: var(--table-content-offer-id-flex-grow);
-        position: relative;
-
-        .offer-id-text {
-            margin-right: 8px;
-        }
-
-        sp-icon-copy {
-            cursor: pointer;
-            color: var(--spectrum-gray-600);
-            flex-shrink: 0;
-            pointer-events: auto;
-
-            &:hover {
-                color: var(--spectrum-gray-800);
-            }
-        }
-    }
-
     &.offer-type {
         flex-grow: var(--table-content-offer-type-flex-grow);
         word-break: break-all;
@@ -359,37 +326,26 @@ sp-table-cell {
         flex-grow: var(--table-content-price-flex-grow);
     }
 
+    &.offer-id {
+        flex-grow: var(--table-content-offer-id-flex-grow);
+    }
+
     &.status {
         flex-grow: var(--table-content-status-flex-grow);
-        min-width: 120px;
         font-size: 12px;
-        font-weight: 400;
-        gap: 8px;
-        color: var(--spectrum-gray-800);
+        font-weight: 700;
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            flex-shrink: 0;
+        &.new-cell,
+        &.draft-cell {
+            color: var(--spectrum-blue-800);
         }
 
-        .status-text {
-            line-height: 1;
-            white-space: nowrap;
+        &.modified-cell {
+            color: var(--spectrum-yellow-600);
         }
 
-        &.new-cell .status-dot,
-        &.draft-cell .status-dot {
-            background-color: var(--spectrum-blue-800);
-        }
-
-        &.modified-cell .status-dot {
-            background-color: var(--spectrum-yellow-600);
-        }
-
-        &.published-cell .status-dot {
-            background-color: var(--spectrum-green-700);
+        &.published-cell {
+            color: var(--spectrum-green-700);
         }
     }
 
@@ -400,16 +356,6 @@ sp-table-cell {
 }
 
 sp-table-head-cell {
-    height: var(--spectrum-global-dimension-size-550);
-    padding: 12px 20px;
-    background-color: var(--spectrum-gray-100);
-    border-bottom: 1px solid var(--spectrum-gray-200);
-    box-sizing: border-box;
-
-    &:last-child {
-        border-right: none;
-    }
-
     &.name {
         flex-grow: var(--table-content-name-flex-grow);
     }
@@ -418,16 +364,16 @@ sp-table-head-cell {
         flex-grow: var(--table-content-title-flex-grow);
     }
 
-    &.offer-id {
-        flex-grow: var(--table-content-offer-id-flex-grow);
-    }
-
     &.offer-type {
         flex-grow: var(--table-content-offer-type-flex-grow);
     }
 
     &.price {
         flex-grow: var(--table-content-price-flex-grow);
+    }
+
+    &.offer-id {
+        flex-grow: var(--table-content-offer-id-flex-grow);
     }
 
     &.status {

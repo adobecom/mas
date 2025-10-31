@@ -650,9 +650,6 @@ class MasPlaceholders extends LitElement {
                 const locale = this.selectedLocale || 'en_US';
                 const dictionaryPath = `/content/dam/mas/${folderPath}/${locale}/dictionary`;
 
-                // Ensure dictionary index exists before loading placeholders
-                await this.repository.ensureDictionaryIndex(dictionaryPath);
-
                 const searchOptions = {
                     path: dictionaryPath,
                     sort: [{ on: 'created', order: 'ASC' }],

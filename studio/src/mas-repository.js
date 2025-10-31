@@ -444,8 +444,9 @@ export class MasRepository extends LitElement {
         if (!parentPath || !folderName) return false;
 
         // Ensure parent locale folder exists first
+        let parentListResult;
         try {
-            await this.aem.folders.list(parentPath);
+            parentListResult = await this.aem.folders.list(parentPath);
         } catch (error) {
             // Parent doesn't exist, try to create it
             const grandParentPath = parentPath.slice(0, parentPath.lastIndexOf('/'));
@@ -463,16 +464,18 @@ export class MasRepository extends LitElement {
                 console.error('Failed to inspect parent dictionary folder:', error);
                 return false;
             }
+            // Retry listing after creating parent
+            try {
+                parentListResult = await this.aem.folders.list(parentPath);
+            } catch (retryError) {
+                console.error('Failed to inspect parent dictionary folder after creation:', retryError);
+                return false;
+            }
         }
 
-        try {
-            const { children = [] } = (await this.aem.folders.list(parentPath)) ?? {};
-            const exists = children.some((child) => child.path === normalized || child.name === folderName);
-            if (exists) return true;
-        } catch (error) {
-            console.error('Failed to inspect parent dictionary folder:', error);
-            return false;
-        }
+        const { children = [] } = parentListResult ?? {};
+        const exists = children.some((child) => child.path === normalized || child.name === folderName);
+        if (exists) return true;
 
         try {
             await this.aem.folders.create(parentPath, folderName, folderName);
@@ -527,28 +530,21 @@ export class MasRepository extends LitElement {
 
     async ensureIndexFallbackFields(indexFragment, parentReference) {
         if (!indexFragment || !parentReference) return indexFragment;
-        let freshIndex = indexFragment;
-        try {
-            freshIndex = await this.aem.sites.cf.fragments.getById(indexFragment.id);
-        } catch (error) {
-            console.error('Failed to refetch dictionary index by id:', error);
-            return indexFragment;
-        }
 
-        const fields = [...(freshIndex.fields ?? [])];
+        const fields = [...(indexFragment.fields ?? [])];
         const result = this.ensureReferenceField(fields, 'parent', parentReference);
 
-        if (!result.changed) return freshIndex;
+        if (!result.changed) return indexFragment;
 
         try {
             const saved = await this.aem.sites.cf.fragments.save({
-                ...freshIndex,
+                ...indexFragment,
                 fields,
             });
-            return saved ?? freshIndex;
+            return saved ?? indexFragment;
         } catch (error) {
             console.error('Failed to save dictionary index fallback fields:', error);
-            return freshIndex;
+            return indexFragment;
         }
     }
 
@@ -642,15 +638,11 @@ export class MasRepository extends LitElement {
                 return null;
             }
 
-            // Double-check that index doesn't exist (race condition protection)
-            indexFragment = await this.fetchIndexFragment(indexPath);
-            if (!indexFragment) {
-                indexFragment = await this.createDictionaryIndexFragment({
-                    parentPath: dictionaryPath,
-                    parentReference,
-                });
-                if (!indexFragment) return null;
-            }
+            indexFragment = await this.createDictionaryIndexFragment({
+                parentPath: dictionaryPath,
+                parentReference,
+            });
+            if (!indexFragment) return null;
         } else if (parentReference && currentParent !== parentReference) {
             indexFragment = await this.ensureIndexFallbackFields(indexFragment, parentReference);
         }
@@ -956,11 +948,8 @@ export class MasRepository extends LitElement {
         try {
             const entriesField = indexFragment.getField('entries');
             if (!entriesField) {
-                // Index exists but doesn't have entries field - add it
-                indexFragment.updateField('entries', [fragment.path]);
-                const updated = await this.aem.sites.cf.fragments.save(indexFragment);
-                await this.publishFragment(updated, [], false);
-                return true;
+                console.error(`Index fragment at ${indexPath} is missing entries field`);
+                return false;
             }
 
             const shouldUpdate = !entriesField.values.includes(fragment.path);
@@ -990,10 +979,9 @@ export class MasRepository extends LitElement {
         const indexPath = `${parentPath}/index`;
 
         const indexFragment = await this.getIndexFragment(indexPath);
+        if (!indexFragment) return false;
 
         try {
-            if (!indexFragment) return false;
-
             const entries = indexFragment.getField('entries');
             let shouldUpdate = false;
             for (const fragment of fragmentsToRemove) {

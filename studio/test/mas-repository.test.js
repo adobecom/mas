@@ -148,15 +148,13 @@ describe('MasRepository dictionary helpers', () => {
     });
 
     describe('ensureIndexFallbackFields', () => {
-        it('refetches and saves when the parent field needs to be updated', async () => {
+        it('saves when the parent field needs to be updated', async () => {
             const repository = createRepository();
             const original = createFragment({ id: 'index-id', path: '/index' });
-            const refreshed = { ...original };
-            const savedFragment = { ...refreshed, fields: [{ name: 'parent', values: ['/parent'] }] };
+            const savedFragment = { ...original, fields: [{ name: 'parent', values: ['/parent'] }] };
 
             repository.aem = createAemMock({
                 fragments: {
-                    getById: sandbox.stub().resolves(refreshed),
                     save: sandbox.stub().resolves(savedFragment),
                 },
             });
@@ -167,7 +165,6 @@ describe('MasRepository dictionary helpers', () => {
 
             const result = await repository.ensureIndexFallbackFields(original, '/parent');
 
-            expect(repository.aem.sites.cf.fragments.getById.calledWith(original.id)).to.be.true;
             expect(repository.aem.sites.cf.fragments.save.calledOnce).to.be.true;
             expect(result).to.equal(savedFragment);
         });

@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { transformer as settings } from '../../src/fragment/settings.js';
+import { transformer as settings, PLAN_TYPE_LOCALES } from '../../src/fragment/settings.js';
 
 describe('settings transformer', () => {
     let context;
@@ -148,6 +148,18 @@ describe('settings transformer', () => {
         const result = await settings.process(context);
         expect(result.body.settings).to.deep.equal({
             secureLabel: '{{secure-label}}',
+        });
+    });
+
+    it('should add displayPlanType when locale is APAC', async () => {
+        context.body.fields.variant = 'plans';
+        PLAN_TYPE_LOCALES.forEach(async (loc) => {
+            context.locale = loc;
+            const result = await settings.process(context);
+            expect(result.body.settings).to.deep.equal({
+                secureLabel: '{{secure-label}}',
+                displayPlanType: true,
+            });
         });
     });
 

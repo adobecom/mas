@@ -836,7 +836,7 @@ class MasPlaceholders extends LitElement {
             }
 
             const indexUpdateResult = await this.updateIndexFragment(dictionaryPath, fragmentPath, false);
-            if (!indexUpdateResult || !indexUpdateResult.success) {
+            if (!indexUpdateResult) {
                 throw new Error('Failed to update index fragment with new placeholder reference');
             }
 

@@ -19,10 +19,14 @@ export const VARIANT_NAMES = {
 
 export const SURFACES = {
     ACOM: 'acom',
-    CCD: 'ccd',
     ADOBE_HOME: 'adobe-home',
+    CCD: 'ccd',
     COMMERCE: 'commerce',
+    DOCS: 'docs',
+    EXPRESS: 'express',
+    MAS: 'mas',
     NALA: 'nala',
+    PROMOTIONS: 'promotions',
     SANDBOX: 'sandbox',
 };
 export const VARIANTS = [
@@ -64,17 +68,17 @@ export const VARIANTS = [
     {
         label: 'Simplified pricing Express',
         value: VARIANT_NAMES.SIMPLIFIED_PRICING_EXPRESS,
-        surface: SURFACES.ACOM,
+        surface: SURFACES.EXPRESS,
     },
     {
         label: 'Mini',
         value: VARIANT_NAMES.MINI,
-        surface: SURFACES.ACOM,
+        surface: SURFACES.CCD,
     },
     {
         label: 'Full Pricing Express',
         value: 'full-pricing-express',
-        surface: SURFACES.ACOM,
+        surface: SURFACES.EXPRESS,
     },
 ];
 

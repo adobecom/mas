@@ -408,15 +408,18 @@ export class MasRepository extends LitElement {
     parseDictionaryPath(dictionaryPath) {
         if (!dictionaryPath?.startsWith(ROOT_PATH)) return {};
         const relativePath = dictionaryPath.slice(ROOT_PATH.length).replace(/^\/+/, '');
-        const segments = relativePath.split('/').filter(Boolean);
-        if (segments.length < 2) return {};
-        const locale = segments.at(-2);
-        const surfaceSegments = segments.slice(0, -2);
-        const surfacePath = surfaceSegments.join('/');
+
+        // Expected structure: [surface segments...]/[locale]/dictionary
+        const match = relativePath.match(/^(?<surfacePath>.*?)\/(?<locale>[^/]+)\/dictionary$/);
+        if (!match) return {};
+
+        const { surfacePath = '', locale } = match.groups;
+        const surfaceRoot = surfacePath.split('/').filter(Boolean)[0] ?? '';
+
         return {
             locale,
             surfacePath,
-            surfaceRoot: surfaceSegments[0] ?? '',
+            surfaceRoot,
         };
     }
 

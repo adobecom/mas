@@ -1,7 +1,7 @@
 import { PATH_TOKENS, odinPath, odinReferences } from './paths.js';
 import { fetch, log } from './common.js';
 
-const LANGUAGE_DEFAULTS = ['en_US', 'fr_FR', 'de_DE', 'es_ES', 'it_IT', 'pt_BR', 'nl_NL'];
+export const LANGUAGE_DEFAULTS = ['en_US', 'fr_FR', 'de_DE', 'es_ES', 'it_IT', 'pt_BR', 'nl_NL'];
 
 function getCorrespondingLocale(locale) {
     const [language] = locale.split('_');

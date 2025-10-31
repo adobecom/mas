@@ -36,7 +36,7 @@ async function corrector(context) {
             delete context.body.priceLiterals[key];
         }
     }
-    if (context.surface === 'adobe-home') {
+    if (context.surface === 'adobe-home' || context.surface === 'sandbox') {
         fixAdobeHomeDataExtraOptions(context);
     }
     return context;

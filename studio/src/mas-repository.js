@@ -446,34 +446,13 @@ export class MasRepository extends LitElement {
         const folderName = normalized.slice(parentPath.length + 1);
         if (!parentPath || !folderName) return false;
 
-        // Ensure parent locale folder exists first
+        // Check if dictionary folder already exists
         let parentListResult;
         try {
             parentListResult = await this.aem.folders.list(parentPath);
         } catch (error) {
-            // Parent doesn't exist, try to create it
-            const grandParentPath = parentPath.slice(0, parentPath.lastIndexOf('/'));
-            const parentFolderName = parentPath.slice(grandParentPath.length + 1);
-            if (grandParentPath && parentFolderName) {
-                try {
-                    await this.aem.folders.create(grandParentPath, parentFolderName, parentFolderName);
-                } catch (createError) {
-                    if (!createError.message?.includes('409')) {
-                        console.error('Failed to create parent locale folder:', createError);
-                        return false;
-                    }
-                }
-            } else {
-                console.error('Failed to inspect parent dictionary folder:', error);
-                return false;
-            }
-            // Retry listing after creating parent
-            try {
-                parentListResult = await this.aem.folders.list(parentPath);
-            } catch (retryError) {
-                console.error('Failed to inspect parent dictionary folder after creation:', retryError);
-                return false;
-            }
+            console.warn('An error occurred while checking dictionary folder. Placeholder feature may be degraded:', error);
+            return false;
         }
 
         const { children = [] } = parentListResult ?? {};
@@ -485,7 +464,7 @@ export class MasRepository extends LitElement {
             return true;
         } catch (error) {
             if (error.message?.includes('409')) return true;
-            console.error('Failed to create dictionary folder:', error);
+            console.warn('An error occurred while creating dictionary folder. Placeholder feature may be degraded:', error);
             return false;
         }
     }

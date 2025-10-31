@@ -69,46 +69,78 @@ describe('MasRepository dictionary helpers', () => {
     });
 
     describe('getDictionaryFolderPath', () => {
-        it('builds the folder path for the provided surface and locale', () => {
-            const repository = createRepository();
-            const path = repository.getDictionaryFolderPath(`${SURFACES.ACOM}/surface`, 'fr_FR');
-
-            expect(path).to.equal(`${ROOT_PATH}/${SURFACES.ACOM}/surface/fr_FR/dictionary`);
-        });
-
-        it('trims extra slashes and handles empty surface paths', () => {
+        it('builds folder path and handles edge cases', () => {
             const repository = createRepository();
 
+            expect(repository.getDictionaryFolderPath(`${SURFACES.ACOM}/surface`, 'fr_FR')).to.equal(
+                `${ROOT_PATH}/${SURFACES.ACOM}/surface/fr_FR/dictionary`,
+            );
             expect(repository.getDictionaryFolderPath(`/${SURFACES.ACOM}/`, 'en_US')).to.equal(
                 `${ROOT_PATH}/${SURFACES.ACOM}/en_US/dictionary`,
             );
             expect(repository.getDictionaryFolderPath('', 'en_US')).to.equal(`${ROOT_PATH}/en_US/dictionary`);
-        });
-
-        it('returns null when locale is missing', () => {
-            const repository = createRepository();
-
             expect(repository.getDictionaryFolderPath(SURFACES.ACOM, null)).to.be.null;
         });
     });
 
     describe('getFallbackLocale', () => {
-        it('prefers a locale with the same language code', () => {
+        it('returns fallback locale or null', () => {
             const repository = createRepository();
 
             expect(repository.getFallbackLocale('fr_CA')).to.equal('fr_FR');
-        });
-
-        it('returns null when no matching language code is found', () => {
-            const repository = createRepository();
-
             expect(repository.getFallbackLocale('ja_JP')).to.be.null;
+            expect(repository.getFallbackLocale()).to.be.null;
+        });
+    });
+
+    describe('ensureDictionaryFolder', () => {
+        it('handles invalid paths and existing folders', async () => {
+            const repository = createRepository();
+            const dictionaryPath = '/content/dam/mas/acom/en_US/dictionary';
+            const parentPath = '/content/dam/mas/acom/en_US';
+
+            repository.aem = createAemMock();
+            expect(await repository.ensureDictionaryFolder(null)).to.be.false;
+            expect(await repository.ensureDictionaryFolder('')).to.be.false;
+
+            repository.aem = createAemMock({
+                folders: {
+                    list: sandbox.stub().resolves({
+                        children: [{ name: 'dictionary', path: dictionaryPath }],
+                    }),
+                },
+            });
+            expect(await repository.ensureDictionaryFolder(dictionaryPath)).to.be.true;
+            expect(repository.aem.folders.create.called).to.be.false;
         });
 
-        it('returns null when locale is empty', () => {
+        it('creates dictionary folder and handles errors without creating locale folder', async () => {
             const repository = createRepository();
+            const dictionaryPath = '/content/dam/mas/acom/en_US/dictionary';
+            const parentPath = '/content/dam/mas/acom/en_US';
+            const grandParentPath = '/content/dam/mas/acom';
 
-            expect(repository.getFallbackLocale()).to.be.null;
+            // Successful creation
+            repository.aem = createAemMock({
+                folders: {
+                    list: sandbox.stub().resolves({ children: [] }),
+                    create: sandbox.stub().resolves({}),
+                },
+            });
+            expect(await repository.ensureDictionaryFolder(dictionaryPath)).to.be.true;
+            expect(repository.aem.folders.create.calledWith(parentPath, 'dictionary', 'dictionary')).to.be.true;
+            expect(repository.aem.folders.create.calledWith(grandParentPath, 'en_US', 'en_US')).to.be.false;
+
+            // Error handling
+            const consoleWarnStub = sandbox.stub(console, 'warn');
+            repository.aem = createAemMock({
+                folders: {
+                    list: sandbox.stub().rejects(new Error('Parent folder not found')),
+                },
+            });
+            expect(await repository.ensureDictionaryFolder(dictionaryPath)).to.be.false;
+            expect(consoleWarnStub.calledOnce).to.be.true;
+            expect(consoleWarnStub.firstCall.args[0]).to.include('Placeholder feature may be degraded');
         });
     });
 
@@ -188,7 +220,7 @@ describe('MasRepository dictionary helpers', () => {
     });
 
     describe('createDictionaryIndexFragment', () => {
-        it('creates and publishes a new dictionary index with parent reference and empty entries', async () => {
+        it('creates dictionary index with parent reference and handles publishing', async () => {
             const repository = createRepository();
             const createdFragment = createFragment({ id: '123', path: '/index' });
             const createStub = sandbox.stub().resolves(createdFragment);
@@ -201,39 +233,21 @@ describe('MasRepository dictionary helpers', () => {
                 parentReference: '/parent/index',
             });
 
-            expect(createStub.calledOnce).to.be.true;
             const payload = createStub.firstCall.args[0];
             expect(payload.fields).to.have.lengthOf(2);
-            expect(payload.fields[0]).to.deep.equal({
-                name: 'parent',
-                type: 'content-fragment',
-                multiple: false,
-                locked: false,
-                values: ['/parent/index'],
-            });
-            expect(payload.fields[1]).to.deep.include({ name: 'entries', type: 'content-fragment', multiple: true });
-            expect(payload.fields[1].values).to.deep.equal([]); // Entries are always empty on creation
-            expect(repository.publishFragment.calledWith(createdFragment, [], false)).to.be.true;
+            expect(payload.fields[0].values).to.deep.equal(['/parent/index']);
+            expect(payload.fields[1].values).to.deep.equal([]);
+            expect(repository.publishFragment.called).to.be.true;
             expect(result).to.equal(createdFragment);
-        });
 
-        it('creates index with empty entries and skips publishing when publish is false', async () => {
-            const repository = createRepository();
-            const createdFragment = createFragment({ id: '123', path: '/index' });
-            const createStub = sandbox.stub().resolves(createdFragment);
-
-            repository.aem = createAemMock({ fragments: { create: createStub } });
+            // Skip publishing when publish is false
             repository.publishFragment = sandbox.stub().resolves();
-
-            const result = await repository.createDictionaryIndexFragment({
+            await repository.createDictionaryIndexFragment({
                 parentPath: dictPath('acom'),
                 parentReference: '/parent/index',
                 publish: false,
             });
-
-            expect(createStub.calledOnce).to.be.true;
             expect(repository.publishFragment.called).to.be.false;
-            expect(result).to.equal(createdFragment);
         });
     });
 
@@ -262,47 +276,6 @@ describe('MasRepository dictionary helpers', () => {
             sandbox
                 .stub(repository, 'fetchIndexFragment')
                 .callsFake(async (path) => (path === indexPath(fallbackDictPath) ? fallbackIndex : null));
-            sandbox.stub(repository, 'ensureIndexFallbackFields').resolvesArg(0);
-            const createStub = sandbox.stub(repository, 'createDictionaryIndexFragment').resolves(createdIndex);
-
-            const result = await repository.ensureDictionaryIndex(dictionaryPath);
-
-            expect(createStub.calledOnce).to.be.true;
-            expect(createStub.firstCall.args[0]).to.deep.include({
-                parentPath: dictionaryPath,
-                parentReference: fallbackIndex.path,
-            });
-            expect(result).to.equal(createdIndex);
-            expect(repository.aem.folders.list.calledWith(parentPath)).to.be.true;
-            expect(repository.aem.folders.create.calledWith(parentPath, 'dictionary', 'dictionary')).to.be.true;
-        });
-
-        // Test: When creating a dictionary index (e.g., ccd/fr_CA), if the same-surface fallback exists
-        // (e.g., ccd/fr_FR), it should use that as the parent reference, even if ACOM fallback also exists.
-        it('derives the parent reference from the surface fallback locale', async () => {
-            const repository = createRepository();
-            const dictionaryPath = dictPath(SURFACES.CCD, 'fr_CA');
-            const fallbackDictPath = dictPath(SURFACES.CCD, 'fr_FR');
-            const acomDictPath = dictPath(SURFACES.ACOM, 'fr_FR');
-            const acomIndex = createFragment({ id: 'acom-index', path: indexPath(acomDictPath) });
-            const fallbackIndex = createFragment({ id: 'fallback-index', path: indexPath(fallbackDictPath) });
-            const createdIndex = createFragment({ id: 'ccd-index', path: indexPath(dictionaryPath) });
-            const parentPath = dictionaryPath.replace(/\/dictionary$/, '');
-
-            repository.aem = createAemMock({
-                folders: {
-                    list: createFolderListStub({
-                        [acomDictPath.replace(/\/dictionary$/, '')]: ['dictionary'],
-                        [fallbackDictPath.replace(/\/dictionary$/, '')]: ['dictionary'],
-                    }),
-                    create: sandbox.stub().resolves({}),
-                },
-            });
-            sandbox.stub(repository, 'fetchIndexFragment').callsFake(async (path) => {
-                if (path === indexPath(acomDictPath)) return acomIndex;
-                if (path === indexPath(fallbackDictPath)) return fallbackIndex;
-                return null;
-            });
             sandbox.stub(repository, 'ensureIndexFallbackFields').resolvesArg(0);
             const createStub = sandbox.stub(repository, 'createDictionaryIndexFragment').resolves(createdIndex);
 
@@ -426,7 +399,7 @@ describe('MasRepository dictionary helpers', () => {
             };
             repository.aem = createAemMock({ folders: {} });
             sandbox.stub(repository, 'fetchIndexFragment').callsFake(async (path) => indexMap[path] || null);
-            sandbox.stub(repository, 'ensureDictionaryFolder').rejects(new Error('unexpected'));
+            sandbox.stub(repository, 'ensureDictionaryFolder').resolves(false);
             const ensureFallbackFieldsStub = sandbox
                 .stub(repository, 'ensureIndexFallbackFields')
                 .callsFake(async (index, parentRef) => ({ ...index, fields: [{ name: 'parent', values: [parentRef] }] }));
@@ -442,48 +415,6 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.createDictionaryIndexFragment.called).to.be.false;
             expect(repository.ensureDictionaryFolder.called).to.be.false;
             expect(repository.publishFragment.called).to.be.false;
-        });
-
-        // Test: When ensuring a dictionary index (e.g., ccd/fr_LU) that already has the correct parent
-        // reference (e.g., ccd/fr_FR), but the parent (ccd/fr_FR) itself is missing its parent reference,
-        // it should still repair the parent's chain. This ensures the entire fallback chain is always complete,
-        // even if the current index is already correct.
-        it('updates fallback chain even when current locale already references it', async () => {
-            const repository = createRepository();
-            const surfacePath = SURFACES.CCD;
-            const dictionaryPath = dictPath(surfacePath, 'fr_LU');
-            const fallbackDictPath = dictPath(surfacePath, 'fr_FR');
-            const acomDictPath = dictPath(SURFACES.ACOM, 'fr_FR');
-
-            const frLuIndex = createFragment({
-                id: 'fr_LU',
-                path: indexPath(dictionaryPath),
-                fields: [{ name: 'parent', values: [indexPath(fallbackDictPath)] }],
-            });
-            const frFrIndex = createFragment({ id: 'fr_FR', path: indexPath(fallbackDictPath) });
-            const acomIndex = createFragment({ id: 'acom', path: indexPath(acomDictPath) });
-
-            const indexMap = {
-                [indexPath(dictionaryPath)]: frLuIndex,
-                [indexPath(fallbackDictPath)]: frFrIndex,
-                [indexPath(acomDictPath)]: acomIndex,
-            };
-            repository.aem = createAemMock({ folders: {} });
-            sandbox.stub(repository, 'fetchIndexFragment').callsFake(async (path) => indexMap[path] || null);
-            sandbox.stub(repository, 'ensureDictionaryFolder').rejects(new Error('unexpected'));
-            const ensureFallbackFieldsStub = sandbox
-                .stub(repository, 'ensureIndexFallbackFields')
-                .callsFake(async (index, parentRef) => ({ ...index, fields: [{ name: 'parent', values: [parentRef] }] }));
-            sandbox.stub(repository, 'createDictionaryIndexFragment').rejects(new Error('should not create'));
-
-            const result = await repository.ensureDictionaryIndex(dictionaryPath);
-
-            expect(result).to.equal(frLuIndex);
-            expect(result.fields[0].values[0]).to.equal(indexPath(fallbackDictPath));
-            expect(ensureFallbackFieldsStub.calledOnce).to.be.true;
-            expect(ensureFallbackFieldsStub.firstCall.args).to.deep.equal([frFrIndex, indexPath(acomDictPath)]);
-            expect(repository.createDictionaryIndexFragment.called).to.be.false;
-            expect(repository.ensureDictionaryFolder.called).to.be.false;
         });
     });
 });

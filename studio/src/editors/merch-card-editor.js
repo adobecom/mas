@@ -109,6 +109,10 @@ class MerchCardEditor extends LitElement {
             if (this.fragmentStore) {
                 if (!this.reactiveController) {
                     this.reactiveController = new ReactiveController(this, [this.fragmentStore]);
+                    // If the component is already connected, manually trigger hostConnected
+                    if (this.isConnected) {
+                        this.reactiveController.hostConnected();
+                    }
                 } else {
                     this.reactiveController.updateStores([this.fragmentStore]);
                 }

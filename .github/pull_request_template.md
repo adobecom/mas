@@ -15,11 +15,13 @@ Please do the steps below before submitting your PR for a code review or QA
 Nala tests run automatically when you **open this PR**.
 
 ### To run Nala tests again:
+
 1. Add the `run nala` label to this PR (in the right sidebar)
 2. Tests will run automatically on the current commit
 3. Any future commits will also trigger tests **as long as the label remains**
 
 ### To stop automatic Nala tests:
+
 - Remove the `run nala` label
 
 > **Note**: Tests only run on commits if the `run nala` label is present. Add the label whenever you need tests to run on new changes.

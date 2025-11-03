@@ -23,7 +23,7 @@ export default {
                 cardid: 'a7f68812-0fb3-42f9-a8d4-f28e3f1dd6d4',
                 iconURL: {
                     original: 'https://www.adobe.com/express/drafts/axel/assets/size-indicator.svg',
-                    updated: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
+                    updated: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -52,6 +52,25 @@ export default {
                 ctaText: {
                     original: 'Start 7-day free trial',
                     updated: 'Try now',
+                },
+            },
+            browserParams: '#page=content&path=nala&query=',
+            tags: '@express-full-pricing @mas-studio @express @express-edit',
+        },
+        {
+            tcid: '4',
+            name: '@studio-full-pricing-express-edit-discard-product-icon-picker',
+            path: '/studio.html',
+            data: {
+                cardid: 'a7f68812-0fb3-42f9-a8d4-f28e3f1dd6d4',
+                productIcon: {
+                    name: 'Photoshop',
+                    original: {
+                        src: 'https://www.adobe.com/express/drafts/axel/assets/size-indicator.svg',
+                    },
+                    updated: {
+                        src: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
+                    },
                 },
             },
             browserParams: '#page=content&path=nala&query=',

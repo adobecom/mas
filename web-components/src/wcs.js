@@ -318,7 +318,11 @@ export function Wcs({ settings }) {
         promotionCode = '',
         wcsOsi = [],
     }) {
-        const { isValid, language: lang, locale } = resolveLanguageAndLocale(country, language, perpetual);
+        const {
+            isValid,
+            language: lang,
+            locale,
+        } = resolveLanguageAndLocale(country, language, perpetual);
         if (!isValid) throw new Error('Invalid language or country');
         const groupKey = [country, lang, promotionCode]
             .filter((val) => val)
@@ -338,8 +342,7 @@ export function Wcs({ settings }) {
                         locale,
                         offerSelectorIds: [],
                     };
-                    if (country !== 'GB' && !perpetual)
-                        options.language = lang;
+                    if (country !== 'GB' && !perpetual) options.language = lang;
                     const promises = new Map();
                     group = { options, promises };
                     queue.set(groupKey, group);

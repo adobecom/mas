@@ -1,9 +1,6 @@
 import { Defaults } from '../src/defaults.js';
 import { Wcs } from '../src/wcs.js';
-import {
-    SUPPORTED_COUNTRIES,
-    SUPPORTED_LANGUAGES,
-} from '../src/constants.js';
+import { SUPPORTED_COUNTRIES, SUPPORTED_LANGUAGES } from '../src/constants.js';
 
 import { mockFetch } from './mocks/fetch.js';
 import { withWcs } from './mocks/wcs.js';

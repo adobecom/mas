@@ -268,15 +268,22 @@ export function Wcs({ settings }) {
      * @returns {{ validLanguage: string, validCountry: string, locale: string }} Returns either valid language and locale, or default language and locale
      */
     function validateLanguageAndLocale(country, language, perpetual) {
-        const validLanguage = SUPPORTED_LANGUAGES.includes(language) ? language : Defaults.language;
-        const validCountry = SUPPORTED_COUNTRIES.includes(country) ? country : Defaults.country;
-        return { 
+        const validLanguage = SUPPORTED_LANGUAGES.includes(language)
+            ? language
+            : Defaults.language;
+        const validCountry = SUPPORTED_COUNTRIES.includes(country)
+            ? country
+            : Defaults.country;
+        return {
             validCountry,
-            validLanguage: (country !== 'GB' && !perpetual) ? 'MULT' : validLanguage,
-            locale: SUPPORTED_LANGUAGE_COUNTRY.includes(`${validLanguage}_${validCountry}`) 
-                ? `${validLanguage}_${validCountry}` 
-                : `${Defaults.language}_${Defaults.country}`
-         };
+            validLanguage:
+                country !== 'GB' && !perpetual ? 'MULT' : validLanguage,
+            locale: SUPPORTED_LANGUAGE_COUNTRY.includes(
+                `${validLanguage}_${validCountry}`,
+            )
+                ? `${validLanguage}_${validCountry}`
+                : `${Defaults.language}_${Defaults.country}`,
+        };
     }
 
     /**
@@ -301,7 +308,8 @@ export function Wcs({ settings }) {
         promotionCode = '',
         wcsOsi = [],
     }) {
-        const { validCountry, validLanguage, locale } = validateLanguageAndLocale(country, language, perpetual);
+        const { validCountry, validLanguage, locale } =
+            validateLanguageAndLocale(country, language, perpetual);
         const groupKey = [validCountry, validLanguage, promotionCode]
             .filter((val) => val)
             .join('-')
@@ -318,6 +326,7 @@ export function Wcs({ settings }) {
                     const options = {
                         country: validCountry,
                         locale,
+                        ...(perpetual ? {} : { language: validLanguage }),
                         offerSelectorIds: [],
                     };
                     const promises = new Map();
@@ -332,15 +341,15 @@ export function Wcs({ settings }) {
                     resolve,
                     reject,
                 });
-                flushQueue();
-            }).catch((error) => {
-                if (staleCache.has(cacheKey)) {
-                    return staleCache.get(cacheKey);
-                }
-                throw error;
-            });
-            cache.set(cacheKey, promiseWithFallback);
-            return promiseWithFallback;
+        flushQueue();
+    }).catch((error) => {
+        if (staleCache.has(cacheKey)) {
+            return staleCache.get(cacheKey);
+        }
+        throw error;
+    });
+    cache.set(cacheKey, promiseWithFallback);
+    return promiseWithFallback;
         });
     }
 

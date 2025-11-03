@@ -106,8 +106,12 @@ class MerchCardEditor extends LitElement {
             }
 
             // Set up new reactive controller for the fragment store
-            if (changedProperties.has('fragmentStore')) {
-                this.reactiveController.updateStores([this.fragmentStore]);
+            if (this.fragmentStore) {
+                if (!this.reactiveController) {
+                    this.reactiveController = new ReactiveController(this, [this.fragmentStore]);
+                } else {
+                    this.reactiveController.updateStores([this.fragmentStore]);
+                }
             }
 
             this.#updateCurrentVariantMapping();

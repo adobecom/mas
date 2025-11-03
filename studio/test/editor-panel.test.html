@@ -80,9 +80,19 @@
 
                     it('implements "discard changes"', async () => {
                         const discardButton = document.querySelector('sp-action-button[value="discard"]');
-                        const titleField = () => document.getElementById('card-title');
                         expect(discardButton.disabled).to.be.true;
-                        triggerRteInput(titleField(), 'test title');
+                        // Wait for rte-field element to exist and be initialized
+                        let field = document.getElementById('card-title');
+                        // Poll until editorView is ready
+                        let attempts = 0;
+                        while ((!field || !field.editorView) && attempts < 20) {
+                            await delay(100);
+                            field = document.getElementById('card-title');
+                            attempts++;
+                        }
+                        expect(field, 'field should exist').to.exist;
+                        expect(field.editorView, 'editorView should be initialized').to.exist;
+                        triggerRteInput(field, 'test title');
                         expect(fragment.getField('cardTitle').values).to.deep.equal(['test title']);
                         await editorPanel.updateComplete;
                         const merchCardEditor = document.querySelector('merch-card-editor');
@@ -95,7 +105,7 @@
                         btnDiscard.click();
                         await delay(100);
                         expect(fragment.getField('cardTitle').values).to.deep.equal([]);
-                        expect(titleField().innerHTML).to.equal('');
+                        expect(field.innerHTML).to.equal('');
                     });
 
                     it('implements "use"', async () => {
@@ -105,8 +115,18 @@
                         }));
                         await editorPanel.updateComplete;
                         await editorPanel.refreshed;
-                        const titleField = () => document.getElementById('card-title');
-                        triggerRteInput(titleField(), 'test title');
+                        // Wait for rte-field element to exist and be initialized
+                        let field = document.getElementById('card-title');
+                        // Poll until editorView is ready
+                        let attempts = 0;
+                        while ((!field || !field.editorView) && attempts < 20) {
+                            await delay(100);
+                            field = document.getElementById('card-title');
+                            attempts++;
+                        }
+                        expect(field, 'field should exist').to.exist;
+                        expect(field.editorView, 'editorView should be initialized').to.exist;
+                        triggerRteInput(field, 'test title');
                         await editorPanel.updateComplete;
                         const { authorPath, href, richText } = generateCodeToUse(
                             editorPanel.fragment,

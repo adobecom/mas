@@ -12,6 +12,7 @@ If you need to debug your action you can add this snippet to the workflow:
 ```
 
 once you push to the branch you can find an ssh connection string in action logs.
+test 2
 
 ## github account setup
 

@@ -1,5 +1,4 @@
 import { LitElement, html, css, nothing } from 'lit';
-
 class VersionHistoryButton extends LitElement {
     static properties = {
         versions: { type: Array, state: true },
@@ -514,21 +513,6 @@ class VersionHistoryButton extends LitElement {
         document.removeEventListener('click', this.handleClickOutside.bind(this));
     }
 
-    get versionHistoryIcon() {
-        return html`
-            <svg viewBox="0 0 36 36" focusable="false" aria-hidden="true" role="img" width="16" height="16">
-                <path
-                    fill-rule="evenodd"
-                    d="M19,6H17a1,1,0,0,0-1,1V17.586a1,1,0,0,0,.293.707L21.9,23.9a1,1,0,0,0,1.414,0l1.336-1.336a1,1,0,0,0,0-1.414L20,16.5V7A1,1,0,0,0,19,6Z"
-                ></path>
-                <path
-                    fill-rule="evenodd"
-                    d="M18,2A15.946,15.946,0,0,0,6.856,6.519,13.124,13.124,0,0,0,2.847,14H.5a.5.5,0,0,0-.5.5.49.49,0,0,0,.147.35l3.537,4.033a.5.5,0,0,0,.632,0l3.537-4.033A.49.49,0,0,0,8,14.5a.5.5,0,0,0-.5-.5H4.969A11.708,11.708,0,0,1,8.458,7.755a14,14,0,1,1-.009,20.481.5.5,0,0,0-.691.006l-.707.707a.506.506,0,0,0,0,.723A16,16,0,1,0,18,2Z"
-                ></path>
-            </svg>
-        `;
-    }
-
     get backArrowIcon() {
         return html`
             <svg class="back-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -654,7 +638,7 @@ class VersionHistoryButton extends LitElement {
                 ?disabled="${this.disabled || this.loading}"
                 @click="${this.togglePanel}"
             >
-                ${this.versionHistoryIcon}
+                <sp-icon-history slot="icon"></sp-icon-history>
                 <sp-tooltip self-managed placement="bottom">Version History</sp-tooltip>
             </sp-action-button>
 

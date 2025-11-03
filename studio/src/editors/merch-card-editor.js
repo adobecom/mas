@@ -100,6 +100,11 @@ class MerchCardEditor extends LitElement {
 
     willUpdate(changedProperties) {
         if (changedProperties.has('fragmentStore')) {
+            // Clean up old reactive controller
+            if (this.reactiveController) {
+                this.reactiveController.hostDisconnected();
+            }
+
             // Set up new reactive controller for the fragment store
             if (this.fragmentStore) {
                 this.reactiveController = new ReactiveController(this, [this.fragmentStore]);

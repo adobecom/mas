@@ -341,15 +341,15 @@ export function Wcs({ settings }) {
                     resolve,
                     reject,
                 });
-        flushQueue();
-    }).catch((error) => {
-        if (staleCache.has(cacheKey)) {
-            return staleCache.get(cacheKey);
-        }
-        throw error;
-    });
-    cache.set(cacheKey, promiseWithFallback);
-    return promiseWithFallback;
+                flushQueue();
+            }).catch((error) => {
+                if (staleCache.has(cacheKey)) {
+                    return staleCache.get(cacheKey);
+                }
+                throw error;
+            });
+            cache.set(cacheKey, promiseWithFallback);
+            return promiseWithFallback;
         });
     }
 

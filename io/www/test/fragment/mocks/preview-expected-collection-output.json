@@ -26,6 +26,7 @@
                 },
                 "fields": {
                     "label": "All",
+                    "collections": [],
                     "cards": ["c6727147-7992-4ca4-b566-819c52b0a585", "049231fd-0c45-4ef5-8792-7fa2dcd5005a"]
                 }
             }
@@ -36,6 +37,7 @@
                 "path": "/content/cq:tags/mas/offer_type/base",
                 "name": "base",
                 "title": "Base",
+                "i18n": [],
                 "id": "mas:offer_type/base",
                 "titlePath": "Merch at Scale : Offer type / Base"
             }
@@ -46,6 +48,7 @@
                 "path": "/content/cq:tags/mas/market_segments/com",
                 "name": "com",
                 "title": "COM",
+                "i18n": [],
                 "id": "mas:market_segments/com",
                 "titlePath": "Merch at Scale : Market segments / COM",
                 "description": ""
@@ -113,6 +116,7 @@
                 "path": "/content/cq:tags/mas/product/cc/photoshop",
                 "name": "photoshop",
                 "title": "Photoshop",
+                "i18n": [],
                 "id": "mas:product/cc/photoshop",
                 "titlePath": "Merch at Scale : Product / Creative Cloud / Photoshop",
                 "description": ""
@@ -181,6 +185,7 @@
                 },
                 "fields": {
                     "label": "Photo",
+                    "collections": [],
                     "icon": "https://main--milo--adobecom.hlx.page/drafts/astatescu/icons/camera.svg",
                     "cards": ["049231fd-0c45-4ef5-8792-7fa2dcd5005a", "c6727147-7992-4ca4-b566-819c52b0a585"]
                 }

@@ -1,13 +1,9 @@
 import { expect } from 'chai';
 import nock from 'nock';
 import { MockState } from './mocks/MockState.js';
-import {
-    getCorrespondingLocale,
-    getRegionalVariations,
-    transformer as customize,
-} from '../../src/fragment/transformers/customize.js';
+import { deepMerge, getCorrespondingLocale, transformer as customize } from '../../src/fragment/transformers/customize.js';
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
-import FRAGMENT_RESPONSE_EN from './mocks/fragment-en-default.json' with { type: 'json' };
+import FRAGMENT_COLL_RESPONSE_US from './mocks/collection-customization.json' with { type: 'json' };
 
 const FAKE_CONTEXT = {
     status: 200,
@@ -62,69 +58,82 @@ describe('customize subfunctions', function () {
         expect(getCorrespondingLocale('zh_CN')).to.equal('zh_CN');
         expect(getCorrespondingLocale('zh_TW')).to.equal('zh_TW');
     });
+});
 
-    it('getRegionalVariations should return both default and local variation if any', async function () {
-        nockFrenchFragment();
-        const caRegionalVariations = await getRegionalVariations({
-            ...FAKE_CONTEXT,
-            locale: 'fr_CA',
-            fragmentPath: 'ccd-slice-wide-cc-all-app',
-        });
-        expect(caRegionalVariations.variations.map((v) => v.path)).to.deep.equal([
-            '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
-            '/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app',
-        ]);
-        expect(caRegionalVariations.variations[0].fields.description).to.be.not.empty;
-        expect(caRegionalVariations.variations[1].fields.description).to.be.not.empty;
-        const chRegionalVariations = await getRegionalVariations({
-            ...FAKE_CONTEXT,
-            locale: 'fr_CH',
-            fragmentPath: 'ccd-slice-wide-cc-all-app',
-        });
-        expect(chRegionalVariations.variations.map((v) => v.path)).to.deep.equal([
-            '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
-            '/content/dam/mas/sandbox/fr_CH/ccd-slice-wide-cc-all-app',
-        ]);
-        const beRegionalVariations = await getRegionalVariations({
-            ...FAKE_CONTEXT,
-            locale: 'fr_BE',
-            fragmentPath: 'ccd-slice-wide-cc-all-app',
-        });
-        expect(beRegionalVariations.variations.map((v) => v.path)).to.deep.equal([
-            '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
-        ]);
-        const inRegionalVariations = await getRegionalVariations({
-            ...FAKE_CONTEXT,
-            body: FRAGMENT_RESPONSE_EN,
-            locale: 'en_IN',
-            fragmentPath: 'ccd-slice-wide-cc-all-app',
-        });
-        expect(inRegionalVariations.variations.map((v) => v.path)).to.deep.equal([
-            '/content/dam/mas/sandbox/en_US/ccd-slice-wide-cc-all-app',
-            '/content/dam/mas/sandbox/en_IN/ccd-slice-wide-cc-all-app',
-        ]);
+describe('customize collections', function () {
+    it('should have a working deep Merge function', function () {
+        const obj1 = {
+            a: 1,
+            b: {
+                c: 2,
+                d: 3,
+            },
+            e: [1, 2, 3],
+            h: [7, 8],
+        };
+        const obj2 = {
+            b: {
+                c: 20,
+                f: 4,
+            },
+            e: [4, 5],
+            g: 6,
+            h: [],
+        };
+        const expected = {
+            a: 1,
+            b: {
+                c: 20,
+                d: 3,
+                f: 4,
+            },
+            e: [4, 5],
+            g: 6,
+            h: [7, 8],
+        };
+        const result = deepMerge(obj1, obj2);
+        expect(result).to.deep.equal(expected);
     });
 
-    it('getRegionalVariations should return empty array in case a default language is not found', async function () {
-        const xxRegionalVariations = await getRegionalVariations({
+    it('should customize subcollections and sub fragments', async function () {
+        const result = await process({
             ...FAKE_CONTEXT,
-            locale: 'xx_XX',
-            fragmentPath: 'ccd-slice-wide-cc-all-app',
+            fragmentPath: 'another-collection',
+            locale: 'en_AU',
+            id: 'coll-en-us',
+            body: FRAGMENT_COLL_RESPONSE_US,
         });
-        expect(xxRegionalVariations.status).to.equal(404);
-    });
 
-    it('getRegionalVariations should return null in case some error happens', async function () {
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments')
-            .query({ path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app' })
-            .reply(404);
-        const caRegionalVariations = await getRegionalVariations({
-            ...FAKE_CONTEXT,
-            locale: 'fr_CA',
-            fragmentPath: 'ccd-slice-wide-cc-all-app',
-        });
-        expect(caRegionalVariations.status).to.equal(503);
+        expect(result.status).to.equal(200);
+
+        expect(result.body.fields.collections[0], 'expecting main fragment collections field to be customized').to.equal(
+            'subcoll-en-au',
+        );
+
+        expect(
+            result.body.referencesTree[0].identifier,
+            'expecting main fragment reference tree field to be customized as well',
+        ).to.equal('subcoll-en-au');
+
+        expect(
+            result.body.references['subcoll-en-au'].value.fields.cards,
+            'expecting cards field in references to be customized',
+        ).to.deep.equal(['some-card-en-us', 'some-other-card-en-au']);
+
+        expect(
+            result.body.referencesTree[0].referencesTree[0].identifier,
+            'expecting 1st card to not be customized in references tree',
+        ).to.deep.equal('some-card-en-us');
+
+        expect(
+            result.body.referencesTree[0].referencesTree[1].identifier,
+            'expecting 2nd card to be customized in references tree',
+        ).to.deep.equal('some-other-card-en-au');
+
+        const cardAU = result.body.references['some-other-card-en-au'].value;
+        expect(cardAU.title).to.equal('Photography Promo AU');
+        expect(cardAU.fields.cardTitle).to.equal('Photography  (1TB)');
+        expect(cardAU.fields.backgroundImage).to.equal('https://www.adobe.com/my/image.jpg');
     });
 });
 
@@ -237,6 +246,7 @@ describe('customize typical cases', function () {
     it('should return en_US fragment (us fragment, en_AU locale)', async function () {
         const usFragment = structuredClone(FRAGMENT_RESPONSE_FR);
         usFragment.path = '/content/dam/mas/sandbox/en_US/ccd-slice-wide-cc-all-app';
+        usFragment.fields.variations = [''];
         // french fragment by id
         nock('https://odin.adobe.com')
             .get(`/adobe/sites/fragments/some-en-us-fragment?references=all-hydrated`)
@@ -277,7 +287,7 @@ describe('customize typical cases', function () {
             },
         });
         expect(result.status).to.equal(200);
-        expect(result.body).to.deep.equal({
+        expect(result.body).to.deep.include({
             path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
             some: 'corps',
         });
@@ -390,7 +400,7 @@ describe('customize corner cases', function () {
             surface: 'sandbox',
             locale: 'fr_FR',
         });
-        expect(result.body).to.deep.equal({
+        expect(result.body).to.deep.include({
             path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
             some: 'body',
         });

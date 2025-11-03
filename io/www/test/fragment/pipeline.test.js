@@ -72,7 +72,7 @@ const EXPECTED_BODY = {
     path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
 };
 //EXPECTED BODY SHA256 hash
-const EXPECTED_BODY_HASH = '5c4a4f47cfdc436ea356f341003a8fa5672f0f48b95d9b8c47b81b3f6d18cb29';
+const EXPECTED_BODY_HASH = 'e40a8c822bb0e6fd5ef462ee327d1e9240aa74219ec67d8da63ca15aa7250de9';
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 
@@ -267,6 +267,36 @@ describe('pipeline corner cases', () => {
         });
     });
 
+    it('bad path should return 400', async () => {
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments/some-fr-fr-fragment?references=all-hydrated')
+            .reply(200, { path: '/content/bad-path' });
+        const state = new MockState();
+        await state.put(
+            'req-some-en-us-fragment-fr_FR',
+            JSON.stringify({
+                fragmentsIds: {
+                    'dictionary-id': 'fr_FR_dictionary',
+                    'default-locale-id': 'some-fr-fr-fragment',
+                },
+                lastModified: 'Tue, 21 Nov 2024 08:00:00 GMT',
+                hash: EXPECTED_BODY_HASH,
+            }),
+        );
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+        });
+        expect(result).to.deep.equal({
+            headers: EXPECTED_HEADERS,
+            body: {
+                message: 'source path is either not here or invalid',
+            },
+            statusCode: 400,
+        });
+    });
+
     it('should handle fetch timeouts', async () => {
         nock('https://odin.adobe.com')
             .get('/adobe/sites/fragments/test-fragment?references=all-hydrated')
@@ -422,15 +452,6 @@ describe('configuration caching', () => {
         });
         expect(result1.statusCode).to.equal(200);
 
-        setupFragmentMocks({
-            id: 'some-en-us-fragment',
-            path: 'someFragment',
-            fields: {
-                description: 'corps',
-                cta: '{{buy-now}}',
-            },
-        });
-
         const result2 = await getFragment({
             id: 'some-en-us-fragment',
             state,
@@ -445,15 +466,6 @@ describe('configuration caching', () => {
         const performanceStub = sinon.stub(performance, 'now');
         performanceStub.returns(5 * 60 * 1000 + 1000);
 
-        setupFragmentMocks({
-            id: 'some-en-us-fragment',
-            path: 'someFragment',
-            fields: {
-                description: 'corps',
-                cta: '{{buy-now}}',
-            },
-        });
-
         const result3 = await getFragment({
             id: 'some-en-us-fragment',
             state,
@@ -462,7 +474,7 @@ describe('configuration caching', () => {
         expect(result3.statusCode).to.equal(200);
 
         configCalls = stateGetSpy.getCalls().filter((call) => call.args[0] === 'configuration');
-        expect(configCalls).to.have.length(2);
+        expect(configCalls).to.have.length(1);
 
         performanceStub.restore();
         stateGetSpy.restore();

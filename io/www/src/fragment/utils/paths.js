@@ -30,17 +30,6 @@ function odinReferences(id, allHydrated = false, preview) {
 }
 
 /**
- * builds path to the fragment
- * @param {*} surface surface of the fragment,
- * @param {*} locale locale of the fragment,
- * @param {*} fragmentPath subpath of the fragment from the locale root
- * @returns full fetchable path to the fragment
- */
-function odinPath(surface, locale, fragmentPath) {
-    return `${MAS_ROOT}/${surface}/${locale}/${fragmentPath}`;
-}
-
-/**
  * builds a full fetchable url to the fragment
  * @param {*} surface surface of the fragment,
  * @param {*} locale locale of the fragment,
@@ -52,4 +41,4 @@ function odinUrl(surface, locale, fragmentPath, preview) {
     return `${rootURL(preview)}?path=${MAS_ROOT}/${surface}/${locale}/${fragmentPath}`;
 }
 
-export { PATH_TOKENS, FRAGMENT_URL_PREFIX, MAS_ROOT, odinPath, odinUrl, odinId, odinReferences };
+export { PATH_TOKENS, FRAGMENT_URL_PREFIX, MAS_ROOT, odinUrl, odinId, odinReferences };

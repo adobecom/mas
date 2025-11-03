@@ -23,7 +23,7 @@
     },
     "dependencies": {
         "@adobecom/milo": "github:adobecom/milo#stage",
-        "@playwright/test": "^1.42.1",
+        "@playwright/test": "^1.56.1",
         "@spectrum-css/button": "^13.5.0",
         "@spectrum-css/link": "^5.2.0",
         "@spectrum-css/page": "^8.2.0",

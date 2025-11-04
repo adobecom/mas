@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import nock from 'nock';
 import { main as action, resetCache } from '../../src/fragment/pipeline.js';
 import { mockDictionary } from './replace.test.js';
+import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
 import zlib from 'zlib';
 import sinon from 'sinon';
 
@@ -242,7 +243,7 @@ describe('pipeline full use case', () => {
 
         nock('https://odin.adobe.com')
             .get('/adobe/sites/fragments/de_DE_dictionary?references=all-hydrated')
-            .reply(200, mockDictionary());
+            .reply(200, DICTIONARY_RESPONSE);
 
         const state = new MockState();
         const result = await getFragment({
